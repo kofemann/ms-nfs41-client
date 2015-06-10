@@ -19,7 +19,7 @@
 *   Microsoft Visual Studio 2010
 *   Windows Driver Development Kit (WinDDK 6000 or later)
 *   ms-nfs41-client source code:   
-    `> git clone git://citi.umich.edu/projects/ms-nfs41-client.git`
+    `> https://github.com/kofemann/ms-nfs41-client.git`
 
 ### Building the rpc library and nfs client daemon
 
