@@ -119,7 +119,7 @@
 ### Requirements
 
 *   [Cygwin](http://www.cygwin.com "www.cygwin.com"), including packages gcc-core, make, time, tirpc, git
-*   [Connectathon Test Suite](http://www.connectathon.org/nfstests.html "www.connectathon.org")
+*   [Connectathon Test Suite](https://git.linux-nfs.org/?p=steved/cthon04.git;a=summary "git.linux-nfs.org")
 *   ms-nfs41-client source code (patches for connectathon are located in **ms-nfs41-client\tests**)
 
 ### Instructions
