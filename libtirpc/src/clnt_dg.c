@@ -55,6 +55,10 @@
 //#include <err.h>
 #include "rpc_com.h"
 
+#ifdef _WIN32
+#undef IP_RECVERR
+#endif
+
 #ifdef IP_RECVERR
 #include <asm/types.h>
 #include <linux/errqueue.h>

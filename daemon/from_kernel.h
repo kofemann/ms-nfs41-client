@@ -152,6 +152,7 @@ typedef struct _FILE_BOTH_DIR_INFORMATION {
     WCHAR FileName[1];
 } FILE_BOTH_DIR_INFORMATION, *PFILE_BOTH_DIR_INFORMATION;
 
+#ifdef FIXME_OLD_DDK
 typedef struct _FILE_FULL_DIR_INFO {
     ULONG NextEntryOffset;
     ULONG FileIndex;
@@ -166,6 +167,7 @@ typedef struct _FILE_FULL_DIR_INFO {
     ULONG EaSize;
     WCHAR FileName[1];
 } FILE_FULL_DIR_INFO, *PFILE_FULL_DIR_INFO;
+#endif /* FIXME_OLD_DDK */
 
 typedef struct _FILE_ID_FULL_DIR_INFO {
     ULONG NextEntryOffset;

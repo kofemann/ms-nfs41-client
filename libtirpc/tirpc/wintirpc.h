@@ -45,7 +45,7 @@
 #include <process.h>
 #include <basetsd.h>
 
-#define snprintf _snprintf
+//#define snprintf _snprintf
 //#define vsnprintf _vsnprintf
 #define strcasecmp _stricmp
 //#define strdup _strdup

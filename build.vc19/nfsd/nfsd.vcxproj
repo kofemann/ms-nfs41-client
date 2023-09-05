@@ -1,0 +1,214 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{FAE57101-F0EE-46CB-986D-E19A796693F7}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>nfsd</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32_LEAN_AND_MEAN;NO_CB_4_KRB5P;STANDALONE_NFSD;_CRT_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\..\libtirpc\tirpc;..\..\sys;..\..\dll;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>iphlpapi.lib;ws2_32.lib;wldap32.lib;..\$(Configuration)\libtirpc.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32_LEAN_AND_MEAN;NO_CB_4_KRB5P;STANDALONE_NFSD;_CRT_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\..\libtirpc\tirpc;..\..\sys;..\..\dll;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>iphlpapi.lib;ws2_32.lib;wldap32.lib;..\$(Platform)\$(Configuration)\libtirpc.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32_LEAN_AND_MEAN;NO_CB_4_KRB5P;_CRT_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\..\libtirpc\tirpc;..\..\sys;..\..\dll;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>iphlpapi.lib;ws2_32.lib;wldap32.lib;..\$(Configuration)\libtirpc.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32_LEAN_AND_MEAN;NO_CB_4_KRB5P;_CRT_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\..\libtirpc\tirpc;..\..\sys;..\..\dll;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>iphlpapi.lib;ws2_32.lib;wldap32.lib;..\$(Platform)\$(Configuration)\libtirpc.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\daemon\acl.c" />
+    <ClCompile Include="..\..\daemon\callback_server.c" />
+    <ClCompile Include="..\..\daemon\callback_xdr.c" />
+    <ClCompile Include="..\..\daemon\daemon_debug.c" />
+    <ClCompile Include="..\..\daemon\delegation.c" />
+    <ClCompile Include="..\..\daemon\ea.c" />
+    <ClCompile Include="..\..\daemon\getattr.c" />
+    <ClCompile Include="..\..\daemon\idmap.c" />
+    <ClCompile Include="..\..\daemon\lock.c" />
+    <ClCompile Include="..\..\daemon\lookup.c" />
+    <ClCompile Include="..\..\daemon\mount.c" />
+    <ClCompile Include="..\..\daemon\namespace.c" />
+    <ClCompile Include="..\..\daemon\name_cache.c" />
+    <ClCompile Include="..\..\daemon\nfs41_client.c" />
+    <ClCompile Include="..\..\daemon\nfs41_compound.c" />
+    <ClCompile Include="..\..\daemon\nfs41_daemon.c" />
+    <ClCompile Include="..\..\daemon\nfs41_ops.c" />
+    <ClCompile Include="..\..\daemon\nfs41_rpc.c" />
+    <ClCompile Include="..\..\daemon\nfs41_server.c" />
+    <ClCompile Include="..\..\daemon\nfs41_session.c" />
+    <ClCompile Include="..\..\daemon\nfs41_superblock.c" />
+    <ClCompile Include="..\..\daemon\nfs41_xdr.c" />
+    <ClCompile Include="..\..\daemon\open.c" />
+    <ClCompile Include="..\..\daemon\pnfs_debug.c" />
+    <ClCompile Include="..\..\daemon\pnfs_device.c" />
+    <ClCompile Include="..\..\daemon\pnfs_io.c" />
+    <ClCompile Include="..\..\daemon\pnfs_layout.c" />
+    <ClCompile Include="..\..\daemon\readdir.c" />
+    <ClCompile Include="..\..\daemon\readwrite.c" />
+    <ClCompile Include="..\..\daemon\recovery.c" />
+    <ClCompile Include="..\..\daemon\service.c" />
+    <ClCompile Include="..\..\daemon\setattr.c" />
+    <ClCompile Include="..\..\daemon\symlink.c" />
+    <ClCompile Include="..\..\daemon\upcall.c" />
+    <ClCompile Include="..\..\daemon\util.c" />
+    <ClCompile Include="..\..\daemon\volume.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\daemon\daemon_debug.h" />
+    <ClInclude Include="..\..\daemon\delegation.h" />
+    <ClInclude Include="..\..\daemon\from_kernel.h" />
+    <ClInclude Include="..\..\daemon\idmap.h" />
+    <ClInclude Include="..\..\daemon\list.h" />
+    <ClInclude Include="..\..\daemon\name_cache.h" />
+    <ClInclude Include="..\..\daemon\nfs41.h" />
+    <ClInclude Include="..\..\daemon\nfs41_callback.h" />
+    <ClInclude Include="..\..\daemon\nfs41_compound.h" />
+    <ClInclude Include="..\..\daemon\nfs41_const.h" />
+    <ClInclude Include="..\..\daemon\nfs41_ops.h" />
+    <ClInclude Include="..\..\daemon\nfs41_types.h" />
+    <ClInclude Include="..\..\daemon\nfs41_xdr.h" />
+    <ClInclude Include="..\..\daemon\pnfs.h" />
+    <ClInclude Include="..\..\daemon\recovery.h" />
+    <ClInclude Include="..\..\daemon\service.h" />
+    <ClInclude Include="..\..\daemon\tree.h" />
+    <ClInclude Include="..\..\daemon\upcall.h" />
+    <ClInclude Include="..\..\daemon\util.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

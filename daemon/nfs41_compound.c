@@ -362,7 +362,7 @@ retry:
                 saved_sec_flavor = session->client->rpc->sec_flavor;
                 saved_auth = session->client->rpc->rpc->cl_auth;
                 if (op == OP_LOOKUP || op == OP_OPEN) {
-                    const nfs41_component *name;
+                    const nfs41_component *name = NULL;
                     nfs41_path_fh tmp = { 0 };                   
                     nfs41_getfh_res *getfh;
                     nfs41_lookup_args *largs;

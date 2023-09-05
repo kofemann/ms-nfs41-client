@@ -275,7 +275,7 @@ static int config_find_option(
 
     /* find the config_option by key */
     for (i = 0; i < count; i++) {
-        if (stricmp(pair->key, g_options[i].key) == 0) {
+        if (_stricmp(pair->key, g_options[i].key) == 0) {
             *option = &g_options[i];
             status = NO_ERROR;
             break;
