@@ -139,7 +139,7 @@
       <PreprocessorDefinitions>EXPLODE_POOLTAGS;MONOLITHIC_MINIRDR;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\ntoskrnl.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\hal.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\bufferoverflowk.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\ksecdd.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\rxce.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\rdbsslib.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\copysup.lib</AdditionalDependencies>
+      <AdditionalDependencies>$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ntoskrnl.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\hal.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\bufferoverflowk.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ksecdd.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rxce.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rdbsslib.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\copysup.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
@@ -149,7 +149,7 @@
       <PreprocessorDefinitions>EXPLODE_POOLTAGS;MONOLITHIC_MINIRDR;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\ntoskrnl.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\hal.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\bufferoverflowk.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\ksecdd.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\rxce.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\rdbsslib.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\copysup.lib</AdditionalDependencies>
+      <AdditionalDependencies>$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ntoskrnl.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\hal.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\bufferoverflowk.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ksecdd.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rxce.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rdbsslib.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\copysup.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -159,7 +159,7 @@
       <PreprocessorDefinitions>EXPLODE_POOLTAGS;MONOLITHIC_MINIRDR;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\ntoskrnl.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\hal.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\bufferoverflowk.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\ksecdd.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\rxce.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\rdbsslib.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\copysup.lib</AdditionalDependencies>
+      <AdditionalDependencies>$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ntoskrnl.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\hal.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\bufferoverflowk.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ksecdd.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rxce.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rdbsslib.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\copysup.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -169,7 +169,7 @@
       <PreprocessorDefinitions>EXPLODE_POOLTAGS;MONOLITHIC_MINIRDR;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\ntoskrnl.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\hal.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\bufferoverflowk.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\ksecdd.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\rxce.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\rdbsslib.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\copysup.lib</AdditionalDependencies>
+      <AdditionalDependencies>$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ntoskrnl.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\hal.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\bufferoverflowk.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ksecdd.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rxce.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rdbsslib.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\copysup.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
@@ -179,7 +179,7 @@
       <PreprocessorDefinitions>EXPLODE_POOLTAGS;MONOLITHIC_MINIRDR;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\ntoskrnl.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\hal.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\bufferoverflowk.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\ksecdd.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\rxce.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\rdbsslib.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\copysup.lib</AdditionalDependencies>
+      <AdditionalDependencies>$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ntoskrnl.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\hal.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\bufferoverflowk.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ksecdd.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rxce.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rdbsslib.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\copysup.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
@@ -189,7 +189,7 @@
       <PreprocessorDefinitions>EXPLODE_POOLTAGS;MONOLITHIC_MINIRDR;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\ntoskrnl.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\hal.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\bufferoverflowk.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\ksecdd.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\rxce.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\rdbsslib.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\copysup.lib</AdditionalDependencies>
+      <AdditionalDependencies>$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ntoskrnl.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\hal.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\bufferoverflowk.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ksecdd.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rxce.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rdbsslib.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\copysup.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -199,7 +199,7 @@
       <PreprocessorDefinitions>EXPLODE_POOLTAGS;MONOLITHIC_MINIRDR;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\ntoskrnl.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\hal.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\bufferoverflowk.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\ksecdd.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\rxce.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\rdbsslib.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\copysup.lib</AdditionalDependencies>
+      <AdditionalDependencies>$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ntoskrnl.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\hal.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\bufferoverflowk.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ksecdd.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rxce.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rdbsslib.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\copysup.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -209,7 +209,7 @@
       <PreprocessorDefinitions>EXPLODE_POOLTAGS;MONOLITHIC_MINIRDR;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\ntoskrnl.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\hal.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\bufferoverflowk.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\ksecdd.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\rxce.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\rdbsslib.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\copysup.lib</AdditionalDependencies>
+      <AdditionalDependencies>$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ntoskrnl.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\hal.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\bufferoverflowk.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ksecdd.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rxce.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rdbsslib.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\copysup.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
