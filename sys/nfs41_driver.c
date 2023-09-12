@@ -6579,6 +6579,34 @@ NTSTATUS nfs41_init_ops()
     ZeroAndInitializeNodeType(&nfs41_ops, RDBSS_NTC_MINIRDR_DISPATCH, 
         sizeof(MINIRDR_DISPATCH));
 
+#define FIXME_WORKAROUND_FOR_WIN10_SCAVENGER_CRASH 1
+#ifdef FIXME_WORKAROUND_FOR_WIN10_SCAVENGER_CRASH
+    /*
+     * gisburn: Ugly workaround for crash in Win10 scavenger code
+     * with a stack trace like this:
+     * -- snip --
+     * nt!KeBugCheckEx
+     * nt!KiBugCheckDispatch+0x69
+     * nt!KiFastFailDispatch+0xd0
+     * nt!KiRaiseSecurityCheckFailure+0x31d (TrapFrame @ fffffe0b`41ca0900)
+     * nfs41_driver!RtlFailFast(void)+0x5 (Inline Function @ fffff801`41ba47dd) [onecore\external\ifskit\inc\wdm.h @ 11545] 
+     * nfs41_driver!FatalListEntryError(void)+0x5 (Inline Function @ fffff801`41ba47dd) [onecore\external\ifskit\inc\wdm.h @ 11778] 
+     * nfs41_driver!RemoveEntryList(void)+0x33 (Inline Function @ fffff801`41ba47dd) [onecore\external\ifskit\inc\wdm.h @ 11811] 
+     * nfs41_driver!RxpUndoScavengerFinalizationMarking(void * Instance = 0xffffca8f`b8f537d0)+0xad [base\fs\rdr2\rxce\scavengr.c @ 1154] 
+     * nfs41_driver!RxScavengerFinalizeEntries(struct _RDBSS_DEVICE_OBJECT * RxDeviceObject = <Value unavailable error>)+0x407 [base\fs\rdr2\rxce\scavengr.c @ 1710] 
+     * nfs41_driver!RxScavengerTimerRoutine(void * Context = 0xffffca8f`bb0d4060)+0x87 [base\fs\rdr2\rxce\scavengr.c @ 1826] 
+     * nfs41_driver!RxpWorkerThreadDispatcher(struct _RX_WORK_QUEUE_ * pWorkQueue = 0xfffff801`41b99240, union _LARGE_INTEGER * pWaitInterval = 0x00000000`00000000)+0xbb [base\fs\rdr2\rxce\rxworkq.c @ 1343] 
+     * nfs41_driver!RxBootstrapWorkerThreadDispatcher(struct _RX_WORK_QUEUE_ * pWorkQueue = <Value unavailable error>)+0xb [base\fs\rdr2\rxce\rxworkq.c @ 1469] 
+     * nt!PspSystemThreadStartup+0x55
+     * nt!KiStartSystemThread+0x28
+     * -- snip --
+     *
+     * As workaround we "disable" the scavenger by only running it
+     * every 128 years, until then we should have found a fix.
+     */
+    nfs41_ops.ScavengerTimeout = 3600UL*24*365*128;
+#endif /* FIXME_WORKAROUND_FOR_WIN10_SCAVENGER_CRASH */
+
     nfs41_ops.MRxFlags = (RDBSS_MANAGE_NET_ROOT_EXTENSION |
                             RDBSS_MANAGE_V_NET_ROOT_EXTENSION |
                             RDBSS_MANAGE_FCB_EXTENSION |
