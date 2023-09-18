@@ -384,8 +384,10 @@ VOID ServiceStart(DWORD argc, LPTSTR *argv)
 #endif
     /* acquire and store in global memory current dns domain name.
      * needed for acls */
-    if (getdomainname())
-        exit(0);
+    if (getdomainname()) {
+        eprintf("Could not get domain name\n");
+        exit(1);
+    }
 
     nfs41_server_list_init();
 
