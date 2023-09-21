@@ -61,13 +61,14 @@ static VOID PrintUsage(LPTSTR pProcess)
         TEXT("\t-o <comma-separated mount options>\n")
         TEXT("Mount options:\n")
         TEXT("\tro\tmount as read-only\n")
+        TEXT("\tport=#\tTCP port to use (defaults to 2049)\n")
         TEXT("\trsize=#\tread buffer size in bytes\n")
         TEXT("\twsize=#\twrite buffer size in bytes\n")
         TEXT("\tsec=krb5:krb5i:krb5p\tspecify gss security flavor\n")
         TEXT("\twritethru\tturns off rdbss caching for writes\n")
         TEXT("\tnocache\tturns off rdbss caching\n")
         TEXT("\ttimeout=#\tspecify upcall timeout value in seconds (default 120s)\n"),
-        pProcess, pProcess, pProcess);
+        pProcess);
 }
 
 DWORD __cdecl _tmain(DWORD argc, LPTSTR argv[])

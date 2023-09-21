@@ -36,6 +36,7 @@
 /* nfs41_root */
 int nfs41_root_create(
     IN const char *name,
+    IN uint32_t port,
     IN uint32_t sec_flavor,
     IN uint32_t wsize,
     IN uint32_t rsize,
@@ -44,7 +45,7 @@ int nfs41_root_create(
     int status = NO_ERROR;
     nfs41_root *root;
 
-    dprintf(NSLVL, "--> nfs41_root_create()\n");
+    dprintf(NSLVL, "--> nfs41_root_create(name=%s, port=%d)\n", name, port);
 
     root = calloc(1, sizeof(nfs41_root));
     if (root == NULL) {
@@ -60,7 +61,7 @@ int nfs41_root_create(
     root->sec_flavor = sec_flavor;
 
     /* generate a unique client_owner */
-    status = nfs41_client_owner(name, sec_flavor, &root->client_owner);
+    status = nfs41_client_owner(name, port, sec_flavor, &root->client_owner);
     if (status) {
         eprintf("nfs41_client_owner() failed with %d\n", status);
         free(root);
@@ -443,6 +444,8 @@ static int referral_mount_location(
     int status = ERROR_BAD_NET_NAME;
     uint32_t i;
 
+    dprintf(NSLVL, "--> referral_mount_location()\n");
+
     /* create a client and session for the first available server */
     for (i = 0; i < loc->server_count; i++) {
         /* XXX: only deals with 'address' as a hostname with default port */
@@ -453,6 +456,9 @@ static int referral_mount_location(
         if (status == NO_ERROR)
             break;
     }
+
+    dprintf(NSLVL, "<-- referral_mount_location() returning %d\n", status);
+
     return status;
 }
 

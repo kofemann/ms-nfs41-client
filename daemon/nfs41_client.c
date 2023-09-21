@@ -353,6 +353,7 @@ out:
 
 int nfs41_client_owner(
     IN const char *name,
+    IN uint32_t port,
     IN uint32_t sec_flavor,
     OUT client_owner4 *owner)
 {
@@ -400,6 +401,12 @@ int nfs41_client_owner(
     }
 
     if (!CryptHashData(hash, (const BYTE*)name, (DWORD)strlen(name), 0)) {
+        status = GetLastError();
+        eprintf("CryptHashData() failed with %d\n", status);
+        goto out_hash;
+    }
+
+    if (!CryptHashData(hash, (const BYTE*)&port, (DWORD)sizeof(port), 0)) {
         status = GetLastError();
         eprintf("CryptHashData() failed with %d\n", status);
         goto out_hash;

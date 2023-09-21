@@ -338,6 +338,6 @@ out:
             "error %d\n", hostname, port, status);
     else
         dprintf(SRVLVL, "<-- nfs41_server_resolve(%s:%u) returning "
-            "%s\n", hostname, port, addrs->arr[0].uaddr);
+            "OK %s\n", hostname, port, addrs->arr[0].uaddr);
     return status;
 }

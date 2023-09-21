@@ -62,6 +62,7 @@ pmap_getport(address, program, version, protocol)
 	u_long version;
 	u_int protocol;
 {
+	(void)fprintf(stderr, "pmap_getport: returning default NFS port 2049\n");
 	return (u_short)2049;
 }
 #else 

@@ -37,6 +37,8 @@ static int parse_mount(unsigned char *buffer, uint32_t length, nfs41_upcall *upc
 
     status = get_name(&buffer, &length, &args->hostname);
     if(status) goto out;
+    status = safe_read(&buffer, &length, &args->port, sizeof(DWORD));
+    if (status) goto out;
     status = get_name(&buffer, &length, &args->path);
     if(status) goto out;
     status = safe_read(&buffer, &length, &args->sec_flavor, sizeof(DWORD));
@@ -46,10 +48,12 @@ static int parse_mount(unsigned char *buffer, uint32_t length, nfs41_upcall *upc
     status = safe_read(&buffer, &length, &args->wsize, sizeof(DWORD));
     if (status) goto out;
 
-    dprintf(1, "parsing NFS14_MOUNT: srv_name=%s root=%s sec_flavor=%s "
-        "rsize=%d wsize=%d\n", args->hostname, args->path, 
+    dprintf(1, "parsing NFS41_MOUNT: srv_name=%s port=%d root=%s "
+        "sec_flavor=%s rsize=%d wsize=%d\n", args->hostname, args->port, args->path, 
         secflavorop2name(args->sec_flavor), args->rsize, args->wsize);
+    return status;
 out:
+    dprintf(1, "parsing NFS41_MOUNT: failed %d\n", status);
     return status;
 }
 
@@ -64,7 +68,7 @@ static int handle_mount(nfs41_upcall *upcall)
     nfs41_path_fh file;
 
     // resolve hostname,port
-    status = nfs41_server_resolve(args->hostname, 2049, &addrs);
+    status = nfs41_server_resolve(args->hostname, (unsigned short)args->port, &addrs);
     if (status) {
         eprintf("nfs41_server_resolve() failed with %d\n", status);
         goto out;
@@ -76,7 +80,7 @@ static int handle_mount(nfs41_upcall *upcall)
         root = upcall->root_ref;
     } else {
         // create root
-        status = nfs41_root_create(args->hostname, args->sec_flavor,
+        status = nfs41_root_create(args->hostname, args->port, args->sec_flavor,
             args->wsize + WRITE_OVERHEAD, args->rsize + READ_OVERHEAD, &root);
         if (status) {
             eprintf("nfs41_root_create() failed %d\n", status);

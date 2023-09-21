@@ -287,6 +287,7 @@ typedef struct __nfs41_root {
 /* nfs41_namespace.c */
 int nfs41_root_create(
     IN const char *name,
+    IN uint32_t port,
     IN uint32_t sec_flavor,
     IN uint32_t wsize,
     IN uint32_t rsize,
@@ -404,6 +405,7 @@ void nfs41_server_addrs(
 /* nfs41_client.c */
 int nfs41_client_owner(
     IN const char *name,
+    IN uint32_t port,
     IN uint32_t sec_flavor,
     OUT client_owner4 *owner);
 
