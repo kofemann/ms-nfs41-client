@@ -57,6 +57,10 @@ static VOID PrintUsage(LPTSTR pProcess)
         TEXT("\t-h\thelp\n")
         TEXT("\t-d\tunmount\n")
         TEXT("\t-f\tforce unmount if the drive is in use\n")
+        TEXT("\t-F <type>\tFilesystem type to use (only 'nfs' supported)"
+	    " (Solaris/Illumos compat)\n")
+        TEXT("\t-t <type>\tFilesystem type to use (only 'nfs' supported)"
+	    " (Linux compat)\n")
         TEXT("\t-p\tmake the mount persist over reboots\n")
         TEXT("\t-o <comma-separated mount options>\n")
         TEXT("Mount options:\n")
@@ -133,6 +137,33 @@ DWORD __cdecl _tmain(DWORD argc, LPTSTR argv[])
                 if (!ParseMountOptions(argv[i], &Options))
                 {
                     result = ERROR_BAD_ARGUMENTS;
+                    goto out_free;
+                }
+            }
+	    /*
+	     * Filesystem type, we use this for Solaris
+	     * $ mount(1M) -F nfs ... # and Linux
+	     * $ mount.nfs4 -t nfs ... # compatiblity
+	     */
+            else if ((_tcscmp(argv[i], TEXT("-F")) == 0) ||
+	             (_tcscmp(argv[i], TEXT("-t")) == 0))
+            {
+                ++i;
+                if (i >= argc)
+                {
+                    result = ERROR_BAD_ARGUMENTS;
+                    _ftprintf(stderr, TEXT("Filesystem type missing ")
+                        TEXT("after '-t'/'-F'.\n\n"));
+                    PrintUsage(argv[0]);
+                    goto out_free;
+                }
+
+                if (_tcscmp(argv[i], TEXT("nfs")) != 0)
+                {
+                    result = ERROR_BAD_ARGUMENTS;
+                    _ftprintf(stderr, TEXT("Filesystem type '%s' ")
+                        TEXT("not supported.\n\n"), argv[i]);
+                    PrintUsage(argv[0]);
                     goto out_free;
                 }
             }
