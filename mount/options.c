@@ -53,7 +53,7 @@ void FreeMountOptions(
     }
 }
 
-static BOOL FindOptionByName(
+BOOL FindOptionByName(
     IN LPCTSTR Name,
     IN PMOUNT_OPTION_LIST Options,
     OUT PFILE_FULL_EA_INFORMATION* ppOption)

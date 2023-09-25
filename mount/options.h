@@ -75,6 +75,11 @@ DWORD InitializeMountOptions(
 void FreeMountOptions(
     IN OUT PMOUNT_OPTION_LIST Options);
 
+BOOL FindOptionByName(
+    IN LPCTSTR Name,
+    IN PMOUNT_OPTION_LIST Options,
+    OUT PFILE_FULL_EA_INFORMATION* ppOption);
+
 BOOL ParseMountOptions(
     IN LPTSTR Arg,
     IN OUT PMOUNT_OPTION_LIST Options);

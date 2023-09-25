@@ -29,6 +29,7 @@
 #include "nfs41_driver.h" /* NFS41_PROVIDER_NAME_A */
 #include "options.h"
 
+#define MOUNT_CONFIG_NFS_PORT_DEFAULT   2049
 
 DWORD EnumMounts(
     IN LPNETRESOURCE pContainer);
@@ -245,8 +246,48 @@ static DWORD ParseRemoteName(
 {
     DWORD result = NO_ERROR;
     LPTSTR pEnd;
+    int port = 0;
+    PFILE_FULL_EA_INFORMATION port_option_val;
+    wchar_t srvname[MAX_PATH+1+32]; /* sizeof(hostname+'@'+integer) */
     
+    /*
+     * gisburn: Fixme: Implement nfs://-URLS per RFC 2224 ("NFS URL
+     * SCHEME", see https://www.rfc-editor.org/rfc/rfc2224.html),
+     * including port support (nfs://hostname@port/path/...)
+     */
+    if (!wcsncmp(pRemoteName, TEXT("nfs://"), 6)) {
+        _ftprintf(stderr, TEXT("nfs://-URLs not supported yet.\n"));
+        result = ERROR_NOT_SUPPORTED;
+        goto out;
+    }
+
     ConvertUnixSlashes(pRemoteName);
+
+    /*
+     * Remote hostname should not contain a '@' since we use this
+     * to communicate the NFSv4 port number below
+     * Use $ nfs_mount.exe -o port=portnumber ... # instead
+     */
+    if (_tcsrchr(pRemoteName, TEXT('@'))) {
+        _ftprintf(stderr, TEXT("Remote path should not contain '@', ")
+	    TEXT("use -o port=tcpportnum.\n"));
+        result = ERROR_BAD_ARGUMENTS;
+        goto out;
+    }
+
+    if (FindOptionByName(TEXT("port"), pOptions, &port_option_val)) {
+        wchar_t *port_value_wstr = (PTCH)(port_option_val->EaName + port_option_val->EaNameLength + sizeof(TCHAR));
+
+	port = _wtoi(port_value_wstr);
+	if ((port < 1) || (port > 65535)) {
+            result = ERROR_BAD_ARGUMENTS;
+            goto out;
+	}
+    }
+    else
+    {
+        port = MOUNT_CONFIG_NFS_PORT_DEFAULT;
+    }
 
     /* fail if the server name doesn't end with :\ */
     pEnd = _tcsrchr(pRemoteName, TEXT(':'));
@@ -259,7 +300,12 @@ static DWORD ParseRemoteName(
     *pEnd = TEXT('\0');
     ++pEnd;
 
-    if (!InsertOption(TEXT("srvname"), pRemoteName, pOptions) ||
+    /*
+     * ALWAYS add port number to hostname, so UNC paths use it too
+     */
+    (void)swprintf(srvname, sizeof(srvname), TEXT("%s@%d"), pRemoteName, port);
+
+    if (!InsertOption(TEXT("srvname"), srvname, pOptions) ||
         !InsertOption(TEXT("mntpt"), *pEnd ? pEnd : TEXT("\\"), pOptions)) {
         result = ERROR_BAD_ARGUMENTS;
         goto out;
@@ -268,9 +314,23 @@ static DWORD ParseRemoteName(
     result = StringCchCopy(pConnectionName, cchConnectionLen, TEXT("\\\\"));
     if (FAILED(result))
         goto out;
-    result = StringCbCat(pConnectionName, cchConnectionLen, pRemoteName);
+    result = StringCbCat(pConnectionName, cchConnectionLen, srvname);
     if (FAILED(result))
         goto out;
+#ifdef FIXME_NOT_WORKING_YET
+    /*
+     * gisurn: fixme: why does this not work ?
+     *
+     * nfs_mount.exe should list UNC paths with \nfs4\ to distinguish
+     * them from default SMB UNC paths
+     *
+     * $ nfs_mount.exe -o sec=sys,port=2049 Z 'derfwpc5131:/export/home/rmainz'
+     * WNetUseConnection(Z:, \nfs4\export\home\rmainz) failed with error code 67.
+     */
+    result = StringCchCopy(pConnectionName, cchConnectionLen, TEXT("\\nfs4"));
+    if (FAILED(result))
+        goto out;
+#endif /* FIXME_NOT_WORKING_YET */
     if (*pEnd)
         result = StringCchCat(pConnectionName, cchConnectionLen, pEnd);
 

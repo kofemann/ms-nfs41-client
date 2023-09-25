@@ -29,8 +29,7 @@
 
 /* structures for upcall arguments */
 typedef struct __mount_upcall_args {
-    const char *hostname;
-    DWORD       port;
+    const char *hostport; /* hostname, or hostname@port */
     const char *path;
     DWORD       sec_flavor;
     DWORD       rsize;

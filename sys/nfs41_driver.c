@@ -165,8 +165,7 @@ typedef struct _updowncall_entry {
     ULONGLONG ChangeTime;
     union {
         struct {
-            PUNICODE_STRING srv_name;
-	    DWORD port;
+            PUNICODE_STRING srv_name; /* hostname, or hostname@port */
             PUNICODE_STRING root;
             PFILE_FS_ATTRIBUTE_INFORMATION FsAttrs;
             DWORD sec_flavor;
@@ -315,7 +314,6 @@ DECLARE_CONST_UNICODE_STRING(SLASH, L"\\");
 DECLARE_CONST_UNICODE_STRING(EMPTY_STRING, L"");
 
 #define SERVER_NAME_BUFFER_SIZE         1024
-#define MOUNT_CONFIG_NFS_PORT_DEFAULT   2049
 #define MOUNT_CONFIG_RW_SIZE_MIN        1024
 #define MOUNT_CONFIG_RW_SIZE_DEFAULT    1048576
 #define MOUNT_CONFIG_RW_SIZE_MAX        1048576
@@ -329,8 +327,7 @@ typedef struct _NFS41_MOUNT_CONFIG {
     BOOLEAN write_thru;
     BOOLEAN nocache;
     WCHAR srv_buffer[SERVER_NAME_BUFFER_SIZE];
-    UNICODE_STRING SrvName;
-    DWORD Port;
+    UNICODE_STRING SrvName; /* hostname, or hostname@port */
     WCHAR mntpt_buffer[MAX_PATH];
     UNICODE_STRING MntPt;
     WCHAR sec_flavor[MAX_SEC_FLAVOR_LEN];
@@ -625,8 +622,6 @@ NTSTATUS marshal_nfs41_mount(
     }
     status = marshall_unicode_as_utf8(&tmp, entry->u.Mount.srv_name);
     if (status) goto out;
-    RtlCopyMemory(tmp, &entry->u.Mount.port, sizeof(DWORD));
-    tmp += sizeof(DWORD);
     status = marshall_unicode_as_utf8(&tmp, entry->u.Mount.root);
     if (status) goto out;
     RtlCopyMemory(tmp, &entry->u.Mount.sec_flavor, sizeof(DWORD));
@@ -638,9 +633,9 @@ NTSTATUS marshal_nfs41_mount(
     *len = header_len;
 
 #ifdef DEBUG_MARSHAL_DETAIL
-    DbgP("marshal_nfs41_mount: server name=%wZ port=%d mount point=%wZ "
+    DbgP("marshal_nfs41_mount: server name=%wZ mount point=%wZ "
          "sec_flavor=%s rsize=%d wsize=%d\n",
-	 entry->u.Mount.srv_name, entry->u.Mount.port, entry->u.Mount.root,
+	 entry->u.Mount.srv_name, entry->u.Mount.root,
          secflavorop2name(entry->u.Mount.sec_flavor), entry->u.Mount.rsize,
          entry->u.Mount.wsize);
 #endif
@@ -2572,15 +2567,14 @@ NTSTATUS nfs41_mount(
 
 #ifdef DEBUG_MOUNT
     DbgEn();
-    DbgP("Server Name %wZ Port %d Mount Point %wZ SecFlavor %d\n",
-        &config->SrvName, config->Port, &config->MntPt, sec_flavor);
+    DbgP("Server Name %wZ Mount Point %wZ SecFlavor %d\n",
+        &config->SrvName, &config->MntPt, sec_flavor);
 #endif
     status = nfs41_UpcallCreate(NFS41_MOUNT, NULL, *session,
         INVALID_HANDLE_VALUE, *version, &config->MntPt, &entry);
     if (status) goto out;
 
     entry->u.Mount.srv_name = &config->SrvName;
-    entry->u.Mount.port = config->Port;
     entry->u.Mount.root = &config->MntPt;
     entry->u.Mount.rsize = config->ReadSize;
     entry->u.Mount.wsize = config->WriteSize;
@@ -2613,7 +2607,6 @@ void nfs41_MountConfig_InitDefaults(
 {
     RtlZeroMemory(Config, sizeof(NFS41_MOUNT_CONFIG));
 
-    Config->Port = MOUNT_CONFIG_NFS_PORT_DEFAULT;
     Config->ReadSize = MOUNT_CONFIG_RW_SIZE_DEFAULT;
     Config->WriteSize = MOUNT_CONFIG_RW_SIZE_DEFAULT;
     Config->ReadOnly = FALSE;
@@ -2732,10 +2725,16 @@ NTSTATUS nfs41_MountConfig_ParseOptions(
             else
                 RtlCopyUnicodeString(&Config->SrvName, &usValue);
         }
+	/*
+	 * gisburn: fixme: for now we accept "port=" as dummy here
+	 * Technically nfs_mount.exe should filter this out. We leave
+	 * this in for backwards-compatibilty with our internal test
+	 * suite
+	 */
         else if (wcsncmp(L"port", Name, NameLen) == 0) {
+	    DWORD dummy;
             status = nfs41_MountConfig_ParseDword(Option, &usValue,
-                &Config->Port, 1,
-                65535);
+                &dummy, 1, 65535);
         }
         else if (wcsncmp(L"mntpt", Name, NameLen) == 0) {
             if (usValue.Length > Config->MntPt.MaximumLength)
@@ -2922,10 +2921,6 @@ NTSTATUS nfs41_CreateVNetRoot(
     }
     nfs41_MountConfig_InitDefaults(Config);
 
-#define SAVE_PORT_HACK 1
-#ifdef SAVE_PORT_HACK
-    static DWORD saved_port = 0;
-#endif /* SAVE_PORT_HACK */
     if (pCreateNetRootContext->RxContext->Create.EaLength) {
         /* Codepath for nfs_mount.exe */
 
@@ -2939,9 +2934,6 @@ NTSTATUS nfs41_CreateVNetRoot(
         pVNetRootContext->read_only = Config->ReadOnly;
         pVNetRootContext->write_thru = Config->write_thru;
         pVNetRootContext->nocache = Config->nocache;        
-#ifdef SAVE_PORT_HACK
-	saved_port = Config->Port;
-#endif /* SAVE_PORT_HACK */
     } else {
         /* Codepath for \\server:port\nfs4\path */
 
@@ -2951,19 +2943,6 @@ NTSTATUS nfs41_CreateVNetRoot(
             pSrvCall->pSrvCallName->Length - sizeof(WCHAR);
         Config->SrvName.MaximumLength =
             pSrvCall->pSrvCallName->MaximumLength - sizeof(WCHAR);
-        /*
-         * gisburn: FIXME: Using |saved_port| here is wrong:
-         * TCP port information should be encoded in the server name
-         * (e.g. \\server@port\nfs4\path, to make sure we do not get
-         * conflicts in case of (ssh) port forwarding
-	 * (see https://learn.microsoft.com/en-gb/windows/win32/api/davclnt/nf-davclnt-davgethttpfromuncpath
-	 * how to specify ports in an UNC path)
-         */
-#ifdef SAVE_PORT_HACK
-	Config->Port = saved_port;
-#else
-#error Getting Config->Port information from UNC server name not implemented yet
-#endif /* SAVE_PORT_HACK */
     }
     pVNetRootContext->MountPathLen = Config->MntPt.Length;
     pVNetRootContext->timeout = Config->timeout;

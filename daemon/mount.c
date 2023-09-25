@@ -35,10 +35,8 @@ static int parse_mount(unsigned char *buffer, uint32_t length, nfs41_upcall *upc
     int status;
     mount_upcall_args *args = &upcall->args.mount;
 
-    status = get_name(&buffer, &length, &args->hostname);
+    status = get_name(&buffer, &length, &args->hostport);
     if(status) goto out;
-    status = safe_read(&buffer, &length, &args->port, sizeof(DWORD));
-    if (status) goto out;
     status = get_name(&buffer, &length, &args->path);
     if(status) goto out;
     status = safe_read(&buffer, &length, &args->sec_flavor, sizeof(DWORD));
@@ -48,9 +46,10 @@ static int parse_mount(unsigned char *buffer, uint32_t length, nfs41_upcall *upc
     status = safe_read(&buffer, &length, &args->wsize, sizeof(DWORD));
     if (status) goto out;
 
-    dprintf(1, "parsing NFS41_MOUNT: srv_name=%s port=%d root=%s "
-        "sec_flavor=%s rsize=%d wsize=%d\n", args->hostname, args->port, args->path, 
-        secflavorop2name(args->sec_flavor), args->rsize, args->wsize);
+    dprintf(1, "parsing NFS41_MOUNT: hostport='%s' root='%s' "
+        "sec_flavor='%s' rsize=%d wsize=%d\n",
+        args->hostport, args->path, secflavorop2name(args->sec_flavor),
+        args->rsize, args->wsize);
     return status;
 out:
     dprintf(1, "parsing NFS41_MOUNT: failed %d\n", status);
@@ -61,16 +60,41 @@ static int handle_mount(nfs41_upcall *upcall)
 {
     int status;
     mount_upcall_args *args = &upcall->args.mount;
+    char hostname[NFS41_HOSTNAME_LEN+1+32]; /* sizeof(hostname+'@'+integer) */
+    char *s;
+    int port = 0;
     nfs41_abs_path path;
     multi_addr4 addrs;
     nfs41_root *root;
     nfs41_client *client;
     nfs41_path_fh file;
 
+    (void)strcpy_s(hostname, sizeof(hostname), args->hostport);
+    if (s = strchr(hostname, '@')) {
+        *s++ = '\0';
+	port = atoi(s);
+	if ((port < 1) || (port > 65535)) {
+            status = ERROR_BAD_ARGUMENTS;
+            eprintf("handle_mount: bad port number %d specified in "
+                "hostport '%s'\n",
+                port, args->hostport);
+            goto out;
+	}
+
+	dprintf(1, "handle_mount: hostname='%s', port=%d\n",
+            hostname, port);
+    } else {
+        eprintf("handle_mount: port not specified in hostport '%s'\n",
+            args->hostport);
+        status = ERROR_BAD_NETPATH;
+        goto out;
+    }
+
     // resolve hostname,port
-    status = nfs41_server_resolve(args->hostname, (unsigned short)args->port, &addrs);
+    status = nfs41_server_resolve(hostname, (unsigned short)port, &addrs);
     if (status) {
-        eprintf("nfs41_server_resolve() failed with %d\n", status);
+        eprintf("nfs41_server_resolve(hostname='%s', port=%d) failed with %d\n",
+            hostname, port, status);
         goto out;
     }
 
@@ -80,10 +104,11 @@ static int handle_mount(nfs41_upcall *upcall)
         root = upcall->root_ref;
     } else {
         // create root
-        status = nfs41_root_create(args->hostname, args->port, args->sec_flavor,
+        status = nfs41_root_create(hostname, port, args->sec_flavor,
             args->wsize + WRITE_OVERHEAD, args->rsize + READ_OVERHEAD, &root);
         if (status) {
-            eprintf("nfs41_root_create() failed %d\n", status);
+            eprintf("nfs41_root_create(hostname='%s', port=%d) failed %d\n",
+                hostname, port, status);
             goto out;
         }
         root->uid = upcall->uid;
