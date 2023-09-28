@@ -54,7 +54,7 @@ void PrintErrorMessage(
 static VOID PrintUsage(LPTSTR pProcess)
 {
     _tprintf(TEXT("Usage: %s [options] <drive letter|*> <hostname>:<path>\n")
-        TEXT("Options:\n")
+        TEXT("* Options:\n")
         TEXT("\t-h\thelp\n")
         TEXT("\t-d\tunmount\n")
         TEXT("\t-f\tforce unmount if the drive is in use\n")
@@ -64,7 +64,7 @@ static VOID PrintUsage(LPTSTR pProcess)
 	    " (Linux compat)\n")
         TEXT("\t-p\tmake the mount persist over reboots\n")
         TEXT("\t-o <comma-separated mount options>\n")
-        TEXT("Mount options:\n")
+        TEXT("* Mount options:\n")
         TEXT("\tro\tmount as read-only\n")
         TEXT("\tport=#\tTCP port to use (defaults to 2049)\n")
         TEXT("\trsize=#\tread buffer size in bytes\n")
@@ -72,7 +72,12 @@ static VOID PrintUsage(LPTSTR pProcess)
         TEXT("\tsec=krb5:krb5i:krb5p\tspecify gss security flavor\n")
         TEXT("\twritethru\tturns off rdbss caching for writes\n")
         TEXT("\tnocache\tturns off rdbss caching\n")
-        TEXT("\ttimeout=#\tspecify upcall timeout value in seconds (default 120s)\n"),
+        TEXT("\ttimeout=#\tspecify upcall timeout value in seconds (default 120s)\n")
+        TEXT("* Hostname:\n")
+        TEXT("\tDNS name, or hostname in domain\n")
+        TEXT("\tentry in C:\\Windows\\System32\\drivers\\etc\\hosts\n")
+        TEXT("\tIPv4 address\n")
+        TEXT("\tIPv6 address within '[', ']' (will be converted to *.ipv6-literal.net)\n"),
         pProcess);
 }
 
@@ -241,6 +246,7 @@ static void ConvertUnixSlashes(
 static DWORD ParseRemoteName(
     IN LPTSTR pRemoteName,
     IN OUT PMOUNT_OPTION_LIST pOptions,
+    OUT LPTSTR pParsedRemoteName,
     OUT LPTSTR pConnectionName,
     IN size_t cchConnectionLen)
 {
@@ -248,27 +254,31 @@ static DWORD ParseRemoteName(
     LPTSTR pEnd;
     int port = 0;
     PFILE_FULL_EA_INFORMATION port_option_val;
+    wchar_t remotename[MAX_PATH];
+    wchar_t *premotename = remotename;
     wchar_t srvname[MAX_PATH+1+32]; /* sizeof(hostname+'@'+integer) */
-    
+
+    result = StringCchCopy(premotename, MAX_PATH, pRemoteName);
+
     /*
      * gisburn: Fixme: Implement nfs://-URLS per RFC 2224 ("NFS URL
      * SCHEME", see https://www.rfc-editor.org/rfc/rfc2224.html),
      * including port support (nfs://hostname@port/path/...)
      */
-    if (!wcsncmp(pRemoteName, TEXT("nfs://"), 6)) {
+    if (!wcsncmp(premotename, TEXT("nfs://"), 6)) {
         _ftprintf(stderr, TEXT("nfs://-URLs not supported yet.\n"));
         result = ERROR_NOT_SUPPORTED;
         goto out;
     }
 
-    ConvertUnixSlashes(pRemoteName);
+    ConvertUnixSlashes(premotename);
 
     /*
      * Remote hostname should not contain a '@' since we use this
      * to communicate the NFSv4 port number below
      * Use $ nfs_mount.exe -o port=portnumber ... # instead
      */
-    if (_tcsrchr(pRemoteName, TEXT('@'))) {
+    if (_tcsrchr(premotename, TEXT('@'))) {
         _ftprintf(stderr, TEXT("Remote path should not contain '@', ")
 	    TEXT("use -o port=tcpportnum.\n"));
         result = ERROR_BAD_ARGUMENTS;
@@ -290,7 +300,7 @@ static DWORD ParseRemoteName(
     }
 
     /* fail if the server name doesn't end with :\ */
-    pEnd = _tcsrchr(pRemoteName, TEXT(':'));
+    pEnd = _tcsrchr(premotename, TEXT(':'));
     if (pEnd == NULL || pEnd[1] != TEXT('\\')) {
         _ftprintf(stderr, TEXT("Failed to parse the remote path. ")
             TEXT("Expected 'hostname:\\path'.\n"));
@@ -301,9 +311,84 @@ static DWORD ParseRemoteName(
     ++pEnd;
 
     /*
-     * ALWAYS add port number to hostname, so UNC paths use it too
+     * Make sure that we do not pass raw IPv6 addresses to the kernel.
+     *
+     * UNC paths do not allow ':' characters, so passing a raw IPv6
+     * address to the kernel is both illegal, and causes havoc.
+     *
+     * Microsoft solved this problem by providing a transcription
+     * method to represent an IPv6 address in the form of a domain
+     * name that can be used in UNC paths, e.g.
+     * "[fe80::219:99ff:feae:73ce]" should be turned into
+     * "fe80--219-99ff-feae-73ce.ipv6-literal.net"
+     *
+     * See https://en.wikipedia.org/wiki/IPv6_address#Literal_IPv6_addresses_in_UNC_path_names
+     * for details
      */
-    (void)swprintf(srvname, sizeof(srvname), TEXT("%s@%d"), pRemoteName, port);
+    if (premotename[0] == TEXT('[')) {
+        size_t len = wcslen(premotename);
+        size_t i;
+        wchar_t c;
+
+        /* Check for minimum length and trailing ']' */
+        if ((len < 4) || (premotename[len-1] != TEXT(']'))) {
+            _ftprintf(stderr, TEXT("Failed to parse raw IPv6 address,")
+	        TEXT(" trailing ']' is missing, ")
+		TEXT("or address string too short.\n"));
+            result = ERROR_BAD_ARGUMENTS;
+            goto out;
+	}
+
+        /* Skip '[', stomp ']' */
+        premotename[len-1] = TEXT('\0');
+        premotename++;
+        len -= 2;
+
+        /* Check whether this is a valid IPv6 address */
+        for (i=0 ; i < len ; i++) {
+            c = premotename[i];
+            if (!(iswxdigit(c) || (c == TEXT(':')))) {
+                _ftprintf(stderr, TEXT("Failed to parse raw IPv6 ")
+		    TEXT("address, illegal character '%c' found.\n"),
+		    c);
+                result = ERROR_BAD_ARGUMENTS;
+                goto out;
+            }
+        }
+
+	for (i = 0 ; i < len ; i++) {
+	    /* IPv6 separator */
+            if (premotename[i] == TEXT(':'))
+                premotename[i] = TEXT('-');
+	    /* zone index */
+	    else if (premotename[i] == TEXT('%'))
+                premotename[i] = TEXT('s');
+        }
+
+        /*
+	 * 1. Append .ipv6-literal.net to hostname
+	 * 2. ALWAYS add port number to hostname, so UNC paths use it
+	 *   too
+	 */
+        (void)swprintf(srvname, sizeof(srvname),
+	    TEXT("%s.ipv6-literal.net@%d"), premotename, port);
+    }
+    else {
+        /* ALWAYS add port number to hostname, so UNC paths use it too */
+        (void)swprintf(srvname, sizeof(srvname), TEXT("%s@%d"),
+	    premotename, port);
+    }
+
+    /*
+     * Safeguard against ':' in UNC paths, e.g if we pass raw IPv6
+     * address without ':', or just random garbage
+     */
+    if (wcschr(srvname, TEXT(':'))) {
+        _ftprintf(stderr,
+	    TEXT("Illegal ':' character hostname '%s'.\n"), srvname);
+        result = ERROR_BAD_ARGUMENTS;
+        goto out;
+    }
 
     if (!InsertOption(TEXT("srvname"), srvname, pOptions) ||
         !InsertOption(TEXT("mntpt"), *pEnd ? pEnd : TEXT("\\"), pOptions)) {
@@ -334,6 +419,8 @@ static DWORD ParseRemoteName(
     if (*pEnd)
         result = StringCchCat(pConnectionName, cchConnectionLen, pEnd);
 
+    result = StringCchCopy(pParsedRemoteName, cchConnectionLen, srvname);
+
 out:
     return result;
 }
@@ -346,11 +433,12 @@ static DWORD DoMount(
 {
     DWORD result = NO_ERROR;
     TCHAR szExisting[MAX_PATH];
+    TCHAR szParsedRemoteName[MAX_PATH];
     TCHAR szRemoteName[MAX_PATH];
     DWORD dwLength;
 
     *szRemoteName = TEXT('\0');
-    result = ParseRemoteName(pRemoteName, pOptions, szRemoteName, MAX_PATH);
+    result = ParseRemoteName(pRemoteName, pOptions, szParsedRemoteName, szRemoteName, MAX_PATH);
     if (result)
         goto out;
 
@@ -392,8 +480,8 @@ static DWORD DoMount(
             szConnection, &ConnectSize, &ConnectResult);
 
         if (result == NO_ERROR)
-            _tprintf(TEXT("Successfully mounted %s to drive %s\n"),
-                pRemoteName, szConnection);
+            _tprintf(TEXT("Successfully mounted '%s' to drive '%s'\n"),
+                szParsedRemoteName, szConnection);
         else
             _ftprintf(stderr, TEXT("WNetUseConnection(%s, %s) ")
                 TEXT("failed with error code %u.\n"),
