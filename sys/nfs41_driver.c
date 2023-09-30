@@ -4314,6 +4314,8 @@ NTSTATUS nfs41_QueryVolumeInformation(
     status = check_nfs41_dirquery_args(RxContext);
     if (status) goto out;
 
+    RtlZeroMemory(RxContext->Info.Buffer, RxContext->Info.LengthRemaining);
+
     switch (InfoClass) {
     case FileFsVolumeInformation:
         if ((ULONG)RxContext->Info.LengthRemaining >= DevExt->VolAttrsLen) {
@@ -6085,6 +6087,8 @@ NTSTATUS nfs41_Lock(
     LARGE_INTEGER t1, t2;
     t1 = KeQueryPerformanceCounter(NULL);
 #endif
+
+    poll_delay.QuadPart = 0;
 
 #ifdef DEBUG_LOCK
     DbgEn();
