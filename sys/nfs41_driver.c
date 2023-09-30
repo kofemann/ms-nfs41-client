@@ -3501,11 +3501,11 @@ NTSTATUS check_nfs41_create_args(
 
     /* rdbss seems miss this sharing_violation check */
     if (Fcb->OpenCount && params->Disposition == FILE_SUPERSEDE) {
-        if ((!RxContext->CurrentIrpSp->FileObject->SharedRead && 
+        if ((!RxContext->CurrentIrpSp->FileObject->SharedRead &&
                 (params->DesiredAccess & FILE_READ_DATA)) ||
-            (!RxContext->CurrentIrpSp->FileObject->SharedWrite &&
-                (params->DesiredAccess & (FILE_WRITE_DATA | FILE_APPEND_DATA | 
-                    FILE_WRITE_ATTRIBUTES)) ||
+            ((!RxContext->CurrentIrpSp->FileObject->SharedWrite &&
+                (params->DesiredAccess & (FILE_WRITE_DATA | FILE_APPEND_DATA |
+                    FILE_WRITE_ATTRIBUTES))) ||
             (!RxContext->CurrentIrpSp->FileObject->SharedDelete &&
                 (params->DesiredAccess & DELETE)))) {
             status = STATUS_SHARING_VIOLATION;
