@@ -615,8 +615,8 @@ NTSTATUS marshal_nfs41_mount(
         goto out;
     }
     header_len = *len + length_as_utf8(entry->u.Mount.srv_name) +
-        length_as_utf8(entry->u.Mount.root) + 4 * sizeof(DWORD);
-    if (header_len > buf_len) { 
+        length_as_utf8(entry->u.Mount.root) + 3 * sizeof(DWORD);
+    if (header_len > buf_len) {
         status = STATUS_INSUFFICIENT_RESOURCES;
         goto out;
     }
