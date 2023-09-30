@@ -81,7 +81,9 @@ struct timezone
 extern int gettimeofday(struct timeval *tv, struct timezone *tz);
 extern int asprintf(char **str, const char *fmt, ...);
 
+#if(_WIN32_WINNT < 0x0501)
 #define SOL_IPV6 IPPROTO_IPV6
+#endif
 
 #define MAXHOSTNAMELEN 256
 
