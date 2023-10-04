@@ -69,7 +69,7 @@ static VOID PrintUsage(LPTSTR pProcess)
         TEXT("\tport=#\tTCP port to use (defaults to 2049)\n")
         TEXT("\trsize=#\tread buffer size in bytes\n")
         TEXT("\twsize=#\twrite buffer size in bytes\n")
-        TEXT("\tsec=krb5:krb5i:krb5p\tspecify gss security flavor\n")
+        TEXT("\tsec=sys:krb5:krb5i:krb5p\tspecify (gss) security flavor\n")
         TEXT("\twritethru\tturns off rdbss caching for writes\n")
         TEXT("\tnocache\tturns off rdbss caching\n")
         TEXT("\ttimeout=#\tspecify upcall timeout value in seconds (default 120s)\n")
@@ -177,7 +177,13 @@ DWORD __cdecl _tmain(DWORD argc, LPTSTR argv[])
                 _ftprintf(stderr, TEXT("Unrecognized option ")
                     TEXT("'%s', disregarding.\n"), argv[i]);
         }
-        else if (pLocalName == NULL) /* drive letter */
+        else if (_tcscmp(argv[i], TEXT("/?")) == 0)
+	{
+	    /* Windows-style "nfs_mount /?" help */
+            PrintUsage(argv[0]);
+            goto out;
+	}
+	else if (pLocalName == NULL) /* drive letter */
         {
             pLocalName = argv[i];
         }
