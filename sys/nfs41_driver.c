@@ -29,6 +29,8 @@
 #include "nfs41_driver.h"
 #include "nfs41_np.h"
 #include "nfs41_debug.h"
+#include "nfs41_build_features.h"
+
 
 #define USE_MOUNT_SEC_CONTEXT
 
@@ -200,6 +202,10 @@ typedef struct _updowncall_entry {
             ULONG cattrs;
             LONG open_owner_id;
             DWORD mode;
+#ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES
+            DWORD owner_local_uid;
+            DWORD owner_group_local_gid;
+#endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
             HANDLE srv_open;
             DWORD deleg_type;
             BOOLEAN symlink_embedded;
@@ -385,7 +391,11 @@ typedef struct _NFS41_FCB {
     BOOLEAN                 Renamed;
     BOOLEAN                 DeletePending;
     DWORD                   mode;
-    ULONGLONG               changeattr;    
+#ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES
+    DWORD                   owner_local_uid;       /* owner mapped into local uid */
+    DWORD                   owner_group_local_gid; /* owner group mapped into local gid */
+#endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
+    ULONGLONG               changeattr;
 } NFS41_FCB, *PNFS41_FCB;
 #define NFS41GetFcbExtension(pFcb)      \
         (((pFcb) == NULL) ? NULL : (PNFS41_FCB)((pFcb)->Context))
@@ -609,7 +619,7 @@ NTSTATUS marshal_nfs41_mount(
     else tmp += *len;
 
     /* 03/25/2011: Kernel crash to nfsd not running but mount upcall cued up */
-    if (!MmIsAddressValid(entry->u.Mount.srv_name) || 
+    if (!MmIsAddressValid(entry->u.Mount.srv_name) ||
             !MmIsAddressValid(entry->u.Mount.root)) {
         status = STATUS_INTERNAL_ERROR;
         goto out;
@@ -667,9 +677,13 @@ NTSTATUS marshal_nfs41_open(
     else tmp += *len;
 
     header_len = *len + length_as_utf8(entry->filename) +
-        7 * sizeof(ULONG) + 2 * sizeof(HANDLE) +
+        7 * sizeof(ULONG) +
+#ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES
+        2 * sizeof(DWORD) +
+#endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
+        2 * sizeof(HANDLE) +
         length_as_utf8(&entry->u.Open.symlink);
-    if (header_len > buf_len) { 
+    if (header_len > buf_len) {
         status = STATUS_INSUFFICIENT_RESOURCES;
         goto out;
     }
@@ -692,6 +706,12 @@ NTSTATUS marshal_nfs41_open(
     tmp += sizeof(entry->u.Open.open_owner_id);
     RtlCopyMemory(tmp, &entry->u.Open.mode, sizeof(DWORD));
     tmp += sizeof(DWORD);
+#ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES
+    RtlCopyMemory(tmp, &entry->u.Open.owner_local_uid, sizeof(DWORD));
+    tmp += sizeof(DWORD);
+    RtlCopyMemory(tmp, &entry->u.Open.owner_group_local_gid, sizeof(DWORD));
+    tmp += sizeof(DWORD);
+#endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
     RtlCopyMemory(tmp, &entry->u.Open.srv_open, sizeof(HANDLE));
     tmp += sizeof(HANDLE);
     status = marshall_unicode_as_utf8(&tmp, &entry->u.Open.symlink);
@@ -718,10 +738,17 @@ NTSTATUS marshal_nfs41_open(
 
 #ifdef DEBUG_MARSHAL_DETAIL
     DbgP("marshal_nfs41_open: name=%wZ mask=0x%x access=0x%x attrs=0x%x "
-         "opts=0x%x dispo=0x%x open_owner_id=0x%x mode=%o srv_open=%p ea=%p\n",
+         "opts=0x%x dispo=0x%x open_owner_id=0x%x mode=%o "
+#ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES
+         "owner_local_uid=%lu owner_group_local_gid=%lu "
+#endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
+         "srv_open=%p ea=%p\n",
          entry->filename, entry->u.Open.access_mask,
          entry->u.Open.access_mode, entry->u.Open.attrs, entry->u.Open.copts,
          entry->u.Open.disp, entry->u.Open.open_owner_id, entry->u.Open.mode,
+#ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES
+         entry->u.Open.owner_local_uid,entry->u.Open.owner_group_local_gid,
+#endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
          entry->u.Open.srv_open, entry->u.Open.EaBuffer);
 #endif
 out:
@@ -1647,6 +1674,12 @@ NTSTATUS unmarshal_nfs41_open(
     *buf += sizeof(HANDLE);
     RtlCopyMemory(&cur->u.Open.mode, *buf, sizeof(DWORD));
     *buf += sizeof(DWORD);
+#ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES
+    RtlCopyMemory(&cur->u.Open.owner_local_uid, *buf, sizeof(DWORD));
+    *buf += sizeof(DWORD);
+    RtlCopyMemory(&cur->u.Open.owner_group_local_gid, *buf, sizeof(DWORD));
+    *buf += sizeof(DWORD);
+#endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
     RtlCopyMemory(&cur->ChangeTime, *buf, sizeof(ULONGLONG));
     *buf += sizeof(ULONGLONG);
     RtlCopyMemory(&cur->u.Open.deleg_type, *buf, sizeof(DWORD));
@@ -1673,10 +1706,17 @@ NTSTATUS unmarshal_nfs41_open(
 #endif
     }
 #ifdef DEBUG_MARSHAL_DETAIL
-    DbgP("unmarshal_nfs41_open: open_state 0x%x mode %o changeattr %llu "
-        "deleg_type %d\n", cur->open_state, cur->u.Open.mode, 
+    DbgP("unmarshal_nfs41_open: open_state 0x%x mode %o "
+#ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES
+        "owner_local_uid %u owner_group_local_gid %u "
+#endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
+        "changeattr %llu "
+        "deleg_type %d\n", cur->open_state, cur->u.Open.mode,
+#ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES
+        cur->u.Open.owner_local_uid, cur->u.Open.owner_group_local_gid,
+#endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
         cur->ChangeTime, cur->u.Open.deleg_type);
-#endif
+#endif /* DEBUG_MARSHAL_DETAIL */
 out:
     return status;
 }
@@ -3751,11 +3791,15 @@ retry_on_link:
         RX_FILE_TYPE StorageType = FileTypeNotYetKnown;
         RtlCopyMemory(&nfs41_fcb->BasicInfo, &entry->u.Open.binfo, 
             sizeof(entry->u.Open.binfo));
-        RtlCopyMemory(&nfs41_fcb->StandardInfo, &entry->u.Open.sinfo, 
+        RtlCopyMemory(&nfs41_fcb->StandardInfo, &entry->u.Open.sinfo,
             sizeof(entry->u.Open.sinfo));
         nfs41_fcb->mode = entry->u.Open.mode;
+#ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES
+        nfs41_fcb->owner_local_uid = entry->u.Open.owner_local_uid;
+        nfs41_fcb->owner_group_local_gid = entry->u.Open.owner_group_local_gid;
+#endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
         nfs41_fcb->changeattr = entry->ChangeTime;
-        if (((params->CreateOptions & FILE_DELETE_ON_CLOSE) && 
+        if (((params->CreateOptions & FILE_DELETE_ON_CLOSE) &&
                 !pVNetRootContext->read_only) || oldDeletePending)
             nfs41_fcb->StandardInfo.DeletePending = TRUE;
 
@@ -4319,7 +4363,7 @@ NTSTATUS nfs41_QueryVolumeInformation(
     switch (InfoClass) {
     case FileFsVolumeInformation:
         if ((ULONG)RxContext->Info.LengthRemaining >= DevExt->VolAttrsLen) {
-            RtlCopyMemory(RxContext->Info.Buffer, DevExt->VolAttrs, 
+            RtlCopyMemory(RxContext->Info.Buffer, DevExt->VolAttrs,
                 DevExt->VolAttrsLen);
             RxContext->Info.LengthRemaining -= DevExt->VolAttrsLen;
             status = STATUS_SUCCESS;
@@ -4502,8 +4546,12 @@ void create_nfs3_attrs(
     else
         attrs->type = NF3REG;
     attrs->mode = nfs41_fcb->mode;
+#ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES
+    attrs->uid = nfs41_fcb->owner_local_uid;
+    attrs->gid = nfs41_fcb->owner_group_local_gid;
+#endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
     attrs->nlink = nfs41_fcb->StandardInfo.NumberOfLinks;
-    attrs->size.QuadPart = attrs->used.QuadPart = 
+    attrs->size.QuadPart = attrs->used.QuadPart =
         nfs41_fcb->StandardInfo.EndOfFile.QuadPart;
     file_time_to_nfs_time(&nfs41_fcb->BasicInfo.LastAccessTime, &attrs->atime);
     file_time_to_nfs_time(&nfs41_fcb->BasicInfo.ChangeTime, &attrs->mtime);

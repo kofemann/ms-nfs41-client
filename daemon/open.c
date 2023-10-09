@@ -21,15 +21,16 @@
 
 #include <Windows.h>
 #include <stdio.h>
+#include <ctype.h>
 #include <strsafe.h>
 
 #include "nfs41_ops.h"
+#include "nfs41_build_features.h"
 #include "delegation.h"
 #include "from_kernel.h"
 #include "daemon_debug.h"
 #include "upcall.h"
 #include "util.h"
-
 
 static int create_open_state(
     IN const char *path,
@@ -295,6 +296,12 @@ static int parse_open(unsigned char *buffer, uint32_t length, nfs41_upcall *upca
     if (status) goto out;
     status = safe_read(&buffer, &length, &args->mode, sizeof(DWORD));
     if (status) goto out;
+#ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES
+    status = safe_read(&buffer, &length, &args->owner_local_uid, sizeof(DWORD));
+    if (status) goto out;
+    status = safe_read(&buffer, &length, &args->owner_group_local_gid, sizeof(DWORD));
+    if (status) goto out;
+#endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
     status = safe_read(&buffer, &length, &args->srv_open, sizeof(HANDLE));
     if (status) goto out;
     status = parse_abs_path(&buffer, &length, &args->symlink);
@@ -305,9 +312,16 @@ static int parse_open(unsigned char *buffer, uint32_t length, nfs41_upcall *upca
     dprintf(1, "parsing NFS41_OPEN: filename='%s' access mask=%d "
         "access mode=%d\n\tfile attrs=0x%x create attrs=0x%x "
         "(kernel) disposition=%d\n\topen_owner_id=%d mode=%o "
+#ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES
+        "owner_local_uid=%u owner_group_local_gid=%u "
+#endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
         "srv_open=%p symlink=%s ea=%p\n", args->path, args->access_mask,
         args->access_mode, args->file_attrs, args->create_opts,
-        args->disposition, args->open_owner_id, args->mode, args->srv_open,
+        args->disposition, args->open_owner_id, args->mode,
+#ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES
+        (unsigned int)args->owner_local_uid, (unsigned int)args->owner_group_local_gid,
+#endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
+        args->srv_open,
         args->symlink.path, args->ea);
     print_disposition(2, args->disposition);
     print_access_mask(2, args->access_mask);
@@ -644,6 +658,117 @@ static int handle_open(nfs41_upcall *upcall)
         nfs_to_standard_info(&info, &args->std_info);
         args->mode = info.mode;
         args->changeattr = info.change;
+
+#ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES
+        bitmap4 og_attr_request = { 0 };
+        nfs41_file_info og_info = { 0 };
+        char owner[NFS4_OPAQUE_LIMIT], group[NFS4_OPAQUE_LIMIT];
+        nfsacl41 acl = { 0 };
+
+        /*
+         * gisburn:
+         * 1. We should cache owner/group information
+         * 2. We should always ask for
+         * FATTR4_WORD1_OWNER | FATTR4_WORD1_OWNER_GROUP with the other
+         * attributes
+         */
+        og_attr_request.count = 2;
+        og_attr_request.arr[1] = FATTR4_WORD1_OWNER | FATTR4_WORD1_OWNER_GROUP;
+        og_info.owner = owner;
+        og_info.owner_group = group;
+        status = nfs41_getattr(state->session, &state->file, &og_attr_request, &og_info);
+        if (status) {
+            eprintf("get_stat_data: nfs41_cached_getattr() failed with %d\n",
+            status);
+        }
+
+#ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_TESTMAPPING
+        /*
+         * Map owner to local uid
+         *
+         * |owner| can be numeric string ("1616"), plain username
+         *  ("gisburn") or username@domain ("gisburn@sun.com")
+         */
+        /* stomp over '@' */
+        char *at_ch; /* pointer to '@' */
+        if (at_ch = strchr(og_info.owner, '@'))
+            *at_ch = '\0';
+
+        if (isdigit(og_info.owner[0])) {
+            args->owner_local_uid = atol(og_info.owner);
+        }
+        else if(!strcmp(og_info.owner, "nobody")) {
+            args->owner_local_uid = 65534;
+        }
+        else if(!strcmp(og_info.owner, "root")) {
+            args->owner_local_uid = 0;
+        }
+        else if(!strcmp(og_info.owner, "rmainz")) {
+            args->owner_local_uid = 1616;
+        }
+        else if(!strcmp(og_info.owner, "roland_mainz")) {
+            args->owner_local_uid = 197608;
+        }
+        else if(!strcmp(og_info.owner, "swulsch")) {
+            args->owner_local_uid = 1818;
+        }
+        else if(!strcmp(og_info.owner, "iam")) {
+            args->owner_local_uid = 2010;
+        }
+        else if(!strcmp(og_info.owner, "mwenzel")) {
+            args->owner_local_uid = 8239;
+        }
+        else if(!strcmp(og_info.owner, "test001")) {
+            args->owner_local_uid = 1000;
+        }
+        else {
+            args->owner_local_uid = 666; /* debug: number of the beast */
+        }
+
+        /*
+         * Map owner_group to local gid
+         *
+         * |owner_group| can be numeric string ("1616"), plain username
+         * ("gisgrp") or username@domain ("gisgrp@sun.com")
+         */
+        if (at_ch = strchr(og_info.owner_group, '@'))
+            *at_ch = '\0';
+        if (isdigit(og_info.owner_group[0])) {
+            args->owner_group_local_gid = atol(og_info.owner_group);
+        }
+        else if(!strcmp(og_info.owner_group, "nogroup")) {
+            args->owner_group_local_gid = 65534;
+        }
+        else if(!strcmp(og_info.owner_group, "root")) {
+            args->owner_group_local_gid = 0;
+        }
+        else if(!strcmp(og_info.owner_group, "Kein")) {
+            args->owner_group_local_gid = 197121;
+        }
+        else if(!strcmp(og_info.owner_group, "rmainz")) {
+            args->owner_group_local_gid = 1616;
+        }
+        else if(!strcmp(og_info.owner, "iam")) {
+            args->owner_group_local_gid = 2010;
+        }
+        else if(!strcmp(og_info.owner_group, "swulsch")) {
+            args->owner_group_local_gid = 1818;
+        }
+        else if(!strcmp(og_info.owner_group, "mwenzel")) {
+            args->owner_group_local_gid = 8239;
+        }
+        else if(!strcmp(og_info.owner_group, "test001")) {
+            args->owner_group_local_gid = 1000;
+        }
+        else {
+            args->owner_group_local_gid = 666; /* debug: number of the beast */
+        }
+#endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_TESTMAPPING */
+
+        dprintf(1, "handle_open: stat: owner=%u/'%s', owner_group=%u/'%s'\n",
+            (unsigned int)args->owner_local_uid, og_info.owner,
+            (unsigned int)args->owner_group_local_gid, og_info.owner_group);
+#endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
     } else {
         nfs41_file_info createattrs = { 0 };
         uint32_t create = 0, createhowmode = 0, lookup_status = status;
@@ -753,6 +878,12 @@ static int marshall_open(unsigned char *buffer, uint32_t *length, nfs41_upcall *
     if (status) goto out;
     status = safe_write(&buffer, length, &args->mode, sizeof(args->mode));
     if (status) goto out;
+#ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES
+    status = safe_write(&buffer, length, &args->owner_local_uid, sizeof(args->owner_local_uid));
+    if (status) goto out;
+    status = safe_write(&buffer, length, &args->owner_group_local_gid, sizeof(args->owner_group_local_gid));
+    if (status) goto out;
+#endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
     status = safe_write(&buffer, length, &args->changeattr, sizeof(args->changeattr));
     if (status) goto out;
     status = safe_write(&buffer, length, &args->deleg_type, sizeof(args->deleg_type));

@@ -23,6 +23,7 @@
 #define __NFS41_DAEMON_UPCALL_H__
 
 #include "nfs41_ops.h"
+#include "nfs41_build_features.h"
 #include "from_kernel.h"
 
 #define NFSD_VERSION_MISMATCH 116
@@ -50,6 +51,10 @@ typedef struct __open_upcall_args {
     ULONG create_opts;
     LONG open_owner_id;
     DWORD mode;
+#ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES
+    DWORD owner_local_uid;         /* owner mapped into local uid */
+    DWORD owner_group_local_gid;   /* owner group mapped into local gid */
+#endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
     ULONGLONG changeattr;
     HANDLE srv_open;
     DWORD deleg_type;
