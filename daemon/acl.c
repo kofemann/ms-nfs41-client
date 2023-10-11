@@ -24,6 +24,7 @@
 #include <sddl.h>
 
 #include "nfs41_ops.h"
+#include "nfs41_build_features.h"
 #include "delegation.h"
 #include "daemon_debug.h"
 #include "util.h"
@@ -58,21 +59,28 @@ static int create_unknownsid(WELL_KNOWN_SID_TYPE type, PSID *sid,
 
     status = CreateWellKnownSid(type, NULL, *sid, sid_len);
     dprintf(ACLLVL, "create_unknownsid: CreateWellKnownSid type %d returned %d "
-            "GetLastError %d sid len %d needed\n", type, status, 
-            GetLastError(), *sid_len); 
-    if (status) 
-        return ERROR_INTERNAL_ERROR;
+            "GetLastError %d sid len %d needed\n", type, status,
+            GetLastError(), *sid_len);
+    if (status) {
+        status = ERROR_INTERNAL_ERROR;
+        goto err;
+    }
     status = GetLastError();
-    if (status != ERROR_INSUFFICIENT_BUFFER) 
-        return status;
+    if (status != ERROR_INSUFFICIENT_BUFFER)
+        goto err;
+
     *sid = malloc(*sid_len);
-    if (*sid == NULL) 
-        return ERROR_INSUFFICIENT_BUFFER;
+    if (*sid == NULL) {
+        status = ERROR_INSUFFICIENT_BUFFER;
+        goto err;
+    }
     status = CreateWellKnownSid(type, NULL, *sid, sid_len);
-    if (status) 
+    if (status)
         return ERROR_SUCCESS;
     free(*sid);
+    *sid = NULL;
     status = GetLastError();
+err:
     eprintf("create_unknownsid: CreateWellKnownSid failed with %d\n", status);
     return status;
 }
@@ -90,17 +98,136 @@ static void convert_nfs4name_2_user_domain(LPSTR nfs4name,
     }
 }
 
-static int map_name_2_sid(DWORD *sid_len, PSID *sid, LPCSTR name)
+#ifdef NFS41_DRIVER_FEATURE_MAP_UNMAPPED_USER_TO_UNIXUSER_SID
+/*
+ * Allocate a SID from SECURITY_SAMBA_UNIX_AUTHORITY, which encodes an
+ * UNIX/POSIX uid directly into a SID.
+ *
+ * Examples:
+ * UID 1616 gets mapped to "Unix_User+1616", encoding the UID into the
+ * SID as "S-1-22-1-1616":
+ * $ getent passwd Unix_User+1616
+ * Unix_User+1616:*:4278191696:4278191696:U-Unix_User\1616,S-1-22-1-1616:/:/sbin/nologin
+ *
+ * GID 1984 gets mapped to "Unix_Group+1984", encoding the GID into the
+ * SID as "S-1-22-2-1984":
+ * $ getent group Unix_Group+1984
+ * Unix_Group+1984:S-1-22-2-1984:4278192064:
+ *
+ */
+
+#define SECURITY_SAMBA_UNIX_AUTHORITY { { 0,0,0,0,0,22 } }
+SID_IDENTIFIER_AUTHORITY sid_id_auth = SECURITY_SAMBA_UNIX_AUTHORITY;
+
+static
+BOOL allocate_unixuser_sid(unsigned long uid, PSID *pSid)
+{
+    PSID sid = NULL;
+    PSID malloced_sid = NULL;
+    DWORD sid_len;
+
+    if (AllocateAndInitializeSid(&sid_id_auth, 2, 1, (DWORD)uid,
+        0, 0, 0, 0, 0, 0, &sid)) {
+        sid_len = GetLengthSid(sid);
+
+        malloced_sid = malloc(sid_len);
+
+        if (malloced_sid) {
+            /*
+             * |AllocateAndInitializeSid()| has an own memory
+             * allocator, but we need the sid in memory from
+             * |malloc()|
+             */
+            if (CopySid(sid_len, malloced_sid, sid)) {
+                FreeSid(sid);
+                *pSid = malloced_sid;
+                dprintf(ACLLVL, "allocate_unixuser_sid(): Allocated "
+                    "Unix_User+%lu: success, len=%ld\n",
+                    uid, (long)sid_len);
+                return TRUE;
+            }
+        }
+    }
+
+    FreeSid(sid);
+    free(malloced_sid);
+    dprintf(ACLLVL, "allocate_unixuser_sid(): Failed to allocate "
+        "SID for Unix_User+%lu: error code %d\n",
+        uid, GetLastError());
+    return FALSE;
+}
+
+static
+BOOL allocate_unixgroup_sid(unsigned long gid, PSID *pSid)
+{
+    PSID sid = NULL;
+    PSID malloced_sid = NULL;
+    DWORD sid_len;
+
+    if (AllocateAndInitializeSid(&sid_id_auth, 2, 2, (DWORD)gid,
+        0, 0, 0, 0, 0, 0, &sid)) {
+        sid_len = GetLengthSid(sid);
+
+        malloced_sid = malloc(sid_len);
+
+        if (malloced_sid) {
+            /*
+             * |AllocateAndInitializeSid()| has an own memory
+             * allocator, but we need the sid in memory from
+             * |malloc()|
+             */
+            if (CopySid(sid_len, malloced_sid, sid)) {
+                FreeSid(sid);
+                *pSid = malloced_sid;
+                dprintf(ACLLVL, "allocate_unixgroup_sid(): Allocated "
+                    "Unix_Group+%lu: success, len=%ld\n",
+                    gid, (long)sid_len);
+                return TRUE;
+            }
+        }
+    }
+
+    FreeSid(sid);
+    free(malloced_sid);
+    dprintf(ACLLVL, "allocate_unixgroup_sid(): Failed to allocate "
+        "SID for Unix_Group+%lu: error code %d\n",
+        gid, GetLastError());
+    return FALSE;
+}
+#endif /* NFS41_DRIVER_FEATURE_MAP_UNMAPPED_USER_TO_UNIXUSER_SID */
+
+static int map_name_2_sid(int query, DWORD *sid_len, PSID *sid, LPCSTR name)
 {
     int status = ERROR_INTERNAL_ERROR;
     SID_NAME_USE sid_type;
     LPSTR tmp_buf = NULL;
     DWORD tmp = 0;
+#ifdef NFS41_DRIVER_FEATURE_MAP_UNMAPPED_USER_TO_UNIXUSER_SID
+    signed long user_uid = -1;
+    signed long group_gid = -1;
+#endif /* NFS41_DRIVER_FEATURE_MAP_UNMAPPED_USER_TO_UNIXUSER_SID */
+
+#ifdef NFS41_DRIVER_FEATURE_MAP_UNMAPPED_USER_TO_UNIXUSER_SID
+    if (query & OWNER_SECURITY_INFORMATION) {
+        if (!strcmp(name, "rmainz")) {
+            name = "roland_mainz";
+            dprintf(ACLLVL, "map_name_2_sid: remap rmainz --> roland_mainz\n");
+        }
+        else if (!strcmp(name, "197608")) {
+            name = "roland_mainz";
+            dprintf(ACLLVL, "map_name_2_sid: remap 197608 --> roland_mainz\n");
+        }
+        else if (!strcmp(name, "1616")) {
+            name = "roland_mainz";
+            dprintf(ACLLVL, "map_name_2_sid: remap 1616 --> roland_mainz\n");
+        }
+    }
+#endif /* NFS41_DRIVER_FEATURE_MAP_UNMAPPED_USER_TO_UNIXUSER_SID */
 
     status = LookupAccountName(NULL, name, NULL, sid_len, NULL, &tmp, &sid_type);
-    dprintf(ACLLVL, "map_name_2_sid: LookupAccountName for %s returned %d "
-            "GetLastError %d name len %d domain len %d\n", name, status, 
-            GetLastError(), *sid_len, tmp); 
+    dprintf(ACLLVL, "map_name_2_sid(query=%x,name='%s'): LookupAccountName returned %d "
+            "GetLastError %d name len %d domain len %d\n",
+            query, name, status, GetLastError(), *sid_len, tmp);
     if (status)
         return ERROR_INTERNAL_ERROR;
 
@@ -119,8 +246,8 @@ static int map_name_2_sid(DWORD *sid_len, PSID *sid, LPCSTR name)
                                     &tmp, &sid_type);
         free(tmp_buf);
         if (!status) {
-            eprintf("map_name_2_sid: LookupAccountName for %s failed "
-                    "with %d\n", name, GetLastError());
+            eprintf("map_name_2_sid(query=%x,name='%s'): LookupAccountName failed "
+                    "with %d\n", query, name, GetLastError());
             goto out_free_sid;
         } else {
 #ifdef DEBUG_ACLS
@@ -140,15 +267,109 @@ static int map_name_2_sid(DWORD *sid_len, PSID *sid, LPCSTR name)
         status = ERROR_SUCCESS;
         break;
     case ERROR_NONE_MAPPED:
+#ifdef NFS41_DRIVER_FEATURE_MAP_UNMAPPED_USER_TO_UNIXUSER_SID
+        dprintf(1, "map_name_2_sid(query=%x,name='%s'): none mapped, "
+            "trying Unix_User+/Unix_Group+ mapping\n",
+            query, name);
+
+        if ((user_uid == -1) && (query & OWNER_SECURITY_INFORMATION)) {
+            if (isdigit(name[0])) {
+                user_uid = atol(name);
+            }
+            else if(!strcmp(name, "nobody")) {
+                user_uid = 65534;
+            }
+            else if(!strcmp(name, "root")) {
+                user_uid = 0;
+            }
+            else if(!strcmp(name, "rmainz")) {
+                user_uid = 1616;
+            }
+            else if(!strcmp(name, "swulsch")) {
+                user_uid = 1818;
+            }
+            else if(!strcmp(name, "mwenzel")) {
+                user_uid = 8239;
+            }
+            else if(!strcmp(name, "test001")) {
+                user_uid = 1000;
+            }
+        }
+
+        if ((group_gid == -1) && (query & GROUP_SECURITY_INFORMATION)) {
+            if (isdigit(name[0])) {
+                group_gid = atol(name);
+            }
+            else if(!strcmp(name, "nobody")) {
+                group_gid = 65534;
+            }
+            else if(!strcmp(name, "root")) {
+                group_gid = 0;
+            }
+            else if(!strcmp(name, "rmainz")) {
+                group_gid = 1616;
+            }
+            else if(!strcmp(name, "swulsch")) {
+                group_gid = 1818;
+            }
+            else if(!strcmp(name, "mwenzel")) {
+                group_gid = 8239;
+            }
+            else if(!strcmp(name, "test001")) {
+                group_gid = 1000;
+            }
+        }
+
+        if (user_uid != -1) {
+            if (allocate_unixuser_sid(user_uid, sid)) {
+                dprintf(ACLLVL, "map_name_2_sid(query=%x,name='%s'): "
+                    "allocate_unixuser_sid(uid=%ld) success\n",
+                    query, name, user_uid);
+                return ERROR_SUCCESS;
+            }
+
+            status = GetLastError();
+            dprintf(ACLLVL, "map_name_2_sid(query=%x,name='%s'): "
+                "allocate_unixuser_sid(uid=%ld) failed, error=%d\n",
+                query, name, user_uid, status);
+            return status;
+        }
+
+        if (group_gid != -1) {
+            if (allocate_unixgroup_sid(group_gid, sid)) {
+                dprintf(ACLLVL, "map_name_2_sid(query=%x,name='%s'): "
+                    "allocate_unixgroup_sid(gid=%ld) success\n",
+                    query, name, group_gid);
+                return ERROR_SUCCESS;
+            }
+
+            status = GetLastError();
+            dprintf(ACLLVL, "map_name_2_sid(query=%x,name='%s'): "
+                "allocate_unixgroup_sid(gid=%ld) failed, error=%d\n",
+                query, name, group_gid, status);
+            return status;
+        }
+#endif /* NFS41_DRIVER_FEATURE_MAP_UNMAPPED_USER_TO_UNIXUSER_SID */
+
+        dprintf(1, "map_name_2_sid(query=%x,name='%s'): none mapped, "
+            "using WinNullSid mapping\n",
+            query, name);
+
         status = create_unknownsid(WinNullSid, sid, sid_len);
         if (status)
             goto out_free_sid;
+        break;
+    default:
+        dprintf(1, "map_name_2_sid(query=%x,name='%s'): error %d not handled\n",
+            query, name, GetLastError());
+        break;
     }
 out:
     return status;
 out_free_sid:
     status = GetLastError();
     free(*sid);
+    *sid = NULL;
     goto out;
 }
 
@@ -208,7 +429,8 @@ static int convert_nfs4acl_2_dacl(nfsacl41 *acl, int file_type,
             goto out;
         }
         if (!flag) {
-            status = map_name_2_sid(&sid_len, &sids[i], acl->aces[i].who);
+            status = map_name_2_sid(0xFFFF /* fixme: Unknown whether user or group */,
+                &sid_len, &sids[i], acl->aces[i].who);
             if (status) {
                 free_sids(sids, i);
                 goto out;
@@ -322,7 +544,7 @@ static int handle_getacl(nfs41_upcall *upcall)
         dprintf(ACLLVL, "handle_getacl: OWNER_SECURITY_INFORMATION: for user=%s "
                 "domain=%s\n", info.owner, domain?domain:"<null>");
         sid_len = 0;
-        status = map_name_2_sid(&sid_len, &osid, info.owner);
+        status = map_name_2_sid(OWNER_SECURITY_INFORMATION, &sid_len, &osid, info.owner);
         if (status)
             goto out;
         status = SetSecurityDescriptorOwner(&sec_desc, osid, TRUE);
@@ -333,12 +555,13 @@ static int handle_getacl(nfs41_upcall *upcall)
             goto out;
         }
     }
+
     if (args->query & GROUP_SECURITY_INFORMATION) {
         convert_nfs4name_2_user_domain(info.owner_group, &domain);
         dprintf(ACLLVL, "handle_getacl: GROUP_SECURITY_INFORMATION: for %s "
                 "domain=%s\n", info.owner_group, domain?domain:"<null>");
         sid_len = 0;
-        status = map_name_2_sid(&sid_len, &gsid, info.owner_group);
+        status = map_name_2_sid(GROUP_SECURITY_INFORMATION, &sid_len, &gsid, info.owner_group);
         if (status)
             goto out;
         status = SetSecurityDescriptorGroup(&sec_desc, gsid, TRUE);
