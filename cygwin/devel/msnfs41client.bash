@@ -99,7 +99,20 @@ function nfsclient_rundeamon
 	set -o xtrace
 	set -o nounset
 
-	gdb -ex=run --args nfsd_debug -d 0 --noldap --gid 1616 --uid 1616
+	#
+	# cdb cheat sheet:
+	#
+	# gdb: run  cdb: g
+	# gdb: bt   cdb: kp
+	# gdb: quit cdb: q
+	#
+
+	if false ; then
+		gdb -ex=run --args nfsd_debug -d 0 --noldap --gid 1616 --uid 1616
+	else
+		export _NT_ALT_SYMBOL_PATH="$(cygpath -w "$PWD")"
+		cdb -c "g" "$(cygpath -w "$PWD/nfsd_debug.exe")" -d 2 --noldap --gid 1616 --uid 1616
+	fi
 	return $?
 }
 
@@ -108,7 +121,12 @@ function nfsclient_system_rundeamon
 	set -o xtrace
 	set -o nounset
 
-	su_system gdb -ex=run --args nfsd_debug -d 0 --noldap --gid 1616 --uid 1616
+	if false ; then
+		su_system gdb -ex=run --args nfsd_debug -d 0 --noldap --gid 1616 --uid 1616
+	else
+		export _NT_ALT_SYMBOL_PATH="$(cygpath -w "$PWD")"
+		su_system cdb -c "g" "$(cygpath -w "$PWD/nfsd_debug.exe")" -d 2 --noldap --gid 1616 --uid 1616
+	fi
 	return $?
 }
 
@@ -213,6 +231,9 @@ function main
 	# "$PATH:/usr/bin:/bin" is used for PsExec where $PATH might be empty
 	export PATH="$PWD:$PATH:/usr/bin:/bin"
 
+	# path to WinDBG cdb (fixme: 64bit x86-specific)
+	PATH+=':/cygdrive/c/Program Files (x86)/Windows Kits/10/Debuggers/x64/'
+
 	# my own path to pstools
 	PATH+=':/home/roland_mainz/work/win_pstools/'
 
@@ -222,6 +243,7 @@ function main
 			return $?
 			;;
 		'run_deamon' | 'run_daemon')
+			require_cmd 'cdb.exe' || return 1
 			require_cmd 'nfsd.exe' || return 1
 			require_cmd 'nfsd_debug.exe' || return 1
 			require_cmd 'nfs_mount.exe' || return 1
@@ -229,6 +251,7 @@ function main
 			return $?
 			;;
 		'sys_run_deamon' | 'sys_run_daemon')
+			require_cmd 'cdb.exe' || return 1
 			require_cmd 'PsExec.exe' || return 1
 			require_cmd 'nfsd.exe' || return 1
 			require_cmd 'nfsd_debug.exe' || return 1
