@@ -194,7 +194,7 @@ static __inline uint32_t get_lock_type(BOOLEAN exclusive, BOOLEAN blocking)
         : ( exclusive == 0 ? READW_LT : WRITEW_LT );
 }
 
-static int handle_lock(nfs41_upcall *upcall)
+static int handle_lock(void *deamon_context, nfs41_upcall *upcall)
 {
     stateid_arg stateid;
     lock_upcall_args *args = &upcall->args.lock;
@@ -318,7 +318,7 @@ out:
     return status;
 }
 
-static int handle_unlock(nfs41_upcall *upcall)
+static int handle_unlock(void *daemon_context, nfs41_upcall *upcall)
 {
     nfs41_lock_state input;
     stateid_arg stateid;

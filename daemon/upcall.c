@@ -133,6 +133,7 @@ out:
 }
 
 int upcall_handle(
+    IN void *daemon_context,
     IN nfs41_upcall *upcall)
 {
     int status = NO_ERROR;
@@ -146,7 +147,7 @@ int upcall_handle(
         goto out;
     }
 
-    upcall->status = op->handle(upcall);
+    upcall->status = op->handle(daemon_context, upcall);
 out:
     return status;
 }

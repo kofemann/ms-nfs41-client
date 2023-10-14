@@ -135,7 +135,7 @@ out:
     return status;
 }
 
-static int handle_read(nfs41_upcall *upcall)
+static int handle_read(void *daemon_context, nfs41_upcall *upcall)
 {
     readwrite_upcall_args *args = &upcall->args.rw;
     stateid_arg stateid;
@@ -271,7 +271,7 @@ out:
     return status;
 }
 
-static int handle_write(nfs41_upcall *upcall)
+static int handle_write(void *daemon_context, nfs41_upcall *upcall)
 {
     readwrite_upcall_args *args = &upcall->args.rw;
     stateid_arg stateid;

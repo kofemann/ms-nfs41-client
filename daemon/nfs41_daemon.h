@@ -20,31 +20,20 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  */
 
-#ifndef _NFS41_DRIVER_BUILDFEATURES_
-#define _NFS41_DRIVER_BUILDFEATURES_ 1
+#ifndef __NFS41_DAEMON_H_
+#define __NFS41_DAEMON_H_ 1
+
+#include "nfs41_build_features.h"
+#include "idmap.h"
 
 /*
- * NFS41_DRIVER_FEATURE_* - features for this build, we use this
- * for development to add new features which are "off" by default
- * until they are ready
+ * Global data of the daemon process
  */
+typedef struct __nfs41_daemon_globals {
+    struct idmap_context *idmapper;
+    char localdomain_name[NFS41_HOSTNAME_LEN];
+    int default_uid;
+    int default_gid;
+} nfs41_daemon_globals;
 
-/*
- * NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES - return local uid/gid values
- */
-// #define NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES 1
-
-/*
- * NFS41_DRIVER_FEATURE_MAP_UNMAPPED_USER_TO_UNIXUSER_SID - give NFS
- * files which do not map to a local account a SID in the
- * Unix_User+x/Unix_Group+x range
- */
-// #define NFS41_DRIVER_FEATURE_MAP_UNMAPPED_USER_TO_UNIXUSER_SID 1
-
-/*
- * NFS41_DRIVER_FEATURE_NAMESERVICE_CYGWIN - use Cygwin /usr/bin/getent
- * as "name service"
- */
-// #define NFS41_DRIVER_FEATURE_NAMESERVICE_CYGWIN 1
-
-#endif /* !_NFS41_DRIVER_BUILDFEATURES_ */
+#endif /* !__NFS41_DAEMON_H_ */

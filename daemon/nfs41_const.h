@@ -395,5 +395,8 @@ enum nfs_ftype4 {
 #define ACL4_PROTECTED            0x00000002
 #define ACL4_DEFAULTED            0x00000004
 
+/* Common user and group names */
+#define NFS_USER_NOBODY_UID     65534
+#define NFS_GROUP_NOGROUP_GID   65534
 
 #endif /* !__NFS41_NFS_CONST_H__ */

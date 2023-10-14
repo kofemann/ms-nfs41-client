@@ -213,10 +213,13 @@ authunix_create_default()
 		abort();
 #else
 	// XXX Need to figure out what to do here!
-	uid = 666;
-	gid = 777;
+	uid = 10666;
+	gid = 10777;
 	gids[0] = 0;
 	len = 0;
+        (void)fprintf(stderr, "authunix_create_default(): fixme, "
+            "do not know what do to, returning fake uid=%d/gid=%d",
+            (int)uid, (int)gid);
 #endif
 	/* XXX: interface problem; those should all have been unsigned */
 	return (authunix_create(machname, uid, gid, len, gids));

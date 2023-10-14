@@ -112,7 +112,7 @@ out:
     return status;
 }
 
-static int handle_volume(nfs41_upcall *upcall)
+static int handle_volume(void *daemon_context, nfs41_upcall *upcall)
 {
     volume_upcall_args *args = &upcall->args.volume;
     int status = NO_ERROR;

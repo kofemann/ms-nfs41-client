@@ -208,7 +208,7 @@ out:
     return status;
 }
 
-static int handle_symlink(nfs41_upcall *upcall)
+static int handle_symlink(void *daemon_context, nfs41_upcall *upcall)
 {
     symlink_upcall_args *args = &upcall->args.symlink;
     nfs41_open_state *state = upcall->state_ref;

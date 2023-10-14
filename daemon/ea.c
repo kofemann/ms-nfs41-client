@@ -159,7 +159,7 @@ out:
     return status;
 }
 
-static int handle_setexattr(nfs41_upcall *upcall)
+static int handle_setexattr(void *daemon_context, nfs41_upcall *upcall)
 {
     int status;
     setexattr_upcall_args *args = &upcall->args.setexattr;
@@ -527,7 +527,7 @@ static int overflow_error(
     return NO_ERROR;
 }
 
-static int handle_getexattr(nfs41_upcall *upcall)
+static int handle_getexattr(void *daemon_context, nfs41_upcall *upcall)
 {
     getexattr_upcall_args *args = &upcall->args.getexattr;
     PFILE_GET_EA_INFORMATION query = (PFILE_GET_EA_INFORMATION)args->ealist;

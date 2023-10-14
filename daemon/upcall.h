@@ -45,7 +45,7 @@ typedef struct __open_upcall_args {
     FILE_STANDARD_INFO std_info;
     const char *path;
     ULONG access_mask;
-    ULONG access_mode; 
+    ULONG access_mode;
     ULONG file_attrs;
     ULONG disposition;
     ULONG create_opts;
@@ -215,7 +215,7 @@ typedef struct __nfs41_upcall {
 
 /* upcall operation interface */
 typedef int (*upcall_parse_proc)(unsigned char*, uint32_t, nfs41_upcall*);
-typedef int (*upcall_handle_proc)(nfs41_upcall*);
+typedef int (*upcall_handle_proc)(void*, nfs41_upcall*);
 typedef int (*upcall_marshall_proc)(unsigned char*, uint32_t*, nfs41_upcall*);
 typedef void (*upcall_cancel_proc)(nfs41_upcall*);
 typedef void (*upcall_cleanup_proc)(nfs41_upcall*);
@@ -236,6 +236,7 @@ int upcall_parse(
     OUT nfs41_upcall *upcall);
 
 int upcall_handle(
+    IN void *daemon_context,
     IN nfs41_upcall *upcall);
 
 void upcall_marshall(

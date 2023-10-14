@@ -55,7 +55,7 @@ out:
     return status;
 }
 
-static int handle_nfs41_setattr(setattr_upcall_args *args)
+static int handle_nfs41_setattr(void *daemon_context, setattr_upcall_args *args)
 {
     PFILE_BASIC_INFO basic_info = (PFILE_BASIC_INFO)args->buf;
     nfs41_open_state *state = args->state;
@@ -149,7 +149,7 @@ out:
     return status;
 }
 
-static int handle_nfs41_remove(setattr_upcall_args *args)
+static int handle_nfs41_remove(void *daemon_context, setattr_upcall_args *args)
 {
     nfs41_open_state *state = args->state;
     int status;
@@ -208,7 +208,7 @@ static int is_dst_name_opened(nfs41_abs_path *dst_path, nfs41_session *dst_sessi
 
     return status;
 }
-static int handle_nfs41_rename(setattr_upcall_args *args)
+static int handle_nfs41_rename(void *daemon_context, setattr_upcall_args *args)
 {
     nfs41_open_state *state = args->state;
     nfs41_session *dst_session;
@@ -341,7 +341,7 @@ out:
     return status;
 }
 
-static int handle_nfs41_set_size(setattr_upcall_args *args)
+static int handle_nfs41_set_size(void *daemon_context, setattr_upcall_args *args)
 {
     nfs41_file_info info = { 0 };
     stateid_arg stateid;
@@ -378,7 +378,7 @@ out:
     return status = nfs_to_windows_error(status, ERROR_NOT_SUPPORTED);
 }
 
-static int handle_nfs41_link(setattr_upcall_args *args)
+static int handle_nfs41_link(void *daemon_context, setattr_upcall_args *args)
 {
     nfs41_open_state *state = args->state;
     PFILE_LINK_INFORMATION link = (PFILE_LINK_INFORMATION)args->buf;
@@ -480,30 +480,30 @@ out:
     return status;
 }
 
-static int handle_setattr(nfs41_upcall *upcall)
+static int handle_setattr(void *daemon_context, nfs41_upcall *upcall)
 {
     setattr_upcall_args *args = &upcall->args.setattr;
     int status;
 
     switch (args->set_class) {
     case FileBasicInformation:
-        status = handle_nfs41_setattr(args);
+        status = handle_nfs41_setattr(daemon_context, args);
         break;
     case FileDispositionInformation:
-        status = handle_nfs41_remove(args);
+        status = handle_nfs41_remove(daemon_context, args);
         break;
     case FileRenameInformation:
-        status = handle_nfs41_rename(args);
+        status = handle_nfs41_rename(daemon_context, args);
         break;
     case FileAllocationInformation:
     case FileEndOfFileInformation:
-        status = handle_nfs41_set_size(args);
+        status = handle_nfs41_set_size(daemon_context, args);
         break;
     case FileLinkInformation:
-        status = handle_nfs41_link(args);
+        status = handle_nfs41_link(daemon_context, args);
         break;
     default:
-        eprintf("unknown set_file information class %d\n",
+        eprintf("handle_setattr: unknown set_file information class %d\n",
             args->set_class);
         status = ERROR_NOT_SUPPORTED;
         break;

@@ -448,7 +448,7 @@ out:
     return status;
 }
 
-static int handle_readdir(nfs41_upcall *upcall)
+static int handle_readdir(void *deamon_context, nfs41_upcall *upcall)
 {
     int status;
     readdir_upcall_args *args = &upcall->args.readdir;

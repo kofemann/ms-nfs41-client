@@ -56,7 +56,7 @@ out:
     return status;
 }
 
-static int handle_mount(nfs41_upcall *upcall)
+static int handle_mount(void *daemon_context, nfs41_upcall *upcall)
 {
     int status;
     mount_upcall_args *args = &upcall->args.mount;
@@ -192,7 +192,7 @@ static int parse_unmount(unsigned char *buffer, uint32_t length, nfs41_upcall *u
     return ERROR_SUCCESS;
 }
 
-static int handle_unmount(nfs41_upcall *upcall)
+static int handle_unmount(void *daemon_context, nfs41_upcall *upcall)
 {
     /* release the original reference from nfs41_root_create() */
     nfs41_root_deref(upcall->root_ref);

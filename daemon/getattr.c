@@ -73,7 +73,7 @@ out:
     return status;
 }
 
-static int handle_getattr(nfs41_upcall *upcall)
+static int handle_getattr(void *daemon_context, nfs41_upcall *upcall)
 {
     int status;
     getattr_upcall_args *args = &upcall->args.getattr;

@@ -20,23 +20,24 @@
  */
 
 #include <Windows.h>
+#include <stdio.h>
 #include <strsafe.h>
 #include <sddl.h>
 
 #include "nfs41_ops.h"
 #include "nfs41_build_features.h"
+#include "nfs41_daemon.h"
 #include "delegation.h"
 #include "daemon_debug.h"
 #include "util.h"
 #include "upcall.h"
 #include "nfs41_xdr.h"
+#include "idmap.h"
 
 //#define DEBUG_ACLS
 #define ACLLVL 2 /* dprintf level for acl logging */
 
-extern char localdomain_name[NFS41_HOSTNAME_LEN];
-
-static int parse_getacl(unsigned char *buffer, uint32_t length, 
+static int parse_getacl(unsigned char *buffer, uint32_t length,
                         nfs41_upcall *upcall)
 {
     int status;
@@ -85,13 +86,14 @@ err:
     return status;
 }
 
-static void convert_nfs4name_2_user_domain(LPSTR nfs4name, 
+static void convert_nfs4name_2_user_domain(LPSTR nfs4name,
                                            LPSTR *domain)
 {
     LPSTR p = nfs4name;
     for(; p[0] != '\0'; p++) {
-        if (p[0] == '@') { 
+        if (p[0] == '@') {
             p[0] = '\0';
+
             *domain = &p[1];
             break;
         }
@@ -196,7 +198,7 @@ BOOL allocate_unixgroup_sid(unsigned long gid, PSID *pSid)
 }
 #endif /* NFS41_DRIVER_FEATURE_MAP_UNMAPPED_USER_TO_UNIXUSER_SID */
 
-static int map_name_2_sid(int query, DWORD *sid_len, PSID *sid, LPCSTR name)
+static int map_name_2_sid(nfs41_daemon_globals *nfs41dg, int query, DWORD *sid_len, PSID *sid, LPCSTR name)
 {
     int status = ERROR_INTERNAL_ERROR;
     SID_NAME_USE sid_type;
@@ -242,7 +244,7 @@ static int map_name_2_sid(int query, DWORD *sid_len, PSID *sid, LPCSTR name)
         tmp_buf = (LPSTR) malloc(tmp);
         if (tmp_buf == NULL)
             goto out_free_sid;
-        status = LookupAccountName(NULL, name, *sid, sid_len, tmp_buf, 
+        status = LookupAccountName(NULL, name, *sid, sid_len, tmp_buf,
                                     &tmp, &sid_type);
         free(tmp_buf);
         if (!status) {
@@ -273,50 +275,36 @@ static int map_name_2_sid(int query, DWORD *sid_len, PSID *sid, LPCSTR name)
             query, name);
 
         if ((user_uid == -1) && (query & OWNER_SECURITY_INFORMATION)) {
-            if (isdigit(name[0])) {
-                user_uid = atol(name);
+            uid_t map_uid = -1;
+            gid_t gid_dummy = -1;
+
+            if (nfs41_idmap_name_to_ids(
+                nfs41dg->idmapper,
+                name,
+                &map_uid,
+                &gid_dummy) == 0) {
+                user_uid = map_uid;
             }
-            else if(!strcmp(name, "nobody")) {
-                user_uid = 65534;
-            }
-            else if(!strcmp(name, "root")) {
-                user_uid = 0;
-            }
-            else if(!strcmp(name, "rmainz")) {
-                user_uid = 1616;
-            }
-            else if(!strcmp(name, "swulsch")) {
-                user_uid = 1818;
-            }
-            else if(!strcmp(name, "mwenzel")) {
-                user_uid = 8239;
-            }
-            else if(!strcmp(name, "test001")) {
-                user_uid = 1000;
+            else {
+                dprintf(1, "map_name_2_sid(query=%x,name='%s'): nfs41_idmap_name_to_ids() failed\n",
+                    query, name);
+                /* fixme: try harder here, "1234" should to to |atol()| */
             }
         }
 
         if ((group_gid == -1) && (query & GROUP_SECURITY_INFORMATION)) {
-            if (isdigit(name[0])) {
-                group_gid = atol(name);
+            gid_t map_gid = -1;
+
+            if (nfs41_idmap_group_to_gid(
+                nfs41dg->idmapper,
+                name,
+                &map_gid) == 0) {
+                group_gid = map_gid;
             }
-            else if(!strcmp(name, "nobody")) {
-                group_gid = 65534;
-            }
-            else if(!strcmp(name, "root")) {
-                group_gid = 0;
-            }
-            else if(!strcmp(name, "rmainz")) {
-                group_gid = 1616;
-            }
-            else if(!strcmp(name, "swulsch")) {
-                group_gid = 1818;
-            }
-            else if(!strcmp(name, "mwenzel")) {
-                group_gid = 8239;
-            }
-            else if(!strcmp(name, "test001")) {
-                group_gid = 1000;
+            else {
+                dprintf(1, "map_name_2_sid(query=%x,name='%s'): nfs41_idmap_group_to_gid() failed\n",
+                    query, name);
+                /* fixme: try harder here, "1234" should to to |atol()| */
             }
         }
 
@@ -402,8 +390,8 @@ static int check_4_special_identifiers(char *who, PSID *sid, DWORD *sid_len,
     return status;
 }
 
-static int convert_nfs4acl_2_dacl(nfsacl41 *acl, int file_type, 
-                                  PACL *dacl_out, PSID **sids_out)
+static int convert_nfs4acl_2_dacl(nfs41_daemon_globals *nfs41dg,
+    nfsacl41 *acl, int file_type, PACL *dacl_out, PSID **sids_out)
 {
     int status = ERROR_NOT_SUPPORTED, size = 0;
     uint32_t i;
@@ -429,13 +417,14 @@ static int convert_nfs4acl_2_dacl(nfsacl41 *acl, int file_type,
             goto out;
         }
         if (!flag) {
-            status = map_name_2_sid(0xFFFF /* fixme: Unknown whether user or group */,
+            status = map_name_2_sid(nfs41dg,
+                0xFFFF /* fixme: Unknown whether user or group */,
                 &sid_len, &sids[i], acl->aces[i].who);
             if (status) {
                 free_sids(sids, i);
                 goto out;
             }
-        } 
+        }
         size += sid_len - sizeof(DWORD);
     }
     size += sizeof(ACL) + (sizeof(ACCESS_ALLOWED_ACE)*acl->count);
@@ -493,9 +482,10 @@ out_free_sids:
     goto out;
 }
 
-static int handle_getacl(nfs41_upcall *upcall)
+static int handle_getacl(void *daemon_context, nfs41_upcall *upcall)
 {
     int status = ERROR_NOT_SUPPORTED;
+    nfs41_daemon_globals *nfs41dg = daemon_context;
     getacl_upcall_args *args = &upcall->args.getacl;
     nfs41_open_state *state = upcall->state_ref;
     nfs41_file_info info = { 0 };
@@ -544,7 +534,8 @@ static int handle_getacl(nfs41_upcall *upcall)
         dprintf(ACLLVL, "handle_getacl: OWNER_SECURITY_INFORMATION: for user=%s "
                 "domain=%s\n", info.owner, domain?domain:"<null>");
         sid_len = 0;
-        status = map_name_2_sid(OWNER_SECURITY_INFORMATION, &sid_len, &osid, info.owner);
+        status = map_name_2_sid(nfs41dg,
+            OWNER_SECURITY_INFORMATION, &sid_len, &osid, info.owner);
         if (status)
             goto out;
         status = SetSecurityDescriptorOwner(&sec_desc, osid, TRUE);
@@ -561,7 +552,8 @@ static int handle_getacl(nfs41_upcall *upcall)
         dprintf(ACLLVL, "handle_getacl: GROUP_SECURITY_INFORMATION: for %s "
                 "domain=%s\n", info.owner_group, domain?domain:"<null>");
         sid_len = 0;
-        status = map_name_2_sid(GROUP_SECURITY_INFORMATION, &sid_len, &gsid, info.owner_group);
+        status = map_name_2_sid(nfs41dg,
+            GROUP_SECURITY_INFORMATION, &sid_len, &gsid, info.owner_group);
         if (status)
             goto out;
         status = SetSecurityDescriptorGroup(&sec_desc, gsid, TRUE);
@@ -574,7 +566,8 @@ static int handle_getacl(nfs41_upcall *upcall)
     }
     if (args->query & DACL_SECURITY_INFORMATION) {
         dprintf(ACLLVL, "handle_getacl: DACL_SECURITY_INFORMATION\n");
-        status = convert_nfs4acl_2_dacl(info.acl, state->type, &dacl, &sids);
+        status = convert_nfs4acl_2_dacl(nfs41dg,
+            info.acl, state->type, &dacl, &sids);
         if (status)
             goto out;
         status = SetSecurityDescriptorDacl(&sec_desc, TRUE, dacl, TRUE);
@@ -910,9 +903,10 @@ out_free:
     goto out;
 }
 
-static int handle_setacl(nfs41_upcall *upcall)
+static int handle_setacl(void *daemon_context, nfs41_upcall *upcall)
 {
     int status = ERROR_NOT_SUPPORTED;
+    nfs41_daemon_globals *nfs41dg = daemon_context;
     setacl_upcall_args *args = &upcall->args.setacl;
     nfs41_open_state *state = upcall->state_ref;
     nfs41_file_info info = { 0 };
@@ -931,7 +925,7 @@ static int handle_setacl(nfs41_upcall *upcall)
             goto out;
         }
         info.owner = owner;
-        status = map_nfs4ace_who(sid, NULL, NULL, info.owner, localdomain_name);
+        status = map_nfs4ace_who(sid, NULL, NULL, info.owner, nfs41dg->localdomain_name);
         if (status)
             goto out;
         else {
@@ -949,8 +943,8 @@ static int handle_setacl(nfs41_upcall *upcall)
             goto out;
         }
         info.owner_group = group;
-        status = map_nfs4ace_who(sid, NULL, NULL, info.owner_group, 
-                                 localdomain_name);
+        status = map_nfs4ace_who(sid, NULL, NULL, info.owner_group,
+                                 nfs41dg->localdomain_name);
         if (status)
             goto out;
         else {
@@ -981,8 +975,8 @@ static int handle_setacl(nfs41_upcall *upcall)
             eprintf("GetSecurityDescriptorOwner failed with %d\n", status);
             goto out;
         }
-        status = map_dacl_2_nfs4acl(acl, sid, gsid, &nfs4_acl, state->type, 
-                                    localdomain_name);
+        status = map_dacl_2_nfs4acl(acl, sid, gsid, &nfs4_acl, state->type,
+                                    nfs41dg->localdomain_name);
         if (status)
             goto out;
         else {

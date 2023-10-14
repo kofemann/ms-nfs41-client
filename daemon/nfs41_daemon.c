@@ -30,7 +30,7 @@
 #include "nfs41_driver.h" /* for NFS41_USER_DEVICE_NAME_A */
 #include "nfs41_np.h" /* for NFS41NP_SHARED_MEMORY */
 
-#include "idmap.h"
+#include "nfs41_daemon.h"
 #include "daemon_debug.h"
 #include "upcall.h"
 #include "util.h"
@@ -41,9 +41,11 @@ DWORD NFS41D_VERSION = 0;
 static const char FILE_NETCONFIG[] = "C:\\etc\\netconfig";
 
 /* Globals */
-char localdomain_name[NFS41_HOSTNAME_LEN];
-int default_uid = 666;
-int default_gid = 777;
+nfs41_daemon_globals nfs41_dg = {
+    .default_uid = NFS_USER_NOBODY_UID,
+    .default_gid = NFS_GROUP_NOGROUP_GID,
+};
+
 
 #ifndef STANDALONE_NFSD //make sure to define it in "sources" not here
 #include "service.h"
@@ -54,7 +56,7 @@ typedef struct _nfs41_process_thread {
     uint32_t tid;
 } nfs41_process_thread;
 
-static int map_user_to_ids(nfs41_idmapper *idmapper, uid_t *uid, gid_t *gid)
+static int map_current_user_to_ids(nfs41_idmapper *idmapper, uid_t *uid, gid_t *gid)
 {
     char username[UNLEN + 1];
     DWORD len = UNLEN + 1;
@@ -62,26 +64,26 @@ static int map_user_to_ids(nfs41_idmapper *idmapper, uid_t *uid, gid_t *gid)
 
     if (!GetUserNameA(username, &len)) {
         status = GetLastError();
-        eprintf("GetUserName() failed with %d\n", status);
+        eprintf("map_current_user_to_ids: GetUserName() failed with %d\n", status);
         goto out;
     }
-    dprintf(1, "map_user_to_ids: mapping user %s\n", username);
+    dprintf(1, "map_current_user_to_ids: mapping user %s\n", username);
 
     if (nfs41_idmap_name_to_ids(idmapper, username, uid, gid)) {
         /* instead of failing for auth_sys, fall back to 'nobody' uid/gid */
-        *uid = default_uid;
-        *gid = default_gid;
+        *uid = nfs41_dg.default_uid;
+        *gid = nfs41_dg.default_gid;
     }
 out:
     return status;
 }
 
-static unsigned int WINAPI thread_main(void *args) 
+static unsigned int WINAPI thread_main(void *args)
 {
-    nfs41_idmapper *idmapper = (nfs41_idmapper*)args;
+    nfs41_daemon_globals *nfs41dg = (nfs41_daemon_globals *)args;
     DWORD status = 0;
     HANDLE pipe;
-    // buffer used to process upcall, assumed to be fixed size. 
+    // buffer used to process upcall, assumed to be fixed size.
     // if we ever need to handle non-cached IO, need to make it dynamic
     unsigned char outbuf[UPCALL_BUF_SIZE], inbuf[UPCALL_BUF_SIZE]; 
     DWORD inbuf_len = UPCALL_BUF_SIZE, outbuf_len;
@@ -110,8 +112,12 @@ static unsigned int WINAPI thread_main(void *args)
             goto write_downcall;
         }
 
-        /* map username to uid/gid */
-        status = map_user_to_ids(idmapper, &upcall.uid, &upcall.gid);
+        /*
+         * Map current username to uid/gid
+         * Each thread can handle a different user
+         */
+        status = map_current_user_to_ids(nfs41dg->idmapper,
+            &upcall.uid, &upcall.gid);
         if (status) {
             upcall.status = status;
             goto write_downcall;
@@ -122,7 +128,7 @@ static unsigned int WINAPI thread_main(void *args)
             exit(0);
         }
 
-        status = upcall_handle(&upcall);
+        status = upcall_handle(&nfs41_dg, &upcall);
 
 write_downcall:
         dprintf(1, "writing downcall: xid=%lld opcode=%s status=%d "
@@ -212,10 +218,10 @@ static bool_t parse_cmdlineargs(int argc, TCHAR *argv[], nfsd_args *out)
                     PrintUsage();
                     return FALSE;
                 }
-                default_uid = _ttoi(argv[i]);
-                if (!default_uid) {
-                    fprintf(stderr, "Invalid (or missing) anonymous uid value of %d\n", 
-                        default_uid);
+                nfs41_dg.default_uid = _ttoi(argv[i]);
+                if (!nfs41_dg.default_uid) {
+                    fprintf(stderr, "Invalid (or missing) anonymous uid value of %d\n",
+                        nfs41_dg.default_uid);
                     return FALSE;
                 }
             }
@@ -226,7 +232,7 @@ static bool_t parse_cmdlineargs(int argc, TCHAR *argv[], nfsd_args *out)
                     PrintUsage();
                     return FALSE;
                 }
-                default_gid = _ttoi(argv[i]);
+                nfs41_dg.default_gid = _ttoi(argv[i]);
             }
             else
                 fprintf(stderr, "Unrecognized option '%s', disregarding.\n", argv[i]);
@@ -320,9 +326,9 @@ static int getdomainname()
                     if (i == len)
                         break;
                     flag = TRUE;
-                    memcpy(localdomain_name, &hostname[i+1], len-i);
-                    dprintf(1, "getdomainname: domainname %s %d\n", 
-                            localdomain_name, strlen(localdomain_name));
+                    memcpy(nfs41_dg.localdomain_name, &hostname[i+1], len-i);
+                    dprintf(1, "getdomainname: domainname %s %d\n",
+                            nfs41_dg.localdomain_name, strlen(nfs41_dg.localdomain_name));
                     goto out_loop;
                 }
                 break;
@@ -340,9 +346,9 @@ out_loop:
         freeaddrinfo(result);
     } else {
         dprintf(1, "domain name is %s\n", net_info->DomainName);
-        memcpy(localdomain_name, net_info->DomainName, 
+        memcpy(nfs41_dg.localdomain_name, net_info->DomainName,
                 strlen(net_info->DomainName));
-        localdomain_name[strlen(net_info->DomainName)] = '\0';
+        nfs41_dg.localdomain_name[strlen(net_info->DomainName)] = '\0';
     }
 out_free:
     free(net_info);
@@ -360,7 +366,6 @@ VOID ServiceStart(DWORD argc, LPTSTR *argv)
     // handle to our drivers
     HANDLE pipe;
     nfs41_process_thread tids[MAX_NUM_THREADS];
-    nfs41_idmapper *idmapper = NULL;
     int i;
     nfsd_args cmd_args;
 
@@ -389,10 +394,15 @@ VOID ServiceStart(DWORD argc, LPTSTR *argv)
         exit(1);
     }
 
+#ifdef NFS41_DRIVER_FEATURE_NAMESERVICE_CYGWIN
+    /* force enable for cygwin getent passwd/group testing */
+    cmd_args.ldap_enable = TRUE;
+#endif /* NFS41_DRIVER_FEATURE_NAMESERVICE_CYGWIN */
+
     nfs41_server_list_init();
 
     if (cmd_args.ldap_enable) {
-        status = nfs41_idmap_create(&idmapper);
+        status = nfs41_idmap_create(&(nfs41_dg.idmapper));
         if (status) {
             eprintf("id mapping initialization failed with %d\n", status);
             goto out_logs;
@@ -427,8 +437,8 @@ VOID ServiceStart(DWORD argc, LPTSTR *argv)
 #endif
 
     for (i = 0; i < MAX_NUM_THREADS; i++) {
-        tids[i].handle = (HANDLE)_beginthreadex(NULL, 0, thread_main, 
-                idmapper, 0, &tids[i].tid);
+        tids[i].handle = (HANDLE)_beginthreadex(NULL, 0, thread_main,
+                &nfs41_dg, 0, &tids[i].tid);
         if (tids[i].handle == INVALID_HANDLE_VALUE) {
             status = GetLastError();
             eprintf("_beginthreadex failed %d\n", status);
@@ -451,7 +461,8 @@ VOID ServiceStart(DWORD argc, LPTSTR *argv)
 out_pipe:
     CloseHandle(pipe);
 out_idmap:
-    if (idmapper) nfs41_idmap_free(idmapper);
+    if (nfs41_dg.idmapper)
+        nfs41_idmap_free(nfs41_dg.idmapper);
 out_logs:
 #ifndef STANDALONE_NFSD
     close_log_files();

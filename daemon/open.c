@@ -26,11 +26,13 @@
 
 #include "nfs41_ops.h"
 #include "nfs41_build_features.h"
+#include "nfs41_daemon.h"
 #include "delegation.h"
 #include "from_kernel.h"
 #include "daemon_debug.h"
 #include "upcall.h"
 #include "util.h"
+#include "idmap.h"
 
 static int create_open_state(
     IN const char *path,
@@ -491,9 +493,10 @@ static int create_with_ea(
         || (disposition == FILE_OPEN_IF && lookup_status == NFS4ERR_NOENT);
 }
 
-static int handle_open(nfs41_upcall *upcall)
+static int handle_open(void *daemon_context, nfs41_upcall *upcall)
 {
     int status = 0;
+    nfs41_daemon_globals *nfs41dg = daemon_context;
     open_upcall_args *args = &upcall->args.open;
     nfs41_open_state *state;
     nfs41_file_info info = { 0 };
@@ -682,7 +685,11 @@ static int handle_open(nfs41_upcall *upcall)
             status);
         }
 
-#ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_TESTMAPPING
+        uid_t map_uid = -1;
+        gid_t gid_dummy = -1;
+        gid_t map_gid = -1;
+        char *at_ch; /* pointer to '@' */
+
         /*
          * Map owner to local uid
          *
@@ -690,39 +697,21 @@ static int handle_open(nfs41_upcall *upcall)
          *  ("gisburn") or username@domain ("gisburn@sun.com")
          */
         /* stomp over '@' */
-        char *at_ch; /* pointer to '@' */
         if (at_ch = strchr(og_info.owner, '@'))
             *at_ch = '\0';
 
-        if (isdigit(og_info.owner[0])) {
-            args->owner_local_uid = atol(og_info.owner);
-        }
-        else if(!strcmp(og_info.owner, "nobody")) {
-            args->owner_local_uid = 65534;
-        }
-        else if(!strcmp(og_info.owner, "root")) {
-            args->owner_local_uid = 0;
-        }
-        else if(!strcmp(og_info.owner, "rmainz")) {
-            args->owner_local_uid = 1616;
-        }
-        else if(!strcmp(og_info.owner, "roland_mainz")) {
-            args->owner_local_uid = 197608;
-        }
-        else if(!strcmp(og_info.owner, "swulsch")) {
-            args->owner_local_uid = 1818;
-        }
-        else if(!strcmp(og_info.owner, "iam")) {
-            args->owner_local_uid = 2010;
-        }
-        else if(!strcmp(og_info.owner, "mwenzel")) {
-            args->owner_local_uid = 8239;
-        }
-        else if(!strcmp(og_info.owner, "test001")) {
-            args->owner_local_uid = 1000;
+        if (nfs41_idmap_name_to_ids(
+            nfs41dg->idmapper,
+            og_info.owner,
+            &map_uid,
+            &gid_dummy) == 0) {
+             args->owner_local_uid = map_uid;
         }
         else {
-            args->owner_local_uid = 666; /* debug: number of the beast */
+            args->owner_local_uid = NFS_USER_NOBODY_UID;
+            eprintf("get_stat_data: "
+                "no username mapping for '%s', fake uid=%d\n",
+                og_info.owner, args->owner_local_uid);
         }
 
         /*
@@ -731,39 +720,22 @@ static int handle_open(nfs41_upcall *upcall)
          * |owner_group| can be numeric string ("1616"), plain username
          * ("gisgrp") or username@domain ("gisgrp@sun.com")
          */
+        /* stomp over '@' */
         if (at_ch = strchr(og_info.owner_group, '@'))
             *at_ch = '\0';
-        if (isdigit(og_info.owner_group[0])) {
-            args->owner_group_local_gid = atol(og_info.owner_group);
-        }
-        else if(!strcmp(og_info.owner_group, "nogroup")) {
-            args->owner_group_local_gid = 65534;
-        }
-        else if(!strcmp(og_info.owner_group, "root")) {
-            args->owner_group_local_gid = 0;
-        }
-        else if(!strcmp(og_info.owner_group, "Kein")) {
-            args->owner_group_local_gid = 197121;
-        }
-        else if(!strcmp(og_info.owner_group, "rmainz")) {
-            args->owner_group_local_gid = 1616;
-        }
-        else if(!strcmp(og_info.owner, "iam")) {
-            args->owner_group_local_gid = 2010;
-        }
-        else if(!strcmp(og_info.owner_group, "swulsch")) {
-            args->owner_group_local_gid = 1818;
-        }
-        else if(!strcmp(og_info.owner_group, "mwenzel")) {
-            args->owner_group_local_gid = 8239;
-        }
-        else if(!strcmp(og_info.owner_group, "test001")) {
-            args->owner_group_local_gid = 1000;
+
+        if (nfs41_idmap_group_to_gid(
+            nfs41dg->idmapper,
+            og_info.owner_group,
+            &map_gid) == 0) {
+            args->owner_group_local_gid = map_gid;
         }
         else {
-            args->owner_group_local_gid = 666; /* debug: number of the beast */
+            args->owner_group_local_gid = NFS_GROUP_NOGROUP_GID;
+            eprintf("get_stat_data: "
+                "no group mapping for '%s', fake gid=%d\n",
+                og_info.owner_group, args->owner_group_local_gid);
         }
-#endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_TESTMAPPING */
 
         dprintf(1, "handle_open: stat: owner=%u/'%s', owner_group=%u/'%s'\n",
             (unsigned int)args->owner_local_uid, og_info.owner,
@@ -773,8 +745,8 @@ static int handle_open(nfs41_upcall *upcall)
         nfs41_file_info createattrs = { 0 };
         uint32_t create = 0, createhowmode = 0, lookup_status = status;
 
-        if (!lookup_status && (args->disposition == FILE_OVERWRITE || 
-                args->disposition == FILE_OVERWRITE_IF || 
+        if (!lookup_status && (args->disposition == FILE_OVERWRITE ||
+                args->disposition == FILE_OVERWRITE_IF ||
                 args->disposition == FILE_SUPERSEDE)) {
             if ((info.hidden && !(args->file_attrs & FILE_ATTRIBUTE_HIDDEN)) ||
                     (info.system && !(args->file_attrs & FILE_ATTRIBUTE_SYSTEM))) {
@@ -996,7 +968,7 @@ static int do_nfs41_close(nfs41_open_state *state)
     return status;
 }
 
-static int handle_close(nfs41_upcall *upcall)
+static int handle_close(void *deamon_context, nfs41_upcall *upcall)
 {
     int status = NFS4_OK, rm_status = NFS4_OK;
     close_upcall_args *args = &upcall->args.close;
