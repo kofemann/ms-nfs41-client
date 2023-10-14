@@ -370,9 +370,9 @@ VOID ServiceStart(DWORD argc, LPTSTR *argv)
     nfsd_args cmd_args;
 
     if (!check_for_files())
-        exit(0);
-    if (!parse_cmdlineargs(argc, argv, &cmd_args)) 
-        exit(0);
+        exit(1);
+    if (!parse_cmdlineargs(argc, argv, &cmd_args))
+        exit(1);
     set_debug_level(cmd_args.debug_level);
     open_log_files();
 
