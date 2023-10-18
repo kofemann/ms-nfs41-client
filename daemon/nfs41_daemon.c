@@ -238,7 +238,12 @@ static bool_t parse_cmdlineargs(int argc, TCHAR *argv[], nfsd_args *out)
                 fprintf(stderr, "Unrecognized option '%s', disregarding.\n", argv[i]);
         }
     }
-    fprintf(stdout, "parse_cmdlineargs: debug_level %d ldap is %d\n", 
+
+    (void)fprintf(stdout, "parse_cmdlineargs: debug_level %d ldap is %d "
+#ifdef NFS41_DRIVER_FEATURE_NAMESERVICE_CYGWIN
+        "idmap_cygwin is 1 "
+#endif /* NFS41_DRIVER_FEATURE_NAMESERVICE_CYGWIN */
+        "\n",
         out->debug_level, out->ldap_enable);
     return TRUE;
 }
