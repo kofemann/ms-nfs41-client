@@ -1802,19 +1802,33 @@ static bool_t decode_file_attrs(
                 return FALSE;
         }
         if (attrs->attrmask.arr[1] & FATTR4_WORD1_OWNER) {
-            char *ptr = &info->owner[0];
+            if (info->owner == NULL)
+                info->owner = info->owner_buf;
+
+            char *ptr = info->owner;
             uint32_t owner_len;
-            if (!xdr_bytes(xdr, &ptr, &owner_len, 
-                            NFS4_OPAQUE_LIMIT))
+            if (!xdr_bytes(xdr, &ptr, &owner_len,
+                            NFS4_OPAQUE_LIMIT)) {
+                info->owner = NULL;
                 return FALSE;
+            }
+            EASSERT(owner_len > 0);
+            EASSERT(owner_len < sizeof(info->owner_group_buf));
             info->owner[owner_len] = '\0';
         }
         if (attrs->attrmask.arr[1] & FATTR4_WORD1_OWNER_GROUP) {
-            char *ptr = &info->owner_group[0];
+            if (info->owner_group == NULL)
+                info->owner_group = info->owner_group_buf;
+
+            char *ptr = info->owner_group;
             uint32_t owner_group_len;
-            if (!xdr_bytes(xdr, &ptr, &owner_group_len, 
-                            NFS4_OPAQUE_LIMIT))
+            if (!xdr_bytes(xdr, &ptr, &owner_group_len,
+                            NFS4_OPAQUE_LIMIT)) {
+                info->owner_group = NULL;
                 return FALSE;
+            }
+            EASSERT(owner_group_len > 0);
+            EASSERT(owner_group_len < sizeof(info->owner_group_buf));
             info->owner_group[owner_group_len] = '\0';
         }
         if (attrs->attrmask.arr[1] & FATTR4_WORD1_SPACE_AVAIL) {

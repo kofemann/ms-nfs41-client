@@ -106,6 +106,9 @@ void nfs_to_standard_info(
 void nfs_to_network_openinfo(
     IN const nfs41_file_info *info,
     OUT PFILE_NETWORK_OPEN_INFORMATION std_out);
+void nfs41_file_info_cpy(
+    OUT nfs41_file_info *dest,
+    IN const nfs41_file_info *src);
 
 /* http://msdn.microsoft.com/en-us/library/ms724290%28VS.85%29.aspx:
  * A file time is a 64-bit value that represents the number of

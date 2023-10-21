@@ -99,6 +99,8 @@ struct attr_cache_entry {
     unsigned                type : 4;
     unsigned                invalidated : 1;
     unsigned                delegated : 1;
+    char                    owner[NFS4_OPAQUE_LIMIT+1];
+    char                    owner_group[NFS4_OPAQUE_LIMIT+1];
 };
 #define ATTR_ENTRY_SIZE sizeof(struct attr_cache_entry)
 
@@ -304,6 +306,14 @@ static void attr_cache_update(
     if (info->attrmask.count >= 2) {
         if (info->attrmask.arr[1] & FATTR4_WORD1_MODE)
             entry->mode = info->mode;
+        if (info->attrmask.arr[1] & FATTR4_WORD1_OWNER) {
+            EASSERT(info->owner != NULL);
+            (void)strcpy(entry->owner, info->owner);
+        }
+        if (info->attrmask.arr[1] & FATTR4_WORD1_OWNER_GROUP) {
+            EASSERT(info->owner_group != NULL);
+            (void)strcpy(entry->owner_group, info->owner_group);
+        }
         if (info->attrmask.arr[1] & FATTR4_WORD1_NUMLINKS)
             entry->numlinks = info->numlinks;
         if (info->attrmask.arr[1] & FATTR4_WORD1_TIME_ACCESS) {
@@ -341,6 +351,12 @@ static void copy_attrs(
     dst->type = src->type;
     dst->numlinks = src->numlinks;
     dst->mode = src->mode;
+    EASSERT(src->owner != NULL);
+    dst->owner = dst->owner_buf;
+    (void)strcpy(dst->owner, src->owner);
+    EASSERT(src->owner_group != NULL);
+    dst->owner_group = dst->owner_group_buf;
+    (void)strcpy(dst->owner_group, src->owner_group);
     dst->fileid = src->fileid;
     dst->hidden = src->hidden;
     dst->system = src->system;
@@ -352,8 +368,9 @@ static void copy_attrs(
         | FATTR4_WORD0_HIDDEN | FATTR4_WORD0_ARCHIVE;
     dst->attrmask.arr[1] = FATTR4_WORD1_MODE
         | FATTR4_WORD1_NUMLINKS | FATTR4_WORD1_TIME_ACCESS
-        | FATTR4_WORD1_TIME_CREATE | FATTR4_WORD1_TIME_MODIFY 
-        | FATTR4_WORD1_SYSTEM;
+        | FATTR4_WORD1_TIME_CREATE | FATTR4_WORD1_TIME_MODIFY
+        | FATTR4_WORD1_SYSTEM
+        | FATTR4_WORD1_OWNER | FATTR4_WORD1_OWNER_GROUP;
 }
 
 

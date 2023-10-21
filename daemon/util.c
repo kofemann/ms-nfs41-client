@@ -201,6 +201,16 @@ void nfs_to_network_openinfo(
     net_out->FileAttributes = nfs_file_info_to_attributes(info);
 }
 
+/* copy |nfs41_file_info| */
+void nfs41_file_info_cpy(
+    OUT nfs41_file_info *dest,
+    IN const nfs41_file_info *src)
+{
+    (void)memcpy(dest, src, sizeof(nfs41_file_info));
+    dest->owner = dest->owner_buf;
+    dest->owner_group = dest->owner_group_buf;
+}
+
 void get_file_time(
     OUT PLARGE_INTEGER file_time)
 {

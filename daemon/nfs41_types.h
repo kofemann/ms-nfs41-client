@@ -236,6 +236,10 @@ typedef struct __nfs41_file_info {
     char                    *owner;
     char                    *owner_group;
     uint32_t                aclsupport;
+
+    /* Buffers */
+    char owner_buf[NFS4_OPAQUE_LIMIT+1];
+    char owner_group_buf[NFS4_OPAQUE_LIMIT+1];
 } nfs41_file_info;
 
 #endif /* !__NFS41_DAEMON_TYPES_H__ */

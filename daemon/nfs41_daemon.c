@@ -397,6 +397,7 @@ VOID ServiceStart(DWORD argc, LPTSTR *argv)
 #ifdef NFS41_DRIVER_FEATURE_NAMESERVICE_CYGWIN
     /* force enable for cygwin getent passwd/group testing */
     cmd_args.ldap_enable = TRUE;
+    DASSERT(0/* test asserts*/, 0);
 #endif /* NFS41_DRIVER_FEATURE_NAMESERVICE_CYGWIN */
 
     nfs41_server_list_init();

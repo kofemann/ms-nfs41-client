@@ -85,7 +85,8 @@ static void init_component_args(
     args->attr_request.arr[1] = FATTR4_WORD1_MODE
         | FATTR4_WORD1_NUMLINKS | FATTR4_WORD1_SYSTEM
         | FATTR4_WORD1_TIME_ACCESS | FATTR4_WORD1_TIME_CREATE
-        | FATTR4_WORD1_TIME_MODIFY;
+        | FATTR4_WORD1_TIME_MODIFY
+        | FATTR4_WORD1_OWNER | FATTR4_WORD1_OWNER_GROUP;
 
     args->getrootattr.attr_request = &args->attr_request;
     res->root.path = path;
@@ -210,8 +211,9 @@ static int server_lookup(
     if (count == 0) {
         if (target_out)
             *target_out = dir;
-        if (info_out)
-            memcpy(info_out, res->getrootattr.info, sizeof(nfs41_file_info));
+        if (info_out) {
+            nfs41_file_info_cpy(info_out, res->getrootattr.info);
+        }
     } else if (count == 1) {
         if (parent_out)
             *parent_out = dir;
@@ -258,8 +260,9 @@ static int server_lookup(
         if (i == count-1) {
             if (target_out)
                 *target_out = file;
-            if (info_out)
-                memcpy(info_out, res->getattr[i].info, sizeof(nfs41_file_info));
+            if (info_out) {
+                nfs41_file_info_cpy(info_out, res->getattr[i].info);
+            }
         } else if (i == count-2) {
             if (parent_out)
                 *parent_out = file;
