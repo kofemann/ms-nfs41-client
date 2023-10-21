@@ -34,6 +34,15 @@
 #define DEFAULT_DEBUG_LEVEL 1
 
 
+#define EASSERT(exp) \
+    if (!(exp)) { \
+        eprintf("ASSERTION '%s' in '%s'/%ld failed.\n", \
+            ""#exp"", __FILE__, (long)__LINE__); }
+#define DASSERT(exp, level) \
+    if (!(exp)) { \
+        dprintf((level), "ASSERTION '%s' in '%s'/%ld failed.\n", \
+            ""#exp"", __FILE__, (long)__LINE__); }
+
 /* daemon_debug.h */
 void set_debug_level(int level);
 void dprintf(int level, LPCSTR format, ...);
