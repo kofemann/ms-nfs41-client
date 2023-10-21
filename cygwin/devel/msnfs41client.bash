@@ -112,7 +112,8 @@ function nfsclient_rundeamon
 	else
 		export _NT_ALT_SYMBOL_PATH="$(cygpath -w "$PWD");srv*https://msdl.microsoft.com/download/symbols"
 		# use '!gflag +full;g' for heap tests, eats lots of memory
-		cdb -c 'g' "$(cygpath -w "$PWD/nfsd_debug.exe")" -d 0 --noldap #--gid 1616 --uid 1616
+		# use '!gflag +soe;sxe -c "kp;gn" *;g' to report exceptions and then continue
+		cdb -c '!gflag +soe;sxe -c "kp;gn" *;g' "$(cygpath -w "$PWD/nfsd_debug.exe")" -d 0 --noldap --gid 1616 --uid 1616
 	fi
 	return $?
 }
@@ -127,7 +128,8 @@ function nfsclient_system_rundeamon
 	else
 		export _NT_ALT_SYMBOL_PATH="$(cygpath -w "$PWD");srv*https://msdl.microsoft.com/download/symbols"
 		# use '!gflag +full;g' for heap tests, eats lots of memory
-		su_system cdb -c 'g' "$(cygpath -w "$PWD/nfsd_debug.exe")" -d 0 --noldap #--gid 1616 --uid 1616
+		# use '!gflag +soe;sxe -c "kp;gn" *;g' to report exceptions and then continue
+		su_system cdb -c '!gflag +soe;sxe -c "kp;gn" *;g' "$(cygpath -w "$PWD/nfsd_debug.exe")" -d 0 --noldap --gid 1616 --uid 1616
 	fi
 	return $?
 }
