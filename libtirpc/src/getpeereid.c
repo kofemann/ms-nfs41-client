@@ -36,7 +36,7 @@
 
 #ifdef _WIN32
 int
-getpeereid(SOCKET s, uid_t *euid, gid_t *egid)
+getpeereid(int s, uid_t *euid, gid_t *egid)
 {
 	// XXX Need to figure out what to do here for Windows!
 	return -1;
@@ -50,7 +50,7 @@ getpeereid(int s, uid_t *euid, gid_t *egid)
 	int error;
 
 	uclen = sizeof(uc); 
-	error = getsockopt(s, SOL_SOCKET, SO_PEERCRED, &uc, &uclen); /*  SCM_CREDENTIALS */
+	error = getsockopt(_get_osfhandle(s), SOL_SOCKET, SO_PEERCRED, &uc, &uclen); /*  SCM_CREDENTIALS */
 	if (error != 0)
 		return (error);
 	//	if (uc.cr_version != XUCRED_VERSION)

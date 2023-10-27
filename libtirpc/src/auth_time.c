@@ -250,7 +250,7 @@ __rpc_get_time_offset(td, srv, thost, uaddr, netid)
 	nis_server		tsrv;
 	void			(*oldsig)() = NULL; /* old alarm handler */
 	struct sockaddr_in	sin;
-	SOCKET			s = RPC_ANYSOCK;
+	int			s = RPC_ANYSOCK;
 	socklen_t len;
 	int			type = 0;
 
@@ -377,8 +377,8 @@ __rpc_get_time_offset(td, srv, thost, uaddr, netid)
 			goto error;
 		}
 
-		s = socket(AF_INET, type, 0);
-		if (s == INVALID_SOCKET) {
+		s = wintirpc_socket(AF_INET, type, 0);
+		if (s == -1) {
 			msg("unable to open fd to network.");
 			goto error;
 		}
@@ -393,22 +393,22 @@ __rpc_get_time_offset(td, srv, thost, uaddr, netid)
 			fd_set readfds;
 			int res;
 
-			if (sendto(s, (const char *)&thetime, sizeof(thetime), 0,
+			if (wintirpc_sendto(s, (const char *)&thetime, sizeof(thetime), 0,
 				(struct sockaddr *)&sin, sizeof(sin)) == -1) {
 				msg("udp : sendto failed.");
 				goto error;
 			}
 			do {
 				FD_ZERO(&readfds);
-				FD_SET(s, &readfds);
+				FD_SET(_get_osfhandle(s), &readfds);
 				res = select(_rpc_dtablesize(), &readfds,
-				     (fd_set *)NULL, (fd_set *)NULL, &timeout);
+					(fd_set *)NULL, (fd_set *)NULL, &timeout);
 			} while (res == SOCKET_ERROR && WSAGetLastError() == WSAEINTR);
 			if (res == SOCKET_ERROR)
 				goto error;
 			len = sizeof(from);
-			res = recvfrom(s, (char *)&thetime, sizeof(thetime), 0,
-				       (struct sockaddr *)&from, &len);
+			res = recvfrom(_get_osfhandle(s), (char *)&thetime, sizeof(thetime), 0,
+					(struct sockaddr *)&from, &len);
 			if (res == SOCKET_ERROR) {
 				msg("recvfrom failed on udp transport.");
 				goto error;
@@ -424,7 +424,7 @@ __rpc_get_time_offset(td, srv, thost, uaddr, netid)
 			saw_alarm = 0;
 			/* XXX Need Windows signal/alarm stuff here XXX */
 #endif
-			res = connect(s, (struct sockaddr *)&sin, sizeof(sin));
+			res = connect(_get_osfhandle(s), (struct sockaddr *)&sin, sizeof(sin));
 			if (res == SOCKET_ERROR) {
 				msg("failed to connect to tcp endpoint.");
 				goto error;
@@ -433,8 +433,8 @@ __rpc_get_time_offset(td, srv, thost, uaddr, netid)
 				msg("alarm caught it, must be unreachable.");
 				goto error;
 			}
-//			res = read(s, (char *)&thetime, sizeof(thetime));
-			res = recv(s, (char *)&thetime, sizeof(thetime), 0);
+//			res = read(_get_osfhandle(s), (char *)&thetime, sizeof(thetime));
+			res = recv(_get_osfhandle(s), (char *)&thetime, sizeof(thetime), 0);
 			if (res != sizeof(thetime)) {
 				if (saw_alarm)
 					msg("timed out TCP call.");
@@ -446,7 +446,7 @@ __rpc_get_time_offset(td, srv, thost, uaddr, netid)
 			time_valid = 1;
 		}
 		save = WSAGetLastError();
-		(void)closesocket(s);
+		(void)wintirpc_closesocket(s);
 		errno = save;
 		s = RPC_ANYSOCK;
 
@@ -465,7 +465,7 @@ error:
 	 */
 
 	if (s != RPC_ANYSOCK)
-		(void)closesocket(s);
+		(void)wintirpc_closesocket(s);
 
 	if (clnt != NULL)
 		clnt_destroy(clnt);

@@ -82,7 +82,7 @@
 
 __BEGIN_DECLS
 extern int get_myaddress(struct sockaddr_in *);
-extern int bindresvport(SOCKET, struct sockaddr_in *) __THROW;
+extern int bindresvport(int, struct sockaddr_in *) __THROW;
 extern int registerrpc(int, int, int, char *(*)(char [UDPMSGSIZE]),
     xdrproc_t, xdrproc_t);
 extern int callrpc(const char *, int, int, int, xdrproc_t, void *,
@@ -96,7 +96,7 @@ void freeuaddr(char *); /* free memory allocated by taddr2uaddr */
 void freenetbuf(struct netbuf *); /* free memory allocated by uaddr2taddr */
 
 struct sockaddr;
-extern int bindresvport_sa(SOCKET, struct sockaddr *);
+extern int bindresvport_sa(int, struct sockaddr *);
 __END_DECLS
 
 /*
@@ -104,9 +104,9 @@ __END_DECLS
  * and rpcbind use only. Do not use, they may change without notice.
  */
 __BEGIN_DECLS
-SOCKET __rpc_nconf2fd(const struct netconfig *);
+int __rpc_nconf2fd(const struct netconfig *);
 int __rpc_nconf2sockinfo(const struct netconfig *, struct __rpc_sockinfo *);
-int __rpc_fd2sockinfo(SOCKET, struct __rpc_sockinfo *);
+int __rpc_fd2sockinfo(int, struct __rpc_sockinfo *);
 u_int __rpc_get_t_size(int, int, int);
 __END_DECLS
 

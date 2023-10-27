@@ -62,7 +62,7 @@
 __BEGIN_DECLS
 extern u_int __rpc_get_a_size(int);
 extern int __rpc_dtbsize(void);
-extern struct netconfig * __rpcgettp(SOCKET);
+extern struct netconfig * __rpcgettp(int);
 extern  int  __rpc_get_default_domain(char **);
 struct netbuf *__rpc_set_netbuf(struct netbuf *, const void *, size_t);
 
@@ -73,7 +73,7 @@ int __rpc_sockinfo2netid(struct __rpc_sockinfo *, const char **);
 int __rpc_seman2socktype(int);
 int __rpc_socktype2seman(int);
 void *rpc_nullproc(CLIENT *);
-int __rpc_sockisbound(SOCKET);
+int __rpc_sockisbound(int);
 
 struct netbuf *__rpcb_findaddr(rpcprog_t, rpcvers_t, const struct netconfig *,
     const char *, CLIENT **);

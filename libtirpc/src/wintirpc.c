@@ -3,6 +3,7 @@
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
+ * Roland Mainz <roland.mainz@nrubsig.org>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -23,6 +24,7 @@
 #include <rpc/rpc.h>
 #include <stdio.h>
 #include <winsock.h>
+#include <assert.h>
 
 WSADATA WSAData;
 
@@ -159,6 +161,143 @@ BOOL WINAPI DllMain/*tirpc_main*/(HINSTANCE hinstDLL,	// DLL module handle
 	return TRUE;
 }
 
+struct map_osfhandle_fd
+{
+	SOCKET	m_s;
+	int	m_fd;
+};
+
+#define MAP_OSFHANDLE_SIZE (1024)
+
+static
+struct map_osfhandle_fd handle_fd_map[MAP_OSFHANDLE_SIZE];
+
+void wintirpc_register_osfhandle_fd(SOCKET handle, int fd)
+{
+	assert(handle != 0);
+	assert(handle != SOCKET_ERROR);
+	assert(fd < MAP_OSFHANDLE_SIZE);
+
+	handle_fd_map[fd].m_fd = fd;
+	handle_fd_map[fd].m_s = handle;
+}
+
+void wintirpc_unregister_osfhandle(SOCKET handle)
+{
+	int i;
+
+	assert(handle != 0);
+	assert(handle != SOCKET_ERROR);
+
+	for (i=0 ; i < MAP_OSFHANDLE_SIZE ; i++) {
+		if (handle_fd_map[i].m_s == handle) {
+			handle_fd_map[i].m_s = SOCKET_ERROR;
+			handle_fd_map[i].m_fd = -1;
+			return;
+		}
+	}
+	(void)fprintf(stderr, "wintirpc_unregister_osfhandle: failed\n");
+}
+
+int wintirpc_handle2fd(SOCKET handle)
+{
+	int i;
+
+	assert(handle != 0);
+	assert(handle != SOCKET_ERROR);
+
+	for (i=0 ; i < MAP_OSFHANDLE_SIZE ; i++) {
+		if ((handle_fd_map[i].m_s == handle) &&
+			(handle_fd_map[i].m_fd != -1)) {
+			return handle_fd_map[i].m_fd;
+		}
+	}
+
+	(void)fprintf(stderr, "wintirpc_handle2fd: failed\n");
+	return -1;
+}
+
+int wintirpc_socket(int af, int type, int protocol)
+{
+	SOCKET s;
+
+	s = socket(af, type, protocol);
+	if (s == INVALID_SOCKET) {
+		(void)fprintf(stderr, "wintirpc_socket: INVALID_SOCKET\n");
+		return -1;
+	}
+
+	int fd = _open_osfhandle(s, _O_BINARY);
+	if (fd < 0) {
+		(void)closesocket(s);
+		/*
+		 * |_open_osfhandle()| may not set |errno|, and
+		 * |closesocket()| may override it
+		 */
+		(void)fprintf(stderr, "wintirpc_socket: failed\n");
+		errno = ENOMEM;
+		return -1;
+	}
+
+	wintirpc_register_osfhandle_fd(s, fd);
+
+	(void)fprintf(stderr, "wintirpc_socket: %s/%d: sock fd=%d\n", __FILE__, (int)__LINE__, fd);
+
+	return fd;
+}
+
+int wintirpc_closesocket(int in_fd)
+{
+	SOCKET s = _get_osfhandle(in_fd);
+
+	wintirpc_unregister_osfhandle(s);
+
+	return closesocket(s);
+}
+
+int wintirpc_listen(int in_s, int backlog)
+{
+	return listen(_get_osfhandle(in_s), backlog);
+}
+
+int wintirpc_accept(int in_s_fd, struct sockaddr *addr, int *addrlen)
+{
+	SOCKET in_s;
+	SOCKET out_s;
+	int out_s_fd;
+
+	in_s = _get_osfhandle(in_s_fd);
+
+	out_s = accept(in_s, addr, addrlen);
+
+	out_s_fd = _open_osfhandle(out_s, _O_BINARY);
+	if (out_s_fd < 0) {
+		(void)closesocket(out_s);
+		/*
+		 * |_open_osfhandle()| may not set |errno|, and
+		 * |closesocket()| may override it
+		 */
+		(void)fprintf(stderr, "wintirpc_accept: failed\n");
+		errno = ENOMEM;
+		return -1;
+	}
+
+	wintirpc_register_osfhandle_fd(out_s, out_s_fd);
+
+	return out_s_fd;
+}
+
+int wintirpc_send(int s, const char *buf, int len, int flags)
+{
+	return send(_get_osfhandle(s), buf, len, flags);
+}
+
+int wintirpc_sendto(int s, const char *buf, int len, int flags,
+	const struct sockaddr *to, int tolen)
+{
+	return(sendto(_get_osfhandle(s), buf, len, flags, to, tolen));
+}
+
 int tirpc_exit(void)
 {
 	if (init == 0 || --init > 0)
@@ -166,7 +305,6 @@ int tirpc_exit(void)
 
 	return WSACleanup();
 }
-
 
 void wintirpc_debug(char *fmt, ...)
 {

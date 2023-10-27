@@ -59,7 +59,7 @@ extern int _rpc_dtablesize( void );
 #define NYEARS	(unsigned long)(1970 - 1900)
 #define TOFFSET (unsigned long)(60*60*24*(365*NYEARS + (NYEARS/4)))
 
-static void do_close( SOCKET );
+static void do_close( int );
 
 int
 rtime(addrp, timep, timeout)
@@ -67,7 +67,7 @@ rtime(addrp, timep, timeout)
 	struct timeval *timep;
 	struct timeval *timeout;
 {
-	SOCKET s;
+	int s;
 	fd_set readfds;
 	int res;
 	unsigned long thetime;
@@ -81,10 +81,11 @@ rtime(addrp, timep, timeout)
 	} else {
 		type = SOCK_DGRAM;
 	}
-	s = socket(AF_INET, type, 0);
-	if (s == INVALID_SOCKET) {
+	s = wintirpc_socket(AF_INET, type, 0);
+	if (s == -1) {
 		return(-1);
 	}
+
 	addrp->sin_family = AF_INET;
 
 	/* TCP and UDP port are the same in this case */
@@ -95,7 +96,7 @@ rtime(addrp, timep, timeout)
 	addrp->sin_port = serv->s_port;
 
 	if (type == SOCK_DGRAM) {
-		res = sendto(s, (char *)&thetime, sizeof(thetime), 0, 
+		res = wintirpc_sendto(s, (char *)&thetime, sizeof(thetime), 0,
 			     (struct sockaddr *)addrp, sizeof(*addrp));
 		if (res == SOCKET_ERROR) {
 			do_close(s);
@@ -103,7 +104,7 @@ rtime(addrp, timep, timeout)
 		}
 		do {
 			FD_ZERO(&readfds);
-			FD_SET(s, &readfds);
+			FD_SET(_get_osfhandle(s), &readfds);
 			res = select(_rpc_dtablesize(), &readfds,
 				     (fd_set *)NULL, (fd_set *)NULL, timeout);
 		} while (res == SOCKET_ERROR && WSAGetLastError() == WSAEINTR);
@@ -115,18 +116,18 @@ rtime(addrp, timep, timeout)
 			return(-1);	
 		}
 		fromlen = sizeof(from);
-		res = recvfrom(s, (char *)&thetime, sizeof(thetime), 0, 
+		res = recvfrom(_get_osfhandle(s), (char *)&thetime, sizeof(thetime), 0,
 			       (struct sockaddr *)&from, &fromlen);
 		do_close(s);
 		if (res == SOCKET_ERROR) {
 			return(-1);	
 		}
 	} else {
-		if (connect(s, (struct sockaddr *)addrp, sizeof(*addrp)) == SOCKET_ERROR) {
+		if (connect(_get_osfhandle(s), (struct sockaddr *)addrp, sizeof(*addrp)) == SOCKET_ERROR) {
 			do_close(s);
 			return(-1);
 		}
-		res = recv(s, (char *)&thetime, sizeof(thetime), 0);
+		res = recv(_get_osfhandle(s), (char *)&thetime, sizeof(thetime), 0);
 		do_close(s);
 		if (res == SOCKET_ERROR) {
 			return(-1);
@@ -149,6 +150,6 @@ do_close(s)
 	int save;
 
 	save = errno;
-	(void)closesocket(s);
+	(void)wintirpc_closesocket(s);
 	errno = save;
 }

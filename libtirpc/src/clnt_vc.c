@@ -164,28 +164,27 @@ static cond_t   *vc_cv;
 #ifndef _WIN32
 #define release_fd_lock(fd, mask) {	\
 	mutex_lock(&clnt_fd_lock);	\
-	vc_fd_locks[fd] = 0;		\
+	vc_fd_locks[(fd)] = 0;		\
 	mutex_unlock(&clnt_fd_lock);	\
 	thr_sigsetmask(SIG_SETMASK, &(mask), (sigset_t *) NULL);	\
-	cond_signal(&vc_cv[fd]);	\
+	cond_signal(&vc_cv[(fd)]);	\
 }
 #else
 /* XXX Need Windows signal/event stuff XXX */
 #define release_fd_lock(fd, mask) {	\
 	mutex_lock(&clnt_fd_lock);	\
-	vc_fd_locks[WINSOCK_HANDLE_HASH(fd)] = 0;		\
+	vc_fd_locks[(fd)] = 0;		\
 	mutex_unlock(&clnt_fd_lock);	\
 	\
-	cond_broadcast(&vc_cv[WINSOCK_HANDLE_HASH(fd)]);	\
+	cond_broadcast(&vc_cv[(fd)]);	\
 }
 #endif
 
 #define acquire_fd_lock(fd) { \
 	mutex_lock(&clnt_fd_lock); \
-	while (vc_fd_locks[WINSOCK_HANDLE_HASH(fd)] && \
-            vc_fd_locks[WINSOCK_HANDLE_HASH(fd)] != GetCurrentThreadId()) \
-		cond_wait(&vc_cv[WINSOCK_HANDLE_HASH(fd)], &clnt_fd_lock); \
-	vc_fd_locks[WINSOCK_HANDLE_HASH(fd)] = GetCurrentThreadId(); \
+	while (vc_fd_locks[(fd)]) \
+		cond_wait(&vc_cv[(fd)], &clnt_fd_lock); \
+	vc_fd_locks[(fd)] = GetCurrentThreadId(); \
 	mutex_unlock(&clnt_fd_lock); \
 }
 
@@ -213,18 +212,18 @@ static unsigned int WINAPI clnt_cb_thread(void *args)
         cb_req header;
         void *res = NULL;
         mutex_lock(&clnt_fd_lock);
-	    while (vc_fd_locks[WINSOCK_HANDLE_HASH(ct->ct_fd)] || 
+	    while (vc_fd_locks[ct->ct_fd] ||
                 !ct->use_stored_reply_msg ||
                 (ct->use_stored_reply_msg && ct->reply_msg.rm_direction != CALL)) {
             if (cl->shutdown)
                 break;
-		    if (!cond_wait_timed(&vc_cv[WINSOCK_HANDLE_HASH(ct->ct_fd)], &clnt_fd_lock, 
+		    if (!cond_wait_timed(&vc_cv[ct->ct_fd], &clnt_fd_lock,
                 CALLBACK_TIMEOUT))
-                if (!vc_fd_locks[WINSOCK_HANDLE_HASH(ct->ct_fd)])
+                if (!vc_fd_locks[ct->ct_fd])
                     break;
-        }
-	    vc_fd_locks[WINSOCK_HANDLE_HASH(ct->ct_fd)] = GetCurrentThreadId();
-	    mutex_unlock(&clnt_fd_lock);
+	}
+	vc_fd_locks[ct->ct_fd] = GetCurrentThreadId();
+	mutex_unlock(&clnt_fd_lock);
 
         if (cl->shutdown) {
             fprintf(stdout, "%04x: callback received shutdown signal\n", GetCurrentThreadId());
@@ -402,7 +401,7 @@ clnt_vc_create(fd, raddr, prog, vers, sendsz, recvsz, cb_xdr, cb_fn, cb_args)
 	 * XXX - fvdl connecting while holding a mutex?
 	 */
 	slen = sizeof ss;
-	if (getpeername(fd, (struct sockaddr *)&ss, &slen) == SOCKET_ERROR) {
+	if (getpeername(_get_osfhandle(fd), (struct sockaddr *)&ss, &slen) == SOCKET_ERROR) {
 		errno = WSAGetLastError();
 		if (errno != WSAENOTCONN) {
 			rpc_createerr.cf_stat = RPC_SYSTEMERROR;
@@ -411,7 +410,7 @@ clnt_vc_create(fd, raddr, prog, vers, sendsz, recvsz, cb_xdr, cb_fn, cb_args)
 //			thr_sigsetmask(SIG_SETMASK, &(mask), NULL);
 			goto err;
 		}
-		if (connect(fd, (struct sockaddr *)raddr->buf, raddr->len) == SOCKET_ERROR){
+		if (connect(_get_osfhandle(fd), (struct sockaddr *)raddr->buf, raddr->len) == SOCKET_ERROR){
 			rpc_createerr.cf_stat = RPC_SYSTEMERROR;
 			rpc_createerr.cf_error.re_errno = WSAGetLastError();
 			mutex_unlock(&clnt_fd_lock);
@@ -457,7 +456,7 @@ clnt_vc_create(fd, raddr, prog, vers, sendsz, recvsz, cb_xdr, cb_fn, cb_args)
 	    XDR_ENCODE);
 	if (! xdr_callhdr(&(ct->ct_xdrs), &call_msg)) {
 		if (ct->ct_closeit) {
-			(void)closesocket(fd);
+			(void)wintirpc_closesocket(fd);
 		}
 		goto err;
 	}
@@ -589,11 +588,10 @@ call_again:
 #ifdef NO_CB_4_KRB5P
         if (cl->cb_thread != INVALID_HANDLE_VALUE) {
             mutex_lock(&clnt_fd_lock);
-	        while ((vc_fd_locks[WINSOCK_HANDLE_HASH(ct->ct_fd)] && 
-                    vc_fd_locks[WINSOCK_HANDLE_HASH(ct->ct_fd)] != GetCurrentThreadId()) || 
+	        while ((vc_fd_locks[ct->ct_fd]) ||
                     (ct->reply_msg.rm_xid && ct->reply_msg.rm_xid != x_id))
-		        cond_wait(&vc_cv[WINSOCK_HANDLE_HASH(ct->ct_fd)], &clnt_fd_lock);
-	        vc_fd_locks[WINSOCK_HANDLE_HASH(ct->ct_fd)] = GetCurrentThreadId();
+		        cond_wait(&vc_cv[ct->ct_fd], &clnt_fd_lock);
+	        vc_fd_locks[ct->ct_fd] = GetCurrentThreadId();
 	        mutex_unlock(&clnt_fd_lock);
         }
 #endif
@@ -744,13 +742,13 @@ clnt_vc_freeres(cl, xdr_res, res_ptr)
 	/* XXX Need Windows signal/event stuff XXX */
 #endif
 	mutex_lock(&clnt_fd_lock);
-	while (vc_fd_locks[WINSOCK_HANDLE_HASH(ct->ct_fd)])
-		cond_wait(&vc_cv[WINSOCK_HANDLE_HASH(ct->ct_fd)], &clnt_fd_lock);
+	while (vc_fd_locks[ct->ct_fd])
+		cond_wait(&vc_cv[ct->ct_fd], &clnt_fd_lock);
 	xdrs->x_op = XDR_FREE;
 	dummy = (*xdr_res)(xdrs, res_ptr);
 	mutex_unlock(&clnt_fd_lock);
 //	thr_sigsetmask(SIG_SETMASK, &(mask), NULL);
-	cond_signal(&vc_cv[WINSOCK_HANDLE_HASH(ct->ct_fd)]);
+	cond_signal(&vc_cv[ct->ct_fd]);
 
 	return dummy;
 }
@@ -916,8 +914,8 @@ clnt_vc_destroy(cl)
 	/* XXX Need Windows signal/event stuff XXX */
 #endif
 	mutex_lock(&clnt_fd_lock);
-	while (vc_fd_locks[WINSOCK_HANDLE_HASH(ct_fd)])
-		cond_wait(&vc_cv[WINSOCK_HANDLE_HASH(ct_fd)], &clnt_fd_lock);
+	while (vc_fd_locks[ct_fd])
+		cond_wait(&vc_cv[ct_fd], &clnt_fd_lock);
 
     if (cl->cb_thread != INVALID_HANDLE_VALUE) {
         int status;
@@ -925,16 +923,16 @@ clnt_vc_destroy(cl)
             GetCurrentThreadId(), cl->cb_thread);
         cl->shutdown = 1;
         mutex_unlock(&clnt_fd_lock);
-        cond_signal(&vc_cv[WINSOCK_HANDLE_HASH(ct_fd)]);
+        cond_signal(&vc_cv[ct_fd]);
         status = WaitForSingleObject(cl->cb_thread, INFINITE);
         fprintf(stdout, "%04x: terminated callback thread\n", GetCurrentThreadId());
         mutex_lock(&clnt_fd_lock);
-        while (vc_fd_locks[WINSOCK_HANDLE_HASH(ct_fd)])
-            cond_wait(&vc_cv[WINSOCK_HANDLE_HASH(ct_fd)], &clnt_fd_lock);
+        while (vc_fd_locks[ct_fd])
+            cond_wait(&vc_cv[ct_fd], &clnt_fd_lock);
     }
 
 	if (ct->ct_closeit && ct->ct_fd != -1) {
-		(void)closesocket(ct->ct_fd);
+		(void)wintirpc_closesocket(ct->ct_fd);
 	}
 	XDR_DESTROY(&(ct->ct_xdrs));
 	if (ct->ct_addr.buf)
@@ -947,7 +945,7 @@ clnt_vc_destroy(cl)
 	mem_free(cl, sizeof(CLIENT));
 	mutex_unlock(&clnt_fd_lock);
 //	thr_sigsetmask(SIG_SETMASK, &(mask), NULL);
-	cond_signal(&vc_cv[WINSOCK_HANDLE_HASH(ct_fd)]);
+	cond_signal(&vc_cv[ct_fd]);
 }
 
 /*
@@ -971,7 +969,7 @@ read_vc(ctp, buf, len)
 
 	if (len == 0)
 		return (0);
-	fd.fd = ct->ct_fd;
+	fd.fd = _get_osfhandle(ct->ct_fd);
 	fd.events = POLLIN;
 	for (;;) {
 		switch (poll(&fd, 1, milliseconds)) {
@@ -990,7 +988,7 @@ read_vc(ctp, buf, len)
 		break;
 	}
 
-	len = recv(ct->ct_fd, buf, (size_t)len, 0);
+	len = recv(_get_osfhandle(ct->ct_fd), buf, (size_t)len, 0);
 	errno = WSAGetLastError();
 
 	switch (len) {
@@ -1019,7 +1017,7 @@ write_vc(ctp, buf, len)
 	int i = 0, cnt;
 
 	for (cnt = len; cnt > 0; cnt -= i, buf += i) {
-	    if ((i = send(ct->ct_fd, buf, (size_t)cnt, 0)) == SOCKET_ERROR) {
+	    if ((i = wintirpc_send(ct->ct_fd, buf, (size_t)cnt, 0)) == SOCKET_ERROR) {
 		ct->ct_error.re_errno = WSAGetLastError();
 		ct->ct_error.re_status = RPC_CANTSEND;
 		return (-1);

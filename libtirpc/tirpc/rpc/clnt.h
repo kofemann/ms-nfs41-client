@@ -393,7 +393,7 @@ extern CLIENT * clnt_tp_create_timed(const char *, const rpcprog_t,
  * Generic TLI create routine. Only provided for compatibility.
  */
 
-extern CLIENT *clnt_tli_create(const SOCKET, const struct netconfig *,
+extern CLIENT *clnt_tli_create(const int, const struct netconfig *,
 			       struct netbuf *, const rpcprog_t,
 			       const rpcvers_t, const u_int, const u_int,
                    int (*cb_xdr)(void *, void *),
@@ -411,7 +411,7 @@ extern CLIENT *clnt_tli_create(const SOCKET, const struct netconfig *,
 /*
  * Low level clnt create routine for connectionful transports, e.g. tcp.
  */
-extern CLIENT *clnt_vc_create(const SOCKET, const struct netbuf *,
+extern CLIENT *clnt_vc_create(const int, const struct netbuf *,
 			      const rpcprog_t, const rpcvers_t,
 			      u_int, u_int, int (*cb_xdr)(void *, void *),
                   int (*cb)(void *, void *, void **), void *args);
@@ -432,7 +432,7 @@ extern CLIENT *clntunix_create(struct sockaddr_un *,
 /*
  * Low level clnt create routine for connectionless transports, e.g. udp.
  */
-extern CLIENT *clnt_dg_create(const SOCKET, const struct netbuf *,
+extern CLIENT *clnt_dg_create(const int, const struct netbuf *,
 			      const rpcprog_t, const rpcvers_t,
 			      const u_int, const u_int);
 /*

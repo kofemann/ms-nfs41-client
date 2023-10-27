@@ -138,7 +138,7 @@ svc_dg_create(fd, sendsize, recvsize)
 	xprt->xp_rtaddr.maxlen = sizeof (struct sockaddr_storage);
 
 	slen = sizeof ss;
-	if (getsockname(fd, (struct sockaddr *)(void *)&ss, &slen) == SOCKET_ERROR)
+	if (getsockname(_get_osfhandle(fd), (struct sockaddr *)(void *)&ss, &slen) == SOCKET_ERROR)
 		goto freedata;
 	__rpc_set_netbuf(&xprt->xp_ltaddr, &ss, slen);
 
@@ -177,7 +177,7 @@ svc_dg_recv(xprt, msg)
 
 again:
 	alen = sizeof (struct sockaddr_storage);
-	rlen = recvfrom(xprt->xp_fd, rpc_buffer(xprt), su->su_iosz, 0,
+	rlen = recvfrom(_get_osfhandle(xprt->xp_fd), rpc_buffer(xprt), su->su_iosz, 0,
 	    (struct sockaddr *)(void *)&ss, &alen);
 	if (rlen == -1 && errno == EINTR)
 		goto again;
@@ -194,7 +194,7 @@ again:
 	su->su_xid = msg->rm_xid;
 	if (su->su_cache != NULL) {
 		if (cache_get(xprt, msg, &reply, &replylen)) {
-			(void)sendto(xprt->xp_fd, reply, replylen, 0,
+			(void)wintirpc_sendto(xprt->xp_fd, reply, replylen, 0,
 			    (struct sockaddr *)(void *)&ss, alen);
 			return (FALSE);
 		}
@@ -217,7 +217,7 @@ svc_dg_reply(xprt, msg)
 	msg->rm_xid = su->su_xid;
 	if (xdr_replymsg(xdrs, msg)) {
 		slen = XDR_GETPOS(xdrs);
-		if (sendto(xprt->xp_fd, rpc_buffer(xprt), slen, 0,
+		if (wintirpc_sendto(xprt->xp_fd, rpc_buffer(xprt), slen, 0,
 		    (struct sockaddr *)xprt->xp_rtaddr.buf,
 		    (socklen_t)xprt->xp_rtaddr.len) == (ssize_t) slen) {
 			stat = TRUE;
@@ -257,7 +257,7 @@ svc_dg_destroy(xprt)
 
 	xprt_unregister(xprt);
 	if (xprt->xp_fd != -1)
-		(void)closesocket(xprt->xp_fd);
+		(void)wintirpc_closesocket(xprt->xp_fd);
 	XDR_DESTROY(&(su->su_xdrs));
 	(void) mem_free(rpc_buffer(xprt), su->su_iosz);
 	(void) mem_free(su, sizeof (*su));

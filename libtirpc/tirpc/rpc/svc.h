@@ -88,7 +88,7 @@ enum xprt_stat {
  * Server side transport handle
  */
 typedef struct __rpc_svcxprt {
-	SOCKET		xp_fd;
+	int		xp_fd;
 	u_short		xp_port;	 /* associated port number */
 	const struct xp_ops {
 	    /* receive incoming requests */
@@ -313,7 +313,7 @@ __END_DECLS
 __BEGIN_DECLS
 extern void	svc_getreq(int);
 extern void	svc_getreqset(fd_set *);
-extern void	svc_getreq_common(SOCKET);
+extern void	svc_getreq_common(int);
 struct pollfd;
 extern void	svc_getreq_poll(struct pollfd *, int);
 
@@ -364,11 +364,11 @@ extern SVCXPRT *svc_tp_create(void (*)(struct svc_req *, SVCXPRT *),
 /*
  * Generic TLI create routine
  */
-extern SVCXPRT *svc_tli_create(const SOCKET, const struct netconfig *,
+extern SVCXPRT *svc_tli_create(const int, const struct netconfig *,
 			       const struct t_bind *, const u_int,
 			       const u_int);
 /*
- *      const SOCKET fd;                -- connection end point
+ *      const int fd;                -- connection end point
  *      const struct netconfig *nconf;  -- netconfig structure for network
  *      const struct t_bind *bindaddr;  -- local bind address
  *      const u_int sendsz;             -- max sendsize
@@ -379,9 +379,9 @@ extern SVCXPRT *svc_tli_create(const SOCKET, const struct netconfig *,
  * Connectionless and connectionful create routines
  */
 
-extern SVCXPRT *svc_vc_create(const SOCKET, const u_int, const u_int);
+extern SVCXPRT *svc_vc_create(const int, const u_int, const u_int);
 /*
- *      const SOCKET fd;                        -- open connection end point
+ *      const int fd;                        -- open connection end point
  *      const u_int sendsize;                   -- max send size
  *      const u_int recvsize;                   -- max recv size
  */
@@ -391,9 +391,9 @@ extern SVCXPRT *svc_vc_create(const SOCKET, const u_int, const u_int);
  */
 extern SVCXPRT *svcunix_create(int, u_int, u_int, char *);
 
-extern SVCXPRT *svc_dg_create(const SOCKET, const u_int, const u_int);
+extern SVCXPRT *svc_dg_create(const int, const u_int, const u_int);
         /*
-         * const SOCKET fd;                             -- open connection
+         * const int fd;                             -- open connection
          * const u_int sendsize;                        -- max send size
          * const u_int recvsize;                        -- max recv size
          */
@@ -403,9 +403,9 @@ extern SVCXPRT *svc_dg_create(const SOCKET, const u_int, const u_int);
  * the routine takes any *open* connection
  * descriptor as its first input and is used for open connections.
  */
-extern SVCXPRT *svc_fd_create(const SOCKET, const u_int, const u_int);
+extern SVCXPRT *svc_fd_create(const int, const u_int, const u_int);
 /*
- *      const SOCKET fd;                        -- open connection end point
+ *      const int fd;                        -- open connection end point
  *      const u_int sendsize;                   -- max send size
  *      const u_int recvsize;                   -- max recv size
  */

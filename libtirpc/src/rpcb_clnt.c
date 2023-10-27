@@ -423,7 +423,7 @@ local_rpcb()
 	static struct netconfig *loopnconf;
 	static char *hostname;
 	extern mutex_t loopnconf_lock;
-	SOCKET sock;
+	int sock;
 	size_t tsize;
 	struct netbuf nbuf;
 	struct sockaddr_un sun;
@@ -434,9 +434,10 @@ local_rpcb()
 	 * the netconfig file.
 	 */
 	memset(&sun, 0, sizeof sun);
-	sock = socket(AF_UNIX, SOCK_STREAM, 0);
-	if (sock == INVALID_SOCKET)
+	sock = wintirpc_socket(AF_UNIX, SOCK_STREAM, 0);
+	if (sock == -1)
 		goto try_nconf;
+
 	sun.sun_family = AF_UNIX;
 	strcpy(sun.sun_path, _PATH_RPCBINDSOCK);
 	nbuf.len = SUN_LEN(&sun);
@@ -455,7 +456,7 @@ local_rpcb()
 	}
 
 	/* Nobody needs this socket anymore; free the descriptor. */
-	closesocket(sock);
+	wintirpc_closesocket(sock);
 
 try_nconf:
 
@@ -464,7 +465,7 @@ try_nconf:
 	if (loopnconf == NULL) {
 		struct netconfig *nconf, *tmpnconf = NULL;
 		void *nc_handle;
-		SOCKET fd;
+		int fd;
 
 		nc_handle = setnetconfig();
 		if (nc_handle == NULL) {
@@ -490,7 +491,7 @@ try_nconf:
 				 */
 				if (fd == SOCKET_ERROR)
 					continue;
- 				closesocket(fd);
+				wintirpc_closesocket(fd);
 				tmpnconf = nconf;
 				if (!strcmp(nconf->nc_protofmly, NC_INET))
 					hostname = IN4_LOCALHOST_STRING;
@@ -657,7 +658,7 @@ __rpcbind_is_up()
 	struct netconfig *nconf;
 	struct sockaddr_un sun;
 	void *localhandle;
-	SOCKET sock;
+	int sock;
 
 	nconf = NULL;
 	localhandle = setnetconfig();
@@ -672,18 +673,19 @@ __rpcbind_is_up()
 	endnetconfig(localhandle);
 
 	memset(&sun, 0, sizeof sun);
-	sock = socket(AF_UNIX, SOCK_STREAM, 0);
-	if (sock == INVALID_SOCKET)
+	sock = wintirpc_socket(AF_UNIX, SOCK_STREAM, 0);
+	if (sock == -1)
 		return (FALSE);
+
 	sun.sun_family = AF_UNIX;
 	strncpy(sun.sun_path, _PATH_RPCBINDSOCK, sizeof(sun.sun_path));
 
-	if (connect(sock, (struct sockaddr *)&sun, sizeof(sun)) == SOCKET_ERROR) {
-		closesocket(sock);
+	if (connect(_get_osfhandle(sock), (struct sockaddr *)&sun, sizeof(sun)) == SOCKET_ERROR) {
+		wintirpc_closesocket(sock);
 		return (FALSE);
 	}
 
-	closesocket(sock);
+	wintirpc_closesocket(sock);
 	return (TRUE);
 }
 

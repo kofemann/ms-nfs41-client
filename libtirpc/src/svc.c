@@ -97,7 +97,7 @@ void
 xprt_register (xprt)
      SVCXPRT *xprt;
 {
-  SOCKET sock;
+  int sock;
 
   assert (xprt != NULL);
 
@@ -115,7 +115,7 @@ xprt_register (xprt)
 #ifndef _WIN32
   if (sock < FD_SETSIZE) {
     __svc_xports[sock] = xprt;
-    FD_SET (sock, &svc_fdset);
+    FD_SET(_get_osfhandle(sock), &svc_fdset);
     svc_maxfd = max (svc_maxfd, sock);
   }
 #else
@@ -144,7 +144,7 @@ __xprt_do_unregister (xprt, dolock)
 SVCXPRT *xprt;
 bool_t dolock;
 {
-  SOCKET sock;
+  int sock;
 
   assert (xprt != NULL);
 
@@ -155,7 +155,7 @@ bool_t dolock;
     rwlock_wrlock (&svc_fd_lock);
   if ((sock < FD_SETSIZE) && (__svc_xports[sock] == xprt)) {
     __svc_xports[sock] = NULL;
-    FD_CLR (sock, &svc_fdset);
+    FD_CLR (_get_osfhandle(sock), &svc_fdset);
     if (sock >= svc_maxfd) {
       for (svc_maxfd--; svc_maxfd >= 0; svc_maxfd--)
         if (__svc_xports[svc_maxfd])
@@ -638,7 +638,7 @@ svc_getreqset (readfds)
 }
 
 void
-svc_getreq_common (SOCKET fd)
+svc_getreq_common (int fd)
 {
   SVCXPRT *xprt;
   struct svc_req r;
@@ -771,11 +771,11 @@ svc_getreq_poll (pfdp, pollretval)
 	  if (p->revents & POLLNVAL)
 	    {
 	      rwlock_wrlock (&svc_fd_lock);
-	      FD_CLR (p->fd, &svc_fdset);
+	      FD_CLR (_get_osfhandle(p->fd), &svc_fdset);
 	      rwlock_unlock (&svc_fd_lock);
 	    }
 	  else
-	    svc_getreq_common (p->fd);
+	    svc_getreq_common (wintirpc_handle2fd(p->fd));
 	}
     }
 }

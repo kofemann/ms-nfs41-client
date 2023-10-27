@@ -67,7 +67,7 @@
 
 extern rwlock_t svc_fd_lock;
 
-static SVCXPRT *makefd_xprt(SOCKET, u_int, u_int);
+static SVCXPRT *makefd_xprt(int, u_int, u_int);
 static bool_t rendezvous_request(SVCXPRT *, struct rpc_msg *);
 static enum xprt_stat rendezvous_stat(SVCXPRT *);
 static void svc_vc_destroy(SVCXPRT *);
@@ -179,7 +179,7 @@ svc_vc_create(fd, sendsize, recvsize)
 	xprt->xp_fd = fd;
 
 	slen = sizeof (struct sockaddr_storage);
-	if (getsockname(fd, (struct sockaddr *)(void *)&sslocal, &slen) == SOCKET_ERROR) {
+	if (getsockname(_get_osfhandle(fd), (struct sockaddr *)(void *)&sslocal, &slen) == SOCKET_ERROR) {
 		// XXX warnx("svc_vc_create: could not retrieve local addr");
 		goto cleanup_svc_vc_create;
 	}
@@ -202,7 +202,7 @@ cleanup_svc_vc_create:
  */
 SVCXPRT *
 svc_fd_create(fd, sendsize, recvsize)
-	SOCKET fd;
+	int fd;
 	u_int sendsize;
 	u_int recvsize;
 {
@@ -217,7 +217,7 @@ svc_fd_create(fd, sendsize, recvsize)
 		return NULL;
 
 	slen = sizeof (struct sockaddr_storage);
-	if (getsockname(fd, (struct sockaddr *)(void *)&ss, &slen) == SOCKET_ERROR) {
+	if (getsockname(_get_osfhandle(fd), (struct sockaddr *)(void *)&ss, &slen) == SOCKET_ERROR) {
 		// XXX warnx("svc_fd_create: could not retrieve local addr");
 		goto freedata;
 	}
@@ -250,7 +250,7 @@ freedata:
 
 static SVCXPRT *
 makefd_xprt(fd, sendsize, recvsize)
-	SOCKET fd;
+	int fd;
 	u_int sendsize;
 	u_int recvsize;
 {
@@ -302,7 +302,7 @@ rendezvous_request(xprt, msg)
 	SVCXPRT *xprt;
 	struct rpc_msg *msg;
 {
-	SOCKET sock;
+	int sock;
 #ifndef _WIN32
 	int flags;
 #endif
@@ -320,7 +320,7 @@ rendezvous_request(xprt, msg)
 	r = (struct cf_rendezvous *)xprt->xp_p1;
 again:
 	len = sizeof addr;
-	if ((sock = accept(xprt->xp_fd, (struct sockaddr *)(void *)&addr,
+	if ((sock = wintirpc_accept(xprt->xp_fd, (struct sockaddr *)(void *)&addr,
 	    &len)) == SOCKET_ERROR) {
 		if (errno == EINTR)
 			goto again;
@@ -355,7 +355,7 @@ again:
 	if (__rpc_fd2sockinfo(sock, &si) && si.si_proto == IPPROTO_TCP) {
 		len = 1;
 		/* XXX fvdl - is this useful? */
-		setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, (const char *)&len, sizeof (len));
+		setsockopt(_get_osfhandle(sock), IPPROTO_TCP, TCP_NODELAY, (const char *)&len, sizeof (len));
 	}
 
 	cd = (struct cf_conn *)newxprt->xp_p1;
@@ -413,7 +413,7 @@ __svc_vc_dodestroy(xprt)
 	cd = (struct cf_conn *)xprt->xp_p1;
 
 	if (xprt->xp_fd != RPC_ANYFD)
-		(void)closesocket(xprt->xp_fd);
+		(void)wintirpc_closesocket(xprt->xp_fd);
 	if (xprt->xp_port != 0) {
 		/* a rendezvouser socket */
 		r = (struct cf_rendezvous *)xprt->xp_p1;
@@ -483,7 +483,7 @@ read_vc(xprtp, buf, len)
 	int len;
 {
 	SVCXPRT *xprt;
-	SOCKET sock;
+	int sock;
 	int milliseconds = 35 * 1000;
 	struct pollfd pollfd;
 	struct cf_conn *cfp;
@@ -497,7 +497,7 @@ read_vc(xprtp, buf, len)
 
 	if (cfp->nonblock) {
 #ifdef _WIN32
-		len = recv(sock, buf, (size_t)len, 0);
+		len = recv(_get_osfhandle(sock), buf, (size_t)len, 0);
 #else
 		len = read(sock, buf, (size_t)len);
 #endif
@@ -513,7 +513,7 @@ read_vc(xprtp, buf, len)
 	}
 
 	do {
-		pollfd.fd = sock;
+		pollfd.fd = _get_osfhandle(sock);
 		pollfd.events = POLLIN;
 		pollfd.revents = 0;
 		switch (poll(&pollfd, 1, milliseconds)) {
@@ -530,7 +530,7 @@ read_vc(xprtp, buf, len)
 	} while ((pollfd.revents & POLLIN) == 0);
 
 #ifdef _WIN32
-	if ((len = recv(sock, buf, (size_t)len, 0)) > 0) {
+	if ((len = recv(_get_osfhandle(sock), buf, (size_t)len, 0)) > 0) {
 #else
 	if ((len = read(sock, buf, (size_t)len)) > 0) {
 #endif
@@ -568,7 +568,7 @@ write_vc(xprtp, buf, len)
 	
 	for (cnt = len; cnt > 0; cnt -= i, buf += i) {
 #ifdef _WIN32
-		i = send(xprt->xp_fd, buf, (size_t)cnt, 0);
+		i = wintirpc_send(xprt->xp_fd, buf, (size_t)cnt, 0);
 #else
 		i = write(xprt->xp_fd, buf, (size_t)cnt);
 #endif
@@ -752,7 +752,7 @@ svc_vc_rendezvous_ops(xprt)
  */
 int
 __rpc_get_local_uid(SVCXPRT *transp, uid_t *uid) {
-	SOCKET sock;
+	int sock;
 	int ret;
 	gid_t egid;
 	uid_t euid;

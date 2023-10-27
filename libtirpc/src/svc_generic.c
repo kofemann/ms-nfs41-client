@@ -180,7 +180,7 @@ svc_tp_create(dispatch, prognum, versnum, nconf)
  */
 SVCXPRT *
 svc_tli_create(fd, nconf, bindaddr, sendsz, recvsz)
-	SOCKET fd;				/* Connection end point */
+	int fd;				/* Connection end point */
 	const struct netconfig *nconf;	/* Netconfig struct for nettoken */
 	const struct t_bind *bindaddr;	/* Local bind address */
 	u_int sendsz;			/* Max sendsize */
@@ -225,23 +225,23 @@ svc_tli_create(fd, nconf, bindaddr, sendsz, recvsz)
 			if (bindresvport(fd, NULL) < 0) {
 				memset(&ss, 0, sizeof ss);
 				ss.ss_family = si.si_af;
-				if (bind(fd, (struct sockaddr *)(void *)&ss,
+				if (bind(_get_osfhandle(fd), (struct sockaddr *)(void *)&ss,
 				    (socklen_t)si.si_alen) == SOCKET_ERROR) {
 					// XXX warnx(
 //			"svc_tli_create: could not bind to anonymous port");
 					goto freedata;
 				}
 			}
-			listen(fd, SOMAXCONN);
+			wintirpc_listen(fd, SOMAXCONN);
 		} else {
-			if (bind(fd,
+			if (bind(_get_osfhandle(fd),
 			    (struct sockaddr *)bindaddr->addr.buf,
 			    (socklen_t)si.si_alen) == SOCKET_ERROR) {
 				// XXX warnx(
 //		"svc_tli_create: could not bind to requested address");
 				goto freedata;
 			}
-			listen(fd, (int)bindaddr->qlen);
+			wintirpc_listen(fd, (int)bindaddr->qlen);
 		}
 			
 	}
@@ -292,7 +292,7 @@ svc_tli_create(fd, nconf, bindaddr, sendsz, recvsz)
 
 freedata:
 	if (madefd)
-		(void)closesocket(fd);
+		(void)wintirpc_closesocket(fd);
 	if (xprt) {
 		if (!madefd) /* so that svc_destroy doesnt close fd */
 			xprt->xp_fd = RPC_ANYFD;

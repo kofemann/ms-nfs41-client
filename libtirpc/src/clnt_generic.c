@@ -344,7 +344,7 @@ clnt_tp_create_timed(const char *hostname, const rpcprog_t prog, const rpcvers_t
  * If sizes are 0; appropriate defaults will be chosen.
  */
 CLIENT *
-clnt_tli_create(const SOCKET fd_in, const struct netconfig *nconf,
+clnt_tli_create(const int fd_in, const struct netconfig *nconf,
 	struct netbuf *svcaddr, const rpcprog_t prog, const rpcvers_t vers,
 	const uint sendsz, const uint recvsz,
     int (*callback_xdr)(void *, void *),
@@ -357,7 +357,7 @@ clnt_tli_create(const SOCKET fd_in, const struct netconfig *nconf,
 	BOOL one = TRUE;
 	struct __rpc_sockinfo si;
 	extern int __rpc_minfd;
-	SOCKET fd = fd_in;
+	int fd = fd_in;
 
 	if (fd == RPC_ANYFD) {
 		if (nconf == NULL) {
@@ -402,7 +402,7 @@ clnt_tli_create(const SOCKET fd_in, const struct netconfig *nconf,
 		if (nconf &&
 		    ((strcmp(nconf->nc_protofmly, "inet") == 0) ||
 		     (strcmp(nconf->nc_protofmly, "inet6") == 0))) {
-			setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (const char *)&one,
+			setsockopt(_get_osfhandle(fd), IPPROTO_TCP, TCP_NODELAY, (const char *)&one,
 			    sizeof (one));
 		}
 		cl = clnt_vc_create(fd, svcaddr, prog, vers, sendsz, recvsz,
@@ -435,7 +435,7 @@ err:
 	rpc_createerr.cf_stat = RPC_SYSTEMERROR;
 	rpc_createerr.cf_error.re_errno = errno;
 err1:	if (madefd)
-		(void)closesocket(fd);
+		(void)wintirpc_closesocket(fd);
 	return (NULL);
 }
 
@@ -460,11 +460,11 @@ __rpc_raise_fd(int fd)
 		return (fd);
 
 	if (fsync(nfd) == -1) {
-		closesocket(nfd);
+		wintirpc_closesocket(nfd);
 		return (fd);
 	}
 
-	if (closesocket(fd) == -1) {
+	if (wintirpc_closesocket(fd) == -1) {
 		/* this is okay, we will syslog an error, then use the new fd */
 		(void) syslog(LOG_ERR,
 			"could not close() fd %d; mem & fd leak", fd);

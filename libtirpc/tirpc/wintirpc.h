@@ -3,6 +3,7 @@
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
+ * Roland Mainz <roland.mainz@nrubsig.org>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -44,6 +45,13 @@
 #include <windows.h>
 #include <process.h>
 #include <basetsd.h>
+#include <fcntl.h>
+#include <io.h>
+
+/* warn about int to pointer */
+#pragma warning (error : 4312)
+/* conversion from 'int' to '_HFILE' of greater size */
+#pragma warning (error : 4306)
 
 //#define snprintf _snprintf
 //#define vsnprintf _vsnprintf
@@ -62,12 +70,6 @@
 #define __BEGIN_DECLS
 #define __END_DECLS
 #define __THROW
-
-/*
- * Hash of Windows Socket Handle values
- */
-#define WINSOCK_HANDLE_HASH_SIZE	1024
-#define WINSOCK_HANDLE_HASH(x) (((x) >> 2) % WINSOCK_HANDLE_HASH_SIZE)
 
 /*
  * Functions imported from BSD
@@ -94,6 +96,17 @@ struct sockaddr_un {
 /* Evaluate to actual length of the sockaddr_un structure */
 /* XXX Should this return size_t or unsigned int ?? */
 #define SUN_LEN(ptr) ((unsigned int)(sizeof(int) + strlen ((ptr)->sun_path)))
+
+/* Prototypes */
+int wintirpc_socket(int af,int type, int protocol);
+int wintirpc_closesocket(int in_fd);
+int wintirpc_listen(int in_s, int backlog);
+int wintirpc_accept(int s_fd, struct sockaddr *addr, int *addrlen);
+int winntirpc_send(int s, const char *buf, int len, int flags);
+int wintirpc_sendto(int s, const char *buf, int len, int flags, const struct sockaddr *to, int tolen);
+void wintirpc_register_osfhandle_fd(SOCKET handle, int fd);
+void wintirpc_unregister_osfhandle(SOCKET handle);
+int wintirpc_handle2fd(SOCKET handle);
 
 /* Debugging function */
 void wintirpc_debug(char *fmt, ...);

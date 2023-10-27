@@ -98,19 +98,19 @@ static cond_t	*dg_cv;
 #ifndef _WIN32
 #define	release_fd_lock(fd, mask) {		\
 	mutex_lock(&clnt_fd_lock);	\
-	dg_fd_locks[fd] = 0;		\
+	dg_fd_locks[(fd)] = 0;		\
 	mutex_unlock(&clnt_fd_lock);	\
 	thr_sigsetmask(SIG_SETMASK, &(mask), NULL); \
-	cond_signal(&dg_cv[fd]);	\
+	cond_signal(&dg_cv[(fd)]);	\
 }
 #else
 /* XXX Needs Windows signal/event stuff XXX */
 #define	release_fd_lock(fd, mask) {		\
 	mutex_lock(&clnt_fd_lock);	\
-	dg_fd_locks[WINSOCK_HANDLE_HASH(fd)] = 0;		\
+	dg_fd_locks[(fd)] = 0;		\
 	mutex_unlock(&clnt_fd_lock);	\
 	\
-	cond_signal(&dg_cv[WINSOCK_HANDLE_HASH(fd)]);	\
+	cond_signal(&dg_cv[(fd)]);	\
 }
 #endif
 
@@ -122,7 +122,7 @@ static const char mem_err_clnt_dg[] = "clnt_dg_create: out of memory";
  * Private data kept per client handle
  */
 struct cu_data {
-	SOCKET				cu_fd;		/* connections fd */
+	int				cu_fd;		/* connections fd */
 	bool_t				cu_closeit;	/* opened by library */
 	struct sockaddr_storage	cu_raddr;	/* remote address */
 	int					cu_rlen;
@@ -156,7 +156,7 @@ struct cu_data {
  */
 CLIENT *
 clnt_dg_create(fd, svcaddr, program, version, sendsz, recvsz)
-	SOCKET fd;				/* open file descriptor */
+	int fd;				/* open file descriptor */
 	const struct netbuf *svcaddr;	/* servers address */
 	rpcprog_t program;		/* program number */
 	rpcvers_t version;		/* version number */
@@ -281,10 +281,10 @@ clnt_dg_create(fd, svcaddr, program, version, sendsz, recvsz)
 #ifdef IP_RECVERR
 	{
 	int on = 1;
-	setsockopt(fd, SOL_IP, IP_RECVERR, &on, sizeof(on));
+	setsockopt(_get_osfhandle(fd), SOL_IP, IP_RECVERR, &on, sizeof(on));
 	}
 #endif
-	ioctlsocket(fd, FIONBIO, &one);
+	ioctlsocket(_get_osfhandle(fd), FIONBIO, &one);
 	/*
 	 * By default, closeit is always FALSE. It is users responsibility
 	 * to do a close on it, else the user may use clnt_control
@@ -330,7 +330,7 @@ clnt_dg_call(cl, proc, xargs, argsp, xresults, resultsp, utimeout)
 	bool_t ok;
 	int nrefreshes = 2;		/* number of times to refresh cred */
 	struct timeval timeout;
-        struct pollfd fd;
+	struct pollfd fd;
 	int total_time, nextsend_time, tv=0;
 	struct sockaddr *sa;
 #ifndef _WIN32
@@ -352,10 +352,10 @@ clnt_dg_call(cl, proc, xargs, argsp, xresults, resultsp, utimeout)
 		/* XXX Need Windows signal/event stuff here XXX */
 #endif
 	mutex_lock(&clnt_fd_lock);
-	while (dg_fd_locks[WINSOCK_HANDLE_HASH(cu->cu_fd)])
-		cond_wait(&dg_cv[WINSOCK_HANDLE_HASH(cu->cu_fd)], &clnt_fd_lock);
+	while (dg_fd_locks[cu->cu_fd])
+		cond_wait(&dg_cv[cu->cu_fd], &clnt_fd_lock);
 	rpc_lock_value = 1;
-	dg_fd_locks[WINSOCK_HANDLE_HASH(cu->cu_fd)] = rpc_lock_value;
+	dg_fd_locks[cu->cu_fd] = rpc_lock_value;
 	mutex_unlock(&clnt_fd_lock);
 	if (cu->cu_total.tv_usec == -1) {
 		timeout = utimeout;	/* use supplied timeout */
@@ -366,7 +366,7 @@ clnt_dg_call(cl, proc, xargs, argsp, xresults, resultsp, utimeout)
 	nextsend_time = cu->cu_wait.tv_sec * 1000 + cu->cu_wait.tv_usec / 1000;
 
 	if (cu->cu_connect && !cu->cu_connected) {
-		if (connect(cu->cu_fd, (struct sockaddr *)&cu->cu_raddr,
+		if (connect(_get_osfhandle(cu->cu_fd), (struct sockaddr *)&cu->cu_raddr,
 		    cu->cu_rlen) < 0) {
 			cu->cu_error.re_errno = errno;
 			cu->cu_error.re_status = RPC_CANTSEND;
@@ -420,7 +420,7 @@ send_again:
 		goto out;
 	}
 	nextsend_time = cu->cu_wait.tv_sec * 1000 + cu->cu_wait.tv_usec / 1000;
-	if (sendto(cu->cu_fd, cu->cu_outbuf, (int)outlen, 0, sa, salen) != outlen) {
+	if (wintirpc_sendto(cu->cu_fd, cu->cu_outbuf, (int)outlen, 0, sa, salen) != outlen) {
 		cu->cu_error.re_errno = errno;
 		cu->cu_error.re_status = RPC_CANTSEND;
 		goto out;
@@ -437,9 +437,9 @@ get_reply:
 	reply_msg.acpted_rply.ar_results.where = resultsp;
 	reply_msg.acpted_rply.ar_results.proc = xresults;
 
-        fd.fd = cu->cu_fd;
-        fd.events = POLLIN;
-        fd.revents = 0;
+	fd.fd = _get_osfhandle(cu->cu_fd);
+	fd.events = POLLIN;
+	fd.revents = 0;
 	while (total_time > 0) {
 		tv = total_time < nextsend_time ? total_time : nextsend_time;
                 switch (poll(&fd, 1, tv)) {
@@ -477,7 +477,7 @@ get_reply:
 	  msg.msg_flags = 0;
 	  msg.msg_control = cbuf;
 	  msg.msg_controllen = 256;
-	  ret = recvmsg (cu->cu_fd, &msg, MSG_ERRQUEUE);
+	  ret = recvmsg (_get_osfhandle(cu->cu_fd), &msg, MSG_ERRQUEUE);
 	  if (ret >= 0
 	      && memcmp (cbuf + 256, cu->cu_outbuf, ret) == 0
 	      && (msg.msg_flags & MSG_ERRQUEUE)
@@ -502,7 +502,7 @@ get_reply:
 
 	/* We have some data now */
 	do {
-		recvlen = recvfrom(cu->cu_fd, cu->cu_inbuf,
+		recvlen = recvfrom(_get_osfhandle(cu->cu_fd), cu->cu_inbuf,
 		    cu->cu_recvsz, 0, NULL, NULL);
 		errno = WSAGetLastError();
 	} while (recvlen == SOCKET_ERROR && errno == WSAEINTR);
@@ -606,13 +606,13 @@ clnt_dg_freeres(cl, xdr_res, res_ptr)
 	/* XXX Need Windows signal/event stuff here XXX */
 #endif
 	mutex_lock(&clnt_fd_lock);
-	while (dg_fd_locks[WINSOCK_HANDLE_HASH(cu->cu_fd)])
-		cond_wait(&dg_cv[WINSOCK_HANDLE_HASH(cu->cu_fd)], &clnt_fd_lock);
+	while (dg_fd_locks[cu->cu_fd])
+		cond_wait(&dg_cv[cu->cu_fd], &clnt_fd_lock);
 	xdrs->x_op = XDR_FREE;
 	dummy = (*xdr_res)(xdrs, res_ptr);
 	mutex_unlock(&clnt_fd_lock);
 //	thr_sigsetmask(SIG_SETMASK, &mask, NULL);
-	cond_signal(&dg_cv[WINSOCK_HANDLE_HASH(cu->cu_fd)]);
+	cond_signal(&dg_cv[cu->cu_fd]);
 	return (dummy);
 }
 
@@ -646,10 +646,10 @@ clnt_dg_control(cl, request, info)
 	/* XXX Need Windows signal/event stuff here XXX */
 #endif
 	mutex_lock(&clnt_fd_lock);
-	while (dg_fd_locks[WINSOCK_HANDLE_HASH(cu->cu_fd)])
-		cond_wait(&dg_cv[WINSOCK_HANDLE_HASH(cu->cu_fd)], &clnt_fd_lock);
-    rpc_lock_value = 1;
-	dg_fd_locks[WINSOCK_HANDLE_HASH(cu->cu_fd)] = rpc_lock_value;
+	while (dg_fd_locks[cu->cu_fd])
+		cond_wait(&dg_cv[cu->cu_fd], &clnt_fd_lock);
+	rpc_lock_value = 1;
+	dg_fd_locks[cu->cu_fd] = rpc_lock_value;
 	mutex_unlock(&clnt_fd_lock);
 	switch (request) {
 	case CLSET_FD_CLOSE:
@@ -693,7 +693,7 @@ clnt_dg_control(cl, request, info)
 		*(struct timeval *)info = cu->cu_wait;
 		break;
 	case CLGET_FD:
-		*(SOCKET *)info = cu->cu_fd;
+		*(int *)info = cu->cu_fd;
 		break;
 	case CLGET_SVC_ADDR:
 		addr = (struct netbuf *)info;
@@ -779,7 +779,7 @@ clnt_dg_destroy(cl)
 	CLIENT *cl;
 {
 	struct cu_data *cu = (struct cu_data *)cl->cl_private;
-	SOCKET cu_fd = cu->cu_fd;
+	int cu_fd = cu->cu_fd;
 #ifndef _WIN32
 	sigset_t mask;
 	sigset_t newmask;
@@ -790,10 +790,10 @@ clnt_dg_destroy(cl)
 	/* XXX Need Windows signal/event stuff here XXX */
 #endif
 	mutex_lock(&clnt_fd_lock);
-	while (dg_fd_locks[WINSOCK_HANDLE_HASH(cu_fd)])
-		cond_wait(&dg_cv[WINSOCK_HANDLE_HASH(cu_fd)], &clnt_fd_lock);
+	while (dg_fd_locks[cu_fd])
+		cond_wait(&dg_cv[cu_fd], &clnt_fd_lock);
 	if (cu->cu_closeit)
-		(void)closesocket(cu_fd);
+		(void)wintirpc_closesocket(cu_fd);
 	XDR_DESTROY(&(cu->cu_outxdrs));
 	mem_free(cu, (sizeof (*cu) + cu->cu_sendsz + cu->cu_recvsz));
 	if (cl->cl_netid && cl->cl_netid[0])
@@ -803,7 +803,7 @@ clnt_dg_destroy(cl)
 	mem_free(cl, sizeof (CLIENT));
 	mutex_unlock(&clnt_fd_lock);
 //	thr_sigsetmask(SIG_SETMASK, &mask, NULL);
-	cond_signal(&dg_cv[WINSOCK_HANDLE_HASH(cu_fd)]);
+	cond_signal(&dg_cv[cu_fd]);
 }
 
 static struct clnt_ops *

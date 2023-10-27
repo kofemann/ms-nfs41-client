@@ -68,7 +68,7 @@ extern mutex_t	rpcsoc_lock;
 
 static CLIENT *clnt_com_create(struct sockaddr_in *, rpcprog_t, rpcvers_t,
     int *, u_int, u_int, char *);
-static SVCXPRT *svc_com_create(SOCKET, u_int, u_int, char *);
+static SVCXPRT *svc_com_create(int, u_int, u_int, char *);
 static bool_t rpc_wrap_bcast(char *, struct netbuf *, struct netconfig *);
 
 /* XXX */
@@ -83,14 +83,14 @@ clnt_com_create(raddr, prog, vers, sockp, sendsz, recvsz, tp)
 	struct sockaddr_in *raddr;
 	rpcprog_t prog;
 	rpcvers_t vers;
-	SOCKET *sockp;
+	int *sockp;
 	u_int sendsz;
 	u_int recvsz;
 	char *tp;
 {
 	CLIENT *cl;
 	int madefd = FALSE;
-	SOCKET fd = *sockp;
+	int fd = *sockp;
 	struct netconfig *nconf;
 	struct netbuf bindaddr;
 
@@ -148,7 +148,7 @@ syserror:
 	rpc_createerr.cf_error.re_errno = errno;
 
 err:	if (madefd == TRUE)
-		(void)closesocket(fd);
+		(void)wintirpc_closesocket(fd);
 	(void) freenetconfigent(nconf);
 	mutex_unlock(&rpcsoc_lock);
 	return (NULL);
@@ -263,7 +263,7 @@ clntraw_create(prog, vers)
  */
 static SVCXPRT *
 svc_com_create(fd, sendsize, recvsize, netid)
-	SOCKET fd;
+	int fd;
 	u_int sendsize;
 	u_int recvsize;
 	char *netid;
@@ -292,12 +292,12 @@ svc_com_create(fd, sendsize, recvsize, netid)
 	memset(&sin, 0, sizeof sin);
 	sin.sin_family = AF_INET;
 	bindresvport(fd, &sin);
-	listen(fd, SOMAXCONN);
+	wintirpc_listen(fd, SOMAXCONN);
 	svc = svc_tli_create(fd, nconf, NULL, sendsize, recvsize);
 	(void) freenetconfigent(nconf);
 	if (svc == NULL) {
 		if (madefd)
-			(void)closesocket(fd);
+			(void)wintirpc_closesocket(fd);
 		return (NULL);
 	}
 	port = (((struct sockaddr_in *)svc->xp_ltaddr.buf)->sin_port);
@@ -307,7 +307,7 @@ svc_com_create(fd, sendsize, recvsize, netid)
 
 SVCXPRT *
 svctcp_create(fd, sendsize, recvsize)
-	SOCKET fd;
+	int fd;
 	u_int sendsize;
 	u_int recvsize;
 {
@@ -319,7 +319,7 @@ svctcp_create(fd, sendsize, recvsize)
 
 SVCXPRT *
 svcudp_bufcreate(fd, sendsz, recvsz)
-	SOCKET fd;
+	int fd;
 	u_int sendsz, recvsz;
 {
 
@@ -330,7 +330,7 @@ svcudp_bufcreate(fd, sendsz, recvsz)
 
 SVCXPRT *
 svcfd_create(fd, sendsize, recvsize)
-	SOCKET fd;
+	int fd;
 	u_int sendsize;
 	u_int recvsize;
 {
@@ -341,7 +341,7 @@ svcfd_create(fd, sendsize, recvsize)
 
 SVCXPRT *
 svcudp_create(fd)
-	SOCKET fd;
+	int fd;
 {
 
 	return svc_com_create(fd, UDPMSGSIZE, UDPMSGSIZE, "udp");
@@ -522,7 +522,7 @@ clntunix_create(raddr, prog, vers, sockp, sendsz, recvsz)
 	struct sockaddr_un *raddr;
 	u_long prog;
 	u_long vers;
-	SOCKET *sockp;
+	int *sockp;
 	u_int sendsz;
 	u_int recvsz;
 {
@@ -543,17 +543,17 @@ clntunix_create(raddr, prog, vers, sockp, sendsz, recvsz)
 		return(cl);
 	}
 	if (*sockp == SOCKET_ERROR) {
-		*sockp = socket(AF_UNIX, SOCK_STREAM, 0);
+		*sockp = wintirpc_socket(AF_UNIX, SOCK_STREAM, 0);
 		len = SUN_LEN(raddr);
-		if ((*sockp == INVALID_SOCKET) || (connect(*sockp,
+		if ((*sockp == -1) || (connect(_get_osfhandle(*sockp),
 		    (struct sockaddr *)raddr, len) == SOCKET_ERROR)) {
 			rpc_createerr.cf_stat = RPC_SYSTEMERROR;
 			rpc_createerr.cf_error.re_errno = errno;
-			if (*sockp != INVALID_SOCKET)
-				(void)closesocket(*sockp);
+			if (*sockp != -1)
+				(void)wintirpc_closesocket(*sockp);
 			goto done;
 		}
-	}
+        }
 	svcaddr->buf = raddr;
 	svcaddr->len = sizeof(raddr);
 	svcaddr->maxlen = sizeof (struct sockaddr_un);
@@ -571,7 +571,7 @@ done:
  */
 SVCXPRT *
 svcunix_create(sock, sendsize, recvsize, path)
-	SOCKET sock;
+	int sock;
 	u_int sendsize;
 	u_int recvsize;
 	char *path;
@@ -603,7 +603,7 @@ svcunix_create(sock, sendsize, recvsize, path)
 	addrlen = sizeof(struct sockaddr_un);
 	sa = (struct sockaddr *)&sun;
 
-	if (bind(sock, sa, addrlen) == SOCKET_ERROR)
+	if (bind(_get_osfhandle(sock), sa, addrlen) == SOCKET_ERROR)
 		goto done;
 
 	taddr.addr.len = taddr.addr.maxlen = addrlen;
@@ -613,7 +613,7 @@ svcunix_create(sock, sendsize, recvsize, path)
 	memcpy(taddr.addr.buf, sa, addrlen);
 
 	if (nconf->nc_semantics != NC_TPI_CLTS) {
-		if (listen(sock, SOMAXCONN) == SOCKET_ERROR) {
+		if (wintirpc_listen(sock, SOMAXCONN) == SOCKET_ERROR) {
 			free(taddr.addr.buf);
 			goto done;
 		}
@@ -632,7 +632,7 @@ done:
  */
 SVCXPRT *
 svcunixfd_create(fd, sendsize, recvsize)
-	SOCKET fd;
+	int fd;
 	u_int sendsize;
 	u_int recvsize;
 {

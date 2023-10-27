@@ -60,6 +60,7 @@
 #endif				/* PORTMAP */
 #include <rpc/nettype.h>
 //#include <arpa/inet.h>
+//#define RPC_DEBUG 1
 #ifdef RPC_DEBUG
 #include <stdio.h>
 #endif
@@ -248,12 +249,12 @@ __rpc_broadenable(int af, int s, struct broadif *bip)
 #if 0
 	if (af == AF_INET6) {
 		fprintf(stderr, "set v6 multicast if to %d\n", bip->index);
-		if (setsockopt(s, IPPROTO_IPV6, IPV6_MULTICAST_IF, &bip->index,
-		    sizeof bip->index) < 0)
+		if (setsockopt(_get_osfhandle(s), IPPROTO_IPV6, IPV6_MULTICAST_IF, &bip->index,
+			sizeof bip->index) < 0)
 			return -1;
 	} else
 #endif
-		if (setsockopt(s, SOL_SOCKET, SO_BROADCAST, &o, sizeof o) == SOCKET_ERROR)
+		if (setsockopt(_get_osfhandle(s), SOL_SOCKET, SO_BROADCAST, &o, sizeof o) == SOCKET_ERROR)
 			return -1;
 
 	return 0;
@@ -292,7 +293,8 @@ rpc_broadcast_exp(prog, vers, proc, xargs, argsp, xresults, resultsp,
 	int 		pmap_reply_flag; /* reply recvd from PORTMAP */
 	/* An array of all the suitable broadcast transports */
 	struct {
-		int fd;		/* File descriptor */
+		SOCK fd_sock;		/* File descriptor */
+		int fd;
 		int af;
 		int proto;
 		struct netconfig *nconf; /* Netconfig structure */
@@ -349,22 +351,23 @@ rpc_broadcast_exp(prog, vers, proc, xargs, argsp, xresults, resultsp,
 
 		TAILQ_INIT(&fdlist[fdlistno].nal);
 		if (__rpc_getbroadifs(si.si_af, si.si_proto, si.si_socktype, 
-		    &fdlist[fdlistno].nal) == 0)
+			&fdlist[fdlistno].nal) == 0)
 			continue;
 
-		fd = socket(si.si_af, si.si_socktype, si.si_proto);
+		fd = wintirpc_socket(si.si_af, si.si_socktype, si.si_proto);
 		if (fd == INVALID_SOCKET) {
 			stat = RPC_CANTSEND;
 			continue;
 		}
 		fdlist[fdlistno].af = si.si_af;
 		fdlist[fdlistno].proto = si.si_proto;
+		fdlist[fdlistno].fd_sock = _get_osfhandle(fd);
 		fdlist[fdlistno].fd = fd;
 		fdlist[fdlistno].nconf = nconf;
 		fdlist[fdlistno].asize = __rpc_get_a_size(si.si_af);
 		pfd[fdlistno].events = POLLIN | POLLPRI |
 			POLLRDNORM | POLLRDBAND;
-		pfd[fdlistno].fd = fdlist[fdlistno].fd = fd;
+		pfd[fdlistno].fd = fdlist[fdlistno].fd_sock = _get_osfhandle(fd);
 		fdlist[fdlistno].dsize = __rpc_get_t_size(si.si_af, si.si_proto,
 							  0);
 
@@ -375,7 +378,7 @@ rpc_broadcast_exp(prog, vers, proc, xargs, argsp, xresults, resultsp,
 		if (si.si_af == AF_INET && si.si_proto == IPPROTO_UDP) {
 			udpbufsz = fdlist[fdlistno].dsize;
 			if ((outbuf_pmap = malloc(udpbufsz)) == NULL) {
-				closesocket(fd);
+				wintirpc_closesocket(fd);
 				stat = RPC_SYSTEMERROR;
 				goto done_broad;
 			}
@@ -486,10 +489,10 @@ rpc_broadcast_exp(prog, vers, proc, xargs, argsp, xresults, resultsp,
 				 */
 
 				if (!__rpc_lowvers)
-					if (sendto(fdlist[i].fd, outbuf,
-					    outlen, 0, (struct sockaddr*)addr,
-					    (size_t)fdlist[i].asize) !=
-					    outlen) {
+					if (wintirpc_sendto(fdlist[i].fd, outbuf,
+						outlen, 0, (struct sockaddr*)addr,
+						(size_t)fdlist[i].asize) !=
+						outlen) {
 #ifdef RPC_DEBUG
 						perror("sendto");
 #endif
@@ -511,7 +514,7 @@ rpc_broadcast_exp(prog, vers, proc, xargs, argsp, xresults, resultsp,
 				 */
 				if (pmap_flag &&
 				    fdlist[i].proto == IPPROTO_UDP) {
-					if (sendto(fdlist[i].fd, outbuf_pmap,
+					if (wintirpc_sendto(fdlist[i].fd, outbuf_pmap,
 					    outlen_pmap, 0, addr,
 					    (size_t)fdlist[i].asize) !=
 						outlen_pmap) {
@@ -573,7 +576,7 @@ rpc_broadcast_exp(prog, vers, proc, xargs, argsp, xresults, resultsp,
 				fdlist[i].nconf->nc_netid);
 #endif
 		try_again:
-			inlen = recvfrom(fdlist[i].fd, inbuf, fdlist[i].dsize,
+			inlen = recvfrom(fdlist[i].fd_sock, inbuf, fdlist[i].dsize,
 			    0, (struct sockaddr *)(void *)&fdlist[i].raddr,
 			    &fdlist[i].asize);
 			if (inlen < 0) {
@@ -673,7 +676,7 @@ done_broad:
 		(void) free(outbuf_pmap);
 #endif				/* PORTMAP */
 	for (i = 0; i < fdlistno; i++) {
-		(void)closesocket(fdlist[i].fd);
+		(void)wintirpc_closesocket(fdlist[i].fd);
 		__rpc_freebroadifs(&fdlist[i].nal);
 	}
 	AUTH_DESTROY(sys_auth);

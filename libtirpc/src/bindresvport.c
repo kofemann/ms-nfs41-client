@@ -51,10 +51,10 @@
  */
 int
 bindresvport(sd, sin)
-        SOCKET sd;
-        struct sockaddr_in *sin;
+	int sd;
+	struct sockaddr_in *sin;
 {
-        return bindresvport_sa(sd, (struct sockaddr *)sin);
+	return bindresvport_sa(sd, (struct sockaddr *)sin);
 }
 
 #ifdef __linux__
@@ -87,7 +87,7 @@ bindresvport_sa(sd, sa)
                 salen = sizeof(myaddr);
                 sa = (struct sockaddr *)&myaddr;
 
-                if (getsockname(sd, (struct sockaddr *)&myaddr, &salen) == -1)
+                if (getsockname(_get_osfhandle(sd), (struct sockaddr *)&myaddr, &salen) == -1)
                         return -1;      /* errno is correctly set */
 
                 af = myaddr.ss_family;
@@ -125,7 +125,7 @@ bindresvport_sa(sd, sa)
                 *portp = htons(port++);
                  if (port > endport) 
                         port = startport;
-                res = bind(sd, sa, salen);
+                res = bind(_get_osfhandle(sd), sa, salen);
 		if (res >= 0 || errno != EADDRINUSE)
 	                break;
         }
@@ -144,7 +144,7 @@ bindresvport_sa(sd, sa)
 #if defined(_WIN32)
 
 int
-bindresvport_sa(SOCKET sd, struct sockaddr *sa)
+bindresvport_sa(int sd, struct sockaddr *sa)
 {
 	fprintf(stderr, "Do-nothing bindresvport_sa!\n");
 	return 0;
@@ -159,7 +159,7 @@ bindresvport_sa(SOCKET sd, struct sockaddr *sa)
  */
 int
 bindresvport_sa(sd, sa)
-	SOCKET sd;
+	int sd;
 	struct sockaddr *sa;
 {
 #ifdef IPV6_PORTRANGE
@@ -185,13 +185,13 @@ bindresvport_sa(sd, sa)
 
 #ifdef _WIN32
 		memset(sa, 0, salen);
-		if (error = getsockopt(sd, SOL_SOCKET, SO_PROTOCOL_INFO, (char *)&proto_info, &proto_info_size) == SOCKET_ERROR) {
+		if (error = getsockopt(_get_osfhandle(sd), SOL_SOCKET, SO_PROTOCOL_INFO, (char *)&proto_info, &proto_info_size) == SOCKET_ERROR) {
 			int sockerr = WSAGetLastError();
 			return -1;
 		}
 		af = proto_info.iAddressFamily;
 #else
-		if (getsockname(sd, sa, &salen) == -1)
+		if (getsockname(_get_osfhandle(sd), sa, &salen) == -1)
 			return -1;	/* errno is correctly set */
 
 		af = sa->sa_family;
@@ -231,18 +231,18 @@ bindresvport_sa(sd, sa)
 	if (*portp == 0) {
 		socklen_t oldlen = sizeof(old);
 
-		error = getsockopt(sd, proto, portrange, &old, &oldlen);
+		error = getsockopt(_get_osfhandle(sd), proto, portrange, &old, &oldlen);
 		if (error < 0)
 			return (error);
 
-		error = setsockopt(sd, proto, portrange, &portlow,
-		    sizeof(portlow));
+		error = setsockopt(_get_osfhandle(sd), proto, portrange, &portlow,
+				sizeof(portlow));
 		if (error < 0)
 			return (error);
 	}
 #endif
 
-	error = bind(sd, sa, salen);
+	error = bind(_get_osfhandle(sd), sa, salen);
 	if (error) {
 		int err = WSAGetLastError();
 	}
@@ -252,15 +252,15 @@ bindresvport_sa(sd, sa)
 		int saved_errno = errno;
 
 		if (error < 0) {
-			if (setsockopt(sd, proto, portrange, &old,
-			    sizeof(old)) < 0)
-				errno = saved_errno;
+			if (setsockopt(_get_osfhandle(sd), proto, portrange, &old,
+				sizeof(old)) < 0)
+			errno = saved_errno;
 			return (error);
 		}
 
 		if (sa != (struct sockaddr *)&myaddr) {
 			/* Hmm, what did the kernel assign? */
-			if (getsockname(sd, sa, &salen) < 0)
+			if (getsockname(_get_osfhandle(sd), sa, &salen) < 0)
 				errno = saved_errno;
 			return (error);
 		}

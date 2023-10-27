@@ -74,7 +74,7 @@ int __rpc_sockinfo2netid(struct __rpc_sockinfo *, const char **);
 int __rpc_seman2socktype(int);
 int __rpc_socktype2seman(int);
 void *rpc_nullproc(CLIENT *);
-int __rpc_sockisbound(SOCKET);
+int __rpc_sockisbound(int);
 
 struct netbuf *__rpcb_findaddr(rpcprog_t, rpcvers_t, const struct netconfig *,
 			       const char *, CLIENT **);

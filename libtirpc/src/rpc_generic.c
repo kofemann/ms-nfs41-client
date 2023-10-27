@@ -110,7 +110,8 @@ int
 __rpc_dtbsize()
 {
 #ifdef _WIN32
-	return (WINSOCK_HANDLE_HASH_SIZE);
+        /* gisburn: Is |FD_SETSIZE| really correct here ? */
+	return (FD_SETSIZE);
 #else
 
 	static int tbsize;
@@ -462,7 +463,7 @@ rpc_nullproc(clnt)
  */
 struct netconfig *
 __rpcgettp(fd)
-	SOCKET fd;
+	int fd;
 {
 	const char *netid;
 	struct __rpc_sockinfo si;
@@ -478,7 +479,7 @@ __rpcgettp(fd)
 }
 
 int
-__rpc_fd2sockinfo(SOCKET fd, struct __rpc_sockinfo *sip)
+__rpc_fd2sockinfo(int fd, struct __rpc_sockinfo *sip)
 {
 	socklen_t len;
 	int type, proto;
@@ -487,7 +488,7 @@ __rpc_fd2sockinfo(SOCKET fd, struct __rpc_sockinfo *sip)
 #ifdef _WIN32
 	WSAPROTOCOL_INFO proto_info;
 	int proto_info_size = sizeof(proto_info);
-	if (getsockopt(fd, SOL_SOCKET, SO_PROTOCOL_INFO, (char *)&proto_info, &proto_info_size) == SOCKET_ERROR) {
+	if (getsockopt(_get_osfhandle(fd), SOL_SOCKET, SO_PROTOCOL_INFO, (char *)&proto_info, &proto_info_size) == SOCKET_ERROR) {
 		int err = WSAGetLastError();
 		return 0;
 	}
@@ -495,14 +496,14 @@ __rpc_fd2sockinfo(SOCKET fd, struct __rpc_sockinfo *sip)
 	ss.ss_family = (ADDRESS_FAMILY)proto_info.iAddressFamily;
 #else
 	len = sizeof ss;
-	if (getsockname(fd, (struct sockaddr *)&ss, &len) == SOCKET_ERROR) {
+	if (getsockname(_get_osfhandle(fd), (struct sockaddr *)&ss, &len) == SOCKET_ERROR) {
 		return 0;
 	}
 #endif
 	sip->si_alen = len;
 
 	len = sizeof type;
-	if (getsockopt(fd, SOL_SOCKET, SO_TYPE, (char *)&type, &len) == SOCKET_ERROR) {
+	if (getsockopt(_get_osfhandle(fd), SOL_SOCKET, SO_TYPE, (char *)&type, &len) == SOCKET_ERROR) {
 		int err = WSAGetLastError();
 		return 0;
 	}
@@ -554,20 +555,20 @@ __rpc_nconf2sockinfo(const struct netconfig *nconf, struct __rpc_sockinfo *sip)
 	return 0;
 }
 
-SOCKET
+int
 __rpc_nconf2fd(const struct netconfig *nconf)
 {
 	struct __rpc_sockinfo si;
-	SOCKET fd;
+	int fd;
 
 	if (!__rpc_nconf2sockinfo(nconf, &si))
 		return 0;
 
-	if ((fd = socket(si.si_af, si.si_socktype, si.si_proto)) != INVALID_SOCKET &&
+	if ((fd = wintirpc_socket(si.si_af, si.si_socktype, si.si_proto)) != -1 &&
 	    si.si_af == AF_INET6) {
 		int val = 1;
 
-		setsockopt(fd, SOL_IPV6, IPV6_V6ONLY, (const char *)&val, sizeof(val));
+		setsockopt(_get_osfhandle(fd), SOL_IPV6, IPV6_V6ONLY, (const char *)&val, sizeof(val));
 	}
 	return fd;
 }
@@ -876,7 +877,7 @@ __rpc_fixup_addr(struct netbuf *new, const struct netbuf *svc)
 }
 
 int
-__rpc_sockisbound(SOCKET fd)
+__rpc_sockisbound(int fd)
 {
 	struct sockaddr_storage ss;
 	union {
@@ -889,7 +890,7 @@ __rpc_sockisbound(SOCKET fd)
 	socklen_t slen;
 
 	slen = sizeof (struct sockaddr_storage);
-	if (getsockname(fd, (struct sockaddr *)(void *)&ss, &slen) == SOCKET_ERROR)
+	if (getsockname(_get_osfhandle(fd), (struct sockaddr *)(void *)&ss, &slen) == SOCKET_ERROR)
 		return 0;
 
 	switch (ss.ss_family) {
