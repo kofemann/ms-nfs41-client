@@ -56,7 +56,10 @@
 //#define snprintf _snprintf
 //#define vsnprintf _vsnprintf
 #define strcasecmp _stricmp
-//#define strdup _strdup
+/* ucrt/crtdbg.h might define |strdup()| to |_strdup_dbg()| */
+#ifndef strdup
+#define strdup _strdup
+#endif
 #define getpid _getpid
 
 #define bcmp memcmp
