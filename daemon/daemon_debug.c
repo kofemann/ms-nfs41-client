@@ -227,48 +227,56 @@ void print_share_mode(int level, DWORD mode)
 
 void print_file_id_both_dir_info(int level, FILE_ID_BOTH_DIR_INFO *pboth_dir_info)
 {
-    if (level > g_debug_level) return;
-    fprintf(dlog_file, "FILE_ID_BOTH_DIR_INFO %p %d\n", 
+    /* printf %zd is for |size_t| */
+
+    if (level > g_debug_level)
+        return;
+    (void)fprintf(dlog_file, "FILE_ID_BOTH_DIR_INFO %p %zd\n",
        pboth_dir_info, sizeof(unsigned char *));
-    fprintf(dlog_file, "\tNextEntryOffset=%ld %d %d\n", 
-        pboth_dir_info->NextEntryOffset, 
+    (void)fprintf(dlog_file, "\tNextEntryOffset=%ld %zd %zd\n",
+        pboth_dir_info->NextEntryOffset,
         sizeof(pboth_dir_info->NextEntryOffset), sizeof(DWORD));
-    fprintf(dlog_file, "\tFileIndex=%ld  %d\n", pboth_dir_info->FileIndex, 
+    (void)fprintf(dlog_file, "\tFileIndex=%ld %zd\n",
+        pboth_dir_info->FileIndex,
         sizeof(pboth_dir_info->FileIndex));
-    fprintf(dlog_file, "\tCreationTime=0x%x %d\n", 
-        pboth_dir_info->CreationTime.QuadPart, 
+    (void)fprintf(dlog_file, "\tCreationTime=0x%llx %zd\n",
+        (long long)pboth_dir_info->CreationTime.QuadPart,
         sizeof(pboth_dir_info->CreationTime));
-    fprintf(dlog_file, "\tLastAccessTime=0x%x %d\n", 
-        pboth_dir_info->LastAccessTime.QuadPart, 
+    (void)fprintf(dlog_file, "\tLastAccessTime=0x%llx %zd\n",
+        (long long)pboth_dir_info->LastAccessTime.QuadPart,
         sizeof(pboth_dir_info->LastAccessTime));
-    fprintf(dlog_file, "\tLastWriteTime=0x%x %d\n", 
-        pboth_dir_info->LastWriteTime.QuadPart, 
+    (void)fprintf(dlog_file, "\tLastWriteTime=0x%llx %zd\n",
+        (long long)pboth_dir_info->LastWriteTime.QuadPart,
         sizeof(pboth_dir_info->LastWriteTime));
-    fprintf(dlog_file, "\tChangeTime=0x%x %d\n", 
-        pboth_dir_info->ChangeTime.QuadPart, 
+    (void)fprintf(dlog_file, "\tChangeTime=0x%llx %zd\n",
+        (long long)pboth_dir_info->ChangeTime.QuadPart,
         sizeof(pboth_dir_info->ChangeTime));
-    fprintf(dlog_file, "\tEndOfFile=0x%x %d\n", 
-        pboth_dir_info->EndOfFile.QuadPart, 
+    (void)fprintf(dlog_file, "\tEndOfFile=0x%llx %zd\n",
+        (long long)pboth_dir_info->EndOfFile.QuadPart,
         sizeof(pboth_dir_info->EndOfFile));
-    fprintf(dlog_file, "\tAllocationSize=0x%x %d\n", 
-        pboth_dir_info->AllocationSize.QuadPart, 
+    (void)fprintf(dlog_file, "\tAllocationSize=0x%llx %zd\n",
+        (long long)pboth_dir_info->AllocationSize.QuadPart,
         sizeof(pboth_dir_info->AllocationSize));
-    fprintf(dlog_file, "\tFileAttributes=%ld %d\n", 
-        pboth_dir_info->FileAttributes, 
+    (void)fprintf(dlog_file, "\tFileAttributes=%ld %zd\n",
+        pboth_dir_info->FileAttributes,
         sizeof(pboth_dir_info->FileAttributes));
-    fprintf(dlog_file, "\tFileNameLength=%ld %d\n", 
-        pboth_dir_info->FileNameLength, 
+    (void)fprintf(dlog_file, "\tFileNameLength=%ld %zd\n",
+        pboth_dir_info->FileNameLength,
         sizeof(pboth_dir_info->FileNameLength));
-    fprintf(dlog_file, "\tEaSize=%ld %d\n", 
-        pboth_dir_info->EaSize, sizeof(pboth_dir_info->EaSize));
-    fprintf(dlog_file, "\tShortNameLength=%d %d\n", 
-        pboth_dir_info->ShortNameLength, 
+    (void)fprintf(dlog_file, "\tEaSize=%ld %zd\n",
+        pboth_dir_info->EaSize,
+        sizeof(pboth_dir_info->EaSize));
+    (void)fprintf(dlog_file, "\tShortNameLength=%d %zd\n",
+        pboth_dir_info->ShortNameLength,
         sizeof(pboth_dir_info->ShortNameLength));
-    fprintf(dlog_file, "\tShortName='%S' %d\n", pboth_dir_info->ShortName, 
+    (void)fprintf(dlog_file, "\tShortName='%S' %zd\n",
+        pboth_dir_info->ShortName,
         sizeof(pboth_dir_info->ShortName));
-    fprintf(dlog_file, "\tFileId=0x%x %d\n", pboth_dir_info->FileId.QuadPart, 
+    (void)fprintf(dlog_file, "\tFileId=0x%llx %zd\n",
+        (long long)pboth_dir_info->FileId.QuadPart,
         sizeof(pboth_dir_info->FileId));
-    fprintf(dlog_file, "\tFileName='%S' %p\n", pboth_dir_info->FileName, 
+    (void)fprintf(dlog_file, "\tFileName='%S' %p\n",
+        pboth_dir_info->FileName,
         pboth_dir_info->FileName);
 }
 
