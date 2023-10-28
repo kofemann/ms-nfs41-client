@@ -105,7 +105,7 @@ int wintirpc_socket(int af,int type, int protocol);
 int wintirpc_closesocket(int in_fd);
 int wintirpc_listen(int in_s, int backlog);
 int wintirpc_accept(int s_fd, struct sockaddr *addr, int *addrlen);
-int winntirpc_send(int s, const char *buf, int len, int flags);
+int wintirpc_send(int s, const char *buf, int len, int flags);
 int wintirpc_sendto(int s, const char *buf, int len, int flags, const struct sockaddr *to, int tolen);
 void wintirpc_register_osfhandle_fd(SOCKET handle, int fd);
 void wintirpc_unregister_osfhandle(SOCKET handle);
