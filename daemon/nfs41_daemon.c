@@ -35,7 +35,9 @@
 #include "upcall.h"
 #include "util.h"
 
-#define MAX_NUM_THREADS 128
+/* nfs41_dg.num_worker_threads sets the actual number of worker threads */
+#define MAX_NUM_THREADS 1024
+#define DEFAULT_NUM_THREADS 32
 DWORD NFS41D_VERSION = 0;
 
 static const char FILE_NETCONFIG[] = "C:\\etc\\netconfig";
@@ -44,6 +46,7 @@ static const char FILE_NETCONFIG[] = "C:\\etc\\netconfig";
 nfs41_daemon_globals nfs41_dg = {
     .default_uid = NFS_USER_NOBODY_UID,
     .default_gid = NFS_GROUP_NOGROUP_GID,
+    .num_worker_threads = DEFAULT_NUM_THREADS,
 };
 
 
@@ -181,8 +184,12 @@ static bool_t check_for_files()
 
 static void PrintUsage()
 {
-    fprintf(stderr, "Usage: nfsd.exe -d <debug_level> --noldap "
-        "--uid <non-zero value> --gid\n");
+    (void)fprintf(stderr, "Usage: nfsd.exe -d <debug_level> "
+        "--noldap "
+        "--uid <non-zero value> "
+        "--gid <non-zero value> "
+        "--numworkerthreads <value-between 16 and %d> "
+        "\n", MAX_NUM_THREADS);
 }
 static bool_t parse_cmdlineargs(int argc, TCHAR *argv[], nfsd_args *out)
 {
@@ -233,6 +240,28 @@ static bool_t parse_cmdlineargs(int argc, TCHAR *argv[], nfsd_args *out)
                     return FALSE;
                 }
                 nfs41_dg.default_gid = _ttoi(argv[i]);
+            }
+            else if (_tcscmp(argv[i], TEXT("--numworkerthreads")) == 0) {
+                ++i;
+                if (i >= argc) {
+                    fprintf(stderr, "Missing value for num_worker_threads\n");
+                    PrintUsage();
+                    return FALSE;
+                }
+                nfs41_dg.num_worker_threads = _ttoi(argv[i]);
+                if (nfs41_dg.num_worker_threads < 16) {
+                    fprintf(stderr, "--numworkerthreads requires at least 16 worker threads\n");
+                    PrintUsage();
+                    return FALSE;
+                }
+                if (nfs41_dg.num_worker_threads >= MAX_NUM_THREADS) {
+                    fprintf(stderr,
+                        "--numworkerthreads supports a maximum of "
+                        "%d worker threads\n",
+                        MAX_NUM_THREADS);
+                    PrintUsage();
+                    return FALSE;
+                }
             }
             else
                 fprintf(stderr, "Unrecognized option '%s', disregarding.\n", argv[i]);
@@ -442,7 +471,9 @@ VOID ServiceStart(DWORD argc, LPTSTR *argv)
       goto out_pipe;
 #endif
 
-    for (i = 0; i < MAX_NUM_THREADS; i++) {
+    dprintf(1, "Starting %d worker threads...\n",
+        (int)nfs41_dg.num_worker_threads);
+    for (i = 0; i < nfs41_dg.num_worker_threads; i++) {
         tids[i].handle = (HANDLE)_beginthreadex(NULL, 0, thread_main,
                 &nfs41_dg, 0, &tids[i].tid);
         if (tids[i].handle == INVALID_HANDLE_VALUE) {
@@ -459,7 +490,7 @@ VOID ServiceStart(DWORD argc, LPTSTR *argv)
 #else
     //This can be changed to waiting on an array of handles and using waitformultipleobjects
     dprintf(1, "Parent waiting for children threads\n");
-    for (i = 0; i < MAX_NUM_THREADS; i++)
+    for (i = 0; i < nfs41_dg.num_worker_threads; i++)
         WaitForSingleObject(tids[i].handle, INFINITE );
 #endif
     dprintf(1, "Parent woke up!!!!\n");

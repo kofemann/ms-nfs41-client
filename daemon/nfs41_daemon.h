@@ -34,6 +34,7 @@ typedef struct __nfs41_daemon_globals {
     char localdomain_name[NFS41_HOSTNAME_LEN];
     int default_uid;
     int default_gid;
+    ssize_t num_worker_threads;
 } nfs41_daemon_globals;
 
 #endif /* !__NFS41_DAEMON_H_ */
