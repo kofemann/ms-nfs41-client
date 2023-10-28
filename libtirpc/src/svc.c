@@ -771,7 +771,7 @@ svc_getreq_poll (pfdp, pollretval)
 	  if (p->revents & POLLNVAL)
 	    {
 	      rwlock_wrlock (&svc_fd_lock);
-	      FD_CLR (_get_osfhandle(p->fd), &svc_fdset);
+	      FD_CLR (p->fd, &svc_fdset);
 	      rwlock_unlock (&svc_fd_lock);
 	    }
 	  else
