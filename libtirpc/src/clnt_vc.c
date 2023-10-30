@@ -165,18 +165,18 @@ static cond_t   *vc_cv;
 #define release_fd_lock(fd, mask) {	\
 	mutex_lock(&clnt_fd_lock);	\
 	vc_fd_locks[(fd)] = 0;		\
-	mutex_unlock(&clnt_fd_lock);	\
 	thr_sigsetmask(SIG_SETMASK, &(mask), (sigset_t *) NULL);	\
 	cond_signal(&vc_cv[(fd)]);	\
+	mutex_unlock(&clnt_fd_lock);	\
 }
 #else
 /* XXX Need Windows signal/event stuff XXX */
 #define release_fd_lock(fd, mask) {	\
 	mutex_lock(&clnt_fd_lock);	\
 	vc_fd_locks[(fd)] = 0;		\
-	mutex_unlock(&clnt_fd_lock);	\
 	\
 	cond_broadcast(&vc_cv[(fd)]);	\
+	mutex_unlock(&clnt_fd_lock);	\
 }
 #endif
 
@@ -746,9 +746,9 @@ clnt_vc_freeres(cl, xdr_res, res_ptr)
 		cond_wait(&vc_cv[ct->ct_fd], &clnt_fd_lock);
 	xdrs->x_op = XDR_FREE;
 	dummy = (*xdr_res)(xdrs, res_ptr);
-	mutex_unlock(&clnt_fd_lock);
 //	thr_sigsetmask(SIG_SETMASK, &(mask), NULL);
 	cond_signal(&vc_cv[ct->ct_fd]);
+	mutex_unlock(&clnt_fd_lock);
 
 	return dummy;
 }
@@ -919,11 +919,11 @@ clnt_vc_destroy(cl)
 
     if (cl->cb_thread != INVALID_HANDLE_VALUE) {
         int status;
-        fprintf(stdout, "%04x: sending shutdown to callback thread %04x\n", 
+        fprintf(stdout, "%04x: sending shutdown to callback thread %04x\n",
             GetCurrentThreadId(), cl->cb_thread);
         cl->shutdown = 1;
-        mutex_unlock(&clnt_fd_lock);
         cond_signal(&vc_cv[ct_fd]);
+        mutex_unlock(&clnt_fd_lock);
         status = WaitForSingleObject(cl->cb_thread, INFINITE);
         fprintf(stdout, "%04x: terminated callback thread\n", GetCurrentThreadId());
         mutex_lock(&clnt_fd_lock);
@@ -943,9 +943,9 @@ clnt_vc_destroy(cl)
 	if (cl->cl_tp && cl->cl_tp[0])
 		mem_free(cl->cl_tp, strlen(cl->cl_tp) +1);
 	mem_free(cl, sizeof(CLIENT));
-	mutex_unlock(&clnt_fd_lock);
 //	thr_sigsetmask(SIG_SETMASK, &(mask), NULL);
 	cond_signal(&vc_cv[ct_fd]);
+	mutex_unlock(&clnt_fd_lock);
 }
 
 /*

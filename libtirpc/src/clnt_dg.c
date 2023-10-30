@@ -99,18 +99,18 @@ static cond_t	*dg_cv;
 #define	release_fd_lock(fd, mask) {		\
 	mutex_lock(&clnt_fd_lock);	\
 	dg_fd_locks[(fd)] = 0;		\
-	mutex_unlock(&clnt_fd_lock);	\
 	thr_sigsetmask(SIG_SETMASK, &(mask), NULL); \
 	cond_signal(&dg_cv[(fd)]);	\
+	mutex_unlock(&clnt_fd_lock);	\
 }
 #else
 /* XXX Needs Windows signal/event stuff XXX */
 #define	release_fd_lock(fd, mask) {		\
 	mutex_lock(&clnt_fd_lock);	\
 	dg_fd_locks[(fd)] = 0;		\
-	mutex_unlock(&clnt_fd_lock);	\
 	\
 	cond_signal(&dg_cv[(fd)]);	\
+	mutex_unlock(&clnt_fd_lock);	\
 }
 #endif
 
@@ -610,9 +610,9 @@ clnt_dg_freeres(cl, xdr_res, res_ptr)
 		cond_wait(&dg_cv[cu->cu_fd], &clnt_fd_lock);
 	xdrs->x_op = XDR_FREE;
 	dummy = (*xdr_res)(xdrs, res_ptr);
-	mutex_unlock(&clnt_fd_lock);
 //	thr_sigsetmask(SIG_SETMASK, &mask, NULL);
 	cond_signal(&dg_cv[cu->cu_fd]);
+	mutex_unlock(&clnt_fd_lock);
 	return (dummy);
 }
 
@@ -801,9 +801,9 @@ clnt_dg_destroy(cl)
 	if (cl->cl_tp && cl->cl_tp[0])
 		mem_free(cl->cl_tp, strlen(cl->cl_tp) +1);
 	mem_free(cl, sizeof (CLIENT));
-	mutex_unlock(&clnt_fd_lock);
 //	thr_sigsetmask(SIG_SETMASK, &mask, NULL);
 	cond_signal(&dg_cv[cu_fd]);
+	mutex_unlock(&clnt_fd_lock);
 }
 
 static struct clnt_ops *
