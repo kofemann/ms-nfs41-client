@@ -108,12 +108,11 @@ function nfsclient_rundeamon
 	#
 
 	if false ; then
-		gdb -ex=run --args nfsd_debug -d 0 --noldap --gid 1616 --uid 1616
+		gdb -ex=run --args nfsd_debug -d 0 --noldap #--gid 1616 --uid 1616
 	else
 		export _NT_ALT_SYMBOL_PATH="$(cygpath -w "$PWD");srv*https://msdl.microsoft.com/download/symbols"
 		# use '!gflag +full;g' for heap tests, eats lots of memory
-		# use '!gflag +soe;sxe -c "kp;gn" *;g' to report exceptions and then continue
-		cdb -c '!gflag +soe;sxe -c "kp;gn" *;g' "$(cygpath -w "$PWD/nfsd_debug.exe")" -d 0 --noldap --gid 1616 --uid 1616
+		cdb -c '!gflag +soe;sxe -c "kp;gn" *;g' "$(cygpath -w "$PWD/nfsd_debug.exe")" -d 0 --noldap #--gid 1616 --uid 1616
 	fi
 	return $?
 }
@@ -124,12 +123,11 @@ function nfsclient_system_rundeamon
 	set -o nounset
 
 	if false ; then
-		su_system gdb -ex=run --args nfsd_debug -d 0 --noldap --gid 1616 --uid 1616
+		su_system gdb -ex=run --args nfsd_debug -d 0 --noldap #--gid 1616 --uid 1616
 	else
 		export _NT_ALT_SYMBOL_PATH="$(cygpath -w "$PWD");srv*https://msdl.microsoft.com/download/symbols"
 		# use '!gflag +full;g' for heap tests, eats lots of memory
-		# use '!gflag +soe;sxe -c "kp;gn" *;g' to report exceptions and then continue
-		su_system cdb -c '!gflag +soe;sxe -c "kp;gn" *;g' "$(cygpath -w "$PWD/nfsd_debug.exe")" -d 0 --noldap --gid 1616 --uid 1616
+		su_system cdb -c '!gflag +soe;sxe -c "kp;gn" *;g' "$(cygpath -w "$PWD/nfsd_debug.exe")" -d 0 --noldap #--gid 1616 --uid 1616
 	fi
 	return $?
 }
