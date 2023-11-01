@@ -22,7 +22,6 @@
 #include <Windows.h>
 #include <strsafe.h>
 #include <time.h>
-#include <assert.h>
 
 #include "nfs41_ops.h"
 #include "nfs41_compound.h"
@@ -1068,7 +1067,7 @@ int nfs41_name_cache_delegreturn(
     if (attributes->delegated) {
         attributes->delegated = FALSE;
         attr_cache_entry_deref(&cache->attributes, attributes);
-        assert(cache->delegations > 0);
+        EASSERT(cache->delegations > 0);
         cache->delegations--;
     }
     status = NO_ERROR;
