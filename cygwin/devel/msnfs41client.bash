@@ -72,9 +72,18 @@ function nfsclient_install
 	cp etc_netconfig /cygdrive/c/etc/netconfig
 	cp ms-nfs41-idmap.conf /cygdrive/c/etc/.
 
+	# make sure we can load the kernel driver
+	# (does not work with SecureBoot)
 	bcdedit /set testsigning on
+
+	# enable local kernel debugging
+	bcdedit /debug on
+	bcdedit /dbgsettings local
+
+	# set domain name
 	regtool -s set '/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Services/Tcpip/Parameters/Domain' 'GLOBAL.LOC'
 
+	# disable DFS
 	sc query Dfsc
 	sc stop Dfsc || true
 	sc config Dfsc start=disabled
@@ -130,6 +139,23 @@ function nfsclient_system_rundeamon
 		su_system cdb -c '!gflag +soe;sxe -c "kp;gn" *;g' "$(cygpath -w "$PWD/nfsd_debug.exe")" -d 0 --noldap #--gid 1616 --uid 1616
 	fi
 	return $?
+}
+
+function watch_kernel_debuglog
+{
+	printf "# logging start...\n" 1>&2
+	# seperate process so SIGINT works
+	# use DebugView (https://learn.microsoft.com/en-gb/sysinternals/downloads/debugview) to print kernel log
+	bash -c '
+		klogname="msnfs41client_watch_kernel_debuglog$$.log"
+		dbgview64 /t /k /l "$klogname" &
+		(( dbgview_pid=$! ))
+		trap "(( dbgview_pid != 0)) && kill $dbgview_pid && wait ; (( dbgview_pid=0 ))" INT TERM EXIT
+		sleep 2
+		printf "# logging %s ...\n" "$klogname" 1>&2
+		tail -n0 -f "$klogname"'
+	printf "# logging done\n" 1>&2
+	return 0
 }
 
 function nfsclient_mount_homedir
@@ -239,6 +265,9 @@ function main
 	# my own path to pstools
 	PATH+=':/home/roland_mainz/work/win_pstools/'
 
+	# my own path to DebugView
+	PATH+=':/cygdrive/c/Users/roland_mainz/download/DebugView'
+
 	case "$cmd" in
 		'install')
 			nfsclient_install
@@ -285,6 +314,15 @@ function main
 			return $?
 			;;
 		# misc
+		'watch_kernel_debuglog')
+			require_cmd 'dbgview64' || return 1
+			if ! is_windows_admin_account ; then
+				printf $"%s: %q requires Windows Adminstator permissions.\n" "$0" "$cmd"
+				return 1
+			fi
+			watch_kernel_debuglog
+			return $?
+			;;
 		'sys_terminal')
 			require_cmd 'mintty.exe' || return 1
 			if ! is_windows_admin_account ; then
