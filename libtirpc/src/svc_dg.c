@@ -104,7 +104,7 @@ svc_dg_create(fd, sendsize, recvsize)
 	socklen_t slen;
 
 	if (!__rpc_fd2sockinfo(fd, &si)) {
-		// XXX warnx(svc_dg_str, svc_dg_err1);
+		warnx(svc_dg_str, svc_dg_err1);
 		return (NULL);
 	}
 	/*
@@ -113,7 +113,7 @@ svc_dg_create(fd, sendsize, recvsize)
 	sendsize = __rpc_get_t_size(si.si_af, si.si_proto, (int)sendsize);
 	recvsize = __rpc_get_t_size(si.si_af, si.si_proto, (int)recvsize);
 	if ((sendsize == 0) || (recvsize == 0)) {
-		// XXX warnx(svc_dg_str, svc_dg_err2);
+		warnx(svc_dg_str, svc_dg_err2);
 		return (NULL);
 	}
 
@@ -145,7 +145,7 @@ svc_dg_create(fd, sendsize, recvsize)
 	xprt_register(xprt);
 	return (xprt);
 freedata:
-	// XXX (void) warnx(svc_dg_str, __no_mem_str);
+	warnx(svc_dg_str, __no_mem_str);
 	if (xprt) {
 		if (su)
 			(void) mem_free(su, sizeof (*su));
@@ -392,13 +392,13 @@ svc_dg_enablecache(transp, size)
 
 	mutex_lock(&dupreq_lock);
 	if (su->su_cache != NULL) {
-		// XXX (void) warnx(cache_enable_str, enable_err, " ");
+		warnx(cache_enable_str, enable_err, " ");
 		mutex_unlock(&dupreq_lock);
 		return (0);
 	}
 	uc = ALLOC(struct cl_cache, 1);
 	if (uc == NULL) {
-		// XXX warnx(cache_enable_str, alloc_err, " ");
+		warnx(cache_enable_str, alloc_err, " ");
 		mutex_unlock(&dupreq_lock);
 		return (0);
 	}
@@ -406,7 +406,7 @@ svc_dg_enablecache(transp, size)
 	uc->uc_nextvictim = 0;
 	uc->uc_entries = ALLOC(cache_ptr, size * SPARSENESS);
 	if (uc->uc_entries == NULL) {
-		// XXX warnx(cache_enable_str, alloc_err, "data");
+		warnx(cache_enable_str, alloc_err, "data");
 		FREE(uc, struct cl_cache, 1);
 		mutex_unlock(&dupreq_lock);
 		return (0);
@@ -414,7 +414,7 @@ svc_dg_enablecache(transp, size)
 	MEMZERO(uc->uc_entries, cache_ptr, size * SPARSENESS);
 	uc->uc_fifo = ALLOC(cache_ptr, size);
 	if (uc->uc_fifo == NULL) {
-		// XXX warnx(cache_enable_str, alloc_err, "fifo");
+		warnx(cache_enable_str, alloc_err, "fifo");
 		FREE(uc->uc_entries, cache_ptr, size * SPARSENESS);
 		FREE(uc, struct cl_cache, 1);
 		mutex_unlock(&dupreq_lock);
@@ -468,7 +468,7 @@ cache_set(xprt, replylen)
 			vicp = &(*vicp)->cache_next)
 			;
 		if (*vicp == NULL) {
-			// XXX warnx(cache_set_str, cache_set_err1);
+			warnx(cache_set_str, cache_set_err1);
 			mutex_unlock(&dupreq_lock);
 			return;
 		}
@@ -477,13 +477,13 @@ cache_set(xprt, replylen)
 	} else {
 		victim = ALLOC(struct cache_node, 1);
 		if (victim == NULL) {
-			// XXX warnx(cache_set_str, cache_set_err2);
+			warnx(cache_set_str, cache_set_err2);
 			mutex_unlock(&dupreq_lock);
 			return;
 		}
 		newbuf = mem_alloc(su->su_iosz);
 		if (newbuf == NULL) {
-			// XXX warnx(cache_set_str, cache_set_err3);
+			warnx(cache_set_str, cache_set_err3);
 			FREE(victim, struct cache_node, 1);
 			mutex_unlock(&dupreq_lock);
 			return;

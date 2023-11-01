@@ -39,8 +39,10 @@
 #include <wintirpc.h>
 //#include <pthread.h>
 #include <reentrant.h>
+#ifndef _WIN32
 #include <assert.h>
-//#include <err.h>
+#include <err.h>
+#endif /* !_WIN32 */
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -113,7 +115,7 @@ clnt_raw_create(prog, vers)
 	call_msg.rm_call.cb_vers = (u_int32_t)vers;
 	xdrmem_create(xdrs, clp->u.mashl_callmsg, MCALL_MSG_SIZE, XDR_ENCODE); 
 	if (! xdr_callhdr(xdrs, &call_msg))
-		//warnx("clntraw_create - Fatal header serialization error.");
+		warnx("clntraw_create - Fatal header serialization error.");
 	clp->mcnt = XDR_GETPOS(xdrs);
 	XDR_DESTROY(xdrs);
 

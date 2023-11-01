@@ -76,7 +76,7 @@ xdr_reference(xdrs, pp, size, proc)
 		case XDR_DECODE:
 			*pp = loc = (caddr_t) mem_alloc(size);
 			if (loc == NULL) {
-				//warnx("xdr_reference: out of memory");
+				warnx("xdr_reference: out of memory");
 				return (FALSE);
 			}
 			memset(loc, 0, size);

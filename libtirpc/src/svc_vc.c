@@ -49,8 +49,10 @@
 //#include <netinet/in.h>
 //#include <netinet/tcp.h>
 
+#ifndef _WIN32
 #include <assert.h>
-//#include <err.h>
+#include <err.h>
+#endif /* !_WIN32 */
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -156,7 +158,7 @@ svc_vc_create(fd, sendsize, recvsize)
 
 	r = mem_alloc(sizeof(*r));
 	if (r == NULL) {
-		// XXX warnx("svc_vc_create: out of memory");
+		warnx("svc_vc_create: out of memory");
 		goto cleanup_svc_vc_create;
 	}
 	if (!__rpc_fd2sockinfo(fd, &si))
@@ -166,7 +168,7 @@ svc_vc_create(fd, sendsize, recvsize)
 	r->maxrec = __svc_maxrec;
 	xprt = mem_alloc(sizeof(SVCXPRT));
 	if (xprt == NULL) {
-		// XXX warnx("svc_vc_create: out of memory");
+		warnx("svc_vc_create: out of memory");
 		goto cleanup_svc_vc_create;
 	}
 	xprt->xp_tp = NULL;
@@ -180,12 +182,12 @@ svc_vc_create(fd, sendsize, recvsize)
 
 	slen = sizeof (struct sockaddr_storage);
 	if (getsockname(_get_osfhandle(fd), (struct sockaddr *)(void *)&sslocal, &slen) == SOCKET_ERROR) {
-		// XXX warnx("svc_vc_create: could not retrieve local addr");
+		warnx("svc_vc_create: could not retrieve local addr");
 		goto cleanup_svc_vc_create;
 	}
 
 	if (!__rpc_set_netbuf(&xprt->xp_ltaddr, &sslocal, sizeof(sslocal))) {
-		// XXX warnx("svc_vc_create: no mem for local addr");
+		warnx("svc_vc_create: no mem for local addr");
 		goto cleanup_svc_vc_create;
 	}
 	xprt_register(xprt);
@@ -218,21 +220,21 @@ svc_fd_create(fd, sendsize, recvsize)
 
 	slen = sizeof (struct sockaddr_storage);
 	if (getsockname(_get_osfhandle(fd), (struct sockaddr *)(void *)&ss, &slen) == SOCKET_ERROR) {
-		// XXX warnx("svc_fd_create: could not retrieve local addr");
+		warnx("svc_fd_create: could not retrieve local addr");
 		goto freedata;
 	}
 	if (!__rpc_set_netbuf(&ret->xp_ltaddr, &ss, sizeof(ss))) {
-		// XXX warnx("svc_fd_create: no mem for local addr");
+		warnx("svc_fd_create: no mem for local addr");
 		goto freedata;
 	}
 
 	slen = sizeof (struct sockaddr_storage);
 	if (getpeername(fd, (struct sockaddr *)(void *)&ss, &slen) == SOCKET_ERROR) {
-		// XXX warnx("svc_fd_create: could not retrieve remote addr");
+		warnx("svc_fd_create: could not retrieve remote addr");
 		goto freedata;
 	}
 	if (!__rpc_set_netbuf(&ret->xp_rtaddr, &ss, sizeof(ss))) {
-		// XXX warnx("svc_fd_create: no mem for local addr");
+		warnx("svc_fd_create: no mem for local addr");
 		goto freedata;
 	}
 
@@ -262,20 +264,20 @@ makefd_xprt(fd, sendsize, recvsize)
 	assert(fd != SOCKET_ERROR);
 
         if (fd >= FD_SETSIZE) {
-                // XXX warnx("svc_vc: makefd_xprt: fd too high\n");
+                warnx("svc_vc: makefd_xprt: fd too high\n");
                 xprt = NULL;
                 goto done;
         }
 
 	xprt = mem_alloc(sizeof(SVCXPRT));
 	if (xprt == NULL) {
-		// XXX warnx("svc_vc: makefd_xprt: out of memory");
+		warnx("svc_vc: makefd_xprt: out of memory");
 		goto done;
 	}
 	memset(xprt, 0, sizeof *xprt);
 	cd = mem_alloc(sizeof(struct cf_conn));
 	if (cd == NULL) {
-		// XXX warnx("svc_tcp: makefd_xprt: out of memory");
+		warnx("svc_tcp: makefd_xprt: out of memory");
 		mem_free(xprt, sizeof(SVCXPRT));
 		xprt = NULL;
 		goto done;

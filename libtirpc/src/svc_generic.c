@@ -85,7 +85,7 @@ svc_create(dispatch, prognum, versnum, nettype)
 /* VARIABLES PROTECTED BY xprtlist_lock: xprtlist */
 
 	if ((handle = __rpc_setconf(nettype)) == NULL) {
-		// XXX warnx("svc_create: unknown protocol");
+		warnx("svc_create: unknown protocol");
 		return (0);
 	}
 	while ((nconf = __rpc_getconf(handle)) != NULL) {
@@ -96,10 +96,10 @@ svc_create(dispatch, prognum, versnum, nettype)
 				(void) rpcb_unset(prognum, versnum, nconf);
 				if (svc_reg(l->xprt, prognum, versnum,
 					dispatch, nconf) == FALSE) {
-					// XXX warnx(
-//		"svc_create: could not register prog %u vers %u on %s",
-//					(unsigned)prognum, (unsigned)versnum,
-//					 nconf->nc_netid);
+					warnx(
+						"svc_create: could not register prog %u vers %u on %s",
+						(unsigned)prognum, (unsigned)versnum,
+						nconf->nc_netid);
 				} else {
 					num++;
 				}
@@ -112,7 +112,7 @@ svc_create(dispatch, prognum, versnum, nettype)
 			if (xprt) {
 				l = (struct xlist *)malloc(sizeof (*l));
 				if (l == NULL) {
-					// XXX warnx("svc_create: no memory");
+					warnx("svc_create: no memory");
 					mutex_unlock(&xprtlist_lock);
 					return (0);
 				}
@@ -147,9 +147,9 @@ svc_tp_create(dispatch, prognum, versnum, nconf)
 	SVCXPRT *xprt;
 
 	if (nconf == NULL) {
-		// XXX warnx(
-//	"svc_tp_create: invalid netconfig structure for prog %u vers %u",
-//				(unsigned)prognum, (unsigned)versnum);
+		warnx(
+			"svc_tp_create: invalid netconfig structure for prog %u vers %u",
+			(unsigned)prognum, (unsigned)versnum);
 		return (NULL);
 	}
 	xprt = svc_tli_create(RPC_ANYFD, nconf, NULL, 0, 0);
@@ -159,10 +159,10 @@ svc_tp_create(dispatch, prognum, versnum, nconf)
 	/*LINTED const castaway*/
 	(void) rpcb_unset(prognum, versnum, (struct netconfig *) nconf);
 	if (svc_reg(xprt, prognum, versnum, dispatch, nconf) == FALSE) {
-		// XXX warnx(
-//		"svc_tp_create: Could not register prog %u vers %u on %s",
-//				(unsigned)prognum, (unsigned)versnum,
-//				nconf->nc_netid);
+		warnx(
+			"svc_tp_create: Could not register prog %u vers %u on %s",
+			(unsigned)prognum, (unsigned)versnum,
+			nconf->nc_netid);
 		SVC_DESTROY(xprt);
 		return (NULL);
 	}
@@ -194,14 +194,14 @@ svc_tli_create(fd, nconf, bindaddr, sendsz, recvsz)
 
 	if (fd == RPC_ANYFD) {
 		if (nconf == NULL) {
-			// XXX warnx("svc_tli_create: invalid netconfig");
+			warnx("svc_tli_create: invalid netconfig");
 			return (NULL);
 		}
 		fd = __rpc_nconf2fd(nconf);
 		if (fd == -1) {
-			// XXX warnx(
-//			    "svc_tli_create: could not open connection for %s",
-//					nconf->nc_netid);
+			warnx(
+				"svc_tli_create: could not open connection for %s",
+				nconf->nc_netid);
 			return (NULL);
 		}
 		__rpc_nconf2sockinfo(nconf, &si);
@@ -211,8 +211,7 @@ svc_tli_create(fd, nconf, bindaddr, sendsz, recvsz)
 		 * It is an open descriptor. Get the transport info.
 		 */
 		if (!__rpc_fd2sockinfo(fd, &si)) {
-			// XXX warnx(
-//		"svc_tli_create: could not get transport information");
+			warnx("svc_tli_create: could not get transport information");
 			return (NULL);
 		}
 	}
@@ -227,8 +226,8 @@ svc_tli_create(fd, nconf, bindaddr, sendsz, recvsz)
 				ss.ss_family = si.si_af;
 				if (bind(_get_osfhandle(fd), (struct sockaddr *)(void *)&ss,
 				    (socklen_t)si.si_alen) == SOCKET_ERROR) {
-					// XXX warnx(
-//			"svc_tli_create: could not bind to anonymous port");
+					warnx(
+						"svc_tli_create: could not bind to anonymous port");
 					goto freedata;
 				}
 			}
@@ -237,8 +236,8 @@ svc_tli_create(fd, nconf, bindaddr, sendsz, recvsz)
 			if (bind(_get_osfhandle(fd),
 			    (struct sockaddr *)bindaddr->addr.buf,
 			    (socklen_t)si.si_alen) == SOCKET_ERROR) {
-				// XXX warnx(
-//		"svc_tli_create: could not bind to requested address");
+				warnx(
+					"svc_tli_create: could not bind to requested address");
 				goto freedata;
 			}
 			wintirpc_listen(fd, (int)bindaddr->qlen);
@@ -270,7 +269,7 @@ svc_tli_create(fd, nconf, bindaddr, sendsz, recvsz)
 			xprt = svc_dg_create(fd, sendsz, recvsz);
 			break;
 		default:
-			// XXX warnx("svc_tli_create: bad service type");
+			warnx("svc_tli_create: bad service type");
 			goto freedata;
 	}
 

@@ -24,7 +24,6 @@
 #include <rpc/rpc.h>
 #include <stdio.h>
 #include <winsock.h>
-#include <assert.h>
 
 WSADATA WSAData;
 
@@ -296,6 +295,16 @@ int wintirpc_sendto(int s, const char *buf, int len, int flags,
 	const struct sockaddr *to, int tolen)
 {
 	return(sendto(_get_osfhandle(s), buf, len, flags, to, tolen));
+}
+
+void wintirpc_warnx(const char *format, ...)
+{
+    va_list args;
+    va_start(args, format);
+    (void)fprintf(stderr, "%04x: ", GetCurrentThreadId());
+    (void)vfprintf(stderr, format, args);
+    (void)fflush(stderr);
+    va_end(args);
 }
 
 int tirpc_exit(void)

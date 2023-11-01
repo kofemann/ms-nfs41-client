@@ -107,11 +107,21 @@ int wintirpc_listen(int in_s, int backlog);
 int wintirpc_accept(int s_fd, struct sockaddr *addr, int *addrlen);
 int wintirpc_send(int s, const char *buf, int len, int flags);
 int wintirpc_sendto(int s, const char *buf, int len, int flags, const struct sockaddr *to, int tolen);
+void wintirpc_warnx(const char *format, ...);
 void wintirpc_register_osfhandle_fd(SOCKET handle, int fd);
 void wintirpc_unregister_osfhandle(SOCKET handle);
 int wintirpc_handle2fd(SOCKET handle);
 
 /* Debugging function */
 void wintirpc_debug(char *fmt, ...);
+
+/* Asserts */
+#define assert(exp) \
+    if (!(exp)) { \
+        wintirpc_warnx("ASSERTION '%s' in '%s'/%ld failed.\n", \
+            ""#exp"", __FILE__, (long)__LINE__); }
+
+/* Mappings Windows API to |wintirpc_*()|-API */
+#define warnx wintirpc_warnx
 
 #endif /* !_TIRPC_WINTIRPC_H */

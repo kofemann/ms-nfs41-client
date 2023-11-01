@@ -572,7 +572,7 @@ xdr_bytes(xdrs, cpp, sizep, maxsize)
 #endif
 		}
 		if (sp == NULL) {
-			//warnx("xdr_bytes: out of memory");
+			warnx("xdr_bytes: out of memory");
 			return (FALSE);
 		}
 		/* FALLTHROUGH */
@@ -735,7 +735,7 @@ xdr_string(xdrs, cpp, maxsize)
 		}
 #endif
 		if (sp == NULL) {
-			//warnx("xdr_string: out of memory");
+			warnx("xdr_string: out of memory");
 			return (FALSE);
 		}
 		sp[size] = 0;

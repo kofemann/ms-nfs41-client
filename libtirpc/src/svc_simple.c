@@ -103,15 +103,15 @@ rpc_reg(prognum, versnum, procnum, progname, inproc, outproc, nettype)
 	extern mutex_t proglst_lock;
 
 	if (procnum == NULLPROC) {
-		// XXXwarnx("%s can't reassign procedure number %u", rpc_reg_msg,
-//			NULLPROC);
+		warnx("%s can't reassign procedure number %u", rpc_reg_msg,
+			NULLPROC);
 		return (-1);
 	}
 
 	if (nettype == NULL)
 		nettype = "netpath";		/* The default behavior */
 	if ((handle = __rpc_setconf(nettype)) == NULL) {
-		// XXX warnx(rpc_reg_err, rpc_reg_msg, __reg_err1);
+		warnx(rpc_reg_err, rpc_reg_msg, __reg_err1);
 		return (-1);
 	}
 /* VARIABLES PROTECTED BY proglst_lock: proglst */
@@ -145,19 +145,19 @@ rpc_reg(prognum, versnum, procnum, progname, inproc, outproc, nettype)
 			if (svcxprt == NULL)
 				continue;
 			if (!__rpc_fd2sockinfo(svcxprt->xp_fd, &si)) {
-				// XXX warnx(rpc_reg_err, rpc_reg_msg, __reg_err2);
+				warnx(rpc_reg_err, rpc_reg_msg, __reg_err2);
 				SVC_DESTROY(svcxprt);
 				continue;
 			}
 			recvsz = __rpc_get_t_size(si.si_af, si.si_proto, 0);
 			if (recvsz == 0) {
-				// XXX warnx(rpc_reg_err, rpc_reg_msg, __reg_err3);
+				warnx(rpc_reg_err, rpc_reg_msg, __reg_err3);
 				SVC_DESTROY(svcxprt);
 				continue;
 			}
 			if (((xdrbuf = malloc((unsigned)recvsz)) == NULL) ||
 				((netid = strdup(nconf->nc_netid)) == NULL)) {
-				// XXX warnx(rpc_reg_err, rpc_reg_msg, __no_mem_str);
+				warnx(rpc_reg_err, rpc_reg_msg, __no_mem_str);
 				SVC_DESTROY(svcxprt);
 				break;
 			}
@@ -180,9 +180,9 @@ rpc_reg(prognum, versnum, procnum, progname, inproc, outproc, nettype)
 		}
 
 		if (!svc_reg(svcxprt, prognum, versnum, universal, nconf)) {
-			// XXX warnx("%s couldn't register prog %u vers %u for %s",
-//				rpc_reg_msg, (unsigned)prognum,
-//				(unsigned)versnum, netid);
+			warnx("%s couldn't register prog %u vers %u for %s",
+				rpc_reg_msg, (unsigned)prognum,
+				(unsigned)versnum, netid);
 			if (madenow) {
 				SVC_DESTROY(svcxprt);
 				free(xdrbuf);
@@ -193,7 +193,7 @@ rpc_reg(prognum, versnum, procnum, progname, inproc, outproc, nettype)
 
 		pl = malloc(sizeof (struct proglst));
 		if (pl == NULL) {
-			// XXX warnx(rpc_reg_err, rpc_reg_msg, __no_mem_str);
+			warnx(rpc_reg_err, rpc_reg_msg, __no_mem_str);
 			if (madenow) {
 				SVC_DESTROY(svcxprt);
 				free(xdrbuf);
@@ -219,8 +219,8 @@ rpc_reg(prognum, versnum, procnum, progname, inproc, outproc, nettype)
 	mutex_unlock(&proglst_lock);
 
 	if (done == FALSE) {
-		// XXX warnx("%s cant find suitable transport for %s",
-//			rpc_reg_msg, nettype);
+		warnx("%s cant find suitable transport for %s",
+			rpc_reg_msg, nettype);
 		return (-1);
 	}
 	return (0);
@@ -250,7 +250,7 @@ universal(rqstp, transp)
 	if (rqstp->rq_proc == NULLPROC) {
 		if (svc_sendreply(transp, (xdrproc_t) xdr_void, NULL) ==
 		    FALSE) {
-			// XXX warnx("svc_sendreply failed");
+			warnx("svc_sendreply failed");
 		}
 		return;
 	}
@@ -284,9 +284,9 @@ universal(rqstp, transp)
 				return;
 			}
 			if (!svc_sendreply(transp, pl->p_outproc, outdata)) {
-				// XXX warnx(
-//			"rpc: rpc_reg trouble replying to prog %u vers %u",
-//				(unsigned)prog, (unsigned)vers);
+				warnx(
+					"rpc: rpc_reg trouble replying to prog %u vers %u",
+					(unsigned)prog, (unsigned)vers);
 				mutex_unlock(&proglst_lock);
 				return;
 			}
@@ -297,7 +297,7 @@ universal(rqstp, transp)
 		}
 	mutex_unlock(&proglst_lock);
 	/* This should never happen */
-	// XXX warnx("rpc: rpc_reg: never registered prog %u vers %u",
-//		(unsigned)prog, (unsigned)vers);
+	warnx("rpc: rpc_reg: never registered prog %u vers %u",
+		(unsigned)prog, (unsigned)vers);
 	return;
 }

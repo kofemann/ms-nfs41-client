@@ -66,8 +66,10 @@
 #include <reentrant.h>
 //#include <sys/param.h>
 
+#ifndef _WIN32
 #include <assert.h>
-//#include <err.h>
+#include <err.h>
+#endif /* !_WIN32 */
 #include <stdio.h>
 #include <stdlib.h>
 //#include <unistd.h>
@@ -125,14 +127,14 @@ authunix_create(machname, uid, gid, len, aup_gids)
 	auth = mem_alloc(sizeof(*auth));
 #ifndef _KERNEL
 	if (auth == NULL) {
-		// XXX warnx("authunix_create: out of memory");
+		warnx("authunix_create: out of memory");
 		goto cleanup_authunix_create;
 	}
 #endif
 	au = mem_alloc(sizeof(*au));
 #ifndef _KERNEL
 	if (au == NULL) {
-		// XXX warnx("authunix_create: out of memory");
+		warnx("authunix_create: out of memory");
 		goto cleanup_authunix_create;
 	}
 #endif
@@ -165,7 +167,7 @@ authunix_create(machname, uid, gid, len, aup_gids)
 	au->au_origcred.oa_base = mem_alloc((u_int) len);
 #else
 	if ((au->au_origcred.oa_base = mem_alloc((u_int) len)) == NULL) {
-		// XXX warnx("authunix_create: out of memory");
+		warnx("authunix_create: out of memory");
 		goto cleanup_authunix_create;
 	}
 #endif
@@ -371,8 +373,7 @@ marshal_new_auth(auth)
 	xdrmem_create(xdrs, au->au_marshed, MAX_AUTH_BYTES, XDR_ENCODE);
 	if ((! xdr_opaque_auth(xdrs, &(auth->ah_cred))) ||
 	    (! xdr_opaque_auth(xdrs, &(auth->ah_verf))))
-		assert(0); // XXX
-		// XXX warnx("auth_none.c - Fatal marshalling problem");
+		warnx("auth_none.c - Fatal marshalling problem");
 	else
 		au->au_mpos = XDR_GETPOS(xdrs);
 	XDR_DESTROY(xdrs);
