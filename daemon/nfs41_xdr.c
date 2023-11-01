@@ -1815,6 +1815,7 @@ static bool_t decode_file_attrs(
             EASSERT(owner_len > 0);
             EASSERT(owner_len < sizeof(info->owner_group_buf));
             info->owner[owner_len] = '\0';
+            EASSERT(info->owner[0] != '\0');
         }
         if (attrs->attrmask.arr[1] & FATTR4_WORD1_OWNER_GROUP) {
             if (info->owner_group == NULL)
@@ -1830,6 +1831,7 @@ static bool_t decode_file_attrs(
             EASSERT(owner_group_len > 0);
             EASSERT(owner_group_len < sizeof(info->owner_group_buf));
             info->owner_group[owner_group_len] = '\0';
+            EASSERT(info->owner_group[0] != '\0');
         }
         if (attrs->attrmask.arr[1] & FATTR4_WORD1_SPACE_AVAIL) {
             if (!xdr_u_hyper(xdr, &info->space_avail))

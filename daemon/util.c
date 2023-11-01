@@ -207,8 +207,10 @@ void nfs41_file_info_cpy(
     IN const nfs41_file_info *src)
 {
     (void)memcpy(dest, src, sizeof(nfs41_file_info));
-    dest->owner = dest->owner_buf;
-    dest->owner_group = dest->owner_group_buf;
+    if (src->owner != NULL)
+        dest->owner = dest->owner_buf;
+    if (src->owner_group != NULL)
+        dest->owner_group = dest->owner_group_buf;
 }
 
 void get_file_time(

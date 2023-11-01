@@ -350,12 +350,24 @@ static void copy_attrs(
     dst->type = src->type;
     dst->numlinks = src->numlinks;
     dst->mode = src->mode;
-    EASSERT(src->owner != NULL);
-    dst->owner = dst->owner_buf;
-    (void)strcpy(dst->owner, src->owner);
-    EASSERT(src->owner_group != NULL);
-    dst->owner_group = dst->owner_group_buf;
-    (void)strcpy(dst->owner_group, src->owner_group);
+    EASSERT(src->owner[0] != '\0');
+    if (src->owner[0] != '\0') {
+        dst->owner = dst->owner_buf;
+        (void)strcpy(dst->owner, src->owner);
+    }
+    else {
+        /* this should only happen for newly created files/dirs */
+        dst->owner = NULL;
+    }
+    EASSERT(src->owner_group[0] != '\0');
+    if (src->owner_group[0] != '\0') {
+        dst->owner_group = dst->owner_group_buf;
+        (void)strcpy(dst->owner_group, src->owner_group);
+    }
+    else {
+        /* this should only happen for newly created files/dirs */
+        dst->owner_group = NULL;
+    }
     dst->fileid = src->fileid;
     dst->hidden = src->hidden;
     dst->system = src->system;
@@ -368,8 +380,11 @@ static void copy_attrs(
     dst->attrmask.arr[1] = FATTR4_WORD1_MODE
         | FATTR4_WORD1_NUMLINKS | FATTR4_WORD1_TIME_ACCESS
         | FATTR4_WORD1_TIME_CREATE | FATTR4_WORD1_TIME_MODIFY
-        | FATTR4_WORD1_SYSTEM
-        | FATTR4_WORD1_OWNER | FATTR4_WORD1_OWNER_GROUP;
+        | FATTR4_WORD1_SYSTEM;
+    if (dst->owner)
+        dst->attrmask.arr[1] |= FATTR4_WORD1_OWNER;
+    if (dst->owner_group)
+        dst->attrmask.arr[1] |= FATTR4_WORD1_OWNER_GROUP;
 }
 
 
