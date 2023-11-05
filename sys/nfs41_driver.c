@@ -1484,6 +1484,7 @@ NTSTATUS nfs41_UpcallWaitForReply(
         /* 02/15/2011 cbodley: added NFS41_UNLOCK for the same reason. locking
          * tests were triggering an interrupted unlock, which led to a bugcheck
          * in CloseSrvOpen() */
+retry_wait:
 #define MAKE_WAITONCLOSE_NONITERRUPTABLE
 #ifdef MAKE_WAITONCLOSE_NONITERRUPTABLE
         if (entry->opcode == NFS41_CLOSE || entry->opcode == NFS41_UNLOCK)
@@ -1509,9 +1510,15 @@ NTSTATUS nfs41_UpcallWaitForReply(
         goto out;
 
     switch(status) {
-    case STATUS_SUCCESS: break;
     case STATUS_USER_APC:
     case STATUS_ALERTED:
+        DbgP("nfs41_UpcallWaitForReply: KeWaitForSingleObject() "
+            "returned status(=%ld), "
+            "retry waiting for '%s' entry=%p xid=%lld\n",
+            (long)status,
+            opcode2string(entry->opcode), entry, entry->xid);
+        goto retry_wait;
+    case STATUS_SUCCESS: break;
     default:
         ExAcquireFastMutex(&entry->lock);
         if (entry->state == NFS41_DONE_PROCESSING) {
