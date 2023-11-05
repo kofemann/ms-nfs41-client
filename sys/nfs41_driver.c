@@ -2509,7 +2509,7 @@ NTSTATUS _nfs41_CreateSrvCall(
     }
 
     /* Let's create our own representation of the server */
-    pServerEntry = (PNFS41_SERVER_ENTRY)RxAllocatePoolWithTag(PagedPool, 
+    pServerEntry = (PNFS41_SERVER_ENTRY)RxAllocatePoolWithTag(NonPagedPool,
         sizeof(NFS41_SERVER_ENTRY), NFS41_MM_POOLTAG);
     if (pServerEntry == NULL) {
         status = STATUS_INSUFFICIENT_RESOURCES;
