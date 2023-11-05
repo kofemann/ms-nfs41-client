@@ -5285,9 +5285,24 @@ NTSTATUS nfs41_QueryFileInformation(
     DbgEn();
     print_debug_filedirquery_header(RxContext);
 #endif
+    DbgP("--> nfs41_QueryFileInformation, RxContext->Info.LengthRemaining=%ld, "
+        "RxContext->LowIoContext.ParamsFor.IoCtl.InputBufferLength=%ld\n",
+        (long)RxContext->Info.LengthRemaining,
+        (long)RxContext->LowIoContext.ParamsFor.IoCtl.InputBufferLength);
 
     status = check_nfs41_dirquery_args(RxContext);
-    if (status) goto out;
+    if (status) {
+        print_error("check_nfs41_dirquery_args failed.\n");
+        goto out;
+    }
+
+    RtlZeroMemory(RxContext->Info.Buffer, RxContext->Info.LengthRemaining);
+
+    DbgP("nfs41_QueryFileInformation, RxContext->Info.LengthRemaining=%ld, "
+        "RxContext->LowIoContext.ParamsFor.IoCtl.{InputBufferLength=%ld,OutputBufferLength=%ld}\n",
+        (long)RxContext->Info.LengthRemaining,
+        (long)RxContext->LowIoContext.ParamsFor.IoCtl.InputBufferLength,
+        (long)RxContext->LowIoContext.ParamsFor.IoCtl.OutputBufferLength);
 
     switch (InfoClass) {
     case FileEaInformation:
@@ -5311,25 +5326,33 @@ NTSTATUS nfs41_QueryFileInformation(
         goto out;
     }
 
-    status = nfs41_UpcallCreate(NFS41_FILE_QUERY, &nfs41_fobx->sec_ctx, 
+    status = nfs41_UpcallCreate(NFS41_FILE_QUERY, &nfs41_fobx->sec_ctx,
         pVNetRootContext->session, nfs41_fobx->nfs41_open_state,
         pNetRootContext->nfs41d_version, SrvOpen->pAlreadyPrefixedName, &entry);
-    if (status) goto out;
+    if (status) {
+        print_error("nfs41_UpcallCreate() failed, status=%d\n", status);
+        goto out;
+    }
 
     entry->u.QueryFile.InfoClass = InfoClass;
     entry->buf = RxContext->Info.Buffer;
     entry->buf_len = RxContext->Info.LengthRemaining;
 
     status = nfs41_UpcallWaitForReply(entry, pVNetRootContext->timeout);
-    if (status) goto out;
+    if (status) {
+        print_error("nfs41_UpcallWaitForReply() failed, status=%d\n", status);
+        goto out;
+    }
 
     if (entry->status == STATUS_BUFFER_TOO_SMALL) {
         RxContext->InformationToReturn = entry->buf_len;
+        print_error("entry->status == STATUS_BUFFER_TOO_SMALL\n");
         status = STATUS_BUFFER_TOO_SMALL;
     } else if (entry->status == STATUS_SUCCESS) {
+        print_error("entry->status == STATUS_SUCCESS\n");
         BOOLEAN DeletePending = FALSE;
 #ifdef ENABLE_TIMINGS
-        InterlockedIncrement(&getattr.sops); 
+        InterlockedIncrement(&getattr.sops);
         InterlockedAdd64(&getattr.size, entry->u.QueryFile.buf_len);
 #endif
         RxContext->Info.LengthRemaining -= entry->buf_len;
@@ -5382,9 +5405,12 @@ NTSTATUS nfs41_QueryFileInformation(
             print_std_info(1, &nfs41_fcb->StandardInfo);
 #endif
             break;
+        default:
+            print_error("Unhandled/unsupported InfoClass(%d)\n", (int)InfoClass);
         }
     } else {
         status = map_queryfile_error(entry->status);
+        print_error("status(0x%lx) = map_queryfile_error(entry->status(0x%lx));\n", (long)status, (long)entry->status);
     }
     RxFreePool(entry);
 out:
@@ -5400,6 +5426,7 @@ out:
 #ifdef DEBUG_FILE_QUERY
     DbgEx();
 #endif
+    DbgP("<-- nfs41_QueryFileInformation, status=0x%lx\n", (long)status);
     return status;
 }
 
