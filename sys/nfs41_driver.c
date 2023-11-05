@@ -1008,8 +1008,8 @@ NTSTATUS marshal_nfs41_filequery(
     if (status) goto out;
     else tmp += *len;
 
-    header_len = *len + 2 * sizeof(ULONG);
-    if (header_len > buf_len) { 
+    header_len = *len + 2 * sizeof(ULONG) + 2*sizeof(HANDLE);
+    if (header_len > buf_len) {
         status = STATUS_INSUFFICIENT_RESOURCES;
         goto out;
     }
