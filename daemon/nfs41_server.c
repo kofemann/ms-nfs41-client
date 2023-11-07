@@ -279,37 +279,70 @@ int nfs41_server_resolve(
 {
     int status = ERROR_BAD_NET_NAME;
     char service[16];
-    struct addrinfo hints = { 0 }, *res, *info;
+    struct addrinfoexA hints = { 0 }, *res, *info;
     struct netconfig *nconf;
     struct netbuf addr;
     char *netid, *uaddr;
+    int wse; /* Windows Socket Error */
+    int retry_getaddrinfoex_counter = 0;
 
-    dprintf(SRVLVL, "--> nfs41_server_resolve(%s:%u)\n",
+    dprintf(SRVLVL, "--> nfs41_server_resolve('%s':%u)\n",
         hostname, port);
 
     addrs->count = 0;
 
-    StringCchPrintfA(service, 16, "%u", port);
+    /*
+     * Windows (10) /cygdrive/c/Windows/System32/drivers/etc/services
+     * only has an UDP entry for NFS ("2049/udp") but none for TCP,
+     * so we have to pass the numeric value here.
+     */
+    StringCchPrintfA(service, sizeof(service), "%u", (int)port);
 
     /* request a list of tcp addrs for the given hostname,port */
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_protocol = IPPROTO_TCP;
+    /* AI_NUMERICSERV - no service name resolution, we pass a number */
+    hints.ai_flags    |= AI_NUMERICSERV;
+#if 1 /* experimental */
+    hints.ai_flags    |= AI_FILESERVER;
+#endif
 
-    if (getaddrinfo(hostname, service, &hints, &res) != 0)
+retry_getaddrinfoex:
+    wse = GetAddrInfoExA(hostname, service, 0, NULL, &hints, &res,
+        NULL, NULL, NULL, NULL);
+    if (wse != 0) {
+        dprintf(SRVLVL, "GetAddrInfoExA() failed with wse=%d/'%s'\n",
+            wse, gai_strerrorA(wse));
+        if ((wse == WSATRY_AGAIN) && (retry_getaddrinfoex_counter < 4)) {
+            dprintf(SRVLVL, "GetAddrInfoExA() returned WSATRY_AGAIN, "
+                "retry %d with delay...\n",
+                retry_getaddrinfoex_counter);
+
+            retry_getaddrinfoex_counter++;
+            Sleep(500*retry_getaddrinfoex_counter);
+            goto retry_getaddrinfoex;
+        }
+
         goto out;
+    }
 
     for (info = res; info != NULL; info = info->ai_next) {
+        dprintf(SRVLVL, "GetAddrInfoExA() returned: info.{ai_family=%d}\n",
+            info->ai_family);
+
         /* find the appropriate entry in /etc/netconfig */
         switch (info->ai_family) {
-        case AF_INET:  netid = "tcp";  break;
-        case AF_INET6: netid = "tcp6"; break;
-        default: continue;
+            case AF_INET:  netid = "tcp";  break;
+            case AF_INET6: netid = "tcp6"; break;
+            default: continue;
         }
 
         nconf = getnetconfigent(netid);
-        if (nconf == NULL)
+        if (nconf == NULL) {
+            dprintf(SRVLVL, "getnetconfigent(netid='%s') failed.\n", netid);
             continue;
+        }
 
         /* convert to a transport-independent universal address */
         addr.buf = info->ai_addr;
@@ -318,8 +351,10 @@ int nfs41_server_resolve(
         uaddr = taddr2uaddr(nconf, &addr);
         freenetconfigent(nconf);
 
-        if (uaddr == NULL)
+        if (uaddr == NULL) {
+            dprintf(SRVLVL, "taddr2uaddr() failed.\n");
             continue;
+        }
 
         StringCchCopyA(addrs->arr[addrs->count].netid,
             NFS41_NETWORK_ID_LEN+1, netid);
@@ -328,16 +363,30 @@ int nfs41_server_resolve(
         freeuaddr(uaddr);
 
         status = NO_ERROR;
-        if (++addrs->count >= NFS41_ADDRS_PER_SERVER)
+        if (++addrs->count >= NFS41_ADDRS_PER_SERVER) {
+            dprintf(SRVLVL, "error: too many NFS41_ADDRS_PER_SERVER.\n");
             break;
+        }
     }
-    freeaddrinfo(res);
+    FreeAddrInfoEx(res);
 out:
-    if (status)
-        dprintf(SRVLVL, "<-- nfs41_server_resolve(%s:%u) returning "
+    if (status) {
+        dprintf(SRVLVL, "<-- nfs41_server_resolve('%s':%u) returning "
             "error %d\n", hostname, port, status);
-    else
-        dprintf(SRVLVL, "<-- nfs41_server_resolve(%s:%u) returning "
-            "OK %s\n", hostname, port, addrs->arr[0].uaddr);
+    }
+    else {
+        unsigned int i;
+        char buff[256];
+        char *b = buff;
+
+        for (i=0 ; i < addrs->count ; i++) {
+            b+=snprintf(b,
+                ((sizeof(buff)-1) - (b-buff)),
+                "'%s', ", addrs->arr[i].uaddr);
+        }
+
+        dprintf(SRVLVL, "<-- nfs41_server_resolve('%s':%u) returning "
+            "OK { %s }\n", hostname, port, buff);
+    }
     return status;
 }
