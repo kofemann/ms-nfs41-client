@@ -33,6 +33,7 @@ Abstract:
 
 #include <windows.h>
 #include <stdlib.h>
+#include <tchar.h>
 #include <strsafe.h>
 
 #include "nfs41_driver.h"

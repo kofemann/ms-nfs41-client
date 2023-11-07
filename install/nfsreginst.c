@@ -46,7 +46,7 @@ BOOL RdrSetupProviderOrder( void )
     while( RdrRemoveProviderFromOrder() ) {};
 
     len = RdrGetProviderOrderString( &pOrderString ) * sizeof(TCHAR);
-    if ( len > 0 && pOrderString )
+    if ( (len > 0) && pOrderString )
     {
         len += sizeof( PROVIDER_NAME ) + (2 * sizeof(TCHAR)); // add 2 for comma delimeter and null
         pNewOrderString = malloc( len );
@@ -74,11 +74,14 @@ BOOL RdrSetupProviderOrder( void )
 
 ULONG_PTR RdrGetProviderOrderString( __out LPTSTR *OrderString )
 {
-    HKEY hOrderKey;
+    HKEY hOrderKey = NULL;
     ULONG_PTR len = 0;
 
     if ( OpenKey( PROVIDER_ORDER_KEY, &hOrderKey ) )
     {
+        if (hOrderKey == NULL)
+            return 0;
+
         ReadRegistryKeyValues( hOrderKey,
                                sizeof(ProviderOrderKeyValues) / sizeof(REGENTRY),
                                ProviderOrderKeyValues);
@@ -99,7 +102,7 @@ BOOL RdrSetProviderOrderString( __in LPTSTR OrderString )
 
     if ( CreateKey( PROVIDER_ORDER_KEY, &hOrderKey ) )
     {
-        ProviderOrderKeyValues[0].dwLength = ( lstrlen( OrderString ) + 1 ) * sizeof( TCHAR );
+        ProviderOrderKeyValues[0].dwLength = ( _tcsclen( OrderString ) + 1 ) * sizeof( TCHAR );
         ProviderOrderKeyValues[0].pvValue = OrderString;
         WriteRegistryKeyValues( hOrderKey,
                                 sizeof(ProviderOrderKeyValues) / sizeof(REGENTRY),
@@ -115,7 +118,7 @@ BOOL RdrSetProviderOrderString( __in LPTSTR OrderString )
 
 BOOL RdrRemoveProviderFromOrder( void )
 {
-    LPTSTR pCompare, OrderString, pOrig, Provider = PROVIDER_NAME;
+    LPTSTR pCompare = NULL, OrderString = NULL, pOrig = NULL, Provider = PROVIDER_NAME;
     BOOL match = FALSE;
     ULONG_PTR len = 0;
 
@@ -127,7 +130,7 @@ BOOL RdrRemoveProviderFromOrder( void )
 
         while ( *OrderString )
         {
-            if ( toupper(*OrderString) != toupper(*pCompare++) )
+            if ( _toupper(*OrderString) != _toupper(*pCompare++) )
             {
                 pCompare = Provider;
                 while ( ( *OrderString != TEXT(',') ) && ( *OrderString != TEXT('\0') ) )
@@ -141,6 +144,7 @@ BOOL RdrRemoveProviderFromOrder( void )
                 if ( ( *OrderString == TEXT(',') ) || ( *OrderString == TEXT('\0') ) )
                 {
                     LPTSTR pNewString;
+                    len += 4096;
                     pNewString = malloc( len ); //Yes, this is a little larger than necessary
                     //No, I don't care that much
                     StringCchCopy(pNewString, len, pOrig);

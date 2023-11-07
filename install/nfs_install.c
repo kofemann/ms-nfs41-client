@@ -33,7 +33,7 @@
 
 void __cdecl _tmain(int argc, TCHAR *argv[])
 {
-	if(argc == 1 || atoi(argv[1]) == 1)
+	if(argc == 1 || _tstoi(argv[1]) == 1)
 	{
 		RdrSetupProviderOrder();
 	}
