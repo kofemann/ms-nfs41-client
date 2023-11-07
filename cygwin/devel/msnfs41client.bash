@@ -114,6 +114,13 @@ function nfsclient_rundeamon
 	set -o xtrace
 	set -o nounset
 
+	typeset -a nfsd_args=(
+		'nfsd_debug.exe'
+		'-d' '0'
+		'--noldap'
+		#'--gid' '1616' '--uid' '1616'
+	)
+
 	#
 	# cdb cheat sheet:
 	#
@@ -123,12 +130,14 @@ function nfsclient_rundeamon
 	#
 
 	if false ; then
-		gdb -ex=run --args nfsd_debug -d 0 --noldap #--gid 1616 --uid 1616
-	else
+		gdb -ex=run --args "${nfsd_args[@]}"
+	elif false ; then
 		export _NT_ALT_SYMBOL_PATH="$(cygpath -w "$PWD");srv*https://msdl.microsoft.com/download/symbols"
 		# use '!gflag +full;g' for heap tests, eats lots of memory
-		cdb -c '!gflag +soe;sxe -c "kp;gn" *;g' "$(cygpath -w "$PWD/nfsd_debug.exe")" -d 0 --noldap #--gid 1616 --uid 1616
-	fi
+		cdb -c '!gflag +soe;sxe -c "kp;gn" *;g' "$(cygpath -w "$PWD/${nfsd_args[0]}")" "${nfsd_args[@]:1}"
+	else
+		"${nfsd_args[@]}"
+        fi
 	return $?
 }
 
@@ -137,13 +146,23 @@ function nfsclient_system_rundeamon
 	set -o xtrace
 	set -o nounset
 
+	typeset -a nfsd_args=(
+		'nfsd_debug.exe'
+		'-d' '0'
+		'--noldap'
+		#'--gid' '1616' '--uid' '1616'
+	)
+
+
 	if false ; then
-		su_system gdb -ex=run --args nfsd_debug -d 0 --noldap #--gid 1616 --uid 1616
-	else
+		su_system gdb -ex=run --args "${nfsd_args[@]}"
+	elif false ; then
 		export _NT_ALT_SYMBOL_PATH="$(cygpath -w "$PWD");srv*https://msdl.microsoft.com/download/symbols"
 		# use '!gflag +full;g' for heap tests, eats lots of memory
-		su_system cdb -c '!gflag +soe;sxe -c "kp;gn" *;g' "$(cygpath -w "$PWD/nfsd_debug.exe")" -d 0 --noldap #--gid 1616 --uid 1616
-	fi
+		su_system cdb -c '!gflag +soe;sxe -c "kp;gn" *;g' "$(cygpath -w "$PWD/${nfsd_args[0]}")" "${nfsd_args[@]:1}"
+	else
+		"${nfsd_args[@]}"
+        fi
 	return $?
 }
 
