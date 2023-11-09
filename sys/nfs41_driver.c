@@ -3,6 +3,7 @@
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
+ * Roland Mainz <roland.mainz@nrubsig.org>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -582,8 +583,8 @@ NTSTATUS marshal_nfs41_header(
 #ifdef DEBUG_MARSHAL_HEADER
     if (MmIsAddressValid(entry->filename))
         DbgP("[upcall header] xid=%lld opcode=%s filename=%wZ version=%d "
-            "session=0x%x open_state=0x%x\n", entry->xid, 
-            opcode2string(entry->opcode), entry->filename,
+            "session=0x%x open_state=0x%x\n", entry->xid,
+            ENTRY_OPCODE2STRING(entry), entry->filename,
             entry->version, entry->session, entry->open_state);
     else
         status = STATUS_INTERNAL_ERROR;
@@ -1495,8 +1496,9 @@ retry_wait:
                         UserMode, TRUE, &timeout);
         }
         if (status != STATUS_SUCCESS) {
-            print_wait_status(1, "[downcall]", status, 
-                opcode2string(entry->opcode), entry, entry->xid);
+            print_wait_status(1, "[downcall]", status,
+                ENTRY_OPCODE2STRING(entry), entry,
+                (entry?entry->xid:-1LL));
             if (status == STATUS_TIMEOUT)
                 status = STATUS_NETWORK_UNREACHABLE;
         }
@@ -1504,29 +1506,38 @@ retry_wait:
 
         status = KeWaitForSingleObject(&entry->cond, Executive, KernelMode, FALSE, NULL);
 #endif
-        print_wait_status(0, "[downcall]", status, opcode2string(entry->opcode), 
-            entry, entry->xid);
-    } else 
+        print_wait_status(0, "[downcall]", status,
+            ENTRY_OPCODE2STRING(entry), entry,
+            (entry?entry->xid:-1LL));
+    } else
         goto out;
 
     switch(status) {
+    case STATUS_SUCCESS:
+        break;
     case STATUS_USER_APC:
     case STATUS_ALERTED:
         DbgP("nfs41_UpcallWaitForReply: KeWaitForSingleObject() "
             "returned status(=%ld), "
             "retry waiting for '%s' entry=%p xid=%lld\n",
             (long)status,
-            opcode2string(entry->opcode), entry, entry->xid);
-        goto retry_wait;
-    case STATUS_SUCCESS: break;
+            ENTRY_OPCODE2STRING(entry),
+            entry,
+            (entry?entry->xid:-1LL));
+        if (entry) {
+            goto retry_wait;
+        }
+        /* fall-through */
     default:
         ExAcquireFastMutex(&entry->lock);
         if (entry->state == NFS41_DONE_PROCESSING) {
             ExReleaseFastMutex(&entry->lock);
             break;
         }
-        DbgP("[upcall] abandoning %s entry=%p xid=%lld\n", 
-            opcode2string(entry->opcode), entry, entry->xid);
+        DbgP("[upcall] abandoning '%s' entry=%p xid=%lld\n",
+            ENTRY_OPCODE2STRING(entry),
+            entry,
+            (entry?entry->xid:-1LL));
         entry->state = NFS41_NOT_WAITING;
         ExReleaseFastMutex(&entry->lock);
         goto out;
@@ -1540,14 +1551,15 @@ NTSTATUS nfs41_upcall(
     IN PRX_CONTEXT RxContext)
 {
     NTSTATUS status = STATUS_SUCCESS;
-    nfs41_updowncall_entry *entry = NULL;
     ULONG len = 0;
-    PLIST_ENTRY pEntry;
+    PLIST_ENTRY pEntry = NULL;
 
 process_upcall:
     nfs41_RemoveFirst(upcallLock, upcall, pEntry);
     if (pEntry) {
-        entry = (nfs41_updowncall_entry *)CONTAINING_RECORD(pEntry, 
+        nfs41_updowncall_entry *entry;
+
+        entry = (nfs41_updowncall_entry *)CONTAINING_RECORD(pEntry,
                     nfs41_updowncall_entry, next);
         ExAcquireFastMutex(&entry->lock);
         nfs41_AddEntry(downcallLock, downcall, entry);
@@ -1564,27 +1576,37 @@ process_upcall:
             RxContext->InformationToReturn = len;
     }
     else {
+/*
+ * gisburn: |NFSV41_UPCALL_RETRY_WAIT| disabled for now because it
+ * causes nfsd_debug.exe to hang on <CTRL-C>
+ */
+#ifdef NFSV41_UPCALL_RETRY_WAIT
 retry_wait:
+#endif /* NFSV41_UPCALL_RETRY_WAIT */
         status = KeWaitForSingleObject(&upcallEvent, Executive, UserMode, TRUE,
             (PLARGE_INTEGER) NULL);
         print_wait_status(0, "[upcall]", status, NULL, NULL, 0);
         switch (status) {
+            case STATUS_SUCCESS:
+                goto process_upcall;
             case STATUS_USER_APC:
             case STATUS_ALERTED:
                 DbgP("nfs41_upcall: KeWaitForSingleObject() "
-                    "returned status(=%ld), "
-                    "retry waiting for '%s' entry=%p xid=%lld\n",
-                    (long)status,
-                    opcode2string(entry->opcode), entry, entry->xid);
+                    "returned status(=%ld)"
+#ifdef NFSV41_UPCALL_RETRY_WAIT
+                    ", retry waiting"
+#endif /* NFSV41_UPCALL_RETRY_WAIT */
+                    "\n",
+                    (long)status);
+#ifdef NFSV41_UPCALL_RETRY_WAIT
                 goto retry_wait;
-            case STATUS_SUCCESS:
-                goto process_upcall;
+#else
+                /* fall-through */
+#endif /* NFSV41_UPCALL_RETRY_WAIT */
             default:
                 DbgP("nfs41_upcall: KeWaitForSingleObject() "
-                    "returned UNEXPECTED status(=%ld), "
-                    "for '%s' entry=%p xid=%lld\n",
-                    (long)status,
-                    opcode2string(entry->opcode), entry, entry->xid);
+                    "returned UNEXPECTED status(=%ld)\n",
+                    (long)status);
                 goto out;
         }
     }
@@ -1607,8 +1629,8 @@ void unmarshal_nfs41_header(
     RtlCopyMemory(&tmp->errno, *buf, sizeof(tmp->errno));
     *buf += sizeof(tmp->errno);
 #ifdef DEBUG_MARSHAL_HEADER
-    DbgP("[downcall header] xid=%lld opcode=%s status=%d errno=%d\n", tmp->xid, 
-        opcode2string(tmp->opcode), tmp->status, tmp->errno);
+    DbgP("[downcall header] xid=%lld opcode=%s status=%d errno=%d\n", tmp->xid,
+        ENTRY_OPCODE2STRING(tmp), tmp->status, tmp->errno);
 #endif
 }
 

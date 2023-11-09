@@ -3,6 +3,7 @@
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
+ * Roland Mainz <roland.mainz@nrubsig.org>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -49,8 +50,9 @@ void print_ea_info(int on, PFILE_FULL_EA_INFORMATION info);
 void print_get_ea(int on, PFILE_GET_EA_INFORMATION info);
 void print_caching_level(int on, ULONG flag, PUNICODE_STRING s);
 const char *opcode2string(int opcode);
+#define ENTRY_OPCODE2STRING(entry) ((entry)?opcode2string((entry)->opcode):"<entry==NULL>")
 void print_open_error(int on, int status);
-void print_wait_status(int on, const char *str, NTSTATUS status, 
+void print_wait_status(int on, const char *str, NTSTATUS status,
                        const char *opcode, PVOID entry, LONGLONG xid);
 void print_acl_args(SECURITY_INFORMATION info);
 
