@@ -1564,14 +1564,28 @@ process_upcall:
             RxContext->InformationToReturn = len;
     }
     else {
+retry_wait:
         status = KeWaitForSingleObject(&upcallEvent, Executive, UserMode, TRUE,
             (PLARGE_INTEGER) NULL);
         print_wait_status(0, "[upcall]", status, NULL, NULL, 0);
         switch (status) {
-        case STATUS_SUCCESS: goto process_upcall;
-        case STATUS_USER_APC:
-        case STATUS_ALERTED:
-        default: goto out;
+            case STATUS_USER_APC:
+            case STATUS_ALERTED:
+                DbgP("nfs41_upcall: KeWaitForSingleObject() "
+                    "returned status(=%ld), "
+                    "retry waiting for '%s' entry=%p xid=%lld\n",
+                    (long)status,
+                    opcode2string(entry->opcode), entry, entry->xid);
+                goto retry_wait;
+            case STATUS_SUCCESS:
+                goto process_upcall;
+            default:
+                DbgP("nfs41_upcall: KeWaitForSingleObject() "
+                    "returned UNEXPECTED status(=%ld), "
+                    "for '%s' entry=%p xid=%lld\n",
+                    (long)status,
+                    opcode2string(entry->opcode), entry, entry->xid);
+                goto out;
         }
     }
 out:
