@@ -166,16 +166,14 @@ struct map_osfhandle_fd
 	int	m_fd;
 };
 
-#define MAP_OSFHANDLE_SIZE (1024)
-
 static
-struct map_osfhandle_fd handle_fd_map[MAP_OSFHANDLE_SIZE];
+struct map_osfhandle_fd handle_fd_map[WINTIRPC_MAX_OSFHANDLE_FD_NHANDLE_VALUE];
 
 void wintirpc_register_osfhandle_fd(SOCKET handle, int fd)
 {
 	assert(handle != 0);
 	assert(handle != SOCKET_ERROR);
-	assert(fd < MAP_OSFHANDLE_SIZE);
+	assert(fd < WINTIRPC_MAX_OSFHANDLE_FD_NHANDLE_VALUE);
 
 	handle_fd_map[fd].m_fd = fd;
 	handle_fd_map[fd].m_s = handle;
@@ -188,7 +186,7 @@ void wintirpc_unregister_osfhandle(SOCKET handle)
 	assert(handle != 0);
 	assert(handle != SOCKET_ERROR);
 
-	for (i=0 ; i < MAP_OSFHANDLE_SIZE ; i++) {
+	for (i=0 ; i < WINTIRPC_MAX_OSFHANDLE_FD_NHANDLE_VALUE ; i++) {
 		if (handle_fd_map[i].m_s == handle) {
 			handle_fd_map[i].m_s = SOCKET_ERROR;
 			handle_fd_map[i].m_fd = -1;
@@ -205,7 +203,7 @@ int wintirpc_handle2fd(SOCKET handle)
 	assert(handle != 0);
 	assert(handle != SOCKET_ERROR);
 
-	for (i=0 ; i < MAP_OSFHANDLE_SIZE ; i++) {
+	for (i=0 ; i < WINTIRPC_MAX_OSFHANDLE_FD_NHANDLE_VALUE ; i++) {
 		if ((handle_fd_map[i].m_s == handle) &&
 			(handle_fd_map[i].m_fd != -1)) {
 			return handle_fd_map[i].m_fd;
@@ -238,9 +236,19 @@ int wintirpc_socket(int af, int type, int protocol)
 		return -1;
 	}
 
+	if (fd >= WINTIRPC_MAX_OSFHANDLE_FD_NHANDLE_VALUE) {
+		(void)_close(fd);
+		(void)fprintf(stderr, "wintirpc_socket: fd overflow %d >= %d\n",
+			fd,
+			WINTIRPC_MAX_OSFHANDLE_FD_NHANDLE_VALUE);
+		errno = ENOMEM;
+		return -1;
+	}
+
 	wintirpc_register_osfhandle_fd(s, fd);
 
-	(void)fprintf(stderr, "wintirpc_socket: %s/%d: sock fd=%d\n", __FILE__, (int)__LINE__, fd);
+	(void)fprintf(stderr, "wintirpc_socket: %s/%d: sock fd=%d\n",
+		__FILE__, (int)__LINE__, fd);
 
 	return fd;
 }
@@ -277,6 +285,15 @@ int wintirpc_accept(int in_s_fd, struct sockaddr *addr, int *addrlen)
 		 * |closesocket()| may override it
 		 */
 		(void)fprintf(stderr, "wintirpc_accept: failed\n");
+		errno = ENOMEM;
+		return -1;
+	}
+
+	if (out_s_fd >= WINTIRPC_MAX_OSFHANDLE_FD_NHANDLE_VALUE) {
+		(void)_close(out_s_fd);
+		(void)fprintf(stderr, "wintirpc_accept: out_s_fd overflow %d >= %d\n",
+			out_s_fd,
+			WINTIRPC_MAX_OSFHANDLE_FD_NHANDLE_VALUE);
 		errno = ENOMEM;
 		return -1;
 	}

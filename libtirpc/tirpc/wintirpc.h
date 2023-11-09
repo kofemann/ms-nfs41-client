@@ -75,6 +75,30 @@
 #define __THROW
 
 /*
+ * Maximum integer value |_open()| and |_open_osfhandle()| can return
+ *
+ * Right now the Windows headers do not provide this as public value.
+ *
+ * https://github.com/ojdkbuild/tools_toolchain_sdk10_1607/blob/master/Source/10.0.14393.0/ucrt/inc/corecrt_internal_lowio.h#L94
+ * defines it like this:
+ * -- snip --
+ * #define IOINFO_ARRAY_ELTS    (1 << IOINFO_L2E)
+ * #define IOINFO_ARRAYS        128
+ * #define _NHANDLE_            (IOINFO_ARRAYS * IOINFO_ARRAY_ELTS)
+ * -- snip --
+ * ... which makes |_NHANDLE_|==2^6*128==8192
+ */
+#define WINTIRPC_MAX_OSFHANDLE_FD_NHANDLE_VALUE (8192)
+
+/* Safeguard */
+#ifndef FD_SETSIZE
+#error FD_SETSIZE not set
+#endif
+#if (FD_SETSIZE < 1024)
+#error FD_SETSIZE should be at least 1024
+#endif
+
+/*
  * Functions imported from BSD
  */
 struct timezone 
