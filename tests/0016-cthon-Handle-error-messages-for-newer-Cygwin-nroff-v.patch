@@ -1,0 +1,30 @@
+From a56259552fde64a43a0cb764c77777a6c34dd6bd Mon Sep 17 00:00:00 2001
+From: Roland Mainz <roland.mainz@nrubsig.org>
+Date: Mon, 13 Nov 2023 17:49:14 +0100
+Subject: [PATCH] cthon: Handle error messages for newer Cygwin nroff version
+
+cthon: Handle error messages for newer Cygwin 3.5.0 nroff version
+
+Tested with:
+$ nroff --version
+GNU nroff (groff) version 1.23.0
+GNU groff version 1.23.0
+---
+ general/runtests.wrk | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/general/runtests.wrk b/general/runtests.wrk
+index 9dda456..ef7bc86 100644
+--- a/general/runtests.wrk
++++ b/general/runtests.wrk
+@@ -90,7 +90,7 @@ $TIME nroff < nroff.tbl > nroff.out 2>> nroff.time || cat nroff.time
+ rm nroff.out nroff.tbl
+ set -e
+ #remove nroff warnings from nroff.time
+-egrep -v '^warning:.*$' <nroff.time >nroff.new
++egrep -v '^(nroff.in:.+?|)warning:.*$' <nroff.time >nroff.new
+ mv -f nroff.new nroff.time
+ ./stat.exe nroff.time
+ set +e
+--
+2.42.1

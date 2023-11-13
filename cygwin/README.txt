@@ -50,6 +50,7 @@ bash ../cygwin/devel/msnfs41client.bash mount_homedir
 git clone https://github.com/kofemann/ms-nfs41-client.git
 git clone git://git.linux-nfs.org/projects/steved/cthon04.git
 cd cthon04/
+git config --global --add "$PWD"
 git checkout 8cefaa2ecf8d5c1240f1573530f07cfbbfc092ea
 git am ../ms-nfs41-client/tests/*.patch
 make 2>&1 | tee buildlog.log
