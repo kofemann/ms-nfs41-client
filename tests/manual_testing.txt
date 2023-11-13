@@ -1,0 +1,70 @@
+#
+# ms-nfs41-client manual testing sequence, 2023-11-20
+#
+# Draft version, needs to be turned into automated tests
+# if possible
+#
+
+# start cygserver as admin before running tests
+# so SysV shared memory works:
+# cygserver-config
+# net start cygserver
+# sc query cygserver
+
+
+#
+# Compile each of the following package
+# on a NFSv4.1 share, and run each build in parallel/sequence
+# multiple times on one or multiple mounts
+#
+# ./nfs_mount -p -o sec=sys T derfwnb4966_ipv6:/net_tmpfs2
+# ./nfs_mount -p -o sec=sys R derfwnb4966_ipv6:/net_tmpfs2/test2
+#
+
+#
+# ksh93 (ast-ksh)
+#
+git clone -b 'v1.0.7' https://github.com/ksh93/ksh.git
+cd ksh
+git config --global --add safe.directory "$PWD"
+sed -i -r 's/mkfifo.+?(-m [[:digit:]]+)/mkfifo /g' ./src/cmd/INIT/package.sh ./bin/package
+# repeat:
+rm -Rf arch
+time ksh93 -c 'export SHELL=/bin/bash HOSTTYPE="cygwin.i386-64"; /bin/bash ./bin/package make CC="/usr/bin/cc -std=gnu11" CCFLAGS="-Os -g" SHELL="$SHELL" HOSTTYPE="$HOSTTYPE"' 2>&1 | tee buildlog.log
+
+
+#
+# bash
+#
+git clone https://git.savannah.gnu.org/git/bash.git
+cd bash/
+./configure --with-curses
+# repeat:
+make clean && make -j4 all
+
+
+#
+# ms-nfs41-client
+#
+git clone https://github.com/kofemann/ms-nfs41-client.git
+cd ms-nfs41-client
+export PATH+=":/cygdrive/c/Program Files (x86)/Microsoft Visual Studio/2019/Community/MSBuild/Current/Bin/"
+# repeat:
+# clean
+rm -vRf $(find . -name Debug -o -name Release)
+# build
+MSBuild.exe build.vc19/nfs41-client.sln -t:Build  -p:Configuration=Debug -p:Platform=x64
+MSBuild.exe build.vc19/nfs41-client.sln -t:Build  -p:Configuration=Release -p:Platform=x64
+
+
+#
+# gcc
+#
+git clone -b 'releases/gcc-13.2.0' git://gcc.gnu.org/git/gcc.git
+cd gcc/
+./configure
+# repeat:
+make -j4 clean
+(yes | make -j32 all)
+
+# EOF.
