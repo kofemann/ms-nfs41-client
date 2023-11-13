@@ -118,6 +118,7 @@ function nfsclient_rundeamon
 		'nfsd_debug.exe'
 		'-d' '0'
 		'--noldap'
+		#'--numworkerthreads' '512'
 		#'--gid' '1616' '--uid' '1616'
 	)
 
@@ -130,14 +131,51 @@ function nfsclient_rundeamon
 	#
 
 	if false ; then
-		gdb -ex=run --args "${nfsd_args[@]}"
+		nfsd_args=(
+			'gdb'
+			'-ex=run'
+			'--args'
+			"${nfsd_args[@]}"
+		)
+		"${nfsd_args[@]}"
 	elif false ; then
 		export _NT_ALT_SYMBOL_PATH="$(cygpath -w "$PWD");srv*https://msdl.microsoft.com/download/symbols"
 		# use '!gflag +full;g' for heap tests, eats lots of memory
-		cdb -c '!gflag +soe;sxe -c "kp;gn" *;g' "$(cygpath -w "$PWD/${nfsd_args[0]}")" "${nfsd_args[@]:1}"
+		nfsd_args=(
+			'cdb'
+			'-c' '!gflag +soe;sxe -c "kp;gn" *;g'
+			"$(cygpath -w "$PWD/${nfsd_args[0]}")"
+			"${nfsd_args[@]:1}"
+		)
+		"${nfsd_args[@]}"
+	elif false ; then
+		#
+		# test nfsd_debug.exe with Dr. Memory (version 2.6.0 -- build 0)
+		#
+		export _NT_ALT_SYMBOL_PATH="$(cygpath -w "$PWD")"
+		nfsd_args=(
+			'drmemory.exe' \
+				'-batch'
+				'-brief'
+				'-no_follow_children'
+				'-lib_blocklist_frames' '1'
+				'-check_uninit_blocklist' 'MSWSOCK,WS2_32'
+				'-malloc_callstacks'
+				'-delay_frees' '16384'
+				'-delay_frees_maxsz' $((64*1024*1024))
+				'-redzone_size' '4096'
+				'-check_uninitialized'
+				'-check_uninit_all'
+				'-strict_bitops'
+				'-gen_suppress_syms'
+				'-preload_symbols'
+				'--'
+				"${nfsd_args[@]}"
+			)
+		"${nfsd_args[@]}"
 	else
 		"${nfsd_args[@]}"
-        fi
+	fi
 	return $?
 }
 
@@ -150,19 +188,70 @@ function nfsclient_system_rundeamon
 		'nfsd_debug.exe'
 		'-d' '0'
 		'--noldap'
+		#'--numworkerthreads' '512'
 		#'--gid' '1616' '--uid' '1616'
 	)
 
+	# run everything as su_system
+	nfsd_args=(
+		'su_system'
+		"${nfsd_args[@]}"
+	)
+
+	#
+	# cdb cheat sheet:
+	#
+	# gdb: run  cdb: g
+	# gdb: bt   cdb: kp
+	# gdb: quit cdb: q
+	#
 
 	if false ; then
-		su_system gdb -ex=run --args "${nfsd_args[@]}"
+		nfsd_args=(
+			'gdb'
+			'-ex=run'
+			'--args'
+			"${nfsd_args[@]}"
+		)
+		"${nfsd_args[@]}"
 	elif false ; then
 		export _NT_ALT_SYMBOL_PATH="$(cygpath -w "$PWD");srv*https://msdl.microsoft.com/download/symbols"
 		# use '!gflag +full;g' for heap tests, eats lots of memory
-		su_system cdb -c '!gflag +soe;sxe -c "kp;gn" *;g' "$(cygpath -w "$PWD/${nfsd_args[0]}")" "${nfsd_args[@]:1}"
+		nfsd_args=(
+			'cdb'
+			'-c' '!gflag +soe;sxe -c "kp;gn" *;g'
+			"$(cygpath -w "$PWD/${nfsd_args[0]}")"
+			"${nfsd_args[@]:1}"
+		)
+		"${nfsd_args[@]}"
+	elif false ; then
+		#
+		# test nfsd_debug.exe with Dr. Memory (version 2.6.0 -- build 0)
+		#
+		export _NT_ALT_SYMBOL_PATH="$(cygpath -w "$PWD")"
+		nfsd_args=(
+			'drmemory.exe' \
+				'-batch'
+				'-brief'
+				'-no_follow_children'
+				'-lib_blocklist_frames' '1'
+				'-check_uninit_blocklist' 'MSWSOCK,WS2_32'
+				'-malloc_callstacks'
+				'-delay_frees' '16384'
+				'-delay_frees_maxsz' $((64*1024*1024))
+				'-redzone_size' '4096'
+				'-check_uninitialized'
+				'-check_uninit_all'
+				'-strict_bitops'
+				'-gen_suppress_syms'
+				'-preload_symbols'
+				'--'
+				"${nfsd_args[@]}"
+			)
+		"${nfsd_args[@]}"
 	else
 		"${nfsd_args[@]}"
-        fi
+	fi
 	return $?
 }
 
