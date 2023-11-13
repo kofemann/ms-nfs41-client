@@ -52,7 +52,7 @@ git clone git://git.linux-nfs.org/projects/steved/cthon04.git
 cd cthon04/
 git config --global --add safe.directory "$PWD"
 git checkout 8cefaa2ecf8d5c1240f1573530f07cfbbfc092ea
-git am ../ms-nfs41-client/tests/*.patch
+git am ../ms-nfs41-client/tests/cthon04/*.patch
 make 2>&1 | tee buildlog.log
 mkdir testdir1
 ./runtests -a -t "$PWD/testdir1" 2>&1 | tee testrun.log
