@@ -1,10 +1,49 @@
+#
 # ms-nfs41-client/cygwin/README.txt
+#
+# Draft README/ToDo list&co.
+#
 
-#### Building ms-nfs41-client using Cygwin:
+######## Building ms-nfs41-client using Cygwin+Makefile:
 ** Required software:
 - Visual Studio 19
 - WDK for Windows 10, version 2004, from
   https://go.microsoft.com/fwlink/?linkid=2128854
+- Cygwin >= 3.5.0
+
+** Build the project using Cygwin command line (bash/ksh93):
+export PATH+=":/cygdrive/c/Program Files (x86)/Microsoft Visual Studio/2019/Community/MSBuild/Current/Bin/"
+git clone https://github.com/kofemann/ms-nfs41-client.git
+cd ms-nfs41-client
+cd cygwin
+make installdest
+
+
+#### Install the software (requires mintty.exe running as "Adminstrator"):
+cd ms-nfs41-client/destdir/cygdrive/c/cygwin64/sbin
+bash ./msnfs41client.bash install
+# then reboot
+
+
+#### Run nfs41 client:
+** Run deamon:
+(requires to modify "msnfs41client.bash")
+cd ms-nfs41-client/destdir/cygdrive/c/cygwin64/sbin
+bash ./msnfs41client.bash run_daemon
+
+** mount home dir:
+(requires to modify "msnfs41client.bash")
+cd ms-nfs41-client/destdir/cygdrive/c/cygwin64/sbin
+bash ./msnfs41client.bash mount_homedir
+
+
+
+######## Manually building ms-nfs41-client using Cygwin:
+** Required software:
+- Visual Studio 19
+- WDK for Windows 10, version 2004, from
+  https://go.microsoft.com/fwlink/?linkid=2128854
+- Cygwin >= 3.5.0
 
 ** Building the project using GUI:
 1. Start Visual Studio 19
@@ -32,7 +71,7 @@ cp ../ms-nfs41-idmap.conf .
 #### Install release blob (requires mintty.exe running as "Adminstrator"):
 cd ms-nfs41-client/dist
 bash ../cygwin/devel/msnfs41client.bash install
-
+# then reboot
 
 #### Run nfs41 client:
 ** Run deamon:
@@ -45,8 +84,12 @@ bash ../cygwin/devel/msnfs41client.bash run_daemon
 bash ../cygwin/devel/msnfs41client.bash mount_homedir
 
 
-#### Testing:
+
+######## Testing:
 ** "cthon04" test suite:
+# mount a NFSv4 filesystem, and then execute this
+# on this filesystem
+mkdir nfsv4cthontest1 && cd nfsv4cthontest1
 git clone https://github.com/kofemann/ms-nfs41-client.git
 git clone git://git.linux-nfs.org/projects/steved/cthon04.git
 cd cthon04/
@@ -58,9 +101,9 @@ mkdir testdir1
 ./runtests -a -t "$PWD/testdir1" 2>&1 | tee testrun.log
 
 
+
 #### ToDo:
-- POSIX Makefile for easier build, release blob generaetion, local test
-installation, running cthon4 etc
+- Makefile/script support for release blob generaetion, local test installation, running cthon4 etc
 - DocBook/XML based documentation
 - Document how to get and build ksh93 for Cygwin
 - Cygwin-specific binary release blob
