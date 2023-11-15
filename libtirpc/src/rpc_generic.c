@@ -923,6 +923,10 @@ __rpc_sockisbound(int fd)
 struct netbuf *
 __rpc_set_netbuf(struct netbuf *nb, const void *ptr, size_t len)
 {
+	/* will it fit into netbuf ? */
+	if (len > INT_MAX)
+		return NULL;
+
 	if (nb->len != len) {
 		if (nb->len)
 			mem_free(nb->buf, nb->len);
@@ -930,7 +934,7 @@ __rpc_set_netbuf(struct netbuf *nb, const void *ptr, size_t len)
 		if (nb->buf == NULL)
 			return NULL;
 
-		nb->maxlen = nb->len = len;
+		nb->maxlen = nb->len = (unsigned int)len;
 	}
 	memcpy(nb->buf, ptr, len);
 	return nb;

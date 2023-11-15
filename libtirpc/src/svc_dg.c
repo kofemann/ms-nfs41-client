@@ -128,7 +128,8 @@ svc_dg_create(fd, sendsize, recvsize)
 	su->su_iosz = ((MAX(sendsize, recvsize) + 3) / 4) * 4;
 	if ((rpc_buffer(xprt) = mem_alloc(su->su_iosz)) == NULL)
 		goto freedata;
-	xdrmem_create(&(su->su_xdrs), rpc_buffer(xprt), su->su_iosz,
+	assert(su->su_iosz < UINT_MAX);
+	xdrmem_create(&(su->su_xdrs), rpc_buffer(xprt), (u_int)su->su_iosz,
 		XDR_DECODE);
 	su->su_cache = NULL;
 	xprt->xp_fd = fd;
@@ -177,7 +178,8 @@ svc_dg_recv(xprt, msg)
 
 again:
 	alen = sizeof (struct sockaddr_storage);
-	rlen = recvfrom(_get_osfhandle(xprt->xp_fd), rpc_buffer(xprt), su->su_iosz, 0,
+	assert(su->su_iosz < UINT_MAX);
+	rlen = recvfrom(_get_osfhandle(xprt->xp_fd), rpc_buffer(xprt), (u_int)su->su_iosz, 0,
 	    (struct sockaddr *)(void *)&ss, &alen);
 	if (rlen == -1 && errno == EINTR)
 		goto again;
@@ -194,7 +196,8 @@ again:
 	su->su_xid = msg->rm_xid;
 	if (su->su_cache != NULL) {
 		if (cache_get(xprt, msg, &reply, &replylen)) {
-			(void)wintirpc_sendto(xprt->xp_fd, reply, replylen, 0,
+			assert(replylen < INT_MAX);
+			(void)wintirpc_sendto(xprt->xp_fd, reply, (int)replylen, 0,
 			    (struct sockaddr *)(void *)&ss, alen);
 			return (FALSE);
 		}
@@ -217,7 +220,8 @@ svc_dg_reply(xprt, msg)
 	msg->rm_xid = su->su_xid;
 	if (xdr_replymsg(xdrs, msg)) {
 		slen = XDR_GETPOS(xdrs);
-		if (wintirpc_sendto(xprt->xp_fd, rpc_buffer(xprt), slen, 0,
+		assert(slen < INT_MAX);
+		if (wintirpc_sendto(xprt->xp_fd, rpc_buffer(xprt), (int)slen, 0,
 		    (struct sockaddr *)xprt->xp_rtaddr.buf,
 		    (socklen_t)xprt->xp_rtaddr.len) == (ssize_t) slen) {
 			stat = TRUE;
@@ -507,8 +511,9 @@ cache_set(xprt, replylen)
 	victim->cache_replylen = replylen;
 	victim->cache_reply = rpc_buffer(xprt);
 	rpc_buffer(xprt) = newbuf;
+	assert(su->su_iosz < UINT_MAX);
 	xdrmem_create(&(su->su_xdrs), rpc_buffer(xprt),
-			su->su_iosz, XDR_ENCODE);
+			(u_int)su->su_iosz, XDR_ENCODE);
 	victim->cache_xid = su->su_xid;
 	victim->cache_proc = uc->uc_proc;
 	victim->cache_vers = uc->uc_vers;

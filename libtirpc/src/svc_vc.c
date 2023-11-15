@@ -314,7 +314,9 @@ rendezvous_request(xprt, msg)
 	socklen_t len;
 	struct __rpc_sockinfo si;
 	SVCXPRT *newxprt;
+#ifndef _WIN32 // CVE-2018-14621
 	fd_set cleanfds;
+#endif
 
 	assert(xprt != NULL);
 	assert(msg != NULL);

@@ -869,7 +869,8 @@ void print_rpc_gss_sec(struct rpc_sspi_sec *ptr)
 	}
 	fprintf(fd_out, "     qop: %d\n", ptr->qop);
 	fprintf(fd_out, "     service: %d\n", ptr->svc);
-	fprintf(fd_out, "     cred: %p\n", ptr->cred);
+	fprintf(fd_out, "     cred(%p) = { dwLower=%lld, dwUpper=%lld} \n",
+		&ptr->cred, ptr->cred.dwLower, ptr->cred.dwUpper);
 }
 
 void print_negotiated_attrs(PCtxtHandle ctx)

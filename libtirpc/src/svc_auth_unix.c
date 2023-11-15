@@ -93,7 +93,7 @@ _svcauth_unix(rqst, msg)
 			stat = AUTH_BADCRED;
 			goto done;
 		}
-		aup->aup_len = gid_len;
+		aup->aup_len = (u_int)gid_len;
 		for (i = 0; i < gid_len; i++) {
 			aup->aup_gids[i] = (int)IXDR_GET_INT32(buf);
 		}

@@ -320,13 +320,14 @@ xdrrec_getbytes(xdrs, addr, len)
 }
 
 static bool_t
-xdrrec_putbytes(xdrs, addr, len)
+xdrrec_putbytes(xdrs, addr, in_len)
 	XDR *xdrs;
 	const char *addr;
-	u_int len;
+	u_int in_len;
 {
 	RECSTREAM *rstrm = (RECSTREAM *)(xdrs->x_private);
 	size_t current;
+	size_t len = in_len;
 
 	while (len > 0) {
 		current = (size_t)(PtrToUlong(rstrm->out_boundry) -
@@ -729,12 +730,13 @@ fill_input_buf(rstrm)
 }
 
 static bool_t  /* knows nothing about records!  Only about input buffers */
-get_input_bytes(rstrm, addr, len)
+get_input_bytes(rstrm, addr, in_len)
 	RECSTREAM *rstrm;
 	char *addr;
-	u_int len;
+	u_int in_len;
 {
 	size_t current;
+	size_t len = in_len;
 
 	if (rstrm->nonblock) {
 		if (len > (u_int)(rstrm->in_boundry - rstrm->in_finger))

@@ -365,7 +365,7 @@ getclnthandle(host, nconf, targaddr)
 
 	for (tres = res; tres != NULL; tres = tres->ai_next) {
 		taddr.buf = tres->ai_addr;
-		taddr.len = taddr.maxlen = tres->ai_addrlen;
+		taddr.len = taddr.maxlen = (unsigned int)tres->ai_addrlen;
 
 #ifdef ND_DEBUG
 		{

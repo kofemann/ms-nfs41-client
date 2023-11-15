@@ -699,7 +699,7 @@ xdr_string(xdrs, cpp, maxsize)
 	case XDR_ENCODE:
 		if (sp == NULL)
 			return FALSE;
-		size = strlen(sp);
+		size = (u_int)strlen(sp);
 		break;
 	case XDR_DECODE:
 		break;
