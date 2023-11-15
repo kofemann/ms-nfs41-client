@@ -458,7 +458,7 @@ local_rpcb()
 	}
 
 	/* Nobody needs this socket anymore; free the descriptor. */
-	wintirpc_closesocket(sock);
+	wintirpc_close(sock);
 
 try_nconf:
 
@@ -493,7 +493,7 @@ try_nconf:
 				 */
 				if (fd == SOCKET_ERROR)
 					continue;
-				wintirpc_closesocket(fd);
+				wintirpc_close(fd);
 				tmpnconf = nconf;
 				if (!strcmp(nconf->nc_protofmly, NC_INET))
 					hostname = IN4_LOCALHOST_STRING;
@@ -683,11 +683,11 @@ __rpcbind_is_up()
 	strncpy(sun.sun_path, _PATH_RPCBINDSOCK, sizeof(sun.sun_path));
 
 	if (connect(_get_osfhandle(sock), (struct sockaddr *)&sun, sizeof(sun)) == SOCKET_ERROR) {
-		wintirpc_closesocket(sock);
+		wintirpc_close(sock);
 		return (FALSE);
 	}
 
-	wintirpc_closesocket(sock);
+	wintirpc_close(sock);
 	return (TRUE);
 }
 

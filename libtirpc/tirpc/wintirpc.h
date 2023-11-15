@@ -127,6 +127,7 @@ struct sockaddr_un {
 /* Prototypes */
 int wintirpc_socket(int af,int type, int protocol);
 int wintirpc_closesocket(int in_fd);
+int wintirpc_close(int in_fd);
 int wintirpc_listen(int in_s, int backlog);
 int wintirpc_accept(int s_fd, struct sockaddr *addr, int *addrlen);
 int wintirpc_send(int s, const char *buf, int len, int flags);
@@ -135,6 +136,7 @@ void wintirpc_syslog(int prio, const char *format, ...);
 void wintirpc_warnx(const char *format, ...);
 void wintirpc_register_osfhandle_fd(SOCKET handle, int fd);
 void wintirpc_unregister_osfhandle(SOCKET handle);
+void wintirpc_unregister_osf_fd(int fd);
 int wintirpc_handle2fd(SOCKET handle);
 
 /* Debugging function */

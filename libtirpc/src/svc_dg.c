@@ -257,7 +257,7 @@ svc_dg_destroy(xprt)
 
 	xprt_unregister(xprt);
 	if (xprt->xp_fd != -1)
-		(void)wintirpc_closesocket(xprt->xp_fd);
+		(void)wintirpc_close(xprt->xp_fd);
 	XDR_DESTROY(&(su->su_xdrs));
 	(void) mem_free(rpc_buffer(xprt), su->su_iosz);
 	(void) mem_free(su, sizeof (*su));

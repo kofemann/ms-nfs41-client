@@ -150,6 +150,6 @@ do_close(s)
 	int save;
 
 	save = errno;
-	(void)wintirpc_closesocket(s);
+	(void)wintirpc_close(s);
 	errno = save;
 }

@@ -437,7 +437,7 @@ err:
 	rpc_createerr.cf_stat = RPC_SYSTEMERROR;
 	rpc_createerr.cf_error.re_errno = errno;
 err1:	if (madefd)
-		(void)wintirpc_closesocket(fd);
+		(void)wintirpc_close(fd);
 	return (NULL);
 }
 
@@ -462,11 +462,11 @@ __rpc_raise_fd(int fd)
 		return (fd);
 
 	if (fsync(nfd) == -1) {
-		wintirpc_closesocket(nfd);
+		wintirpc_close(nfd);
 		return (fd);
 	}
 
-	if (wintirpc_closesocket(fd) == -1) {
+	if (wintirpc_close(fd) == -1) {
 		/* this is okay, we will syslog an error, then use the new fd */
 		(void) syslog(LOG_ERR,
 			"could not close() fd %d; mem & fd leak", fd);

@@ -459,7 +459,7 @@ clnt_vc_create(fd, raddr, prog, vers, sendsz, recvsz, cb_xdr, cb_fn, cb_args)
 	    XDR_ENCODE);
 	if (! xdr_callhdr(&(ct->ct_xdrs), &call_msg)) {
 		if (ct->ct_closeit) {
-			(void)wintirpc_closesocket(fd);
+			(void)wintirpc_close(fd);
 		}
 		goto err;
 	}
@@ -935,7 +935,8 @@ clnt_vc_destroy(cl)
     }
 
 	if (ct->ct_closeit && ct->ct_fd != -1) {
-		(void)wintirpc_closesocket(ct->ct_fd);
+		(void)wintirpc_close(ct->ct_fd);
+		ct->ct_fd = -1;
 	}
 	XDR_DESTROY(&(ct->ct_xdrs));
 	if (ct->ct_addr.buf)

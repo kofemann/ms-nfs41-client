@@ -186,6 +186,9 @@ void wintirpc_unregister_osfhandle(SOCKET handle)
 	assert(handle != 0);
 	assert(handle != SOCKET_ERROR);
 
+	if ((handle == 0) || (handle != SOCKET_ERROR))
+		return;
+
 	for (i=0 ; i < WINTIRPC_MAX_OSFHANDLE_FD_NHANDLE_VALUE ; i++) {
 		if (handle_fd_map[i].m_s == handle) {
 			handle_fd_map[i].m_s = SOCKET_ERROR;
@@ -194,6 +197,24 @@ void wintirpc_unregister_osfhandle(SOCKET handle)
 		}
 	}
 	(void)fprintf(stderr, "wintirpc_unregister_osfhandle: failed\n");
+}
+
+void wintirpc_unregister_osf_fd(int fd)
+{
+	int i;
+
+	assert(fd >= 0);
+	if (fd < 0)
+		return;
+
+	for (i=0 ; i < WINTIRPC_MAX_OSFHANDLE_FD_NHANDLE_VALUE ; i++) {
+		if (handle_fd_map[i].m_fd == fd) {
+			handle_fd_map[i].m_s = SOCKET_ERROR;
+			handle_fd_map[i].m_fd = -1;
+			return;
+		}
+	}
+	(void)fprintf(stderr, "wintirpc_unregister_osf_fd: failed\n");
 }
 
 int wintirpc_handle2fd(SOCKET handle)
@@ -260,6 +281,13 @@ int wintirpc_closesocket(int in_fd)
 	wintirpc_unregister_osfhandle(s);
 
 	return closesocket(s);
+}
+
+int wintirpc_close(int in_fd)
+{
+	wintirpc_unregister_osf_fd(in_fd);
+
+	return _close(in_fd);
 }
 
 int wintirpc_listen(int in_s, int backlog)

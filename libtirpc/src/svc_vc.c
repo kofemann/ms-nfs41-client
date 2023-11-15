@@ -415,7 +415,7 @@ __svc_vc_dodestroy(xprt)
 	cd = (struct cf_conn *)xprt->xp_p1;
 
 	if (xprt->xp_fd != RPC_ANYFD)
-		(void)wintirpc_closesocket(xprt->xp_fd);
+		(void)wintirpc_close(xprt->xp_fd);
 	if (xprt->xp_port != 0) {
 		/* a rendezvouser socket */
 		r = (struct cf_rendezvous *)xprt->xp_p1;

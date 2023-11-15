@@ -447,7 +447,7 @@ __rpc_get_time_offset(td, srv, thost, uaddr, netid)
 			time_valid = 1;
 		}
 		save = WSAGetLastError();
-		(void)wintirpc_closesocket(s);
+		(void)wintirpc_close(s);
 		errno = save;
 		s = RPC_ANYSOCK;
 
@@ -466,7 +466,7 @@ error:
 	 */
 
 	if (s != RPC_ANYSOCK)
-		(void)wintirpc_closesocket(s);
+		(void)wintirpc_close(s);
 
 	if (clnt != NULL)
 		clnt_destroy(clnt);

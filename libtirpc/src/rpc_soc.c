@@ -149,7 +149,7 @@ syserror:
 	rpc_createerr.cf_error.re_errno = errno;
 
 err:	if (madefd == TRUE)
-		(void)wintirpc_closesocket(fd);
+		(void)wintirpc_close(fd);
 	(void) freenetconfigent(nconf);
 	mutex_unlock(&rpcsoc_lock);
 	return (NULL);
@@ -298,7 +298,7 @@ svc_com_create(fd, sendsize, recvsize, netid)
 	(void) freenetconfigent(nconf);
 	if (svc == NULL) {
 		if (madefd)
-			(void)wintirpc_closesocket(fd);
+			(void)wintirpc_close(fd);
 		return (NULL);
 	}
 	port = (((struct sockaddr_in *)svc->xp_ltaddr.buf)->sin_port);
@@ -551,7 +551,7 @@ clntunix_create(raddr, prog, vers, sockp, sendsz, recvsz)
 			rpc_createerr.cf_stat = RPC_SYSTEMERROR;
 			rpc_createerr.cf_error.re_errno = errno;
 			if (*sockp != -1)
-				(void)wintirpc_closesocket(*sockp);
+				(void)wintirpc_close(*sockp);
 			goto done;
 		}
         }

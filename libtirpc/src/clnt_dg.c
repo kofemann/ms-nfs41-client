@@ -793,7 +793,7 @@ clnt_dg_destroy(cl)
 	while (dg_fd_locks[cu_fd])
 		cond_wait(&dg_cv[cu_fd], &clnt_fd_lock);
 	if (cu->cu_closeit)
-		(void)wintirpc_closesocket(cu_fd);
+		(void)wintirpc_close(cu_fd);
 	XDR_DESTROY(&(cu->cu_outxdrs));
 	mem_free(cu, (sizeof (*cu) + cu->cu_sendsz + cu->cu_recvsz));
 	if (cl->cl_netid && cl->cl_netid[0])

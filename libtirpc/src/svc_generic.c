@@ -291,7 +291,7 @@ svc_tli_create(fd, nconf, bindaddr, sendsz, recvsz)
 
 freedata:
 	if (madefd)
-		(void)wintirpc_closesocket(fd);
+		(void)wintirpc_close(fd);
 	if (xprt) {
 		if (!madefd) /* so that svc_destroy doesnt close fd */
 			xprt->xp_fd = RPC_ANYFD;

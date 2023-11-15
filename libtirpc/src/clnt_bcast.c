@@ -378,7 +378,7 @@ rpc_broadcast_exp(prog, vers, proc, xargs, argsp, xresults, resultsp,
 		if (si.si_af == AF_INET && si.si_proto == IPPROTO_UDP) {
 			udpbufsz = fdlist[fdlistno].dsize;
 			if ((outbuf_pmap = malloc(udpbufsz)) == NULL) {
-				wintirpc_closesocket(fd);
+				wintirpc_close(fd);
 				stat = RPC_SYSTEMERROR;
 				goto done_broad;
 			}
@@ -676,7 +676,7 @@ done_broad:
 		(void) free(outbuf_pmap);
 #endif				/* PORTMAP */
 	for (i = 0; i < fdlistno; i++) {
-		(void)wintirpc_closesocket(fdlist[i].fd);
+		(void)wintirpc_close(fdlist[i].fd);
 		__rpc_freebroadifs(&fdlist[i].nal);
 	}
 	AUTH_DESTROY(sys_auth);
