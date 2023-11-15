@@ -72,7 +72,7 @@ static int handle_mount(void *daemon_context, nfs41_upcall *upcall)
     EASSERT(args->hostport != NULL);
 
     if ((args->path == NULL) || (strlen(args->path) == 0)) {
-        eprintf("handle_mount: empty mount root\n");
+        dprintf(1, "handle_mount: empty mount root\n");
         status = ERROR_BAD_NETPATH;
         goto out;
     }
