@@ -247,7 +247,7 @@ int wintirpc_socket(int af, int type, int protocol)
 
 	wintirpc_register_osfhandle_fd(s, fd);
 
-	(void)fprintf(stderr, "wintirpc_socket: %s/%d: sock fd=%d\n",
+	(void)syslog(LOG_DEBUG, "wintirpc_socket: %s/%d: sock fd=%d",
 		__FILE__, (int)__LINE__, fd);
 
 	return fd;
@@ -313,6 +313,32 @@ int wintirpc_sendto(int s, const char *buf, int len, int flags,
 {
 	return(sendto(_get_osfhandle(s), buf, len, flags, to, tolen));
 }
+
+void wintirpc_syslog(int prio, const char *format, ...)
+{
+	const char *prio_s;
+	va_list args;
+	va_start(args, format);
+
+	switch (LOG_PRI(prio)) {
+		case LOG_EMERG:		prio_s = "EMERG";	break;
+		case LOG_ALERT:		prio_s = "ALERT";	break;
+		case LOG_CRIT:		prio_s = "CRIT";	break;
+		case LOG_ERR:		prio_s = "ERR";		break;
+		case LOG_WARNING:	prio_s = "WARNING";	break;
+		case LOG_NOTICE:	prio_s = "NOTICE";	break;
+		case LOG_INFO:		prio_s = "INFO";	break;
+		case LOG_DEBUG:		prio_s = "DEBUG";	break;
+		default:		prio_s = "UNKNOWN_ERROR"; break;
+	}
+
+	(void)fprintf(stderr, "%04x: %s: ", GetCurrentThreadId(), prio_s);
+	(void)vfprintf(stderr, format, args);
+	(void)fputc('\n', stderr);
+	(void)fflush(stderr);
+	va_end(args);
+}
+
 
 void wintirpc_warnx(const char *format, ...)
 {

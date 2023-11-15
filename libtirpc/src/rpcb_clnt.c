@@ -56,7 +56,9 @@
 #include <string.h>
 //#include <unistd.h>
 //#include <netdb.h>
-//#include <syslog.h>
+#ifndef _WIN32
+#include <syslog.h>
+#endif
 
 #include "rpc_com.h"
 
@@ -470,7 +472,7 @@ try_nconf:
 		nc_handle = setnetconfig();
 		if (nc_handle == NULL) {
 			/* fails to open netconfig file */
-			//syslog (LOG_ERR, "rpc: failed to open " NETCONFIG);
+			syslog (LOG_ERR, "rpc: failed to open " NETCONFIG);
 			rpc_createerr.cf_stat = RPC_UNKNOWNPROTO;
 			mutex_unlock(&loopnconf_lock);
 			return (NULL);

@@ -38,7 +38,9 @@
 #include <netconfig.h>
 #include <stdlib.h>
 #include <string.h>
-//#include <syslog.h>
+#ifndef _WIN32
+#include <syslog.h>
+#endif
 
 /*
  * internal structure to keep track of a netpath "session"
@@ -90,7 +92,7 @@ setnetpath()
 	return (NULL);
     }
     if ((np_sessionp->nc_handlep = setnetconfig()) == NULL) {
-	//syslog (LOG_ERR, "rpc: failed to open " NETCONFIG);
+	syslog (LOG_ERR, "rpc: failed to open " NETCONFIG);
 	return (NULL);
     }
     np_sessionp->valid = NP_VALID;
@@ -148,7 +150,7 @@ getnetpath(handlep)
 	    if (np_sessionp->nc_handlep == NULL) {
 			np_sessionp->nc_handlep = setnetconfig();
 			if (np_sessionp->nc_handlep == NULL) {
-				//syslog (LOG_ERR, "rpc: failed to open " NETCONFIG);
+				syslog (LOG_ERR, "rpc: failed to open " NETCONFIG);
 			}
 	    }
 	    if ((ncp = getnetconfig(np_sessionp->nc_handlep)) == NULL) {

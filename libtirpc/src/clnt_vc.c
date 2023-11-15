@@ -72,7 +72,9 @@
 #include <reentrant.h>
 #include <sys/types.h>
 //#include <sys/poll.h>
-//#include <sys/syslog.h>
+#ifndef _WIN32
+#include <sys/syslog.h>
+#endif
 //#include <sys/un.h>
 //#include <sys/uio.h>
 //#include <sys/socket.h>
@@ -353,8 +355,8 @@ clnt_vc_create(fd, raddr, prog, vers, sendsz, recvsz, cb_xdr, cb_fn, cb_args)
 	cl = (CLIENT *)mem_alloc(sizeof (*cl));
 	ct = (struct ct_data *)mem_alloc(sizeof (*ct));
 	if ((cl == (CLIENT *)NULL) || (ct == (struct ct_data *)NULL)) {
-//		(void) syslog(LOG_ERR, clnt_vc_errstr,
-//		    clnt_vc_str, __no_mem_str);
+		(void) syslog(LOG_ERR, clnt_vc_errstr,
+			clnt_vc_str, __no_mem_str);
 		rpc_createerr.cf_stat = RPC_SYSTEMERROR;
 		rpc_createerr.cf_error.re_errno = errno;
 		goto err;

@@ -53,11 +53,12 @@
 #include <rpc/pmap_clnt.h>
 #include <rpc/pmap_prot.h>
 #include <rpc/nettype.h>
-//#include <syslog.h>
+#ifndef _WIN32
+#include <syslog.h>
+#endif
 //#include <netinet/in.h>
 //#include <netdb.h>
 #include <errno.h>
-//#include <syslog.h>
 #include <stdlib.h>
 #include <string.h>
 //#include <unistd.h>
@@ -275,15 +276,15 @@ svc_com_create(fd, sendsize, recvsize, netid)
 	struct sockaddr_in sin;
 
 	if ((nconf = __rpc_getconfip(netid)) == NULL) {
-		//(void) syslog(LOG_ERR, "Could not get %s transport", netid);
+		(void) syslog(LOG_ERR, "Could not get %s transport", netid);
 		return (NULL);
 	}
 	if (fd == RPC_ANYSOCK) {
 		fd = __rpc_nconf2fd(nconf);
 		if (fd == -1) {
 			(void) freenetconfigent(nconf);
-			//(void) syslog(LOG_ERR,
-			//"svc%s_create: could not open connection", netid);
+			(void) syslog(LOG_ERR,
+				"svc%s_create: could not open connection", netid);
 			return (NULL);
 		}
 		madefd = TRUE;

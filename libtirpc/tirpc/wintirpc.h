@@ -131,6 +131,7 @@ int wintirpc_listen(int in_s, int backlog);
 int wintirpc_accept(int s_fd, struct sockaddr *addr, int *addrlen);
 int wintirpc_send(int s, const char *buf, int len, int flags);
 int wintirpc_sendto(int s, const char *buf, int len, int flags, const struct sockaddr *to, int tolen);
+void wintirpc_syslog(int prio, const char *format, ...);
 void wintirpc_warnx(const char *format, ...);
 void wintirpc_register_osfhandle_fd(SOCKET handle, int fd);
 void wintirpc_unregister_osfhandle(SOCKET handle);
@@ -147,5 +148,23 @@ void wintirpc_debug(char *fmt, ...);
 
 /* Mappings Windows API to |wintirpc_*()|-API */
 #define warnx wintirpc_warnx
+#define syslog wintirpc_syslog
+
+/* syslog */
+#ifndef LOG_EMERG
+#define LOG_EMERG	0
+#define LOG_ALERT	1
+#define LOG_CRIT	2
+#define LOG_ERR		3
+#define LOG_WARNING	4
+#define LOG_NOTICE	5
+#define LOG_INFO	6
+#define LOG_DEBUG	7
+#endif /* !LOG_EMERG */
+
+#define _LOG_PRIMASK     0x07
+
+#define LOG_PRI(p)      ((p) & _LOG_PRIMASK)
+
 
 #endif /* !_TIRPC_WINTIRPC_H */

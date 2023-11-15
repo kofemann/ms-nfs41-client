@@ -54,7 +54,9 @@
 #include <netconfig.h>
 #include <stdlib.h>
 #include <string.h>
-//#include <syslog.h>
+#ifndef _WIN32
+#include <syslog.h>
+#endif
 #include <rpc/nettype.h>
 #include "rpc_com.h"
 
@@ -262,7 +264,7 @@ __rpc_getconfip(nettype)
 		void *confighandle;
 
 		if (!(confighandle = setnetconfig())) {
-			//syslog (LOG_ERR, "rpc: failed to open " NETCONFIG);
+			syslog (LOG_ERR, "rpc: failed to open " NETCONFIG);
 			return (NULL);
 		}
 		while ((nconf = getnetconfig(confighandle)) != NULL) {
@@ -328,7 +330,7 @@ __rpc_setconf(nettype)
 	case _RPC_TCP:
 	case _RPC_UDP:
 		if (!(handle->nhandle = setnetconfig())) {
-		        //syslog (LOG_ERR, "rpc: failed to open " NETCONFIG);
+			syslog (LOG_ERR, "rpc: failed to open " NETCONFIG);
 			free(handle);
 			return (NULL);
 		}

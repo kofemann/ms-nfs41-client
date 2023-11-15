@@ -27,7 +27,9 @@
 
 //#include <sys/cdefs.h>
 #include <wintirpc.h>
-//#include <syslog.h>
+#ifndef _WIN32
+#include <syslog.h>
+#endif
 #include <string.h>
 #include <stdlib.h>
 //#include <unistd.h>
@@ -48,8 +50,7 @@
 
 
 #ifdef TESTING
-#define	msg(x)	printf("ERROR: %s\n", x)
-/* #define msg(x) syslog(LOG_ERR, "%s", x) */
+#define msg(x) syslog(LOG_ERR, "%s", x)
 #else
 #define	msg(x)
 #endif

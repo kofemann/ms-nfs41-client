@@ -66,7 +66,9 @@
 #include <string.h>
 #include <stdlib.h>
 //#include <netdb.h>
-//#include <syslog.h>
+#ifndef _WIN32
+#include <syslog.h>
+#endif
 #include <rpc/rpc.h>
 #include <rpc/nettype.h>
 //#include <unistd.h>
