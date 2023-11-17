@@ -583,7 +583,7 @@ function cmd_mount
 
 				if (( retval == 0 )) ; then
 					# Parse stdout for drive letter
-					dummy="${stdout/~(E)Successfully mounted (.+) to drive (.+):/dummy}"
+					dummy="${stdout/~(E)Successfully mounted (.+) to drive (?:\'|)(.+):(?:\'|)/dummy}"
 
 					# fixme: we should test whether c.windows_drive_letter is empty or not
 					typeset c.windows_drive_letter="${.sh.match[2]}"
