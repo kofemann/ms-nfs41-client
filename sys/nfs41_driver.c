@@ -1471,46 +1471,22 @@ NTSTATUS nfs41_UpcallWaitForReply(
 
     nfs41_AddEntry(upcallLock, upcall, entry);
     KeSetEvent(&upcallEvent, 0, FALSE);
-    if (!entry->async_op) {
-        LARGE_INTEGER timeout;
-        timeout.QuadPart = RELATIVE(SECONDS(secs));
-        /* 02/03/2011 AGLO: it is not clear what the "right" waiting design 
-         * should be. Having non-interruptable waiting seems to be the right 
-         * approach. However, when things go wrong, the only wait to proceed 
-         * is a reboot (since "waits" are not interruptable we can't stop a 
-         * hung task. Having interruptable wait causes issues with security 
-         * context. For now, I'm making CLOSE non-interruptable but keeping 
-         * the rest interruptable so that we don't have to reboot all the time
-         */
-        /* 02/15/2011 cbodley: added NFS41_UNLOCK for the same reason. locking
-         * tests were triggering an interrupted unlock, which led to a bugcheck
-         * in CloseSrvOpen() */
-retry_wait:
-#define MAKE_WAITONCLOSE_NONITERRUPTABLE
-#ifdef MAKE_WAITONCLOSE_NONITERRUPTABLE
-        if (entry->opcode == NFS41_CLOSE || entry->opcode == NFS41_UNLOCK)
-            status = KeWaitForSingleObject(&entry->cond, Executive, 
-                        KernelMode, FALSE, &timeout);
-        else {
-            status = KeWaitForSingleObject(&entry->cond, Executive, 
-                        UserMode, TRUE, &timeout);
-        }
-        if (status != STATUS_SUCCESS) {
-            print_wait_status(1, "[downcall]", status,
-                ENTRY_OPCODE2STRING(entry), entry,
-                (entry?entry->xid:-1LL));
-            if (status == STATUS_TIMEOUT)
-                status = STATUS_NETWORK_UNREACHABLE;
-        }
-#else
 
-        status = KeWaitForSingleObject(&entry->cond, Executive, KernelMode, FALSE, NULL);
-#endif
-        print_wait_status(0, "[downcall]", status,
-            ENTRY_OPCODE2STRING(entry), entry,
-            (entry?entry->xid:-1LL));
-    } else
+    if (entry->async_op)
         goto out;
+
+    LARGE_INTEGER timeout;
+    timeout.QuadPart = RELATIVE(SECONDS(secs));
+retry_wait:
+    status = KeWaitForSingleObject(&entry->cond, Executive,
+                UserMode, TRUE, &timeout);
+
+    if (status == STATUS_TIMEOUT)
+            status = STATUS_NETWORK_UNREACHABLE;
+
+    print_wait_status(0, "[downcall]", status,
+        ENTRY_OPCODE2STRING(entry), entry,
+        (entry?entry->xid:-1LL));
 
     switch(status) {
     case STATUS_SUCCESS:
