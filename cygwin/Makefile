@@ -56,6 +56,7 @@ installdest: $(VS_BUILD_DIR)/nfsd.exe \
 	fi
 	mkdir -p $(DESTDIR)
 	mkdir -p $(DESTDIR)/cygdrive/c/cygwin64/sbin/
+	mkdir -p $(DESTDIR)/cygdrive/c/cygwin64/usr/bin
 	cp -r $(VS_BUILD_DIR)/nfsd.exe		$(DESTDIR)/cygdrive/c/cygwin64/sbin/nfsd_debug.exe
 	cp -r $(VS_BUILD_DIR)/nfsd.pdb		$(DESTDIR)/cygdrive/c/cygwin64/sbin/nfsd_debug.pdb
 	cp -r $(VS_BUILD_DIR)/nfs_mount.*	$(DESTDIR)/cygdrive/c/cygwin64/sbin/.
@@ -68,7 +69,14 @@ installdest: $(VS_BUILD_DIR)/nfsd.exe \
 	cp $(PROJECT_BASEDIR_DIR)/etc_netconfig	$(DESTDIR)/cygdrive/c/cygwin64/sbin/.
 	cp $(PROJECT_BASEDIR_DIR)/ms-nfs41-idmap.conf $(DESTDIR)/cygdrive/c/cygwin64/sbin/.
 	cp $(CYGWIN_MAKEFILE_DIR)/devel/msnfs41client.bash $(DESTDIR)/cygdrive/c/cygwin64/sbin/.
+	cp $(CYGWIN_MAKEFILE_DIR)/utils/mount_sshnfs/mount_sshnfs.ksh $(DESTDIR)/cygdrive/c/cygwin64/sbin/mount_sshnfs
+	chmod a+x $(DESTDIR)/cygdrive/c/cygwin64/sbin/mount_sshnfs
+	cp $(CYGWIN_MAKEFILE_DIR)/utils/sshnfs/sshnfs.ksh $(DESTDIR)/cygdrive/c/cygwin64/sbin/sshnfs
+	chmod a+x $(DESTDIR)/cygdrive/c/cygwin64/sbin/sshnfs
 	(cd $(DESTDIR)/cygdrive/c/cygwin64/sbin/ ; chmod a+x *.exe *.dll *.sys *.bash)
+	@ printf "# Package ksh93&co (if available) since Cygwin does not ship with it yet\n"
+	[[ -x /usr/bin/ksh93.exe ]] && cp /usr/bin/ksh93.exe $(DESTDIR)/cygdrive/c/cygwin64/usr/bin/ksh93.exe
+	[[ -x /usr/bin/shcomp.exe ]] && cp /usr/bin/shcomp.exe $(DESTDIR)/cygdrive/c/cygwin64/usr/bin/shcomp.exe
 	@printf "\n#\n# TEST sbin dir is %s\n#\n" "$(DESTDIR)/cygdrive/c/cygwin64/sbin/"
 	@printf '\n'
 	@printf "\n#\n# Now use\n# $$ cd '%s' && bash ./msnfs41client.bash install #\n# to install the kernel driver as Admin\n#\n" \
