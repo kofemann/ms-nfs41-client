@@ -2,7 +2,7 @@
 
 #
 # msnfs41client.bash - simple Cygwin frontent for the msnfsv41
-# NFSv4.1 filesystem driver
+# NFSv4.1 filesystem driver development
 #
 
 #
@@ -129,6 +129,10 @@ function nfsclient_rundeamon
 	# gdb: bt   cdb: kp
 	# gdb: quit cdb: q
 	#
+	# other useful commands:
+	# .lines -e	# enable source code line numbers
+	# ~*kp		# print stack traces of all threads
+	#
 
 	if false ; then
 		nfsd_args=(
@@ -143,7 +147,7 @@ function nfsclient_rundeamon
 		# use '!gflag +full;g' for heap tests, eats lots of memory
 		nfsd_args=(
 			'cdb'
-			'-c' '!gflag +soe;sxe -c "kp;gn" *;g'
+			'-c' '!gflag +soe;sxe -c "kp;gn" *;.lines -e;g'
 			"$(cygpath -w "$PWD/${nfsd_args[0]}")"
 			"${nfsd_args[@]:1}"
 		)
@@ -205,6 +209,10 @@ function nfsclient_system_rundeamon
 	# gdb: bt   cdb: kp
 	# gdb: quit cdb: q
 	#
+	# other useful commands:
+	# .lines -e	# enable source code line numbers
+	# ~*kp		# print stack traces of all threads
+	#
 
 	if false ; then
 		nfsd_args=(
@@ -219,7 +227,7 @@ function nfsclient_system_rundeamon
 		# use '!gflag +full;g' for heap tests, eats lots of memory
 		nfsd_args=(
 			'cdb'
-			'-c' '!gflag +soe;sxe -c "kp;gn" *;g'
+			'-c' '!gflag +soe;sxe -c "kp;gn" *;.lines -e;g'
 			"$(cygpath -w "$PWD/${nfsd_args[0]}")"
 			"${nfsd_args[@]:1}"
 		)
