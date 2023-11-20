@@ -62,7 +62,11 @@ MSBuild.exe build.vc19/nfs41-client.sln -t:Build  -p:Configuration=Release -p:Pl
 #
 git clone -b 'releases/gcc-13.2.0' git://gcc.gnu.org/git/gcc.git
 cd gcc/
+# Cygwin: workaround for configure using cp -p where ln -s should be used
+sed -i "s/as_ln_s='cp -pR'/as_ln_s='ln -s'/g" configure
 ./configure
+# workaround for $ cp -p # failing with "Function not implemented"
+(set -o xtrace ; sed -i -r 's/(cp.*)([[:space:]]+-p[[:space:]]+)/\1\2--no-preserve=ownership /g' $(find . -name Makefile) )
 # repeat:
 make -j4 clean
 (yes | make -j32 all)
