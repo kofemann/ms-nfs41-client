@@ -2687,6 +2687,7 @@ void nfs41_MountConfig_InitDefaults(
 NTSTATUS nfs41_MountConfig_ParseBoolean(
     IN PFILE_FULL_EA_INFORMATION Option,
     IN PUNICODE_STRING usValue,
+    IN BOOLEAN negate_val,
     OUT PBOOLEAN Value)
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -2694,9 +2695,9 @@ NTSTATUS nfs41_MountConfig_ParseBoolean(
     /* if no value is specified, assume TRUE
      * if a value is specified, it must be a '1' */
     if (Option->EaValueLength == 0 || *usValue->Buffer == L'1')
-        *Value = TRUE;
+        *Value = negate_val?FALSE:TRUE;
     else
-        *Value = FALSE;
+        *Value = negate_val?TRUE:FALSE;
 
     DbgP("    '%ls' -> '%wZ' -> %u\n",
         (LPWSTR)Option->EaName, usValue, *Value);
@@ -2753,15 +2754,27 @@ NTSTATUS nfs41_MountConfig_ParseOptions(
 
         if (wcsncmp(L"ro", Name, NameLen) == 0) {
             status = nfs41_MountConfig_ParseBoolean(Option, &usValue,
-                &Config->ReadOnly);
+                FALSE, &Config->ReadOnly);
+        } else if (wcsncmp(L"rw", Name, NameLen) == 0) {
+            /* opposite of "ro", so negate */
+            status = nfs41_MountConfig_ParseBoolean(Option, &usValue,
+                TRUE, &Config->ReadOnly);
         }
         else if (wcsncmp(L"writethru", Name, NameLen) == 0) {
             status = nfs41_MountConfig_ParseBoolean(Option, &usValue,
-                &Config->write_thru);
+                FALSE, &Config->write_thru);
+        }
+        else if (wcsncmp(L"nowritethru", Name, NameLen) == 0) {
+            status = nfs41_MountConfig_ParseBoolean(Option, &usValue,
+                TRUE, &Config->write_thru);
+        }
+        else if (wcsncmp(L"cache", Name, NameLen) == 0) {
+            status = nfs41_MountConfig_ParseBoolean(Option, &usValue,
+                TRUE, &Config->nocache);
         }
         else if (wcsncmp(L"nocache", Name, NameLen) == 0) {
             status = nfs41_MountConfig_ParseBoolean(Option, &usValue,
-                &Config->nocache);
+                FALSE, &Config->nocache);
         }
         else if (wcsncmp(L"timeout", Name, NameLen) == 0) {
             status = nfs41_MountConfig_ParseDword(Option, &usValue,

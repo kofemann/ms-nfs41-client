@@ -3,6 +3,7 @@
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
+ * Roland Mainz <roland.mainz@nrubsig.org>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -66,11 +67,14 @@ static VOID PrintUsage(LPTSTR pProcess)
         TEXT("\t-o <comma-separated mount options>\n")
         TEXT("* Mount options:\n")
         TEXT("\tro\tmount as read-only\n")
+        TEXT("\trw\tmount as read-write (default)\n")
         TEXT("\tport=#\tTCP port to use (defaults to 2049)\n")
         TEXT("\trsize=#\tread buffer size in bytes\n")
         TEXT("\twsize=#\twrite buffer size in bytes\n")
         TEXT("\tsec=sys:krb5:krb5i:krb5p\tspecify (gss) security flavor\n")
         TEXT("\twritethru\tturns off rdbss caching for writes\n")
+        TEXT("\tnowritethru\tturns on rdbss caching for writes (default)\n")
+        TEXT("\tcache\tturns on rdbss caching (default)\n")
         TEXT("\tnocache\tturns off rdbss caching\n")
         TEXT("\ttimeout=#\tspecify upcall timeout value in seconds (default 120s)\n")
         TEXT("* Hostname:\n")
