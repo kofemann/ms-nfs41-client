@@ -1449,9 +1449,10 @@ NTSTATUS nfs41_UpcallCreate(
                     1, &entry->sec_ctx);
         if (status != STATUS_SUCCESS) {
             print_error("nfs41_UpcallCreate: "
-                "SeCreateClientSecurityFromSubjectContext failed with %x\n", 
+                "SeCreateClientSecurityFromSubjectContext failed with %x\n",
                 status);
             RxFreePool(entry);
+	    entry = NULL;
         } else
             entry->psec_ctx = &entry->sec_ctx;
         SeReleaseSubjectContext(&sec_ctx);
@@ -3303,6 +3304,7 @@ NTSTATUS nfs41_FinalizeNetRoot(
         }
         nfs41_RemoveEntry(pNetRootContext->mountLock, mount_tmp);
         RxFreePool(mount_tmp);
+        mount_tmp = NULL;
     } while (1);
     /* ignore any errors from unmount */
     status = STATUS_SUCCESS;
@@ -3755,9 +3757,10 @@ retry_on_link:
         buf += DeviceObject->DeviceName.Length;
         RtlCopyMemory(buf, VNetRootPrefix->Buffer, VNetRootPrefix->Length);
         buf += VNetRootPrefix->Length;
-        RtlCopyMemory(buf, entry->u.Open.symlink.Buffer, 
+        RtlCopyMemory(buf, entry->u.Open.symlink.Buffer,
             entry->u.Open.symlink.Length);
         RxFreePool(entry->u.Open.symlink.Buffer);
+        entry->u.Open.symlink.Buffer = NULL;
         buf += entry->u.Open.symlink.Length;
         *(PWCHAR)buf = UNICODE_NULL;
 
@@ -4152,8 +4155,10 @@ NTSTATUS nfs41_DeallocateForFobx(
     IN OUT PMRX_FOBX pFobx)
 {
     __notnull PNFS41_FOBX nfs41_fobx = NFS41GetFobxExtension(pFobx);
-    if (nfs41_fobx->acl)
+    if (nfs41_fobx->acl) {
         RxFreePool(nfs41_fobx->acl);
+        nfs41_fobx->acl = NULL;
+    }
     return STATUS_SUCCESS;
 }
 
@@ -5135,9 +5140,10 @@ NTSTATUS nfs41_QuerySecurityInformation(
         InterlockedAdd64(&getacl.size, entry->u.Acl.buf_len);
 #endif
         RxFreePool(entry->buf);
+        entry->buf = NULL;
         nfs41_fobx->acl = NULL;
         nfs41_fobx->acl_len = 0;
-        RxContext->IoStatusBlock.Information = RxContext->InformationToReturn = 
+        RxContext->IoStatusBlock.Information = RxContext->InformationToReturn =
             entry->buf_len;
         RxContext->IoStatusBlock.Status = status = STATUS_SUCCESS;
     } else {
