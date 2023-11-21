@@ -3547,9 +3547,9 @@ NTSTATUS check_nfs41_create_args(
         goto out;
     }
 
-    if (pVNetRootContext->read_only && 
+    if (pVNetRootContext->read_only &&
             (params->DesiredAccess & (FILE_WRITE_DATA | FILE_APPEND_DATA))) {
-        status = STATUS_NETWORK_ACCESS_DENIED;
+        status = STATUS_MEDIA_WRITE_PROTECTED;
         goto out;
     }
 
@@ -4649,7 +4649,7 @@ NTSTATUS check_nfs41_setea_args(
     }
     if (pVNetRootContext->read_only) {
         print_error("check_nfs41_setattr_args: Read-only mount\n");
-        status = STATUS_ACCESS_DENIED;
+        status = STATUS_MEDIA_WRITE_PROTECTED;
         goto out;
     }
 out:
@@ -5174,7 +5174,7 @@ NTSTATUS check_nfs41_setacl_args(
 
     if (pVNetRootContext->read_only) {
         print_error("check_nfs41_setacl_args: Read-only mount\n");
-        status = STATUS_ACCESS_DENIED;
+        status = STATUS_MEDIA_WRITE_PROTECTED;
         goto out;
     }
     /* we don't support sacls */
@@ -5488,7 +5488,7 @@ NTSTATUS check_nfs41_setattr_args(
 
     if (pVNetRootContext->read_only) {
         print_error("check_nfs41_setattr_args: Read-only mount\n");
-        status = STATUS_ACCESS_DENIED;
+        status = STATUS_MEDIA_WRITE_PROTECTED;
         goto out;
     }
 
@@ -5984,7 +5984,7 @@ NTSTATUS check_nfs41_write_args(
 
     if (pVNetRootContext->read_only) {
         print_error("check_nfs41_write_args: Read-only mount\n");
-        status = STATUS_ACCESS_DENIED;
+        status = STATUS_MEDIA_WRITE_PROTECTED;
         goto out;
     }
 out:
