@@ -428,6 +428,18 @@ VOID ServiceStart(DWORD argc, LPTSTR *argv)
         exit(1);
     }
 
+    /*
+     * Set high priority class to avoid that the daemon gets stomped
+     * by other processes, which might lead to some kind of priority
+     * inversion
+     */
+    if(SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS)) {
+        dprintf(0, "Running as HIGH_PRIORITY_CLASS\n");
+    }
+    else {
+        eprintf("Failed to enter HIGH_PRIORITY_CLASS mode\n");
+    }
+
 #ifdef NFS41_DRIVER_FEATURE_NAMESERVICE_CYGWIN
     /* force enable for cygwin getent passwd/group testing */
     cmd_args.ldap_enable = TRUE;
