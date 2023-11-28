@@ -24,6 +24,9 @@
     <ClCompile Include="..\..\daemon\callback_xdr.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\daemon\cpvparser1.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\daemon\daemon_debug.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -37,6 +40,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\daemon\idmap.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\daemon\idmap_cygwin.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\daemon\lock.c">
@@ -111,6 +117,9 @@
     <ClCompile Include="..\..\daemon\setattr.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\daemon\sid.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\daemon\symlink.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -125,6 +134,9 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\daemon\cpvparser1.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\daemon\daemon_debug.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -171,6 +183,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\daemon\service.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\daemon\sid.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\daemon\tree.h">

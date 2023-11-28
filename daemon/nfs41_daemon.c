@@ -33,6 +33,7 @@
 #include "nfs41_daemon.h"
 #include "daemon_debug.h"
 #include "upcall.h"
+#include "sid.h"
 #include "util.h"
 
 /* nfs41_dg.num_worker_threads sets the actual number of worker threads */
@@ -409,6 +410,7 @@ VOID ServiceStart(DWORD argc, LPTSTR *argv)
         exit(1);
     set_debug_level(cmd_args.debug_level);
     open_log_files();
+    sidcache_init();
 
 #ifdef _DEBUG
     /* dump memory leaks to stderr on exit; this requires the debug heap,

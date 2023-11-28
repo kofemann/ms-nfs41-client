@@ -3,6 +3,7 @@
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
+ * Roland Mainz <roland.mainz@nrubsig.org>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -133,7 +134,7 @@ static const struct config_option g_options[] = {
     OPT_ATTR("ldap_attr_gidNumber", "gidNumber", ATTR_GID),
 
     /* caching configuration */
-    OPT_INT("cache_ttl", "60", cache_ttl),
+    OPT_INT("cache_ttl", "6000", cache_ttl),
 };
 
 
@@ -376,246 +377,6 @@ out:
     return status;
 }
 
-#ifdef NFS41_DRIVER_FEATURE_NAMESERVICE_CYGWIN
-int cygwin_getent_passwd(const char *name, char *res_loginname, uid_t *res_uid, gid_t *res_gid)
-{
-    char cmdbuff[1024];
-    char passwd_line[1024];
-    FILE* getent_pipe = NULL;
-    int res = 1;
-    unsigned long uid = -1;
-    unsigned long gid = -1;
-    struct _cypwent {
-        char* loginname;
-        char* passwd;
-        char* uidstr;
-        char* gidstr;
-        char* comment;
-        char* homedir;
-        char* shell;
-    } pwent = { 0 };
-#define PWENT_ENTRY(var, prevvar) \
-    (((var) = strchr((prevvar), ':'))?(*(var)++ = '\0',(var)):(NULL))
-
-    dprintf(CYGWINIDLVL, "--> cygwin_getent_passwd('%s')\n", name);
-
-#if 1
-    /* hack for testing, map "roland_mainz" to rmainz account */
-    if ((!strcmp(name, "rmainz")) || (!strcmp(name, "1616"))) {
-        uid = 1616;
-        gid = 1616;
-        pwent.loginname = "rmainz";
-        goto found;
-    }
-    if ((!strcmp(name, "nobody")) || (!strcmp(name, "no+body")) ||
-        (!strcmp(name, "65534"))) {
-        uid = 65534;
-        gid = 65534;
-        pwent.loginname = "no+body"; /* Cygwin-specific */
-        goto found;
-    }
-    if ((!strcmp(name, "root")) || (!strcmp(name, "0"))) {
-        uid = 0;
-        gid = 0;
-        pwent.loginname = "root";
-        goto found;
-    }
-    if ((!strcmp(name, "iam")) || (!strcmp(name, "2010"))) {
-        uid = 2010;
-        gid = 2010;
-        pwent.loginname = "iam";
-        goto found;
-    }
-    if ((!strcmp(name, "swulsch")) || (!strcmp(name, "1818"))) {
-        uid = 1818;
-        gid = 1818;
-        pwent.loginname = "swulsch";
-        goto found;
-    }
-    if ((!strcmp(name, "mwenzel")) || (!strcmp(name, "8239"))) {
-        uid = 8239;
-        gid = 8239;
-        pwent.loginname = "mwenzel";
-        goto found;
-    }
-#endif
-
-    /* fixme: better quoting for |name| needed */
-    (void)snprintf(cmdbuff, sizeof(cmdbuff), "%s passwd \"%s\"",
-        "C:\\cygwin64\\bin\\getent.exe",
-        name);
-    if ((getent_pipe = _popen(cmdbuff, "rt")) == NULL) {
-        dprintf(CYGWINIDLVL, "cygwin_getent_passwd: /usr/bin/getent failed, errno='%s'\n",
-            strerror(errno));
-        goto fail;
-    }
-
-    if (fgets(passwd_line, sizeof(passwd_line), getent_pipe)) {
-        pwent.loginname = passwd_line;
-        if (!PWENT_ENTRY(pwent.passwd, pwent.loginname)) goto fail;
-        if (!PWENT_ENTRY(pwent.uidstr, pwent.passwd)) goto fail;
-        if (!PWENT_ENTRY(pwent.gidstr, pwent.uidstr)) goto fail;
-        if (!PWENT_ENTRY(pwent.comment, pwent.gidstr)) goto fail;
-        if (!PWENT_ENTRY(pwent.homedir, pwent.comment)) goto fail;
-        PWENT_ENTRY(pwent.shell, pwent.homedir);
-
-        errno = 0;
-        uid = strtol(pwent.uidstr, NULL, 10);
-        if (errno != 0)
-            goto fail;
-
-        errno = 0;
-        gid = strtol(pwent.gidstr, NULL, 10);
-        if (errno != 0)
-            goto fail;
-
-#if 0
-        dprintf(CYGWINIDLVL, "cygwin_getent_passwd(): name='%s'\n", name);
-        dprintf(CYGWINIDLVL, "loginname\t='%s'\n", pwent.loginname);
-        dprintf(CYGWINIDLVL, "passwd\t='%s'\n", pwent.passwd);
-        dprintf(CYGWINIDLVL, "uidstr\t='%s' (%lu)\n", pwent.uidstr, (unsigned long)uid);
-        dprintf(CYGWINIDLVL, "gidstr\t='%s' (%lu)\n", pwent.gidstr, (unsigned long)gid);
-        dprintf(CYGWINIDLVL, "comment\t='%s'\n", pwent.comment);
-        dprintf(CYGWINIDLVL, "homedir\t='%s'\n", pwent.homedir);
-        dprintf(CYGWINIDLVL, "shell\t='%s'\n", pwent.shell);
-#endif
-
-found:
-        if (res_loginname)
-            (void)strcpy_s(res_loginname, VAL_LEN, pwent.loginname);
-        *res_uid = uid;
-        *res_gid = gid;
-        res = 0;
-    }
-
-fail:
-    if (getent_pipe)
-        (void)_pclose(getent_pipe);
-
-    if (res == 0) {
-        dprintf(CYGWINIDLVL, "<-- cygwin_getent_passwd('%s'): "
-            "returning res_uid=%lu, res_gid=%lu, res_loginname='%s'\n",
-            name,
-            (unsigned long)(*res_uid),
-            (unsigned long)(*res_gid),
-            res_loginname?res_loginname:"<NULL>");
-    }
-    else {
-        dprintf(CYGWINIDLVL, "<-- cygwin_getent_passwd('%s'): no match found\n",
-            name);
-    }
-
-    return res;
-}
-
-int cygwin_getent_group(const char* name, char* res_group_name, gid_t* res_gid)
-{
-    char cmdbuff[1024];
-    char group_line[1024];
-    FILE* getent_pipe = NULL;
-    int res = 1;
-    unsigned long gid = -1;
-    struct _cygrent
-    {
-        char* group_name;
-        char* passwd;
-        char* gidstr;
-        char* userlist;
-    } grent = { 0 };
-
-    dprintf(CYGWINIDLVL, "--> cygwin_getent_group('%s')\n", name);
-
-#if 1
-    if ((!strcmp(name, "rmainz")) || (!strcmp(name, "1616"))) {
-        gid = 1616;
-        grent.group_name = "rmainz";
-        goto found;
-    }
-    if ((!strcmp(name, "nogroup")) || (!strcmp(name, "no+body")) ||
-        (!strcmp(name, "65534"))) {
-        gid = 65534;
-        grent.group_name = "no+body"; /* Cygwin-specific */
-        goto found;
-    }
-    if ((!strcmp(name, "root")) || (!strcmp(name, "0"))) {
-        gid = 0;
-        grent.group_name = "root";
-        goto found;
-    }
-    if ((!strcmp(name, "iam")) || (!strcmp(name, "2010"))) {
-        gid = 2010;
-        grent.group_name = "iam";
-        goto found;
-    }
-    if ((!strcmp(name, "swulsch")) || (!strcmp(name, "1818"))) {
-        gid = 1818;
-        grent.group_name = "swulsch";
-        goto found;
-    }
-    if ((!strcmp(name, "mwenzel")) || (!strcmp(name, "8239"))) {
-        gid = 8239;
-        grent.group_name = "mwenzel";
-        goto found;
-    }
-#endif
-
-    /* fixme: better quoting for |name| needed */
-    (void)snprintf(cmdbuff, sizeof(cmdbuff), "%s group \"%s\"",
-        "C:\\cygwin64\\bin\\getent.exe",
-        name);
-    if ((getent_pipe = _popen(cmdbuff, "rt")) == NULL) {
-        dprintf(CYGWINIDLVL,
-            "cygwin_getent_group: /usr/bin/getent failed, errno='%s'\n",
-            strerror(errno));
-        goto fail;
-    }
-
-    if (fgets(group_line, sizeof(group_line), getent_pipe))
-    {
-        grent.group_name = group_line;
-        if (!PWENT_ENTRY(grent.passwd, grent.group_name)) goto fail;
-        if (!PWENT_ENTRY(grent.gidstr, grent.passwd)) goto fail;
-        PWENT_ENTRY(grent.userlist, grent.gidstr);
-
-        errno = 0;
-        gid = strtol(grent.gidstr, NULL, 10);
-        if (errno != 0)
-            goto fail;
-
-#if 0
-        dprintf(CYGWINIDLVL, "cygwin_getent_group(): name='%s'\n", name);
-        dprintf(CYGWINIDLVL, "group_name\t='%s'\n", grent.group_name);
-        dprintf(CYGWINIDLVL, "passwd\t='%s'\n", grent.passwd);
-        dprintf(CYGWINIDLVL, "gidstr\t='%s' (%lu)\n", grent.gidstr, (unsigned long)gid);
-        dprintf(CYGWINIDLVL, "userlist\t='%s'\n", grent.userlist);
-#endif
-
-found:
-        if (res_group_name)
-            (void)strcpy_s(res_group_name, VAL_LEN, grent.group_name);
-        *res_gid = gid;
-        res = 0;
-    }
-
-fail:
-    if (getent_pipe)
-        (void)_pclose(getent_pipe);
-
-    if (res == 0) {
-        dprintf(CYGWINIDLVL, "<-- cygwin_getent_group('%s'): "
-            "returning res_gid=%lu, res_group_name='%s'\n",
-            name, (unsigned long)(*res_gid),
-            res_group_name?res_group_name:"<NULL>");
-    }
-    else {
-        dprintf(CYGWINIDLVL,
-            "<-- cygwin_getent_group('%s'): no match found\n",
-            name);
-    }
-
-    return res;
-}
-#endif /* NFS41_DRIVER_FEATURE_NAMESERVICE_CYGWIN */
 
 /* generic cache */
 typedef struct list_entry* (*entry_alloc_fn)();
@@ -906,7 +667,7 @@ static int idmap_lookup_user(
     if (status == NO_ERROR) {
         /* don't return expired entries; query new attributes
          * and overwrite the entry with cache_insert() */
-        if ((time(NULL) - user->last_updated) < context->config.cache_ttl)
+        if (difftime(time(NULL), user->last_updated) < (double)context->config.cache_ttl)
             goto out;
     }
 #ifndef NFS41_DRIVER_FEATURE_NAMESERVICE_CYGWIN
@@ -1060,7 +821,7 @@ static int idmap_lookup_group(
     if (status == NO_ERROR) {
         /* don't return expired entries; query new attributes
          * and overwrite the entry with cache_insert() */
-        if ((time(NULL) - group->last_updated) < context->config.cache_ttl)
+        if (difftime(time(NULL), group->last_updated) < (double)context->config.cache_ttl)
             goto out;
     }
 #ifndef NFS41_DRIVER_FEATURE_NAMESERVICE_CYGWIN

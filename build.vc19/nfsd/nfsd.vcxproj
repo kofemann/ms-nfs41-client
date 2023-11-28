@@ -153,11 +153,13 @@
     <ClCompile Include="..\..\daemon\acl.c" />
     <ClCompile Include="..\..\daemon\callback_server.c" />
     <ClCompile Include="..\..\daemon\callback_xdr.c" />
+    <ClCompile Include="..\..\daemon\cpvparser1.c" />
     <ClCompile Include="..\..\daemon\daemon_debug.c" />
     <ClCompile Include="..\..\daemon\delegation.c" />
     <ClCompile Include="..\..\daemon\ea.c" />
     <ClCompile Include="..\..\daemon\getattr.c" />
     <ClCompile Include="..\..\daemon\idmap.c" />
+    <ClCompile Include="..\..\daemon\idmap_cygwin.c" />
     <ClCompile Include="..\..\daemon\lock.c" />
     <ClCompile Include="..\..\daemon\lookup.c" />
     <ClCompile Include="..\..\daemon\mount.c" />
@@ -182,12 +184,14 @@
     <ClCompile Include="..\..\daemon\recovery.c" />
     <ClCompile Include="..\..\daemon\service.c" />
     <ClCompile Include="..\..\daemon\setattr.c" />
+    <ClCompile Include="..\..\daemon\sid.c" />
     <ClCompile Include="..\..\daemon\symlink.c" />
     <ClCompile Include="..\..\daemon\upcall.c" />
     <ClCompile Include="..\..\daemon\util.c" />
     <ClCompile Include="..\..\daemon\volume.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\daemon\cpvparser1.h" />
     <ClInclude Include="..\..\daemon\daemon_debug.h" />
     <ClInclude Include="..\..\daemon\delegation.h" />
     <ClInclude Include="..\..\daemon\from_kernel.h" />
@@ -204,6 +208,7 @@
     <ClInclude Include="..\..\daemon\pnfs.h" />
     <ClInclude Include="..\..\daemon\recovery.h" />
     <ClInclude Include="..\..\daemon\service.h" />
+    <ClInclude Include="..\..\daemon\sid.h" />
     <ClInclude Include="..\..\daemon\tree.h" />
     <ClInclude Include="..\..\daemon\upcall.h" />
     <ClInclude Include="..\..\daemon\util.h" />

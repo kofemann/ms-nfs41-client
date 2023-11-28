@@ -64,4 +64,10 @@ int nfs41_idmap_gid_to_group(
     char *name_out,
     size_t len);
 
+/* idmap_cygwin.c */
+#ifdef NFS41_DRIVER_FEATURE_NAMESERVICE_CYGWIN
+int cygwin_getent_passwd(const char *name, char *res_loginname, uid_t *res_uid, gid_t *res_gid);
+int cygwin_getent_group(const char* name, char* res_group_name, gid_t* res_gid);
+#endif /* NFS41_DRIVER_FEATURE_NAMESERVICE_CYGWIN */
+
 #endif /* !IDMAP_H */

@@ -3,6 +3,7 @@
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
+ * Roland Mainz <roland.mainz@nrubsig.org>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -32,7 +33,7 @@
 #include "util.h"
 #include "upcall.h"
 #include "nfs41_xdr.h"
-#include "idmap.h"
+#include "sid.h"
 
 //#define DEBUG_ACLS
 #define ACLLVL 2 /* dprintf level for acl logging */
@@ -51,41 +52,6 @@ out:
     return status;
 }
 
-static int create_unknownsid(WELL_KNOWN_SID_TYPE type, PSID *sid, 
-                             DWORD *sid_len)
-{
-    int status;
-    *sid_len = 0;
-    *sid = NULL;
-
-    status = CreateWellKnownSid(type, NULL, *sid, sid_len);
-    dprintf(ACLLVL, "create_unknownsid: CreateWellKnownSid type %d returned %d "
-            "GetLastError %d sid len %d needed\n", type, status,
-            GetLastError(), *sid_len);
-    if (status) {
-        status = ERROR_INTERNAL_ERROR;
-        goto err;
-    }
-    status = GetLastError();
-    if (status != ERROR_INSUFFICIENT_BUFFER)
-        goto err;
-
-    *sid = malloc(*sid_len);
-    if (*sid == NULL) {
-        status = ERROR_INSUFFICIENT_BUFFER;
-        goto err;
-    }
-    status = CreateWellKnownSid(type, NULL, *sid, sid_len);
-    if (status)
-        return ERROR_SUCCESS;
-    free(*sid);
-    *sid = NULL;
-    status = GetLastError();
-err:
-    eprintf("create_unknownsid: CreateWellKnownSid failed with %d\n", status);
-    return status;
-}
-
 static void convert_nfs4name_2_user_domain(LPSTR nfs4name,
                                            LPSTR *domain)
 {
@@ -98,267 +64,6 @@ static void convert_nfs4name_2_user_domain(LPSTR nfs4name,
             break;
         }
     }
-}
-
-#ifdef NFS41_DRIVER_FEATURE_MAP_UNMAPPED_USER_TO_UNIXUSER_SID
-/*
- * Allocate a SID from SECURITY_SAMBA_UNIX_AUTHORITY, which encodes an
- * UNIX/POSIX uid directly into a SID.
- *
- * Examples:
- * UID 1616 gets mapped to "Unix_User+1616", encoding the UID into the
- * SID as "S-1-22-1-1616":
- * $ getent passwd Unix_User+1616
- * Unix_User+1616:*:4278191696:4278191696:U-Unix_User\1616,S-1-22-1-1616:/:/sbin/nologin
- *
- * GID 1984 gets mapped to "Unix_Group+1984", encoding the GID into the
- * SID as "S-1-22-2-1984":
- * $ getent group Unix_Group+1984
- * Unix_Group+1984:S-1-22-2-1984:4278192064:
- *
- */
-
-#define SECURITY_SAMBA_UNIX_AUTHORITY { { 0,0,0,0,0,22 } }
-SID_IDENTIFIER_AUTHORITY sid_id_auth = SECURITY_SAMBA_UNIX_AUTHORITY;
-
-static
-BOOL allocate_unixuser_sid(unsigned long uid, PSID *pSid)
-{
-    PSID sid = NULL;
-    PSID malloced_sid = NULL;
-    DWORD sid_len;
-
-    if (AllocateAndInitializeSid(&sid_id_auth, 2, 1, (DWORD)uid,
-        0, 0, 0, 0, 0, 0, &sid)) {
-        sid_len = GetLengthSid(sid);
-
-        malloced_sid = malloc(sid_len);
-
-        if (malloced_sid) {
-            /*
-             * |AllocateAndInitializeSid()| has an own memory
-             * allocator, but we need the sid in memory from
-             * |malloc()|
-             */
-            if (CopySid(sid_len, malloced_sid, sid)) {
-                FreeSid(sid);
-                *pSid = malloced_sid;
-                dprintf(ACLLVL, "allocate_unixuser_sid(): Allocated "
-                    "Unix_User+%lu: success, len=%ld\n",
-                    uid, (long)sid_len);
-                return TRUE;
-            }
-        }
-    }
-
-    FreeSid(sid);
-    free(malloced_sid);
-    dprintf(ACLLVL, "allocate_unixuser_sid(): Failed to allocate "
-        "SID for Unix_User+%lu: error code %d\n",
-        uid, GetLastError());
-    return FALSE;
-}
-
-static
-BOOL allocate_unixgroup_sid(unsigned long gid, PSID *pSid)
-{
-    PSID sid = NULL;
-    PSID malloced_sid = NULL;
-    DWORD sid_len;
-
-    if (AllocateAndInitializeSid(&sid_id_auth, 2, 2, (DWORD)gid,
-        0, 0, 0, 0, 0, 0, &sid)) {
-        sid_len = GetLengthSid(sid);
-
-        malloced_sid = malloc(sid_len);
-
-        if (malloced_sid) {
-            /*
-             * |AllocateAndInitializeSid()| has an own memory
-             * allocator, but we need the sid in memory from
-             * |malloc()|
-             */
-            if (CopySid(sid_len, malloced_sid, sid)) {
-                FreeSid(sid);
-                *pSid = malloced_sid;
-                dprintf(ACLLVL, "allocate_unixgroup_sid(): Allocated "
-                    "Unix_Group+%lu: success, len=%ld\n",
-                    gid, (long)sid_len);
-                return TRUE;
-            }
-        }
-    }
-
-    FreeSid(sid);
-    free(malloced_sid);
-    dprintf(ACLLVL, "allocate_unixgroup_sid(): Failed to allocate "
-        "SID for Unix_Group+%lu: error code %d\n",
-        gid, GetLastError());
-    return FALSE;
-}
-#endif /* NFS41_DRIVER_FEATURE_MAP_UNMAPPED_USER_TO_UNIXUSER_SID */
-
-static int map_name_2_sid(nfs41_daemon_globals *nfs41dg, int query, DWORD *sid_len, PSID *sid, LPCSTR name)
-{
-    int status = ERROR_INTERNAL_ERROR;
-    SID_NAME_USE sid_type;
-    LPSTR tmp_buf = NULL;
-    DWORD tmp = 0;
-#ifdef NFS41_DRIVER_FEATURE_MAP_UNMAPPED_USER_TO_UNIXUSER_SID
-    signed long user_uid = -1;
-    signed long group_gid = -1;
-#endif /* NFS41_DRIVER_FEATURE_MAP_UNMAPPED_USER_TO_UNIXUSER_SID */
-
-#ifdef NFS41_DRIVER_FEATURE_MAP_UNMAPPED_USER_TO_UNIXUSER_SID
-    if (query & OWNER_SECURITY_INFORMATION) {
-        if (!strcmp(name, "rmainz")) {
-            name = "roland_mainz";
-            dprintf(ACLLVL, "map_name_2_sid: remap rmainz --> roland_mainz\n");
-        }
-        else if (!strcmp(name, "197608")) {
-            name = "roland_mainz";
-            dprintf(ACLLVL, "map_name_2_sid: remap 197608 --> roland_mainz\n");
-        }
-        else if (!strcmp(name, "1616")) {
-            name = "roland_mainz";
-            dprintf(ACLLVL, "map_name_2_sid: remap 1616 --> roland_mainz\n");
-        }
-    }
-#endif /* NFS41_DRIVER_FEATURE_MAP_UNMAPPED_USER_TO_UNIXUSER_SID */
-
-    status = LookupAccountName(NULL, name, NULL, sid_len, NULL, &tmp, &sid_type);
-    dprintf(ACLLVL, "map_name_2_sid(query=%x,name='%s'): LookupAccountName returned %d "
-            "GetLastError %d name len %d domain len %d\n",
-            query, name, status, GetLastError(), *sid_len, tmp);
-    if (status)
-        return ERROR_INTERNAL_ERROR;
-
-    status = GetLastError();
-    switch(status) {
-    case ERROR_INSUFFICIENT_BUFFER:
-        *sid = malloc(*sid_len);
-        if (*sid == NULL) {
-            status = GetLastError();
-            goto out;
-        }
-        tmp_buf = (LPSTR) malloc(tmp);
-        if (tmp_buf == NULL)
-            goto out_free_sid;
-        status = LookupAccountName(NULL, name, *sid, sid_len, tmp_buf,
-                                    &tmp, &sid_type);
-        free(tmp_buf);
-        if (!status) {
-            eprintf("map_name_2_sid(query=%x,name='%s'): LookupAccountName failed "
-                    "with %d\n", query, name, GetLastError());
-            goto out_free_sid;
-        } else {
-#ifdef DEBUG_ACLS
-            LPSTR ssid = NULL;
-            if (IsValidSid(*sid))
-                if (ConvertSidToStringSidA(*sid, &ssid))
-                    dprintf(1, "map_name_2_sid: sid_type = %d SID %s\n", 
-                            sid_type, ssid);
-                else
-                    dprintf(1, "map_name_2_sid: ConvertSidToStringSidA failed "
-                            "with %d\n", GetLastError());
-            else
-                dprintf(1, "map_name_2_sid: Invalid Sid ?\n");
-            if (ssid) LocalFree(ssid);
-#endif
-        }
-        status = ERROR_SUCCESS;
-        break;
-    case ERROR_NONE_MAPPED:
-#ifdef NFS41_DRIVER_FEATURE_MAP_UNMAPPED_USER_TO_UNIXUSER_SID
-        dprintf(1, "map_name_2_sid(query=%x,name='%s'): none mapped, "
-            "trying Unix_User+/Unix_Group+ mapping\n",
-            query, name);
-
-        if ((user_uid == -1) && (query & OWNER_SECURITY_INFORMATION)) {
-            uid_t map_uid = -1;
-            gid_t gid_dummy = -1;
-
-            if (nfs41_idmap_name_to_ids(
-                nfs41dg->idmapper,
-                name,
-                &map_uid,
-                &gid_dummy) == 0) {
-                user_uid = map_uid;
-            }
-            else {
-                dprintf(1, "map_name_2_sid(query=%x,name='%s'): nfs41_idmap_name_to_ids() failed\n",
-                    query, name);
-                /* fixme: try harder here, "1234" should to to |atol()| */
-            }
-        }
-
-        if ((group_gid == -1) && (query & GROUP_SECURITY_INFORMATION)) {
-            gid_t map_gid = -1;
-
-            if (nfs41_idmap_group_to_gid(
-                nfs41dg->idmapper,
-                name,
-                &map_gid) == 0) {
-                group_gid = map_gid;
-            }
-            else {
-                dprintf(1, "map_name_2_sid(query=%x,name='%s'): nfs41_idmap_group_to_gid() failed\n",
-                    query, name);
-                /* fixme: try harder here, "1234" should to to |atol()| */
-            }
-        }
-
-        if (user_uid != -1) {
-            if (allocate_unixuser_sid(user_uid, sid)) {
-                dprintf(ACLLVL, "map_name_2_sid(query=%x,name='%s'): "
-                    "allocate_unixuser_sid(uid=%ld) success\n",
-                    query, name, user_uid);
-                return ERROR_SUCCESS;
-            }
-
-            status = GetLastError();
-            dprintf(ACLLVL, "map_name_2_sid(query=%x,name='%s'): "
-                "allocate_unixuser_sid(uid=%ld) failed, error=%d\n",
-                query, name, user_uid, status);
-            return status;
-        }
-
-        if (group_gid != -1) {
-            if (allocate_unixgroup_sid(group_gid, sid)) {
-                dprintf(ACLLVL, "map_name_2_sid(query=%x,name='%s'): "
-                    "allocate_unixgroup_sid(gid=%ld) success\n",
-                    query, name, group_gid);
-                return ERROR_SUCCESS;
-            }
-
-            status = GetLastError();
-            dprintf(ACLLVL, "map_name_2_sid(query=%x,name='%s'): "
-                "allocate_unixgroup_sid(gid=%ld) failed, error=%d\n",
-                query, name, group_gid, status);
-            return status;
-        }
-#endif /* NFS41_DRIVER_FEATURE_MAP_UNMAPPED_USER_TO_UNIXUSER_SID */
-
-        dprintf(1, "map_name_2_sid(query=%x,name='%s'): none mapped, "
-            "using WinNullSid mapping\n",
-            query, name);
-
-        status = create_unknownsid(WinNullSid, sid, sid_len);
-        if (status)
-            goto out_free_sid;
-        break;
-    default:
-        dprintf(1, "map_name_2_sid(query=%x,name='%s'): error %d not handled\n",
-            query, name, GetLastError());
-        break;
-    }
-out:
-    return status;
-out_free_sid:
-    status = GetLastError();
-    free(*sid);
-    *sid = NULL;
-    goto out;
 }
 
 static void free_sids(PSID *sids, int count)
@@ -417,7 +122,7 @@ static int convert_nfs4acl_2_dacl(nfs41_daemon_globals *nfs41dg,
             goto out;
         }
         if (!flag) {
-            status = map_name_2_sid(nfs41dg,
+            status = map_nfs4servername_2_sid(nfs41dg,
                 0xFFFF /* fixme: Unknown whether user or group */,
                 &sid_len, &sids[i], acl->aces[i].who);
             if (status) {
@@ -534,7 +239,7 @@ static int handle_getacl(void *daemon_context, nfs41_upcall *upcall)
         dprintf(ACLLVL, "handle_getacl: OWNER_SECURITY_INFORMATION: for user=%s "
                 "domain=%s\n", info.owner, domain?domain:"<null>");
         sid_len = 0;
-        status = map_name_2_sid(nfs41dg,
+        status = map_nfs4servername_2_sid(nfs41dg,
             OWNER_SECURITY_INFORMATION, &sid_len, &osid, info.owner);
         if (status)
             goto out;
@@ -552,7 +257,7 @@ static int handle_getacl(void *daemon_context, nfs41_upcall *upcall)
         dprintf(ACLLVL, "handle_getacl: GROUP_SECURITY_INFORMATION: for %s "
                 "domain=%s\n", info.owner_group, domain?domain:"<null>");
         sid_len = 0;
-        status = map_name_2_sid(nfs41dg,
+        status = map_nfs4servername_2_sid(nfs41dg,
             GROUP_SECURITY_INFORMATION, &sid_len, &gsid, info.owner_group);
         if (status)
             goto out;
