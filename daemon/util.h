@@ -256,4 +256,14 @@ __inline int valid_handle(HANDLE handle) {
     return handle != INVALID_HANDLE_VALUE && handle != 0;
 }
 
+typedef struct _subcmd_popen_context {
+    HANDLE hReadPipe;
+    HANDLE hWritePipe;
+    PROCESS_INFORMATION pi;
+} subcmd_popen_context;
+
+subcmd_popen_context *subcmd_popen(const char *command);
+int subcmd_pclose(subcmd_popen_context *pinfo);
+BOOL subcmd_readcmdoutput(subcmd_popen_context *pinfo, char *buff, size_t buff_size, DWORD *num_buff_read_ptr);
+
 #endif /* !__NFS41_DAEMON_UTIL_H__ */

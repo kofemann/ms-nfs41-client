@@ -3,6 +3,7 @@
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
+ * Roland Mainz <roland.mainz@nrubsig.org>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -457,4 +458,122 @@ out_context:
     CryptReleaseContext(context, 0);
 out:
     return status;
+}
+
+
+/*
+ * Like Win32 |popen()| but doesn't randomly fail or genrates EINVAL
+ * for unknown reasons
+ */
+subcmd_popen_context *subcmd_popen(const char *command)
+{
+    subcmd_popen_context *pinfo;
+    STARTUPINFOA si;
+    SECURITY_ATTRIBUTES sa = { 0 };
+
+    if (!command) {
+        return NULL;
+    }
+
+    pinfo = malloc(sizeof(subcmd_popen_context));
+    if (!pinfo)
+        return NULL;
+
+    pinfo->hReadPipe = pinfo->hWritePipe = NULL;
+
+#ifdef NOT_WORKING_YET
+    /*
+     * gisburn: fixme: Currently |CreatePipe()| can fail with
+     * |ERROR_BAD_IMPERSONATION_LEVEL|/|1346| for user
+     * "SYSTEM" if nfsd(|debug).exe tries to impersonate
+     * user "SYSTEM" while running as normal user.
+     */
+    SECURITY_DESCRIPTOR sd;
+    (void)memset(&sd, 0, sizeof(SECURITY_DESCRIPTOR));
+    (void)InitializeSecurityDescriptor(&sd, 1);
+    sd.Revision = 1;
+    sd.Control |= SE_DACL_PRESENT;
+    sd.Dacl = NULL;
+#endif /* NOT_WORKING_YET */
+
+    sa.nLength = sizeof(SECURITY_ATTRIBUTES);
+    sa.bInheritHandle = TRUE;
+#ifdef NOT_WORKING_YET
+    sa.lpSecurityDescriptor = &sd;
+#else
+    sa.lpSecurityDescriptor = NULL;
+#endif /* NOT_WORKING_YET */
+
+    /*
+     * Create a pipe for communication between the parent and child
+     * processes
+     */
+    if (!CreatePipe(&pinfo->hReadPipe, &pinfo->hWritePipe, &sa, 0)) {
+        dprintf(0, "subcmd_popen: CreatePipe error, status=%d\n",
+            (int)GetLastError());
+        goto fail;
+    }
+
+    /* Set the pipe handles to non-inheritable */
+    if (!SetHandleInformation(pinfo->hReadPipe, HANDLE_FLAG_INHERIT, FALSE)) {
+        dprintf(0, "subcmd_popen: SetHandleInformation error\n");
+        goto fail;
+    }
+
+    (void)memset(&si, 0, sizeof(si));
+    si.cb = sizeof(si);
+    si.hStdInput = NULL;
+    si.hStdOutput = pinfo->hWritePipe;
+    si.hStdError = GetStdHandle(STD_ERROR_HANDLE);
+    si.dwFlags |= STARTF_USESTDHANDLES;
+
+    if (!CreateProcessA(NULL,
+        (LPSTR)command, NULL, NULL, TRUE, 0, NULL, NULL, &si,
+        &pinfo->pi)) {
+        dprintf(0, "subcmd_popen: cannot create process\n");
+        goto fail;
+    }
+
+    CloseHandle(pinfo->hWritePipe);
+
+    return pinfo;
+fail:
+    if (pinfo) {
+        if (pinfo->hReadPipe)
+            CloseHandle(pinfo->hReadPipe);
+        if (pinfo->hWritePipe)
+            CloseHandle(pinfo->hWritePipe);
+
+        free(pinfo);
+    }
+    return NULL;
+}
+
+int subcmd_pclose(subcmd_popen_context *pinfo)
+{
+    DWORD status;
+
+    /* Close the read handle to the pipe from the child process */
+    CloseHandle(pinfo->hReadPipe);
+
+    WaitForSingleObject(pinfo->pi.hProcess, INFINITE);
+
+    if (!GetExitCodeProcess(pinfo->pi.hProcess, &status)) {
+        status = -1;
+    }
+
+    CloseHandle(pinfo->pi.hProcess);
+    CloseHandle(pinfo->pi.hThread);
+
+    if (status != 0) {
+        (void)dprintf(0, "subcmd_pclose(): exit code=%d\n", (int)status);
+    }
+    free(pinfo);
+
+    return status;
+}
+
+BOOL subcmd_readcmdoutput(subcmd_popen_context *pinfo, char *buff, size_t buff_size, DWORD *num_buff_read_ptr)
+{
+    return ReadFile(pinfo->hReadPipe, buff, (DWORD)buff_size, num_buff_read_ptr, NULL);
 }

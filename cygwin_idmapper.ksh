@@ -79,7 +79,7 @@ compound -A localgroups=(
 )
 
 case "${c.mode}" in
-	'nfsserveruser2localaccount')
+	'nfsserver_owner2localaccount')
 		if [[ "${c.name}" == ~(Elr)[[:digit:]]+ ]] ; then
 			for s in "${!localusers[@]}" ; do
 				if (( localusers[$s].localuid == c.name )) ; then
@@ -97,7 +97,7 @@ case "${c.mode}" in
 			exit 1
 		fi
 		;;
-	'nfsserveruser2localgroup')
+	'nfsserver_owner_group2localgroup')
 		if [[ "${c.name}" == ~(Elr)[[:digit:]]+ ]] ; then
 			for s in "${!localgroups[@]}" ; do
 				if (( localgroups[$s].localgid == c.name )) ; then

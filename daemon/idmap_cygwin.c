@@ -22,11 +22,11 @@
 #include <strsafe.h>
 #include <Winldap.h>
 #include <stdlib.h> /* for strtoul() */
-#include <errno.h>
 #include <time.h>
 
 #include "nfs41_build_features.h"
 #include "idmap.h"
+#include "util.h"
 #include "nfs41_const.h"
 #include "list.h"
 #include "daemon_debug.h"
@@ -48,47 +48,45 @@ int cygwin_getent_passwd(const char *name, char *res_loginname, uid_t *res_uid, 
 {
     char cmdbuff[1024];
     char buff[2048];
-    size_t num_buff_read;
-    FILE* script_pipe = NULL;
+    DWORD num_buff_read;
+    subcmd_popen_context *script_pipe = NULL;
     int res = 1;
     unsigned long uid = -1;
     unsigned long gid = -1;
     void *cpvp = NULL;
     int numcnv = 0;
     int i = 0;
-    cpv_name_val cnv[256] = { 0 };
+    cpv_name_val cnv[64] = { 0 };
     cpv_name_val *cnv_cur = NULL;
     const char *localaccoutname = NULL;
-    int retries = 3;
 
     dprintf(CYGWINIDLVL, "--> cygwin_getent_passwd('%s')\n", name);
 
     /* fixme: better quoting for |name| needed */
     (void)snprintf(cmdbuff, sizeof(cmdbuff),
-        "%s nfsserveruser2localaccount \"%s\"",
+        "%s nfsserver_owner2localaccount \"%s\"",
         CYGWIN_IDMAPPER_SCRIPT,
         name);
-retry:
-    if ((script_pipe = _popen(cmdbuff, "rt")) == NULL) {
-        int saved_errno = errno;
-        dprintf(0, "cygwin_getent_passwd: '%s' failed, errno='%s', retries=%d\n",
+    if ((script_pipe = subcmd_popen(cmdbuff)) == NULL) {
+        int last_error = GetLastError();
+        dprintf(0, "cygwin_getent_passwd: '%s' failed, GetLastError()='%d'\n",
             cmdbuff,
-            strerror(saved_errno),
-            retries);
-        if ((saved_errno == EINVAL) && (retries-- > 0)) {
-            (void)SwitchToThread();
-            goto retry;
-        }
+            last_error);
         goto fail;
     }
 
-    num_buff_read = fread(buff, 1, sizeof(buff), script_pipe);
-    if (num_buff_read < 10) {
-        dprintf(0, "cygwin_getent_passwd: Could not read enough data, returned %d\n", (int)num_buff_read);
+    if (!subcmd_readcmdoutput(script_pipe,
+        buff, sizeof(buff), &num_buff_read)) {
+        dprintf(0, "cygwin_getent_passwd: subcmd_readcmdoutput() failed\n");
         goto fail;
     }
 
     buff[num_buff_read] = '\0';
+
+    if (num_buff_read < 10) {
+        dprintf(0, "cygwin_getent_passwd: Could not read enough data, returned %d\n", (int)num_buff_read);
+        goto fail;
+    }
 
     cpvp = cpv_create_parser(buff, 0/*CPVFLAG_DEBUG_OUTPUT*/);
     if (!cpvp) {
@@ -101,7 +99,10 @@ retry:
         goto fail;
     }
 
-    for (numcnv=0 ; cpv_parse_name_val(cpvp, &cnv[numcnv]) == 0 ; numcnv++) {
+    /* Loop parsing compound variable elements */
+    for (numcnv=0 ;
+        (cpv_parse_name_val(cpvp, &cnv[numcnv]) == 0) && (numcnv < 64) ;
+        numcnv++) {
     }
 
     for (i=0 ; i < numcnv ; i++) {
@@ -131,7 +132,7 @@ retry:
 
 fail:
     if (script_pipe)
-        (void)_pclose(script_pipe);
+        (void)subcmd_pclose(script_pipe);
 
     for (i=0 ; i < numcnv ; i++) {
         cpv_free_name_val_data(&cnv[i]);
@@ -159,16 +160,15 @@ int cygwin_getent_group(const char* name, char* res_group_name, gid_t* res_gid)
 {
     char cmdbuff[1024];
     char buff[2048];
-    size_t num_buff_read;
-    FILE* script_pipe = NULL;
+    DWORD num_buff_read;
+    subcmd_popen_context *script_pipe = NULL;
     int res = 1;
     unsigned long gid = -1;
     void *cpvp = NULL;
     int numcnv = 0;
     int i = 0;
-    cpv_name_val cnv[256] = { 0 };
+    cpv_name_val cnv[64] = { 0 };
     cpv_name_val *cnv_cur = NULL;
-    int retries = 3;
 
     const char *localgroupname = NULL;
 
@@ -176,31 +176,29 @@ int cygwin_getent_group(const char* name, char* res_group_name, gid_t* res_gid)
 
     /* fixme: better quoting for |name| needed */
     (void)snprintf(cmdbuff, sizeof(cmdbuff),
-        "%s nfsserveruser2localgroup \"%s\"",
+        "%s nfsserver_owner_group2localgroup \"%s\"",
         CYGWIN_IDMAPPER_SCRIPT,
         name);
-retry:
-    if ((script_pipe = _popen(cmdbuff, "rt")) == NULL) {
-        int saved_errno = errno;
-        dprintf(0,
-            "cygwin_getent_group: '%s' failed, errno='%s', retries=%d\n",
+    if ((script_pipe = subcmd_popen(cmdbuff)) == NULL) {
+        int last_error = GetLastError();
+        dprintf(0, "cygwin_getent_group: '%s' failed, GetLastError()='%d'\n",
             cmdbuff,
-            strerror(saved_errno),
-            retries);
-        if ((saved_errno == EINVAL) && (retries-- > 0)) {
-            (void)SwitchToThread();
-            goto retry;
-        }
+            last_error);
         goto fail;
     }
 
-    num_buff_read = fread(buff, 1, sizeof(buff), script_pipe);
-    if (num_buff_read < 10) {
-        dprintf(0, "cygwin_getent_group: Could not read enough data, returned %d\n", (int)num_buff_read);
+    if (!subcmd_readcmdoutput(script_pipe,
+        buff, sizeof(buff), &num_buff_read)) {
+        dprintf(0, "cygwin_getent_group: subcmd_readcmdoutput() failed\n");
         goto fail;
     }
 
     buff[num_buff_read] = '\0';
+
+    if (num_buff_read < 10) {
+        dprintf(0, "cygwin_getent_group: Could not read enough data, returned %d\n", (int)num_buff_read);
+        goto fail;
+    }
 
     cpvp = cpv_create_parser(buff, 0/*CPVFLAG_DEBUG_OUTPUT*/);
     if (!cpvp) {
@@ -213,7 +211,10 @@ retry:
         goto fail;
     }
 
-    for (numcnv=0 ; cpv_parse_name_val(cpvp, &cnv[numcnv]) == 0 ; numcnv++) {
+    /* Loop parsing compound variable elements */
+    for (numcnv=0 ;
+        (cpv_parse_name_val(cpvp, &cnv[numcnv]) == 0) && (numcnv < 64) ;
+        numcnv++) {
     }
 
     for (i=0 ; i < numcnv ; i++) {
@@ -236,7 +237,7 @@ retry:
 
 fail:
     if (script_pipe)
-        (void)_pclose(script_pipe);
+        (void)subcmd_pclose(script_pipe);
 
     for (i=0 ; i < numcnv ; i++) {
         cpv_free_name_val_data(&cnv[i]);
