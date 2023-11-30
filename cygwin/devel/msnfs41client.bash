@@ -78,6 +78,11 @@ function nfsclient_install
 	cp etc_netconfig /cygdrive/c/etc/netconfig
 	cp ms-nfs41-idmap.conf /cygdrive/c/etc/.
 
+	# enable symlink lookup
+	# and then print the status
+	fsutil behavior set SymlinkEvaluation L2L:1 R2R:1 L2R:1 R2L:1
+	fsutil behavior query SymlinkEvaluation
+
 	# make sure we can load the kernel driver
 	# (does not work with SecureBoot)
 	bcdedit /set testsigning on

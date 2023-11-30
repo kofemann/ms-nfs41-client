@@ -260,6 +260,40 @@ typedef struct _updowncall_list {
 } nfs41_updowncall_list;
 nfs41_updowncall_list upcall, downcall;
 
+
+
+/* In order to cooperate with other network providers,
+ * we only claim paths of the format '\\server\nfs4\path' */
+DECLARE_CONST_UNICODE_STRING(NfsPrefix, L"\\nfs4");
+DECLARE_CONST_UNICODE_STRING(AUTH_SYS_NAME, L"sys");
+DECLARE_CONST_UNICODE_STRING(AUTHGSS_KRB5_NAME, L"krb5");
+DECLARE_CONST_UNICODE_STRING(AUTHGSS_KRB5I_NAME, L"krb5i");
+DECLARE_CONST_UNICODE_STRING(AUTHGSS_KRB5P_NAME, L"krb5p");
+DECLARE_CONST_UNICODE_STRING(SLASH, L"\\");
+DECLARE_CONST_UNICODE_STRING(EMPTY_STRING, L"");
+
+#define SERVER_NAME_BUFFER_SIZE         1024
+#define MOUNT_CONFIG_RW_SIZE_MIN        1024
+#define MOUNT_CONFIG_RW_SIZE_DEFAULT    1048576
+#define MOUNT_CONFIG_RW_SIZE_MAX        1048576
+#define MAX_SEC_FLAVOR_LEN              12
+#define UPCALL_TIMEOUT_DEFAULT          50  /* in seconds */
+
+typedef struct _NFS41_MOUNT_CONFIG {
+    DWORD ReadSize;
+    DWORD WriteSize;
+    BOOLEAN ReadOnly;
+    BOOLEAN write_thru;
+    BOOLEAN nocache;
+    WCHAR srv_buffer[SERVER_NAME_BUFFER_SIZE];
+    UNICODE_STRING SrvName; /* hostname, or hostname@port */
+    WCHAR mntpt_buffer[MAX_PATH];
+    UNICODE_STRING MntPt;
+    WCHAR sec_flavor[MAX_SEC_FLAVOR_LEN];
+    UNICODE_STRING SecFlavor;
+    DWORD timeout;
+} NFS41_MOUNT_CONFIG, *PNFS41_MOUNT_CONFIG;
+
 typedef struct _nfs41_mount_entry {
     LIST_ENTRY next;
     LUID login_id;
@@ -267,6 +301,7 @@ typedef struct _nfs41_mount_entry {
     HANDLE gss_session;
     HANDLE gssi_session;
     HANDLE gssp_session;
+    NFS41_MOUNT_CONFIG Config;
 } nfs41_mount_entry;
 
 typedef struct _nfs41_mount_list {
@@ -310,37 +345,6 @@ typedef struct _nfs41_mount_list {
                                   next)));                  \
             ExReleaseFastMutex(&lock);
 
-/* In order to cooperate with other network providers,
- * we only claim paths of the format '\\server\nfs4\path' */
-DECLARE_CONST_UNICODE_STRING(NfsPrefix, L"\\nfs4");
-DECLARE_CONST_UNICODE_STRING(AUTH_SYS_NAME, L"sys");
-DECLARE_CONST_UNICODE_STRING(AUTHGSS_KRB5_NAME, L"krb5");
-DECLARE_CONST_UNICODE_STRING(AUTHGSS_KRB5I_NAME, L"krb5i");
-DECLARE_CONST_UNICODE_STRING(AUTHGSS_KRB5P_NAME, L"krb5p");
-DECLARE_CONST_UNICODE_STRING(SLASH, L"\\");
-DECLARE_CONST_UNICODE_STRING(EMPTY_STRING, L"");
-
-#define SERVER_NAME_BUFFER_SIZE         1024
-#define MOUNT_CONFIG_RW_SIZE_MIN        1024
-#define MOUNT_CONFIG_RW_SIZE_DEFAULT    1048576
-#define MOUNT_CONFIG_RW_SIZE_MAX        1048576
-#define MAX_SEC_FLAVOR_LEN              12
-#define UPCALL_TIMEOUT_DEFAULT          50  /* in seconds */
-
-typedef struct _NFS41_MOUNT_CONFIG {
-    DWORD ReadSize;
-    DWORD WriteSize;
-    BOOLEAN ReadOnly;
-    BOOLEAN write_thru;
-    BOOLEAN nocache;
-    WCHAR srv_buffer[SERVER_NAME_BUFFER_SIZE];
-    UNICODE_STRING SrvName; /* hostname, or hostname@port */
-    WCHAR mntpt_buffer[MAX_PATH];
-    UNICODE_STRING MntPt;
-    WCHAR sec_flavor[MAX_SEC_FLAVOR_LEN];
-    UNICODE_STRING SecFlavor;
-    DWORD timeout;
-} NFS41_MOUNT_CONFIG, *PNFS41_MOUNT_CONFIG;
 
 typedef struct _NFS41_NETROOT_EXTENSION {
     NODE_TYPE_CODE          NodeTypeCode;
@@ -474,6 +478,14 @@ nfs41_init_driver_state nfs41_init_state = NFS41_INIT_DRIVER_STARTABLE;
 nfs41_start_driver_state nfs41_start_state = NFS41_START_DRIVER_STARTABLE;
 
 NTSTATUS map_readwrite_errors(DWORD status);
+
+
+void copy_nfs41_mount_config(NFS41_MOUNT_CONFIG *dest, NFS41_MOUNT_CONFIG *src)
+{
+    RtlCopyMemory(dest, src, sizeof(NFS41_MOUNT_CONFIG));
+    dest->SrvName.Buffer = dest->srv_buffer;
+    dest->MntPt.Buffer = dest->mntpt_buffer;
+}
 
 void print_debug_header(
     PRX_CONTEXT RxContext)
@@ -2739,6 +2751,9 @@ NTSTATUS nfs41_MountConfig_ParseOptions(
     IN ULONG EaLength,
     IN OUT PNFS41_MOUNT_CONFIG Config)
 {
+    DbgP("--> nfs41_MountConfig_ParseOptions(EaBuffer=%p,EaLength=%ld)\n",
+        (void *)EaBuffer,
+        (long)EaLength);
     NTSTATUS  status = STATUS_SUCCESS;
     PFILE_FULL_EA_INFORMATION Option;
     LPWSTR Name;
@@ -2746,12 +2761,19 @@ NTSTATUS nfs41_MountConfig_ParseOptions(
     UNICODE_STRING  usValue;
     Option = EaBuffer;
     while (status == STATUS_SUCCESS) {
+        DbgP("Option=%p\n", (void *)Option);
         Name = (LPWSTR)Option->EaName;
         NameLen = Option->EaNameLength/sizeof(WCHAR);
+
+        DbgP("nfs41_MountConfig_ParseOptions: Name='%*S'/NameLen=%d\n",
+            (int)NameLen, Name, (int)NameLen);
 
         usValue.Length = usValue.MaximumLength = Option->EaValueLength;
         usValue.Buffer = (PWCH)(Option->EaName +
             Option->EaNameLength + sizeof(WCHAR));
+
+        DbgP("nfs41_MountConfig_ParseOptions: option/usValue='%wZ'/%ld\n",
+            &usValue, (long)usValue.Length);
 
         if (wcsncmp(L"ro", Name, NameLen) == 0) {
             status = nfs41_MountConfig_ParseBoolean(Option, &usValue,
@@ -2834,6 +2856,7 @@ NTSTATUS nfs41_MountConfig_ParseOptions(
             ((PBYTE)Option + Option->NextEntryOffset);
     }
 
+    DbgP("<-- nfs41_MountConfig_ParseOptions, status=%ld\n", (long)status);
     return status;
 }
 
@@ -2996,27 +3019,88 @@ NTSTATUS nfs41_CreateVNetRoot(
 
     if (pCreateNetRootContext->RxContext->Create.EaLength) {
         /* Codepath for nfs_mount.exe */
+        DbgP("Codepath for nfs_mount.exe, Create->{ EaBuffer=%p, EaLength=%ld }\n",
+            pCreateNetRootContext->RxContext->Create.EaBuffer,
+            (long)pCreateNetRootContext->RxContext->Create.EaLength);
 
         /* parse the extended attributes for mount options */
         status = nfs41_MountConfig_ParseOptions(
             pCreateNetRootContext->RxContext->Create.EaBuffer,
             pCreateNetRootContext->RxContext->Create.EaLength,
             Config);
-        if (status != STATUS_SUCCESS)
+        if (status != STATUS_SUCCESS) {
+            DbgP("nfs41_MountConfig_ParseOptions() failed\n");
             goto out_free;
+        }
         pVNetRootContext->read_only = Config->ReadOnly;
         pVNetRootContext->write_thru = Config->write_thru;
-        pVNetRootContext->nocache = Config->nocache;        
+        pVNetRootContext->nocache = Config->nocache;
     } else {
-        /* Codepath for \\server:port\nfs4\path */
+        /* Codepath for \\server@port\nfs4\path */
+        DbgP("Codepath for \\\\server@port\\nfs4\\path\n");
 
-        /* use the SRV_CALL name (without leading \) as the hostname */
-        Config->SrvName.Buffer = pSrvCall->pSrvCallName->Buffer + 1;
-        Config->SrvName.Length =
-            pSrvCall->pSrvCallName->Length - sizeof(WCHAR);
-        Config->SrvName.MaximumLength =
-            pSrvCall->pSrvCallName->MaximumLength - sizeof(WCHAR);
+        /*
+         * gisburn: Fixme: Originally the code was using the
+         * SRV_CALL name (without leading \) as the hostname
+         * like this:
+         * ---- snip ----
+         * Config->SrvName.Buffer = pSrvCall->pSrvCallName->Buffer+1;
+         * Config->SrvName.Length =
+         *     pSrvCall->pSrvCallName->Length - sizeof(WCHAR);
+         * Config->SrvName.MaximumLength =
+         *     pSrvCall->pSrvCallName->MaximumLength - sizeof(WCHAR);
+         * ---- snip ----
+         * IMHO we should validate that the hostname in
+         * |existing_mount->Config| below matches
+         * |pSrvCall->pSrvCallName->Buffer|
+         */
+
+        status = nfs41_GetLUID(&luid);
+        if (status)
+            goto out_free;
+
+        PLIST_ENTRY pEntry;
+
+        status = STATUS_OBJECT_NAME_NOT_FOUND;
+
+        ExAcquireFastMutex(&pNetRootContext->mountLock);
+        pEntry = &pNetRootContext->mounts.head;
+        pEntry = pEntry->Flink;
+        while (pEntry != NULL) {
+            existing_mount = (nfs41_mount_entry *)CONTAINING_RECORD(pEntry,
+                    nfs41_mount_entry, next);
+
+            if (RtlEqualLuid(&luid, &existing_mount->login_id)) {
+                /* found existing mount */
+                copy_nfs41_mount_config(Config, &existing_mount->Config);
+                DbgP("Found existing mount: Entry Config->MntPt='%wZ'\n",
+                    &Config->MntPt);
+                status = STATUS_SUCCESS;
+                break;
+            }
+            if (pEntry->Flink == &pNetRootContext->mounts.head)
+                break;
+            pEntry = pEntry->Flink;
+        }
+        ExReleaseFastMutex(&pNetRootContext->mountLock);
+
+        if (status != STATUS_SUCCESS) {
+            DbgP("No existing mount found\n");
+            goto out_free;
+        }
+
+        pVNetRootContext->read_only = Config->ReadOnly;
+        pVNetRootContext->write_thru = Config->write_thru;
+        pVNetRootContext->nocache = Config->nocache;
     }
+
+    DbgP("Config->{ MntPt='%wZ', SrvName='%wZ', ReadOnly=%d, write_thru=%d, nocache=%d }\n",
+        &Config->MntPt,
+        &Config->SrvName,
+        Config->ReadOnly?1:0,
+        Config->write_thru?1:0,
+        Config->nocache?1:0);
+
     pVNetRootContext->MountPathLen = Config->MntPt.Length;
     pVNetRootContext->timeout = Config->timeout;
 
@@ -3127,6 +3211,11 @@ NTSTATUS nfs41_CreateVNetRoot(
             entry->gssp_session = pVNetRootContext->session; break;
         }
         RtlCopyLuid(&entry->login_id, &luid);
+        /*
+         * Save mount config so we can use it for
+         * \\server@port\nfs4\path mounts later
+         */
+        copy_nfs41_mount_config(&entry->Config, Config);
         nfs41_AddEntry(pNetRootContext->mountLock,
             pNetRootContext->mounts, entry);
     } else if (!found_matching_flavor) {

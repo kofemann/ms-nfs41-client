@@ -22,6 +22,7 @@
 #include <Windows.h>
 #include <tchar.h>
 #include <stdio.h>
+#include <malloc.h>
 
 #include "nfs41_driver.h" /* NFS41_PROVIDER_NAME_A */
 
@@ -34,7 +35,29 @@ void PrintMountLine(
     LPCTSTR local,
     LPCTSTR remote)
 {
-    _tprintf(TEXT("%-11s %s\n"), local, remote);
+    TCHAR *cygwin_unc_buffer = alloca((_tcslen(remote)+32)*sizeof(TCHAR));
+    TCHAR *b = cygwin_unc_buffer;
+    LPCTSTR s = remote;
+    TCHAR sc;
+    unsigned int backslash_counter = 0;
+
+    while((sc = *s++) != TEXT('\0')) {
+        switch(sc) {
+            case TEXT('\\'):
+                *b++ = TEXT('/');
+                if (backslash_counter++ == 2) {
+                    (void)wcscpy_s(b, 6, TEXT("nfs4/"));
+                    b+=5;
+                }
+                break;
+            default:
+                *b++ = sc;
+                break;
+        }
+    }
+    *b = TEXT('\0');
+
+    _tprintf(TEXT("%-8s\t%-40s\t%s\n"), local, remote, cygwin_unc_buffer);
 }
 
 /* ENUM_RESOURCE_BUFFER_SIZE
@@ -66,8 +89,9 @@ DWORD EnumMounts(
     if (result)
         goto out_free;
 
-    _tprintf(TEXT("Listing %s mounts:\n\n"), TEXT(NFS41_PROVIDER_NAME_A));
-    PrintMountLine(TEXT("Volume"), TEXT("Remote path"));
+    _tprintf(TEXT("Listing '%s' mounts:\n\n"), TEXT(NFS41_PROVIDER_NAME_A));
+    _tprintf(TEXT("%-8s\t%-40s\t%s\n"), TEXT("Volume"), TEXT("Remote path"), TEXT("Cygwin UNC path"));
+
     do
     {
         dwCount = (DWORD)-1;
