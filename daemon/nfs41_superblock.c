@@ -165,7 +165,11 @@ void nfs41_superblock_fs_attributes(
     IN const nfs41_superblock *superblock,
     OUT PFILE_FS_ATTRIBUTE_INFORMATION FsAttrs)
 {
-    FsAttrs->FileSystemAttributes = FILE_SUPPORTS_REMOTE_STORAGE;
+    FsAttrs->FileSystemAttributes = 0;
+    FsAttrs->FileSystemAttributes |= FILE_SUPPORTS_REMOTE_STORAGE;
+    /* NFSv4 protocol uses Unicode by default */
+    FsAttrs->FileSystemAttributes |= FILE_UNICODE_ON_DISK;
+
     if (superblock->link_support)
         FsAttrs->FileSystemAttributes |= FILE_SUPPORTS_HARD_LINKS;
     if (superblock->symlink_support)
@@ -179,15 +183,29 @@ void nfs41_superblock_fs_attributes(
     if (superblock->aclsupport)
         FsAttrs->FileSystemAttributes |= FILE_PERSISTENT_ACLS;
 
+    /* gisburn: Fixme: We should someone query this (NFSv4.2 ?) */
     FsAttrs->MaximumComponentNameLength = NFS41_MAX_COMPONENT_LEN;
 
     /* let the driver fill in FileSystemName */
     FsAttrs->FileSystemNameLength = 0;
 
-    dprintf(SBLVL, "FileFsAttributeInformation: case_preserving %u, "
-        "case_insensitive %u, max component %u\n",
-        superblock->case_preserving, superblock->case_insensitive,
-        FsAttrs->MaximumComponentNameLength);
+    dprintf(SBLVL, "FileFsAttributeInformation: "
+        "link_support=%u, "
+        "symlink_support=%u, "
+        "ea_support=%u, "
+        "case_preserving=%u, "
+        "case_insensitive=%u, "
+        "aclsupport=%u, "
+        "MaximumComponentNameLength=%u, "
+        "FileSystemAttributes=%lx\n",
+        superblock->link_support,
+        superblock->symlink_support,
+        superblock->ea_support,
+        superblock->case_preserving,
+        superblock->case_insensitive,
+        superblock->aclsupport,
+        (unsigned int)FsAttrs->MaximumComponentNameLength,
+        (unsigned long)FsAttrs->FileSystemAttributes);
 }
 
 

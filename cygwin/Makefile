@@ -31,13 +31,14 @@ build:
 	which MSBuild.exe
 	MSBuild.exe '$(shell cygpath -w "$(PROJECT_BASEDIR_DIR)/build.vc19/nfs41-client.sln")' -t:Build  -p:Configuration=Debug -p:Platform=x64
 	#MSBuild.exe $(PROJECT_BASEDIR_DIR)/build.vc19/nfs41-client.sln -t:Build  -p:Configuration=Debug -p:Platform=x64
-
+	(cd tests/winfsinfo1 && make all)
 
 #
 # clean target
 #
 clean:
 	rm -vRf $$(find "$(PROJECT_BASEDIR_DIR)/build.vc19" -name Debug -o -name Release)
+	(cd tests/winfsinfo1 && make clean)
 
 # install in DESTDIR
 installdest: $(VS_BUILD_DIR)/nfsd.exe \
@@ -73,10 +74,13 @@ installdest: $(VS_BUILD_DIR)/nfsd.exe \
 	chmod a+x $(DESTDIR)/cygdrive/c/cygwin64/sbin/mount_sshnfs
 	cp $(CYGWIN_MAKEFILE_DIR)/utils/sshnfs/sshnfs.ksh $(DESTDIR)/cygdrive/c/cygwin64/sbin/sshnfs
 	chmod a+x $(DESTDIR)/cygdrive/c/cygwin64/sbin/sshnfs
-	(cd $(DESTDIR)/cygdrive/c/cygwin64/sbin/ ; chmod a+x *.exe *.dll *.sys *.bash)
+	@ printf "# Package tests\n"
+	cp tests/winfsinfo1/winfsinfo.exe $(DESTDIR)/cygdrive/c/cygwin64/usr/bin/winfsinfo.exe
 	@ printf "# Package ksh93&co (if available) since Cygwin does not ship with it yet\n"
 	[[ -x /usr/bin/ksh93.exe ]] && cp /usr/bin/ksh93.exe $(DESTDIR)/cygdrive/c/cygwin64/usr/bin/ksh93.exe
 	[[ -x /usr/bin/shcomp.exe ]] && cp /usr/bin/shcomp.exe $(DESTDIR)/cygdrive/c/cygwin64/usr/bin/shcomp.exe
+	@ printf "# Set file flags\n"
+	(cd $(DESTDIR)/cygdrive/c/cygwin64/sbin/ ; chmod a+x *.exe *.dll *.sys *.bash)
 	@printf "\n#\n# TEST sbin dir is %s\n#\n" "$(DESTDIR)/cygdrive/c/cygwin64/sbin/"
 	@printf '\n'
 	@printf "\n#\n# Now use\n# $$ cd '%s' && bash ./msnfs41client.bash install #\n# to install the kernel driver as Admin\n#\n" \
