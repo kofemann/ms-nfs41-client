@@ -417,6 +417,13 @@ VOID ServiceStart(DWORD argc, LPTSTR *argv)
     /* available only when built in debug mode under visual studio -cbodley */
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
     _CrtSetReportMode(_CRT_WARN, _CRTDBG_MODE_FILE);
+
+    /*
+     * Do not fill memory with 0xFE for functions like |strcpy_s()|
+     * etc, as it causes bad performance. We have drmemory to find
+     * issues like that instead
+     */
+    (void)_CrtSetDebugFillThreshold(0);
 #pragma warning (push)
 #pragma warning (disable : 4306) /* conversion from 'int' to '_HFILE' of greater size */
     _CrtSetReportFile(_CRT_WARN, _CRTDBG_FILE_STDERR);
