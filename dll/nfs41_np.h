@@ -35,10 +35,10 @@ typedef struct __NFS41NP_NETRESOURCE {
     DWORD   dwType;
     DWORD   dwDisplayType;
     DWORD   dwUsage;
-    WCHAR   LocalName[MAX_PATH];
-    WCHAR   RemoteName[MAX_PATH];
-    WCHAR   ConnectionName[MAX_PATH];
-    WCHAR   Options[MAX_PATH];
+    WCHAR   LocalName[NFS41_SYS_MAX_PATH_LEN];
+    WCHAR   RemoteName[NFS41_SYS_MAX_PATH_LEN];
+    WCHAR   ConnectionName[NFS41_SYS_MAX_PATH_LEN];
+    WCHAR   Options[NFS41_SYS_MAX_PATH_LEN];
 } NFS41NP_NETRESOURCE, *PNFS41NP_NETRESOURCE;
 
 typedef struct __NFS41NP_SHARED_MEMORY {

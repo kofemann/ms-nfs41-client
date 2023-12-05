@@ -28,6 +28,8 @@
 #include "nfs41_np.h"
 #include "options.h"
 
+#define DBG 1
+
 #ifdef DBG
 #define DbgP(_x_) NFS41DbgPrint _x_
 #else
@@ -38,17 +40,16 @@
 
 
 ULONG _cdecl NFS41DbgPrint( __in LPTSTR Format, ... )
-{   
+{
     ULONG rc = 0;
-    TCHAR szbuffer[256];
+#define szbuffer_SIZE 256
+    TCHAR szbuffer[szbuffer_SIZE];
 
     va_list marker;
     va_start( marker, Format );
     {
-
-        //StringCchVPrintfW( szbuffer, 127, Format, marker );
-        StringCchVPrintfW( szbuffer, 256, Format, marker );
-        szbuffer[255] = (TCHAR)0;
+        StringCchVPrintfW( szbuffer, szbuffer_SIZE, Format, marker );
+        szbuffer[szbuffer_SIZE-1] = (TCHAR)0;
         OutputDebugString( TRACE_TAG );
         OutputDebugString( szbuffer );
     }
@@ -416,7 +417,7 @@ NPAddConnection3(
     DWORD   CopyBytes = 0;
     CONNECTION_INFO Connection;
     LPWSTR  ConnectionName;
-    WCHAR ServerName[MAX_PATH];
+    WCHAR ServerName[NFS41_SYS_MAX_PATH_LEN];
     PWCHAR p;
     DWORD i;
 
@@ -444,9 +445,9 @@ NPAddConnection3(
     LocalName[0] = (WCHAR) toupper(lpNetResource->lpLocalName[0]);
     LocalName[1] = L':';
     LocalName[2] = L'\0';
-    StringCchCopyW( ConnectionName, MAX_PATH, NFS41_DEVICE_NAME );
-    StringCchCatW( ConnectionName, MAX_PATH, L"\\;" );
-    StringCchCatW( ConnectionName, MAX_PATH, LocalName );
+    StringCchCopyW( ConnectionName, NFS41_SYS_MAX_PATH_LEN, NFS41_DEVICE_NAME );
+    StringCchCatW( ConnectionName, NFS41_SYS_MAX_PATH_LEN, L"\\;" );
+    StringCchCatW( ConnectionName, NFS41_SYS_MAX_PATH_LEN, LocalName );
 
     // remote name, must start with "\\"
     if (lpNetResource->lpRemoteName[0] == L'\0' ||
@@ -472,10 +473,10 @@ NPAddConnection3(
         i++;
     }
     ServerName[i] = L'\0';
-    StringCchCatW( ConnectionName, MAX_PATH, ServerName);
+    StringCchCatW( ConnectionName, NFS41_SYS_MAX_PATH_LEN, ServerName);
     /* insert the "nfs4" in between the server name and the path,
      * just to make sure all calls to our driver come thru this */
-    StringCchCatW( ConnectionName, MAX_PATH, L"\\nfs4" );
+    StringCchCatW( ConnectionName, NFS41_SYS_MAX_PATH_LEN, L"\\nfs4" );
 
 #ifdef CONVERT_2_UNIX_SLASHES
     /* convert all windows slashes to unix slashes */
@@ -500,10 +501,10 @@ NPAddConnection3(
         }
     }
 #endif
-    StringCchCatW( ConnectionName, MAX_PATH, &p[i]);
+    StringCchCatW( ConnectionName, NFS41_SYS_MAX_PATH_LEN, &p[i]);
     DbgP(( L"[aglo] Full Connect Name: %s\n", ConnectionName ));
-    DbgP(( L"[aglo] Full Connect Name Length: %d %d\n", 
-        (wcslen(ConnectionName) + 1) * sizeof(WCHAR), 
+    DbgP(( L"[aglo] Full Connect Name Length: %d %d\n",
+        (wcslen(ConnectionName) + 1) * sizeof(WCHAR),
         (lstrlen(ConnectionName) + 1) * sizeof(WCHAR)));
 
     if ( QueryDosDevice( LocalName, wszScratch, 128 )

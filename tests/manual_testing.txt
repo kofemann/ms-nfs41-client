@@ -36,6 +36,11 @@ time ksh93 -c 'export SHELL=/bin/bash HOSTTYPE="cygwin.i386-64"; /bin/bash ./bin
 #
 # bash
 #
+mkdir longpath__________________________________________________________________________________________________________________________________________________________________________________________________________________________1
+cd longpath__________________________________________________________________________________________________________________________________________________________________________________________________________________________1
+mkdir longpath__________________________________________________________________________________________________________________________________________________________________________________________________________________________2
+cd longpath__________________________________________________________________________________________________________________________________________________________________________________________________________________________2
+echo ${#PWD} # (478 is know to work)
 git clone https://git.savannah.gnu.org/git/bash.git
 cd bash/
 ./configure --with-curses
@@ -60,8 +65,18 @@ MSBuild.exe build.vc19/nfs41-client.sln -t:Build  -p:Configuration=Release -p:Pl
 #
 # gcc
 #
-
-
+# * Notes:
+# - The build requires that there are at least 131 characters left in
+#   the path, e.g. $ echo $((260-${#PWD} > 131)) # should be "1",
+#   otherwise the buildcan "randomly" fail with internal gcc errors.
+#   Note that PWD might be the UNC path.
+#   ---- snip ----
+#   $ cd gcc
+#   $ ksh93 -c 'integer pnl pnl_max ; find . | while read pn ; do pnl=${#pn} ; (( pnl_max=fmax(pnl, pnl_max) )) ; done ; printf "max_path_length=%d\n" pnl_max'
+#   max_path_length=131
+#   ---- snip ----
+# - Full build can easily take ~~16 hours minutes
+#
 git clone -b 'releases/gcc-13.2.0' git://gcc.gnu.org/git/gcc.git
 cd gcc/
 # Cygwin: workaround for configure using cp -p where ln -s should be used

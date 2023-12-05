@@ -22,6 +22,7 @@
 #ifndef __NFS41_NP_OPTIONS_H__
 #define __NFS41_NP_OPTIONS_H__
 
+#include "nfs41_driver.h"
 
 #define MOUNT_OPTION_BUFFER_SECRET ('n4')
 
@@ -59,7 +60,7 @@ typedef struct _CONNECTION_INFO {
 } CONNECTION_INFO, *PCONNECTION_INFO;
 
 #define MAX_CONNECTION_BUFFER_SIZE(EaSize) ( \
-	sizeof(CONNECTION_BUFFER) + MAX_PATH + (EaSize) )
+	sizeof(CONNECTION_BUFFER) + NFS41_SYS_MAX_PATH_LEN + (EaSize) )
 
 
 /* options.c */

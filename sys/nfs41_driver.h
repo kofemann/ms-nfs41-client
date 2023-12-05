@@ -49,6 +49,17 @@
 #define IOCTL_NFS41_WRITE       _RDR_CTL_CODE(7, METHOD_BUFFERED)
 #define IOCTL_NFS41_INVALCACHE  _RDR_CTL_CODE(8, METHOD_BUFFERED)
 
+/*
+ * NFS41_SYS_MAX_PATH_LEN - Maximum path length
+ * Notes:
+ * - Starting in Windows 10, version 1607, MAX_PATH limitations have
+ * been removed from common Win32 file and directory functions
+ * (see https://learn.microsoft.com/en-us/windows/win32/fileio/maximum-file-path-limitation)
+ * - We limit this to 4096 for now, to match Cygwin
+ * $ getconf PATH_MAX /cygdrive/c/Users #
+ */
+#define NFS41_SYS_MAX_PATH_LEN          4096
+
 typedef enum _nfs41_opcodes {
     NFS41_MOUNT,
     NFS41_UNMOUNT,

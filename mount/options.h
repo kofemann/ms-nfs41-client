@@ -61,7 +61,7 @@ typedef struct _MOUNT_OPTION_LIST {
 /* allocate space for 8 full attributes, but limit options by
  * space rather than count. */
 #define MAX_OPTION_EA_SIZE ( 8 * \
-    (sizeof(FILE_FULL_EA_INFORMATION) + MAX_PATH) )
+    (sizeof(FILE_FULL_EA_INFORMATION) + NFS41_SYS_MAX_PATH_LEN) )
 
 #define MAX_OPTION_BUFFER_SIZE ( sizeof(MOUNT_OPTION_BUFFER) + \
     MAX_OPTION_EA_SIZE - 1 )

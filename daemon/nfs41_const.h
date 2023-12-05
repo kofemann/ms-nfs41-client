@@ -41,9 +41,21 @@
 
 #define UPCALL_BUF_SIZE         2048
 
-/* MaximumComponentNameLength reported for FileFsAttributeInformation */
+/*
+ * NFS41_MAX_COMPONENT_LEN - MaximumComponentNameLength
+ * reported for FileFsAttributeInformation
+ */
 #define NFS41_MAX_COMPONENT_LEN     256
-#define NFS41_MAX_PATH_LEN          1280
+/*
+ * NFS41_MAX_PATH_LEN - Maximum path length
+ * Notes:
+ * - Starting in Windows 10, version 1607, MAX_PATH limitations have
+ * been removed from common Win32 file and directory functions
+ * (see https://learn.microsoft.com/en-us/windows/win32/fileio/maximum-file-path-limitation)
+ * - We limit this to 4096 for now, to match Cygwin
+ * $ getconf PATH_MAX /cygdrive/c/Users #
+ */
+#define NFS41_MAX_PATH_LEN          4096
 
 #define NFS41_HOSTNAME_LEN          64
 #define NFS41_ADDRS_PER_SERVER      4

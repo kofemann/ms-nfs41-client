@@ -83,6 +83,10 @@ function nfsclient_install
 	fsutil behavior set SymlinkEvaluation L2L:1 R2R:1 L2R:1 R2L:1
 	fsutil behavior query SymlinkEvaluation
 
+	# enable Win32 long paths
+	# (see https://learn.microsoft.com/en-us/windows/win32/fileio/maximum-file-path-limitation)
+	regtool -i set '/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Control/FileSystem/LongPathsEnabled' 1
+
 	# make sure we can load the kernel driver
 	# (does not work with SecureBoot)
 	bcdedit /set testsigning on
@@ -93,6 +97,7 @@ function nfsclient_install
 
 	# set domain name
 	regtool -s set '/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Services/Tcpip/Parameters/Domain' 'GLOBAL.LOC'
+	od -t x4 <'/proc/registry/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Control/FileSystem/LongPathsEnabled'
 
 	# disable DFS
 	sc query Dfsc

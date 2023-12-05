@@ -264,11 +264,11 @@ static DWORD ParseRemoteName(
     LPTSTR pEnd;
     int port = 0;
     PFILE_FULL_EA_INFORMATION port_option_val;
-    wchar_t remotename[MAX_PATH];
+    wchar_t remotename[NFS41_SYS_MAX_PATH_LEN];
     wchar_t *premotename = remotename;
-    wchar_t srvname[MAX_PATH+1+32]; /* sizeof(hostname+'@'+integer) */
+    wchar_t srvname[NFS41_SYS_MAX_PATH_LEN+1+32]; /* sizeof(hostname+'@'+integer) */
 
-    result = StringCchCopy(premotename, MAX_PATH, pRemoteName);
+    result = StringCchCopy(premotename, NFS41_SYS_MAX_PATH_LEN, pRemoteName);
 
     /*
      * gisburn: Fixme: Implement nfs://-URLS per RFC 2224 ("NFS URL
@@ -442,13 +442,13 @@ static DWORD DoMount(
     IN PMOUNT_OPTION_LIST pOptions)
 {
     DWORD result = NO_ERROR;
-    TCHAR szExisting[MAX_PATH];
-    TCHAR szParsedRemoteName[MAX_PATH];
-    TCHAR szRemoteName[MAX_PATH];
+    TCHAR szExisting[NFS41_SYS_MAX_PATH_LEN];
+    TCHAR szParsedRemoteName[NFS41_SYS_MAX_PATH_LEN];
+    TCHAR szRemoteName[NFS41_SYS_MAX_PATH_LEN];
     DWORD dwLength;
 
     *szRemoteName = TEXT('\0');
-    result = ParseRemoteName(pRemoteName, pOptions, szParsedRemoteName, szRemoteName, MAX_PATH);
+    result = ParseRemoteName(pRemoteName, pOptions, szParsedRemoteName, szRemoteName, NFS41_SYS_MAX_PATH_LEN);
     if (result)
         goto out;
 
@@ -464,8 +464,8 @@ static DWORD DoMount(
     else
     {
         NETRESOURCE NetResource;
-        TCHAR szConnection[MAX_PATH];
-        DWORD ConnectSize = MAX_PATH, ConnectResult, Flags = 0;
+        TCHAR szConnection[NFS41_SYS_MAX_PATH_LEN];
+        DWORD ConnectSize = NFS41_SYS_MAX_PATH_LEN, ConnectResult, Flags = 0;
 
         ZeroMemory(&NetResource, sizeof(NETRESOURCE));
         NetResource.dwType = RESOURCETYPE_DISK;

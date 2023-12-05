@@ -287,7 +287,7 @@ typedef struct _NFS41_MOUNT_CONFIG {
     BOOLEAN nocache;
     WCHAR srv_buffer[SERVER_NAME_BUFFER_SIZE];
     UNICODE_STRING SrvName; /* hostname, or hostname@port */
-    WCHAR mntpt_buffer[MAX_PATH];
+    WCHAR mntpt_buffer[NFS41_SYS_MAX_PATH_LEN];
     UNICODE_STRING MntPt;
     WCHAR sec_flavor[MAX_SEC_FLAVOR_LEN];
     UNICODE_STRING SecFlavor;
@@ -2688,7 +2688,7 @@ void nfs41_MountConfig_InitDefaults(
     Config->SrvName.MaximumLength = SERVER_NAME_BUFFER_SIZE;
     Config->SrvName.Buffer = Config->srv_buffer;
     Config->MntPt.Length = 0;
-    Config->MntPt.MaximumLength = MAX_PATH;
+    Config->MntPt.MaximumLength = NFS41_SYS_MAX_PATH_LEN;
     Config->MntPt.Buffer = Config->mntpt_buffer;
     Config->SecFlavor.Length = 0;
     Config->SecFlavor.MaximumLength = MAX_SEC_FLAVOR_LEN;
