@@ -556,7 +556,7 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
         if (info.type == NF4DIR) {
             dprintf(2, "handle_nfs41_open: DIRECTORY\n");
             if (args->create_opts & FILE_NON_DIRECTORY_FILE) {
-                eprintf("trying to open directory %s as a file\n", 
+                dprintf(1, "trying to open directory '%s' as a file\n",
                     state->path.path);
                 status = ERROR_DIRECTORY;
                 goto out_free_state;
@@ -564,7 +564,7 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
         } else if (info.type == NF4REG) {
             dprintf(2, "handle nfs41_open: FILE\n");
             if (args->create_opts & FILE_DIRECTORY_FILE) {
-                eprintf("trying to open file %s as a directory\n",
+                dprintf(1, "trying to open file '%s' as a directory\n",
                     state->path.path);
                 status = ERROR_BAD_FILE_TYPE;
                 goto out_free_state;
