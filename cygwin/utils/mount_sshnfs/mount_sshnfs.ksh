@@ -312,7 +312,7 @@ function cmd_mount
 
 	# fixme: Need better text layout for $ mount_sshnfs mount --man #
 	typeset -r mount_sshnfs_cmdmount_usage=$'+
-	[-?\n@(#)\$Id: mount_sshnfs mount (Roland Mainz) 2023-07-24 \$\n]
+	[-?\n@(#)\$Id: mount_sshnfs mount (Roland Mainz) 2023-12-08 \$\n]
 	[-author?Roland Mainz <roland.mainz@nrubsig.org>]
 	[+NAME?mount_sshnfs mount - mount NFSv4 filesystem through ssh
 		tunnel]
@@ -668,7 +668,7 @@ function cmd_umount
 	typeset mydebug=false # fixme: should be "bool" for ksh93v
 	# fixme: Need better text layout for $ mount_sshnfs mount --man #
 	typeset -r mount_sshnfs_cmdumount_usage=$'+
-	[-?\n@(#)\$Id: mount_sshnfs umount (Roland Mainz) 2023-07-24 \$\n]
+	[-?\n@(#)\$Id: mount_sshnfs umount (Roland Mainz) 2023-12-08 \$\n]
 	[-author?Roland Mainz <roland.mainz@nrubsig.org>]
 	[+NAME?mount_sshnfs umount - unmount NFSv4 filesystem mounted
 		via mount_sshnfs mount]
@@ -772,7 +772,7 @@ function main
 
 	# fixme: Need better text layout for $ mount_sshnfs --man #
 	typeset -r mount_sshnfs_usage=$'+
-	[-?\n@(#)\$Id: mount_sshnfs (Roland Mainz) 2023-07-24 \$\n]
+	[-?\n@(#)\$Id: mount_sshnfs (Roland Mainz) 2023-12-08 \$\n]
 	[-author?Roland Mainz <roland.mainz@nrubsig.org>]
 	[+NAME?mount_sshnfs - mount/umount NFSv4 filesystem via ssh
 		tunnel]
@@ -809,8 +809,8 @@ function main
 	if [[ "${ uname -o ;}" == 'Cygwin' ]] ; then
 		integer c.is_ccygwin=1
 
-		# only for testing!!
-		PATH+=':/cygdrive/c/Users/roland_mainz/Downloads/ms-nfs41-client-x64/ms-nfs41-client-x64/'
+		# Cygwin has nfs_mount.exe in /sbin
+		PATH+=':/sbin:/usr/sbin:/usr/bin:/bin'
 
 		typeset c.msnfsv41_nfsmountcmd="$(which 'nfs_mount.exe')"
 
