@@ -40,7 +40,7 @@
 
 #define CYGWIN_IDMAPPER_SCRIPT \
     ("C:\\cygwin64\\bin\\ksh93.exe " \
-    "/home/roland_mainz/work/msnfs41_uidmapping/ms-nfs41-client/cygwin_idmapper.ksh")
+    "/cygdrive/c/cygwin64/lib/msnfs41client/cygwin_idmapper.ksh")
 
 
 #ifdef NFS41_DRIVER_FEATURE_NAMESERVICE_CYGWIN
