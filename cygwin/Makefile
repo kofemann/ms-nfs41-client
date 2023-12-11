@@ -68,13 +68,15 @@ installdest: $(VS_BUILD_DIR)/nfsd.exe \
 	cp -r $(VS_BUILD_DIR)/nfs_mount.*	$(DESTDIR)/cygdrive/c/cygwin64/sbin/.
 	cp -r $(VS_BUILD_DIR)/nfsd.*		$(DESTDIR)/cygdrive/c/cygwin64/sbin/.
 	cp -r $(VS_BUILD_DIR)/nfs_install.*	$(DESTDIR)/cygdrive/c/cygwin64/sbin/.
-	cp -r $(VS_BUILD_DIR)/nfs41_np.*	$(DESTDIR)/cygdrive/c/cygwin64/sbin/.
-	cp -r $(VS_BUILD_DIR)/nfs41_driver.*	$(DESTDIR)/cygdrive/c/cygwin64/sbin/.
 	cp -r $(VS_BUILD_DIR)/libtirpc.*	$(DESTDIR)/cygdrive/c/cygwin64/sbin/.
-	cp $(PROJECT_BASEDIR_DIR)/nfs41rdr.inf	$(DESTDIR)/cygdrive/c/cygwin64/sbin/.
-	cp $(PROJECT_BASEDIR_DIR)/etc_netconfig	$(DESTDIR)/cygdrive/c/cygwin64/sbin/.
-	cp $(PROJECT_BASEDIR_DIR)/ms-nfs41-idmap.conf		$(DESTDIR)/cygdrive/c/cygwin64/sbin/.
-	cp $(CYGWIN_MAKEFILE_DIR)/devel/msnfs41client.bash	$(DESTDIR)/cygdrive/c/cygwin64/sbin/.
+	cp -r $(VS_BUILD_DIR)/nfs41_np.*	$(DESTDIR)/cygdrive/c/cygwin64/lib/msnfs41client/.
+	cp -r $(VS_BUILD_DIR)/nfs41_driver.*	$(DESTDIR)/cygdrive/c/cygwin64/lib/msnfs41client/.
+	cp $(PROJECT_BASEDIR_DIR)/nfs41rdr.inf	$(DESTDIR)/cygdrive/c/cygwin64/lib/msnfs41client/.
+	cp $(PROJECT_BASEDIR_DIR)/etc_netconfig	$(DESTDIR)/cygdrive/c/cygwin64/lib/msnfs41client/.
+	cp $(PROJECT_BASEDIR_DIR)/ms-nfs41-idmap.conf		$(DESTDIR)/cygdrive/c/cygwin64/lib/msnfs41client/.
+	cp $(CYGWIN_MAKEFILE_DIR)/devel/msnfs41client.bash	$(DESTDIR)/cygdrive/c/cygwin64/lib/msnfs41client/msnfs41client
+	chmod a+x "$(DESTDIR)/cygdrive/c/cygwin64/lib/msnfs41client/msnfs41client"
+	(cd "$(DESTDIR)/cygdrive/c/cygwin64/sbin/" && ln -sf ../lib/msnfs41client/msnfs41client .)
 	cp $(PROJECT_BASEDIR_DIR)/cygwin_idmapper.ksh		$(DESTDIR)/cygdrive/c/cygwin64/lib/msnfs41client/.
 	@ printf "# Package sources and diffs\n"
 	git bundle create "$(DESTDIR)/cygdrive/c/cygwin64/src/msnfs41client/msnfs41client_git.bundle" HEAD
@@ -91,19 +93,20 @@ installdest: $(VS_BUILD_DIR)/nfsd.exe \
 	[[ -x /usr/bin/ksh93.exe ]] && cp /usr/bin/ksh93.exe $(DESTDIR)/cygdrive/c/cygwin64/bin/ksh93.exe
 	[[ -x /usr/bin/shcomp.exe ]] && cp /usr/bin/shcomp.exe $(DESTDIR)/cygdrive/c/cygwin64/bin/shcomp.exe
 	@ printf "# Set file flags\n"
-	(cd $(DESTDIR)/cygdrive/c/cygwin64/sbin/ ; chmod a+x *.exe *.dll *.sys *.bash)
+	(cd $(DESTDIR)/cygdrive/c/cygwin64/sbin/ && chmod a+x *.exe *.dll)
+	(cd $(DESTDIR)/cygdrive/c/cygwin64/lib/msnfs41client/ && chmod a+x *.dll)
 	@printf "\n#\n# TEST sbin dir is %s\n#\n" "$(DESTDIR)/cygdrive/c/cygwin64/sbin/"
 	@printf '\n'
-	@printf "\n#\n# Now use\n# $$ cd '%s' && bash ./msnfs41client.bash install #\n# to install the kernel driver as Admin\n#\n" \
+	@printf "\n#\n# Now use\n# $$ cd '%s' && ./msnfs41client install #\n# to install the kernel driver as Admin\n#\n" \
 		"$(DESTDIR)/cygdrive/c/cygwin64/sbin/"
 
 bintarball: installdest
 	(cd destdir && \
 	tar -cvf - \
-		--owner=SYSTEM \
-		--group=SYSTEM \
+		--owner=SYSTEM:18 \
+		--group=SYSTEM:18 \
 		cygdrive/c/cygwin64 | \
-			bzip2 -9 >msnfs41client_cygwin_binaries.tar.bz2)
+			bzip2 -9 >'msnfs41client_cygwin_binaries.tar.bz2')
 
 #
 # clean destdir/, but only if nfsd*.exe does not use it right now

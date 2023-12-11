@@ -50,6 +50,11 @@ function nfsclient_install
 	set -o xtrace
 	set -o errexit
 
+	# switch to the location where this script is installed,
+	# because on Cygwin the script will be installed
+	# in /cygdrive/c/cygwin64/lib/msnfs41client/
+	cd -P "$(dirname -- "$(realpath "${BASH_SOURCE[0]}")")"
+
 	if ! is_windows_admin_account ; then
 		printf $"%s: Install requires Windows Adminstator permissions.\n" "$0"
 		return 1
@@ -58,7 +63,8 @@ function nfsclient_install
 	# make sure all binaries are executable, Windows cmd does
 	# not care, but Cygwin&bash do.
 	# If *.ddl are not executable nfs*.exe fail with 0xc0000022
-	chmod a+x *.exe *.dll
+	chmod a+x *.dll
+	chmod a+x ../../sbin/nfs*.exe ../../sbin/libtirpc*.dll
 
 	if false ; then
 		# install.bat needs PATH to include $PWD
@@ -297,10 +303,6 @@ function nfsclient_mount_homedir
 	set -o errexit
 
 	#nfs_mount -p -o sec=sys H 'derfwpc5131:/export/home/rmainz'
-	# fixme: Specifying IPv6 addresses do not work yet, as soon as
-	# they come as UNC paths (e.g.
-	# $ cd '//[fe80::219:99ff:feae:73ce]@2049/nfs4/export/home/rmainz' #
-	# they get corrupted once they arrive in nfsd_debug.exe)
 	#nfs_mount -p -o sec=sys H '[fe80::219:99ff:feae:73ce]:/export/home/rmainz'
 	nfs_mount -p -o sec=sys H 'derfwpc5131_ipv6:/export/home/rmainz'
 	mkdir -p '/home/rmainz'
@@ -318,10 +320,6 @@ function nfsclient_system_mount_homedir
 	su_system net use H: /delete || true
 
 	#su_system nfs_mount -p -o sec=sys H 'derfwpc5131:/export/home/rmainz'
-	# fixme: Specifying IPv6 addresses do not work yet, as soon as
-	# they come as UNC paths (e.g.
-	# $ cd '//[fe80::219:99ff:feae:73ce]@2049/nfs4/export/home/rmainz' #
-	# they get corrupted once they arrive in nfsd_debug.exe)
 	#su_system nfs_mount -p -o sec=sys H '[fe80::219:99ff:feae:73ce]:/export/home/rmainz'
 	su_system nfs_mount -p -o sec=sys H 'derfwpc5131_ipv6:/export/home/rmainz'
 
@@ -388,8 +386,13 @@ function main
 {
 	typeset cmd="$1"
 
+	# path where this script is installed
+	typeset scriptpath="$(dirname -- "$(realpath "${BASH_SOURCE[0]}")")"
+
 	# "$PATH:/usr/bin:/bin" is used for PsExec where $PATH might be empty
-	export PATH="$PWD:$PATH:/usr/bin:/bin"
+	PATH="$PWD:$PATH:${scriptpath}../../usr/bin:${scriptpath}/../../bin:${scriptpath}/../../sbin:${scriptpath}/../../usr/sbin"
+	# add defauft system path for POSIX utilities
+	PATH+=':/sbin:/usr/sbin:/bin:/usr/bin'
 
 	# path to WinDBG cdb (fixme: 64bit x86-specific)
 	PATH+=':/cygdrive/c/Program Files (x86)/Windows Kits/10/Debuggers/x64/'
@@ -457,6 +460,7 @@ function main
 			;;
 		'sys_terminal')
 			require_cmd 'mintty.exe' || return 1
+			require_cmd 'PsExec.exe' || return 1
 			if ! is_windows_admin_account ; then
 				printf $"%s: %q requires Windows Adminstator permissions.\n" "$0" "$cmd"
 				return 1
