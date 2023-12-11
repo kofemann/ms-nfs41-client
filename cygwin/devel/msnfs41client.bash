@@ -302,9 +302,9 @@ function nfsclient_mount_homedir
 	set -o nounset
 	set -o errexit
 
-	#nfs_mount -p -o sec=sys H 'derfwpc5131:/export/home/rmainz'
-	#nfs_mount -p -o sec=sys H '[fe80::219:99ff:feae:73ce]:/export/home/rmainz'
-	nfs_mount -p -o sec=sys H 'derfwpc5131_ipv6:/export/home/rmainz'
+	#nfs_mount -p -o sec=sys H 'derfwpc5131:/export/home2/rmainz'
+	#nfs_mount -p -o sec=sys H '[fe80::219:99ff:feae:73ce]:/export/home2/rmainz'
+	nfs_mount -p -o sec=sys H 'derfwpc5131_ipv6:/export/home2/rmainz'
 	mkdir -p '/home/rmainz'
 	mount -o bind,posix=1 '/cygdrive/h' '/home/rmainz'
 	return $?
@@ -319,9 +319,9 @@ function nfsclient_system_mount_homedir
 	# purge any leftover persistent mappings to device H:
 	su_system net use H: /delete || true
 
-	#su_system nfs_mount -p -o sec=sys H 'derfwpc5131:/export/home/rmainz'
-	#su_system nfs_mount -p -o sec=sys H '[fe80::219:99ff:feae:73ce]:/export/home/rmainz'
-	su_system nfs_mount -p -o sec=sys H 'derfwpc5131_ipv6:/export/home/rmainz'
+	#su_system nfs_mount -p -o sec=sys H 'derfwpc5131:/export/home2/rmainz'
+	#su_system nfs_mount -p -o sec=sys H '[fe80::219:99ff:feae:73ce]:/export/home2/rmainz'
+	su_system nfs_mount -p -o sec=sys H 'derfwpc5131_ipv6:/export/home2/rmainz'
 
 	return $?
 }
