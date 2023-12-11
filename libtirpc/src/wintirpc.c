@@ -278,6 +278,8 @@ int wintirpc_closesocket(int in_fd)
 {
 	SOCKET s = _get_osfhandle(in_fd);
 
+	(void)syslog(LOG_DEBUG, "wintirpc_closesocket(in_fd=%d)", in_fd);
+
 	wintirpc_unregister_osfhandle(s);
 
 	return closesocket(s);
@@ -285,6 +287,8 @@ int wintirpc_closesocket(int in_fd)
 
 int wintirpc_close(int in_fd)
 {
+	(void)syslog(LOG_DEBUG, "wintirpc_close(in_fd=%d)", in_fd);
+
 	wintirpc_unregister_osf_fd(in_fd);
 
 	return _close(in_fd);
