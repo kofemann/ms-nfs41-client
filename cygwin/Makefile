@@ -106,7 +106,7 @@ bintarball: installdest
 		--owner=SYSTEM:18 \
 		--group=SYSTEM:18 \
 		cygdrive/c/cygwin64 | \
-			bzip2 -9 >'msnfs41client_cygwin_binaries.tar.bz2')
+			bzip2 -9 >"msnfs41client_cygwin_binaries_git$$(git rev-parse --short HEAD)_$$(date +%Y%m%d_%Hh%Mm).tar.bz2")
 
 #
 # clean destdir/, but only if nfsd*.exe does not use it right now
