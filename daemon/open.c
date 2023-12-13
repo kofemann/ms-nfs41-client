@@ -24,8 +24,8 @@
 #include <ctype.h>
 #include <strsafe.h>
 
-#include "nfs41_ops.h"
 #include "nfs41_build_features.h"
+#include "nfs41_ops.h"
 #include "nfs41_daemon.h"
 #include "delegation.h"
 #include "from_kernel.h"
@@ -99,6 +99,24 @@ static void open_state_free(
 void nfs41_open_state_ref(
     IN nfs41_open_state *state)
 {
+#ifdef NFS41_DRIVER_STABILITY_HACKS
+    /*
+     * gisburn: fixme: sometimes this happens under high parallel
+     * usage with multiple mounts - but why ?
+     * 0:038> kp
+     * Child-SP          RetAddr           Call Site
+     * 0000006d`431fde10 00007ff7`32f7d905 nfsd!nfs41_open_state_ref(struct __nfs41_open_state * state = 0x00000000`00000000)+0x31
+     * 0000006d`431fdf30 00007ff7`32f4d284 nfsd!upcall_parse(unsigned char * buffer = 0x0000006d`431fe180 "???", unsigned int length = 8, struct __nfs41_upcall * upcall = 0x0000006d`431ff1e0)+0x2e5
+     * 0000006d`431fe0b0 00007ffc`1ca24c7c nfsd!thread_main(void * args = 0x00007ff7`32fb6080)+0x144
+     * 0000006d`431ffe00 00007ffc`4d4b7344 ucrtbased!thread_start<unsigned int (void * parameter = 0x0000025d`a9c6def0)+0x9c
+     * 0000006d`431ffe60 00007ffc`4efc26b1 KERNEL32!BaseThreadInitThunk+0x14
+     * 0000006d`431ffe90 00000000`00000000 ntdll!RtlUserThreadStart+0x21
+     */
+    EASSERT_IS_VALID_NON_NULL_PTR(state);
+    if (!DEBUG_IS_VALID_NON_NULL_PTR(state))
+        return;
+#endif /* NFS41_DRIVER_STABILITY_HACKS */
+
     const LONG count = InterlockedIncrement(&state->ref_count);
 
     dprintf(2, "nfs41_open_state_ref(%s) count %d\n", state->path.path, count);

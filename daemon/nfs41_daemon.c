@@ -28,6 +28,7 @@
 #include <devioctl.h>
 #include <lmcons.h> /* UNLEN for GetUserName() */
 #include <iphlpapi.h> /* for GetNetworkParam() */
+#include "nfs41_build_features.h"
 #include "nfs41_driver.h" /* for NFS41_USER_DEVICE_NAME_A */
 #include "nfs41_np.h" /* for NFS41NP_SHARED_MEMORY */
 

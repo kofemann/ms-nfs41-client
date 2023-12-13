@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <strsafe.h>
 
+#include "nfs41_build_features.h"
 #include "nfs41_ops.h"
 #include "name_cache.h"
 #include "upcall.h"
@@ -59,8 +60,19 @@ int nfs41_cached_getattr(
 static int parse_getattr(unsigned char *buffer, uint32_t length, nfs41_upcall *upcall)
 {
     int status;
+#ifdef NFS41_DRIVER_STABILITY_HACKS
+    EASSERT(length > 4);
+    if (length <= 4) {
+        status = ERROR_INVALID_PARAMETER;
+        goto out;
+    }
+    EASSERT_IS_VALID_NON_NULL_PTR(upcall->state_ref);
+    if (!DEBUG_IS_VALID_NON_NULL_PTR(upcall->state_ref)) {
+        status = ERROR_INVALID_PARAMETER;
+        goto out;
+    }
+#endif /* NFS41_DRIVER_STABILITY_HACKS */
     getattr_upcall_args *args = &upcall->args.getattr;
-
     status = safe_read(&buffer, &length, &args->query_class, sizeof(args->query_class));
     if (status) goto out;
     status = safe_read(&buffer, &length, &args->buf_len, sizeof(args->buf_len));
@@ -79,6 +91,23 @@ static int handle_getattr(void *daemon_context, nfs41_upcall *upcall)
     getattr_upcall_args *args = &upcall->args.getattr;
     nfs41_open_state *state = upcall->state_ref;
     nfs41_file_info info = { 0 };
+
+#ifdef NFS41_DRIVER_STABILITY_HACKS
+    if (!DEBUG_IS_VALID_NON_NULL_PTR(state->session)) {
+        eprintf("handle_getattr: Invalid session ptr=%p\n",
+            (void *)state->session);
+        status = ERROR_INVALID_PARAMETER;
+        goto out;
+    }
+
+    if (!DEBUG_IS_VALID_NON_NULL_PTR(state->file.fh.superblock)) {
+        eprintf("handle_getattr: Invalid state->file.fh.superblock ptr=%p\n",
+            (void *)state->file.fh.superblock);
+        /* gisburn: fixme: maybe this should be |ERROR_INTERNAL_ERROR| ? */
+        status = ERROR_INVALID_PARAMETER;
+        goto out;
+    }
+#endif /* NFS41_DRIVER_STABILITY_HACKS */
 
     status = nfs41_cached_getattr(state->session, &state->file, &info);
     if (status) {

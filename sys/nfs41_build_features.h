@@ -47,4 +47,10 @@
  */
 #define NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN 1
 
+/*
+ * NFS41_DRIVER_STABILITY_HACKS - use horrible
+ * hacks to improve stabilty
+ */
+#define NFS41_DRIVER_STABILITY_HACKS 1
+
 #endif /* !_NFS41_DRIVER_BUILDFEATURES_ */

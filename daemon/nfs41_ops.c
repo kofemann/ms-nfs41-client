@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <time.h>
 
+#include "nfs41_build_features.h"
 #include "nfs41_ops.h"
 #include "nfs41_compound.h"
 #include "nfs41_xdr.h"
@@ -399,6 +400,9 @@ int nfs41_open(
     bool_t current_fh_is_dir;
     bool_t already_delegated = delegation->type == OPEN_DELEGATE_READ
         || delegation->type == OPEN_DELEGATE_WRITE;
+
+    EASSERT_IS_VALID_NON_NULL_PTR(parent);
+    EASSERT_IS_VALID_NON_NULL_PTR(parent->fh.superblock);
 
     /* depending on the claim type, OPEN expects CURRENT_FH set
      * to either the parent directory, or to the file itself */

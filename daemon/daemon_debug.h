@@ -34,6 +34,14 @@
 #define DEFAULT_DEBUG_LEVEL 1
 
 
+/* 0xdd..dd is the filler by the debug memory allocator */
+#define DEBUG_IS_VALID_NON_NULL_PTR(ptr) \
+    ( \
+        (((char *)(ptr)) != ((char *)0xddddddddddddddddLL)) && \
+        (((char *)(ptr)) != ((char *)0xffffffffffffffffLL)) && \
+        ((ptr) != NULL) \
+    )
+
 #define EASSERT(exp) \
     if (!(exp)) { \
         eprintf("ASSERTION '%s' in '%s'/%ld failed.\n", \
@@ -42,6 +50,20 @@
     if (!(exp)) { \
         dprintf((level), "ASSERTION '%s' in '%s'/%ld failed.\n", \
             ""#exp"", __FILE__, (long)__LINE__); }
+
+#define DASSERT_IS_VALID_NON_NULL_PTR(exp, level) \
+    if (!DEBUG_IS_VALID_NON_NULL_PTR(exp)) { \
+        dprintf((level), "ASSERTION " \
+            "!DEBUG_IS_VALID_NON_NULL_PTR('%s'=%p) " \
+            "in '%s'/%ld failed.\n", \
+            ""#exp"", (void *)(exp), __FILE__, (long)__LINE__); }
+
+#define EASSERT_IS_VALID_NON_NULL_PTR(exp) \
+    if (!DEBUG_IS_VALID_NON_NULL_PTR(exp)) { \
+        eprintf("ASSERTION " \
+            "!DEBUG_IS_VALID_NON_NULL_PTR('%s'=%p) " \
+            "in '%s'/%ld failed.\n", \
+            ""#exp"", (void *)(exp), __FILE__, (long)__LINE__); }
 
 /* daemon_debug.h */
 void set_debug_level(int level);
