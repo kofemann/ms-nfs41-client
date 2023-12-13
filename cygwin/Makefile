@@ -62,7 +62,7 @@ installdest: $(VS_BUILD_DIR)/nfsd.exe \
 	# /usr/lib is a bind mount to C:/cygwin64/lib, so copy library data to /cygdrive/c/cygwin64/lib
 	mkdir -p $(DESTDIR)/cygdrive/c/cygwin64/lib
 	mkdir -p $(DESTDIR)/cygdrive/c/cygwin64/lib/msnfs41client
-	mkdir -p $(DESTDIR)/cygdrive/c/cygwin64/src/msnfs41client
+	mkdir -p $(DESTDIR)/cygdrive/c/cygwin64/usr/src/msnfs41client
 	cp -r $(VS_BUILD_DIR)/nfsd.exe		$(DESTDIR)/cygdrive/c/cygwin64/sbin/nfsd_debug.exe
 	cp -r $(VS_BUILD_DIR)/nfsd.pdb		$(DESTDIR)/cygdrive/c/cygwin64/sbin/nfsd_debug.pdb
 	cp -r $(VS_BUILD_DIR)/nfs_mount.*	$(DESTDIR)/cygdrive/c/cygwin64/sbin/.
@@ -79,9 +79,9 @@ installdest: $(VS_BUILD_DIR)/nfsd.exe \
 	(cd "$(DESTDIR)/cygdrive/c/cygwin64/sbin/" && ln -sf ../lib/msnfs41client/msnfs41client .)
 	cp $(PROJECT_BASEDIR_DIR)/cygwin_idmapper.ksh		$(DESTDIR)/cygdrive/c/cygwin64/lib/msnfs41client/.
 	@ printf "# Package sources and diffs\n"
-	git bundle create "$(DESTDIR)/cygdrive/c/cygwin64/src/msnfs41client/msnfs41client_git.bundle" HEAD
-	git diff -w	>"$(DESTDIR)/cygdrive/c/cygwin64/src/msnfs41client/msnfs41client_diff_w.diff"
-	git diff	>"$(DESTDIR)/cygdrive/c/cygwin64/src/msnfs41client/msnfs41client_diff.diff"
+	git bundle create "$(DESTDIR)/cygdrive/c/cygwin64/usr/src/msnfs41client/msnfs41client_git.bundle" HEAD
+	git diff -w	>"$(DESTDIR)/cygdrive/c/cygwin64/usr/src/msnfs41client/msnfs41client_diff_w.diff"
+	git diff	>"$(DESTDIR)/cygdrive/c/cygwin64/usr/src/msnfs41client/msnfs41client_diff.diff"
 	@ printf "# Package utilties\n"
 	cp $(CYGWIN_MAKEFILE_DIR)/utils/mount_sshnfs/mount_sshnfs.ksh $(DESTDIR)/cygdrive/c/cygwin64/sbin/mount_sshnfs
 	chmod a+x $(DESTDIR)/cygdrive/c/cygwin64/sbin/mount_sshnfs
