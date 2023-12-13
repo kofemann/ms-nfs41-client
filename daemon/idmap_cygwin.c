@@ -30,9 +30,9 @@
 #include "nfs41_const.h"
 #include "list.h"
 #include "daemon_debug.h"
-#ifdef NFS41_DRIVER_FEATURE_NAMESERVICE_CYGWIN
+#ifdef NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN
 #include "cpvparser1.h"
-#endif /* NFS41_DRIVER_FEATURE_NAMESERVICE_CYGWIN */
+#endif /* NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN */
 
 #define CYGWINIDLVL 2   /* dprintf level for idmap logging */
 
@@ -43,7 +43,7 @@
     "/cygdrive/c/cygwin64/lib/msnfs41client/cygwin_idmapper.ksh")
 
 
-#ifdef NFS41_DRIVER_FEATURE_NAMESERVICE_CYGWIN
+#ifdef NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN
 int cygwin_getent_passwd(const char *name, char *res_loginname, uid_t *res_uid, gid_t *res_gid)
 {
     char cmdbuff[1024];
@@ -259,4 +259,4 @@ fail:
 
     return res;
 }
-#endif /* NFS41_DRIVER_FEATURE_NAMESERVICE_CYGWIN */
+#endif /* NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN */

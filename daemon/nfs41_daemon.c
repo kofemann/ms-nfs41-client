@@ -3,6 +3,7 @@
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
+ * Roland Mainz <roland.mainz@nrubsig.org>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -270,9 +271,9 @@ static bool_t parse_cmdlineargs(int argc, TCHAR *argv[], nfsd_args *out)
     }
 
     (void)fprintf(stdout, "parse_cmdlineargs: debug_level %d ldap is %d "
-#ifdef NFS41_DRIVER_FEATURE_NAMESERVICE_CYGWIN
+#ifdef NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN
         "idmap_cygwin is 1 "
-#endif /* NFS41_DRIVER_FEATURE_NAMESERVICE_CYGWIN */
+#endif /* NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN */
         "\n",
         out->debug_level, out->ldap_enable);
     return TRUE;
@@ -415,7 +416,22 @@ VOID ServiceStart(DWORD argc, LPTSTR *argv)
 #ifdef _DEBUG
     /* dump memory leaks to stderr on exit; this requires the debug heap,
     /* available only when built in debug mode under visual studio -cbodley */
-    _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+
+    int crtsetdbgflags = 0;
+    crtsetdbgflags |= _CRTDBG_ALLOC_MEM_DF;  /* use debug heap */
+    crtsetdbgflags |= _CRTDBG_LEAK_CHECK_DF; /* report leaks on exit */
+/* Disabled for now, git clone ... gcc.git does not work with it */
+#ifdef DISABLED_FOR_NOW
+    /*
+     * _CRTDBG_DELAY_FREE_MEM_DF - Delay freeing of memory, but fill
+     * memory blocks passed to |free()| with 0xdd. We rely on that to
+     * see 0xdddddddddddddddd-pointers for use-after-free and catch
+     * them in stress testing instead of having to deal with a core
+     * dump
+     */
+    crtsetdbgflags |= _CRTDBG_DELAY_FREE_MEM_DF;
+#endif
+    (void)_CrtSetDbgFlag(crtsetdbgflags);
     _CrtSetReportMode(_CRT_WARN, _CRTDBG_MODE_FILE);
 
     /*
@@ -449,11 +465,11 @@ VOID ServiceStart(DWORD argc, LPTSTR *argv)
         eprintf("Failed to enter HIGH_PRIORITY_CLASS mode\n");
     }
 
-#ifdef NFS41_DRIVER_FEATURE_NAMESERVICE_CYGWIN
+#ifdef NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN
     /* force enable for cygwin getent passwd/group testing */
     cmd_args.ldap_enable = TRUE;
     DASSERT(0/* test asserts*/, 0);
-#endif /* NFS41_DRIVER_FEATURE_NAMESERVICE_CYGWIN */
+#endif /* NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN */
 
     nfs41_server_list_init();
 

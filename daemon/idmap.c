@@ -670,7 +670,7 @@ static int idmap_lookup_user(
         if (difftime(time(NULL), user->last_updated) < (double)context->config.cache_ttl)
             goto out;
     }
-#ifndef NFS41_DRIVER_FEATURE_NAMESERVICE_CYGWIN
+#ifndef NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN
     /* send the query to the ldap server */
     status = idmap_query_attrs(context, lookup,
         attributes, optional, values, NUM_ATTRIBUTES);
@@ -794,7 +794,7 @@ static int idmap_lookup_user(
             (unsigned long)user->uid,
             (unsigned long)user->gid);
     }
-#endif /* !NFS41_DRIVER_FEATURE_NAMESERVICE_CYGWIN */
+#endif /* !NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN */
     if (context->config.cache_ttl) {
         /* insert the entry into the cache */
         cache_insert(&context->users, lookup, &user->entry);
@@ -824,7 +824,7 @@ static int idmap_lookup_group(
         if (difftime(time(NULL), group->last_updated) < (double)context->config.cache_ttl)
             goto out;
     }
-#ifndef NFS41_DRIVER_FEATURE_NAMESERVICE_CYGWIN
+#ifndef NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN
     /* send the query to the ldap server */
     status = idmap_query_attrs(context, lookup,
         attributes, 0, values, NUM_ATTRIBUTES);
@@ -895,7 +895,7 @@ static int idmap_lookup_group(
             group->name,
             (unsigned long)group->gid);
     }
-#endif /* !NFS41_DRIVER_FEATURE_NAMESERVICE_CYGWIN */
+#endif /* !NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN */
     if (context->config.cache_ttl) {
         /* insert the entry into the cache */
         cache_insert(&context->groups, lookup, &group->entry);
@@ -931,7 +931,7 @@ int nfs41_idmap_create(
         goto out_err_free;
     }
 
-#ifndef NFS41_DRIVER_FEATURE_NAMESERVICE_CYGWIN
+#ifndef NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN
     /* initialize ldap and configure options */
     context->ldap = ldap_init(context->config.hostname, context->config.port);
     if (context->ldap == NULL) {

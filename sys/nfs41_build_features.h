@@ -42,9 +42,9 @@
 // #define NFS41_DRIVER_FEATURE_MAP_UNMAPPED_USER_TO_UNIXUSER_SID 1
 
 /*
- * NFS41_DRIVER_FEATURE_NAMESERVICE_CYGWIN - use Cygwin /usr/bin/getent
- * as "name service"
+ * NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN - use Cygwin shell script
+ * as to do the idmapping between NFS client and NFS server
  */
-// #define NFS41_DRIVER_FEATURE_NAMESERVICE_CYGWIN 1
+// #define NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN 1
 
 #endif /* !_NFS41_DRIVER_BUILDFEATURES_ */

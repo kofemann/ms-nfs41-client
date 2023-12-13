@@ -3,6 +3,7 @@
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
+ * Roland Mainz <roland.mainz@nrubsig.org>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -65,9 +66,9 @@ int nfs41_idmap_gid_to_group(
     size_t len);
 
 /* idmap_cygwin.c */
-#ifdef NFS41_DRIVER_FEATURE_NAMESERVICE_CYGWIN
+#ifdef NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN
 int cygwin_getent_passwd(const char *name, char *res_loginname, uid_t *res_uid, gid_t *res_gid);
 int cygwin_getent_group(const char* name, char* res_group_name, gid_t* res_gid);
-#endif /* NFS41_DRIVER_FEATURE_NAMESERVICE_CYGWIN */
+#endif /* NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN */
 
 #endif /* !IDMAP_H */
