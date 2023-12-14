@@ -289,7 +289,7 @@ typedef struct _NFS41_MOUNT_CONFIG {
     UNICODE_STRING SrvName; /* hostname, or hostname@port */
     WCHAR mntpt_buffer[NFS41_SYS_MAX_PATH_LEN];
     UNICODE_STRING MntPt;
-    WCHAR sec_flavor[MAX_SEC_FLAVOR_LEN];
+    WCHAR sec_flavor_buffer[MAX_SEC_FLAVOR_LEN];
     UNICODE_STRING SecFlavor;
     DWORD timeout;
 } NFS41_MOUNT_CONFIG, *PNFS41_MOUNT_CONFIG;
@@ -485,6 +485,7 @@ void copy_nfs41_mount_config(NFS41_MOUNT_CONFIG *dest, NFS41_MOUNT_CONFIG *src)
     RtlCopyMemory(dest, src, sizeof(NFS41_MOUNT_CONFIG));
     dest->SrvName.Buffer = dest->srv_buffer;
     dest->MntPt.Buffer = dest->mntpt_buffer;
+    dest->SecFlavor.Buffer = dest->sec_flavor_buffer;
 }
 
 void print_debug_header(
@@ -2692,7 +2693,7 @@ void nfs41_MountConfig_InitDefaults(
     Config->MntPt.Buffer = Config->mntpt_buffer;
     Config->SecFlavor.Length = 0;
     Config->SecFlavor.MaximumLength = MAX_SEC_FLAVOR_LEN;
-    Config->SecFlavor.Buffer = Config->sec_flavor;
+    Config->SecFlavor.Buffer = Config->sec_flavor_buffer;
     RtlCopyUnicodeString(&Config->SecFlavor, &AUTH_SYS_NAME);
     Config->timeout = UPCALL_TIMEOUT_DEFAULT;
 }
@@ -3106,7 +3107,7 @@ NTSTATUS nfs41_CreateVNetRoot(
 
     status = map_sec_flavor(&Config->SecFlavor, &pVNetRootContext->sec_flavor);
     if (status != STATUS_SUCCESS) {
-        DbgP("Invalid rpcsec security flavor %wZ\n", &Config->SecFlavor);
+        DbgP("Invalid rpcsec security flavor '%wZ'\n", &Config->SecFlavor);
         goto out_free;
     }
 
