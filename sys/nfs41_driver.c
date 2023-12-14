@@ -495,8 +495,8 @@ void print_debug_header(
     PIO_STACK_LOCATION IrpSp = RxContext->CurrentIrpSp;
 
     if (IrpSp) {
-        DbgP("FileOject %p name %wZ access r=%d,w=%d,d=%d share r=%d,w=%d,d=%d\n", 
-            IrpSp->FileObject, &IrpSp->FileObject->FileName, 
+        DbgP("FileOject %p name '%wZ' access r=%d,w=%d,d=%d share r=%d,w=%d,d=%d\n",
+            IrpSp->FileObject, &IrpSp->FileObject->FileName,
             IrpSp->FileObject->ReadAccess, IrpSp->FileObject->WriteAccess,
             IrpSp->FileObject->DeleteAccess, IrpSp->FileObject->SharedRead,
             IrpSp->FileObject->SharedWrite, IrpSp->FileObject->SharedDelete);
@@ -595,7 +595,7 @@ NTSTATUS marshal_nfs41_header(
 
 #ifdef DEBUG_MARSHAL_HEADER
     if (MmIsAddressValid(entry->filename))
-        DbgP("[upcall header] xid=%lld opcode=%s filename=%wZ version=%d "
+        DbgP("[upcall header] xid=%lld opcode='%s' filename='%wZ' version=%d "
             "session=0x%x open_state=0x%x\n", entry->xid,
             ENTRY_OPCODE2STRING(entry), entry->filename,
             entry->version, entry->session, entry->open_state);
@@ -657,8 +657,8 @@ NTSTATUS marshal_nfs41_mount(
     *len = header_len;
 
 #ifdef DEBUG_MARSHAL_DETAIL
-    DbgP("marshal_nfs41_mount: server name=%wZ mount point=%wZ "
-         "sec_flavor=%s rsize=%d wsize=%d\n",
+    DbgP("marshal_nfs41_mount: server name='%wZ' mount point='%wZ' "
+         "sec_flavor='%s' rsize=%d wsize=%d\n",
 	 entry->u.Mount.srv_name, entry->u.Mount.root,
          secflavorop2name(entry->u.Mount.sec_flavor), entry->u.Mount.rsize,
          entry->u.Mount.wsize);
@@ -751,7 +751,7 @@ NTSTATUS marshal_nfs41_open(
     *len = header_len;
 
 #ifdef DEBUG_MARSHAL_DETAIL
-    DbgP("marshal_nfs41_open: name=%wZ mask=0x%x access=0x%x attrs=0x%x "
+    DbgP("marshal_nfs41_open: name='%wZ' mask=0x%x access=0x%x attrs=0x%x "
          "opts=0x%x dispo=0x%x open_owner_id=0x%x mode=%o "
 #ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES
          "owner_local_uid=%lu owner_group_local_gid=%lu "
@@ -937,8 +937,8 @@ NTSTATUS marshal_nfs41_close(
     *len = header_len;
 
 #ifdef DEBUG_MARSHAL_DETAIL
-    DbgP("marshal_nfs41_close: name=%wZ remove=%d srv_open=%p renamed=%d\n", 
-        entry->filename->Length?entry->filename:&SLASH, 
+    DbgP("marshal_nfs41_close: name='%wZ' remove=%d srv_open=%p renamed=%d\n",
+        entry->filename->Length?entry->filename:&SLASH,
         entry->u.Close.remove, entry->u.Close.srv_open, entry->u.Close.renamed);
 #endif
 out:
@@ -999,9 +999,9 @@ NTSTATUS marshal_nfs41_dirquery(
 
 #ifdef DEBUG_MARSHAL_DETAIL
     DbgP("marshal_nfs41_dirquery: filter='%wZ'class=%d len=%d "
-         "1st\\restart\\single=%d\\%d\\%d\n", entry->u.QueryFile.filter, 
-         entry->u.QueryFile.InfoClass, entry->buf_len, 
-         entry->u.QueryFile.initial_query, entry->u.QueryFile.restart_scan, 
+         "1st\\restart\\single=%d\\%d\\%d\n", entry->u.QueryFile.filter,
+         entry->u.QueryFile.InfoClass, entry->buf_len,
+         entry->u.QueryFile.initial_query, entry->u.QueryFile.restart_scan,
          entry->u.QueryFile.return_single);
 #endif
 out:
@@ -1111,7 +1111,7 @@ NTSTATUS marshal_nfs41_easet(
     *len = header_len;
 
 #ifdef DEBUG_MARSHAL_DETAIL
-    DbgP("marshal_nfs41_easet: filename=%wZ, buflen=%d mode=0x%x\n", 
+    DbgP("marshal_nfs41_easet: filename='%wZ', buflen=%d mode=0x%x\n",
         entry->filename, entry->buf_len, entry->u.SetEa.mode);
 #endif
 out:
@@ -1155,12 +1155,12 @@ NTSTATUS marshal_nfs41_eaget(
     if (entry->u.QueryEa.EaList && entry->u.QueryEa.EaListLength)
         RtlCopyMemory(tmp, entry->u.QueryEa.EaList,
             entry->u.QueryEa.EaListLength);
-    *len = header_len; 
+    *len = header_len;
 
 #ifdef DEBUG_MARSHAL_DETAIL
-    DbgP("marshal_nfs41_eaget: filename=%wZ, index=%d list_len=%d "
-        "rescan=%d single=%d\n", entry->filename, 
-        entry->u.QueryEa.EaIndex, entry->u.QueryEa.EaListLength, 
+    DbgP("marshal_nfs41_eaget: filename='%wZ', index=%d list_len=%d "
+        "rescan=%d single=%d\n", entry->filename,
+        entry->u.QueryEa.EaIndex, entry->u.QueryEa.EaListLength,
         entry->u.QueryEa.RestartScan, entry->u.QueryEa.ReturnSingleEntry);
 #endif
 out:
@@ -1200,8 +1200,8 @@ NTSTATUS marshal_nfs41_symlink(
     *len = header_len;
 
 #ifdef DEBUG_MARSHAL_DETAIL
-    DbgP("marshal_nfs41_symlink: name %wZ symlink target %wZ\n", 
-         entry->filename, 
+    DbgP("marshal_nfs41_symlink: name '%wZ' symlink target '%wZ'\n",
+         entry->filename,
          entry->u.Symlink.set?entry->u.Symlink.target : NULL);
 #endif
 out:
@@ -1323,7 +1323,7 @@ void nfs41_invalidate_cache (
 
     RtlCopyMemory(&srv_open, buf, sizeof(HANDLE));
 #ifdef DEBUG_INVALIDATE_CACHE
-    DbgP("nfs41_invalidate_cache: received srv_open=%p %wZ\n", 
+    DbgP("nfs41_invalidate_cache: received srv_open=%p '%wZ'\n",
         srv_open, srv_open->pAlreadyPrefixedName);
 #endif
     if (MmIsAddressValid(srv_open))
@@ -1619,7 +1619,7 @@ void unmarshal_nfs41_header(
     RtlCopyMemory(&tmp->errno, *buf, sizeof(tmp->errno));
     *buf += sizeof(tmp->errno);
 #ifdef DEBUG_MARSHAL_HEADER
-    DbgP("[downcall header] xid=%lld opcode=%s status=%d errno=%d\n", tmp->xid,
+    DbgP("[downcall header] xid=%lld opcode='%s' status=%d errno=%d\n", tmp->xid,
         ENTRY_OPCODE2STRING(tmp), tmp->status, tmp->errno);
 #endif
 }
@@ -1732,7 +1732,7 @@ NTSTATUS unmarshal_nfs41_open(
             status = STATUS_UNSUCCESSFUL;
             goto out;
         }
-        RtlCopyMemory(cur->u.Open.symlink.Buffer, *buf, 
+        RtlCopyMemory(cur->u.Open.symlink.Buffer, *buf,
             cur->u.Open.symlink.MaximumLength);
 #ifdef DEBUG_MARSHAL_DETAIL
         DbgP("unmarshal_nfs41_open: ERROR_REPARSE -> '%wZ'\n", &cur->u.Open.symlink);
@@ -2523,7 +2523,7 @@ NTSTATUS _nfs41_CreateSrvCall(
 
     // validate the server name with the test name of 'pnfs'
 #ifdef DEBUG_MOUNT
-    DbgP("SrvCall: Connection Name Length: %d %wZ\n",
+    DbgP("SrvCall: Connection Name Length: %d '%wZ'\n",
         pSrvCall->pSrvCallName->Length, pSrvCall->pSrvCallName);
 #endif
 
@@ -2640,7 +2640,7 @@ NTSTATUS nfs41_mount(
 
 #ifdef DEBUG_MOUNT
     DbgEn();
-    DbgP("Server Name %wZ Mount Point %wZ SecFlavor %d\n",
+    DbgP("Server Name '%wZ' Mount Point '%wZ' SecFlavor %d\n",
         &config->SrvName, &config->MntPt, sec_flavor);
 #endif
     status = nfs41_UpcallCreate(NFS41_MOUNT, NULL, *session,
@@ -2740,7 +2740,7 @@ NTSTATUS nfs41_MountConfig_ParseDword(
 #endif
         }
         else
-            print_error("Failed to convert %s='%wZ' to unsigned long.\n",
+            print_error("Failed to convert '%s'='%wZ' to unsigned long.\n",
                 Name, usValue);
     }
 
@@ -2983,10 +2983,10 @@ NTSTATUS nfs41_CreateVNetRoot(
     print_v_net_root(0, pVNetRoot);
 
     DbgP("pVNetRoot=%p pNetRoot=%p pSrvCall=%p\n", pVNetRoot, pNetRoot, pSrvCall);
-    DbgP("pNetRoot=%wZ Type=%d pSrvCallName=%wZ VirtualNetRootStatus=0x%x "
-        "NetRootStatus=0x%x\n", pNetRoot->pNetRootName, 
-        pNetRoot->Type, pSrvCall->pSrvCallName, 
-        pCreateNetRootContext->VirtualNetRootStatus, 
+    DbgP("pNetRoot='%wZ' Type=%d pSrvCallName='%wZ' VirtualNetRootStatus=0x%x "
+        "NetRootStatus=0x%x\n", pNetRoot->pNetRootName,
+        pNetRoot->Type, pSrvCall->pSrvCallName,
+        pCreateNetRootContext->VirtualNetRootStatus,
         pCreateNetRootContext->NetRootStatus);
 #endif
 
@@ -3003,7 +3003,7 @@ NTSTATUS nfs41_CreateVNetRoot(
      * only claim paths of the form '\\server\nfs4\path' */
     status = has_nfs_prefix(pSrvCall->pSrvCallName, pNetRoot->pNetRootName);
     if (status) {
-        print_error("nfs41_CreateVNetRoot: NetRootName %wZ doesn't match "
+        print_error("nfs41_CreateVNetRoot: NetRootName '%wZ' doesn't match "
             "'\\nfs4'!\n", pNetRoot->pNetRootName);
         goto out;
     }
@@ -3291,7 +3291,7 @@ VOID nfs41_ExtractNetRootName(
     NetRootName->Length = NetRootName->MaximumLength
                 = (USHORT)((PCHAR)w - (PCHAR)wlow);
 #ifdef DEBUG_MOUNT
-    DbgP("In: pSrvCall %p PathName=%wZ SrvCallName=%wZ Out: NetRootName=%wZ\n", 
+    DbgP("In: pSrvCall %p PathName='%wZ' SrvCallName='%wZ' Out: NetRootName='%wZ'\n",
         SrvCall, FilePathName, SrvCall->pSrvCallName, NetRootName);
 #endif
     return;
@@ -3856,7 +3856,7 @@ retry_on_link:
 
         status = RxPrepareToReparseSymbolicLink(RxContext,
             entry->u.Open.symlink_embedded, &AbsPath, TRUE, &ReparseRequired);
-#ifdef DEBUG_OPEN 
+#ifdef DEBUG_OPEN
         DbgP("RxPrepareToReparseSymbolicLink(%u, '%wZ') returned %08lX, "
             "FileName is '%wZ'\n", entry->u.Open.symlink_embedded,
             &AbsPath, status, &RxContext->CurrentIrpSp->FileObject->FileName);
@@ -3966,7 +3966,7 @@ retry_on_link:
                 !nfs41_fcb->StandardInfo.Directory) {
         ULONG flag = DISABLE_CACHING;
 #ifdef DEBUG_OPEN
-        DbgP("nfs41_Create: reopening (changed) file %wZ\n", 
+        DbgP("nfs41_Create: reopening (changed) file '%wZ'\n",
             SrvOpen->pAlreadyPrefixedName);
 #endif
         RxChangeBufferingState((PSRV_OPEN)SrvOpen, ULongToPtr(flag), 1);
@@ -4256,8 +4256,8 @@ void print_debug_filedirquery_header(
     PRX_CONTEXT RxContext)
 {
     print_debug_header(RxContext);
-    DbgP("FileName='%wZ', InfoClass = %s\n", 
-        GET_ALREADY_PREFIXED_NAME_FROM_CONTEXT(RxContext), 
+    DbgP("FileName='%wZ', InfoClass = '%s'\n",
+        GET_ALREADY_PREFIXED_NAME_FROM_CONTEXT(RxContext),
         print_file_information_class(RxContext->Info.FileInformationClass));
 }
 
@@ -4266,7 +4266,7 @@ void print_querydir_args(
 {
     print_debug_filedirquery_header(RxContext);
     DbgP("Filter='%wZ', Index=%d, Restart/Single/Specified/Init=%d/%d/%d/%d\n",
-        &RxContext->pFobx->UnicodeQueryTemplate, 
+        &RxContext->pFobx->UnicodeQueryTemplate,
         RxContext->QueryDirectory.FileIndex,
         RxContext->QueryDirectory.RestartScan,
         RxContext->QueryDirectory.ReturnSingleEntry,
@@ -4407,9 +4407,9 @@ void print_queryvolume_args(
     PRX_CONTEXT RxContext)
 {
     print_debug_header(RxContext);
-    DbgP("FileName='%wZ', InfoClass = %s BufferLen = %d\n", 
-        GET_ALREADY_PREFIXED_NAME_FROM_CONTEXT(RxContext), 
-        print_fs_information_class(RxContext->Info.FileInformationClass), 
+    DbgP("FileName='%wZ', InfoClass = '%s' BufferLen = %d\n",
+        GET_ALREADY_PREFIXED_NAME_FROM_CONTEXT(RxContext),
+        print_fs_information_class(RxContext->Info.FileInformationClass),
         RxContext->Info.LengthRemaining);
 }
 
@@ -5851,7 +5851,7 @@ NTSTATUS nfs41_ComputeNewBufferingState(
             FCB_STATE_WRITECACHING_ENABLED | FCB_STATE_WRITEBUFFERING_ENABLED);
     }
 #ifdef DEBUG_TIME_BASED_COHERENCY
-    DbgP("nfs41_ComputeNewBufferingState: %wZ pSrvOpen %p Old %08x New %08x\n", 
+    DbgP("nfs41_ComputeNewBufferingState: '%wZ' pSrvOpen %p Old %08x New %08x\n",
          pSrvOpen->pAlreadyPrefixedName, pSrvOpen, oldFlags,
          pSrvOpen->BufferingFlags);
     *pNewBufferingState = pSrvOpen->BufferingFlags;
@@ -5909,7 +5909,7 @@ void enable_caching(
                 nfs41_fcb_list_entry, next);
         if (cur->fcb == SrvOpen->pFcb) {
 #ifdef DEBUG_TIME_BASED_COHERENCY
-            DbgP("enable_caching: Looked&Found match for fcb=%p %wZ\n",
+            DbgP("enable_caching: Looked&Found match for fcb=%p '%wZ'\n",
                 SrvOpen->pFcb, SrvOpen->pAlreadyPrefixedName);
 #endif
             cur->skip = FALSE;
@@ -5918,7 +5918,7 @@ void enable_caching(
         }
         if (pEntry->Flink == &openlist.head) {
 #ifdef DEBUG_TIME_BASED_COHERENCY
-            DbgP("enable_caching: reached EOL looking for fcb=%p %wZ\n",
+            DbgP("enable_caching: reached EOL looking for fcb=%p '%wZ'\n",
                 SrvOpen->pFcb, SrvOpen->pAlreadyPrefixedName);
 #endif
             break;
@@ -6483,13 +6483,13 @@ void print_reparse_buffer(
         Reparse->SymbolicLinkReparseBuffer.SubstituteNameOffset/sizeof(WCHAR)];
     name.MaximumLength = name.Length =
         Reparse->SymbolicLinkReparseBuffer.SubstituteNameLength;
-    DbgP("SubstituteName:       %wZ\n", &name);
+    DbgP("SubstituteName:       '%wZ'\n", &name);
 
     name.Buffer = &Reparse->SymbolicLinkReparseBuffer.PathBuffer[
         Reparse->SymbolicLinkReparseBuffer.PrintNameOffset/sizeof(WCHAR)];
     name.MaximumLength = name.Length =
         Reparse->SymbolicLinkReparseBuffer.PrintNameLength;
-    DbgP("PrintName:            %wZ\n", &name);
+    DbgP("PrintName:            '%wZ'\n", &name);
 }
 
 NTSTATUS check_nfs41_setreparse_args(
@@ -6757,7 +6757,7 @@ NTSTATUS nfs41_FsdDispatch (
     DbgEn();
     DbgP("CURRENT IRP = %d.%d\n", IrpSp->MajorFunction, IrpSp->MinorFunction);
     if(IrpSp->FileObject)
-        DbgP("FileOject %p Filename %wZ\n", IrpSp->FileObject, 
+        DbgP("FileOject %p Filename '%wZ'\n", IrpSp->FileObject,
                 &IrpSp->FileObject->FileName);
 #endif
 
@@ -6990,10 +6990,10 @@ VOID fcbopen_main(PVOID ctx)
                 while (!IsListEmpty(&cur->fcb->SrvOpenList)) {
                     srv_open = (PMRX_SRV_OPEN)CONTAINING_RECORD(psrvEntry, 
                             MRX_SRV_OPEN, SrvOpenQLinks);
-                    if (srv_open->DesiredAccess & 
+                    if (srv_open->DesiredAccess &
                             (FILE_READ_DATA | FILE_WRITE_DATA | FILE_APPEND_DATA)) {
 #ifdef DEBUG_TIME_BASED_COHERENCY
-                        DbgP("fcbopen_main: ************ Invalidate the cache %wZ"
+                        DbgP("fcbopen_main: ************ Invalidate the cache '%wZ'"
                              "************\n", srv_open->pAlreadyPrefixedName);
 #endif
                         RxIndicateChangeOfBufferingStateForSrvOpen(
@@ -7075,7 +7075,7 @@ NTSTATUS DriverEntry(
         &dev_exts->VolAttrsLen);
 
     RtlInitUnicodeString(&user_dev_name, NFS41_SHADOW_DEVICE_NAME);
-    DbgP("calling IoCreateSymbolicLink %wZ %wZ\n", &user_dev_name, &dev_name);
+    DbgP("calling IoCreateSymbolicLink '%wZ' '%wZ'\n", &user_dev_name, &dev_name);
     status = IoCreateSymbolicLink(&user_dev_name, &dev_name);
     if (status != STATUS_SUCCESS) {
         print_error("Device name IoCreateSymbolicLink failed: %08lx\n", status);
