@@ -2760,6 +2760,17 @@ NTSTATUS nfs41_MountConfig_ParseOptions(
     LPWSTR Name;
     size_t NameLen;
     UNICODE_STRING  usValue;
+    ULONG error_offset;
+
+    status = IoCheckEaBufferValidity(EaBuffer, EaLength, &error_offset);
+    if (status) {
+        DbgP("status(=%d)=IoCheckEaBufferValidity"
+            "(eainfo=%p, buflen=%lu, &(error_offset=%d)) failed\n",
+            (int)status, (void *)EaBuffer, EaLength,
+            (int)error_offset);
+        goto out;
+    }
+
     Option = EaBuffer;
     while (status == STATUS_SUCCESS) {
         DbgP("Option=%p\n", (void *)Option);
@@ -2857,6 +2868,7 @@ NTSTATUS nfs41_MountConfig_ParseOptions(
             ((PBYTE)Option + Option->NextEntryOffset);
     }
 
+out:
     DbgP("<-- nfs41_MountConfig_ParseOptions, status=%ld\n", (long)status);
     return status;
 }
@@ -4797,6 +4809,11 @@ NTSTATUS nfs41_SetEaInformation(
         entry->u.SetEa.mode = 0;
         status = IoCheckEaBufferValidity(eainfo, buflen, &error_offset);
         if (status) {
+            DbgP("nfs41_SetEaInformation: "
+                "status(=%d)=IoCheckEaBufferValidity"
+                "(eainfo=%p, buflen=%lu, &(error_offset=%d))\n",
+                (int)status, (void *)eainfo, buflen,
+                (int)error_offset);
             RxFreePool(entry);
             goto out;
         }

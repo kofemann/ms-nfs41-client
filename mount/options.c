@@ -86,7 +86,7 @@ static FORCEINLINE ULONG EaBufferSize(
         + NameSize + ValueSize + sizeof(TCHAR);
     /* extended attributes require ULONG alignment;
      * see documentation for IoCheckEaBufferValidity() */
-    return ( (Size + 3) / sizeof(ULONG) ) * sizeof(ULONG);
+    return ( (Size + (sizeof(ULONG)-1)) / sizeof(ULONG) ) * sizeof(ULONG);
 }
 
 static FORCEINLINE ULONG EaBufferNextOffset(
