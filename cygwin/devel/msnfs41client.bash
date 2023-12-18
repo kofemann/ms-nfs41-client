@@ -93,6 +93,14 @@ function nfsclient_install
 	# (see https://learn.microsoft.com/en-us/windows/win32/fileio/maximum-file-path-limitation)
 	regtool -i set '/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Control/FileSystem/LongPathsEnabled' 1
 
+	# use the Win10 "SegmentHeap" (see https://www.blackhat.com/docs/us-16/materials/us-16-Yason-Windows-10-Segment-Heap-Internals.pdf)
+	regtool add '/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows NT/CurrentVersion/Image File Execution Options/nfs_mount.exe'
+	regtool -i set '/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows NT/CurrentVersion/Image File Execution Options/nfsd_debug.exe/FrontEndHeapDebugOptions' 0x08
+	regtool add '/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows NT/CurrentVersion/Image File Execution Options/nfsd.exe'
+	regtool -i set '/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows NT/CurrentVersion/Image File Execution Options/nfsd.exe/FrontEndHeapDebugOptions' 0x08
+	regtool add '/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows NT/CurrentVersion/Image File Execution Options/nfs_mount.exe'
+	regtool -i set '/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows NT/CurrentVersion/Image File Execution Options/nfs_mount.exe/FrontEndHeapDebugOptions' 0x08
+
 	# make sure we can load the kernel driver
 	# (does not work with SecureBoot)
 	bcdedit /set testsigning on
