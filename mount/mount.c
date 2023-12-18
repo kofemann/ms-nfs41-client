@@ -20,6 +20,9 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  */
 
+#define _DEBUG 1
+
+#include <crtdbg.h>
 #include <Windows.h>
 #include <tchar.h>
 #include <strsafe.h>
@@ -95,6 +98,16 @@ DWORD __cdecl _tmain(DWORD argc, LPTSTR argv[])
     BOOL    bForceUnmount = FALSE;
     BOOL    bPersistent = FALSE;
     MOUNT_OPTION_LIST Options;
+
+    int crtsetdbgflags = 0;
+    crtsetdbgflags |= _CRTDBG_ALLOC_MEM_DF;  /* use debug heap */
+    crtsetdbgflags |= _CRTDBG_LEAK_CHECK_DF; /* report leaks on exit */
+    crtsetdbgflags |= _CRTDBG_DELAY_FREE_MEM_DF;
+    (void)_CrtSetDbgFlag(crtsetdbgflags);
+    (void)_CrtSetReportMode(_CRT_WARN, _CRTDBG_MODE_FILE);
+    (void)_CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_FILE);
+    (void)_CrtSetReportMode(_CRT_ASSERT, _CRTDBG_MODE_FILE);
+
 
     if (argc == 1) {
         /* list open nfs shares */
