@@ -3053,6 +3053,23 @@ NTSTATUS nfs41_CreateVNetRoot(
         DbgP("Codepath for \\\\server@port\\nfs4\\path\n");
 
         /*
+         * STATUS_NFS_SHARE_NOT_MOUNTED - status code for the case
+         * when a NFS filesystem is accessed via UNC path, but no
+         * nfs_mount.exe was done for that filesystem
+         */
+#define STATUS_NFS_SHARE_NOT_MOUNTED STATUS_BAD_NETWORK_PATH
+        if (!pNetRootContext->mounts_init) {
+            /*
+             * We can only support UNC paths when we got valid
+             * mount options via nfs_mount.exe before this point.
+             */
+            DbgP("pNetRootContext(=%p) not initalised yet\n",
+                pNetRootContext);
+            status = STATUS_NFS_SHARE_NOT_MOUNTED;
+            goto out_free;
+        }
+
+        /*
          * gisburn: Fixme: Originally the code was using the
          * SRV_CALL name (without leading \) as the hostname
          * like this:
@@ -3074,7 +3091,7 @@ NTSTATUS nfs41_CreateVNetRoot(
 
         PLIST_ENTRY pEntry;
 
-        status = STATUS_OBJECT_NAME_NOT_FOUND;
+        status = STATUS_NFS_SHARE_NOT_MOUNTED;
 
         ExAcquireFastMutex(&pNetRootContext->mountLock);
         pEntry = &pNetRootContext->mounts.head;
@@ -3098,7 +3115,8 @@ NTSTATUS nfs41_CreateVNetRoot(
         ExReleaseFastMutex(&pNetRootContext->mountLock);
 
         if (status != STATUS_SUCCESS) {
-            DbgP("No existing mount found\n");
+            DbgP("No existing mount found, "
+                "status==STATUS_NFS_SHARE_NOT_MOUNTED\n");
             goto out_free;
         }
 
