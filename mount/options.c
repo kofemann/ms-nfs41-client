@@ -19,8 +19,6 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  */
 
-#define _DEBUG 1
-
 #include <crtdbg.h>
 #include <Windows.h>
 #include <tchar.h>
