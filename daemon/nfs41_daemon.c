@@ -433,7 +433,9 @@ VOID ServiceStart(DWORD argc, LPTSTR *argv)
     crtsetdbgflags |= _CRTDBG_DELAY_FREE_MEM_DF;
 #endif
     (void)_CrtSetDbgFlag(crtsetdbgflags);
-    _CrtSetReportMode(_CRT_WARN, _CRTDBG_MODE_FILE);
+    (void)_CrtSetReportMode(_CRT_WARN, _CRTDBG_MODE_FILE);
+    (void)_CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_FILE);
+    (void)_CrtSetReportMode(_CRT_ASSERT, _CRTDBG_MODE_FILE);
 
     /*
      * Do not fill memory with 0xFE for functions like |strcpy_s()|
