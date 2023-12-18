@@ -35,6 +35,9 @@ typedef struct __nfs41_daemon_globals {
     int default_uid;
     int default_gid;
     ssize_t num_worker_threads;
+    int crtdbgmem_flags;
 } nfs41_daemon_globals;
+
+#define NFS41D_GLOBALS_CRTDBGMEM_FLAGS_NOT_SET (-1)
 
 #endif /* !__NFS41_DAEMON_H_ */

@@ -50,6 +50,7 @@ nfs41_daemon_globals nfs41_dg = {
     .default_uid = NFS_USER_NOBODY_UID,
     .default_gid = NFS_GROUP_NOGROUP_GID,
     .num_worker_threads = DEFAULT_NUM_THREADS,
+    .crtdbgmem_flags = NFS41D_GLOBALS_CRTDBGMEM_FLAGS_NOT_SET,
 };
 
 
@@ -192,6 +193,10 @@ static void PrintUsage()
         "--uid <non-zero value> "
         "--gid <non-zero value> "
         "--numworkerthreads <value-between 16 and %d> "
+#ifdef _DEBUG
+        "--crtdbgmem <'allocmem'|'leakcheck'|'delayfree', "
+            "'all', 'none' or 'default'> "
+#endif /* _DEBUG */
         "\n", MAX_NUM_THREADS);
 }
 static bool_t parse_cmdlineargs(int argc, TCHAR *argv[], nfsd_args *out)
@@ -215,9 +220,46 @@ static bool_t parse_cmdlineargs(int argc, TCHAR *argv[], nfsd_args *out)
                     fprintf(stderr, "Missing debug level value\n");
                     PrintUsage();
                     return FALSE;
-                } 
+                }
                 out->debug_level = _ttoi(argv[i]);
             }
+#ifdef _DEBUG
+            else if (_tcscmp(argv[i], TEXT("--crtdbgmem")) == 0) {
+                ++i;
+                const TCHAR *memdbgoptions = argv[i];
+                if (i >= argc) {
+                    fprintf(stderr, "Missing options\n");
+                    PrintUsage();
+                    return FALSE;
+                }
+
+                if (nfs41_dg.crtdbgmem_flags ==
+                    NFS41D_GLOBALS_CRTDBGMEM_FLAGS_NOT_SET)
+                    nfs41_dg.crtdbgmem_flags = 0;
+
+                nfs41_dg.crtdbgmem_flags |=
+                    (_tcsstr(memdbgoptions, TEXT("allocmem")) != NULL)?
+                    _CRTDBG_ALLOC_MEM_DF:0;
+                nfs41_dg.crtdbgmem_flags |=
+                    (_tcsstr(memdbgoptions, TEXT("leakcheck")) != NULL)?
+                    _CRTDBG_LEAK_CHECK_DF:0;
+                nfs41_dg.crtdbgmem_flags |=
+                    (_tcsstr(memdbgoptions, TEXT("delayfree")) != NULL)?
+                    _CRTDBG_DELAY_FREE_MEM_DF:0;
+                nfs41_dg.crtdbgmem_flags |=
+                    (_tcsstr(memdbgoptions, TEXT("all")) != NULL)?
+                    (_CRTDBG_ALLOC_MEM_DF|_CRTDBG_LEAK_CHECK_DF|_CRTDBG_DELAY_FREE_MEM_DF):0;
+
+                if (_tcsstr(memdbgoptions, TEXT("none")) != NULL) {
+                    nfs41_dg.crtdbgmem_flags = 0;
+                }
+
+                if (_tcsstr(memdbgoptions, TEXT("default")) != NULL) {
+                    nfs41_dg.crtdbgmem_flags =
+                        NFS41D_GLOBALS_CRTDBGMEM_FLAGS_NOT_SET;
+                }
+            }
+#endif /* _DEBUG */
             else if (_tcscmp(argv[i], TEXT("--noldap")) == 0) { /* no LDAP */
                 out->ldap_enable = FALSE;
             }
@@ -393,6 +435,69 @@ out:
     return status;
 }
 
+
+static
+void nfsd_crt_debug_init(void)
+{
+#ifdef _DEBUG
+    /* dump memory leaks to stderr on exit; this requires the debug heap,
+    /* available only when built in debug mode under visual studio -cbodley */
+
+    int crtsetdbgflags = nfs41_dg.crtdbgmem_flags;
+
+    if (crtsetdbgflags == NFS41D_GLOBALS_CRTDBGMEM_FLAGS_NOT_SET) {
+        dprintf(0, "crtsetdbgflags not set, using defaults\n");
+        crtsetdbgflags = 0;
+
+        crtsetdbgflags |= _CRTDBG_ALLOC_MEM_DF;
+        crtsetdbgflags |= _CRTDBG_LEAK_CHECK_DF;
+        /*
+         * _CRTDBG_DELAY_FREE_MEM_DF - Delay freeing of memory, but
+         * fill memory blocks passed to |free()| with 0xdd. We rely
+         * on that to see 0xdddddddddddddddd-pointers for
+         * use-after-free and catch them in stress testing instead
+         * of having to deal with a core dump.
+         *
+         * This is off by default, as it can lead to memory
+         * exhaustion (e.g. 5GB for $ git clone -b
+         * 'releases/gcc-13.2.0' git://gcc.gnu.org/git/gcc.git on a
+         * NFS filesystem)
+         * ---- snip ----
+         * crtsetdbgflags |= _CRTDBG_DELAY_FREE_MEM_DF;
+         * ---- snip ----
+         */
+    }
+
+    dprintf(0, "memory debug flags _CRTDBG_(=0x%x)"
+        "{ ALLOC_MEM_DF=%d, LEAK_CHECK_DF=%d, DELAY_FREE_MEM_DF=%d }\n",
+        crtsetdbgflags,
+        ((crtsetdbgflags & _CRTDBG_ALLOC_MEM_DF)?1:0),
+        ((crtsetdbgflags & _CRTDBG_LEAK_CHECK_DF)?1:0),
+        ((crtsetdbgflags & _CRTDBG_DELAY_FREE_MEM_DF)?1:0));
+
+    (void)_CrtSetDbgFlag(crtsetdbgflags);
+
+    /*
+     * Do not fill memory with 0xFE for functions like |strcpy_s()|
+     * etc, as it causes bad performance. We have drmemory to find
+     * issues like that instead
+     */
+    (void)_CrtSetDebugFillThreshold(0);
+
+    (void)_CrtSetReportMode(_CRT_WARN,      _CRTDBG_MODE_FILE);
+    (void)_CrtSetReportMode(_CRT_ERROR,     _CRTDBG_MODE_FILE);
+    (void)_CrtSetReportMode(_CRT_ASSERT,    _CRTDBG_MODE_FILE);
+
+    (void)_CrtSetReportFile(_CRT_WARN,    _CRTDBG_FILE_STDERR);
+    (void)_CrtSetReportFile(_CRT_ERROR,   _CRTDBG_FILE_STDERR);
+    (void)_CrtSetReportFile(_CRT_ASSERT,  _CRTDBG_FILE_STDERR);
+
+    if (crtsetdbgflags & _CRTDBG_LEAK_CHECK_DF) {
+        dprintf(1, "debug mode. dumping memory leaks to stderr on exit.\n");
+    }
+#endif /* _DEBUG */
+}
+
 #ifdef STANDALONE_NFSD
 void __cdecl _tmain(int argc, TCHAR *argv[])
 #else
@@ -412,43 +517,9 @@ VOID ServiceStart(DWORD argc, LPTSTR *argv)
         exit(1);
     set_debug_level(cmd_args.debug_level);
     open_log_files();
+    nfsd_crt_debug_init();
     sidcache_init();
 
-#ifdef _DEBUG
-    /* dump memory leaks to stderr on exit; this requires the debug heap,
-    /* available only when built in debug mode under visual studio -cbodley */
-
-    int crtsetdbgflags = 0;
-    crtsetdbgflags |= _CRTDBG_ALLOC_MEM_DF;  /* use debug heap */
-    crtsetdbgflags |= _CRTDBG_LEAK_CHECK_DF; /* report leaks on exit */
-/* Disabled for now, git clone ... gcc.git does not work with it */
-#ifdef DISABLED_FOR_NOW
-    /*
-     * _CRTDBG_DELAY_FREE_MEM_DF - Delay freeing of memory, but fill
-     * memory blocks passed to |free()| with 0xdd. We rely on that to
-     * see 0xdddddddddddddddd-pointers for use-after-free and catch
-     * them in stress testing instead of having to deal with a core
-     * dump
-     */
-    crtsetdbgflags |= _CRTDBG_DELAY_FREE_MEM_DF;
-#endif
-    (void)_CrtSetDbgFlag(crtsetdbgflags);
-    (void)_CrtSetReportMode(_CRT_WARN, _CRTDBG_MODE_FILE);
-    (void)_CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_FILE);
-    (void)_CrtSetReportMode(_CRT_ASSERT, _CRTDBG_MODE_FILE);
-
-    /*
-     * Do not fill memory with 0xFE for functions like |strcpy_s()|
-     * etc, as it causes bad performance. We have drmemory to find
-     * issues like that instead
-     */
-    (void)_CrtSetDebugFillThreshold(0);
-#pragma warning (push)
-#pragma warning (disable : 4306) /* conversion from 'int' to '_HFILE' of greater size */
-    _CrtSetReportFile(_CRT_WARN, _CRTDBG_FILE_STDERR);
-#pragma warning (pop)
-    dprintf(1, "debug mode. dumping memory leaks to stderr on exit.\n");
-#endif
     /* acquire and store in global memory current dns domain name.
      * needed for acls */
     if (getdomainname()) {
