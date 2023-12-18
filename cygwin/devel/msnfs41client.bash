@@ -191,6 +191,7 @@ function nfsclient_rundeamon
 				'-preload_symbols'
 				'--'
 				"${nfsd_args[@]}"
+				'--crtdbgmem' 'none'
 			)
 		"${nfsd_args[@]}"
 	else
@@ -271,6 +272,7 @@ function nfsclient_system_rundeamon
 				'-preload_symbols'
 				'--'
 				"${nfsd_args[@]}"
+				'--crtdbgmem' 'none'
 			)
 		"${nfsd_args[@]}"
 	else
