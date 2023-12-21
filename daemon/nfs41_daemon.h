@@ -23,6 +23,10 @@
 #ifndef __NFS41_DAEMON_H_
 #define __NFS41_DAEMON_H_ 1
 
+#if ((__STDC_VERSION__-0) < 201710L)
+#error Code requires ISO C17
+#endif
+
 #include "nfs41_build_features.h"
 #include "idmap.h"
 

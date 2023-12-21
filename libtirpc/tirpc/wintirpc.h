@@ -23,6 +23,11 @@
 #ifndef _TIRPC_WINTIRPC_H
 #define _TIRPC_WINTIRPC_H
 
+#if ((__STDC_VERSION__-0) < 201710L)
+#error Code requires ISO C17
+#endif
+
+
 /*
  * Eliminate warnings about possibly unsafe uses of snprintf and friends
  * XXX Think about cleaning these up and removing this later XXX

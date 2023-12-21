@@ -20,6 +20,10 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  */
 
+#if ((__STDC_VERSION__-0) < 201710L)
+#error Code requires ISO C17
+#endif
+
 #include <Windows.h>
 #include <process.h>
 #include <tchar.h>

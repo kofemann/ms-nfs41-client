@@ -20,6 +20,14 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  */
 
+#ifndef _KERNEL_MODE
+#error module requires kernel mode
+#endif
+
+#if ((__STDC_VERSION__-0) < 201710L)
+#error Code requires ISO C17
+#endif
+
 #define MINIRDR__NAME "Value is ignored, only fact of definition"
 #include <rx.h>
 #include <windef.h>

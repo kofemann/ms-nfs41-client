@@ -42,6 +42,7 @@
     <Configuration>Debug</Configuration>
     <Platform Condition="'$(Platform)' == ''">Win32</Platform>
     <RootNamespace>nfs41_driver</RootNamespace>
+    <WindowsTargetPlatformVersion>$(LatestTargetPlatformVersion)</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -137,6 +138,8 @@
       <AdditionalIncludeDirectories>..\..\dll;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WarningLevel>Level3</WarningLevel>
       <PreprocessorDefinitions>EXPLODE_POOLTAGS;MONOLITHIC_MINIRDR;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <AdditionalOptions>/std:c17 /Zc:preprocessor- /kernel /wd5104</AdditionalOptions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ntoskrnl.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\hal.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\bufferoverflowk.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ksecdd.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rxce.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rdbsslib.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\copysup.lib</AdditionalDependencies>
@@ -147,6 +150,8 @@
       <AdditionalIncludeDirectories>..\..\dll;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WarningLevel>Level3</WarningLevel>
       <PreprocessorDefinitions>EXPLODE_POOLTAGS;MONOLITHIC_MINIRDR;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <AdditionalOptions>/std:c17 /Zc:preprocessor- /kernel /wd5104</AdditionalOptions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ntoskrnl.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\hal.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\bufferoverflowk.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ksecdd.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rxce.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rdbsslib.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\copysup.lib</AdditionalDependencies>
@@ -157,6 +162,8 @@
       <AdditionalIncludeDirectories>..\..\dll;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WarningLevel>Level3</WarningLevel>
       <PreprocessorDefinitions>EXPLODE_POOLTAGS;MONOLITHIC_MINIRDR;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <AdditionalOptions>/std:c17 /Zc:preprocessor- /kernel /wd5104</AdditionalOptions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ntoskrnl.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\hal.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\bufferoverflowk.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ksecdd.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rxce.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rdbsslib.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\copysup.lib</AdditionalDependencies>
@@ -167,6 +174,8 @@
       <AdditionalIncludeDirectories>..\..\dll;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WarningLevel>Level3</WarningLevel>
       <PreprocessorDefinitions>EXPLODE_POOLTAGS;MONOLITHIC_MINIRDR;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <AdditionalOptions>/std:c17 /Zc:preprocessor- /kernel /wd5104</AdditionalOptions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ntoskrnl.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\hal.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\bufferoverflowk.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ksecdd.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rxce.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rdbsslib.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\copysup.lib</AdditionalDependencies>
@@ -177,6 +186,8 @@
       <AdditionalIncludeDirectories>..\..\dll;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WarningLevel>Level3</WarningLevel>
       <PreprocessorDefinitions>EXPLODE_POOLTAGS;MONOLITHIC_MINIRDR;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <AdditionalOptions>/std:c17 /Zc:preprocessor- /kernel /wd5104</AdditionalOptions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ntoskrnl.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\hal.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\bufferoverflowk.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ksecdd.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rxce.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rdbsslib.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\copysup.lib</AdditionalDependencies>
@@ -187,6 +198,8 @@
       <AdditionalIncludeDirectories>..\..\dll;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WarningLevel>Level3</WarningLevel>
       <PreprocessorDefinitions>EXPLODE_POOLTAGS;MONOLITHIC_MINIRDR;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <AdditionalOptions>/std:c17 /Zc:preprocessor- /kernel /wd5104</AdditionalOptions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ntoskrnl.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\hal.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\bufferoverflowk.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ksecdd.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rxce.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rdbsslib.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\copysup.lib</AdditionalDependencies>
@@ -197,6 +210,8 @@
       <AdditionalIncludeDirectories>..\..\dll;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WarningLevel>Level3</WarningLevel>
       <PreprocessorDefinitions>EXPLODE_POOLTAGS;MONOLITHIC_MINIRDR;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <AdditionalOptions>/std:c17 /Zc:preprocessor- /kernel /wd5104</AdditionalOptions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ntoskrnl.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\hal.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\bufferoverflowk.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ksecdd.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rxce.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rdbsslib.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\copysup.lib</AdditionalDependencies>
@@ -207,6 +222,8 @@
       <AdditionalIncludeDirectories>..\..\dll;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WarningLevel>Level3</WarningLevel>
       <PreprocessorDefinitions>EXPLODE_POOLTAGS;MONOLITHIC_MINIRDR;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <AdditionalOptions>/std:c17 /Zc:preprocessor- /kernel /wd5104</AdditionalOptions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ntoskrnl.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\hal.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\bufferoverflowk.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ksecdd.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rxce.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rdbsslib.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\copysup.lib</AdditionalDependencies>

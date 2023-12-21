@@ -26,6 +26,10 @@
  *
  */
 
+#if ((__STDC_VERSION__-0) < 201710L)
+#error Code requires ISO C17
+#endif
+
 #include <tchar.h>
 
 #include "nfs41_driver.h"
