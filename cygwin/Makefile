@@ -101,16 +101,20 @@ installdest: $(VS_BUILD_DIR)/nfsd.exe \
 		"$(DESTDIR)/cygdrive/c/cygwin64/sbin/"
 
 bintarball: installdest
+	set -o errexit ; \
+	base_filename="msnfs41client_cygwin_binaries_$$(date +%Y%m%d_%Hh%Mm)_git$$(git rev-parse --short HEAD)" ; \
 	( \
-	base_filename="msnfs41client_cygwin_binaries_git$$(git rev-parse --short HEAD)_$$(date +%Y%m%d_%Hh%Mm)" ; \
-	cd destdir && \
+	cd "$(DESTDIR)" && \
 	cp "../cygwin/README.bintarball.txt" "$${base_filename}.readme" && \
 	tar -cvf - \
 		--owner=SYSTEM:18 \
 		--group=SYSTEM:18 \
 		cygdrive/c/cygwin64 | \
 			bzip2 -9 >"$${base_filename}.tar.bz2" \
-	)
+	) ; \
+	printf "\n#\n# tarball is ready now\n#\n" ; \
+	ls -l "$(DESTDIR)/$${base_filename}.tar.bz2" ; \
+	ls -l "$(DESTDIR)/$${base_filename}.readme"
 
 #
 # clean destdir/, but only if nfsd*.exe does not use it right now
