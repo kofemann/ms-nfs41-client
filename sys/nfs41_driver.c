@@ -5449,10 +5449,8 @@ NTSTATUS nfs41_QueryFileInformation(
     DbgEn();
     print_debug_filedirquery_header(RxContext);
 #endif
-    DbgP("--> nfs41_QueryFileInformation, RxContext->Info.LengthRemaining=%ld, "
-        "RxContext->LowIoContext.ParamsFor.IoCtl.InputBufferLength=%ld\n",
-        (long)RxContext->Info.LengthRemaining,
-        (long)RxContext->LowIoContext.ParamsFor.IoCtl.InputBufferLength);
+    DbgP("--> nfs41_QueryFileInformation, RxContext->Info.LengthRemaining=%ld\n",
+        (long)RxContext->Info.LengthRemaining);
 
     status = check_nfs41_dirquery_args(RxContext);
     if (status) {
@@ -5462,11 +5460,8 @@ NTSTATUS nfs41_QueryFileInformation(
 
     RtlZeroMemory(RxContext->Info.Buffer, RxContext->Info.LengthRemaining);
 
-    DbgP("nfs41_QueryFileInformation, RxContext->Info.LengthRemaining=%ld, "
-        "RxContext->LowIoContext.ParamsFor.IoCtl.{InputBufferLength=%ld,OutputBufferLength=%ld}\n",
-        (long)RxContext->Info.LengthRemaining,
-        (long)RxContext->LowIoContext.ParamsFor.IoCtl.InputBufferLength,
-        (long)RxContext->LowIoContext.ParamsFor.IoCtl.OutputBufferLength);
+    DbgP("nfs41_QueryFileInformation, RxContext->Info.LengthRemaining=%ld\n",
+        (long)RxContext->Info.LengthRemaining);
 
     switch (InfoClass) {
     case FileEaInformation:
