@@ -54,8 +54,8 @@ ULONG __cdecl DbgP(IN PCCH fmt, ...)
             time_fields.Hour, time_fields.Minute, time_fields.Second, 
             time_fields.Milliseconds, msg);
 #else
-        DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, 
-            "[%04x] %s", PsGetCurrentProcessId(), msg);
+        DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL,
+            "[%04x] %s", PsGetCurrentProcessShortDebugId(), msg);
 #endif
     }
     va_end(args);
@@ -86,8 +86,8 @@ ULONG __cdecl print_error(IN PCCH fmt, ...)
             time_fields.Hour, time_fields.Minute, time_fields.Second, 
             time_fields.Milliseconds, msg);
 #else
-        DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, 
-            "[%04x] %s", PsGetCurrentProcessId(), msg);
+        DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL,
+            "[%04x] %s", PsGetCurrentProcessShortDebugId(), msg);
 #endif
     }
     va_end(args);

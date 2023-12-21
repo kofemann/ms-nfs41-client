@@ -56,19 +56,23 @@ void print_wait_status(int on, const char *str, NTSTATUS status,
                        const char *opcode, PVOID entry, LONGLONG xid);
 void print_acl_args(SECURITY_INFORMATION info);
 
+#define PTR2PTRDIFF_T(p) (((char *)(p))-((char *)0))
+#define PsGetCurrentProcessShortDebugId() ((int)PTR2PTRDIFF_T(PsGetCurrentProcessId()))
+
+
 #define DbgEn() DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, \
-        "--> [%s] [%04x] %s\n", _DRIVER_NAME_, PsGetCurrentProcessId(), \
+        "--> [%s] [%04x] %s\n", _DRIVER_NAME_, PsGetCurrentProcessShortDebugId(), \
         __FUNCTION__); try {
-        
+
 #define DbgEx() DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, \
-        "<-- [%s] [%04x] %s status = %08lx\n", _DRIVER_NAME_, PsGetCurrentProcessId(), \
+        "<-- [%s] [%04x] %s status = %08lx\n", _DRIVER_NAME_, PsGetCurrentProcessShortDebugId(), \
         __FUNCTION__, status); \
         } except (EXCEPTION_EXECUTE_HANDLER) { \
             status = GetExceptionCode() ; \
             DbgP("Exception encountered with value = Ox%x\n", status); \
         }
 #define DbgR() DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, \
-        "<-- [%s] [%04x] %s\n", _DRIVER_NAME_, PsGetCurrentProcessId(), __FUNCTION__); \
+        "<-- [%s] [%04x] %s\n", _DRIVER_NAME_, PsGetCurrentProcessShortDebugId(), __FUNCTION__); \
         } except (EXCEPTION_EXECUTE_HANDLER) { \
             NTSTATUS status; \
             status = GetExceptionCode() ; \
