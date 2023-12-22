@@ -468,6 +468,7 @@ static DWORD DoMount(
         goto out;
 
     /* fail if the connection already exists */
+    dwLength = NFS41_SYS_MAX_PATH_LEN;
     result = WNetGetConnection(pLocalName, (LPTSTR)szExisting, &dwLength);
     if (result == NO_ERROR)
     {
