@@ -22,11 +22,222 @@
 #include <Windows.h>
 #include <strsafe.h>
 #include <stdlib.h>
+#include <stdbool.h>
+#include <string.h>
+#include <stdio.h>
 #include "from_kernel.h"
 #include "nfs41_ops.h"
 #include "daemon_debug.h"
 #include "upcall.h"
 #include "util.h"
+
+
+/*
+ * Handle filename pattern for NtQueryDirectoryFile()
+ */
+
+/*
+ * See
+ * https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-_fsrtl_advanced_fcb_header-fsrtlisdbcsinexpression
+ * for a description of the pattern syntax
+ */
+#define FILTER_STAR ('<')
+#define FILTER_QM   ('>')
+#define FILTER_DOT  ('"')
+
+bool
+readdir_filter(const char *filter, const char *name)
+{
+#define MAX_NUM_BACKTRACKING (256)
+    const size_t filter_len = strlen(filter);
+    const size_t name_len = strlen(name);
+    size_t foff;
+    size_t pos;
+    const int bt_buf_size = MAX_NUM_BACKTRACKING;
+    size_t bt_buf[MAX_NUM_BACKTRACKING], old_bt_buf[MAX_NUM_BACKTRACKING] = { 0 };
+    size_t *bt = bt_buf, *old_bt = old_bt_buf;
+    size_t bt_pos, old_bt_pos;
+    size_t filter_pos, name_pos = 0, matching_chars = 1;
+    int n_ch = 0, f_ch;
+    bool endofnamebuf = false;
+    bool res;
+    bool donotskipdot;
+
+    if ((filter_len == 0) || (name_len == 0))
+    {
+        if ((name_len == 0) && (filter_len == 0))
+            return true;
+
+        return false;
+    }
+
+    if ((filter_len == 1) && (filter[0] == '*'))
+        return true;
+
+    for (; !endofnamebuf; matching_chars = bt_pos)
+    {
+        old_bt_pos = bt_pos = 0;
+
+        if (name_pos >= name_len)
+        {
+            endofnamebuf = true;
+            if (matching_chars && (old_bt[matching_chars - 1] == (filter_len * 2)))
+                break;
+        }
+        else
+        {
+            n_ch = name[name_pos];
+            name_pos++;
+        }
+
+        while (matching_chars > old_bt_pos)
+        {
+            filter_pos = (old_bt[old_bt_pos++] + 1) / 2;
+
+            for (foff = 0; filter_pos < filter_len; )
+            {
+                filter_pos += foff;
+
+                if (filter_pos == filter_len)
+                {
+                    bt[bt_pos++] = filter_len * 2;
+                    break;
+                }
+
+                /* backtracking buffer too small ? */
+                if (bt_pos > (bt_buf_size - 3))
+                {
+                    (void)fprintf(stderr,
+                        "ASSERT: bt buffer too small: bt_buf_size=%x\n",
+                        (int)bt_buf_size);
+                    res = false;
+                    goto done;
+                }
+
+                f_ch = filter[filter_pos];
+                foff = 1;
+
+                if ((f_ch == n_ch) && !endofnamebuf)
+                {
+                    bt[bt_pos++] = (filter_pos + foff) * 2;
+                }
+                else if ((f_ch == '?') && !endofnamebuf)
+                {
+                    bt[bt_pos++] = (filter_pos + foff) * 2;
+                }
+                else if (f_ch == '*')
+                {
+                    bt[bt_pos++] = filter_pos * 2;
+                    bt[bt_pos++] = (filter_pos * 2) + 1;
+                    continue;
+                }
+                else if (f_ch == FILTER_STAR)
+                {
+                    donotskipdot = true;
+                    if (!endofnamebuf && (n_ch == '.'))
+                    {
+                        for (pos = name_pos; pos < name_len; pos++)
+                        {
+                            if (name[pos] == '.')
+                            {
+                                donotskipdot = false;
+                                break;
+                            }
+                         }
+                    }
+
+                    if (endofnamebuf || (n_ch != '.') || !donotskipdot)
+                        bt[bt_pos++] = filter_pos * 2;
+
+                    bt[bt_pos++] = (filter_pos * 2) + 1;
+                    continue;
+                }
+                else if (f_ch == FILTER_QM)
+                {
+                    if (endofnamebuf || (n_ch == '.'))
+                        continue;
+
+                    bt[bt_pos++] = (filter_pos + foff) * 2;
+                }
+                else if (f_ch == FILTER_DOT)
+                {
+                    if (endofnamebuf)
+                        continue;
+
+                    if (n_ch == '.')
+                        bt[bt_pos++] = (filter_pos + foff) * 2;
+                }
+
+                break;
+            }
+
+            for (pos = 0; (matching_chars > old_bt_pos) && (pos < bt_pos); pos++)
+            {
+                while ((matching_chars > old_bt_pos) && (bt[pos] > old_bt[old_bt_pos]))
+                {
+                    old_bt_pos++;
+                }
+            }
+        }
+
+        size_t *bt_swap;
+        bt_swap = bt;
+        bt = old_bt;
+        old_bt = bt_swap;
+    }
+
+    res = matching_chars && (old_bt[matching_chars - 1] == (filter_len * 2));
+
+done:
+    return res;
+}
+
+#ifdef TEST_FILTER
+static
+void test_filter(const char *filter, const char *name, int expected_res)
+{
+    int res;
+    res = filter_name(filter, name);
+
+    (void)printf("filter_name(filter='%s',\tname='%s')\t = %s - \t%s\n",
+        filter, name, res?"true":"false", ((expected_res==res)?"OK":"FAIL"));
+}
+
+int main(int ac, char *av[])
+{
+    test_filter("foo",              "foo",  1);
+    test_filter("foo",              "",     0);
+    test_filter("",                 "foo",  0);
+    test_filter("",                 "",     1);
+    test_filter("f*?",              "foo",  1);
+    test_filter("f??",              "foo",  1);
+    test_filter("f?x",              "foo",  0);
+    test_filter("f*",               "foo",  1);
+    test_filter("f<",               "foo",  1);
+    test_filter("x*",               "foo",  0);
+    test_filter("x<",               "foo",  0);
+    test_filter("*o",               "foo",  1);
+    test_filter("<o",               "foo",  1);
+    test_filter("f*oo",             "foo",  1);
+    test_filter("f\"o",             "f.o",  1);
+    test_filter("f***********oo",   "foo",  1);
+    test_filter("f<<<<<<<<<<<oo",   "foo",  1);
+    test_filter("f<*<*<*<?<*<o",    "foo",  1);
+    test_filter("f<*<*<*<?<*<",     "foo",  1);
+    test_filter("<*<*<*<?<*<",      "foo",  1);
+    test_filter("CL.write\"<.tlog", "CL.write.foo.bar.tlog", 1);
+    test_filter("CL.write\"foo<.tlog", "CL.write.foo.bar.tlog", 1);
+    test_filter("CL.write\">>><.tlog", "CL.write.foo.bar.tlog", 1);
+    test_filter("<.tlog",           "bar.tlog", 1);
+    test_filter(">.tlog",           "a.tlog", 1);
+    test_filter(">.tlog",           "ab.tlog", 0);
+    test_filter(">>.tlog",          "ab.tlog", 1);
+    test_filter(">*.tlog",          "ab.tlog", 1);
+    test_filter("*>*.tlog",         "ab.tlog", 1);
+    test_filter(">?.tlog",          "ab.tlog", 1);
+    return 0;
+}
+#endif /* TEST_FILTER */
 
 
 typedef union _FILE_DIR_INFO_UNION {
@@ -71,38 +282,6 @@ out:
     return status;
 }
 
-#define FILTER_STAR '*'
-#define FILTER_QM   '>'
-
-static __inline const char* skip_stars(
-    const char *filter)
-{
-    while (*filter == FILTER_STAR)
-        filter++;
-    return filter;
-}
-
-static int readdir_filter(
-    const char *filter,
-    const char *name)
-{
-    const char *f = filter, *n = name;
-
-    while (*f && *n) {
-        if (*f == FILTER_STAR) {
-            f = skip_stars(f);
-            if (*f == '\0')
-                return 1;
-            while (*n && !readdir_filter(f, n))
-                n++;
-        } else if (*f == FILTER_QM || *f == *n) {
-            f++;
-            n++;
-        } else
-            return 0;
-    }
-    return *f == *n || *skip_stars(f) == '\0';
-}
 
 static uint32_t readdir_size_for_entry(
     IN int query_class,
@@ -381,7 +560,7 @@ static int readdir_add_dots(
     case 0:
         if (entry_buf_len < entry_len + 2) {
             status = ERROR_BUFFER_OVERFLOW;
-            dprintf(1, "not enough room for '.' entry. received %d need %d\n",
+            dprintf(0, "readdir_add_dots: not enough room for '.' entry. received %d need %d\n",
                     entry_buf_len, entry_len + 2);
             args->query_reply_len = entry_len + 2;
             goto out;
@@ -393,7 +572,7 @@ static int readdir_add_dots(
         status = nfs41_cached_getattr(state->session,
             &state->file, &entry->attr_info);
         if (status) {
-            dprintf(1, "failed to add '.' entry.\n");
+            dprintf(0, "readdir_add_dots: failed to add '.' entry.\n");
             goto out;
         }
         entry->cookie = COOKIE_DOT;
@@ -411,7 +590,7 @@ static int readdir_add_dots(
     case COOKIE_DOT:
         if (entry_buf_len < entry_len + 3) {
             status = ERROR_BUFFER_OVERFLOW;
-            dprintf(1, "not enough room for '..' entry. received %d need %d\n",
+            dprintf(0, "readdir_add_dots: not enough room for '..' entry. received %d need %d\n",
                     entry_buf_len, entry_len);
             args->query_reply_len = entry_len + 2;
             goto out;
@@ -427,7 +606,7 @@ static int readdir_add_dots(
             &state->parent, &entry->attr_info);
         if (status) {
             status = ERROR_FILE_NOT_FOUND;
-            dprintf(1, "failed to add '..' entry.\n");
+            dprintf(0, "readdir_add_dots: failed to add '..' entry.\n");
             goto out;
         }
         entry->cookie = COOKIE_DOTDOT;
@@ -493,7 +672,11 @@ fetch_entries:
     nfs41_superblock_getattr_mask(state->file.fh.superblock, &attr_request);
     attr_request.arr[0] |= FATTR4_WORD0_RDATTR_ERROR;
 
-    if (strchr(args->filter, FILTER_STAR) || strchr(args->filter, FILTER_QM)) {
+    if (strchr(args->filter, FILTER_STAR) ||
+        strchr(args->filter, FILTER_QM) ||
+        strchr(args->filter, FILTER_DOT) ||
+        strchr(args->filter, '?') ||
+        strchr(args->filter, '*')) {
         /* use READDIR for wildcards */
 
         uint32_t dots_len = 0;
