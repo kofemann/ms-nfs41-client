@@ -444,7 +444,7 @@ int create_silly_rename(
 
     tmp = (char*)silly->name;
     StringCchPrintf(tmp, end - tmp, ".%s.", name);
-    tmp += silly->len + 2;
+    tmp += (size_t)silly->len + 2L;
 
     for (i = 0; i < 16; i++, tmp++)
         StringCchPrintf(tmp, end - tmp, "%x", fhmd5[i]);

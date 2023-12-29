@@ -86,7 +86,7 @@ xdr_callmsg(xdrs, cmsg)
 			IXDR_PUT_INT32(buf, oa->oa_length);
 			if (oa->oa_length) {
 				memmove(buf, oa->oa_base, oa->oa_length);
-				buf += RNDUP(oa->oa_length) / sizeof (int32_t);
+				buf += RNDUP((size_t)oa->oa_length) / sizeof (int32_t);
 			}
 			oa = &cmsg->rm_call.cb_verf;
 			IXDR_PUT_ENUM(buf, oa->oa_flavor);

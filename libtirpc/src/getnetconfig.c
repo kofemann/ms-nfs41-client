@@ -605,7 +605,7 @@ struct netconfig *ncp;	/* where to put results */
 			tokenp = _get_next_token(cp, ',');
 			ncp->nc_lookups[(size_t)ncp->nc_nlookups++] = cp;
 			ncp->nc_lookups = (char **)realloc(ncp->nc_lookups,
-			(size_t)(ncp->nc_nlookups+1) *sizeof(char *));	/* for next loop */
+			((size_t)ncp->nc_nlookups+1L) *sizeof(char *));	/* for next loop */
 		}
     }
     return (0);
@@ -687,7 +687,7 @@ struct netconfig	*ncp;
     p->nc_proto = (char *)strcpy(tmp,ncp->nc_proto);
     tmp = strchr(tmp, 0) + 1;
     p->nc_device = (char *)strcpy(tmp,ncp->nc_device);
-    p->nc_lookups = (char **)malloc((size_t)(p->nc_nlookups+1) * sizeof(char *));
+    p->nc_lookups = (char **)malloc(((size_t)p->nc_nlookups+1L) * sizeof(char *));
     if (p->nc_lookups == NULL) {
 		free(p->nc_netid);
 		return(NULL);

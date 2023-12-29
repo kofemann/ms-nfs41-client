@@ -2078,7 +2078,7 @@ static bool_t decode_modified_limit4(
     if (!xdr_u_int32_t(xdr, &bytes_per_block))
         return FALSE;
 
-    *filesize = blocks * bytes_per_block;
+    *filesize = (uint64_t)blocks * bytes_per_block;
     return TRUE;
 }
 
@@ -2346,7 +2346,7 @@ static bool_t decode_readdir_entry(
             entry->attr_info.rdattr_error = NFS4ERR_BADXDR;
         StringCchCopyA(entry->name, name_len, (STRSAFE_LPCSTR)name);
 
-        it->buf_pos += entry_len + name_len;
+        it->buf_pos += (size_t)entry_len + name_len;
         it->remaining_len -= entry_len + name_len;
         it->last_entry_offset = &entry->next_entry_offset;
     }

@@ -254,7 +254,7 @@ xdrrec_getlong(xdrs, lp)
 
 	/* first try the inline, fast case */
 	if ((rstrm->fbtbc >= sizeof(int32_t)) &&
-		((PtrToLong(rstrm->in_boundry) - PtrToLong(buflp)) >= sizeof(int32_t))) {
+		(((ssize_t)PtrToLong(rstrm->in_boundry) - (ssize_t)PtrToLong(buflp)) >= sizeof(int32_t))) {
 		*lp = (long)ntohl((u_int32_t)(*buflp));
 		rstrm->fbtbc -= sizeof(int32_t);
 		rstrm->in_finger += sizeof(int32_t);
@@ -747,8 +747,8 @@ get_input_bytes(rstrm, addr, in_len)
 	}
 
 	while (len > 0) {
-		current = (size_t)(PtrToLong(rstrm->in_boundry) -
-		    PtrToLong(rstrm->in_finger));
+		current = (ssize_t)PtrToLong(rstrm->in_boundry) -
+		    (ssize_t)PtrToLong(rstrm->in_finger);
 		if (current == 0) {
 			if (! fill_input_buf(rstrm))
 				return (FALSE);

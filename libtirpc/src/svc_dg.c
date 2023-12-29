@@ -125,7 +125,7 @@ svc_dg_create(fd, sendsize, recvsize)
 	su = mem_alloc(sizeof (*su));
 	if (su == NULL)
 		goto freedata;
-	su->su_iosz = ((MAX(sendsize, recvsize) + 3) / 4) * 4;
+	su->su_iosz = (((size_t)MAX(sendsize, recvsize) + 3) / 4) * 4;
 	if ((rpc_buffer(xprt) = mem_alloc(su->su_iosz)) == NULL)
 		goto freedata;
 	assert(su->su_iosz < UINT_MAX);
@@ -408,14 +408,14 @@ svc_dg_enablecache(transp, size)
 	}
 	uc->uc_size = size;
 	uc->uc_nextvictim = 0;
-	uc->uc_entries = ALLOC(cache_ptr, size * SPARSENESS);
+	uc->uc_entries = ALLOC(cache_ptr, (size_t)size * SPARSENESS);
 	if (uc->uc_entries == NULL) {
 		warnx(cache_enable_str, alloc_err, "data");
 		FREE(uc, struct cl_cache, 1);
 		mutex_unlock(&dupreq_lock);
 		return (0);
 	}
-	MEMZERO(uc->uc_entries, cache_ptr, size * SPARSENESS);
+	MEMZERO(uc->uc_entries, cache_ptr, (size_t)size * SPARSENESS);
 	uc->uc_fifo = ALLOC(cache_ptr, size);
 	if (uc->uc_fifo == NULL) {
 		warnx(cache_enable_str, alloc_err, "fifo");

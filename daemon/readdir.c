@@ -48,12 +48,11 @@
 bool
 readdir_filter(const char *filter, const char *name)
 {
-#define MAX_NUM_BACKTRACKING (256)
+#define MAX_NUM_BACKTRACKING (256L)
     const size_t filter_len = strlen(filter);
     const size_t name_len = strlen(name);
     size_t foff;
     size_t pos;
-    const int bt_buf_size = MAX_NUM_BACKTRACKING;
     size_t bt_buf[MAX_NUM_BACKTRACKING], old_bt_buf[MAX_NUM_BACKTRACKING] = { 0 };
     size_t *bt = bt_buf, *old_bt = old_bt_buf;
     size_t bt_pos, old_bt_pos;
@@ -105,11 +104,11 @@ readdir_filter(const char *filter, const char *name)
                 }
 
                 /* backtracking buffer too small ? */
-                if (bt_pos > (bt_buf_size - 3))
+                if (bt_pos > (MAX_NUM_BACKTRACKING - 3L))
                 {
                     (void)fprintf(stderr,
-                        "ASSERT: bt buffer too small: bt_buf_size=%x\n",
-                        (int)bt_buf_size);
+                        "ASSERT: bt buffer too small: MAX_NUM_BACKTRACKING=%x\n",
+                        (int)MAX_NUM_BACKTRACKING);
                     res = false;
                     goto done;
                 }

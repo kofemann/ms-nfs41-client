@@ -720,7 +720,7 @@ void sspi_release_buffer(sspi_buffer_desc *buf)
 
 uint32_t sspi_import_name(sspi_buffer_desc *name_in, sspi_name_t *name_out)
 {
-    *name_out = calloc(name_in->length + 5, sizeof(char));
+    *name_out = calloc((size_t)name_in->length + 5L, sizeof(char));
     if (*name_out == NULL)
         return SEC_E_INSUFFICIENT_MEMORY;
 

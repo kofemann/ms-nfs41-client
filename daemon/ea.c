@@ -269,7 +269,7 @@ static int read_entire_dir(
         if (len < READDIR_LEN_MIN) {
             const ptrdiff_t diff = (unsigned char*)last_entry - buffer;
             /* realloc the buffer to fit more entries */
-            unsigned char *tmp = realloc(buffer, buffer_len * 2);
+            unsigned char *tmp = realloc(buffer, (size_t)buffer_len * 2L);
             if (tmp == NULL) {
                 status = GetLastError();
                 goto out_free;
@@ -605,7 +605,7 @@ static int handle_getexattr(void *daemon_context, nfs41_upcall *upcall)
         }
 
         ea->EaNameLength = query->EaNameLength;
-        StringCchCopy(ea->EaName, ea->EaNameLength + 1, query->EaName);
+        StringCchCopy(ea->EaName, (size_t)ea->EaNameLength + 1, query->EaName);
         ea->Flags = 0;
 
         /* read the value from file */
