@@ -24,7 +24,6 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
-#include <stdio.h>
 #include "from_kernel.h"
 #include "nfs41_ops.h"
 #include "daemon_debug.h"
@@ -45,6 +44,7 @@
 #define FILTER_QM   ('>')
 #define FILTER_DOT  ('"')
 
+static
 bool
 readdir_filter(const char *filter, const char *name)
 {
@@ -106,8 +106,12 @@ readdir_filter(const char *filter, const char *name)
                 /* backtracking buffer too small ? */
                 if (bt_pos > (MAX_NUM_BACKTRACKING - 3L))
                 {
-                    (void)fprintf(stderr,
-                        "ASSERT: bt buffer too small: MAX_NUM_BACKTRACKING=%x\n",
+                    eprintf("readdir_filter(filter='%s',name='%s'): "
+                        "bt buffer too small: "
+                        "bt_pos=%d, MAX_NUM_BACKTRACKING=%x\n",
+                        filter,
+                        name,
+                        (int)bt_pos,
                         (int)MAX_NUM_BACKTRACKING);
                     res = false;
                     goto done;
