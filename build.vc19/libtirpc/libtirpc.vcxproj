@@ -90,6 +90,7 @@
       <PreprocessorDefinitions>FD_SETSIZE=1024;INET6;NO_CB_4_KRB5P;PORTMAP;_WINSOCK_DEPRECATED_NO_WARNINGS;WIN32;UNICODE;_UNICODE;_DEBUG;_WINDOWS;_USRDLL;LIBTIRPC_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>..\..\libtirpc\tirpc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -107,6 +108,7 @@
       <PreprocessorDefinitions>FD_SETSIZE=1024;INET6;NO_CB_4_KRB5P;PORTMAP;_WINSOCK_DEPRECATED_NO_WARNINGS;_DEBUG;_WINDOWS;_USRDLL;LIBTIRPC_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>..\..\libtirpc\tirpc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -126,6 +128,7 @@
       <PreprocessorDefinitions>FD_SETSIZE=1024;INET6;NO_CB_4_KRB5P;PORTMAP;_WINSOCK_DEPRECATED_NO_WARNINGS;WIN32;UNICODE;_UNICODE;NDEBUG;_WINDOWS;_USRDLL;LIBTIRPC_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>..\..\libtirpc\tirpc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -147,6 +150,7 @@
       <PreprocessorDefinitions>FD_SETSIZE=1024;INET6;NO_CB_4_KRB5P;PORTMAP;_WINSOCK_DEPRECATED_NO_WARNINGS;NDEBUG;_WINDOWS;_USRDLL;LIBTIRPC_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>..\..\libtirpc\tirpc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
