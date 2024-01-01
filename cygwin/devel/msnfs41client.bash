@@ -419,7 +419,7 @@ function main
 			return $?
 			;;
 		'run_deamon' | 'run_daemon')
-			require_cmd 'cdb.exe' || return 1
+			#require_cmd 'cdb.exe' || return 1
 			require_cmd 'nfsd.exe' || return 1
 			require_cmd 'nfsd_debug.exe' || return 1
 			require_cmd 'nfs_mount.exe' || return 1
@@ -427,7 +427,7 @@ function main
 			return $?
 			;;
 		'sys_run_deamon' | 'sys_run_daemon')
-			require_cmd 'cdb.exe' || return 1
+			#require_cmd 'cdb.exe' || return 1
 			require_cmd 'PsExec.exe' || return 1
 			require_cmd 'nfsd.exe' || return 1
 			require_cmd 'nfsd_debug.exe' || return 1
