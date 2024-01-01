@@ -59,6 +59,10 @@ $ (set -x ; cd / && tar -tf ~/download/msnfs41client_cygwin_binaries_git148e927_
 $ /sbin/msnfs41client run_daemon
 
 # Mount a filesystem and use it
+# - requires that NFSv4 server accepts connections from a TCP port
+# number > 1024, which can be archived on Linux with the "insecure"
+# export option in /etc/exports, or "resvport" on Solaris/Illumos
+# (see nfs(5))
 $ /sbin/nfs_mount -o rw N 10.49.20.110:/net_tmpfs2
 Successfully mounted '10.49.20.110@2049' to drive 'N:'
 $ cd /cygdrive/n/
@@ -71,8 +75,11 @@ drwxr-xr-x 3 Unix_User+197608 Unix_Group+197121  60 Dec 13 17:58 directory_t
 drwxr-xr-x 3 Unix_User+197608 Unix_Group+197121  60 Dec  7 11:01 test2
 
 # Unmount filesystem:
+$ cd ~ && /sbin/nfs_mount -d N:
+# OR
 $ cd ~
 $ net use N: /delete
+
 
 #
 # Notes:
@@ -110,8 +117,8 @@ $ net use N: /delete
   # (requires Admin shell)
   powershell -Command 'Set-MpPreference -DisableRealtimeMonitoring 1'
   Option 2:
-  Add "nfsd.exe", "nfsd_debug.exe", ksh93.exe, bash.exe, git.exe and
-  other offending commands to process name whitelist.
+  Add "nfsd.exe", "nfsd_debug.exe", "ksh93.exe", "bash.exe", "git.exe"
+  and other offending commands to process name whitelist.
 
 - performance: Use vmxnet3 in VMware to improve performance
 
@@ -131,6 +138,15 @@ $ net use N: /delete
   A::EVERYONE@:rtcy
   ---- snip ----
 
+- nfs_mount only works when the NFSv4 server allows connections from
+  ports >= 1024, as Windows does not allow the Windows NFSv4 client
+  to use a "priviledged port" (i.e. TCP port number < 1024)).
+  By default the NFSv4 server on Solaris, Illumos, Linux
+  etc. only accepts connections if the NFSv4 client uses a "privileged
+  (TCP) port", i.e. a port number < 1024.
+  This can be worked around by using the "insecure" export option in
+  Linux /etc/exports, which allows connections from ports >= 1024,
+  and for Solaris/Illumos see nfs(5), option "resvport".
 
 #
 # Known issues:
