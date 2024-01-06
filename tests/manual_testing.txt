@@ -1,5 +1,5 @@
 #
-# ms-nfs41-client manual testing sequence, 2023-11-20
+# ms-nfs41-client manual testing sequence, 2024-01-05
 #
 # Draft version, needs to be turned into automated tests
 # if possible
@@ -30,7 +30,7 @@ git config --global --add safe.directory "$PWD"
 sed -i -r 's/mkfifo.+?(-m [[:digit:]]+)/mkfifo /g' ./src/cmd/INIT/package.sh ./bin/package
 # repeat:
 rm -Rf arch
-time ksh93 -c 'export SHELL=/bin/bash HOSTTYPE="cygwin.i386-64"; /bin/bash ./bin/package make CC="/usr/bin/cc -std=gnu11" CCFLAGS="-Os -g" SHELL="$SHELL" HOSTTYPE="$HOSTTYPE"' 2>&1 | tee buildlog.log
+time ksh93 -c 'export SHELL=/bin/bash HOSTTYPE="cygwin.i386-64"; /bin/bash ./bin/package make CC="/usr/bin/cc -std=gnu17" CCFLAGS="-Os -g" SHELL="$SHELL" HOSTTYPE="$HOSTTYPE"' 2>&1 | tee buildlog.log
 
 
 #
@@ -49,6 +49,14 @@ printf "path_len=%d\n" "${#PWD}"
 
 git clone https://git.savannah.gnu.org/git/bash.git
 cd bash/
+# Cygwin: workaround for configure using cp -p where ln -s should be used
+# (this is an automake/autoconf issue, they should trust Cygwin and not use
+# ancient workarounds for issues which no longer exists)
+(set -o xtrace ; sed -i "s/as_ln_s='cp -pR'/as_ln_s='ln -s'/g" $(find . -name configure) )
+./configure
+# workaround for $ cp -p # failing with "Function not implemented"
+(set -o xtrace ; sed -i -r 's/(cp.*)([[:space:]]+-p[[:space:]]+)/\1\2--no-preserve=ownership /g' $(find . -name Makefile -o -name Makefile.in) )
+# run configure
 ./configure --with-curses
 # repeat:
 make clean && make -j4 all
@@ -89,6 +97,7 @@ cd gcc/
 # (this is an automake/autoconf issue, they should trust Cygwin and not use
 # ancient workarounds for issues which no longer exists)
 (set -o xtrace ; sed -i "s/as_ln_s='cp -pR'/as_ln_s='ln -s'/g" $(find . -name configure) )
+# run configure
 ./configure
 # workaround for $ cp -p # failing with "Function not implemented"
 (set -o xtrace ; sed -i -r 's/(cp.*)([[:space:]]+-p[[:space:]]+)/\1\2--no-preserve=ownership /g' $(find . -name Makefile -o -name Makefile.in) )
