@@ -3,6 +3,7 @@
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
+ * Roland Mainz <roland.mainz@nrubsig.org>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -224,22 +225,57 @@ void nfs41_session_sequence(
 
 
 /* session renewal */
-static unsigned int WINAPI renew_session(void *args) 
+static unsigned int WINAPI renew_session_thread(void *args)
 {
-    int status = NO_ERROR;
     nfs41_session *session = (nfs41_session *)args;
-    /* sleep for 2/3 of lease_time */
-    const uint32_t sleep_time = (2 * session->lease_time*1000)/3;
+    int status = NO_ERROR;
+    int event_status;
 
-    dprintf(1, "Creating renew_session thread: %p\n", session->renew_thread);
+    dprintf(1, "renew_session_thread(session=%p): started thread %p\n",
+        session, session->renew.thread_handle);
+
+    /* sleep for 2/3 of lease_time */
+    const uint32_t sleep_time = (2UL * session->lease_time*1000UL)/3UL;
+
+    EASSERT(sleep_time > 100UL);
+    EASSERT(sleep_time < (60*60*1000UL));
+
     while(1) {
-        dprintf(1, "Going to sleep for %dmsecs\n", sleep_time);
-        Sleep(sleep_time);
-        status = nfs41_send_sequence(session);
-        if (status)
-            dprintf(1, "renewal thread: nfs41_send_sequence failed %d\n", status);
+        dprintf(1, "renew_session_thread(session=%p): "
+            "Going to sleep for %dmsecs\n",
+            session, (int)sleep_time);
+
+        /*
+         * sleep for |sleep_time| milliseconds, or until someone
+         * sends an event
+         */
+        event_status = WaitForSingleObjectEx(session->renew.cancel_event,
+            sleep_time, FALSE);
+        if (event_status == WAIT_TIMEOUT) {
+            dprintf(1, "renew_session_thread(session=%p): "
+                "renewing session...\n",
+                session);
+            status = nfs41_send_sequence(session);
+            if (status) {
+                eprintf("renew_session_thread(session=%p): "
+                    "nfs41_send_sequence() failed status=%d\n",
+                    session, status);
+            }
+        }
+        else if (event_status == WAIT_OBJECT_0) {
+            /* event received, renew thread should exit */
+            break;
+        }
+        else {
+            eprintf("renew_session_thread(session=%p): "
+                "unexpected event_status=0x%x\n",
+                session, (int)event_status);
+        }
     }
-    return status;
+
+    dprintf(1, "renew_session_thread(session=%p): thread %p exiting\n",
+        session, session->renew.thread_handle);
+    return 0;
 }
 
 /* session creation */
@@ -256,7 +292,8 @@ static int session_alloc(
         goto out;
     }
     session->client = client;
-    session->renew_thread = INVALID_HANDLE_VALUE;
+    session->renew.thread_handle = INVALID_HANDLE_VALUE;
+    session->renew.cancel_event = INVALID_HANDLE_VALUE;
     session->isValidState = FALSE;
 
     InitializeCriticalSection(&session->table.lock);
@@ -329,6 +366,24 @@ int nfs41_session_renew(
     return status;
 }
 
+static
+void cancel_renew_thread(
+    IN nfs41_session *session)
+{
+    dprintf(1, "cancel_renew_thread(session=%p): "
+        "signal thread to exit\n", session);
+    (void)SetEvent(session->renew.cancel_event);
+
+    dprintf(1, "cancel_renew_thread(session=%p): "
+        "waiting for thread to exit\n", session);
+    (void)WaitForSingleObjectEx(session->renew.thread_handle,
+        INFINITE, FALSE);
+
+    dprintf(1, "cancel_renew_thread(session=%p): thread done\n",
+        session);
+    (void)CloseHandle(session->renew.cancel_event);
+}
+
 int nfs41_session_set_lease(
     IN nfs41_session *session,
     IN uint32_t lease_time)
@@ -336,7 +391,7 @@ int nfs41_session_set_lease(
     int status = NO_ERROR;
     uint32_t thread_id;
 
-    if (valid_handle(session->renew_thread)) {
+    if (valid_handle(session->renew.thread_handle)) {
         eprintf("nfs41_session_set_lease(): session "
             "renewal thread already started!\n");
         goto out;
@@ -349,11 +404,20 @@ int nfs41_session_set_lease(
     }
 
     session->lease_time = lease_time;
-    session->renew_thread = (HANDLE)_beginthreadex(NULL,
-        0, renew_session, session, 0, &thread_id);
-    if (!valid_handle(session->renew_thread)) {
+    session->renew.cancel_event = CreateEventA(NULL, TRUE, FALSE,
+        "renew.cancel_event");
+    if (!valid_handle(session->renew.cancel_event)) {
         status = GetLastError();
-        eprintf("_beginthreadex failed %d\n", status);
+        eprintf("nfs41_session_set_lease: CreateEventA() failed %d\n",
+            status);
+        goto out;
+    }
+    session->renew.thread_handle = (HANDLE)_beginthreadex(NULL,
+        0, renew_session_thread, session, 0, &thread_id);
+    if (!valid_handle(session->renew.thread_handle)) {
+        status = GetLastError();
+        eprintf("nfs41_session_set_lease: _beginthreadex() failed %d\n",
+            status);
         goto out;
     }
 out:
@@ -364,11 +428,9 @@ void nfs41_session_free(
     IN nfs41_session *session)
 {
     AcquireSRWLockExclusive(&session->client->session_lock);
-    if (valid_handle(session->renew_thread)) {
+    if (valid_handle(session->renew.thread_handle)) {
         dprintf(1, "nfs41_session_free: terminating session renewal thread\n");
-        if (!TerminateThread(session->renew_thread, NO_ERROR))
-            eprintf("failed to terminate renewal thread %p\n",
-                session->renew_thread);
+        cancel_renew_thread(session);
     }
 
     if (session->isValidState) {

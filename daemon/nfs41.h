@@ -258,9 +258,11 @@ typedef struct __nfs41_session {
     nfs41_channel_attrs fore_chan_attrs;
     nfs41_channel_attrs back_chan_attrs;
     uint32_t lease_time;
-    nfs41_slot_table table;
-    // array of slots
-    HANDLE renew_thread;
+    nfs41_slot_table table; /* array of slots */
+    struct {
+        HANDLE thread_handle;
+        HANDLE cancel_event;
+    } renew;
     bool_t isValidState;
     uint32_t flags;
     nfs41_cb_session cb_session;
