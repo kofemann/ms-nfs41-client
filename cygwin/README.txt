@@ -101,6 +101,9 @@ mkdir testdir1
 ./runtests -a -t "$PWD/testdir1" 2>&1 | tee testrun.log
 
 
+** "winfstest" test suite:
+See tests/winfstest/README.txt
+
 
 #### ToDo:
 - Makefile/script support for release blob generaetion, local test installation, running cthon4 etc

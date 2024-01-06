@@ -1,0 +1,84 @@
+From 1774b2b23a49a1a5d672b624fe3750b6f04b818d Mon Sep 17 00:00:00 2001
+From: Roland Mainz <roland.mainz@nrubsig.org>
+Date: Sat, 6 Jan 2024 20:02:20 +0100
+Subject: [PATCH] winfstest: Update VS project file to VS19 and make files
+ executable
+
+Update Visual Studio project file to Visual Studio 19 and make
+script files executable
+
+(requires https://github.com/dimov-cz/winfstest.git commit
+id #525f878c06c585619eadd769c8ed9dcdf175b026)
+
+Signed-off-by: Cedric Blancher <cedric.blancher@gmail.com>
+---
+ TestSuite/run-winfstest     |  3 +++
+ TestSuite/simpletap.py      |  0
+ TestSuite/winfstest.py      |  0
+ winfstest/winfstest.vcxproj | 10 +++++-----
+ 4 files changed, 8 insertions(+), 5 deletions(-)
+ mode change 100644 => 100755 TestSuite/run-winfstest
+ mode change 100644 => 100755 TestSuite/simpletap.py
+ mode change 100644 => 100755 TestSuite/winfstest.py
+
+diff --git a/TestSuite/run-winfstest b/TestSuite/run-winfstest
+old mode 100644
+new mode 100755
+index c7cc19f..8783703
+--- a/TestSuite/run-winfstest
++++ b/TestSuite/run-winfstest
+@@ -1,5 +1,8 @@
+ #!/bin/bash
+
++set -o xtrace
++set -o nounset
++
+ case $(uname) in
+ CYGWIN*) ;;
+ *) echo "can only be run on Cygwin" 1>&2; exit 1
+diff --git a/TestSuite/simpletap.py b/TestSuite/simpletap.py
+old mode 100644
+new mode 100755
+diff --git a/TestSuite/winfstest.py b/TestSuite/winfstest.py
+old mode 100644
+new mode 100755
+diff --git a/winfstest/winfstest.vcxproj b/winfstest/winfstest.vcxproj
+index 6c8cbce..f13facf 100644
+--- a/winfstest/winfstest.vcxproj
++++ b/winfstest/winfstest.vcxproj
+@@ -21,28 +21,28 @@
+   <PropertyGroup Label="Globals">
+     <ProjectGuid>{71483DEC-695B-4EC8-9007-6E0CA9A0010C}</ProjectGuid>
+     <Keyword>MakeFileProj</Keyword>
+-    <WindowsTargetPlatformVersion>10.0.10586.0</WindowsTargetPlatformVersion>
++    <WindowsTargetPlatformVersion>10.0.19041.0</WindowsTargetPlatformVersion>
+   </PropertyGroup>
+   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+     <ConfigurationType>Application</ConfigurationType>
+     <UseDebugLibraries>true</UseDebugLibraries>
+-    <PlatformToolset>v140</PlatformToolset>
++    <PlatformToolset>v142</PlatformToolset>
+   </PropertyGroup>
+   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+     <ConfigurationType>Makefile</ConfigurationType>
+     <UseDebugLibraries>false</UseDebugLibraries>
+-    <PlatformToolset>v140</PlatformToolset>
++    <PlatformToolset>v142</PlatformToolset>
+   </PropertyGroup>
+   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+     <ConfigurationType>Application</ConfigurationType>
+     <UseDebugLibraries>true</UseDebugLibraries>
+-    <PlatformToolset>v140</PlatformToolset>
++    <PlatformToolset>v142</PlatformToolset>
+   </PropertyGroup>
+   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+     <ConfigurationType>Application</ConfigurationType>
+     <UseDebugLibraries>false</UseDebugLibraries>
+-    <PlatformToolset>v140</PlatformToolset>
++    <PlatformToolset>v142</PlatformToolset>
+   </PropertyGroup>
+   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+   <ImportGroup Label="ExtensionSettings">
+--
+2.42.1
