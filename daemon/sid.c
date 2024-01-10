@@ -205,7 +205,7 @@ sidcache user_sidcache = { 0 };
 
 void sidcache_init(void)
 {
-    dprintf(0, "SID cache init\n");
+    dprintf(1, "SID cache init\n");
     InitializeCriticalSection(&user_sidcache.lock);
 }
 

@@ -450,7 +450,7 @@ void nfsd_crt_debug_init(void)
     int crtsetdbgflags = nfs41_dg.crtdbgmem_flags;
 
     if (crtsetdbgflags == NFS41D_GLOBALS_CRTDBGMEM_FLAGS_NOT_SET) {
-        dprintf(0, "crtsetdbgflags not set, using defaults\n");
+        dprintf(1, "crtsetdbgflags not set, using defaults\n");
         crtsetdbgflags = 0;
 
         crtsetdbgflags |= _CRTDBG_ALLOC_MEM_DF;
@@ -537,7 +537,7 @@ VOID ServiceStart(DWORD argc, LPTSTR *argv)
      * inversion
      */
     if(SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS)) {
-        dprintf(0, "Running as HIGH_PRIORITY_CLASS\n");
+        dprintf(1, "Running as HIGH_PRIORITY_CLASS\n");
     }
     else {
         eprintf("Failed to enter HIGH_PRIORITY_CLASS mode\n");
@@ -546,7 +546,6 @@ VOID ServiceStart(DWORD argc, LPTSTR *argv)
 #ifdef NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN
     /* force enable for cygwin getent passwd/group testing */
     cmd_args.ldap_enable = TRUE;
-    DASSERT(0/* test asserts*/, 0);
 #endif /* NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN */
 
     nfs41_server_list_init();
