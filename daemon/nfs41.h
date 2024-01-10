@@ -3,6 +3,7 @@
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
+ * Roland Mainz <roland.mainz@nrubsig.org>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -227,6 +228,18 @@ typedef struct __nfs41_slot_table {
     CONDITION_VARIABLE cond;
 } nfs41_slot_table;
 
+/*
+ * NFS41_MAX_OPS_PER_COMPOUND - value |16384| is a compromise.
+ *
+ * Technically we can support |0xfffffff|, but that might cause
+ * trouble with |signed int| vs. |unisgned int|, and NFSv4.x
+ * server implementations might want to allocate static buffers
+ * based on what we return.
+ * Linux uses |#define NFSD_MAX_OPS_PER_COMPOUND 50| in
+ * linux-6.7/fs/nfsd/nfsd.h and Solaris uses a much higher value
+ * (see also https://bugzilla.kernel.org/show_bug.cgi?id=216383#c0).
+ */
+#define NFS41_MAX_OPS_PER_COMPOUND 16384
 typedef struct __nfs41_channel_attrs {
     uint32_t                ca_headerpadsize;
     uint32_t                ca_maxrequestsize;
