@@ -98,8 +98,9 @@ static int get_superblock_attrs(
     status = nfs41_superblock_getattr(session, file,
         &attr_request, &info, &supports_named_attrs);
     if (status) {
-        eprintf("nfs41_superblock_getattr() failed with %s when fetching "
-            "attributes for fsid(%llu,%llu)\n", nfs_error_string(status),
+        eprintf("nfs41_superblock_getattr() failed with '%s'/%d when "
+            "fetching attributes for fsid(%llu,%llu)\n",
+            nfs_error_string(status), status,
             superblock->fsid.major, superblock->fsid.minor);
         goto out;
     }

@@ -3,6 +3,7 @@
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
+ * Roland Mainz <roland.mainz@nrubsig.org>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -166,7 +167,7 @@ enum nfsstat4 {
     NFS4ERR_ADMIN_REVOKED       = 10047,    /* lockowner state revoked */
     NFS4ERR_CB_PATH_DOWN        = 10048,    /* callback path down      */
 
-    /* NFSv4.1 errors start here. */
+    /* NFSv4.1 errors start here... */
     NFS4ERR_BADIOMODE           = 10049,
     NFS4ERR_BADLAYOUT           = 10050,
     NFS4ERR_BAD_SESSION_DIGEST  = 10051,
@@ -205,7 +206,20 @@ enum nfsstat4 {
     NFS4ERR_DIRDELEG_UNAVAIL    = 10084,    /* delegation not avail.   */
     NFS4ERR_REJECT_DELEG        = 10085,    /* cb rejected delegation  */
     NFS4ERR_RETURNCONFLICT      = 10086,    /* layout get before return*/
-    NFS4ERR_DELEG_REVOKED       = 10087     /* deleg./layout revoked   */
+    NFS4ERR_DELEG_REVOKED       = 10087,    /* deleg./layout revoked   */
+
+    /* NFSv4.2 errors start here... */
+    NFS4ERR_PARTNER_NOTSUPP     = 10088,
+    NFS4ERR_PARTNER_NO_AUTH     = 10089,
+    NFS4ERR_UNION_NOTSUPP       = 10090,
+    NFS4ERR_OFFLOAD_DENIED      = 10091,
+    NFS4ERR_WRONG_LFS           = 10092,
+    NFS4ERR_BADLABEL            = 10093,
+    NFS4ERR_OFFLOAD_NO_REQS     = 10094,
+
+    /* NFSv4 xattr (RFC 8276) error codes start here... */
+    NFS4ERR_NOXATTR             = 10095,
+    NFS4ERR_XATTR2BIG           = 10096
 };
 
 #define MAKE_WORD0(XXX) (1 << XXX)
