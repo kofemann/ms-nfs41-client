@@ -154,6 +154,18 @@ static int handle_mount(void *daemon_context, nfs41_upcall *upcall)
     upcall->root_ref = root;
     args->lease_time = client->session->lease_time;
 out:
+    if (status == 0) {
+        dprintf(0, "# mount(hostport='%s', path='%s') success, root=0x%p\n",
+            args->hostport?args->hostport:"<NULL>",
+            args->path?args->path:"<NULL>",
+            root);
+    }
+    else {
+        dprintf(0, "# mount(hostport='%s', path='%s') failed, status=%d\n",
+            args->hostport?args->hostport:"<NULL>",
+            args->path?args->path:"<NULL>",
+            (int)status);
+    }
     return status;
 
 out_err:
@@ -204,6 +216,9 @@ static int handle_unmount(void *daemon_context, nfs41_upcall *upcall)
 {
     /* release the original reference from nfs41_root_create() */
     nfs41_root_deref(upcall->root_ref);
+
+    dprintf(0, "# umount(root='0x%p') success\n", upcall->root_ref);
+
     return ERROR_SUCCESS;
 }
 
