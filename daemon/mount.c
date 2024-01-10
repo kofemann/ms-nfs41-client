@@ -155,13 +155,13 @@ static int handle_mount(void *daemon_context, nfs41_upcall *upcall)
     args->lease_time = client->session->lease_time;
 out:
     if (status == 0) {
-        dprintf(0, "# mount(hostport='%s', path='%s') success, root=0x%p\n",
+        logprintf("mount(hostport='%s', path='%s') success, root=0x%p\n",
             args->hostport?args->hostport:"<NULL>",
             args->path?args->path:"<NULL>",
             root);
     }
     else {
-        dprintf(0, "# mount(hostport='%s', path='%s') failed, status=%d\n",
+        logprintf("mount(hostport='%s', path='%s') failed, status=%d\n",
             args->hostport?args->hostport:"<NULL>",
             args->path?args->path:"<NULL>",
             (int)status);

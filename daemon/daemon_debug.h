@@ -67,6 +67,7 @@
 
 /* daemon_debug.h */
 void set_debug_level(int level);
+void logprintf(LPCSTR format, ...);
 void dprintf(int level, LPCSTR format, ...);
 void eprintf(LPCSTR format, ...);
 

@@ -83,6 +83,27 @@ void dprintf(int level, LPCSTR format, ...)
     }
 }
 
+/* log events (mount, umount, auth, ...) */
+void logprintf(LPCSTR format, ...)
+{
+    SYSTEMTIME stime;
+    GetLocalTime(&stime);
+
+    va_list args;
+    va_start(args, format);
+    (void)fprintf(dlog_file, "# LOG: ts=%04d-%02d-%02d_%02d:%02d:%02d:%04d"
+        " thr=%04x msg=",
+        (int)stime.wYear, (int)stime.wMonth, (int)stime.wDay,
+        (int)stime.wHour, (int)stime.wMinute, (int)stime.wSecond,
+        (int)stime.wMilliseconds,
+        (int)GetCurrentThreadId());
+    (void)vfprintf(dlog_file, format, args);
+#ifndef STANDALONE_NFSD
+    (void)fflush(dlog_file);
+#endif
+    va_end(args);
+}
+
 void eprintf(LPCSTR format, ...)
 {
     va_list args;
