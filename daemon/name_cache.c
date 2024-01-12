@@ -350,7 +350,7 @@ static void copy_attrs(
     dst->type = src->type;
     dst->numlinks = src->numlinks;
     dst->mode = src->mode;
-    EASSERT(src->owner[0] != '\0');
+
     if (src->owner[0] != '\0') {
         dst->owner = dst->owner_buf;
         (void)strcpy(dst->owner, src->owner);
@@ -359,7 +359,7 @@ static void copy_attrs(
         /* this should only happen for newly created files/dirs */
         dst->owner = NULL;
     }
-    EASSERT(src->owner_group[0] != '\0');
+
     if (src->owner_group[0] != '\0') {
         dst->owner_group = dst->owner_group_buf;
         (void)strcpy(dst->owner_group, src->owner_group);
