@@ -25,6 +25,7 @@
 
 #include "nfs41_build_features.h"
 #include "upcall.h"
+#include "nfs41_driver.h" /* only for |NFS41_UNMOUNT| */
 #include "daemon_debug.h"
 #include "util.h"
 
@@ -122,7 +123,10 @@ int upcall_parse(
     /* parse the operation's arguments */
     op = g_upcall_op_table[upcall->opcode];
     if (op && op->parse) {
-        EASSERT(length > 0);
+        /* |NFS41_UNMOUNT| has 0 payload */
+        if (upcall->opcode != NFS41_UNMOUNT) {
+            EASSERT(length > 0);
+        }
         status = op->parse(buffer, length, upcall);
         if (status) {
             eprintf("parsing of upcall '%s' failed with %d.\n",
