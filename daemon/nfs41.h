@@ -235,9 +235,13 @@ typedef struct __nfs41_slot_table {
  * trouble with |signed int| vs. |unisgned int|, and NFSv4.x
  * server implementations might want to allocate static buffers
  * based on what we return.
- * Linux uses |#define NFSD_MAX_OPS_PER_COMPOUND 50| in
- * linux-6.7/fs/nfsd/nfsd.h and Solaris uses a much higher value
- * (see also https://bugzilla.kernel.org/show_bug.cgi?id=216383#c0).
+ *
+ * Linux nfsd uses |#define NFSD_MAX_OPS_PER_COMPOUND 50| in
+ * linux-6.7/fs/nfsd/nfsd.h, Solaris/Illumos nfsd uses up to
+ * |2048| (see also https://bugzilla.kernel.org/show_bug.cgi?id=216383#c0)
+ * and nfs4j JAVA NFSv4 server uses |8192|.
+ *
+ * See also |MAX_PUTFH_PER_COMPOUND| in daemon/name_cache.c
  */
 #define NFS41_MAX_OPS_PER_COMPOUND 16384
 typedef struct __nfs41_channel_attrs {

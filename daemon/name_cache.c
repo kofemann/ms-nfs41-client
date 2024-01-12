@@ -1259,7 +1259,22 @@ out_unlock:
 
 /* nfs41_name_cache_resolve_fh() */
 
-#define MAX_PUTFH_PER_COMPOUND 16
+/*
+ * MAX_PUTFH_PER_COMPOUND
+ *
+ * The maximum is negotiated with with the NFSv4 server (follow
+ * |max_putfh_components()| below and |NFS41_MAX_OPS_PER_COMPOUND|
+ * in daemon/nfs41.h).
+ *
+ * Linux nfsd uses |#define NFSD_MAX_OPS_PER_COMPOUND 50| in
+ * linux-6.7/fs/nfsd/nfsd.h, Solaris/Illumos nfsd uses up to
+ * |2048| (see also https://bugzilla.kernel.org/show_bug.cgi?id=216383#c0)
+ * and nfs4j JAVA NFSv4 server uses |8192|.
+ *
+ * Since bigger values eat more stack we set this to
+ * |64| for now.
+ */
+#define MAX_PUTFH_PER_COMPOUND 64
 
 static bool_t get_path_fhs(
     IN struct nfs41_name_cache *cache,
