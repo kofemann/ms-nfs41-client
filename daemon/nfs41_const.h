@@ -40,7 +40,12 @@
 #define NFS41_MAX_SERVER_CACHE  1024
 #define NFS41_MAX_RPC_REQS      128
 
-#define UPCALL_BUF_SIZE         4096
+/*
+ * UPCALL_BUF_SIZE - buffer size for |DeviceIoControl()|
+ * This must fit at least twice the maximum path length
+ * (for rename) plus header
+ */
+#define UPCALL_BUF_SIZE         8192
 
 /*
  * NFS41_MAX_COMPONENT_LEN - MaximumComponentNameLength
