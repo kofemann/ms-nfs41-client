@@ -32,8 +32,23 @@
 
 #define LULVL 2 /* dprintf level for lookup logging */
 
-
-#define MAX_LOOKUP_COMPONENTS 8
+/*
+ * MAX_LOOKUP_COMPONENTS - maximum number of compound requests
+ * per lookup
+ *
+ * We use |128| here to pack as much data into one compound
+ * to optimise for high latency links (satellite, ssh tunnel etc.)
+ *
+ * The real value is negotiated with the NFSv4.1 server
+ * at session creation time (e.g. (|min(
+ * session->fore_chan_attrs.ca_maxoperations|,
+ * MAX_LOOKUP_COMPONENTS)|), see |max_lookup_components()| below.
+ *
+ * Linux 5.10.0-22-rt uses |ca_maxoperations==16|
+ * simplenfs/nfs4j    uses |ca_maxoperations==128|
+ *
+ */
+#define MAX_LOOKUP_COMPONENTS 128
 
 /* map NFS4ERR_MOVED to an arbitrary windows error */
 #define ERROR_FILESYSTEM_ABSENT ERROR_DEVICE_REMOVED
@@ -275,8 +290,12 @@ out:
 static uint32_t max_lookup_components(
     IN const nfs41_session *session)
 {
-    const uint32_t comps = (session->fore_chan_attrs.ca_maxoperations - 4) / 3;
-    return min(comps, MAX_LOOKUP_COMPONENTS);
+#define ROUNDUPDIV(x, y) (((x)+((y)-1))/(y))
+    const uint32_t comps = min(
+        session->fore_chan_attrs.ca_maxoperations,
+        MAX_LOOKUP_COMPONENTS);
+
+    return ROUNDUPDIV(comps-4, 3);
 }
 
 static uint32_t get_component_array(
