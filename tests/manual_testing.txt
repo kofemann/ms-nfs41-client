@@ -53,7 +53,6 @@ cd bash/
 # (this is an automake/autoconf issue, they should trust Cygwin and not use
 # ancient workarounds for issues which no longer exists)
 (set -o xtrace ; sed -i "s/as_ln_s='cp -pR'/as_ln_s='ln -s'/g" $(find . -name configure) )
-./configure
 # workaround for $ cp -p # failing with "Function not implemented"
 (set -o xtrace ; sed -i -r 's/(cp.*)([[:space:]]+-p[[:space:]]+)/\1\2--no-preserve=ownership /g' $(find . -name Makefile -o -name Makefile.in) )
 # run configure
