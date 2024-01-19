@@ -3,7 +3,7 @@
 ###
 
 ##
-## WARNING: ALPHA VERSION, ONLY SUITEABLE FOR BUG HUNTING!!
+## WARNING: ALPHA VERSION, ONLY SUITABLE FOR BUG HUNTING!!
 ##
 
 ##
@@ -54,8 +54,8 @@ $ (set -x ; cd / && tar -tf ~/download/msnfs41client_cygwin_binaries_git148e927_
 ##
 
 # Run the NFSv4 client daemon:
-# - run this preferably as "Adminstrator", but this is not a requirement
-# - requires seperate terminal
+# - run this preferably as "Administrator", but this is not a requirement
+# - requires separate terminal
 $ /sbin/msnfs41client run_daemon
 
 # Mount a filesystem and use it
@@ -108,7 +108,7 @@ $ net use N: /delete
   $ cmd /c 'mklink /d c:\home\rmainz \\derfwpc5131_ipv6@2049\nfs4\export\home2\rmainz' #
   and then $ cd /cygdrive/c/home/rmainz/ # should work
 
-- performace: All binaries are build without any optimisation, so
+- performance: All binaries are build without any optimisation, so
   the filesystem is much slower than it could be.
 
 - bad performance due to Windows Defender AntiVirus:
@@ -118,12 +118,12 @@ $ net use N: /delete
   powershell -Command 'Set-MpPreference -DisableRealtimeMonitoring 1'
   Option 2:
   Add "nfsd.exe", "nfsd_debug.exe", "ksh93.exe", "bash.exe", "git.exe"
-  and other offending commands to process name whitelist.
+  and other offending commands to the process name whitelist.
 
 - performance: Use vmxnet3 in VMware to improve performance
 
 - ACLs are supported via the normal Windows ACL tools, but on
-  Linux require the nfs4_getfacl/nfs4_setfacl utilties to see the
+  Linux require the nfs4_getfacl/nfs4_setfacl utilities to see the
   data.
   Example (assuming that Windows, Linux NFSv4 client and NFSv4
   server have a user "siegfried_wulsch"):
@@ -140,7 +140,7 @@ $ net use N: /delete
 
 - nfs_mount only works when the NFSv4 server allows connections from
   ports >= 1024, as Windows does not allow the Windows NFSv4 client
-  to use a "priviledged port" (i.e. TCP port number < 1024)).
+  to use a "privileged port" (i.e. TCP port number < 1024)).
   By default the NFSv4 server on Solaris, Illumos, Linux
   etc. only accepts connections if the NFSv4 client uses a "privileged
   (TCP) port", i.e. a port number < 1024.
@@ -157,7 +157,7 @@ $ net use N: /delete
 - If nfsd_debug.exe crashes or gets killed, the only safe way
   to run it again requires a reboot
 - LDAP support does not work yet
-- Attribute caching is to agressiv, making $ tail -f ... # not seeing
+- Attribute caching is too aggressive, making $ tail -f ... # not seeing
   new data.
   Workaround: Use GNU tail'S $ tail --follow=name ... #
 - krb5p security with AES keys do not work against the linux server,
