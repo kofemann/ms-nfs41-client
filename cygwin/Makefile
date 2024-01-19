@@ -31,7 +31,7 @@ build:
 	which MSBuild.exe
 	MSBuild.exe '$(shell cygpath -w "$(PROJECT_BASEDIR_DIR)/build.vc19/nfs41-client.sln")' -t:Build  -p:Configuration=Release -p:Platform=x64
 	MSBuild.exe '$(shell cygpath -w "$(PROJECT_BASEDIR_DIR)/build.vc19/nfs41-client.sln")' -t:Build  -p:Configuration=Debug -p:Platform=x64
-	(cd tests/winfsinfo1 && make all)
+	(cd "$(PROJECT_BASEDIR_DIR)/tests/winfsinfo1" && make all)
 
 #
 # clean target
