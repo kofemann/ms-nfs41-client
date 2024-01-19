@@ -368,9 +368,9 @@ int nfs41_send_compound(
             if (rpc_should_retry(rpc, version))
                 goto try_again;
             while (rpc_renew_in_progress(rpc, NULL)) {
-                status = WaitForSingleObject(rpc->cond, INFINITE);
+                status = WaitForSingleObjectEx(rpc->cond, INFINITE, FALSE);
                 if (status != WAIT_OBJECT_0) {
-                    dprintf(1, "rpc_renew_in_progress: WaitForSingleObject failed\n");
+                    dprintf(0, "rpc_renew_in_progress: WaitForSingleObjectEx() failed\n");
                     print_condwait_status(1, status);
                     status = ERROR_LOCK_VIOLATION;
                     goto out;

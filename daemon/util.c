@@ -556,7 +556,8 @@ int subcmd_pclose(subcmd_popen_context *pinfo)
     /* Close the read handle to the pipe from the child process */
     CloseHandle(pinfo->hReadPipe);
 
-    WaitForSingleObject(pinfo->pi.hProcess, INFINITE);
+    status = WaitForSingleObjectEx(pinfo->pi.hProcess, INFINITE, FALSE);
+    EASSERT(status == WAIT_OBJECT_0);
 
     if (!GetExitCodeProcess(pinfo->pi.hProcess, &status)) {
         status = -1;

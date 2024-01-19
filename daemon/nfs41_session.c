@@ -370,14 +370,17 @@ static
 void cancel_renew_thread(
     IN nfs41_session *session)
 {
+    DWORD status;
+
     dprintf(1, "cancel_renew_thread(session=%p): "
         "signal thread to exit\n", session);
     (void)SetEvent(session->renew.cancel_event);
 
     dprintf(1, "cancel_renew_thread(session=%p): "
         "waiting for thread to exit\n", session);
-    (void)WaitForSingleObjectEx(session->renew.thread_handle,
+    status = WaitForSingleObjectEx(session->renew.thread_handle,
         INFINITE, FALSE);
+    EASSERT(status == WAIT_OBJECT_0);
 
     dprintf(1, "cancel_renew_thread(session=%p): thread done\n",
         session);

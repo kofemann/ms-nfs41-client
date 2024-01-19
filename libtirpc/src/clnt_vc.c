@@ -927,7 +927,8 @@ clnt_vc_destroy(cl)
         cl->shutdown = 1;
         cond_signal(&vc_cv[ct_fd]);
         mutex_unlock(&clnt_fd_lock);
-        status = WaitForSingleObject(cl->cb_thread, INFINITE);
+        status = WaitForSingleObjectEx(cl->cb_thread, INFINITE, FALSE);
+        assert(status == WAIT_OBJECT_0);
         fprintf(stdout, "%04lx: terminated callback thread\n", (long)GetCurrentThreadId());
         mutex_lock(&clnt_fd_lock);
         while (vc_fd_locks[ct_fd])
