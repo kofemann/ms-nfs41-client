@@ -38,7 +38,7 @@ build:
 #
 clean:
 	rm -vRf $$(find "$(PROJECT_BASEDIR_DIR)/build.vc19" -name Debug -o -name Release)
-	(cd tests/winfsinfo1 && make clean)
+	(cd "$(PROJECT_BASEDIR_DIR)/tests/winfsinfo1" && make clean)
 
 # install in DESTDIR
 installdest: $(VS_BUILD_DIR)/nfsd.exe \
@@ -88,7 +88,7 @@ installdest: $(VS_BUILD_DIR)/nfsd.exe \
 	cp $(CYGWIN_MAKEFILE_DIR)/utils/sshnfs/sshnfs.ksh $(DESTDIR)/cygdrive/c/cygwin64/sbin/sshnfs
 	chmod a+x $(DESTDIR)/cygdrive/c/cygwin64/sbin/sshnfs
 	@ printf "# Package tests\n"
-	cp tests/winfsinfo1/winfsinfo.exe $(DESTDIR)/cygdrive/c/cygwin64/bin/winfsinfo.exe
+	cp "$(PROJECT_BASEDIR_DIR)/tests/winfsinfo1/winfsinfo.exe" $(DESTDIR)/cygdrive/c/cygwin64/bin/winfsinfo.exe
 	@ printf "# Package ksh93&co (if available) since Cygwin does not ship with it yet\n"
 	[[ -x /usr/bin/ksh93.exe ]] && cp /usr/bin/ksh93.exe $(DESTDIR)/cygdrive/c/cygwin64/bin/ksh93.exe
 	[[ -x /usr/bin/shcomp.exe ]] && cp /usr/bin/shcomp.exe $(DESTDIR)/cygdrive/c/cygwin64/bin/shcomp.exe
