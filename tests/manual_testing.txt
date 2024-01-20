@@ -24,7 +24,7 @@
 #
 # ksh93 (ast-ksh)
 #
-git clone -b 'v1.0.7' https://github.com/ksh93/ksh.git
+git clone -b 'v1.0.8' https://github.com/ksh93/ksh.git
 cd ksh
 git config --global --add safe.directory "$PWD"
 sed -i -r 's/mkfifo.+?(-m [[:digit:]]+)/mkfifo /g' ./src/cmd/INIT/package.sh ./bin/package
