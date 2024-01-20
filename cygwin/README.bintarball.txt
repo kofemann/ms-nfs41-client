@@ -148,31 +148,85 @@ $ net use N: /delete
   Linux /etc/exports, which allows connections from ports >= 1024,
   and for Solaris/Illumos see nfs(5), option "resvport".
 
+
 #
 # Known issues:
 #
 - The kernel driver ("nfs41_driver.sys") does not have a cryptographic
   signature for SecureBoot - which means it will only work if SecureBoot
   is turned off (otherwise $ /sbin/msnfs41client install # will FAIL!)
+
 - If nfsd_debug.exe crashes or gets killed, the only safe way
   to run it again requires a reboot
+
 - LDAP support does not work yet
-- Attribute caching is too aggressive, making $ tail -f ... # not seeing
-  new data.
+
+- Attribute caching is too aggressive
+
+- Caching in the kernel does not always work. For example
+  $ tail -f ... # does not not see new data.
   Workaround: Use GNU tail'S $ tail --follow=name ... #
+  Working theory is that this is related to FCB caching, see
+  |FCB_STATE_FILESIZECACHEING_ENABLED|, as the nfs41_driver.sys
+  kernel module does not see the |stat()| syscalls. But $ tail -f ... #
+  always works for a momemnt if something else opens the same file.
+
+- Unmounting and then mounting the same filesystem causes issues
+  as the name cache in nfsd*.exe is not flushed on umount, including
+  leftover delegations.
+
 - krb5p security with AES keys do not work against the linux server,
   as it does not support gss krb5 v2 tokens with rotated data.
+
 - When recovering opens and locks outside of the server's grace period,
   client does not check whether the file has been modified by another
   client.
+
 - If nfsd.exe is restarted while a drive is mapped, that drive needs
   to be remounted before further use.
+
 - Does not allow renaming a file on top of an existing open file.
   Connectathon's special test op_ren has been commented out.
+
 - Extended attributes are supported with some limitations:
   a) the server must support NFS Named Attributes,
   b) the order of listings cannot be guaranteed by NFS, and
   c) the EaSize field cannot be reported for directory queries of
   FileBothDirInformation, FileFullDirInfo, or FileIdFullDirInfo.
+
+
+#
+# Notes for troubleshooting && finding bugs/debugging:
+#
+- nfsd_debug.exe has the -d option to set a level for debug
+  output.
+  Edit /sbin/msnfs41client to set the "-d" option.
+
+- The "msnfs41client" script has the option "watch_kernel_debuglog"
+  to get the debug output of the kernel module.
+
+  Run as Admin: $ /sbin/msnfs41client watch_kernel_debuglog #
+
+  Currently requires DebugView
+  (https://learn.microsoft.com/en-gb/sysinternals/downloads/debugview)
+  to be installed.
+
+- Watching network traffic:
+  WireShark has a command line tool called "tshark", which can be used
+  to see NFSv4 traffic. As NFSv4 uses RPC you have to filter for RPC,
+  and the RPC filter automatically identifies NFSv4 traffic on it's RPC
+  id.
+  Example for Windows:
+  (for NFSv4 default TCP port "2049", replace "2049" with the
+  desired port if you use a custom port ; use "ipconfig" to find the
+  correct interface name, in this case "Ethernet0"):
+  ---- snip ----
+  $ nfsv4port=2049 ; /cygdrive/c/Program\ Files/Wireshark/tshark \
+    -f "port $nfsv4port" -d "tcp.port==${nfsv4port},rpc" -i Ethernet0
+  ---- snip ----
+
+  If you are running inside a VMware VM on a Linux host it
+  might require $ chmod a+rw /dev/vmnet0 # on VMware host, so that
+  the VM can use "Promiscuous Mode".
 
 # EOF.
