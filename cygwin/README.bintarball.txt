@@ -6,12 +6,47 @@
 ## WARNING: ALPHA VERSION, ONLY SUITABLE FOR BUG HUNTING!!
 ##
 
-##
-## Installation/Deinstallation
-##
 
-# 1. Requirements:
-- Windows 10
+#
+# 1. What is this ?
+#
+NFSv4.1 client and filesystem driver for Windows 10/11
+
+
+#
+# 2. Features:
+#
+- Full NFSv4.1 protocol support
+- idmapper (mapping usernames and uid/gid values between server and
+    client)
+- Support for custom ports (NFSv4 defaults to TCP port 2049, this
+    client can use different ports per mount)
+- Support ssh forwarding, e.g. mounting NFSv4 filesystems via ssh
+    tunnel
+- Support for long paths (up to 4096 bytes), no Windows MAXPATH limit
+- Unicode support
+- UNC paths
+    - IPv6 support in UNC paths
+
+- IPv6 support
+    - IPv6 address within '[', ']'
+      (will be converted to *.ipv6-literal.net)
+- Windows ACLs
+- SFU/Cygwin support, including:
+    - uid/gid
+    - Cygwin symlinks
+- Software compatibility:
+    - Any NFSv4.1 server (Linux, Solaris, Illumos, FreeBSD, nfs4j,
+        ...)
+    - All tools from Cygwin/MinGW
+    - Visual Studio
+    - VMware Workstation (can use VMs hosted on NFSv4.1 filesystem)
+
+
+#
+# 3. Requirements:
+#
+- Windows 10 or Windows 11
 - Cygwin 3.5.0
     - Packages:
         cygwin
@@ -37,7 +72,9 @@
         wget
 
 
-# 2. Installation (as "Administrator"):
+#
+# 4. Installation (as "Administrator"):
+#
 $ mkdir -p ~/download
 $ cd ~/download
 $ wget 'http://www.nrubsig.org/people/gisburn/work/msnfs41client/releases/alpha/msnfs41client_cygwin_binaries_git148e927_20231214_12h31m.tar.bz2'
@@ -45,13 +82,15 @@ $ (cd / && tar -xf ~/download/msnfs41client_cygwin_binaries_git148e927_20231214_
 $ /sbin/msnfs41client install
 
 
-# 3. Deinstallation:
+#
+# 5. Deinstallation:
+#
 $ (set -x ; cd / && tar -tf ~/download/msnfs41client_cygwin_binaries_git148e927_20231214_12h31m.tar.bz2 | while read i ; do [[ -f "$i" ]] && rm "$i" ; done)
 
 
-##
-## Usage
-##
+#
+# 6. Usage:
+#
 
 # Run the NFSv4 client daemon:
 # - run this preferably as "Administrator", but this is not a requirement
@@ -80,19 +119,22 @@ $ cd ~ && /sbin/nfs_mount -d N:
 $ cd ~
 $ net use N: /delete
 
+# List mounted NFSv4.1 filesystems:
+$ /sbin/nfs_mount
+
 
 #
-# Notes:
+# 7. Notes:
 #
-- Idmapping (including uid/gid mapping) between NFSv4 client and NFSv4
-  server works via /lib/msnfs41client/cygwin_idmapper.ksh, which
-  either uses builtin static data, or /usr/bin/getent passwd and
-  /usr/bin/getent group.
-  As getent uses the configured name services it should work with LDAP
-  too.
-  This is still work-in-progress, with the goal that both NFSv4 client
-  and server can use different uid/gid numeric values for client and
-  server side.
+- Idmapping (including uid/gid mapping) between NFSv4 client and
+  NFSv4 server works via /lib/msnfs41client/cygwin_idmapper.ksh,
+  which either uses builtin static data, or /usr/bin/getent passwd
+  and /usr/bin/getent group.
+  As getent uses the configured name services it should work with
+  LDAP too.
+  This is still work-in-progress, with the goal that both NFSv4
+  client and server can use different uid/gid numeric values for
+  client and server side.
 
 - UNC paths are supported, after successful mounting /sbin/nfs_mount
   will list the paths in Cygwin UNC format.
@@ -117,8 +159,9 @@ $ net use N: /delete
   # (requires Admin shell)
   powershell -Command 'Set-MpPreference -DisableRealtimeMonitoring 1'
   Option 2:
-  Add "nfsd.exe", "nfsd_debug.exe", "ksh93.exe", "bash.exe", "git.exe"
-  and other offending commands to the process name whitelist.
+  Add "nfsd.exe", "nfsd_debug.exe", "ksh93.exe", "bash.exe",
+  "git.exe" and other offending commands to the process name
+  whitelist.
 
 - performance: Use vmxnet3 in VMware to improve performance
 
@@ -142,19 +185,20 @@ $ net use N: /delete
   ports >= 1024, as Windows does not allow the Windows NFSv4 client
   to use a "privileged port" (i.e. TCP port number < 1024)).
   By default the NFSv4 server on Solaris, Illumos, Linux
-  etc. only accepts connections if the NFSv4 client uses a "privileged
-  (TCP) port", i.e. a port number < 1024.
+  etc. only accepts connections if the NFSv4 client uses a
+  "privileged (TCP) port", i.e. a port number < 1024.
   This can be worked around by using the "insecure" export option in
   Linux /etc/exports, which allows connections from ports >= 1024,
   and for Solaris/Illumos see nfs(5), option "resvport".
 
 
 #
-# Known issues:
+# 8. Known issues:
 #
-- The kernel driver ("nfs41_driver.sys") does not have a cryptographic
-  signature for SecureBoot - which means it will only work if SecureBoot
-  is turned off (otherwise $ /sbin/msnfs41client install # will FAIL!)
+- The kernel driver ("nfs41_driver.sys") does not yet have a
+  cryptographic signature for SecureBoot - which means it will only
+  work if SecureBoot is turned off (otherwise
+  $ /sbin/msnfs41client install # will FAIL!)
 
 - If nfsd_debug.exe crashes or gets killed, the only safe way
   to run it again requires a reboot
@@ -178,9 +222,9 @@ $ net use N: /delete
 - krb5p security with AES keys do not work against the linux server,
   as it does not support gss krb5 v2 tokens with rotated data.
 
-- When recovering opens and locks outside of the server's grace period,
-  client does not check whether the file has been modified by another
-  client.
+- When recovering opens and locks outside of the server's grace
+  period, client does not check whether the file has been modified
+  by another client.
 
 - If nfsd.exe is restarted while a drive is mapped, that drive needs
   to be remounted before further use.
@@ -196,7 +240,7 @@ $ net use N: /delete
 
 
 #
-# Notes for troubleshooting && finding bugs/debugging:
+# 9. Notes for troubleshooting && finding bugs/debugging:
 #
 - nfsd_debug.exe has the -d option to set a level for debug
   output.
