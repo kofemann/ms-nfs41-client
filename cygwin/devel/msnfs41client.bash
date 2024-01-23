@@ -92,6 +92,7 @@ function nfsclient_install
 	# enable Win32 long paths
 	# (see https://learn.microsoft.com/en-us/windows/win32/fileio/maximum-file-path-limitation)
 	regtool -i set '/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Control/FileSystem/LongPathsEnabled' 1
+	od -t x4 <'/proc/registry/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Control/FileSystem/LongPathsEnabled'
 
 	# use the Win10 "SegmentHeap" (see https://www.blackhat.com/docs/us-16/materials/us-16-Yason-Windows-10-Segment-Heap-Internals.pdf)
 	regtool add '/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows NT/CurrentVersion/Image File Execution Options/nfsd_debug.exe'
@@ -111,7 +112,6 @@ function nfsclient_install
 
 	# set domain name
 	regtool -s set '/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Services/Tcpip/Parameters/Domain' 'GLOBAL.LOC'
-	od -t x4 <'/proc/registry/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Control/FileSystem/LongPathsEnabled'
 
 	# disable DFS
 	sc query Dfsc
