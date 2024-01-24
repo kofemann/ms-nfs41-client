@@ -17,24 +17,35 @@ NFSv4.1 client and filesystem driver for Windows 10/11
 # 2. Features:
 #
 - Full NFSv4.1 protocol support
+
 - idmapper (mapping usernames and uid/gid values between server and
     client)
+
 - Support for custom ports (NFSv4 defaults to TCP port 2049, this
     client can use different ports per mount)
+
+- Support for nfs://-URL, including custom ports and raw IPv6
+    addresses
+
 - Support ssh forwarding, e.g. mounting NFSv4 filesystems via ssh
     tunnel
 - Support for long paths (up to 4096 bytes), no Windows MAXPATH limit
+
 - Unicode support
+
 - UNC paths
     - IPv6 support in UNC paths
 
 - IPv6 support
     - IPv6 address within '[', ']'
       (will be converted to *.ipv6-literal.net)
+
 - Windows ACLs
+
 - SFU/Cygwin support, including:
     - uid/gid
     - Cygwin symlinks
+
 - Software compatibility:
     - Any NFSv4.1 server (Linux, Solaris, Illumos, FreeBSD, nfs4j,
         ...)

@@ -34,6 +34,15 @@
 
 #include "nfs41_driver.h" /* NFS41_PROVIDER_NAME_A */
 #include "options.h"
+#include "urlparser1.h"
+
+
+/*
+ * Disable "warning C4996: 'wcscpy': This function or variable may be
+ * unsafe." because in this case the buffers are properly sized,
+ * making this function safe
+ */
+#pragma warning (disable : 4996)
 
 #define MOUNT_CONFIG_NFS_PORT_DEFAULT   2049
 
@@ -59,9 +68,11 @@ void PrintErrorMessage(
 
 static VOID PrintUsage(LPTSTR pProcess)
 {
-    _tprintf(TEXT("Usage: %s [options] <drive letter|*> <hostname>:<path>\n")
+    (void)_tprintf(
+        TEXT("Usage: %s [options] <drive letter|*> <hostname>:<path>\n")
         TEXT("* Options:\n")
         TEXT("\t-h\thelp\n")
+        TEXT("\t/?\thelp\n")
         TEXT("\t-d\tunmount\n")
         TEXT("\t-f\tforce unmount if the drive is in use\n")
         TEXT("\t-F <type>\tFilesystem type to use (only 'nfs' supported)"
@@ -86,7 +97,17 @@ static VOID PrintUsage(LPTSTR pProcess)
         TEXT("\tDNS name, or hostname in domain\n")
         TEXT("\tentry in C:\\Windows\\System32\\drivers\\etc\\hosts\n")
         TEXT("\tIPv4 address\n")
-        TEXT("\tIPv6 address within '[', ']' (will be converted to *.ipv6-literal.net)\n"),
+        TEXT("\tIPv6 address within '[', ']' "
+            "(will be converted to *.ipv6-literal.net)\n")
+        TEXT("* Examples:\n")
+        TEXT("\tnfs_mount.exe -p -o rw 'H' derfwpc5131_ipv4:/export/home2/rmainz\n")
+        TEXT("\tnfs_mount.exe -o rw '*' bigramhost:/tmp\n")
+        TEXT("\tnfs_mount.exe -o rw,sec=sys,port=30000 T grendel:/net_tmpfs2\n")
+        TEXT("\tnfs_mount.exe -o sec=sys,rw S nfs://myhost1/net_tmpfs2/test2\n")
+        TEXT("\tnfs_mount.exe -o sec=sys,rw S nfs://myhost1:1234/net_tmpfs2/test2\n")
+        TEXT("\tnfs_mount.exe -o sec=sys,rw,port=1234 S nfs://myhost1/net_tmpfs2/test2\n")
+        TEXT("\tnfs_mount.exe -o sec=sys,rw '*' [fe80::21b:1bff:fec3:7713]:/net_tmpfs2/test2\n")
+        TEXT("\tnfs_mount.exe -o sec=sys,rw '*' nfs://[fe80::21b:1bff:fec3:7713]/net_tmpfs2/test2\n"),
         pProcess);
 }
 
@@ -277,63 +298,101 @@ static DWORD ParseRemoteName(
 {
     DWORD result = NO_ERROR;
     LPTSTR pEnd;
-    int port = 0;
+    int port = MOUNT_CONFIG_NFS_PORT_DEFAULT;
     PFILE_FULL_EA_INFORMATION port_option_val;
     wchar_t remotename[NFS41_SYS_MAX_PATH_LEN];
     wchar_t *premotename = remotename;
     wchar_t srvname[NFS41_SYS_MAX_PATH_LEN+1+32]; /* sizeof(hostname+'@'+integer) */
+    url_parser_context *uctx = NULL;
 
     result = StringCchCopy(premotename, NFS41_SYS_MAX_PATH_LEN, pRemoteName);
 
     /*
-     * gisburn: Fixme: Implement nfs://-URLS per RFC 2224 ("NFS URL
+     * Support nfs://-URLS per RFC 2224 ("NFS URL
      * SCHEME", see https://www.rfc-editor.org/rfc/rfc2224.html),
      * including port support (nfs://hostname@port/path/...)
      */
     if (!wcsncmp(premotename, TEXT("nfs://"), 6)) {
-        _ftprintf(stderr, TEXT("nfs://-URLs not supported yet.\n"));
-        result = ERROR_NOT_SUPPORTED;
-        goto out;
-    }
-
-    ConvertUnixSlashes(premotename);
-
-    /*
-     * Remote hostname should not contain a '@' since we use this
-     * to communicate the NFSv4 port number below
-     * Use $ nfs_mount.exe -o port=portnumber ... # instead
-     */
-    if (_tcsrchr(premotename, TEXT('@'))) {
-        _ftprintf(stderr, TEXT("Remote path should not contain '@', ")
-	    TEXT("use -o port=tcpportnum.\n"));
-        result = ERROR_BAD_ARGUMENTS;
-        goto out;
-    }
-
-    if (FindOptionByName(TEXT("port"), pOptions, &port_option_val)) {
-        wchar_t *port_value_wstr = (PTCH)(port_option_val->EaName + port_option_val->EaNameLength + sizeof(TCHAR));
-
-	port = _wtoi(port_value_wstr);
-	if ((port < 1) || (port > 65535)) {
-            result = ERROR_BAD_ARGUMENTS;
+        uctx = url_parser_create_context(premotename, 0);
+        if (!uctx) {
+            result = ERROR_NOT_ENOUGH_MEMORY;
             goto out;
-	}
+        }
+
+        if (url_parser_parse(uctx) < 0) {
+            result = ERROR_BAD_ARGUMENTS;
+            (void)_ftprintf(stderr, TEXT("Error parsing nfs://-URL.\n"));
+            goto out;
+        }
+
+        if (uctx->login.username || uctx->login.passwd) {
+            result = ERROR_BAD_ARGUMENTS;
+            (void)_ftprintf(stderr, TEXT("Username/Password are not defined for nfs://-URL.\n"));
+            goto out;
+        }
+
+        (void)_sntprintf(premotename, NFS41_SYS_MAX_PATH_LEN, TEXT("%s"),
+            uctx->hostport.hostname);
+
+        if (uctx->hostport.port != -1)
+            port = uctx->hostport.port;
+        else
+            port = MOUNT_CONFIG_NFS_PORT_DEFAULT;
+
+        ConvertUnixSlashes(premotename);
+        pEnd = uctx->path;
+        ConvertUnixSlashes(pEnd);
     }
     else
     {
-        port = MOUNT_CONFIG_NFS_PORT_DEFAULT;
+        ConvertUnixSlashes(premotename);
+
+        /*
+         * Remote hostname should not contain a '@' since we use this
+         * to communicate the NFSv4 port number below
+         * Use $ nfs_mount.exe -o port=portnumber ... # instead.
+         *
+         * We have this limitation to avoid confusion for Windows
+         * users, but we explicitly allow the nfs://-URLs to have a
+         * port number, and -o port=<num> to override that.
+         */
+        if (_tcsrchr(premotename, TEXT('@'))) {
+            (void)_ftprintf(stderr,
+                TEXT("Remote path should not contain '@', ")
+                TEXT("use -o port=tcpportnum.\n"));
+            result = ERROR_BAD_ARGUMENTS;
+            goto out;
+        }
+
+        /* fail if the server name doesn't end with :\ */
+        pEnd = _tcsrchr(premotename, TEXT(':'));
+        if (pEnd == NULL || pEnd[1] != TEXT('\\')) {
+            (void)_ftprintf(stderr, TEXT("Failed to parse the remote path. ")
+                TEXT("Expected 'hostname:\\path'.\n"));
+            result = ERROR_BAD_ARGUMENTS;
+            goto out;
+        }
+        *pEnd++ = TEXT('\0');
     }
 
-    /* fail if the server name doesn't end with :\ */
-    pEnd = _tcsrchr(premotename, TEXT(':'));
-    if (pEnd == NULL || pEnd[1] != TEXT('\\')) {
-        _ftprintf(stderr, TEXT("Failed to parse the remote path. ")
-            TEXT("Expected 'hostname:\\path'.\n"));
+    /*
+     * Override the NFSv4 TCP port with the -o port=<num> option,
+     * inclding for nfs://-URLs with port numbers
+     */
+    if (FindOptionByName(TEXT("port"), pOptions,
+        &port_option_val)) {
+        wchar_t *port_value_wstr =
+            (PTCH)(port_option_val->EaName +
+                port_option_val->EaNameLength + sizeof(TCHAR));
+
+        port = _wtoi(port_value_wstr);
+    }
+
+    if ((port < 1) || (port > 65535)) {
+        (void)_ftprintf(stderr, TEXT("NFSv4 TCP port number out of range.\n"));
         result = ERROR_BAD_ARGUMENTS;
         goto out;
     }
-    *pEnd = TEXT('\0');
-    ++pEnd;
 
     /*
      * Make sure that we do not pass raw IPv6 addresses to the kernel.
@@ -415,6 +474,13 @@ static DWORD ParseRemoteName(
         goto out;
     }
 
+#ifdef DEBUG_MOUNT
+    (void)_ftprintf(stderr,
+        TEXT("srvname='%s', mntpt='%s'\n"),
+        srvname,
+        pEnd);
+#endif
+
     if (!InsertOption(TEXT("srvname"), srvname, pOptions) ||
         !InsertOption(TEXT("mntpt"), *pEnd ? pEnd : TEXT("\\"), pOptions)) {
         result = ERROR_BAD_ARGUMENTS;
@@ -446,7 +512,17 @@ static DWORD ParseRemoteName(
 
     result = StringCchCopy(pParsedRemoteName, cchConnectionLen, srvname);
 
+#ifdef DEBUG_MOUNT
+    (void)_ftprintf(stderr,
+        TEXT("pConnectionName='%s', pParsedRemoteName='%s'\n"),
+        pConnectionName,
+        pParsedRemoteName);
+#endif
+
 out:
+    if (uctx) {
+        url_parser_free_context(uctx);
+    }
     return result;
 }
 

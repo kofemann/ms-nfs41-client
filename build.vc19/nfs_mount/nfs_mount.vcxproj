@@ -161,9 +161,11 @@
     <ClCompile Include="..\..\mount\enum.c" />
     <ClCompile Include="..\..\mount\mount.c" />
     <ClCompile Include="..\..\mount\options.c" />
+    <ClCompile Include="..\..\mount\urlparser1.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\mount\options.h" />
+    <ClInclude Include="..\..\mount\urlparser1.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
