@@ -292,8 +292,6 @@ static void ConvertUnixSlashes(
 }
 
 
-#define DEBUG_MOUNT 1
-
 static
 char *wcs2utf8str(const wchar_t *wstr)
 {
