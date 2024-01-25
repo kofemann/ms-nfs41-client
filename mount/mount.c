@@ -103,11 +103,11 @@ static VOID PrintUsage(LPTSTR pProcess)
         TEXT("\tnfs_mount.exe -p -o rw 'H' derfwpc5131_ipv4:/export/home2/rmainz\n")
         TEXT("\tnfs_mount.exe -o rw '*' bigramhost:/tmp\n")
         TEXT("\tnfs_mount.exe -o rw,sec=sys,port=30000 T grendel:/net_tmpfs2\n")
-        TEXT("\tnfs_mount.exe -o sec=sys,rw S nfs://myhost1/net_tmpfs2/test2\n")
-        TEXT("\tnfs_mount.exe -o sec=sys,rw S nfs://myhost1:1234/net_tmpfs2/test2\n")
-        TEXT("\tnfs_mount.exe -o sec=sys,rw,port=1234 S nfs://myhost1/net_tmpfs2/test2\n")
-        TEXT("\tnfs_mount.exe -o sec=sys,rw '*' [fe80::21b:1bff:fec3:7713]:/net_tmpfs2/test2\n")
-        TEXT("\tnfs_mount.exe -o sec=sys,rw '*' nfs://[fe80::21b:1bff:fec3:7713]/net_tmpfs2/test2\n"),
+        TEXT("\tnfs_mount.exe -o sec=sys,rw S nfs://myhost1//net_tmpfs2/test2\n")
+        TEXT("\tnfs_mount.exe -o sec=sys,rw S nfs://myhost1:1234//net_tmpfs2/test2\n")
+        TEXT("\tnfs_mount.exe -o sec=sys,rw,port=1234 S nfs://myhost1//net_tmpfs2/test2\n")
+        TEXT("\tnfs_mount.exe -o sec=sys,rw '*' [fe80::21b:1bff:fec3:7713]://net_tmpfs2/test2\n")
+        TEXT("\tnfs_mount.exe -o sec=sys,rw '*' nfs://[fe80::21b:1bff:fec3:7713]//net_tmpfs2/test2\n"),
         pProcess);
 }
 
@@ -331,15 +331,27 @@ static DWORD ParseRemoteName(
             goto out;
         }
 
-        (void)_sntprintf(premotename, NFS41_SYS_MAX_PATH_LEN, TEXT("%s"),
-            uctx->hostport.hostname);
-
         if (uctx->hostport.port != -1)
             port = uctx->hostport.port;
         else
             port = MOUNT_CONFIG_NFS_PORT_DEFAULT;
 
+        (void)_sntprintf(premotename, NFS41_SYS_MAX_PATH_LEN, TEXT("%s"),
+            uctx->hostport.hostname);
         ConvertUnixSlashes(premotename);
+
+        if (!uctx->path) {
+            result = ERROR_BAD_ARGUMENTS;
+            (void)_ftprintf(stderr, TEXT("Path missing in nfs://-URL\n"));
+            goto out;
+        }
+
+        if (uctx->path[0] != TEXT('/')) {
+            result = ERROR_BAD_ARGUMENTS;
+            (void)_ftprintf(stderr, TEXT("Relative nfs://-URLs are not supported\n"));
+            goto out;
+        }
+
         pEnd = uctx->path;
         ConvertUnixSlashes(pEnd);
     }

@@ -156,7 +156,7 @@ int url_parser_parse(url_parser_context *uctx)
 		slen = s-urlstr;
 		(void)memcpy(uctx->hostport.hostname, urlstr, slen*sizeof(TCHAR));
 		uctx->hostport.hostname[slen] = TEXT('\0');
-		urlstr += slen;
+		urlstr += slen + 1;
 
 		/*
 		 * check for addresses within '[' and ']', like
