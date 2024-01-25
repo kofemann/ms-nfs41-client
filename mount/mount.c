@@ -107,7 +107,9 @@ static VOID PrintUsage(LPTSTR pProcess)
         TEXT("\tnfs_mount.exe -o sec=sys,rw S nfs://myhost1:1234//net_tmpfs2/test2\n")
         TEXT("\tnfs_mount.exe -o sec=sys,rw,port=1234 S nfs://myhost1//net_tmpfs2/test2\n")
         TEXT("\tnfs_mount.exe -o sec=sys,rw '*' [fe80::21b:1bff:fec3:7713]://net_tmpfs2/test2\n")
-        TEXT("\tnfs_mount.exe -o sec=sys,rw '*' nfs://[fe80::21b:1bff:fec3:7713]//net_tmpfs2/test2\n"),
+        TEXT("\tnfs_mount.exe -o sec=sys,rw '*' nfs://[fe80::21b:1bff:fec3:7713]//net_tmpfs2/test2\n")
+        TEXT("\tnfs_mount.exe -o sec=sys,rw S nfs://myhost1//dirwithspace/dir%%20space/test2\n")
+        TEXT("\tnfs_mount.exe -o sec=sys,rw S nfs://myhost1//dirwithspace/dir+space/test2\n"),
         pProcess);
 }
 
@@ -289,6 +291,50 @@ static void ConvertUnixSlashes(
             *pos = TEXT('\\');
 }
 
+
+#define DEBUG_MOUNT 1
+
+static
+char *wcs2utf8str(const wchar_t *wstr)
+{
+    char *utf8str;
+    size_t wstr_len;
+    size_t utf8_len;
+
+    wstr_len = wcslen(wstr);
+    utf8_len = WideCharToMultiByte(CP_UTF8, 0,
+        wstr, (int)wstr_len, NULL, 0, NULL, NULL);
+
+    utf8str = malloc(utf8_len+1);
+    if (!utf8str)
+        return NULL;
+    (void)WideCharToMultiByte(CP_UTF8, 0,
+        wstr, (int)wstr_len, utf8str, (int)utf8_len, NULL, NULL);
+    utf8str[utf8_len] = '\0';
+    return utf8str;
+}
+
+static
+wchar_t *utf8str2wcs(const char *utf8str)
+{
+    wchar_t *wstr;
+    size_t utf8len;
+    size_t wstr_len;
+
+    utf8len = strlen(utf8str);
+    wstr_len = MultiByteToWideChar(CP_UTF8, 0,
+        utf8str, (int)utf8len, NULL, 0);
+
+    wstr = malloc((wstr_len+1)*sizeof(wchar_t));
+    if (!wstr)
+        return NULL;
+
+    (void)MultiByteToWideChar(CP_UTF8, 0,
+        utf8str, (int)utf8len, wstr, (int)wstr_len);
+    wstr[wstr_len] = L'\0';
+    return wstr;
+}
+
 static DWORD ParseRemoteName(
     IN LPTSTR pRemoteName,
     IN OUT PMOUNT_OPTION_LIST pOptions,
@@ -298,6 +344,7 @@ static DWORD ParseRemoteName(
 {
     DWORD result = NO_ERROR;
     LPTSTR pEnd;
+    wchar_t *mountstrmem = NULL;
     int port = MOUNT_CONFIG_NFS_PORT_DEFAULT;
     PFILE_FULL_EA_INFORMATION port_option_val;
     wchar_t remotename[NFS41_SYS_MAX_PATH_LEN];
@@ -313,7 +360,27 @@ static DWORD ParseRemoteName(
      * including port support (nfs://hostname@port/path/...)
      */
     if (!wcsncmp(premotename, TEXT("nfs://"), 6)) {
-        uctx = url_parser_create_context(premotename, 0);
+        char *premotename_utf8;
+        wchar_t *hostname_wstr;
+
+        /*
+         * URLs do urlencoding and urldecoding in bytes (see
+         * RFC3986 ("Uniform Resource Identifier (URI): Generic
+         * Syntax"), e.g. Unicode Euro symbol U+20AC is encoded
+         * as "%E2%82%AC".
+         * So we have to convert from our |wchar_t| string to
+         * a UTF-8 byte string, do the URL processing on byte
+         * level, and convert that UTF-8 byte string back to a
+         * |wchar_t| string.
+         */
+        premotename_utf8 = wcs2utf8str(premotename);
+        if (!premotename_utf8) {
+            result = ERROR_NOT_ENOUGH_MEMORY;
+            goto out;
+        }
+
+        uctx = url_parser_create_context(premotename_utf8, 0);
+        free(premotename_utf8);
         if (!uctx) {
             result = ERROR_NOT_ENOUGH_MEMORY;
             goto out;
@@ -333,11 +400,14 @@ static DWORD ParseRemoteName(
 
         if (uctx->hostport.port != -1)
             port = uctx->hostport.port;
-        else
-            port = MOUNT_CONFIG_NFS_PORT_DEFAULT;
 
-        (void)_sntprintf(premotename, NFS41_SYS_MAX_PATH_LEN, TEXT("%s"),
-            uctx->hostport.hostname);
+        hostname_wstr = utf8str2wcs(uctx->hostport.hostname);
+        if (!hostname_wstr) {
+            result = ERROR_NOT_ENOUGH_MEMORY;
+            goto out;
+        }
+        (void)wcscpy_s(premotename, NFS41_SYS_MAX_PATH_LEN, hostname_wstr);
+        free(hostname_wstr);
         ConvertUnixSlashes(premotename);
 
         if (!uctx->path) {
@@ -346,13 +416,13 @@ static DWORD ParseRemoteName(
             goto out;
         }
 
-        if (uctx->path[0] != TEXT('/')) {
+        if (uctx->path[0] != '/') {
             result = ERROR_BAD_ARGUMENTS;
             (void)_ftprintf(stderr, TEXT("Relative nfs://-URLs are not supported\n"));
             goto out;
         }
 
-        pEnd = uctx->path;
+        pEnd = mountstrmem = utf8str2wcs(uctx->path);
         ConvertUnixSlashes(pEnd);
     }
     else
@@ -534,6 +604,9 @@ static DWORD ParseRemoteName(
 out:
     if (uctx) {
         url_parser_free_context(uctx);
+    }
+    if (mountstrmem) {
+        free(mountstrmem);
     }
     return result;
 }

@@ -1,5 +1,8 @@
-/* NFSv4.1 client for Windows
+/*
+ * NFSv4.1 client for Windows
  * Copyright (c) 2024 Roland Mainz <roland.mainz@nrubsig.org>
+ *
+ * Roland Mainz <roland.mainz@nrubsig.org>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -16,30 +19,31 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  */
 
+/* urlparser1.h - header for simple URL parser */
+
 #ifndef __URLPARSER1_H__
 #define __URLPARSER1_H__
 
-#include <tchar.h>
+#include <stdlib.h>
 
 typedef
 struct _url_parser_context {
-	TCHAR *in_url;
+	char *in_url;
 
-	TCHAR *scheme;
+	char *scheme;
 	struct {
-		TCHAR *username;
-		TCHAR *passwd;
+		char *username;
+		char *passwd;
 	} login;
 	struct {
-		TCHAR *hostname;
+		char *hostname;
 		signed int port;
 	} hostport;
-	TCHAR *path;
+	char *path;
 } url_parser_context;
 
-
 /* Prototypes */
-url_parser_context *url_parser_create_context(const TCHAR *in_url, unsigned int flags);
+url_parser_context *url_parser_create_context(const char *in_url, unsigned int flags);
 int url_parser_parse(url_parser_context *uctx);
 void url_parser_free_context(url_parser_context *c);
 
