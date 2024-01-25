@@ -61,7 +61,7 @@
  */
 
 #define DBGNULLSTR(s) (((s)!=NULL)?(s):"<NULL>")
-#if 1
+#if 0
 #define D(x) x
 #else
 #define D(x)
