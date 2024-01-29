@@ -1,19 +1,43 @@
 #!/bin/ksh93
 
 #
+# MIT License
+#
+# Copyright (c) 2023-2024 Roland Mainz <roland.mainz@nrubsig.org>
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+#
+
+#
 # sshnfs - remote login client with NFSv4 forwarding
 #
 
 #
 # Example usage:
-# $ ksh sshnfs.ksh -o NFSURL=ssh+nfs://localhost/export/home/rmainz root@10.49.28.10 #
-# $ ksh sshnfs.ksh -o NFSURL=nfs://localhost/export/home/rmainz root@10.49.20.207 #
-# $ ksh sshnfs.ksh -o NFSURL=nfs://derfwpc5131/export/home/rmainz root@10.49.28.10 #
-# $ ksh sshnfs.ksh -o NFSURL=ssh+nfs://derfwpc5131/export/home/rmainz -o SSHNFSJumphost=rmainz@derfwpc5131,roland.mainz@derfwnb8353 -J rmainz@derfwpc5131,roland.mainz@derfwnb8353 root@10.49.20.207
-# $ ksh sshnfs.ksh -o NFSURL=ssh+nfs://derfwpc5131/export/home/rmainz target@fe80::d6f5:27ff:fe2b:8588%enp2s0
-# $ ksh sshnfs.ksh -o NFSURL=ssh+nfs://root@derfwpc5131/export/home/rmainz root@10.49.28.56
-# $ ksh sshnfs.ksh -o NFSServerSSHLoginName=root -o NFSURL=ssh+nfs://derfwpc5131/export/home/rmainz root@10.49.28.56
-# $ SSHNFS_OPTIONS='-o NFSServerSSHLoginName=root -o NFSURL=ssh+nfs://derfwpc5131/export/home/rmainz' sshnfs.ksh root@10.49.28.56
+# $ ksh sshnfs.ksh -o NFSURL=ssh+nfs://localhost//export/home/rmainz root@10.49.28.10 #
+# $ ksh sshnfs.ksh -o NFSURL=nfs://localhost//export/home/rmainz root@10.49.20.207 #
+# $ ksh sshnfs.ksh -o NFSURL=nfs://derfwpc5131//export/home/rmainz root@10.49.28.10 #
+# $ ksh sshnfs.ksh -o NFSURL=ssh+nfs://derfwpc5131//export/home/rmainz -o SSHNFSJumphost=rmainz@derfwpc5131,roland.mainz@derfwnb8353 -J rmainz@derfwpc5131,roland.mainz@derfwnb8353 root@10.49.20.207
+# $ ksh sshnfs.ksh -o NFSURL=ssh+nfs://derfwpc5131//export/home/rmainz target@fe80::d6f5:27ff:fe2b:8588%enp2s0
+# $ ksh sshnfs.ksh -o NFSURL=ssh+nfs://root@derfwpc5131//export/home/rmainz root@10.49.28.56
+# $ ksh sshnfs.ksh -o NFSServerSSHLoginName=root -o NFSURL=ssh+nfs://derfwpc5131//export/home/rmainz root@10.49.28.56
+# $ SSHNFS_OPTIONS='-o NFSServerSSHLoginName=root -o NFSURL=ssh+nfs://derfwpc5131//export/home/rmainz' sshnfs.ksh root@10.49.28.56
 #
 
 #
@@ -263,6 +287,8 @@ function parse_sshnfs_url
 		{ print -u2 -f $"%s: Not a nfs:// or ssh+nfs:// url\n" "$0" ; return 1 ; }
 	[[ "${data.host}" != '' ]] || { print -u2 -f $"%s: NFS hostname missing\n" "$0" ; return 1 ; }
 	[[ "${data.uripath}" != '' ]] || { print -u2 -f $"%s: NFS path missing\n" "$0" ; return 1 ; }
+	[[ "${data.uripath}" == /* ]] || { print -u2 -f $"%s: NFS path (%q) must be absolute\n" "$0" "${data.uripath}" ; return 1 ; }
+	[[ "${data.uripath}" != //* ]] || { print -u2 -f $"%s: NFS path (%q) should not start with '//' \n" "$0" "${data.uripath}" ; return 1 ; }
 
 	return 0
 }
@@ -424,7 +450,7 @@ function main
 
 				print -u2 -f $"# Use this to mount the directory:\n"
 				print -u2 -f $"# $ mkdir /mnt_nfs\n"
-				print -u2 -f $"# $ mount -vvv -t nfs -o vers=4.2,port=%d localhost:/%s /mnt_nfs\n" \
+				print -u2 -f $"# $ mount -vvv -t nfs -o vers=4.2,port=%d localhost:%s /mnt_nfs\n" \
 					c.destination_nfs_port \
 					"${c.nfs_server.uripath}"
 
@@ -481,7 +507,7 @@ function main
 
 				print -u2 -f $"# Use this to mount the directory:\n"
 				print -u2 -f $"# $ mkdir /mnt_nfs\n"
-				print -u2 -f $"# $ mount -vvv -t nfs -o vers=4.2,port=%d localhost:/%s /mnt_nfs\n" \
+				print -u2 -f $"# $ mount -vvv -t nfs -o vers=4.2,port=%d localhost:%s /mnt_nfs\n" \
 					c.destination_nfs_port \
 					"${c.nfs_server.uripath}"
 

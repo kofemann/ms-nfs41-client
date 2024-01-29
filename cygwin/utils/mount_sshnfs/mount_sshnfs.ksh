@@ -1,6 +1,30 @@
 #!/bin/ksh93
 
 #
+# MIT License
+#
+# Copyright (c) 2023-2024 Roland Mainz <roland.mainz@nrubsig.org>
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+#
+
+#
 # mount_sshnfs - mount NFSv4 filesystem through ssh tunnel
 #
 
@@ -9,13 +33,13 @@
 #
 # 1. UNIX/Linux: Mount&&unmount /export/home/rmainz on NFS server "/export/home/rmainz":
 # $ mkdir -p /foobarmnt
-# $ ksh mount_sshnfs.ksh mount ssh+nfs://rmainz@derfwpc5131/export/home/rmainz /foobarmnt
+# $ ksh mount_sshnfs.ksh mount ssh+nfs://rmainz@derfwpc5131//export/home/rmainz /foobarmnt
 # $ mount_sshnfs.ksh umount /foobarmnt
 #
 #
 # 2. UNIX/Linux: Mount&&unmount /export/home/rmainz on NFS server "/export/home/rmainz" via SSH jumphost rmainz@10.49.20.131:
 # $ mkdir -p /foobarmnt
-# $ ksh mount_sshnfs.ksh mount -o ro,mount_sshnfs_jumphost=rmainz@10.49.20.131 ssh+nfs://rmainz@derfwpc5131/export/home/rmainz /foobarmnt
+# $ ksh mount_sshnfs.ksh mount -o ro,mount_sshnfs_jumphost=rmainz@10.49.20.131 ssh+nfs://rmainz@derfwpc5131//export/home/rmainz /foobarmnt
 # $ mount_sshnfs.ksh umount /foobarmnt
 #
 
@@ -282,6 +306,8 @@ function parse_sshnfs_url
 		{ print -u2 -f $"%s: Not a nfs:// or ssh+nfs:// url\n" "$0" ; return 1 ; }
 	[[ "${data.host}" != '' ]] || { print -u2 -f $"%s: NFS hostname missing\n" "$0" ; return 1 ; }
 	[[ "${data.uripath}" != '' ]] || { print -u2 -f $"%s: NFS path missing\n" "$0" ; return 1 ; }
+	[[ "${data.uripath}" == /* ]] || { print -u2 -f $"%s: NFS path (%q) must be absolute\n" "$0" "${data.uripath}" ; return 1 ; }
+	[[ "${data.uripath}" != //* ]] || { print -u2 -f $"%s: NFS path (%q) should not start with '//' \n" "$0" "${data.uripath}" ; return 1 ; }
 
 	return 0
 }
@@ -305,6 +331,31 @@ function mountpoint2configfilename
 }
 
 
+function kernel_supports_nfs42_client
+{
+	typeset s=''
+
+	if [[ "$(uname -s)" == 'Linux' ]] ; then
+		if [[ -r '/proc/config.gz' ]] ; then
+			s="$(gunzip -c <'/proc/config.gz' | egrep -v '^[[:space:]]*#')"
+		elif [[ -r "/boot/config-$(uname -r)" ]] ; then
+			s="$( egrep -v '^[[:space:]]*#' "/boot/config-$(uname -r)")"
+		fi
+
+		if [[ "$s" == *CONFIG_NFS_V4_2=y* ]] ; then
+			return 0
+		fi
+
+		return 1
+	else
+		# FIXME: Add more OS support
+		true
+	fi
+
+	return 2
+}
+
+
 function cmd_mount
 {
 	set -o nounset
@@ -312,7 +363,7 @@ function cmd_mount
 
 	# fixme: Need better text layout for $ mount_sshnfs mount --man #
 	typeset -r mount_sshnfs_cmdmount_usage=$'+
-	[-?\n@(#)\$Id: mount_sshnfs mount (Roland Mainz) 2023-12-08 \$\n]
+	[-?\n@(#)\$Id: mount_sshnfs mount (Roland Mainz) 2024-01-29 \$\n]
 	[-author?Roland Mainz <roland.mainz@nrubsig.org>]
 	[+NAME?mount_sshnfs mount - mount NFSv4 filesystem through ssh
 		tunnel]
@@ -569,7 +620,7 @@ function cmd_mount
 				mount_args+=( '-o' 'sec=sys' )
 				# '*' == Let nfs_mount.exe should pick drive letter itself
 				mount_args+=( '*' )
-				mount_args+=( "localhost:/${c.nfs_server.uripath}" )
+				mount_args+=( "localhost:${c.nfs_server.uripath}" )
 
 				#
 				# ... and do the mount
@@ -604,9 +655,19 @@ function cmd_mount
 				for s in "${c.mount_nfs_options[@]}" ; do
 					mount_args+=( '-o' "$s" )
 				done
-				mount_args+=( '-o' 'vers=4.2' )
+
+				if kernel_supports_nfs42_client ; then
+					mount_args+=( '-o' 'vers=4.2' )
+				else
+					#
+					# some kernels (like WSL) have a
+					# Linux 5.15.x kernel with NFSv4.2
+					# client support turned off
+					#
+					mount_args+=( '-o' 'vers=4.1' )
+				fi
 				mount_args+=( '-o' "port=${c.local_forward_port}" )
-				mount_args+=( "localhost:/${c.nfs_server.uripath}" )
+				mount_args+=( "localhost:${c.nfs_server.uripath}" )
 				mount_args+=( "${c.mountpoint}" )
 
 				#
@@ -668,7 +729,7 @@ function cmd_umount
 	typeset mydebug=false # fixme: should be "bool" for ksh93v
 	# fixme: Need better text layout for $ mount_sshnfs mount --man #
 	typeset -r mount_sshnfs_cmdumount_usage=$'+
-	[-?\n@(#)\$Id: mount_sshnfs umount (Roland Mainz) 2023-12-08 \$\n]
+	[-?\n@(#)\$Id: mount_sshnfs umount (Roland Mainz) 2024-01-29 \$\n]
 	[-author?Roland Mainz <roland.mainz@nrubsig.org>]
 	[+NAME?mount_sshnfs umount - unmount NFSv4 filesystem mounted
 		via mount_sshnfs mount]
@@ -772,7 +833,7 @@ function main
 
 	# fixme: Need better text layout for $ mount_sshnfs --man #
 	typeset -r mount_sshnfs_usage=$'+
-	[-?\n@(#)\$Id: mount_sshnfs (Roland Mainz) 2023-12-08 \$\n]
+	[-?\n@(#)\$Id: mount_sshnfs (Roland Mainz) 2024-01-29 \$\n]
 	[-author?Roland Mainz <roland.mainz@nrubsig.org>]
 	[+NAME?mount_sshnfs - mount/umount NFSv4 filesystem via ssh
 		tunnel]
@@ -788,13 +849,13 @@ function main
 	[+EXAMPLES]{
 		[+?Example 1:][+?Mount&&unmount /export/home/rmainz on NFS server "/export/home/rmainz"]{
 [+\n# mkdir -p /foobarmnt
-# ksh mount_sshnfs.ksh mount ssh+nfs:://rmainz@derfwpc5131/export/home/rmainz /foobarmnt
+# ksh mount_sshnfs.ksh mount ssh+nfs:://rmainz@derfwpc5131//export/home/rmainz /foobarmnt
 # mount_sshnfs.ksh umount /foobarmnt
 ]
 }
 		[+?Example 2:][+?Mount&&unmount /export/home/rmainz on NFS server "/export/home/rmainz" via SSH jumphost rmainz@10.49.20.131]{
 [+\n# mkdir -p /foobarmnt
-# ksh mount_sshnfs.ksh mount -o ro,mount_sshnfs_jumphost=rmainz@10.49.20.131 ssh+nfs:://rmainz@derfwpc5131/export/home/rmainz /foobarmnt
+# ksh mount_sshnfs.ksh mount -o ro,mount_sshnfs_jumphost=rmainz@10.49.20.131 ssh+nfs:://rmainz@derfwpc5131//export/home/rmainz /foobarmnt
 # mount_sshnfs.ksh umount /foobarmnt
 ]
 		}
