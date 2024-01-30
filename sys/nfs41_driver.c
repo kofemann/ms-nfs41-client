@@ -804,9 +804,16 @@ NTSTATUS marshal_nfs41_rw(
         sizeof(entry->u.ReadWrite.offset));
     tmp += sizeof(entry->u.ReadWrite.offset);
     __try {
+#pragma warning( push )
+/*
+ * C28145: "The opaque MDL structure should not be modified by a
+ * driver.", |MDL_MAPPING_CAN_FAIL| is the exception
+ */
+#pragma warning (disable : 28145)
         entry->u.ReadWrite.MdlAddress->MdlFlags |= MDL_MAPPING_CAN_FAIL;
-        entry->buf = 
-            MmMapLockedPagesSpecifyCache(entry->u.ReadWrite.MdlAddress, 
+#pragma warning( pop )
+        entry->buf =
+            MmMapLockedPagesSpecifyCache(entry->u.ReadWrite.MdlAddress,
                 UserMode, MmNonCached, NULL, TRUE, NormalPagePriority);
         if (entry->buf == NULL) {
             print_error("MmMapLockedPagesSpecifyCache failed to map pages\n");
@@ -3838,7 +3845,14 @@ retry_on_link:
             RxFreePool(entry);
             goto out;
         }
+#pragma warning( push )
+/*
+ * C28145: "The opaque MDL structure should not be modified by a
+ * driver.", |MDL_MAPPING_CAN_FAIL| is the exception
+ */
+#pragma warning (disable : 28145)
         entry->u.Open.EaMdl->MdlFlags |= MDL_MAPPING_CAN_FAIL;
+#pragma warning( pop )
         MmProbeAndLockPages(entry->u.Open.EaMdl, KernelMode, IoModifyAccess);
     }
 
@@ -4395,7 +4409,15 @@ NTSTATUS nfs41_QueryDirectory(
         RxFreePool(entry);
         goto out;
     }
+#pragma warning( push )
+/*
+ * C28145: "The opaque MDL structure should not be modified by a
+ * driver.", |MDL_MAPPING_CAN_FAIL| is the exception
+ */
+#pragma warning (disable : 28145)
     entry->u.QueryFile.mdl->MdlFlags |= MDL_MAPPING_CAN_FAIL;
+#pragma warning( pop )
+
     MmProbeAndLockPages(entry->u.QueryFile.mdl, KernelMode, IoModifyAccess);
 
     entry->u.QueryFile.filter = Filter;
