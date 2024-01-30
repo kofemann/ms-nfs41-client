@@ -82,25 +82,29 @@ NFSv4.1 client and filesystem driver for Windows 10/11
         util-linux
         wget
 
-
 #
-# 4. Installation (as "Administrator"):
+# 4. Download:
 #
 $ mkdir -p ~/download
 $ cd ~/download
-$ wget 'http://www.nrubsig.org/people/gisburn/work/msnfs41client/releases/alpha/msnfs41client_cygwin_binaries_git148e927_20231214_12h31m.tar.bz2'
+$ wget 'http://www.nrubsig.org/people/gisburn/work/msnfs41client/releases/testing/msnfs41client_cygwin_binaries_git148e927_20231214_12h31m.tar.bz2'
+
+
+#
+# 5. Installation (as "Administrator"):
+#
 $ (cd / && tar -xf ~/download/msnfs41client_cygwin_binaries_git148e927_20231214_12h31m.tar.bz2 )
 $ /sbin/msnfs41client install
 
 
 #
-# 5. Deinstallation:
+# 6. Deinstallation:
 #
 $ (set -x ; cd / && tar -tf ~/download/msnfs41client_cygwin_binaries_git148e927_20231214_12h31m.tar.bz2 | while read i ; do [[ -f "$i" ]] && rm "$i" ; done)
 
 
 #
-# 6. Usage:
+# 7. Usage:
 #
 
 # Run the NFSv4 client daemon:
@@ -135,7 +139,7 @@ $ /sbin/nfs_mount
 
 
 #
-# 7. Notes:
+# 8. Notes:
 #
 - Idmapping (including uid/gid mapping) between NFSv4 client and
   NFSv4 server works via /lib/msnfs41client/cygwin_idmapper.ksh,
@@ -204,7 +208,7 @@ $ /sbin/nfs_mount
 
 
 #
-# 8. Known issues:
+# 9. Known issues:
 #
 - The kernel driver ("nfs41_driver.sys") does not yet have a
   cryptographic signature for SecureBoot - which means it will only
@@ -251,7 +255,7 @@ $ /sbin/nfs_mount
 
 
 #
-# 9. Notes for troubleshooting && finding bugs/debugging:
+# 10. Notes for troubleshooting && finding bugs/debugging:
 #
 - nfsd_debug.exe has the -d option to set a level for debug
   output.
