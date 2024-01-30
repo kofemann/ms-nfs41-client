@@ -35,7 +35,8 @@ static int g_debug_level = DEFAULT_DEBUG_LEVEL;
 
 void set_debug_level(int level) { g_debug_level = level; }
 
-FILE *dlog_file, *elog_file;
+static FILE *dlog_file;
+static FILE *elog_file;
 
 #ifndef STANDALONE_NFSD
 void open_log_files()
@@ -72,36 +73,34 @@ void open_log_files()
 
 void dprintf(int level, LPCSTR format, ...)
 {
-    if (level <= g_debug_level) {
-        va_list args;
-        va_start(args, format);
-        fprintf(dlog_file, "%04x: ", GetCurrentThreadId());
-        vfprintf(dlog_file, format, args);
-#ifndef STANDALONE_NFSD
-        fflush(dlog_file);
-#endif
-        va_end(args);
-    }
+    if (level > g_debug_level)
+        return;
+
+    va_list args;
+    va_start(args, format);
+    (void)fprintf(dlog_file, "%04x: ", (int)GetCurrentThreadId());
+    (void)vfprintf(dlog_file, format, args);
+    (void)fflush(dlog_file);
+    va_end(args);
 }
 
 /* log events (mount, umount, auth, ...) */
 void logprintf(LPCSTR format, ...)
 {
     SYSTEMTIME stime;
-    GetLocalTime(&stime);
 
+    GetLocalTime(&stime);
     va_list args;
     va_start(args, format);
-    (void)fprintf(dlog_file, "# LOG: ts=%04d-%02d-%02d_%02d:%02d:%02d:%04d"
+    (void)fprintf(dlog_file,
+        "# LOG: ts=%04d-%02d-%02d_%02d:%02d:%02d:%04d"
         " thr=%04x msg=",
         (int)stime.wYear, (int)stime.wMonth, (int)stime.wDay,
         (int)stime.wHour, (int)stime.wMinute, (int)stime.wSecond,
         (int)stime.wMilliseconds,
         (int)GetCurrentThreadId());
     (void)vfprintf(dlog_file, format, args);
-#ifndef STANDALONE_NFSD
     (void)fflush(dlog_file);
-#endif
     va_end(args);
 }
 
@@ -109,11 +108,9 @@ void eprintf(LPCSTR format, ...)
 {
     va_list args;
     va_start(args, format);
-    fprintf(elog_file, "%04x: ", GetCurrentThreadId());
-    vfprintf(elog_file, format, args);
-#ifndef STANDALONE_NFSD
-    fflush(elog_file);
-#endif
+    (void)fprintf(elog_file, "%04x: ", (int)GetCurrentThreadId());
+    (void)vfprintf(elog_file, format, args);
+    (void)fflush(elog_file);
     va_end(args);
 }
 
