@@ -87,6 +87,8 @@ installdest: $(VS_BUILD_DIR)/nfsd.exe \
 	chmod a+x $(DESTDIR)/cygdrive/c/cygwin64/sbin/mount_sshnfs
 	cp $(CYGWIN_MAKEFILE_DIR)/utils/sshnfs/sshnfs.ksh $(DESTDIR)/cygdrive/c/cygwin64/sbin/sshnfs
 	chmod a+x $(DESTDIR)/cygdrive/c/cygwin64/sbin/sshnfs
+	cp $(CYGWIN_MAKEFILE_DIR)/utils/nfsurlconv/nfsurlconv.ksh $(DESTDIR)/cygdrive/c/cygwin64/sbin/nfsurlconv
+	chmod a+x $(DESTDIR)/cygdrive/c/cygwin64/sbin/nfsurlconv
 	@ printf "# Package tests\n"
 	cp "$(PROJECT_BASEDIR_DIR)/tests/winfsinfo1/winfsinfo.exe" $(DESTDIR)/cygdrive/c/cygwin64/bin/winfsinfo.exe
 	@ printf "# Package ksh93&co (if available) since Cygwin does not ship with it yet\n"
