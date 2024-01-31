@@ -24,8 +24,10 @@ NFSv4.1 client and filesystem driver for Windows 10/11
 - Support for custom ports (NFSv4 defaults to TCP port 2049, this
     client can use different ports per mount)
 
-- Support for nfs://-URL, including custom ports and raw IPv6
-    addresses
+- Support for nfs://-URL
+    - including custom ports and raw IPv6 addresses
+    - nfs://-URL conversion utility (/usr/bin/nfsurlconv) to convert
+        URLs, including non-ASCII/Unicode characters in mount path
 
 - Support ssh forwarding, e.g. mounting NFSv4 filesystems via ssh
     tunnel
@@ -73,6 +75,8 @@ NFSv4.1 client and filesystem driver for Windows 10/11
         grep
         hostname
         less
+        libiconv
+        libiconv2
         pax
         pbzip2
         procps-ng
