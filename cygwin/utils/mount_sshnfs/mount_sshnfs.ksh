@@ -45,9 +45,9 @@
 
 #
 # For more examples see help and subcommand help:
-# $ mount_sshnfs.ksh --man
-# $ mount_sshnfs.ksh mount --man
-# $ mount_sshnfs.ksh umount --man
+# $ mount_sshnfs --man
+# $ mount_sshnfs mount --man
+# $ mount_sshnfs umount --man
 #
 
 #
@@ -291,6 +291,10 @@ function parse_rfc1738_url
 	[[ "${.sh.match[7]-}" != '' ]] && integer data.port="${.sh.match[7]}"
 	[[ "${.sh.match[8]-}" != '' ]] && data.uripath="${.sh.match[8]}"
 
+	if [[ -v data.uripath ]] ; then
+		data.path="${ printf "${data.uripath//~(E)(?:%([[:xdigit:]][[:xdigit:]]))/\\x\1}" ; }"
+	fi
+
 	return 0
 }
 
@@ -363,7 +367,7 @@ function cmd_mount
 
 	# fixme: Need better text layout for $ mount_sshnfs mount --man #
 	typeset -r mount_sshnfs_cmdmount_usage=$'+
-	[-?\n@(#)\$Id: mount_sshnfs mount (Roland Mainz) 2024-01-29 \$\n]
+	[-?\n@(#)\$Id: mount_sshnfs mount (Roland Mainz) 2024-01-31 \$\n]
 	[-author?Roland Mainz <roland.mainz@nrubsig.org>]
 	[+NAME?mount_sshnfs mount - mount NFSv4 filesystem through ssh
 		tunnel]
@@ -729,7 +733,7 @@ function cmd_umount
 	typeset mydebug=false # fixme: should be "bool" for ksh93v
 	# fixme: Need better text layout for $ mount_sshnfs mount --man #
 	typeset -r mount_sshnfs_cmdumount_usage=$'+
-	[-?\n@(#)\$Id: mount_sshnfs umount (Roland Mainz) 2024-01-29 \$\n]
+	[-?\n@(#)\$Id: mount_sshnfs umount (Roland Mainz) 2024-01-31 \$\n]
 	[-author?Roland Mainz <roland.mainz@nrubsig.org>]
 	[+NAME?mount_sshnfs umount - unmount NFSv4 filesystem mounted
 		via mount_sshnfs mount]
@@ -833,7 +837,7 @@ function main
 
 	# fixme: Need better text layout for $ mount_sshnfs --man #
 	typeset -r mount_sshnfs_usage=$'+
-	[-?\n@(#)\$Id: mount_sshnfs (Roland Mainz) 2024-01-29 \$\n]
+	[-?\n@(#)\$Id: mount_sshnfs (Roland Mainz) 2024-01-31 \$\n]
 	[-author?Roland Mainz <roland.mainz@nrubsig.org>]
 	[+NAME?mount_sshnfs - mount/umount NFSv4 filesystem via ssh
 		tunnel]
@@ -845,18 +849,19 @@ function main
 	umount [options]
 	status [options]
 	restart_forwarding [options]
+	--man
 
 	[+EXAMPLES]{
 		[+?Example 1:][+?Mount&&unmount /export/home/rmainz on NFS server "/export/home/rmainz"]{
 [+\n# mkdir -p /foobarmnt
-# ksh mount_sshnfs.ksh mount ssh+nfs:://rmainz@derfwpc5131//export/home/rmainz /foobarmnt
-# mount_sshnfs.ksh umount /foobarmnt
+# mount_sshnfs mount ssh+nfs:://rmainz@derfwpc5131//export/home/rmainz /foobarmnt
+# mount_sshnfs umount /foobarmnt
 ]
 }
 		[+?Example 2:][+?Mount&&unmount /export/home/rmainz on NFS server "/export/home/rmainz" via SSH jumphost rmainz@10.49.20.131]{
 [+\n# mkdir -p /foobarmnt
-# ksh mount_sshnfs.ksh mount -o ro,mount_sshnfs_jumphost=rmainz@10.49.20.131 ssh+nfs:://rmainz@derfwpc5131//export/home/rmainz /foobarmnt
-# mount_sshnfs.ksh umount /foobarmnt
+# mount_sshnfs mount -o ro,mount_sshnfs_jumphost=rmainz@10.49.20.131 ssh+nfs:://rmainz@derfwpc5131//export/home/rmainz /foobarmnt
+# mount_sshnfs umount /foobarmnt
 ]
 		}
 	}

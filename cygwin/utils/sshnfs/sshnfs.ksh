@@ -221,6 +221,7 @@ function netstat_find_next_free_local_tcp_port
 	return 1
 }
 
+
 #
 # parse_rfc1738_url - parse RFC 1838 URLs
 #
@@ -271,6 +272,10 @@ function parse_rfc1738_url
 	data.host="${.sh.match[6]}"
 	[[ "${.sh.match[7]-}" != '' ]] && integer data.port="${.sh.match[7]}"
 	[[ "${.sh.match[8]-}" != '' ]] && data.uripath="${.sh.match[8]}"
+
+	if [[ -v data.uripath ]] ; then
+		data.path="${ printf "${data.uripath//~(E)(?:%([[:xdigit:]][[:xdigit:]]))/\\x\1}" ; }"
+	fi
 
 	return 0
 }
