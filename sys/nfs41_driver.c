@@ -45,6 +45,7 @@
 
 /* debugging printout defines */
 #define DEBUG_MARSHAL_HEADER
+//#define DEBUG_MARSHAL_HEADER_VALID_FILENAME
 #define DEBUG_MARSHAL_DETAIL
 //#define DEBUG_OPEN
 //#define DEBUG_CLOSE
@@ -602,14 +603,20 @@ NTSTATUS marshal_nfs41_header(
     tmp += sizeof(HANDLE);
 
 #ifdef DEBUG_MARSHAL_HEADER
+#ifdef DEBUG_MARSHAL_HEADER_VALID_FILENAME
     if (MmIsAddressValid(entry->filename))
+#endif
         DbgP("[upcall header] xid=%lld opcode='%s' filename='%wZ' version=%d "
             "session=0x%x open_state=0x%x\n", entry->xid,
             ENTRY_OPCODE2STRING(entry), entry->filename,
             entry->version, entry->session, entry->open_state);
-    else
+#ifdef DEBUG_MARSHAL_HEADER_VALID_FILENAME
+    else {
+        DbgP("[upcall header] Invalid filename %p\n", entry);
         status = STATUS_INTERNAL_ERROR;
-#endif
+    }
+#endif /* DEBUG_MARSHAL_HEADER_VALID_FILENAME */
+#endif /* DEBUG_MARSHAL_HEADER */
 out:
     return status;
 }
