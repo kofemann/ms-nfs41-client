@@ -279,7 +279,7 @@ int nfs41_server_resolve(
 {
     int status = ERROR_BAD_NET_NAME;
     char service[16];
-    struct addrinfoexA hints = { 0 }, *res, *info;
+    ADDRINFOEXA hints = { 0 }, *res, *info;
     struct netconfig *nconf;
     struct netbuf addr;
     char *netid, *uaddr;
@@ -368,6 +368,13 @@ retry_getaddrinfoex:
             break;
         }
     }
+/*
+ * BUG: WS2tcpip.h somenow mapps FreeAddrInfoExA() to use the wide-char version
+ */
+#define WINDOWS_WS2TCPIP_H_BUG 1
+#ifdef WINDOWS_WS2TCPIP_H_BUG
+#undef FreeAddrInfoEx
+#endif
     FreeAddrInfoEx(res);
 out:
     if (status) {

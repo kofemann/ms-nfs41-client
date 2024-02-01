@@ -605,7 +605,7 @@ static int handle_getexattr(void *daemon_context, nfs41_upcall *upcall)
         }
 
         ea->EaNameLength = query->EaNameLength;
-        StringCchCopy(ea->EaName, (size_t)ea->EaNameLength + 1, query->EaName);
+        StringCchCopyA(ea->EaName, (size_t)ea->EaNameLength + 1, query->EaName);
         ea->Flags = 0;
 
         /* read the value from file */

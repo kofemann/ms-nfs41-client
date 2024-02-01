@@ -27,6 +27,9 @@ FUNCTIONS:
 #include <stdlib.h>
 #include <process.h>
 #include <tchar.h>
+#ifdef UNICODE
+#include <shellapi.h>
+#endif
 
 #include "service.h"
 

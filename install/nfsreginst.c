@@ -102,7 +102,7 @@ BOOL RdrSetProviderOrderString( __in LPTSTR OrderString )
 
     if ( CreateKey( PROVIDER_ORDER_KEY, &hOrderKey ) )
     {
-        ProviderOrderKeyValues[0].dwLength = ( _tcsclen( OrderString ) + 1 ) * sizeof( TCHAR );
+        ProviderOrderKeyValues[0].dwLength = (DWORD)(( _tcsclen( OrderString ) + 1 ) * sizeof( TCHAR ));
         ProviderOrderKeyValues[0].pvValue = OrderString;
         WriteRegistryKeyValues( hOrderKey,
                                 sizeof(ProviderOrderKeyValues) / sizeof(REGENTRY),

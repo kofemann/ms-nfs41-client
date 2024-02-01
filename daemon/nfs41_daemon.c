@@ -100,7 +100,7 @@ static unsigned int WINAPI thread_main(void *args)
     DWORD inbuf_len = UPCALL_BUF_SIZE, outbuf_len;
     nfs41_upcall upcall;
 
-    pipe = CreateFile(NFS41_USER_DEVICE_NAME_A, GENERIC_READ | GENERIC_WRITE,
+    pipe = CreateFileA(NFS41_USER_DEVICE_NAME_A, GENERIC_READ | GENERIC_WRITE,
         FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING,
         0, NULL);
     if (pipe == INVALID_HANDLE_VALUE)
@@ -313,7 +313,7 @@ static bool_t parse_cmdlineargs(int argc, TCHAR *argv[], nfsd_args *out)
                 }
             }
             else
-                fprintf(stderr, "Unrecognized option '%s', disregarding.\n", argv[i]);
+                fprintf(stderr, "Unrecognized option '%S', disregarding.\n", argv[i]);
         }
     }
 
@@ -339,10 +339,10 @@ static void print_getaddrinfo(struct addrinfo *ptr)
             inet_ntoa(((struct sockaddr_in *)ptr->ai_addr)->sin_addr));
         break;
     case AF_INET6:
-        if (WSAAddressToString((LPSOCKADDR)ptr->ai_addr, (DWORD)ptr->ai_addrlen, 
+        if (WSAAddressToStringA((LPSOCKADDR)ptr->ai_addr, (DWORD)ptr->ai_addrlen,
                 NULL, ipstringbuffer, &ipbufferlength))
             dprintf(1, "WSAAddressToString failed with %u\n", WSAGetLastError());
-        else    
+        else
             dprintf(1, "Family: AF_INET6 IPv6 address %s\n", ipstringbuffer);
         break;
     case AF_NETBIOS: dprintf(1, "AF_NETBIOS (NetBIOS)\n"); break;
@@ -561,7 +561,7 @@ VOID ServiceStart(DWORD argc, LPTSTR *argv)
     NFS41D_VERSION = GetTickCount();
     dprintf(1, "NFS41 Daemon starting: version %d\n", NFS41D_VERSION);
 
-    pipe = CreateFile(NFS41_USER_DEVICE_NAME_A, GENERIC_READ | GENERIC_WRITE,
+    pipe = CreateFileA(NFS41_USER_DEVICE_NAME_A, GENERIC_READ | GENERIC_WRITE,
         FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING,
         0, NULL);
     if (pipe == INVALID_HANDLE_VALUE)

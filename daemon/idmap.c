@@ -574,7 +574,7 @@ static int idmap_filter(
         if (FAILED(StringCchPrintfA(filter, filter_len,
                 "(&(objectClass=%s)(%s=%s))",
                 config->classes[lookup->klass],
-                config->attributes[lookup->attr], lookup->value))) {
+                config->attributes[lookup->attr], (const char *)lookup->value))) {
             status = ERROR_BUFFER_OVERFLOW;
             eprintf("ldap filter buffer overflow: '%s=%s'\n",
                 config->attributes[lookup->attr], lookup->value);
@@ -607,7 +607,7 @@ static int idmap_query_attrs(
         goto out;
 
     /* send the ldap query */
-    status = ldap_search_st(context->ldap, config->base,
+    status = ldap_search_stA(context->ldap, config->base,
         LDAP_SCOPE_SUBTREE, filter, NULL, 0, NULL, &res);
     if (status) {
         eprintf("ldap search for '%s' failed with %d: %s\n",
@@ -628,7 +628,7 @@ static int idmap_query_attrs(
     /* fetch the attributes */
     for (i = 0; i < len; i++) {
         if (ATTR_ISSET(attributes, i)) {
-            values[i] = ldap_get_values(context->ldap,
+            values[i] = ldap_get_valuesA(context->ldap,
                 entry, config->attributes[i]);
 
             /* fail if required attributes are missing */
@@ -801,7 +801,7 @@ static int idmap_lookup_user(
     }
 out_free_values:
     for (i = 0; i < NUM_ATTRIBUTES; i++)
-        ldap_value_free(values[i]);
+        ldap_value_freeA(values[i]);
 out:
     return status;
 }
@@ -902,7 +902,7 @@ static int idmap_lookup_group(
     }
 out_free_values:
     for (i = 0; i < NUM_ATTRIBUTES; i++)
-        ldap_value_free(values[i]);
+        ldap_value_freeA(values[i]);
 out:
     return status;
 }

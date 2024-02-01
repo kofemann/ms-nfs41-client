@@ -443,11 +443,11 @@ int create_silly_rename(
     StringCchCopyNA(name, NFS41_MAX_COMPONENT_LEN+1, silly->name, silly->len);
 
     tmp = (char*)silly->name;
-    StringCchPrintf(tmp, end - tmp, ".%s.", name);
+    StringCchPrintfA(tmp, end - tmp, ".%s.", name);
     tmp += (size_t)silly->len + 2L;
 
     for (i = 0; i < 16; i++, tmp++)
-        StringCchPrintf(tmp, end - tmp, "%x", fhmd5[i]);
+        StringCchPrintfA(tmp, end - tmp, "%x", fhmd5[i]);
 
     path->len = path->len + extra_len;
     silly->len = silly->len + extra_len;

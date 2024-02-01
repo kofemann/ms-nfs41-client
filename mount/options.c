@@ -164,7 +164,7 @@ static void RecursivePrintEaInformation(
         TEXT("EaValueLength:       %5u\n")
         TEXT("EaName:   %16ls\n")
         TEXT("EaValue:  %16ls\n\n"),
-        (ULONG_PTR)EA % sizeof(ULONG),
+        (unsigned long)((ULONG_PTR)EA % sizeof(ULONG)),
         EA->NextEntryOffset,
         EA->Flags,
         EA->EaNameLength,

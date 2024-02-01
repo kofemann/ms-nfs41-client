@@ -492,10 +492,10 @@ static int map_nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid, char *who_o
             return ERROR_SUCCESS;
     }
 
-    status = LookupAccountSid(NULL, sid, who, &size, tmp_buf, 
+    status = LookupAccountSidA(NULL, sid, who, &size, tmp_buf,
         &tmp_size, &sid_type);
     dprintf(ACLLVL, "map_nfs4ace_who: LookupAccountSid returned %d GetLastError "
-            "%d name len %d domain len %d\n", status, GetLastError(), 
+            "%d name len %d domain len %d\n", status, GetLastError(),
             size, tmp_size); 
     if (status)
         return ERROR_INTERNAL_ERROR;
@@ -510,7 +510,7 @@ static int map_nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid, char *who_o
     tmp_buf = malloc(tmp_size);
     if (tmp_buf == NULL)
         goto out_free_who;
-    status = LookupAccountSid(NULL, sid, who, &size, tmp_buf, 
+    status = LookupAccountSidA(NULL, sid, who, &size, tmp_buf,
                                 &tmp_size, &sid_type);
     free(tmp_buf);
     if (!status) {

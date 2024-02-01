@@ -277,12 +277,12 @@ static int delegation_return(
         unsigned char inbuf[sizeof(HANDLE)], *buffer = inbuf; 
         DWORD inbuf_len = sizeof(HANDLE), outbuf_len, dstatus;
         uint32_t length;
-        dprintf(1, "delegation_return: making a downcall for srv_open=%x\n", 
+        dprintf(1, "delegation_return: making a downcall for srv_open=%x\n",
             deleg->srv_open);
-        pipe = CreateFile(NFS41_USER_DEVICE_NAME_A, GENERIC_READ|GENERIC_WRITE, 
+        pipe = CreateFileA(NFS41_USER_DEVICE_NAME_A, GENERIC_READ|GENERIC_WRITE,
                 FILE_SHARE_READ|FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
         if (pipe == INVALID_HANDLE_VALUE) {
-            eprintf("delegation_return: Unable to open downcall pipe %d\n", 
+            eprintf("delegation_return: Unable to open downcall pipe %d\n",
                 GetLastError());
             goto out_downcall;
         }

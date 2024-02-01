@@ -351,7 +351,7 @@ int map_nfs4servername_2_sid(nfs41_daemon_globals *nfs41dg, int query, DWORD *si
     }
 #endif /* NFS41_DRIVER_FEATURE_MAP_UNMAPPED_USER_TO_UNIXUSER_SID */
 
-    status = LookupAccountName(NULL, name, NULL, sid_len, NULL, &tmp, &sid_type);
+    status = LookupAccountNameA(NULL, name, NULL, sid_len, NULL, &tmp, &sid_type);
     dprintf(ACLLVL, "map_nfs4servername_2_sid(query=%x,name='%s'): LookupAccountName returned %d "
         "GetLastError %d name len %d domain len %d\n",
         query, name, status, GetLastError(), *sid_len, tmp);
@@ -369,7 +369,7 @@ int map_nfs4servername_2_sid(nfs41_daemon_globals *nfs41dg, int query, DWORD *si
         tmp_buf = (LPSTR) malloc(tmp);
         if (tmp_buf == NULL)
             goto out_free_sid;
-        status = LookupAccountName(NULL, name, *sid, sid_len, tmp_buf,
+        status = LookupAccountNameA(NULL, name, *sid, sid_len, tmp_buf,
                                     &tmp, &sid_type);
         free(tmp_buf);
         if (!status) {
