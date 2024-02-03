@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <malloc.h>
 
+#include "nfs41_build_features.h"
 #include "nfs41_driver.h" /* NFS41_PROVIDER_NAME_A */
 
 
