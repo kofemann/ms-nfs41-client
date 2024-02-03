@@ -28,6 +28,7 @@
 #include <devioctl.h>
 #include <strsafe.h>
 
+#include "nfs41_build_features.h"
 #include "nfs41_driver.h"
 #include "nfs41_np.h"
 #include "options.h"
@@ -477,10 +478,13 @@ NPAddConnection3(
         i++;
     }
     ServerName[i] = L'\0';
+
     StringCchCatW( ConnectionName, NFS41_SYS_MAX_PATH_LEN, ServerName);
+#ifndef NFS41_DRIVER_MOUNT_DOES_NFS4_PREFIX
     /* insert the "nfs4" in between the server name and the path,
      * just to make sure all calls to our driver come thru this */
     StringCchCatW( ConnectionName, NFS41_SYS_MAX_PATH_LEN, L"\\nfs4" );
+#endif /* NFS41_DRIVER_MOUNT_DOES_NFS4_PREFIX */
 
 #ifdef CONVERT_2_UNIX_SLASHES
     /* convert all windows slashes to unix slashes */
@@ -505,6 +509,15 @@ NPAddConnection3(
         }
     }
 #endif
+
+#ifdef NFS41_DRIVER_MOUNT_DOES_NFS4_PREFIX
+    if (wcsncmp(&p[i], L"\\nfs4", 5) != 0) {
+        DbgP(( L"[nfs41_np] Connection name '%s' not prefixed with '\\nfs41'\n", &p[i]));
+        Status = WN_BAD_NETNAME;
+        goto out;
+    }
+#endif /* NFS41_DRIVER_MOUNT_DOES_NFS4_PREFIX */
+
     StringCchCatW( ConnectionName, NFS41_SYS_MAX_PATH_LEN, &p[i]);
     DbgP(( L"[aglo] Full Connect Name: %s\n", ConnectionName ));
     DbgP(( L"[aglo] Full Connect Name Length: %d %d\n",

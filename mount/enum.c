@@ -39,16 +39,20 @@ void PrintMountLine(
     TCHAR *b = cygwin_unc_buffer;
     LPCTSTR s = remote;
     TCHAR sc;
+#ifndef NFS41_DRIVER_MOUNT_DOES_NFS4_PREFIX
     unsigned int backslash_counter = 0;
+#endif
 
     while((sc = *s++) != TEXT('\0')) {
         switch(sc) {
             case TEXT('\\'):
                 *b++ = TEXT('/');
+#ifndef NFS41_DRIVER_MOUNT_DOES_NFS4_PREFIX
                 if (backslash_counter++ == 2) {
                     (void)wcscpy_s(b, 6, TEXT("nfs4/"));
                     b+=5;
                 }
+#endif
                 break;
             default:
                 *b++ = sc;
@@ -56,7 +60,7 @@ void PrintMountLine(
         }
     }
     *b = TEXT('\0');
-
+// FIXME: We should print the URL
     _tprintf(TEXT("%-8s\t%-40s\t%s\n"), local, remote, cygwin_unc_buffer);
 }
 

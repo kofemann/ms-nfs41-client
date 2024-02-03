@@ -32,6 +32,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include "nfs41_build_features.h"
 #include "nfs41_driver.h" /* NFS41_PROVIDER_NAME_A */
 #include "options.h"
 #include "urlparser1.h"
@@ -573,20 +574,11 @@ static DWORD ParseRemoteName(
     result = StringCbCat(pConnectionName, cchConnectionLen, srvname);
     if (FAILED(result))
         goto out;
-#ifdef FIXME_NOT_WORKING_YET
-    /*
-     * gisurn: fixme: why does this not work ?
-     *
-     * nfs_mount.exe should list UNC paths with \nfs4\ to distinguish
-     * them from default SMB UNC paths
-     *
-     * $ nfs_mount.exe -o sec=sys,port=2049 Z 'derfwpc5131:/export/home/rmainz'
-     * WNetUseConnection(Z:, \nfs4\export\home\rmainz) failed with error code 67.
-     */
-    result = StringCchCopy(pConnectionName, cchConnectionLen, TEXT("\\nfs4"));
+#ifdef NFS41_DRIVER_MOUNT_DOES_NFS4_PREFIX
+    result = StringCbCat(pConnectionName, cchConnectionLen, TEXT("\\nfs4"));
     if (FAILED(result))
         goto out;
-#endif /* FIXME_NOT_WORKING_YET */
+#endif /* NFS41_DRIVER_MOUNT_DOES_NFS4_PREFIX */
     if (*pEnd)
         result = StringCchCat(pConnectionName, cchConnectionLen, pEnd);
 
