@@ -287,6 +287,7 @@ static int handle_getacl(void *daemon_context, nfs41_upcall *upcall)
     args->sec_desc_len = 0;
     status = MakeSelfRelativeSD(&sec_desc, args->sec_desc, &args->sec_desc_len);
     if (status) {
+        eprintf("handle_getacl: MakeSelfRelativeSD() failed.\n");
         status = ERROR_INTERNAL_ERROR;
         goto out;
     }
@@ -462,8 +463,9 @@ static int map_nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid, char *who_o
     DWORD size = 0, tmp_size = 0;
     SID_NAME_USE sid_type;
     LPSTR tmp_buf = NULL, who = NULL;
+    LPSTR sidstr = NULL;
 
-    /* for ace mapping, we want to map owner's sid into "owner@" 
+    /* for ace mapping, we want to map owner's sid into "owner@"
      * but for set_owner attribute we want to map owner into a user name
      * same applies to group
      */
@@ -492,13 +494,36 @@ static int map_nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid, char *who_o
             return ERROR_SUCCESS;
     }
 
+    if (!ConvertSidToStringSidA(sid, &sidstr)) {
+        status = GetLastError();
+        eprintf("map_nfs4ace_who: ConvertSidToStringSidA() failed, "
+            "error=%d\n", status);
+        goto out;
+    }
+
     status = LookupAccountSidA(NULL, sid, who, &size, tmp_buf,
         &tmp_size, &sid_type);
-    dprintf(ACLLVL, "map_nfs4ace_who: LookupAccountSid returned %d GetLastError "
-            "%d name len %d domain len %d\n", status, GetLastError(),
-            size, tmp_size); 
-    if (status)
-        return ERROR_INTERNAL_ERROR;
+    dprintf(ACLLVL, "map_nfs4ace_who: "
+        "LookupAccountSid(sidtostr(sid)='%s', namelen=%d, domainlen=%d) "
+        "returned %d, GetLastError=%d\n",
+        sidstr, size, tmp_size, status, GetLastError());
+
+    /*
+     * No SID to local account mapping. Can happen for some system
+     * SIDs, and Unix_User+<uid> or Unix_Group+<gid> SIDs
+     */
+    switch (status) {
+        /* This happens for Unix_User+<uid> or Unix_Group+<gid> SIDs */
+        case ERROR_NONE_MAPPED:
+        /* Catch other cases */
+        case ERROR_NO_SUCH_USER:
+        case ERROR_NO_SUCH_GROUP:
+            goto out;
+        default:
+            status = ERROR_INTERNAL_ERROR;
+            goto out;
+    }
+
     status = GetLastError();
     if (status != ERROR_INSUFFICIENT_BUFFER)
         return ERROR_INTERNAL_ERROR;
@@ -526,6 +551,8 @@ add_domain:
     if (who) free(who);
     status = ERROR_SUCCESS;
 out:
+    if (sidstr)
+        LocalFree(sidstr);
     return status;
 out_free_who:
     free(who);

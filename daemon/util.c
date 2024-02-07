@@ -279,6 +279,7 @@ int nfs_to_windows_error(int status, int default_error)
     case NFS4ERR_OPENMODE:      return ERROR_ACCESS_DENIED;
     case NFS4ERR_LOCK_NOTSUPP:  return ERROR_ATOMIC_LOCKS_NOT_SUPPORTED;
 
+    case NFS4ERR_BADOWNER:      return ERROR_ACCESS_DENIED;
     case NFS4ERR_BADCHAR:
     case NFS4ERR_BADNAME:       return ERROR_INVALID_NAME;
 
