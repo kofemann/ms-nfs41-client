@@ -2643,8 +2643,10 @@ NTSTATUS map_mount_errors(
     case ERROR_BAD_NET_RESP:    return STATUS_UNEXPECTED_NETWORK_ERROR;
     case ERROR_BAD_NET_NAME:    return STATUS_BAD_NETWORK_NAME;
     case ERROR_BAD_NETPATH:     return STATUS_BAD_NETWORK_PATH;
+    case ERROR_INTERNAL_ERROR:  return STATUS_INTERNAL_ERROR;
     default:
-        print_error("failed to map windows error %d to NTSTATUS; "
+        print_error("map_mount_errors: "
+            "failed to map windows ERROR_%d to NTSTATUS; "
             "defaulting to STATUS_INSUFFICIENT_RESOURCES\n", status);
         return STATUS_INSUFFICIENT_RESOURCES;
     }
@@ -3604,8 +3606,9 @@ NTSTATUS map_open_errors(
     case ERROR_TOO_MANY_LINKS:          return STATUS_TOO_MANY_LINKS;
     case ERROR_DIRECTORY:               return STATUS_FILE_IS_A_DIRECTORY;
     case ERROR_BAD_FILE_TYPE:           return STATUS_NOT_A_DIRECTORY;
+    case ERROR_INTERNAL_ERROR:          return STATUS_INTERNAL_ERROR;
     default:
-        print_error("[ERROR] nfs41_Create: upcall returned %d returning "
+        print_error("[ERROR] nfs41_Create: upcall returned ERROR_%d returning "
             "STATUS_INSUFFICIENT_RESOURCES\n", status);
     case ERROR_OUTOFMEMORY:             return STATUS_INSUFFICIENT_RESOURCES;
     }
@@ -4215,9 +4218,10 @@ NTSTATUS map_close_errors(
     case ERROR_NOT_EMPTY:       return STATUS_DIRECTORY_NOT_EMPTY;
     case ERROR_FILE_INVALID:    return STATUS_FILE_INVALID;
     default:
-        print_error("failed to map windows error %d to NTSTATUS; "
+        print_error("map_close_errors: "
+            "failed to map windows ERROR_%d to NTSTATUS; "
             "defaulting to STATUS_INTERNAL_ERROR\n", status);
-    case ERROR_INTERNAL_ERROR: return STATUS_INTERNAL_ERROR;
+    case ERROR_INTERNAL_ERROR:  return STATUS_INTERNAL_ERROR;
     }
 }
 
@@ -4345,8 +4349,10 @@ NTSTATUS map_querydir_errors(
     case ERROR_NO_MORE_FILES:       return STATUS_NO_MORE_FILES;
     case ERROR_OUTOFMEMORY:         return STATUS_INSUFFICIENT_RESOURCES;
     case ERROR_FILENAME_EXCED_RANGE: return STATUS_NAME_TOO_LONG;
+    case ERROR_INTERNAL_ERROR:      return STATUS_INTERNAL_ERROR;
     default:
-        print_error("failed to map windows error %d to NTSTATUS; "
+        print_error("map_querydir_errors: "
+            "failed to map windows ERROR_%d to NTSTATUS; "
             "defaulting to STATUS_INVALID_NETWORK_RESPONSE\n", status);
     case ERROR_BAD_NET_RESP:        return STATUS_INVALID_NETWORK_RESPONSE;
     }
@@ -4489,8 +4495,10 @@ NTSTATUS map_volume_errors(
     case ERROR_NETNAME_DELETED:     return STATUS_NETWORK_NAME_DELETED;
     case ERROR_INVALID_PARAMETER:   return STATUS_INVALID_PARAMETER;
     case ERROR_OUTOFMEMORY:         return STATUS_INSUFFICIENT_RESOURCES;
+    case ERROR_INTERNAL_ERROR:      return STATUS_INTERNAL_ERROR;
     default:
-        print_error("failed to map windows error %d to NTSTATUS; "
+        print_error("map_volume_errors: "
+            "failed to map windows ERROR_%d to NTSTATUS; "
             "defaulting to STATUS_INVALID_NETWORK_RESPONSE\n", status);
     case ERROR_BAD_NET_RESP:        return STATUS_INVALID_NETWORK_RESPONSE;
     }
@@ -4769,8 +4777,10 @@ NTSTATUS map_setea_error(
     case ERROR_INVALID_EA_HANDLE:       return STATUS_NONEXISTENT_EA_ENTRY;
     case ERROR_NO_MORE_FILES:           return STATUS_NO_MORE_EAS;
     case ERROR_EA_FILE_CORRUPT:         return STATUS_EA_CORRUPT_ERROR;
+    case ERROR_INTERNAL_ERROR:          return STATUS_INTERNAL_ERROR;
     default:
-        print_error("failed to map windows error %d to NTSTATUS; "
+        print_error("map_setea_error: "
+            "failed to map windows ERROR_%d to NTSTATUS; "
             "defaulting to STATUS_INVALID_PARAMETER\n", error);
     case ERROR_INVALID_PARAMETER:       return STATUS_INVALID_PARAMETER;
     }
@@ -5185,8 +5195,10 @@ NTSTATUS map_query_acl_error(
     case ERROR_ACCESS_DENIED:       return STATUS_ACCESS_DENIED;
     case ERROR_FILE_NOT_FOUND:      return STATUS_OBJECT_NAME_NOT_FOUND;
     case ERROR_INVALID_PARAMETER:   return STATUS_INVALID_PARAMETER;
+    case ERROR_INTERNAL_ERROR:      return STATUS_INTERNAL_ERROR;
     default:
-        print_error("failed to map windows error %d to NTSTATUS; "
+        print_error("map_query_acl_error: "
+            "failed to map windows ERROR_%d to NTSTATUS; "
             "defaulting to STATUS_INVALID_NETWORK_RESPONSE\n", error);
     case ERROR_BAD_NET_RESP:        return STATUS_INVALID_NETWORK_RESPONSE;
     }
@@ -5449,8 +5461,10 @@ NTSTATUS map_queryfile_error(
     case ERROR_ACCESS_DENIED:       return STATUS_ACCESS_DENIED;
     case ERROR_NETNAME_DELETED:     return STATUS_NETWORK_NAME_DELETED;
     case ERROR_INVALID_PARAMETER:   return STATUS_INVALID_PARAMETER;
+    case ERROR_INTERNAL_ERROR:      return STATUS_INTERNAL_ERROR;
     default:
-        print_error("failed to map windows error %d to NTSTATUS; "
+        print_error("map_queryfile_error: "
+            "failed to map windows ERROR_%d to NTSTATUS; "
             "defaulting to STATUS_INVALID_NETWORK_RESPONSE\n", error);
     case ERROR_BAD_NET_RESP:        return STATUS_INVALID_NETWORK_RESPONSE;
     }
@@ -5634,8 +5648,10 @@ NTSTATUS map_setfile_error(
     case ERROR_NETWORK_ACCESS_DENIED:   return STATUS_NETWORK_ACCESS_DENIED;
     case ERROR_NETNAME_DELETED:         return STATUS_NETWORK_NAME_DELETED;
     case ERROR_BUFFER_OVERFLOW:         return STATUS_INSUFFICIENT_RESOURCES;
+    case ERROR_INTERNAL_ERROR:          return STATUS_INTERNAL_ERROR;
     default:
-        print_error("failed to map windows error %d to NTSTATUS; "
+        print_error("map_setfile_error: "
+            "failed to map windows ERROR_%d to NTSTATUS; "
             "defaulting to STATUS_INVALID_PARAMETER\n", error);
     case ERROR_INVALID_PARAMETER:       return STATUS_INVALID_PARAMETER;
     }
@@ -6022,8 +6038,10 @@ NTSTATUS map_readwrite_errors(
     case ERROR_LOCK_VIOLATION:          return STATUS_FILE_LOCK_CONFLICT;
     case ERROR_NETWORK_ACCESS_DENIED:   return STATUS_NETWORK_ACCESS_DENIED;
     case ERROR_NETNAME_DELETED:         return STATUS_NETWORK_NAME_DELETED;
+    case ERROR_INTERNAL_ERROR:          return STATUS_INTERNAL_ERROR;
     default:
-        print_error("failed to map windows error %d to NTSTATUS; "
+        print_error("map_readwrite_errors: "
+            "failed to map windows ERROR_%d to NTSTATUS; "
             "defaulting to STATUS_NET_WRITE_FAULT\n", status);
     case ERROR_NET_WRITE_FAULT:         return STATUS_NET_WRITE_FAULT;
     }
@@ -6301,8 +6319,10 @@ NTSTATUS map_lock_errors(
     /* if we return ERROR_INVALID_PARAMETER, Windows translates that to
      * success!! */
     case ERROR_INVALID_PARAMETER:   return STATUS_LOCK_NOT_GRANTED;
+    case ERROR_INTERNAL_ERROR:      return STATUS_INTERNAL_ERROR;
     default:
-        print_error("failed to map windows error %d to NTSTATUS; "
+        print_error("map_lock_errors: "
+            "failed to map windows ERROR_%d to NTSTATUS; "
             "defaulting to STATUS_INVALID_NETWORK_RESPONSE\n", status);
     case ERROR_BAD_NET_RESP:        return STATUS_INVALID_NETWORK_RESPONSE;
     }
@@ -6521,8 +6541,10 @@ NTSTATUS map_symlink_errors(
     case ERROR_INSUFFICIENT_BUFFER: return STATUS_BUFFER_TOO_SMALL;
     case STATUS_BUFFER_TOO_SMALL:
     case ERROR_BUFFER_OVERFLOW:     return STATUS_BUFFER_OVERFLOW;
+    case ERROR_INTERNAL_ERROR:      return STATUS_INTERNAL_ERROR;
     default:
-        print_error("failed to map windows error %d to NTSTATUS; "
+        print_error("map_symlink_errors: "
+            "failed to map windows ERROR_%d to NTSTATUS; "
             "defaulting to STATUS_INVALID_NETWORK_RESPONSE\n", status);
     case ERROR_BAD_NET_RESP:        return STATUS_INVALID_NETWORK_RESPONSE;
     }
