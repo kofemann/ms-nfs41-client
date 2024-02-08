@@ -159,10 +159,10 @@ static void dprint_roles(
     IN int level,
     IN uint32_t roles)
 {
-    dprintf(level, "roles: %s%s%s\n",
+    DPRINTF(level, ("roles: %s%s%s\n",
         (roles & EXCHGID4_FLAG_USE_NON_PNFS) ? "USE_NON_PNFS " : "",
         (roles & EXCHGID4_FLAG_USE_PNFS_MDS) ? "USE_PNFS_MDS " : "",
-        (roles & EXCHGID4_FLAG_USE_PNFS_DS) ? "USE_PNFS_DS" : "");
+        (roles & EXCHGID4_FLAG_USE_PNFS_DS) ? "USE_PNFS_DS" : ""));
 }
 
 int nfs41_client_renew(
@@ -206,7 +206,7 @@ out:
 void nfs41_client_free(
     IN nfs41_client *client)
 {
-    dprintf(2, "nfs41_client_free(%llu)\n", client->clnt_id);
+    DPRINTF(2, ("nfs41_client_free(%llu)\n", client->clnt_id));
     nfs41_client_delegation_free(client);
     if (client->session) nfs41_session_free(client->session);
     nfs41_destroy_clientid(client->rpc, client->clnt_id);

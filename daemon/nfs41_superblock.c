@@ -52,8 +52,8 @@ static int superblock_create(
     int status = NO_ERROR;
     nfs41_superblock *superblock;
 
-    dprintf(SBLVL, "creating superblock for fsid(%llu,%llu)\n",
-        fsid->major, fsid->minor);
+    DPRINTF(SBLVL, ("creating superblock for fsid(%llu,%llu)\n",
+        fsid->major, fsid->minor));
 
     superblock = calloc(1, sizeof(nfs41_superblock));
     if (superblock == NULL) {
@@ -146,7 +146,7 @@ static int get_superblock_attrs(
 
     nfs41_superblock_supported_attrs(superblock, &superblock->default_getattr);
 
-    dprintf(SBLVL, "attributes for fsid(%llu,%llu): "
+    DPRINTF(SBLVL, ("attributes for fsid(%llu,%llu): "
         "maxread=%llu, maxwrite=%llu, layout_types: 0x%X, "
         "cansettime=%u, time_delta={%llu,%u}, aclsupport=%u, "
         "link_support=%u, symlink_support=%u, case_preserving=%u, "
@@ -157,7 +157,7 @@ static int get_superblock_attrs(
         superblock->time_delta.seconds, superblock->time_delta.nseconds,
         superblock->aclsupport, superblock->link_support,
         superblock->symlink_support, superblock->case_preserving,
-        superblock->case_insensitive);
+        superblock->case_insensitive));
 out:
     return status;
 }
@@ -190,7 +190,7 @@ void nfs41_superblock_fs_attributes(
     /* let the driver fill in FileSystemName */
     FsAttrs->FileSystemNameLength = 0;
 
-    dprintf(SBLVL, "FileFsAttributeInformation: "
+    DPRINTF(SBLVL, ("FileFsAttributeInformation: "
         "link_support=%u, "
         "symlink_support=%u, "
         "ea_support=%u, "
@@ -206,7 +206,7 @@ void nfs41_superblock_fs_attributes(
         superblock->case_insensitive,
         superblock->aclsupport,
         (unsigned int)FsAttrs->MaximumComponentNameLength,
-        (unsigned long)FsAttrs->FileSystemAttributes);
+        (unsigned long)FsAttrs->FileSystemAttributes));
 }
 
 
@@ -242,7 +242,7 @@ void nfs41_superblock_list_free(
 {
     struct list_entry *entry, *tmp;
 
-    dprintf(SBLVL, "nfs41_superblock_list_free()\n");
+    DPRINTF(SBLVL, ("nfs41_superblock_list_free()\n"));
 
     list_for_each_tmp(entry, tmp, &superblocks->head)
         free(superblock_entry(entry));
@@ -260,14 +260,14 @@ int nfs41_superblock_for_fh(
     nfs41_superblock_list *superblocks = &server->superblocks;
     nfs41_superblock *superblock;
 
-    dprintf(SBLVL, "--> nfs41_superblock_for_fh(fsid(%llu,%llu))\n",
-        fsid->major, fsid->minor);
+    DPRINTF(SBLVL, ("--> nfs41_superblock_for_fh(fsid(%llu,%llu)))\n",
+        fsid->major, fsid->minor));
 
     /* compare with the parent's fsid, and use that if it matches */
     if (parent && parent->superblock &&
             compare_fsid(fsid, &parent->superblock->fsid) == 0) {
         file->fh.superblock = parent->superblock;
-        dprintf(SBLVL, "using superblock from parent\n");
+        DPRINTF(SBLVL, ("using superblock from parent\n"));
         goto out;
     }
 
@@ -277,16 +277,16 @@ int nfs41_superblock_for_fh(
     ReleaseSRWLockShared(&superblocks->lock);
 
     if (superblock) {
-        dprintf(SBLVL, "found existing superblock in server list "
-            "[shared lock]\n");
+        DPRINTF(SBLVL, ("found existing superblock in server list "
+            "[shared lock]\n"));
     } else {
         AcquireSRWLockExclusive(&superblocks->lock);
         /* must search again under an exclusive lock, in case another thread
          * created it after our first search */
         superblock = find_superblock(superblocks, fsid);
         if (superblock) {
-            dprintf(SBLVL, "found newly created superblock in server list "
-                "[exclusive lock]\n");
+            DPRINTF(SBLVL, ("found newly created superblock in server list "
+                "[exclusive lock]\n"));
         } else {
             /* create the superblock */
             status = superblock_create(fsid, &superblock);
@@ -306,8 +306,8 @@ int nfs41_superblock_for_fh(
 
     file->fh.superblock = superblock;
 out:
-    dprintf(SBLVL, "<-- nfs41_superblock_for_fh() returning %p, status %d\n",
-        file->fh.superblock, status);
+    DPRINTF(SBLVL, ("<-- nfs41_superblock_for_fh() returning 0x%p, status %d\n",
+        file->fh.superblock, status));
     return status;
 }
 

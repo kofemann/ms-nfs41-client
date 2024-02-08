@@ -104,23 +104,23 @@ bool_t verify_write(
 {
     if (verf->committed != UNSTABLE4) {
         *stable = verf->committed;
-        dprintf(3, "verify_write: committed to stable storage\n");
+        DPRINTF(3, ("verify_write: committed to stable storage\n"));
         return 1;
     }
 
     if (*stable != UNSTABLE4) {
         memcpy(verf->expected, verf->verf, NFS4_VERIFIER_SIZE);
         *stable = UNSTABLE4;
-        dprintf(3, "verify_write: first unstable write, saving verifier\n");
+        DPRINTF(3, ("verify_write: first unstable write, saving verifier\n"));
         return 1;
     }
 
     if (memcmp(verf->expected, verf->verf, NFS4_VERIFIER_SIZE) == 0) {
-        dprintf(3, "verify_write: verifier matches expected\n");
+        DPRINTF(3, ("verify_write: verifier matches expected\n"));
         return 1;
     }
 
-    dprintf(2, "verify_write: verifier changed; writes have been lost!\n");
+    DPRINTF(2, ("verify_write: verifier changed; writes have been lost!\n"));
     return 0;
 }
 
@@ -128,10 +128,10 @@ bool_t verify_commit(
     IN nfs41_write_verf *verf)
 {
     if (memcmp(verf->expected, verf->verf, NFS4_VERIFIER_SIZE) == 0) {
-        dprintf(3, "verify_commit: verifier matches expected\n");
+        DPRINTF(3, ("verify_commit: verifier matches expected\n"));
         return 1;
     }
-    dprintf(2, "verify_commit: verifier changed; writes have been lost!\n");
+    DPRINTF(2, ("verify_commit: verifier changed; writes have been lost!\n"));
     return 0;
 }
 
@@ -145,9 +145,11 @@ ULONG nfs_file_info_to_attributes(
         attrs |= FILE_ATTRIBUTE_REPARSE_POINT;
         if (info->symlink_dir)
             attrs |= FILE_ATTRIBUTE_DIRECTORY;
-    } else if (info->type != NF4REG)
-        dprintf(1, "unhandled file type %d, defaulting to NF4REG\n",
-            info->type);
+    }
+    else if (info->type != NF4REG) {
+        DPRINTF(1, ("unhandled file type %d, defaulting to NF4REG\n",
+            info->type));
+    }
 
     if (info->mode == 0444) /* XXX: 0444 for READONLY */
         attrs |= FILE_ATTRIBUTE_READONLY;
@@ -297,9 +299,9 @@ int nfs_to_windows_error(int status, int default_error)
     case NFS4ERR_WRONGSEC:      return ERROR_ACCESS_DENIED;
 
     default:
-        dprintf(1, "nfs error %s not mapped to windows error; "
+        DPRINTF(1, ("nfs error '%s' not mapped to windows error; "
             "returning default error %d\n",
-            nfs_error_string(status), default_error);
+            nfs_error_string(status), default_error));
         return default_error;
     }
 }
@@ -510,14 +512,14 @@ subcmd_popen_context *subcmd_popen(const char *command)
      * processes
      */
     if (!CreatePipe(&pinfo->hReadPipe, &pinfo->hWritePipe, &sa, 0)) {
-        dprintf(0, "subcmd_popen: CreatePipe error, status=%d\n",
-            (int)GetLastError());
+        DPRINTF(0, ("subcmd_popen: CreatePipe error, status=%d\n",
+            (int)GetLastError()));
         goto fail;
     }
 
     /* Set the pipe handles to non-inheritable */
     if (!SetHandleInformation(pinfo->hReadPipe, HANDLE_FLAG_INHERIT, FALSE)) {
-        dprintf(0, "subcmd_popen: SetHandleInformation error\n");
+        DPRINTF(0, ("subcmd_popen: SetHandleInformation error\n"));
         goto fail;
     }
 
@@ -531,7 +533,7 @@ subcmd_popen_context *subcmd_popen(const char *command)
     if (!CreateProcessA(NULL,
         (LPSTR)command, NULL, NULL, TRUE, 0, NULL, NULL, &si,
         &pinfo->pi)) {
-        dprintf(0, "subcmd_popen: cannot create process\n");
+        DPRINTF(0, ("subcmd_popen: cannot create process\n"));
         goto fail;
     }
 
@@ -568,7 +570,7 @@ int subcmd_pclose(subcmd_popen_context *pinfo)
     CloseHandle(pinfo->pi.hThread);
 
     if (status != 0) {
-        (void)dprintf(0, "subcmd_pclose(): exit code=%d\n", (int)status);
+        DPRINTF(0, ("subcmd_pclose(): exit code=%d\n", (int)status));
     }
     free(pinfo);
 

@@ -38,7 +38,7 @@ static __inline int unexpected_op(uint32_t op, uint32_t expected)
     if (op == expected)
         return 0;
 
-    eprintf("Op table mismatch. Got %s (%d), expected %s (%d).\n",
+    eprintf("Op table mismatch. Got '%s' (%d), expected '%s' (%d).\n",
         nfs_opnum_to_string(op), op,
         nfs_opnum_to_string(expected), expected);
     return 1;
@@ -765,7 +765,7 @@ static bool_t xdr_channel_attrs4(
             return TRUE;
     }
     else {
-        eprintf("%s: xdr->x_op %d not supported.\n",
+        eprintf("'%s': xdr->x_op %d not supported.\n",
             "xdr_channel_attrs4", xdr->x_op);
         return FALSE;
     }
@@ -1445,7 +1445,7 @@ static bool_t xdr_locker4(
     locker4 *locker)
 {
     if (xdr->x_op != XDR_ENCODE) {
-        eprintf("%s: xdr->x_op %d is not supported!\n",
+        eprintf("'%s': xdr->x_op %d is not supported!\n",
             "xdr_locker4", xdr->x_op);
         return FALSE;
     }
@@ -3402,7 +3402,7 @@ static bool_t decode_layout(
         return decode_file_layout(xdr, list, &layout);
 
     default:
-        eprintf("%s: received non-FILE layout type, %d\n",
+        eprintf("'%s': received non-FILE layout type, %d\n",
             "decode_file_layout", layout.type);
     }
     return FALSE;
@@ -3489,7 +3489,7 @@ static bool_t encode_op_layoutreturn(
 
         return xdr_u_int32_t(xdr, &zero); /* size of lrf_body is 0 */
     } else {
-        eprintf("%s: layout type (%d) is not PNFS_RETURN_FILE!\n",
+        eprintf("'%s': layout type (%d) is not PNFS_RETURN_FILE!\n",
             "encode_op_layoutreturn", args->return_type);
         return FALSE;
     }
@@ -3675,7 +3675,7 @@ bool_t nfs_decode_compound(
 
         /* validate each operation number against what we sent */
         if (res->resarray[i].op != expected_op) {
-            eprintf("reply with %s in operation %u, expected %s!\n",
+            eprintf("reply with '%s' in operation %u, expected '%s'!\n",
                 nfs_opnum_to_string(res->resarray[i].op), i+1,
                 nfs_opnum_to_string(expected_op));
             return FALSE;

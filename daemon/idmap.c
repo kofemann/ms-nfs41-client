@@ -251,14 +251,14 @@ static int config_defaults(
         if (option->type == TYPE_INT) {
             if (!parse_uint(option->def, (UINT*)dst)) {
                 status = ERROR_INVALID_PARAMETER;
-                eprintf("failed to parse default value of %s=\"%s\": "
+                eprintf("failed to parse default value of '%s'=\"%s\": "
                     "expected a number\n", option->key, option->def);
                 break;
             }
         } else {
             if (FAILED(StringCchCopyA(dst, option->max_len, option->def))) {
                 status = ERROR_BUFFER_OVERFLOW;
-                eprintf("failed to parse default value of %s=\"%s\": "
+                eprintf("failed to parse default value of '%s'=\"%s\": "
                     "buffer overflow > %u\n", option->key, option->def,
                     option->max_len);
                 break;
@@ -319,14 +319,14 @@ static int config_load(
         /* parse line into a key=value pair */
         status = config_parse_pair(buffer, &pair);
         if (status) {
-            eprintf("error on line %d: %s\n", line, buffer);
+            eprintf("error on line %d: '%s'\n", line, buffer);
             break;
         }
 
         /* find the config_option by key */
         status = config_find_option(&pair, &option);
         if (status) {
-            eprintf("unrecognized option '%s' on line %d: %s\n",
+            eprintf("unrecognized option '%s' on line %d: '%s'\n",
                 pair.key, line, buffer);
             status = ERROR_INVALID_PARAMETER;
             break;
@@ -335,7 +335,7 @@ static int config_load(
         if (option->type == TYPE_INT) {
             if (!parse_uint(pair.value, (UINT*)((char*)config + option->offset))) {
                 status = ERROR_INVALID_PARAMETER;
-                eprintf("expected a number on line %d: %s=\"%s\"\n",
+                eprintf("expected a number on line %d: '%s'=\"%s\"\n",
                     line, pair.key, pair.value);
                 break;
             }
@@ -343,7 +343,7 @@ static int config_load(
             if (FAILED(StringCchCopyNA((char*)config + option->offset,
                     option->max_len, pair.value, pair.value_len))) {
                 status = ERROR_BUFFER_OVERFLOW;
-                eprintf("overflow on line %d: %s=\"%s\"\n",
+                eprintf("overflow on line %d: '%s'=\"%s\"\n",
                     line, pair.key, pair.value);
                 break;
             }
@@ -610,7 +610,7 @@ static int idmap_query_attrs(
     status = ldap_search_stA(context->ldap, config->base,
         LDAP_SCOPE_SUBTREE, filter, NULL, 0, NULL, &res);
     if (status) {
-        eprintf("ldap search for '%s' failed with %d: %s\n",
+        eprintf("ldap search for '%s' failed with %d: '%s'\n",
             filter, status, ldap_err2stringA(status));
         status = LdapMapErrorToWin32(status);
         goto out;
@@ -619,7 +619,7 @@ static int idmap_query_attrs(
     entry = ldap_first_entry(context->ldap, res);
     if (entry == NULL) {
         status = LDAP_NO_RESULTS_RETURNED;
-        eprintf("ldap search for '%s' failed with %d: %s\n",
+        eprintf("ldap search for '%s' failed with %d: '%s'\n",
             filter, status, ldap_err2stringA(status));
         status = LdapMapErrorToWin32(status);
         goto out;
@@ -680,7 +680,7 @@ static int idmap_lookup_user(
     /* parse attributes */
     if (FAILED(StringCchCopyA(user->username, VAL_LEN,
             *values[ATTR_USER_NAME]))) {
-        eprintf("ldap attribute %s='%s' longer than %u characters\n",
+        eprintf("ldap attribute \"%s\"='%s' longer than %u characters\n",
             context->config.attributes[ATTR_USER_NAME],
             *values[ATTR_USER_NAME], VAL_LEN);
         status = ERROR_BUFFER_OVERFLOW;
@@ -688,20 +688,20 @@ static int idmap_lookup_user(
     }
     if (FAILED(StringCchCopyA(user->principal, VAL_LEN,
             values[ATTR_PRINCIPAL] ? *values[ATTR_PRINCIPAL] : ""))) {
-        eprintf("ldap attribute %s='%s' longer than %u characters\n",
+        eprintf("ldap attribute \"%s\"='%s' longer than %u characters\n",
             context->config.attributes[ATTR_PRINCIPAL],
             values[ATTR_PRINCIPAL] ? *values[ATTR_PRINCIPAL] : "", VAL_LEN);
         status = ERROR_BUFFER_OVERFLOW;
         goto out_free_values;
     }
     if (!parse_uint(*values[ATTR_UID], &user->uid)) {
-        eprintf("failed to parse ldap attribute %s='%s'\n",
+        eprintf("failed to parse ldap attribute \"%s\"='%s'\n",
             context->config.attributes[ATTR_UID], *values[ATTR_UID]);
         status = ERROR_INVALID_PARAMETER;
         goto out_free_values;
     }
     if (!parse_uint(*values[ATTR_GID], &user->gid)) {
-        eprintf("failed to parse ldap attribute %s='%s'\n",
+        eprintf("failed to parse ldap attribute \"%s\"='%s'\n",
             context->config.attributes[ATTR_GID], *values[ATTR_GID]);
         status = ERROR_INVALID_PARAMETER;
         goto out_free_values;
@@ -716,7 +716,9 @@ static int idmap_lookup_user(
         status = ERROR_NOT_FOUND;
 
         if (!cygwin_getent_passwd(lookup->value, NULL, &cy_uid, &cy_gid)) {
-            dprintf(CYGWINIDLVL, "# ATTR_USER_NAME: cygwin_getent_passwd: returned '%s', uid=%d, gid=%d\n", lookup->value, (int)cy_uid, (int)cy_gid);
+            DPRINTF(CYGWINIDLVL,
+                ("# ATTR_USER_NAME: cygwin_getent_passwd: returned '%s', uid=%u, gid=%u\n",
+                lookup->value, (unsigned int)cy_uid, (unsigned int)cy_gid));
             (void)snprintf(principal_name, sizeof(principal_name),
                 "%s@%s", (const char *)lookup->value, "GLOBAL.LOC");
             StringCchCopyA(user->username, VAL_LEN, lookup->value);
@@ -744,7 +746,9 @@ static int idmap_lookup_user(
             *s = '\0';
 
         if (!cygwin_getent_passwd(search_name, NULL, &cy_uid, &cy_gid)) {
-            dprintf(CYGWINIDLVL, "# ATTR_PRINCIPAL: cygwin_getent_passwd: returned '%s', uid=%d, gid=%d\n", lookup->value, (int)cy_uid, (int)cy_gid);
+            DPRINTF(CYGWINIDLVL,
+                ("# ATTR_PRINCIPAL: cygwin_getent_passwd: returned '%s', uid=%u, gid=%u\n",
+                lookup->value, (unsigned int)cy_uid, (unsigned int)cy_gid));
             (void)snprintf(principal_name, sizeof(principal_name),
                 "%s@%s", (const char *)lookup->value, "GLOBAL.LOC");
 
@@ -770,7 +774,9 @@ static int idmap_lookup_user(
         (void)snprintf(search_name, sizeof(search_name), "%lu", (unsigned long)search_uid);
 
         if (!cygwin_getent_passwd(search_name, res_username, &cy_uid, &cy_gid)) {
-            dprintf(CYGWINIDLVL, "# ATTR_UID: cygwin_getent_passwd: returned '%s', uid=%d, gid=%d\n", res_username, (int)cy_uid, (int)cy_gid);
+            DPRINTF(CYGWINIDLVL,
+                ("# ATTR_UID: cygwin_getent_passwd: returned '%s', uid=%u, gid=%u\n",
+                res_username, (unsigned int)cy_uid, (unsigned int)cy_gid));
             (void)snprintf(principal_name, sizeof(principal_name), "%s@%s", res_username, "GLOBAL.LOC");
 
             StringCchCopyA(user->username, VAL_LEN, res_username);
@@ -787,12 +793,12 @@ static int idmap_lookup_user(
 
     if (status == 0) {
         user->last_updated = time(NULL);
-        dprintf(CYGWINIDLVL, "## idmap_lookup_user: "
-            "found username='%s', principal='%s', uid=%lu, gid=%lu\n",
+        DPRINTF(CYGWINIDLVL, ("## idmap_lookup_user: "
+            "found username='%s', principal='%s', uid=%u, gid=%u\n",
             user->username,
             user->principal,
-            (unsigned long)user->uid,
-            (unsigned long)user->gid);
+            (unsigned int)user->uid,
+            (unsigned int)user->gid));
     }
 #endif /* !NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN */
     if (context->config.cache_ttl) {
@@ -834,14 +840,14 @@ static int idmap_lookup_group(
     /* parse attributes */
     if (FAILED(StringCchCopyA(group->name, VAL_LEN,
             *values[ATTR_GROUP_NAME]))) {
-        eprintf("ldap attribute %s='%s' longer than %u characters\n",
+        eprintf("ldap attribute \"%s\"='%s' longer than %u characters\n",
             context->config.attributes[ATTR_GROUP_NAME],
             *values[ATTR_GROUP_NAME], VAL_LEN);
         status = ERROR_BUFFER_OVERFLOW;
         goto out_free_values;
     }
     if (!parse_uint(*values[ATTR_GID], &group->gid)) {
-        eprintf("failed to parse ldap attribute %s='%s'\n",
+        eprintf("failed to parse ldap attribute \"%s\"='%s'\n",
             context->config.attributes[ATTR_GID], *values[ATTR_GID]);
         status = ERROR_INVALID_PARAMETER;
         goto out_free_values;
@@ -854,10 +860,10 @@ static int idmap_lookup_group(
         status = ERROR_NOT_FOUND;
 
         if (!cygwin_getent_group(lookup->value, NULL, &cy_gid)) {
-            dprintf(CYGWINIDLVL,
-                "# ATTR_GROUP_NAME: cygwin_getent_group: "
-                "returned '%s', gid=%d\n",
-                lookup->value, (int)cy_gid);
+            DPRINTF(CYGWINIDLVL,
+                ("# ATTR_GROUP_NAME: cygwin_getent_group: "
+                "returned '%s', gid=%u\n",
+                lookup->value, (unsigned int)cy_gid));
             StringCchCopyA(group->name, VAL_LEN, lookup->value);
             group->gid = cy_gid;
             status = 0;
@@ -875,9 +881,9 @@ static int idmap_lookup_group(
             "%lu", (unsigned long)search_gid);
 
         if (!cygwin_getent_group(search_name, res_groupname, &cy_gid)) {
-            dprintf(CYGWINIDLVL,
-                "# ATTR_GID: cygwin_getent_group: returned '%s', gid=%d\n",
-                res_groupname, (int)cy_gid);
+            DPRINTF(CYGWINIDLVL,
+                ("# ATTR_GID: cygwin_getent_group: returned '%s', gid=%u\n",
+                res_groupname, (unsigned int)cy_gid));
             StringCchCopyA(group->name, VAL_LEN, res_groupname);
             group->gid = cy_gid;
             status = 0;
@@ -890,10 +896,10 @@ static int idmap_lookup_group(
 
     if (status == 0) {
         group->last_updated = time(NULL);
-        dprintf(CYGWINIDLVL,
-            "## idmap_lookup_group: found name='%s', gid=%lu\n",
+        DPRINTF(CYGWINIDLVL,
+            ("## idmap_lookup_group: found name='%s', gid=%u\n",
             group->name,
-            (unsigned long)group->gid);
+            (unsigned int)group->gid));
     }
 #endif /* !NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN */
     if (context->config.cache_ttl) {
@@ -936,7 +942,7 @@ int nfs41_idmap_create(
     context->ldap = ldap_init(context->config.hostname, context->config.port);
     if (context->ldap == NULL) {
         status = LdapGetLastError();
-        eprintf("ldap_init(%s) failed with %d: %s\n",
+        eprintf("ldap_init(%s) failed with %d: '%s'\n",
             context->config.hostname, status, ldap_err2stringA(status));
         status = LdapMapErrorToWin32(status);
         goto out_err_free;
@@ -962,7 +968,7 @@ int nfs41_idmap_create(
         }
     }
 #else
-    dprintf(CYGWINIDLVL, "nfs41_idmap_create: Force context->config.timeout = 6000;\n");
+    DPRINTF(CYGWINIDLVL, ("nfs41_idmap_create: Force context->config.timeout = 6000;\n"));
     context->config.timeout = 6000;
 #endif
 
@@ -1012,22 +1018,22 @@ int nfs41_idmap_name_to_ids(
     if (context == NULL)
         return ERROR_FILE_NOT_FOUND;
 
-    dprintf(IDLVL, "--> nfs41_idmap_name_to_ids('%s')\n", username);
+    DPRINTF(IDLVL, ("--> nfs41_idmap_name_to_ids('%s')\n", username));
 
     lookup.value = username;
 
     /* look up the user entry */
     status = idmap_lookup_user(context, &lookup, &user);
     if (status) {
-        dprintf(IDLVL, "<-- nfs41_idmap_name_to_ids('%s') "
-            "failed with %d\n", username, status);
+        DPRINTF(IDLVL, ("<-- nfs41_idmap_name_to_ids('%s') "
+            "failed with %d\n", username, status));
         goto out;
     }
 
     *uid_out = user.uid;
     *gid_out = user.gid;
-    dprintf(IDLVL, "<-- nfs41_idmap_name_to_ids('%s') "
-        "returning uid=%u, gid=%u\n", username, user.uid, user.gid);
+    DPRINTF(IDLVL, ("<-- nfs41_idmap_name_to_ids('%s') "
+        "returning uid=%u, gid=%u\n", username, user.uid, user.gid));
 out:
     return status;
 }
@@ -1052,15 +1058,15 @@ int nfs41_idmap_uid_to_name(
     struct idmap_user user;
     int status;
 
-    dprintf(IDLVL, "--> nfs41_idmap_uid_to_name(%u)\n", uid);
+    DPRINTF(IDLVL, ("--> nfs41_idmap_uid_to_name(%u)\n", (unsigned int)uid));
 
     lookup.value = (const void*)uidp;
 
     /* look up the user entry */
     status = idmap_lookup_user(context, &lookup, &user);
     if (status) {
-        dprintf(IDLVL, "<-- nfs41_idmap_uid_to_name(%u) "
-            "failed with %d\n", uid, status);
+        DPRINTF(IDLVL, ("<-- nfs41_idmap_uid_to_name(%u) "
+            "failed with %d\n", (unsigned int)uid, status));
         goto out;
     }
 
@@ -1071,8 +1077,8 @@ int nfs41_idmap_uid_to_name(
         goto out;
     }
 
-    dprintf(IDLVL, "<-- nfs41_idmap_uid_to_name(%u) "
-        "returning '%s'\n", uid, name);
+    DPRINTF(IDLVL, ("<-- nfs41_idmap_uid_to_name(%u) "
+        "returning '%s'\n", uid, name));
 out:
     return status;
 }
@@ -1097,22 +1103,22 @@ int nfs41_idmap_principal_to_ids(
     struct idmap_user user;
     int status;
 
-    dprintf(IDLVL, "--> nfs41_idmap_principal_to_ids('%s')\n", principal);
+    DPRINTF(IDLVL, ("--> nfs41_idmap_principal_to_ids('%s')\n", principal));
 
     lookup.value = principal;
 
     /* look up the user entry */
     status = idmap_lookup_user(context, &lookup, &user);
     if (status) {
-        dprintf(IDLVL, "<-- nfs41_idmap_principal_to_ids('%s') "
-            "failed with %d\n", principal, status);
+        DPRINTF(IDLVL, ("<-- nfs41_idmap_principal_to_ids('%s') "
+            "failed with %d\n", principal, status));
         goto out;
     }
 
     *uid_out = user.uid;
     *gid_out = user.gid;
-    dprintf(IDLVL, "<-- nfs41_idmap_principal_to_ids('%s') "
-        "returning uid=%u, gid=%u\n", principal, user.uid, user.gid);
+    DPRINTF(IDLVL, ("<-- nfs41_idmap_principal_to_ids('%s') "
+        "returning uid=%u, gid=%u\n", principal, user.uid, user.gid));
 out:
     return status;
 }
@@ -1136,21 +1142,21 @@ int nfs41_idmap_group_to_gid(
     struct idmap_group group;
     int status;
 
-    dprintf(IDLVL, "--> nfs41_idmap_group_to_gid('%s')\n", name);
+    DPRINTF(IDLVL, ("--> nfs41_idmap_group_to_gid('%s')\n", name));
 
     lookup.value = name;
 
     /* look up the group entry */
     status = idmap_lookup_group(context, &lookup, &group);
     if (status) {
-        dprintf(IDLVL, "<-- nfs41_idmap_group_to_gid('%s') "
-            "failed with %d\n", name, status);
+        DPRINTF(IDLVL, ("<-- nfs41_idmap_group_to_gid('%s') "
+            "failed with %d\n", name, status));
         goto out;
     }
 
     *gid_out = group.gid;
-    dprintf(IDLVL, "<-- nfs41_idmap_group_to_gid('%s') "
-        "returning %u\n", name, group.gid);
+    DPRINTF(IDLVL, ("<-- nfs41_idmap_group_to_gid('%s') "
+        "returning %u\n", name, group.gid));
 out:
     return status;
 }
@@ -1175,15 +1181,15 @@ int nfs41_idmap_gid_to_group(
     struct idmap_group group;
     int status;
 
-    dprintf(IDLVL, "--> nfs41_idmap_gid_to_group(%u)\n", gid);
+    DPRINTF(IDLVL, ("--> nfs41_idmap_gid_to_group(%u)\n", gid));
 
     lookup.value = (const void*)gidp;
 
     /* look up the group entry */
     status = idmap_lookup_group(context, &lookup, &group);
     if (status) {
-        dprintf(IDLVL, "<-- nfs41_idmap_gid_to_group(%u) "
-            "failed with %d\n", gid, status);
+        DPRINTF(IDLVL, ("<-- nfs41_idmap_gid_to_group(%u) "
+            "failed with %d\n", gid, status));
         goto out;
     }
 
@@ -1194,8 +1200,8 @@ int nfs41_idmap_gid_to_group(
         goto out;
     }
 
-    dprintf(IDLVL, "<-- nfs41_idmap_gid_to_group(%u) "
-        "returning '%s'\n", gid, name);
+    DPRINTF(IDLVL, ("<-- nfs41_idmap_gid_to_group(%u) "
+        "returning '%s'\n", gid, name));
 out:
     return status;
 }

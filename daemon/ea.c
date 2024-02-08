@@ -81,7 +81,7 @@ static int set_ea_value(
         OPEN4_SHARE_DENY_BOTH, OPEN4_CREATE, UNCHECKED4,
         &createattrs, TRUE, &stateid.stateid, &delegation, NULL);
     if (status) {
-        eprintf("nfs41_open() failed with %s\n", nfs_error_string(status));
+        eprintf("nfs41_open() failed with '%s'\n", nfs_error_string(status));
         goto out;
     }
 
@@ -90,7 +90,7 @@ static int set_ea_value(
         ea->EaValueLength, 0, FILE_SYNC4, &bytes_written,
         &verf, NULL);
     if (status) {
-        eprintf("nfs41_write() failed with %s\n", nfs_error_string(status));
+        eprintf("nfs41_write() failed with '%s'\n", nfs_error_string(status));
         goto out_close;
     }
 
@@ -122,7 +122,7 @@ int nfs41_ea_set(
 
     status = nfs41_rpc_openattr(state->session, &state->file, TRUE, &attrdir.fh);
     if (status) {
-        eprintf("nfs41_rpc_openattr() failed with error %s\n",
+        eprintf("nfs41_rpc_openattr() failed with error '%s'\n",
             nfs_error_string(status));
         goto out;
     }
@@ -154,7 +154,7 @@ static int parse_setexattr(unsigned char *buffer, uint32_t length, nfs41_upcall 
     if (status) goto out;
     args->buf = buffer;
 
-    dprintf(1, "parsing NFS41_EA_SET: mode=%o\n", args->mode);
+    DPRINTF(1, ("parsing NFS41_EA_SET: mode=%o\n", args->mode));
 out:
     return status;
 }
@@ -185,8 +185,8 @@ static int handle_setexattr(void *daemon_context, nfs41_upcall *upcall)
 
         status = nfs41_setattr(state->session, &state->file, &stateid, &info);
         if (status) {
-            dprintf(1, "nfs41_setattr() failed with error %s.\n",
-                nfs_error_string(status));
+            DPRINTF(1, ("nfs41_setattr() failed with error '%s'.\n",
+                nfs_error_string(status)));
             goto out;
         }
 
@@ -226,8 +226,8 @@ static int parse_getexattr(unsigned char *buffer, uint32_t length, nfs41_upcall 
     if (status) goto out;
     args->ealist = args->ealist_len ? buffer : NULL;
 
-    dprintf(1, "parsing NFS41_EA_GET: buf_len=%d Index %d Restart %d "
-        "Single %d\n", args->buf_len,args->eaindex, args->restart, args->single);
+    DPRINTF(1, ("parsing NFS41_EA_GET: buf_len=%d Index %d Restart %d "
+        "Single %d\n", args->buf_len,args->eaindex, args->restart, args->single));
 out:
     return status;
 }
@@ -441,7 +441,7 @@ static int get_ea_value(
         OPEN4_SHARE_DENY_WRITE, OPEN4_NOCREATE, UNCHECKED4, NULL, TRUE,
         &stateid.stateid, &delegation, &info);
     if (status) {
-        eprintf("nfs41_open() failed with %s\n", nfs_error_string(status));
+        eprintf("nfs41_open() failed with '%s'\n", nfs_error_string(status));
         if (status == NFS4ERR_NOENT)
             goto out_empty;
         goto out;
@@ -470,7 +470,7 @@ static int get_ea_value(
     status = nfs41_read(session, &file, &stateid,
         0, length - diff, buffer, &bytes_read, &eof);
     if (status) {
-        eprintf("nfs41_read() failed with %s\n", nfs_error_string(status));
+        eprintf("nfs41_read() failed with '%s'\n", nfs_error_string(status));
         goto out_close;
     }
     if (!eof) {
@@ -539,13 +539,13 @@ static int handle_getexattr(void *daemon_context, nfs41_upcall *upcall)
 
     status = nfs41_rpc_openattr(state->session, &state->file, FALSE, &parent.fh);
     if (status == NFS4ERR_NOENT) { /* no named attribute directory */
-        dprintf(EALVL, "no named attribute directory for '%s'\n", args->path);
+        DPRINTF(EALVL, ("no named attribute directory for '%s'\n", args->path));
         if (query == NULL) {
             status = empty_ea_error(args->eaindex, args->restart);
             goto out;
         }
     } else if (status) {
-        eprintf("nfs41_rpc_openattr() failed with %s\n",
+        eprintf("nfs41_rpc_openattr() failed with '%s'\n",
             nfs_error_string(status));
         status = nfs_to_windows_error(status, ERROR_EAS_NOT_SUPPORTED);
         goto out;
@@ -559,8 +559,8 @@ static int handle_getexattr(void *daemon_context, nfs41_upcall *upcall)
             goto out;
 
         if (query == NULL) { /* the file has no EAs */
-            dprintf(EALVL, "empty named attribute directory for '%s'\n",
-                args->path);
+            DPRINTF(EALVL, ("empty named attribute directory for '%s'\n",
+                args->path));
             status = empty_ea_error(args->eaindex, args->restart);
             goto out;
         }

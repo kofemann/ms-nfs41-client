@@ -26,7 +26,7 @@
 
 
 #define CBXLVL 2 /* dprintf level for callback xdr logging */
-#define CBX_ERR(msg) dprintf((CBXLVL), __FUNCTION__ ": failed at " msg "\n")
+#define CBX_ERR(msg) DPRINTF((CBXLVL),( __FUNCTION__ ": failed at " msg "\n"))
 
 
 /* common types */

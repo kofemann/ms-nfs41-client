@@ -45,7 +45,7 @@ int nfs41_root_create(
     int status = NO_ERROR;
     nfs41_root *root;
 
-    dprintf(NSLVL, "--> nfs41_root_create(name=%s, port=%d)\n", name, port);
+    DPRINTF(NSLVL, ("--> nfs41_root_create(name='%s', port=%d)\n", name, port));
 
     root = calloc(1, sizeof(nfs41_root));
     if (root == NULL) {
@@ -70,7 +70,7 @@ int nfs41_root_create(
 
     *root_out = root;
 out:
-    dprintf(NSLVL, "<-- nfs41_root_create() returning %d\n", status);
+    DPRINTF(NSLVL, ("<-- nfs41_root_create() returning %d\n", status));
     return status;
 }
 
@@ -79,7 +79,7 @@ static void root_free(
 {
     struct list_entry *entry, *tmp;
 
-    dprintf(NSLVL, "--> nfs41_root_free()\n");
+    DPRINTF(NSLVL, ("--> nfs41_root_free()\n"));
 
     /* free clients */
     list_for_each_tmp(entry, tmp, &root->clients)
@@ -87,7 +87,7 @@ static void root_free(
     DeleteCriticalSection(&root->lock);
     free(root);
 
-    dprintf(NSLVL, "<-- nfs41_root_free()\n");
+    DPRINTF(NSLVL, ("<-- nfs41_root_free()\n"));
 }
 
 void nfs41_root_ref(
@@ -95,7 +95,7 @@ void nfs41_root_ref(
 {
     const LONG count = InterlockedIncrement(&root->ref_count);
 
-    dprintf(NSLVL, "nfs41_root_ref() count %d\n", count);
+    DPRINTF(NSLVL, ("nfs41_root_ref() count %d\n", count));
 }
 
 void nfs41_root_deref(
@@ -103,7 +103,7 @@ void nfs41_root_deref(
 {
     const LONG count = InterlockedDecrement(&root->ref_count);
 
-    dprintf(NSLVL, "nfs41_root_deref() count %d\n", count);
+    DPRINTF(NSLVL, ("nfs41_root_deref() count %d\n", count));
     if (count == 0)
         root_free(root);
 }
@@ -149,7 +149,7 @@ static int root_client_find_addrs(
     struct list_entry *entry;
     int status;
 
-    dprintf(NSLVL, "--> root_client_find_addrs()\n");
+    DPRINTF(NSLVL, ("--> root_client_find_addrs()\n"));
 
     info.addrs = addrs;
     info.roles = nfs41_exchange_id_flags(is_data) & EXCHGID4_FLAG_MASK_PNFS;
@@ -158,12 +158,12 @@ static int root_client_find_addrs(
     if (entry) {
         *client_out = client_entry(entry);
         status = NO_ERROR;
-        dprintf(NSLVL, "<-- root_client_find_addrs() returning 0x%p\n",
-            *client_out);
+        DPRINTF(NSLVL, ("<-- root_client_find_addrs() returning 0x%p\n",
+            *client_out));
     } else {
         status = ERROR_FILE_NOT_FOUND;
-        dprintf(NSLVL, "<-- root_client_find_addrs() failed with %d\n",
-            status);
+        DPRINTF(NSLVL, ("<-- root_client_find_addrs() failed with %d\n",
+            status));
     }
     return status;
 }
@@ -215,7 +215,7 @@ static int root_client_find(
     struct list_entry *entry;
     int status;
 
-    dprintf(NSLVL, "--> root_client_find()\n");
+    DPRINTF(NSLVL, ("--> root_client_find()\n"));
 
     info.exchangeid = exchangeid;
     info.roles = nfs41_exchange_id_flags(is_data) & EXCHGID4_FLAG_MASK_PNFS;
@@ -224,12 +224,12 @@ static int root_client_find(
     if (entry) {
         *client_out = client_entry(entry);
         status = NO_ERROR;
-        dprintf(NSLVL, "<-- root_client_find() returning 0x%p\n",
-            *client_out);
+        DPRINTF(NSLVL, ("<-- root_client_find() returning 0x%p\n",
+            *client_out));
     } else {
         status = ERROR_FILE_NOT_FOUND;
-        dprintf(NSLVL, "<-- root_client_find() failed with %d\n",
-            status);
+        DPRINTF(NSLVL, ("<-- root_client_find() failed with %d\n",
+            status));
     }
     return status;
 }
@@ -262,7 +262,7 @@ static int session_get_lease(
 
         status = nfs41_getattr(session, NULL, &attr_request, &info);
         if (status) {
-            eprintf("nfs41_getattr() failed with %s\n",
+            eprintf("nfs41_getattr() failed with '%s'\n",
                 nfs_error_string(status));
             status = nfs_to_windows_error(status, ERROR_BAD_NET_RESP);
             goto out;
@@ -312,7 +312,7 @@ static int root_client_create(
         /* send RECLAIM_COMPLETE, but don't fail on ERR_NOTSUPP */
         status = nfs41_reclaim_complete(session);
         if (status && status != NFS4ERR_NOTSUPP) {
-            eprintf("nfs41_reclaim_complete() failed with %s\n",
+            eprintf("nfs41_reclaim_complete() failed with '%s'\n",
                 nfs_error_string(status));
             status = ERROR_BAD_NETPATH;
             goto out_err;
@@ -345,7 +345,7 @@ int nfs41_root_mount_addrs(
     nfs41_client *client, *existing;
     int status;
 
-    dprintf(NSLVL, "--> nfs41_root_mount_addrs()\n");
+    DPRINTF(NSLVL, ("--> nfs41_root_mount_addrs()\n"));
 
     /* look for an existing client that matches the address and role */
     EnterCriticalSection(&root->lock);
@@ -367,7 +367,7 @@ int nfs41_root_mount_addrs(
     status = nfs41_exchange_id(rpc, &root->client_owner,
         nfs41_exchange_id_flags(is_data), &exchangeid);
     if (status) {
-        eprintf("nfs41_exchange_id() failed %s\n", nfs_error_string(status));
+        eprintf("nfs41_exchange_id() failed '%s'\n", nfs_error_string(status));
         status = ERROR_BAD_NET_RESP;
         goto out_free_rpc;
     }
@@ -397,14 +397,14 @@ int nfs41_root_mount_addrs(
     status = root_client_find(root, &exchangeid, is_data, &existing);
 
     if (status) {
-        dprintf(NSLVL, "caching new client 0x%p\n", client);
+        DPRINTF(NSLVL, ("caching new client 0x%p\n", client));
 
         /* the client is not a duplicate, so add it to the list */
         list_add_tail(&root->clients, &client->root_entry);
         status = NO_ERROR;
     } else {
-        dprintf(NSLVL, "created a duplicate client 0x%p! using "
-            "existing client 0x%p instead\n", client, existing);
+        DPRINTF(NSLVL, ("created a duplicate client 0x%p! using "
+            "existing client 0x%p instead\n", client, existing));
 
         /* a matching client has been created in parallel, so free
          * the one we created and use the existing client instead */
@@ -416,7 +416,7 @@ int nfs41_root_mount_addrs(
 out:
     if (status == NO_ERROR)
         *client_out = client;
-    dprintf(NSLVL, "<-- nfs41_root_mount_addrs() returning %d\n", status);
+    DPRINTF(NSLVL, ("<-- nfs41_root_mount_addrs() returning %d\n", status));
     return status;
 
 out_free_rpc:
@@ -444,7 +444,7 @@ static int referral_mount_location(
     int status = ERROR_BAD_NET_NAME;
     uint32_t i;
 
-    dprintf(NSLVL, "--> referral_mount_location()\n");
+    DPRINTF(NSLVL, ("--> referral_mount_location()\n"));
 
     /* create a client and session for the first available server */
     for (i = 0; i < loc->server_count; i++) {
@@ -457,7 +457,7 @@ static int referral_mount_location(
             break;
     }
 
-    dprintf(NSLVL, "<-- referral_mount_location() returning %d\n", status);
+    DPRINTF(NSLVL, ("<-- referral_mount_location() returning %d\n", status));
 
     return status;
 }

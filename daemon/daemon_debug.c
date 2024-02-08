@@ -31,7 +31,7 @@
 #include "rpc/rpc.h"
 #include "rpc/auth_sspi.h"
 
-static int g_debug_level = DEFAULT_DEBUG_LEVEL;
+extern int g_debug_level = DEFAULT_DEBUG_LEVEL;
 
 void set_debug_level(int level) { g_debug_level = level; }
 
@@ -71,11 +71,9 @@ void open_log_files()
 }
 #endif
 
-void dprintf(int level, LPCSTR format, ...)
-{
-    if (level > g_debug_level)
-        return;
 
+void dprintf_out(LPCSTR format, ...)
+{
     va_list args;
     va_start(args, format);
     (void)fprintf(dlog_file, "%04x: ", (int)GetCurrentThreadId());
@@ -250,7 +248,7 @@ void print_file_id_both_dir_info(int level, FILE_ID_BOTH_DIR_INFO *pboth_dir_inf
 
     if (level > g_debug_level)
         return;
-    (void)fprintf(dlog_file, "FILE_ID_BOTH_DIR_INFO %p %zd\n",
+    (void)fprintf(dlog_file, "FILE_ID_BOTH_DIR_INFO 0x%p %zd\n",
        pboth_dir_info, sizeof(unsigned char *));
     (void)fprintf(dlog_file, "\tNextEntryOffset=%ld %zd %zd\n",
         pboth_dir_info->NextEntryOffset,
@@ -294,14 +292,9 @@ void print_file_id_both_dir_info(int level, FILE_ID_BOTH_DIR_INFO *pboth_dir_inf
     (void)fprintf(dlog_file, "\tFileId=0x%llx %zd\n",
         (long long)pboth_dir_info->FileId.QuadPart,
         sizeof(pboth_dir_info->FileId));
-    (void)fprintf(dlog_file, "\tFileName='%S' %p\n",
+    (void)fprintf(dlog_file, "\tFileName='%S' 0x%p\n",
         pboth_dir_info->FileName,
         pboth_dir_info->FileName);
-}
-
-void print_opcode(int level, DWORD opcode) 
-{
-    dprintf(level, (LPCSTR)opcode2string(opcode));
 }
 
 const char* opcode2string(DWORD opcode)
@@ -606,110 +599,117 @@ const char* secflavorop2name(DWORD sec_flavor)
 
 void print_windows_access_mask(int on, ACCESS_MASK m)
 {
-    if (!on) return;
-    dprintf(1, "--> print_windows_access_mask: %x\n", m);
+    if (!on)
+        return;
+    if (!DPRINTF_LEVEL_ENABLED(1))
+        return;
+
+    dprintf_out("--> print_windows_access_mask: %x\n", m);
     if (m & GENERIC_READ)
-        dprintf(1, "\tGENERIC_READ\n");
+        dprintf_out("\tGENERIC_READ\n");
     if (m & GENERIC_WRITE)
-        dprintf(1, "\tGENERIC_WRITE\n");
+        dprintf_out("\tGENERIC_WRITE\n");
     if (m & GENERIC_EXECUTE)
-        dprintf(1, "\tGENERIC_EXECUTE\n");
+        dprintf_out("\tGENERIC_EXECUTE\n");
     if (m & GENERIC_ALL)
-        dprintf(1, "\tGENERIC_ALL\n");
+        dprintf_out("\tGENERIC_ALL\n");
     if (m & MAXIMUM_ALLOWED)
-        dprintf(1, "\tMAXIMUM_ALLOWED\n");
+        dprintf_out("\tMAXIMUM_ALLOWED\n");
     if (m & ACCESS_SYSTEM_SECURITY)
-        dprintf(1, "\tACCESS_SYSTEM_SECURITY\n");
+        dprintf_out("\tACCESS_SYSTEM_SECURITY\n");
     if ((m & SPECIFIC_RIGHTS_ALL) == SPECIFIC_RIGHTS_ALL)
-        dprintf(1, "\tSPECIFIC_RIGHTS_ALL\n");
+        dprintf_out("\tSPECIFIC_RIGHTS_ALL\n");
     if ((m & STANDARD_RIGHTS_ALL) == STANDARD_RIGHTS_ALL)
-        dprintf(1, "\tSTANDARD_RIGHTS_ALL\n");
+        dprintf_out("\tSTANDARD_RIGHTS_ALL\n");
     if ((m & STANDARD_RIGHTS_REQUIRED) == STANDARD_RIGHTS_REQUIRED)
-        dprintf(1, "\tSTANDARD_RIGHTS_REQUIRED\n");
+        dprintf_out("\tSTANDARD_RIGHTS_REQUIRED\n");
     if (m & SYNCHRONIZE)
-        dprintf(1, "\tSYNCHRONIZE\n");
+        dprintf_out("\tSYNCHRONIZE\n");
     if (m & WRITE_OWNER)
-        dprintf(1, "\tWRITE_OWNER\n");
+        dprintf_out("\tWRITE_OWNER\n");
     if (m & WRITE_DAC)
-        dprintf(1, "\tWRITE_DAC\n");
+        dprintf_out("\tWRITE_DAC\n");
     if (m & READ_CONTROL)
-        dprintf(1, "\tREAD_CONTROL\n");
+        dprintf_out("\tREAD_CONTROL\n");
     if (m & DELETE)
-        dprintf(1, "\tDELETE\n");
+        dprintf_out("\tDELETE\n");
     if (m & FILE_READ_DATA)
-        dprintf(1, "\tFILE_READ_DATA\n");
+        dprintf_out("\tFILE_READ_DATA\n");
     if (m & FILE_LIST_DIRECTORY)
-        dprintf(1, "\tFILE_LIST_DIRECTORY\n");
+        dprintf_out("\tFILE_LIST_DIRECTORY\n");
     if (m & FILE_WRITE_DATA)
-        dprintf(1, "\tFILE_WRITE_DATA\n");
+        dprintf_out("\tFILE_WRITE_DATA\n");
     if (m & FILE_ADD_FILE)
-        dprintf(1, "\tFILE_ADD_FILE\n");
+        dprintf_out("\tFILE_ADD_FILE\n");
     if (m & FILE_APPEND_DATA)
-        dprintf(1, "\tFILE_APPEND_DATA\n");
+        dprintf_out("\tFILE_APPEND_DATA\n");
     if (m & FILE_ADD_SUBDIRECTORY)
-        dprintf(1, "\tFILE_ADD_SUBDIRECTORY\n");
+        dprintf_out("\tFILE_ADD_SUBDIRECTORY\n");
     if (m & FILE_CREATE_PIPE_INSTANCE)
-        dprintf(1, "\tFILE_CREATE_PIPE_INSTANCE\n");
+        dprintf_out("\tFILE_CREATE_PIPE_INSTANCE\n");
     if (m & FILE_READ_EA)
-        dprintf(1, "\tFILE_READ_EA\n");
+        dprintf_out("\tFILE_READ_EA\n");
     if (m & FILE_WRITE_EA)
-        dprintf(1, "\tFILE_WRITE_EA\n");
+        dprintf_out("\tFILE_WRITE_EA\n");
     if (m & FILE_EXECUTE)
-        dprintf(1, "\tFILE_EXECUTE\n");
+        dprintf_out("\tFILE_EXECUTE\n");
     if (m & FILE_TRAVERSE)
-        dprintf(1, "\tFILE_TRAVERSE\n");
+        dprintf_out("\tFILE_TRAVERSE\n");
     if (m & FILE_DELETE_CHILD)
-        dprintf(1, "\tFILE_DELETE_CHILD\n");
+        dprintf_out("\tFILE_DELETE_CHILD\n");
     if (m & FILE_READ_ATTRIBUTES)
-        dprintf(1, "\tFILE_READ_ATTRIBUTES\n");
+        dprintf_out("\tFILE_READ_ATTRIBUTES\n");
     if (m & FILE_WRITE_ATTRIBUTES)
-        dprintf(1, "\tFILE_WRITE_ATTRIBUTES\n");
+        dprintf_out("\tFILE_WRITE_ATTRIBUTES\n");
     if ((m & FILE_ALL_ACCESS) == FILE_ALL_ACCESS)
-        dprintf(1, "\tFILE_ALL_ACCESS\n");
+        dprintf_out("\tFILE_ALL_ACCESS\n");
     if ((m & FILE_GENERIC_READ) == FILE_GENERIC_READ)
-        dprintf(1, "\tFILE_GENERIC_READ\n");
+        dprintf_out("\tFILE_GENERIC_READ\n");
     if ((m & FILE_GENERIC_WRITE) == FILE_GENERIC_WRITE)
-        dprintf(1, "\tFILE_GENERIC_WRITE\n");
+        dprintf_out("\tFILE_GENERIC_WRITE\n");
     if ((m & FILE_GENERIC_EXECUTE) == FILE_GENERIC_EXECUTE)
-        dprintf(1, "\tFILE_GENERIC_EXECUTE\n");
+        dprintf_out("\tFILE_GENERIC_EXECUTE\n");
 }
 
 void print_nfs_access_mask(int on, int m)
 {
     if (!on) return;
-    dprintf(1, "--> print_nfs_access_mask: %x\n", m);
+    if (!DPRINTF_LEVEL_ENABLED(1))
+        return;
+
+    dprintf_out("--> print_nfs_access_mask: %x\n", m);
     if (m & ACE4_READ_DATA)
-        dprintf(1, "\tACE4_READ_DATA\n");
+        dprintf_out("\tACE4_READ_DATA\n");
     if (m & ACE4_LIST_DIRECTORY)
-        dprintf(1, "\tACE4_LIST_DIRECTORY\n");
+        dprintf_out("\tACE4_LIST_DIRECTORY\n");
     if (m & ACE4_WRITE_DATA)
-        dprintf(1, "\tACE4_WRITE_DATA\n");
+        dprintf_out("\tACE4_WRITE_DATA\n");
     if (m & ACE4_ADD_FILE)
-        dprintf(1, "\tACE4_ADD_FILE\n");
+        dprintf_out("\tACE4_ADD_FILE\n");
     if (m & ACE4_APPEND_DATA)
-        dprintf(1, "\tACE4_APPEND_DATA\n");
+        dprintf_out("\tACE4_APPEND_DATA\n");
     if (m & ACE4_ADD_SUBDIRECTORY)
-        dprintf(1, "\tACE4_ADD_SUBDIRECTORY\n");
+        dprintf_out("\tACE4_ADD_SUBDIRECTORY\n");
     if (m & ACE4_READ_NAMED_ATTRS)
-        dprintf(1, "\tACE4_READ_NAMED_ATTRS\n");
+        dprintf_out("\tACE4_READ_NAMED_ATTRS\n");
     if (m & ACE4_WRITE_NAMED_ATTRS)
-        dprintf(1, "\tACE4_WRITE_NAMED_ATTRS\n");
+        dprintf_out("\tACE4_WRITE_NAMED_ATTRS\n");
     if (m & ACE4_EXECUTE)
-        dprintf(1, "\tACE4_EXECUTE\n");
+        dprintf_out("\tACE4_EXECUTE\n");
     if (m & ACE4_DELETE_CHILD)
-        dprintf(1, "\tACE4_DELETE_CHILD\n");
+        dprintf_out("\tACE4_DELETE_CHILD\n");
     if (m & ACE4_READ_ATTRIBUTES)
-        dprintf(1, "\tACE4_READ_ATTRIBUTES\n");
+        dprintf_out("\tACE4_READ_ATTRIBUTES\n");
     if (m & ACE4_WRITE_ATTRIBUTES)
-        dprintf(1, "\tACE4_WRITE_ATTRIBUTES\n");
+        dprintf_out("\tACE4_WRITE_ATTRIBUTES\n");
     if (m & ACE4_DELETE)
-        dprintf(1, "\tACE4_DELETE\n");
+        dprintf_out("\tACE4_DELETE\n");
     if (m & ACE4_READ_ACL)
-        dprintf(1, "\tACE4_READ_ACL\n");
+        dprintf_out("\tACE4_READ_ACL\n");
     if (m & ACE4_WRITE_ACL)
-        dprintf(1, "\tACE4_WRITE_ACL\n");
+        dprintf_out("\tACE4_WRITE_ACL\n");
     if (m & ACE4_WRITE_OWNER)
-        dprintf(1, "\tACE4_WRITE_OWNER\n");
+        dprintf_out("\tACE4_WRITE_OWNER\n");
     if (m & ACE4_SYNCHRONIZE)
-        dprintf(1, "\tACE4_SYNCHRONIZE\n");
+        dprintf_out("\tACE4_SYNCHRONIZE\n");
 }

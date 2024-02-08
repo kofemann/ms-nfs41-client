@@ -39,15 +39,15 @@ bool_t nfs41_recovery_start_or_wait(
     EnterCriticalSection(&client->recovery.lock);
 
     if (!client->recovery.in_recovery) {
-        dprintf(1, "Entering recovery mode for client %llu\n", client->clnt_id);
+        DPRINTF(1, ("Entering recovery mode for client %llu\n", client->clnt_id));
         client->recovery.in_recovery = TRUE;
     } else {
         status = FALSE;
-        dprintf(1, "Waiting for recovery of client %llu\n", client->clnt_id);
+        DPRINTF(1, ("Waiting for recovery of client %llu\n", client->clnt_id));
         while (client->recovery.in_recovery)
             SleepConditionVariableCS(&client->recovery.cond,
                 &client->recovery.lock, INFINITE);
-        dprintf(1, "Woke up after recovery of client %llu\n", client->clnt_id);
+        DPRINTF(1, ("Woke up after recovery of client %llu\n", client->clnt_id));
     }
 
     LeaveCriticalSection(&client->recovery.lock);
@@ -58,7 +58,7 @@ void nfs41_recovery_finish(
     IN nfs41_client *client)
 {
     EnterCriticalSection(&client->recovery.lock);
-    dprintf(1, "Finished recovery for client %llu\n", client->clnt_id);
+    DPRINTF(1, ("Finished recovery for client %llu\n", client->clnt_id));
     client->recovery.in_recovery = FALSE;
     WakeAllConditionVariable(&client->recovery.cond);
     LeaveCriticalSection(&client->recovery.lock);
@@ -847,7 +847,7 @@ bool_t nfs41_recover_stateid(
         return recover_stateid_delegation(argop, stateid);
 
     default:
-        eprintf("%s can't recover stateid type %u\n",
+        eprintf("'%s' can't recover stateid type %u\n",
             nfs_opnum_to_string(argop->op), stateid->type);
         break;
     }

@@ -78,7 +78,7 @@ static int map_current_user_to_ids(nfs41_idmapper *idmapper, uid_t *uid, gid_t *
         eprintf("map_current_user_to_ids: GetUserName() failed with %d\n", status);
         goto out;
     }
-    dprintf(1, "map_current_user_to_ids: mapping user %s\n", username);
+    DPRINTF(1, ("map_current_user_to_ids: mapping user '%s'\n", username));
 
     if (nfs41_idmap_name_to_ids(idmapper, username, uid, gid)) {
         /* instead of failing for auth_sys, fall back to 'nobody' uid/gid */
@@ -142,17 +142,17 @@ static unsigned int WINAPI thread_main(void *args)
         status = upcall_handle(&nfs41_dg, &upcall);
 
 write_downcall:
-        dprintf(1, "writing downcall: xid=%lld opcode=%s status=%d "
+        DPRINTF(1, ("writing downcall: xid=%lld opcode='%s' status=%d "
             "get_last_error=%d\n", upcall.xid, opcode2string(upcall.opcode),
-            upcall.status, upcall.last_error);
+            upcall.status, upcall.last_error));
 
         upcall_marshall(&upcall, inbuf, (uint32_t)inbuf_len, (uint32_t*)&outbuf_len);
 
-        dprintf(2, "making a downcall: outbuf_len %ld\n\n", outbuf_len);
+        DPRINTF(2, ("making a downcall: outbuf_len %ld\n\n", outbuf_len));
         status = DeviceIoControl(pipe, IOCTL_NFS41_WRITE,
             inbuf, inbuf_len, NULL, 0, (LPDWORD)&outbuf_len, NULL);
         if (!status) {
-            eprintf("IOCTL_NFS41_WRITE failed with %d xid=%lld opcode=%s\n", 
+            eprintf("IOCTL_NFS41_WRITE failed with %d xid=%lld opcode='%s'\n",
                 GetLastError(), upcall.xid, opcode2string(upcall.opcode));
             upcall_cancel(&upcall);
         }
@@ -331,24 +331,26 @@ static void print_getaddrinfo(struct addrinfo *ptr)
     char ipstringbuffer[46];
     DWORD ipbufferlength = 46;
 
-    dprintf(1, "getaddrinfo response flags: 0x%x\n", ptr->ai_flags);
+    DPRINTF(1, ("getaddrinfo response flags: 0x%x\n", ptr->ai_flags));
     switch (ptr->ai_family) {
-    case AF_UNSPEC: dprintf(1, "Family: Unspecified\n"); break;
+    case AF_UNSPEC: DPRINTF(1, ("Family: Unspecified\n")); break;
     case AF_INET:
-        dprintf(1, "Family: AF_INET IPv4 address %s\n",
-            inet_ntoa(((struct sockaddr_in *)ptr->ai_addr)->sin_addr));
+        DPRINTF(1, ("Family: AF_INET IPv4 address '%s'\n",
+            inet_ntoa(((struct sockaddr_in *)ptr->ai_addr)->sin_addr)));
         break;
     case AF_INET6:
         if (WSAAddressToStringA((LPSOCKADDR)ptr->ai_addr, (DWORD)ptr->ai_addrlen,
-                NULL, ipstringbuffer, &ipbufferlength))
-            dprintf(1, "WSAAddressToString failed with %u\n", WSAGetLastError());
-        else
-            dprintf(1, "Family: AF_INET6 IPv6 address %s\n", ipstringbuffer);
+                NULL, ipstringbuffer, &ipbufferlength)) {
+            DPRINTF(1, ("WSAAddressToString failed with %u\n", WSAGetLastError()));
+        }
+        else {
+            DPRINTF(1, ("Family: AF_INET6 IPv6 address '%s'\n", ipstringbuffer));
+        }
         break;
-    case AF_NETBIOS: dprintf(1, "AF_NETBIOS (NetBIOS)\n"); break;
-    default: dprintf(1, "Other %ld\n", ptr->ai_family); break;
+    case AF_NETBIOS: DPRINTF(1, ("AF_NETBIOS (NetBIOS)\n")); break;
+    default: DPRINTF(1, ("Other %ld\n", ptr->ai_family)); break;
     }
-    dprintf(1, "Canonical name: %s\n", ptr->ai_canonname);
+    DPRINTF(1, ("Canonical name: '%s'\n", ptr->ai_canonname));
 }
 
 static int getdomainname()
@@ -395,14 +397,15 @@ static int getdomainname()
             case AF_INET6:
             case AF_INET:
                 status = getnameinfo((struct sockaddr *)ptr->ai_addr,
-                            (socklen_t)ptr->ai_addrlen, hostname, NI_MAXHOST, 
+                            (socklen_t)ptr->ai_addrlen, hostname, NI_MAXHOST,
                             servInfo, NI_MAXSERV, NI_NAMEREQD);
-                if (status)
-                    dprintf(1, "getnameinfo failed %d\n", WSAGetLastError());
+                if (status) {
+                    DPRINTF(1, ("getnameinfo failed %d\n", WSAGetLastError()));
+                }
                 else {
                     size_t i, len = strlen(hostname);
                     char *p = hostname;
-                    dprintf(1, "getdomainname: hostname %s %d\n", hostname, len);
+                    DPRINTF(1, ("getdomainname: hostname '%s' %d\n", hostname, len));
                     for (i = 0; i < len; i++)
                         if (p[i] == '.')
                             break;
@@ -410,8 +413,8 @@ static int getdomainname()
                         break;
                     flag = TRUE;
                     memcpy(nfs41_dg.localdomain_name, &hostname[i+1], len-i);
-                    dprintf(1, "getdomainname: domainname %s %d\n",
-                            nfs41_dg.localdomain_name, strlen(nfs41_dg.localdomain_name));
+                    DPRINTF(1, ("getdomainname: domainname '%s' %d\n",
+                            nfs41_dg.localdomain_name, strlen(nfs41_dg.localdomain_name)));
                     goto out_loop;
                 }
                 break;
@@ -428,7 +431,7 @@ out_loop:
         }
         freeaddrinfo(result);
     } else {
-        dprintf(1, "domain name is %s\n", net_info->DomainName);
+        DPRINTF(1, ("domain name is '%s'\n", net_info->DomainName));
         memcpy(nfs41_dg.localdomain_name, net_info->DomainName,
                 strlen(net_info->DomainName));
         nfs41_dg.localdomain_name[strlen(net_info->DomainName)] = '\0';
@@ -450,7 +453,7 @@ void nfsd_crt_debug_init(void)
     int crtsetdbgflags = nfs41_dg.crtdbgmem_flags;
 
     if (crtsetdbgflags == NFS41D_GLOBALS_CRTDBGMEM_FLAGS_NOT_SET) {
-        dprintf(1, "crtsetdbgflags not set, using defaults\n");
+        DPRINTF(1, ("crtsetdbgflags not set, using defaults\n"));
         crtsetdbgflags = 0;
 
         crtsetdbgflags |= _CRTDBG_ALLOC_MEM_DF;
@@ -472,12 +475,12 @@ void nfsd_crt_debug_init(void)
          */
     }
 
-    dprintf(0, "memory debug flags _CRTDBG_(=0x%x)"
+    DPRINTF(0, ("memory debug flags _CRTDBG_(=0x%x)"
         "{ ALLOC_MEM_DF=%d, LEAK_CHECK_DF=%d, DELAY_FREE_MEM_DF=%d }\n",
         crtsetdbgflags,
         ((crtsetdbgflags & _CRTDBG_ALLOC_MEM_DF)?1:0),
         ((crtsetdbgflags & _CRTDBG_LEAK_CHECK_DF)?1:0),
-        ((crtsetdbgflags & _CRTDBG_DELAY_FREE_MEM_DF)?1:0));
+        ((crtsetdbgflags & _CRTDBG_DELAY_FREE_MEM_DF)?1:0)));
 
     (void)_CrtSetDbgFlag(crtsetdbgflags);
 
@@ -497,7 +500,7 @@ void nfsd_crt_debug_init(void)
     (void)_CrtSetReportFile(_CRT_ASSERT,  _CRTDBG_FILE_STDERR);
 
     if (crtsetdbgflags & _CRTDBG_LEAK_CHECK_DF) {
-        dprintf(1, "debug mode. dumping memory leaks to stderr on exit.\n");
+        DPRINTF(1, ("debug mode. dumping memory leaks to stderr on exit.\n"));
     }
 #endif /* _DEBUG */
 }
@@ -537,7 +540,7 @@ VOID ServiceStart(DWORD argc, LPTSTR *argv)
      * inversion
      */
     if(SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS)) {
-        dprintf(1, "Running as HIGH_PRIORITY_CLASS\n");
+        DPRINTF(1, ("Running as HIGH_PRIORITY_CLASS\n"));
     }
     else {
         eprintf("Failed to enter HIGH_PRIORITY_CLASS mode\n");
@@ -559,7 +562,7 @@ VOID ServiceStart(DWORD argc, LPTSTR *argv)
     }
 
     NFS41D_VERSION = GetTickCount();
-    dprintf(1, "NFS41 Daemon starting: version %d\n", NFS41D_VERSION);
+    DPRINTF(1, ("NFS41 Daemon starting: version %d\n", NFS41D_VERSION));
 
     pipe = CreateFileA(NFS41_USER_DEVICE_NAME_A, GENERIC_READ | GENERIC_WRITE,
         FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING,
@@ -570,7 +573,7 @@ VOID ServiceStart(DWORD argc, LPTSTR *argv)
         goto out_idmap;
     }
 
-    dprintf(1, "starting nfs41 mini redirector\n");
+    DPRINTF(1, ("starting nfs41 mini redirector\n"));
     status = DeviceIoControl(pipe, IOCTL_NFS41_START,
         &NFS41D_VERSION, sizeof(DWORD), NULL, 0, (LPDWORD)&len, NULL);
     if (!status) {
@@ -585,8 +588,8 @@ VOID ServiceStart(DWORD argc, LPTSTR *argv)
       goto out_pipe;
 #endif
 
-    dprintf(1, "Starting %d worker threads...\n",
-        (int)nfs41_dg.num_worker_threads);
+    DPRINTF(1, ("Starting %d worker threads...\n",
+        (int)nfs41_dg.num_worker_threads));
     for (i = 0; i < nfs41_dg.num_worker_threads; i++) {
         tids[i].handle = (HANDLE)_beginthreadex(NULL, 0, thread_main,
                 &nfs41_dg, 0, &tids[i].tid);
@@ -603,11 +606,11 @@ VOID ServiceStart(DWORD argc, LPTSTR *argv)
     WaitForSingleObject(stop_event, INFINITE);
 #else
     //This can be changed to waiting on an array of handles and using waitformultipleobjects
-    dprintf(1, "Parent waiting for children threads\n");
+    DPRINTF(1, ("Parent waiting for children threads\n"));
     for (i = 0; i < nfs41_dg.num_worker_threads; i++)
         WaitForSingleObject(tids[i].handle, INFINITE );
 #endif
-    dprintf(1, "Parent woke up!!!!\n");
+    DPRINTF(1, ("Parent woke up!!!!\n"));
 
 out_pipe:
     CloseHandle(pipe);

@@ -48,8 +48,8 @@ static int parse_rw(unsigned char *buffer, uint32_t length, nfs41_upcall *upcall
     status = safe_read(&buffer, &length, &args->buffer, sizeof(args->buffer));
     if (status) goto out;
 
-    dprintf(1, "parsing %s len=%lu offset=%llu buf=%p\n", 
-            opcode2string(upcall->opcode), args->len, args->offset, args->buffer);
+    DPRINTF(1, ("parsing '%s' len=%lu offset=%llu buf=0x%p\n",
+            opcode2string(upcall->opcode), args->len, args->offset, args->buffer));
 out:
     return status;
 }
@@ -68,9 +68,10 @@ static int read_from_mds(
     ULONG to_rcv = args->len, reloffset = 0, len = 0;
     const uint32_t maxreadsize = max_read_size(session, &file->fh);
 
-    if (to_rcv > maxreadsize)
-        dprintf(1, "handle_nfs41_read: reading %d in chunks of %d\n",
-            to_rcv, maxreadsize);
+    if (to_rcv > maxreadsize) {
+        DPRINTF(1, ("handle_nfs41_read: reading %d in chunks of %d\n",
+            to_rcv, maxreadsize));
+    }
 
     while(to_rcv > 0) {
         uint32_t bytes_read = 0, chunk = min(to_rcv, maxreadsize);
@@ -194,9 +195,10 @@ retry_write:
     stable = to_send <= maxwritesize ? FILE_SYNC4 : UNSTABLE4;
     committed = FILE_SYNC4;
 
-    if (to_send > maxwritesize)
-        dprintf(1, "handle_nfs41_write: writing %d in chunks of %d\n",
-            to_send, maxwritesize);
+    if (to_send > maxwritesize) {
+        DPRINTF(1, ("handle_nfs41_write: writing %d in chunks of %d\n",
+            to_send, maxwritesize));
+    }
 
     while(to_send > 0) {
         uint32_t bytes_written = 0, chunk = min(to_send, maxwritesize);
@@ -219,7 +221,7 @@ retry_write:
         }
     }
     if (committed != FILE_SYNC4) {
-        dprintf(1, "sending COMMIT for offset=%d and len=%d\n", args->offset, len);
+        DPRINTF(1, ("sending COMMIT for offset=%d and len=%d\n", args->offset, len));
         status = nfs41_commit(session, file, args->offset, len, 1, &verf, &info);
         if (status)
             goto out;

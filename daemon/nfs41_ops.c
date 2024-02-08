@@ -162,19 +162,20 @@ int nfs41_create_session(nfs41_client *clnt, nfs41_session *session, bool_t try_
                     "server refused\n");
         session->flags = reply.csr_flags;
     }
-    else
-        dprintf(1, "session flags %x\n", reply.csr_flags);
+    else {
+        DPRINTF(1, ("session flags %x\n", reply.csr_flags));
+    }
 
-    dprintf(1, "session fore_chan_attrs:\n"
+    DPRINTF(1, ("session fore_chan_attrs:\n"
         "  %-32s%d\n  %-32s%d\n  %-32s%d\n  %-32s%d\n  %-32s%d\n  %-32s%d\n",
         "headerpadsize", session->fore_chan_attrs.ca_headerpadsize,
         "maxrequestsize", session->fore_chan_attrs.ca_maxrequestsize,
         "maxresponsesize", session->fore_chan_attrs.ca_maxresponsesize,
         "maxresponsesize_cached", session->fore_chan_attrs.ca_maxresponsesize_cached,
         "maxoperations", session->fore_chan_attrs.ca_maxoperations,
-        "maxrequests", session->fore_chan_attrs.ca_maxrequests);
-    dprintf(1, "client supports %d max rpc slots, but server has %d\n", 
-        session->table.max_slots, session->fore_chan_attrs.ca_maxrequests);
+        "maxrequests", session->fore_chan_attrs.ca_maxrequests));
+    DPRINTF(1, ("client supports %d max rpc slots, but server has %d\n",
+        session->table.max_slots, session->fore_chan_attrs.ca_maxrequests));
     /* use the server's ca_maxrequests unless it's bigger than our array */
     session->table.max_slots = min(session->table.max_slots,
         session->fore_chan_attrs.ca_maxrequests);
@@ -234,7 +235,7 @@ int nfs41_destroy_session(
 
     status = compound.res.status;
     if (status)
-        eprintf("%s failed with status %d.\n",
+        eprintf("'%s' failed with status %d.\n",
             nfs_opnum_to_string(OP_DESTROY_SESSION), status);
 out:
     return status;
@@ -766,7 +767,7 @@ int nfs41_write(
      * send us into an infinite loop. return NFS4ERR_IO */
     if (!write_res.resok4.count) {
         status = NFS4ERR_IO;
-        eprintf("WRITE succeeded with count=0; returning %s\n",
+        eprintf("WRITE succeeded with count=0; returning '%s'\n",
             nfs_error_string(status));
     }
 
@@ -827,7 +828,7 @@ int nfs41_read(
      * send us into an infinite loop. return NFS4ERR_IO */
     if (!read_res.resok4.data_len && !read_res.resok4.eof) {
         status = NFS4ERR_IO;
-        eprintf("READ succeeded with len=0 and eof=0; returning %s\n",
+        eprintf("READ succeeded with len=0 and eof=0; returning '%s'\n",
             nfs_error_string(status));
     }
 out:

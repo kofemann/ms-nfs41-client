@@ -180,9 +180,9 @@ static int parse_lock(unsigned char *buffer, uint32_t length, nfs41_upcall *upca
     status = safe_read(&buffer, &length, &args->blocking, sizeof(BOOLEAN));
     if (status) goto out;
 
-    dprintf(1, "parsing NFS41_LOCK: offset=0x%llx length=0x%llx exclusive=%u "
-            "blocking=%u\n", args->offset, args->length, args->exclusive, 
-            args->blocking);
+    DPRINTF(1, ("parsing NFS41_LOCK: offset=0x%llx length=0x%llx exclusive=%u "
+            "blocking=%u\n", args->offset, args->length, args->exclusive,
+            args->blocking));
 out:
     return status;
 }
@@ -222,8 +222,8 @@ static int handle_lock(void *deamon_context, nfs41_upcall *upcall)
 
     /* if we hold a write delegation, handle the lock locally */
     if (open_lock_delegate(state, lock)) {
-        dprintf(LKLVL, "delegated lock { %llu, %llu }\n",
-            lock->offset, lock->length);
+        DPRINTF(LKLVL, ("delegated lock { %llu, %llu }\n",
+            lock->offset, lock->length));
         args->acquired = TRUE; /* for cancel_lock() */
         goto out;
     }
@@ -243,8 +243,8 @@ static int handle_lock(void *deamon_context, nfs41_upcall *upcall)
     status = nfs41_lock(state->session, &state->file, &state->owner,
         type, lock->offset, lock->length, FALSE, TRUE, &stateid);
     if (status) {
-        dprintf(LKLVL, "nfs41_lock failed with %s\n",
-            nfs_error_string(status));
+        DPRINTF(LKLVL, ("nfs41_lock failed with '%s'\n",
+            nfs_error_string(status)));
         status = nfs_to_windows_error(status, ERROR_BAD_NET_RESP);
         LeaveCriticalSection(&state->locks.lock);
         goto out_free;
@@ -271,7 +271,7 @@ static void cancel_lock(IN nfs41_upcall *upcall)
     nfs41_open_state *state = upcall->state_ref;
     int status = NO_ERROR;
 
-    dprintf(1, "--> cancel_lock()\n");
+    DPRINTF(1, ("--> cancel_lock()\n"));
 
     /* can't do 'if (upcall->status)' here, because a handle_lock() success
      * could be overwritten by upcall_marshall() or allocation failure */
@@ -297,7 +297,7 @@ static void cancel_lock(IN nfs41_upcall *upcall)
 
     status = nfs_to_windows_error(status, ERROR_BAD_NET_RESP);
 out:
-    dprintf(1, "<-- cancel_lock() returning %d\n", status);
+    DPRINTF(1, ("<-- cancel_lock() returning %d\n", status));
 }
 
 
@@ -313,7 +313,7 @@ static int parse_unlock(unsigned char *buffer, uint32_t length, nfs41_upcall *up
     args->buf = buffer;
     args->buf_len = length;
 
-    dprintf(1, "parsing NFS41_UNLOCK: count=%u\n", args->count);
+    DPRINTF(1, ("parsing NFS41_UNLOCK: count=%u\n", args->count));
 out:
     return status;
 }

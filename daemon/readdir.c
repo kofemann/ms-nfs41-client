@@ -277,10 +277,10 @@ static int parse_readdir(unsigned char *buffer, uint32_t length, nfs41_upcall *u
     args->root = upcall->root_ref;
     args->state = upcall->state_ref;
 
-    dprintf(1, "parsing NFS41_DIR_QUERY: info_class=%d buf_len=%d "
-        "filter='%s'\n\tInitial\\Restart\\Single %d\\%d\\%d buf=%p\n",
+    DPRINTF(1, ("parsing NFS41_DIR_QUERY: info_class=%d buf_len=%d "
+        "filter='%s'\n\tInitial\\Restart\\Single %d\\%d\\%d buf=0x%p\n",
         args->query_class, args->buf_len, args->filter,
-        args->initial, args->restart, args->single, args->kbuf);
+        args->initial, args->restart, args->single, args->kbuf));
 out:
     return status;
 }
@@ -563,8 +563,8 @@ static int readdir_add_dots(
     case 0:
         if (entry_buf_len < entry_len + 2) {
             status = ERROR_BUFFER_OVERFLOW;
-            dprintf(0, "readdir_add_dots: not enough room for '.' entry. received %d need %d\n",
-                    entry_buf_len, entry_len + 2);
+            DPRINTF(0, ("readdir_add_dots: not enough room for '.' entry. received %d need %d\n",
+                    entry_buf_len, entry_len + 2));
             args->query_reply_len = entry_len + 2;
             goto out;
         }
@@ -575,7 +575,7 @@ static int readdir_add_dots(
         status = nfs41_cached_getattr(state->session,
             &state->file, &entry->attr_info);
         if (status) {
-            dprintf(0, "readdir_add_dots: failed to add '.' entry.\n");
+            DPRINTF(0, ("readdir_add_dots: failed to add '.' entry.\n"));
             goto out;
         }
         entry->cookie = COOKIE_DOT;
@@ -593,8 +593,8 @@ static int readdir_add_dots(
     case COOKIE_DOT:
         if (entry_buf_len < entry_len + 3) {
             status = ERROR_BUFFER_OVERFLOW;
-            dprintf(0, "readdir_add_dots: not enough room for '..' entry. received %d need %d\n",
-                    entry_buf_len, entry_len);
+            DPRINTF(0, ("readdir_add_dots: not enough room for '..' entry. received %d need %d\n",
+                    entry_buf_len, entry_len));
             args->query_reply_len = entry_len + 2;
             goto out;
         }
@@ -609,7 +609,7 @@ static int readdir_add_dots(
             &state->parent, &entry->attr_info);
         if (status) {
             status = ERROR_FILE_NOT_FOUND;
-            dprintf(0, "readdir_add_dots: failed to add '..' entry.\n");
+            DPRINTF(0, ("readdir_add_dots: failed to add '..' entry.\n"));
             goto out;
         }
         entry->cookie = COOKIE_DOTDOT;
@@ -643,23 +643,26 @@ static int handle_readdir(void *deamon_context, nfs41_upcall *upcall)
     const uint32_t max_buf_len = max(args->buf_len,
         sizeof(nfs41_readdir_entry) + NFS41_MAX_COMPONENT_LEN);
 
-    dprintf(1, "-> handle_nfs41_dirquery(%s,%d,%d,%d)\n",
-        args->filter, args->initial, args->restart, args->single);
+    DPRINTF(1, ("-> handle_nfs41_dirquery('%s',%d,%d,%d)\n",
+        args->filter, args->initial, args->restart, args->single));
 
     args->query_reply_len = 0;
 
     if (args->initial || args->restart) {
         ZeroMemory(&state->cookie, sizeof(nfs41_readdir_cookie));
-        if (!state->cookie.cookie)
-            dprintf(1, "initializing the 1st readdir cookie\n");
-        else if (args->restart)
-            dprintf(1, "restarting; clearing previous cookie %llu\n",
-                state->cookie.cookie);
-        else if (args->initial)
-            dprintf(1, "*** initial; clearing previous cookie %llu!\n",
-                state->cookie.cookie);
+        if (!state->cookie.cookie) {
+            DPRINTF(1, ("initializing the 1st readdir cookie\n"));
+        }
+        else if (args->restart) {
+            DPRINTF(1, ("restarting; clearing previous cookie %llu\n",
+                state->cookie.cookie));
+        }
+        else if (args->initial) {
+            DPRINTF(1, ("*** initial; clearing previous cookie %llu!\n",
+                state->cookie.cookie));
+        }
     } else if (!state->cookie.cookie) {
-        dprintf(1, "handle_nfs41_readdir: EOF\n");
+        DPRINTF(1, ("handle_nfs41_readdir: EOF\n"));
         status = ERROR_NO_MORE_FILES;
         goto out;
     }
@@ -694,19 +697,19 @@ fetch_entries:
         }
 
         if (dots_len && args->single) {
-            dprintf(2, "skipping nfs41_readdir because the single query "
-                "will use . or ..\n");
+            DPRINTF(2, ("skipping nfs41_readdir because the single query "
+                "will use . or ..\n"));
             entry_buf_len = 0;
             eof = 0;
         } else {
-            dprintf(2, "calling nfs41_readdir with cookie %llu\n",
-                state->cookie.cookie);
+            DPRINTF(2, ("calling nfs41_readdir with cookie %llu\n",
+                state->cookie.cookie));
             status = nfs41_readdir(state->session, &state->file,
                 &attr_request, &state->cookie, entry_buf + dots_len,
                 &entry_buf_len, &eof);
             if (status) {
-                dprintf(1, "nfs41_readdir failed with %s\n",
-                    nfs_error_string(status));
+                DPRINTF(1, ("nfs41_readdir failed with '%s'\n",
+                    nfs_error_string(status)));
                 status = nfs_to_windows_error(status, ERROR_BAD_NET_RESP);
                 goto out_free_cookie;
             }
@@ -726,7 +729,7 @@ fetch_entries:
         status = lookup_entry(upcall->root_ref,
              state->session, &state->file, entry);
         if (status) {
-            dprintf(1, "single_lookup failed with %d\n", status);
+            DPRINTF(1, ("single_lookup failed with %d\n", status));
             goto out_free_cookie;
         }
         entry_buf_len = entry->name_len +
@@ -748,13 +751,13 @@ fetch_entries:
             entry = (nfs41_readdir_entry*)entry_pos;
             offset = (PULONG)dst_pos; /* ULONG NextEntryOffset */
 
-            dprintf(2, "filter %s looking at %s with cookie %d\n",
-                args->filter, entry->name, entry->cookie);
+            DPRINTF(2, ("filter '%s' looking at '%s' with cookie %d\n",
+                args->filter, entry->name, entry->cookie));
             if (readdir_filter((const char*)args->filter, entry->name)) {
                 if (readdir_copy_entry(args, entry, &dst_pos, &dst_len)) {
                     eof = 0;
-                    dprintf(2, "not enough space to copy entry %s (cookie %d)\n",
-                        entry->name, entry->cookie);
+                    DPRINTF(2, ("not enough space to copy entry '%s' (cookie %d)\n",
+                        entry->name, entry->cookie));
                     break;
                 }
                 last_offset = offset;
@@ -777,40 +780,41 @@ fetch_entries:
         if (last_offset) {
             *last_offset = 0;
         } else if (!eof) {
-            dprintf(1, "no entries matched; fetch more\n");
+            DPRINTF(1, ("no entries matched; fetch more\n"));
             goto fetch_entries;
         }
     }
 
     if (eof) {
-        dprintf(1, "we don't need to save a cookie\n");
+        DPRINTF(1, ("we don't need to save a cookie\n"));
         goto out_free_cookie;
-    } else
-        dprintf(1, "saving cookie %llu\n", state->cookie.cookie);
+    } else {
+        DPRINTF(1, ("saving cookie %llu\n", state->cookie.cookie));
+    }
 
 out_free_entry:
     free(entry_buf);
 out:
-    dprintf(1, "<- handle_nfs41_dirquery(%s,%d,%d,%d) returning ",
-        args->filter, args->initial, args->restart, args->single);
+    DPRINTF(1, ("<- handle_nfs41_dirquery('%s',%d,%d,%d) returning ",
+        args->filter, args->initial, args->restart, args->single));
     if (status) {
         switch (status) {
         case ERROR_FILE_NOT_FOUND:
-            dprintf(1, "ERROR_FILE_NOT_FOUND.\n");
+            DPRINTF(1, ("ERROR_FILE_NOT_FOUND.\n"));
             break;
         case ERROR_NO_MORE_FILES:
-            dprintf(1, "ERROR_NO_MORE_FILES.\n");
+            DPRINTF(1, ("ERROR_NO_MORE_FILES.\n"));
             break;
         case ERROR_BUFFER_OVERFLOW:
             upcall->last_error = status;
             status = ERROR_SUCCESS;
             break;
         default:
-            dprintf(1, "error code %d.\n", status);
+            DPRINTF(1, ("error code %d.\n", status));
             break;
         }
     } else {
-        dprintf(1, "success!\n");
+        DPRINTF(1, ("success!\n"));
     }
     return status;
 out_free_cookie:

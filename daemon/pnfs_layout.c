@@ -159,7 +159,7 @@ static enum pnfs_status layout_state_find_or_create(
     struct list_entry *entry;
     enum pnfs_status status;
 
-    dprintf(FLLVL, "--> layout_state_find_or_create()\n");
+    DPRINTF(FLLVL, ("--> layout_state_find_or_create()\n"));
 
     EnterCriticalSection(&layouts->lock);
 
@@ -174,17 +174,17 @@ static enum pnfs_status layout_state_find_or_create(
             list_add_head(&layouts->head, &layout->entry);
             *layout_out = layout;
 
-            dprintf(FLLVL, "<-- layout_state_find_or_create() "
-                "returning new layout %p\n", layout);
+            DPRINTF(FLLVL, ("<-- layout_state_find_or_create() "
+                "returning new layout 0x%p\n", layout));
         } else {
-            dprintf(FLLVL, "<-- layout_state_find_or_create() "
-                "returning %s\n", pnfs_error_string(status));
+            DPRINTF(FLLVL, ("<-- layout_state_find_or_create() "
+                "returning '%s'\n", pnfs_error_string(status)));
         }
     } else {
         *layout_out = state_entry(entry);
 
-        dprintf(FLLVL, "<-- layout_state_find_or_create() "
-            "returning existing layout %p\n", *layout_out);
+        DPRINTF(FLLVL, ("<-- layout_state_find_or_create() "
+            "returning existing layout 0x%p\n", *layout_out));
     }
 
     LeaveCriticalSection(&layouts->lock);
@@ -198,7 +198,7 @@ static enum pnfs_status layout_state_find_and_delete(
     struct list_entry *entry;
     enum pnfs_status status;
 
-    dprintf(FLLVL, "--> layout_state_find_and_delete()\n");
+    DPRINTF(FLLVL, ("--> layout_state_find_and_delete()\n"));
 
     EnterCriticalSection(&layouts->lock);
 
@@ -210,8 +210,8 @@ static enum pnfs_status layout_state_find_and_delete(
 
     LeaveCriticalSection(&layouts->lock);
 
-    dprintf(FLLVL, "<-- layout_state_find_and_delete() "
-        "returning %s\n", pnfs_error_string(status));
+    DPRINTF(FLLVL, ("<-- layout_state_find_and_delete() "
+        "returning '%s'\n", pnfs_error_string(status)));
     return status;
 }
 
@@ -273,9 +273,9 @@ static bool_t layout_merge_segments(
         to->util != from->util)
         return FALSE;
 
-    dprintf(FLLVL, "merging layout range {%llu, %llu} with {%llu, %llu}\n",
+    DPRINTF(FLLVL, ("merging layout range {%llu, %llu} with {%llu, %llu}\n",
         to->layout.offset, to->layout.length,
-        from->layout.offset, from->layout.length);
+        from->layout.offset, from->layout.length));
 
     /* calculate the union of the two ranges */
     to->layout.offset = min(to->layout.offset, from->layout.offset);
@@ -361,7 +361,7 @@ static enum pnfs_status layout_update_range(
         /* attempt to merge the range with existing segments */
         status = layout_state_merge(state, layout);
         if (status) {
-            dprintf(FLLVL, "saving new layout:\n");
+            DPRINTF(FLLVL, ("saving new layout:\n"));
             dprint_layout(FLLVL, layout);
 
             layout_ordered_insert(state, &layout->layout);
@@ -429,8 +429,8 @@ static enum pnfs_status file_layout_fetch(
     enum pnfs_status pnfsstat = PNFS_SUCCESS;
     enum nfsstat4 nfsstat;
 
-    dprintf(FLLVL, "--> file_layout_fetch(%s, seqid=%u)\n",
-        pnfs_iomode_string(iomode), state->stateid.seqid);
+    DPRINTF(FLLVL, ("--> file_layout_fetch('%s', seqid=%u)\n",
+        pnfs_iomode_string(iomode), state->stateid.seqid));
 
     list_init(&layoutget_res.layouts);
 
@@ -441,8 +441,8 @@ static enum pnfs_status file_layout_fetch(
     AcquireSRWLockExclusive(&state->lock);
 
     if (nfsstat) {
-        dprintf(FLLVL, "pnfs_rpc_layoutget() failed with %s\n",
-            nfs_error_string(nfsstat));
+        DPRINTF(FLLVL, ("pnfs_rpc_layoutget() failed with '%s'\n",
+            nfs_error_string(nfsstat)));
         pnfsstat = PNFSERR_NOT_SUPPORTED;
     }
 
@@ -466,8 +466,8 @@ static enum pnfs_status file_layout_fetch(
         break;
     }
 
-    dprintf(FLLVL, "<-- file_layout_fetch() returning %s\n",
-        pnfs_error_string(pnfsstat));
+    DPRINTF(FLLVL, ("<-- file_layout_fetch() returning '%s'\n",
+        pnfs_error_string(pnfsstat)));
     return pnfsstat;
 }
 
@@ -644,8 +644,8 @@ static enum pnfs_status open_state_layout_cached(
         status = PNFS_SUCCESS;
         *layout_out = state->layout;
 
-        dprintf(FLLVL, "pnfs_open_state_layout() found "
-            "cached layout %p\n", *layout_out);
+        DPRINTF(FLLVL, ("pnfs_open_state_layout() found "
+            "cached layout 0x%p\n", *layout_out));
     }
     return status;
 }
@@ -659,7 +659,7 @@ enum pnfs_status pnfs_layout_state_open(
     pnfs_layout_state *layout;
     enum pnfs_status status;
 
-    dprintf(FLLVL, "--> pnfs_layout_state_open()\n");
+    DPRINTF(FLLVL, ("--> pnfs_layout_state_open()\n"));
 
     status = client_supports_pnfs(session->client);
     if (status)
@@ -684,8 +684,8 @@ enum pnfs_status pnfs_layout_state_open(
                 LONG open_count = InterlockedIncrement(&layout->open_count);
                 state->layout = layout;
 
-                dprintf(FLLVL, "pnfs_layout_state_open() caching layout %p "
-                    "(%u opens)\n", state->layout, open_count);
+                DPRINTF(FLLVL, ("pnfs_layout_state_open() caching layout 0x%p "
+                    "(%u opens)\n", state->layout, open_count));
             }
         }
 
@@ -697,8 +697,8 @@ enum pnfs_status pnfs_layout_state_open(
 
     *layout_out = layout;
 out:
-    dprintf(FLLVL, "<-- pnfs_layout_state_open() returning %s\n",
-        pnfs_error_string(status));
+    DPRINTF(FLLVL, ("<-- pnfs_layout_state_open() returning '%s'\n",
+        pnfs_error_string(status)));
     return status;
 }
 
@@ -770,7 +770,7 @@ static enum pnfs_status file_layout_return(
     enum pnfs_status status;
     enum nfsstat4 nfsstat;
 
-    dprintf(FLLVL, "--> file_layout_return()\n");
+    DPRINTF(FLLVL, ("--> file_layout_return()\n"));
 
     /* under shared lock, determine whether we need to return the layout */
     AcquireSRWLockShared(&state->lock);
@@ -801,7 +801,7 @@ static enum pnfs_status file_layout_return(
         AcquireSRWLockExclusive(&state->lock);
 
         if (nfsstat) {
-            eprintf("pnfs_rpc_layoutreturn() failed with %s\n", 
+            eprintf("pnfs_rpc_layoutreturn() failed with '%s'\n",
                 nfs_error_string(nfsstat));
             status = PNFSERR_NO_LAYOUT;
         } else {
@@ -822,8 +822,8 @@ static enum pnfs_status file_layout_return(
     ReleaseSRWLockExclusive(&state->lock);
 
 out:
-    dprintf(FLLVL, "<-- file_layout_return() returning %s\n",
-        pnfs_error_string(status));
+    DPRINTF(FLLVL, ("<-- file_layout_return() returning '%s'\n",
+        pnfs_error_string(status)));
     return status;
 }
 
@@ -852,7 +852,7 @@ void pnfs_layout_state_close(
         if (return_layout) {
             status = file_layout_return(session, &state->file, layout);
             if (status)
-                eprintf("file_layout_return() failed with %s\n",
+                eprintf("file_layout_return() failed with '%s'\n",
                     pnfs_error_string(status));
         }
     }
@@ -1010,8 +1010,8 @@ static enum pnfs_status layout_recall_merge(
         if (to->iomode != from->iomode || to->type != from->type)
             continue;
 
-        dprintf(FLLVL, "merging recalled range {%llu, %llu} with {%llu, %llu}\n",
-            to->offset, to->length, from->offset, from->length);
+        DPRINTF(FLLVL, ("merging recalled range {%llu, %llu} with {%llu, %llu}\n",
+            to->offset, to->length, from->offset, from->length));
 
         /* calculate the union of the two ranges */
         to->offset = min(to->offset, from->offset);
@@ -1089,7 +1089,7 @@ static enum pnfs_status file_layout_recall_file(
     struct list_entry *entry;
     enum pnfs_status status;
 
-    dprintf(FLLVL, "--> file_layout_recall_file()\n");
+    DPRINTF(FLLVL, ("--> file_layout_recall_file()\n"));
 
     EnterCriticalSection(&client->layouts->lock);
 
@@ -1099,8 +1099,8 @@ static enum pnfs_status file_layout_recall_file(
 
     LeaveCriticalSection(&client->layouts->lock);
 
-    dprintf(FLLVL, "<-- file_layout_recall_file() returning %s\n",
-        pnfs_error_string(status));
+    DPRINTF(FLLVL, ("<-- file_layout_recall_file() returning '%s'\n",
+        pnfs_error_string(status)));
     return status;
 }
 
@@ -1120,8 +1120,8 @@ static enum pnfs_status file_layout_recall_fsid(
     nfs41_fh *fh;
     enum pnfs_status status = PNFSERR_NO_LAYOUT;
 
-    dprintf(FLLVL, "--> file_layout_recall_fsid(%llu, %llu)\n",
-        recall->recall.args.fsid.major, recall->recall.args.fsid.minor);
+    DPRINTF(FLLVL, ("--> file_layout_recall_fsid(%llu, %llu)\n",
+        recall->recall.args.fsid.major, recall->recall.args.fsid.minor));
 
     EnterCriticalSection(&client->layouts->lock);
 
@@ -1139,8 +1139,8 @@ static enum pnfs_status file_layout_recall_fsid(
     /* bulk recalls require invalidation of cached device info */
     pnfs_file_device_list_invalidate(client->devices);
 
-    dprintf(FLLVL, "<-- file_layout_recall_fsid() returning %s\n",
-        pnfs_error_string(status));
+    DPRINTF(FLLVL, ("<-- file_layout_recall_fsid() returning '%s'\n",
+        pnfs_error_string(status)));
     return status;
 }
 
@@ -1151,7 +1151,7 @@ static enum pnfs_status file_layout_recall_all(
     struct list_entry *entry;
     enum pnfs_status status = PNFSERR_NO_LAYOUT;
 
-    dprintf(FLLVL, "--> file_layout_recall_all()\n");
+    DPRINTF(FLLVL, ("--> file_layout_recall_all()\n"));
 
     EnterCriticalSection(&client->layouts->lock);
 
@@ -1163,8 +1163,8 @@ static enum pnfs_status file_layout_recall_all(
     /* bulk recalls require invalidation of cached device info */
     pnfs_file_device_list_invalidate(client->devices);
 
-    dprintf(FLLVL, "<-- file_layout_recall_all() returning %s\n",
-        pnfs_error_string(status));
+    DPRINTF(FLLVL, ("<-- file_layout_recall_all() returning '%s'\n",
+        pnfs_error_string(status)));
     return status;
 }
 
@@ -1174,13 +1174,13 @@ enum pnfs_status pnfs_file_layout_recall(
 {
     enum pnfs_status status = PNFS_SUCCESS;
 
-    dprintf(FLLVL, "--> pnfs_file_layout_recall(%u, %s, %u)\n",
+    DPRINTF(FLLVL, ("--> pnfs_file_layout_recall(%u, '%s', %u)\n",
         recall->recall.type, pnfs_iomode_string(recall->iomode),
-        recall->changed);
+        recall->changed));
 
     if (recall->type != PNFS_LAYOUTTYPE_FILE) {
-        dprintf(FLLVL, "invalid layout type %u (%s)!\n",
-            recall->type, pnfs_layout_type_string(recall->type));
+        DPRINTF(FLLVL, ("invalid layout type %u ('%s')!\n",
+            recall->type, pnfs_layout_type_string(recall->type)));
         status = PNFSERR_NOT_SUPPORTED;
         goto out;
     }
@@ -1197,13 +1197,13 @@ enum pnfs_status pnfs_file_layout_recall(
         break;
 
     default:
-        dprintf(FLLVL, "invalid return type %u!\n", recall->recall);
+        DPRINTF(FLLVL, ("invalid return type %u!\n", recall->recall));
         status = PNFSERR_NOT_SUPPORTED;
         goto out;
     }
 out:
-    dprintf(FLLVL, "<-- pnfs_file_layout_recall() returning %s\n",
-        pnfs_error_string(status));
+    DPRINTF(FLLVL, ("<-- pnfs_file_layout_recall() returning '%s'\n",
+        pnfs_error_string(status)));
     return status;
 }
 
@@ -1260,8 +1260,8 @@ void pnfs_layout_io_start(
     /* take a reference on the layout, so that it won't be recalled
      * until all io is finished */
     state->io_count++;
-    dprintf(FLLVL, "pnfs_layout_io_start(): count -> %u\n",
-        state->io_count);
+    DPRINTF(FLLVL, ("pnfs_layout_io_start(): count -> %u\n",
+        state->io_count));
 }
 
 void pnfs_layout_io_finished(
@@ -1271,8 +1271,8 @@ void pnfs_layout_io_finished(
 
     /* return the reference to signify that an io request is finished */
     state->io_count--;
-    dprintf(FLLVL, "pnfs_layout_io_finished() count -> %u\n",
-        state->io_count);
+    DPRINTF(FLLVL, ("pnfs_layout_io_finished() count -> %u\n",
+        state->io_count));
 
     if (state->io_count > 0) /* more io pending */
         goto out_unlock;

@@ -48,7 +48,7 @@ int nfs41_cached_getattr(
 
         status = nfs41_getattr(session, file, &attr_request, info);
         if (status) {
-            eprintf("nfs41_getattr() failed with %s\n",
+            eprintf("nfs41_getattr() failed with '%s'\n",
                 nfs_error_string(status));
             status = nfs_to_windows_error(status, ERROR_BAD_NET_RESP);
         }
@@ -78,9 +78,9 @@ static int parse_getattr(unsigned char *buffer, uint32_t length, nfs41_upcall *u
     status = safe_read(&buffer, &length, &args->buf_len, sizeof(args->buf_len));
     if (status) goto out;
 
-    dprintf(1, "parsing NFS41_FILE_QUERY: info_class=%d buf_len=%d file=%.*s\n",
-        args->query_class, args->buf_len, upcall->state_ref->path.len, 
-        upcall->state_ref->path.path);
+    DPRINTF(1, ("parsing NFS41_FILE_QUERY: info_class=%d buf_len=%d file='%.*s'\n",
+        args->query_class, args->buf_len, upcall->state_ref->path.len,
+        upcall->state_ref->path.path));
 out:
     return status;
 }
@@ -94,14 +94,14 @@ static int handle_getattr(void *daemon_context, nfs41_upcall *upcall)
 
 #ifdef NFS41_DRIVER_STABILITY_HACKS
     if (!DEBUG_IS_VALID_NON_NULL_PTR(state->session)) {
-        eprintf("handle_getattr: Invalid session ptr=%p\n",
+        eprintf("handle_getattr: Invalid session ptr=0x%p\n",
             (void *)state->session);
         status = ERROR_INVALID_PARAMETER;
         goto out;
     }
 
     if (!DEBUG_IS_VALID_NON_NULL_PTR(state->file.fh.superblock)) {
-        eprintf("handle_getattr: Invalid state->file.fh.superblock ptr=%p\n",
+        eprintf("handle_getattr: Invalid state->file.fh.superblock ptr=0x%p\n",
             (void *)state->file.fh.superblock);
         /* gisburn: fixme: maybe this should be |ERROR_INTERNAL_ERROR| ? */
         status = ERROR_INVALID_PARAMETER;
@@ -200,7 +200,7 @@ static int marshall_getattr(unsigned char *buffer, uint32_t *length, nfs41_upcal
     }
     status = safe_write(&buffer, length, &args->ctime, sizeof(args->ctime));
     if (status) goto out;
-    dprintf(1, "NFS41_FILE_QUERY: downcall changattr=%llu\n", args->ctime);
+    DPRINTF(1, ("NFS41_FILE_QUERY: downcall changattr=%llu\n", args->ctime));
 out:
     return status;
 }

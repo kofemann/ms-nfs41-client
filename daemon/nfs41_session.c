@@ -69,8 +69,8 @@ static void resize_slot_table(
         target_highest_slotid = NFS41_MAX_NUM_SLOTS - 1;
 
     if (table->max_slots != target_highest_slotid + 1) {
-        dprintf(2, "updated max_slots %u to %u\n",
-            table->max_slots, target_highest_slotid + 1);
+        DPRINTF(2, ("updated max_slots %u to %u\n",
+            table->max_slots, target_highest_slotid + 1));
         table->max_slots = target_highest_slotid + 1;
 
         if (slot_table_avail(table))
@@ -119,8 +119,8 @@ void nfs41_session_free_slot(
         while (table->highest_used && !table->used_slots[table->highest_used])
             table->highest_used--;
     }
-    dprintf(3, "freeing slot#=%d used=%d highest=%d\n",
-        slotid, table->num_used, table->highest_used);
+    DPRINTF(3, ("freeing slot#=%d used=%d highest=%d\n",
+        slotid, table->num_used, table->highest_used));
 
     /* wake any threads waiting on a slot */
     if (slot_table_avail(table))
@@ -163,8 +163,8 @@ void nfs41_session_get_slot(
     LeaveCriticalSection(&table->lock);
     ReleaseSRWLockShared(&session->client->session_lock);
 
-    dprintf(2, "session %p: using slot#=%d with seq#=%d highest=%d\n",
-        session, *slot, *seqid, *highest);
+    DPRINTF(2, ("session 0x%p: using slot#=%d with seq#=%d highest=%d\n",
+        session, *slot, *seqid, *highest));
 }
 
 int nfs41_session_recall_slot(
@@ -231,8 +231,8 @@ static unsigned int WINAPI renew_session_thread(void *args)
     int status = NO_ERROR;
     int event_status;
 
-    dprintf(1, "renew_session_thread(session=%p): started thread %p\n",
-        session, session->renew.thread_handle);
+    DPRINTF(1, ("renew_session_thread(session=0x%p): started thread 0x%p\n",
+        session, session->renew.thread_handle));
 
     /* sleep for 2/3 of lease_time */
     const uint32_t sleep_time = (2UL * session->lease_time*1000UL)/3UL;
@@ -241,9 +241,9 @@ static unsigned int WINAPI renew_session_thread(void *args)
     EASSERT(sleep_time < (60*60*1000UL));
 
     while(1) {
-        dprintf(1, "renew_session_thread(session=%p): "
+        DPRINTF(1, ("renew_session_thread(session=0x%p): "
             "Going to sleep for %dmsecs\n",
-            session, (int)sleep_time);
+            session, (int)sleep_time));
 
         /*
          * sleep for |sleep_time| milliseconds, or until someone
@@ -252,12 +252,12 @@ static unsigned int WINAPI renew_session_thread(void *args)
         event_status = WaitForSingleObjectEx(session->renew.cancel_event,
             sleep_time, FALSE);
         if (event_status == WAIT_TIMEOUT) {
-            dprintf(1, "renew_session_thread(session=%p): "
+            DPRINTF(1, ("renew_session_thread(session=0x%p): "
                 "renewing session...\n",
-                session);
+                session));
             status = nfs41_send_sequence(session);
             if (status) {
-                eprintf("renew_session_thread(session=%p): "
+                eprintf("renew_session_thread(session=0x%p): "
                     "nfs41_send_sequence() failed status=%d\n",
                     session, status);
             }
@@ -267,14 +267,14 @@ static unsigned int WINAPI renew_session_thread(void *args)
             break;
         }
         else {
-            eprintf("renew_session_thread(session=%p): "
+            eprintf("renew_session_thread(session=0x%p): "
                 "unexpected event_status=0x%x\n",
                 session, (int)event_status);
         }
     }
 
-    dprintf(1, "renew_session_thread(session=%p): thread %p exiting\n",
-        session, session->renew.thread_handle);
+    DPRINTF(1, ("renew_session_thread(session=0x%p): thread 0x%p exiting\n",
+        session, session->renew.thread_handle));
     return 0;
 }
 
@@ -372,18 +372,18 @@ void cancel_renew_thread(
 {
     DWORD status;
 
-    dprintf(1, "cancel_renew_thread(session=%p): "
-        "signal thread to exit\n", session);
+    DPRINTF(1, ("cancel_renew_thread(session=0x%p): "
+        "signal thread to exit\n", session));
     (void)SetEvent(session->renew.cancel_event);
 
-    dprintf(1, "cancel_renew_thread(session=%p): "
-        "waiting for thread to exit\n", session);
+    DPRINTF(1, ("cancel_renew_thread(session=0x%p): "
+        "waiting for thread to exit\n", session));
     status = WaitForSingleObjectEx(session->renew.thread_handle,
         INFINITE, FALSE);
     EASSERT(status == WAIT_OBJECT_0);
 
-    dprintf(1, "cancel_renew_thread(session=%p): thread done\n",
-        session);
+    DPRINTF(1, ("cancel_renew_thread(session=0x%p): thread done\n",
+        session));
     (void)CloseHandle(session->renew.cancel_event);
 }
 
@@ -432,7 +432,7 @@ void nfs41_session_free(
 {
     AcquireSRWLockExclusive(&session->client->session_lock);
     if (valid_handle(session->renew.thread_handle)) {
-        dprintf(1, "nfs41_session_free: terminating session renewal thread\n");
+        DPRINTF(1, ("nfs41_session_free: terminating session renewal thread\n"));
         cancel_renew_thread(session);
     }
 

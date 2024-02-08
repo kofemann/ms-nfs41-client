@@ -421,7 +421,7 @@ static enum pnfs_status pattern_fork(
     /* wait on all threads to finish */
     status = pattern_join(threads, pattern->count);
     if (status) {
-        eprintf("pattern_join() failed with %s\n", pnfs_error_string(status));
+        eprintf("pattern_join() failed with '%s'\n", pnfs_error_string(status));
         goto out;
     }
 
@@ -472,7 +472,7 @@ static enum pnfs_status map_ds_error(
      * attempting to READ or WRITE */
     case NFS4ERR_STALE:
     case NFS4ERR_PNFS_NO_LAYOUT:
-        dprintf(IOLVL, "data server fencing detected!\n");
+        DPRINTF(IOLVL, ("data server fencing detected!\n"));
 
         pnfs_layout_recall_fenced(state, &layout->layout);
 
@@ -497,12 +497,12 @@ static uint32_t WINAPI file_layout_read_thread(void *args)
     enum nfsstat4 nfsstat;
     bool_t eof;
 
-    dprintf(IOLVL, "--> file_layout_read_thread(%u)\n", thread->id);
+    DPRINTF(IOLVL, ("--> file_layout_read_thread(%u)\n", thread->id));
 
     /* get the data server for this thread */
     status = thread_data_server(thread, &server);
     if (status) {
-        eprintf("thread_data_server() failed with %s\n",
+        eprintf("thread_data_server() failed with '%s'\n",
             pnfs_error_string(status));
         goto out;
     }
@@ -510,7 +510,7 @@ static uint32_t WINAPI file_layout_read_thread(void *args)
     status = pnfs_data_server_client(pattern->root,
         server, pattern->default_lease, &client);
     if (status) {
-        eprintf("pnfs_data_server_client() failed with %s\n",
+        eprintf("pnfs_data_server_client() failed with '%s'\n",
             pnfs_error_string(status));
         goto out;
     }
@@ -527,7 +527,7 @@ static uint32_t WINAPI file_layout_read_thread(void *args)
         nfsstat = nfs41_read(client->session, thread->file, &stateid,
             io.offset, (uint32_t)io.length, io.buffer, &bytes_read, &eof);
         if (nfsstat) {
-            eprintf("nfs41_read() failed with %s\n",
+            eprintf("nfs41_read() failed with '%s'\n",
                 nfs_error_string(nfsstat));
             status = map_ds_error(nfsstat, pattern->state, thread->layout);
             break;
@@ -537,15 +537,15 @@ static uint32_t WINAPI file_layout_read_thread(void *args)
         thread->offset += bytes_read;
 
         if (eof) {
-            dprintf(IOLVL, "read thread %u reached eof: offset %llu\n",
-                thread->id, thread->offset);
+            DPRINTF(IOLVL, ("read thread %u reached eof: offset %llu\n",
+                thread->id, thread->offset));
             status = total_read ? PNFS_SUCCESS : PNFS_READ_EOF;
             break;
         }
     }
 out:
-    dprintf(IOLVL, "<-- file_layout_read_thread(%u) returning %s\n",
-        thread->id, pnfs_error_string(status));
+    DPRINTF(IOLVL, ("<-- file_layout_read_thread(%u) returning '%s'\n",
+        thread->id, pnfs_error_string(status)));
     return status;
 }
 
@@ -563,12 +563,12 @@ static uint32_t WINAPI file_layout_write_thread(void *args)
     enum pnfs_status status;
     enum nfsstat4 nfsstat;
 
-    dprintf(IOLVL, "--> file_layout_write_thread(%u)\n", thread->id);
+    DPRINTF(IOLVL, ("--> file_layout_write_thread(%u)\n", thread->id));
 
     /* get the data server for this thread */
     status = thread_data_server(thread, &server);
     if (status) {
-        eprintf("thread_data_server() failed with %s\n",
+        eprintf("thread_data_server() failed with '%s'\n",
             pnfs_error_string(status));
         goto out;
     }
@@ -576,7 +576,7 @@ static uint32_t WINAPI file_layout_write_thread(void *args)
     status = pnfs_data_server_client(pattern->root,
         server, pattern->default_lease, &client);
     if (status) {
-        eprintf("pnfs_data_server_client() failed with %s\n",
+        eprintf("pnfs_data_server_client() failed with '%s'\n",
             pnfs_error_string(status));
         goto out;
     }
@@ -601,7 +601,7 @@ retry_write:
             io.buffer, (uint32_t)io.length, io.offset, UNSTABLE4,
             &bytes_written, &thread->verf, NULL);
         if (nfsstat) {
-            eprintf("nfs41_write() failed with %s\n",
+            eprintf("nfs41_write() failed with '%s'\n",
                 nfs_error_string(nfsstat));
             status = map_ds_error(nfsstat, pattern->state, thread->layout);
             break;
@@ -632,8 +632,8 @@ retry_write:
     if (should_commit_to_mds(thread->layout))
         goto out;
 
-    dprintf(1, "sending COMMIT to data server for offset=%lld len=%lld\n",
-        commit_min, commit_max - commit_min);
+    DPRINTF(1, ("sending COMMIT to data server for offset=%lld len=%lld\n",
+        commit_min, commit_max - commit_min));
     nfsstat = nfs41_commit(client->session, thread->file,
         commit_min, (uint32_t)(commit_max - commit_min), 0, &thread->verf, NULL);
 
@@ -650,8 +650,8 @@ retry_write:
         thread->stable = DATA_SYNC4;
     }
 out:
-    dprintf(IOLVL, "<-- file_layout_write_thread(%u) returning %s\n",
-        thread->id, pnfs_error_string(status));
+    DPRINTF(IOLVL, ("<-- file_layout_write_thread(%u) returning '%s'\n",
+        thread->id, pnfs_error_string(status)));
     return status;
 }
 
@@ -669,7 +669,7 @@ enum pnfs_status pnfs_read(
     pnfs_io_pattern pattern;
     enum pnfs_status status;
 
-    dprintf(IOLVL, "--> pnfs_read(%llu, %llu)\n", offset, length);
+    DPRINTF(IOLVL, ("--> pnfs_read(%llu, %llu)\n", offset, length));
 
     *len_out = 0;
 
@@ -688,7 +688,7 @@ enum pnfs_status pnfs_read(
             layout, buffer_out, PNFS_IOMODE_READ, offset, length,
             state->session->lease_time);
         if (status)
-            eprintf("pattern_init() failed with %s\n",
+            eprintf("pattern_init() failed with '%s'\n",
                 pnfs_error_string(status));
     }
 
@@ -706,8 +706,8 @@ enum pnfs_status pnfs_read(
 out_free_pattern:
     pattern_free(&pattern);
 out:
-    dprintf(IOLVL, "<-- pnfs_read() returning %s\n",
-        pnfs_error_string(status));
+    DPRINTF(IOLVL, ("<-- pnfs_read() returning '%s'\n",
+        pnfs_error_string(status)));
     return status;
 }
 
@@ -726,7 +726,7 @@ static enum pnfs_status mds_commit(
     nfsstat = nfs41_commit(state->session,
         &state->file, offset, length, 1, &verf, info);
     if (nfsstat) {
-        eprintf("nfs41_commit() to mds failed with %s\n",
+        eprintf("nfs41_commit() to mds failed with '%s'\n",
             nfs_error_string(nfsstat));
         status = PNFSERR_IO;
         goto out;
@@ -786,13 +786,13 @@ static enum pnfs_status layout_commit(
     memcpy(&layout_stateid, &layout->stateid, sizeof(layout_stateid));
     ReleaseSRWLockShared(&layout->lock);
 
-    dprintf(1, "LAYOUTCOMMIT for offset=%lld len=%lld new_last_offset=%u\n",
-        offset, length, new_last_offset ? 1 : 0);
+    DPRINTF(1, ("LAYOUTCOMMIT for offset=%lld len=%lld new_last_offset=%u\n",
+        offset, length, new_last_offset ? 1 : 0));
     nfsstat = pnfs_rpc_layoutcommit(state->session, &state->file,
         &layout_stateid, offset, length, new_last_offset, NULL, info);
     if (nfsstat) {
-        dprintf(IOLVL, "pnfs_rpc_layoutcommit() failed with %s\n",
-            nfs_error_string(nfsstat));
+        DPRINTF(IOLVL, ("pnfs_rpc_layoutcommit() failed with '%s'\n",
+            nfs_error_string(nfsstat)));
         status = PNFSERR_IO;
     }
     return status;
@@ -813,7 +813,7 @@ enum pnfs_status pnfs_write(
     enum stable_how4 stable;
     enum pnfs_status status;
 
-    dprintf(IOLVL, "--> pnfs_write(%llu, %llu)\n", offset, length);
+    DPRINTF(IOLVL, ("--> pnfs_write(%llu, %llu)\n", offset, length));
 
     *len_out = 0;
 
@@ -832,7 +832,7 @@ enum pnfs_status pnfs_write(
             layout, buffer, PNFS_IOMODE_RW, offset, length,
             state->session->lease_time);
         if (status)
-            eprintf("pattern_init() failed with %s\n",
+            eprintf("pattern_init() failed with '%s'\n",
                 pnfs_error_string(status));
     }
 
@@ -865,7 +865,7 @@ enum pnfs_status pnfs_write(
 out_free_pattern:
     pattern_free(&pattern);
 out:
-    dprintf(IOLVL, "<-- pnfs_write() returning %s\n",
-        pnfs_error_string(status));
+    DPRINTF(IOLVL, ("<-- pnfs_write() returning '%s'\n",
+        pnfs_error_string(status)));
     return status;
 }

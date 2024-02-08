@@ -409,7 +409,7 @@ static int referral_resolve(
     status = nfs41_fs_locations(session_in, &referral->parent,
         &referral->name, &locations);
     if (status) {
-        eprintf("nfs41_fs_locations() failed with %s\n",
+        eprintf("nfs41_fs_locations() failed with '%s'\n",
             nfs_error_string(status));
         status = nfs_to_windows_error(status, ERROR_PATH_NOT_FOUND);
         goto out;
@@ -473,7 +473,7 @@ int nfs41_lookup(
     path_pos = path.path;
     path_end = path.path + path.len;
 
-    dprintf(LULVL, "--> nfs41_lookup('%s')\n", path.path);
+    DPRINTF(LULVL, ("--> nfs41_lookup('%s')\n", path.path));
 
     if (parent_out == NULL) parent_out = &parent;
     if (target_out == NULL) target_out = &target;
@@ -525,6 +525,6 @@ int nfs41_lookup(
             parent_out, target_out, info_out, session_out);
     }
 out:
-    dprintf(LULVL, "<-- nfs41_lookup() returning %d\n", status);
+    DPRINTF(LULVL, ("<-- nfs41_lookup() returning %d\n", status));
     return status;
 }

@@ -72,16 +72,16 @@ void nfs41_delegation_ref(
     IN nfs41_delegation_state *state)
 {
     const LONG count = InterlockedIncrement(&state->ref_count);
-    dprintf(DGLVL, "nfs41_delegation_ref(%s) count %d\n",
-        state->path.path, count);
+    DPRINTF(DGLVL, ("nfs41_delegation_ref('%s') count %d\n",
+        state->path.path, count));
 }
 
 void nfs41_delegation_deref(
     IN nfs41_delegation_state *state)
 {
     const LONG count = InterlockedDecrement(&state->ref_count);
-    dprintf(DGLVL, "nfs41_delegation_deref(%s) count %d\n",
-        state->path.path, count);
+    DPRINTF(DGLVL, ("nfs41_delegation_deref('%s') count %d\n",
+        state->path.path, count));
     if (count == 0)
         free(state);
 }
@@ -274,11 +274,11 @@ static int delegation_return(
     if (deleg->srv_open) {
         /* make an upcall to the kernel: invalide data cache */
         HANDLE pipe;
-        unsigned char inbuf[sizeof(HANDLE)], *buffer = inbuf; 
+        unsigned char inbuf[sizeof(HANDLE)], *buffer = inbuf;
         DWORD inbuf_len = sizeof(HANDLE), outbuf_len, dstatus;
         uint32_t length;
-        dprintf(1, "delegation_return: making a downcall for srv_open=%x\n",
-            deleg->srv_open);
+        DPRINTF(1, ("delegation_return: making a downcall for srv_open=%x\n",
+            deleg->srv_open));
         pipe = CreateFileA(NFS41_USER_DEVICE_NAME_A, GENERIC_READ|GENERIC_WRITE,
                 FILE_SHARE_READ|FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
         if (pipe == INVALID_HANDLE_VALUE) {
@@ -501,8 +501,8 @@ int nfs41_delegate_open(
         memcpy(&stateid.stateid, &deleg->state.stateid, sizeof(stateid4));
     }
     if (!status) {
-        dprintf(1, "nfs41_delegate_open: updating srv_open from %x to %x\n", 
-            deleg->srv_open, state->srv_open);
+        DPRINTF(1, ("nfs41_delegate_open: updating srv_open from %x to %x\n",
+            deleg->srv_open, state->srv_open));
         deleg->srv_open = state->srv_open;
     }
     ReleaseSRWLockExclusive(&deleg->lock);
@@ -602,7 +602,7 @@ int nfs41_delegation_to_open(
 out_unlock:
     ReleaseSRWLockExclusive(&open->lock);
     if (status)
-        eprintf("nfs41_delegation_to_open(%p) failed with %s\n",
+        eprintf("nfs41_delegation_to_open(0x%p) failed with '%s'\n",
             open, nfs_error_string(status));
     return status;
 }
@@ -616,8 +616,8 @@ void nfs41_delegation_remove_srvopen(
     /* find a delegation for this file */
     if (delegation_find(session->client, &file->fh, deleg_file_cmp, &deleg))
         return;
-    dprintf(1, "nfs41_delegation_remove_srvopen: removing reference to "
-        "srv_open=%x\n", deleg->srv_open);
+    DPRINTF(1, ("nfs41_delegation_remove_srvopen: removing reference to "
+        "srv_open=%x\n", deleg->srv_open));
     AcquireSRWLockExclusive(&deleg->lock);
     deleg->srv_open = NULL;
     ReleaseSRWLockExclusive(&deleg->lock);
@@ -706,7 +706,7 @@ int nfs41_delegation_recall(
     struct recall_thread_args *args;
     int status;
 
-    dprintf(2, "--> nfs41_delegation_recall()\n");
+    DPRINTF(2, ("--> nfs41_delegation_recall()\n"));
 
     /* search for the delegation by stateid instead of filehandle;
      * deleg_file_cmp() relies on a proper superblock and fileid,
@@ -755,8 +755,8 @@ int nfs41_delegation_recall(
     }
     status = NFS4_OK;
 out:
-    dprintf(DGLVL, "<-- nfs41_delegation_recall() returning %s\n",
-        nfs_error_string(status));
+    DPRINTF(DGLVL, ("<-- nfs41_delegation_recall() returning '%s'\n",
+        nfs_error_string(status)));
     return status;
 
 out_args:
@@ -786,7 +786,7 @@ int nfs41_delegation_getattr(
     uint64_t fileid;
     int status;
 
-    dprintf(2, "--> nfs41_delegation_getattr()\n");
+    DPRINTF(2, ("--> nfs41_delegation_getattr()\n"));
 
     /* search for a delegation on this file handle */
     status = delegation_find(client, fh, deleg_fh_cmp, &deleg);
@@ -815,8 +815,8 @@ int nfs41_delegation_getattr(
 out_deleg:
     nfs41_delegation_deref(deleg);
 out:
-    dprintf(DGLVL, "<-- nfs41_delegation_getattr() returning %s\n",
-        nfs_error_string(status));
+    DPRINTF(DGLVL, ("<-- nfs41_delegation_getattr() returning '%s'\n",
+        nfs_error_string(status)));
     return status;
 }
 

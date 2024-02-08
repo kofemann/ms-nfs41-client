@@ -51,7 +51,7 @@ static int parse_volume(unsigned char *buffer, uint32_t length, nfs41_upcall *up
     status = safe_read(&buffer, &length, &args->query, sizeof(FS_INFORMATION_CLASS));
     if (status) goto out;
 
-    dprintf(1, "parsing NFS41_VOLUME_QUERY: query=%d\n", args->query);
+    DPRINTF(1, ("parsing NFS41_VOLUME_QUERY: query=%d\n", args->query));
 out:
     return status;
 }
@@ -75,8 +75,8 @@ static int get_volume_size_info(
         info.space_free = superblock->space_free;
         status = NO_ERROR;
 
-        dprintf(2, "%s cached: %llu user, %llu free of %llu total\n",
-            query, info.space_avail, info.space_free, info.space_total);
+        DPRINTF(2, ("'%s' cached: %llu user, %llu free of %llu total\n",
+            query, info.space_avail, info.space_free, info.space_total));
     }
     ReleaseSRWLockShared(&superblock->lock);
 
@@ -88,7 +88,7 @@ static int get_volume_size_info(
         status = nfs41_getattr(state->session, &state->file,
             &attr_request, &info);
         if (status) {
-            eprintf("nfs41_getattr() failed with %s\n",
+            eprintf("get_volume_size_info: nfs41_getattr() failed with '%s'\n",
                 nfs_error_string(status));
             status = nfs_to_windows_error(status, ERROR_BAD_NET_RESP);
             goto out;
@@ -101,8 +101,8 @@ static int get_volume_size_info(
         superblock->cache_expiration = time(NULL) + VOLUME_CACHE_EXPIRATION;
         ReleaseSRWLockExclusive(&superblock->lock);
 
-        dprintf(2, "%s: %llu user, %llu free of %llu total\n",
-            query, info.space_avail, info.space_free, info.space_total);
+        DPRINTF(2, ("'%s': %llu user, %llu free of %llu total\n",
+            query, info.space_avail, info.space_free, info.space_total));
     }
 
     if (total_out) *total_out = TO_UNITS(info.space_total);

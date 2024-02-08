@@ -65,14 +65,14 @@ const char* pnfs_iomode_string(enum pnfs_iomode iomode)
     }
 }
 
+static
 void dprint_deviceid(
-    IN int level,
     IN const char *title,
     IN const unsigned char *deviceid)
 {
     /* deviceid is 16 bytes, so print it as 4 uints */
     uint32_t *p = (uint32_t*)deviceid;
-    dprintf(level, "%s%08X.%08X.%08X.%08X\n",
+    dprintf_out("%s%08X.%08X.%08X.%08X\n",
         title, htonl(p[0]), htonl(p[1]), htonl(p[2]), htonl(p[3]));
 }
 
@@ -80,24 +80,26 @@ void dprint_layout(
     IN int level,
     IN const pnfs_file_layout *layout)
 {
-    dprintf(level, "  type:             %s\n", pnfs_layout_type_string(layout->layout.type));
-    dprintf(level, "  iomode:           %s\n", pnfs_iomode_string(layout->layout.iomode));
-    dprint_deviceid(level, "  deviceid:         ", layout->deviceid);
-    dprintf(level, "  offset:           %llu\n", layout->layout.offset);
-    dprintf(level, "  length:           %llu\n", layout->layout.length);
-    dprintf(level, "  pattern_offset:   %llu\n", layout->pattern_offset);
-    dprintf(level, "  first_index:      %u\n", layout->first_index);
-    dprintf(level, "  dense:            %u\n", is_dense(layout));
-    dprintf(level, "  commit_to_mds:    %u\n", should_commit_to_mds(layout));
-    dprintf(level, "  stripe_unit_size: %u\n", layout_unit_size(layout));
-    dprintf(level, "  file handles:     %u\n", layout->filehandles.count);
+    if (!DPRINTF_LEVEL_ENABLED(level))
+        return;
+
+    dprintf_out("  type:             '%s'\n", pnfs_layout_type_string(layout->layout.type));
+    dprintf_out("  iomode:           '%s'\n", pnfs_iomode_string(layout->layout.iomode));
+    dprint_deviceid("  deviceid:         ", layout->deviceid);
+    dprintf_out("  offset:           %llu\n", layout->layout.offset);
+    dprintf_out("  length:           %llu\n", layout->layout.length);
+    dprintf_out("  pattern_offset:   %llu\n", layout->pattern_offset);
+    dprintf_out("  first_index:      %u\n", layout->first_index);
+    dprintf_out("  dense:            %u\n", is_dense(layout));
+    dprintf_out("  commit_to_mds:    %u\n", should_commit_to_mds(layout));
+    dprintf_out("  stripe_unit_size: %u\n", layout_unit_size(layout));
+    dprintf_out("  file handles:     %u\n", layout->filehandles.count);
 }
 
 #define MULTI_ADDR_BUFFER_LEN \
     (NFS41_ADDRS_PER_SERVER*(NFS41_UNIVERSAL_ADDR_LEN+1)+1)
 
 static void dprint_multi_addr(
-    IN int level,
     IN uint32_t index,
     IN const multi_addr4 *addrs)
 {
@@ -107,7 +109,7 @@ static void dprint_multi_addr(
         StringCchCatA(buffer, MULTI_ADDR_BUFFER_LEN, addrs->arr[i].uaddr);
         StringCchCatA(buffer, MULTI_ADDR_BUFFER_LEN, " ");
     }
-    dprintf(level, "  servers[%d]:       [ %s]\n", index, buffer);
+    dprintf_out("  servers[%d]:       [ '%s']\n", index, buffer);
 }
 
 void dprint_device(
@@ -115,9 +117,13 @@ void dprint_device(
     IN const pnfs_file_device *device)
 {
     uint32_t i;
-    dprint_deviceid(level, "  deviceid:         ", device->device.deviceid);
-    dprintf(level, "  type:             %s\n", pnfs_layout_type_string(device->device.type));
-    dprintf(level, "  stripes:          %u\n", device->stripes.count);
+
+    if (!DPRINTF_LEVEL_ENABLED(level))
+        return;
+
+    dprint_deviceid("  deviceid:         ", device->device.deviceid);
+    dprintf_out("  type:             '%s'\n", pnfs_layout_type_string(device->device.type));
+    dprintf_out("  stripes:          %u\n", device->stripes.count);
     for (i = 0; i < device->servers.count; i++)
-        dprint_multi_addr(level, i, &device->servers.arr[i].addrs);
+        dprint_multi_addr(i, &device->servers.arr[i].addrs);
 }

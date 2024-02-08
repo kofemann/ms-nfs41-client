@@ -34,7 +34,7 @@
 int compound_error(int status)
 {
     if (status != NFS4_OK)
-        dprintf(1, "COMPOUND failed with status %d.\n", status);
+        DPRINTF(1, ("COMPOUND failed with status %d.\n", status));
     return status;
 }
 
@@ -197,8 +197,8 @@ retry:
     }
 
     if (compound->res.status != NFS4_OK)
-        dprintf(1, "\n################ %s ################\n\n",
-            nfs_error_string(compound->res.status));
+        DPRINTF(1, ("\n################ '%s' ################\n\n",
+            nfs_error_string(compound->res.status)));
 
     switch (compound->res.status) {
     case NFS4_OK:
@@ -276,11 +276,11 @@ retry:
                 delayby = 5000;
             else
                 delayby = 500*retry_count;
-            dprintf(1, "Compound returned %s: sleeping for %ums..\n", 
+            DPRINTF(1, ("Compound returned '%s': sleeping for %ums..\n",
                 (compound->res.status==NFS4ERR_GRACE)?"NFS4ERR_GRACE":"NFS4ERR_DELAY",
-                delayby);
+                delayby));
             Sleep(delayby);
-            dprintf(1, "Attempting to resend compound.\n");
+            DPRINTF(1, ("Attempting to resend compound.\n"));
             goto do_retry;
 #ifndef RETRY_INDEFINITELY
         }
@@ -351,7 +351,7 @@ retry:
                         argarray[1].op == OP_PUTROOTFH) &&
                         (argarray[2].op == OP_SECINFO_NO_NAME ||
                         argarray[2].op == OP_SECINFO)) {
-                    dprintf(1, "SECINFO: BROKEN SERVER\n");
+                    DPRINTF(1, ("SECINFO: BROKEN SERVER\n"));
                     goto out;
                 }
                 if (!try_recovery)

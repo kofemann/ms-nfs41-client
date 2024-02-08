@@ -60,7 +60,7 @@ int cygwin_getent_passwd(const char *name, char *res_loginname, uid_t *res_uid, 
     cpv_name_val *cnv_cur = NULL;
     const char *localaccoutname = NULL;
 
-    dprintf(CYGWINIDLVL, "--> cygwin_getent_passwd('%s')\n", name);
+    DPRINTF(CYGWINIDLVL, ("--> cygwin_getent_passwd('%s')\n", name));
 
     /* fixme: better quoting for |name| needed */
     (void)snprintf(cmdbuff, sizeof(cmdbuff),
@@ -69,33 +69,33 @@ int cygwin_getent_passwd(const char *name, char *res_loginname, uid_t *res_uid, 
         name);
     if ((script_pipe = subcmd_popen(cmdbuff)) == NULL) {
         int last_error = GetLastError();
-        dprintf(0, "cygwin_getent_passwd: '%s' failed, GetLastError()='%d'\n",
+        DPRINTF(0, ("cygwin_getent_passwd: '%s' failed, GetLastError()='%d'\n",
             cmdbuff,
-            last_error);
+            last_error));
         goto fail;
     }
 
     if (!subcmd_readcmdoutput(script_pipe,
         buff, sizeof(buff), &num_buff_read)) {
-        dprintf(0, "cygwin_getent_passwd: subcmd_readcmdoutput() failed\n");
+        DPRINTF(0, ("cygwin_getent_passwd: subcmd_readcmdoutput() failed\n"));
         goto fail;
     }
 
     buff[num_buff_read] = '\0';
 
     if (num_buff_read < 10) {
-        dprintf(0, "cygwin_getent_passwd: Could not read enough data, returned %d\n", (int)num_buff_read);
+        DPRINTF(0, ("cygwin_getent_passwd: Could not read enough data, returned %d\n", (int)num_buff_read));
         goto fail;
     }
 
     cpvp = cpv_create_parser(buff, 0/*CPVFLAG_DEBUG_OUTPUT*/);
     if (!cpvp) {
-        dprintf(0, "cygwin_getent_passwd: Could not create parser\n");
+        DPRINTF(0, ("cygwin_getent_passwd: Could not create parser\n"));
         goto fail;
     }
 
     if (cpv_read_cpv_header(cpvp)) {
-        dprintf(0, "cygwin_getent_passwd: cpv_read_cpv_header failed\n");
+        DPRINTF(0, ("cygwin_getent_passwd: cpv_read_cpv_header failed\n"));
         goto fail;
     }
 
@@ -141,16 +141,16 @@ fail:
     cpv_free_parser(cpvp);
 
     if (res == 0) {
-        dprintf(CYGWINIDLVL, "<-- cygwin_getent_passwd('%s'): "
-            "returning res_uid=%lu, res_gid=%lu, res_loginname='%s'\n",
+        DPRINTF(CYGWINIDLVL, ("<-- cygwin_getent_passwd('%s'): "
+            "returning res_uid=%u, res_gid=%u, res_loginname='%s'\n",
             name,
-            (unsigned long)(*res_uid),
-            (unsigned long)(*res_gid),
-            res_loginname?res_loginname:"<NULL>");
+            (unsigned int)(*res_uid),
+            (unsigned int)(*res_gid),
+            res_loginname?res_loginname:"<NULL>"));
     }
     else {
-        dprintf(CYGWINIDLVL, "<-- cygwin_getent_passwd('%s'): no match found\n",
-            name);
+        DPRINTF(CYGWINIDLVL, ("<-- cygwin_getent_passwd('%s'): no match found\n",
+            name));
     }
 
     return res;
@@ -172,7 +172,7 @@ int cygwin_getent_group(const char* name, char* res_group_name, gid_t* res_gid)
 
     const char *localgroupname = NULL;
 
-    dprintf(CYGWINIDLVL, "--> cygwin_getent_group('%s')\n", name);
+    DPRINTF(CYGWINIDLVL, ("--> cygwin_getent_group('%s')\n", name));
 
     /* fixme: better quoting for |name| needed */
     (void)snprintf(cmdbuff, sizeof(cmdbuff),
@@ -181,33 +181,33 @@ int cygwin_getent_group(const char* name, char* res_group_name, gid_t* res_gid)
         name);
     if ((script_pipe = subcmd_popen(cmdbuff)) == NULL) {
         int last_error = GetLastError();
-        dprintf(0, "cygwin_getent_group: '%s' failed, GetLastError()='%d'\n",
+        DPRINTF(0, ("cygwin_getent_group: '%s' failed, GetLastError()='%d'\n",
             cmdbuff,
-            last_error);
+            last_error));
         goto fail;
     }
 
     if (!subcmd_readcmdoutput(script_pipe,
         buff, sizeof(buff), &num_buff_read)) {
-        dprintf(0, "cygwin_getent_group: subcmd_readcmdoutput() failed\n");
+        DPRINTF(0, ("cygwin_getent_group: subcmd_readcmdoutput() failed\n"));
         goto fail;
     }
 
     buff[num_buff_read] = '\0';
 
     if (num_buff_read < 10) {
-        dprintf(0, "cygwin_getent_group: Could not read enough data, returned %d\n", (int)num_buff_read);
+        DPRINTF(0, ("cygwin_getent_group: Could not read enough data, returned %d\n", (int)num_buff_read));
         goto fail;
     }
 
     cpvp = cpv_create_parser(buff, 0/*CPVFLAG_DEBUG_OUTPUT*/);
     if (!cpvp) {
-        dprintf(0, "cygwin_getent_group: Could not create parser\n");
+        DPRINTF(0, ("cygwin_getent_group: Could not create parser\n"));
         goto fail;
     }
 
     if (cpv_read_cpv_header(cpvp)) {
-        dprintf(0, "cygwin_getent_group: cpv_read_cpv_header failed\n");
+        DPRINTF(0, ("cygwin_getent_group: cpv_read_cpv_header failed\n"));
         goto fail;
     }
 
@@ -246,15 +246,15 @@ fail:
     cpv_free_parser(cpvp);
 
     if (res == 0) {
-        dprintf(CYGWINIDLVL, "<-- cygwin_getent_group('%s'): "
-            "returning res_gid=%lu, res_group_name='%s'\n",
+        DPRINTF(CYGWINIDLVL, ("<-- cygwin_getent_group('%s'): "
+            "returning res_gid=%u, res_group_name='%s'\n",
             name,
-            (unsigned long)(*res_gid),
-            res_group_name?res_group_name:"<NULL>");
+            (unsigned int)(*res_gid),
+            res_group_name?res_group_name:"<NULL>"));
     }
     else {
-        dprintf(CYGWINIDLVL, "<-- cygwin_getent_group('%s'): no match found\n",
-            name);
+        DPRINTF(CYGWINIDLVL, ("<-- cygwin_getent_group('%s'): no match found\n",
+            name));
     }
 
     return res;

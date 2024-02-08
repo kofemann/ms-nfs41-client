@@ -149,7 +149,7 @@ static __inline void attr_cache_entry_free(
     IN struct attr_cache *cache,
     IN struct attr_cache_entry *entry)
 {
-    dprintf(NCLVL1, "attr_cache_entry_free(%llu)\n", entry->fileid);
+    DPRINTF(NCLVL1, ("attr_cache_entry_free(%llu)\n", entry->fileid));
     RB_REMOVE(attr_tree, &cache->head, entry);
     /* add it back to free_entries */
     list_add_tail(&cache->free_entries, &entry->free_entry);
@@ -160,8 +160,8 @@ static __inline void attr_cache_entry_ref(
     IN struct attr_cache_entry *entry)
 {
     const uint32_t previous = entry->ref_count++;
-    dprintf(NCLVL2, "attr_cache_entry_ref(%llu) %u -> %u\n",
-        entry->fileid, previous, entry->ref_count);
+    DPRINTF(NCLVL2, ("attr_cache_entry_ref(%llu) %u -> %u\n",
+        entry->fileid, previous, entry->ref_count));
 }
 
 static __inline void attr_cache_entry_deref(
@@ -169,8 +169,8 @@ static __inline void attr_cache_entry_deref(
     IN struct attr_cache_entry *entry)
 {
     const uint32_t previous = entry->ref_count--;
-    dprintf(NCLVL2, "attr_cache_entry_deref(%llu) %u -> %u\n",
-        entry->fileid, previous, entry->ref_count);
+    DPRINTF(NCLVL2, ("attr_cache_entry_deref(%llu) %u -> %u\n",
+        entry->fileid, previous, entry->ref_count));
 
     if (entry->ref_count == 0)
         attr_cache_entry_free(cache, entry);
@@ -233,12 +233,12 @@ static int attr_cache_insert(
 {
     int status = NO_ERROR;
 
-    dprintf(NCLVL2, "--> attr_cache_insert(%llu)\n", entry->fileid);
+    DPRINTF(NCLVL2, ("--> attr_cache_insert(%llu)\n", entry->fileid));
 
     if (RB_INSERT(attr_tree, &cache->head, entry))
         status = ERROR_FILE_EXISTS;
 
-    dprintf(NCLVL2, "<-- attr_cache_insert() returning %d\n", status);
+    DPRINTF(NCLVL2, ("<-- attr_cache_insert() returning %d\n", status));
     return status;
 }
 
@@ -250,7 +250,7 @@ static int attr_cache_find_or_create(
     struct attr_cache_entry *entry;
     int status = NO_ERROR;
 
-    dprintf(NCLVL1, "--> attr_cache_find_or_create(%llu)\n", fileid);
+    DPRINTF(NCLVL1, ("--> attr_cache_find_or_create(%llu)\n", fileid));
 
     /* look for an existing entry */
     entry = attr_cache_search(cache, fileid);
@@ -270,8 +270,8 @@ static int attr_cache_find_or_create(
 
 out:
     *entry_out = entry;
-    dprintf(NCLVL1, "<-- attr_cache_find_or_create() returning %d\n",
-        status);
+    DPRINTF(NCLVL1, ("<-- attr_cache_find_or_create() returning %d\n",
+        status));
     return status;
 
 out_err_free:
@@ -504,8 +504,8 @@ static int name_cache_entry_create(
         entry = name_entry(cache->exp_entries.prev);
         name_cache_unlink(cache, entry);
 
-        dprintf(NCLVL2, "name_cache_entry_create('%s') scavenged 0x%p\n",
-            component->name, entry);
+        DPRINTF(NCLVL2, ("name_cache_entry_create('%s') scavenged 0x%p\n",
+            component->name, entry));
     } else {
         /* take the next entry in the pool and add it to exp_entries */
         entry = &cache->pool[cache->entries++];
@@ -603,14 +603,14 @@ static int name_cache_entry_changed(
             (cinfo->atomic && cinfo->before == entry->attributes->change)) {
         entry->attributes->change = cinfo->after;
         name_cache_entry_updated(cache, entry);
-        dprintf(NCLVL1, "name_cache_entry_changed('%s') has not changed. "
+        DPRINTF(NCLVL1, ("name_cache_entry_changed('%s') has not changed. "
             "updated change=%llu\n", entry->component,
-            entry->attributes->change);
+            entry->attributes->change));
         return FALSE;
     } else {
-        dprintf(NCLVL1, "name_cache_entry_changed('%s') has changed: was %llu, "
+        DPRINTF(NCLVL1, ("name_cache_entry_changed('%s') has changed: was %llu, "
             "got before=%llu\n", entry->component,
-            entry->attributes->change, cinfo->before);
+            entry->attributes->change, cinfo->before));
         return TRUE;
     }
 }
@@ -619,7 +619,7 @@ static void name_cache_entry_invalidate(
     IN struct nfs41_name_cache *cache,
     IN struct name_cache_entry *entry)
 {
-    dprintf(NCLVL1, "name_cache_entry_invalidate('%s')\n", entry->component);
+    DPRINTF(NCLVL1, ("name_cache_entry_invalidate('%s')\n", entry->component));
 
     if (entry->attributes) {
         /* flag attributes so that entry_invis() will return true
@@ -636,19 +636,21 @@ static struct name_cache_entry* name_cache_search(
 {
     struct name_cache_entry tmp, *entry;
 
-    dprintf(NCLVL2, "--> name_cache_search('%.*s' under '%s')\n",
-        component->len, component->name, parent->component);
+    DPRINTF(NCLVL2, ("--> name_cache_search('%.*s' under '%s')\n",
+        component->len, component->name, parent->component));
 
     StringCchCopyNA(tmp.component, NFS41_MAX_COMPONENT_LEN,
         component->name, component->len);
     tmp.component_len = component->len;
 
     entry = RB_FIND(name_tree, &parent->rbchildren, &tmp);
-    if (entry)
-        dprintf(NCLVL2, "<-- name_cache_search() "
-            "found existing entry 0x%p\n", entry);
-    else
-        dprintf(NCLVL2, "<-- name_cache_search() returning NULL\n");
+    if (entry) {
+        DPRINTF(NCLVL2, ("<-- name_cache_search() "
+            "found existing entry 0x%p\n", entry));
+    }
+    else {
+        DPRINTF(NCLVL2, ("<-- name_cache_search() returning NULL\n"));
+    }
     return entry;
 }
 
@@ -658,19 +660,19 @@ static int entry_invis(
 {
     /* name entry timer expired? */
     if (!list_empty(&entry->exp_entry) && time(NULL) > entry->expiration) {
-        dprintf(NCLVL2, "name_entry_expired('%s')\n", entry->component);
+        DPRINTF(NCLVL2, ("name_entry_expired('%s')\n", entry->component));
         return 1;
     }
     /* negative lookup entry? */
     if (entry->attributes == NULL) {
         if (is_negative) *is_negative = 1;
-        dprintf(NCLVL2, "name_entry_negative('%s')\n", entry->component);
+        DPRINTF(NCLVL2, ("name_entry_negative('%s')\n", entry->component));
         return 1;
     }
     /* attribute entry expired? */
     if (attr_cache_entry_expired(entry->attributes)) {
-        dprintf(NCLVL2, "attr_entry_expired(%llu)\n",
-            entry->attributes->fileid);
+        DPRINTF(NCLVL2, ("attr_entry_expired(%llu)\n",
+            entry->attributes->fileid));
         return 1;
     }
     return 0;
@@ -691,7 +693,7 @@ static int name_cache_lookup(
     const char *path_pos;
     int status = NO_ERROR;
 
-    dprintf(NCLVL1, "--> name_cache_lookup('%s')\n", path);
+    DPRINTF(NCLVL1, ("--> name_cache_lookup('%s')\n", path));
 
     parent = NULL;
     target = cache->root;
@@ -720,7 +722,7 @@ out:
     if (remaining_path_out) *remaining_path_out = component.name;
     if (parent_out) *parent_out = parent;
     if (target_out) *target_out = target;
-    dprintf(NCLVL1, "<-- name_cache_lookup() returning %d\n", status);
+    DPRINTF(NCLVL1, ("<-- name_cache_lookup() returning %d\n", status));
     return status;
 }
 
@@ -730,13 +732,13 @@ static int name_cache_insert(
 {
     int status = NO_ERROR;
 
-    dprintf(NCLVL2, "--> name_cache_insert('%s')\n", entry->component);
+    DPRINTF(NCLVL2, ("--> name_cache_insert('%s')\n", entry->component));
 
     if (RB_INSERT(name_tree, &parent->rbchildren, entry))
         status = ERROR_FILE_EXISTS;
     entry->parent = parent;
 
-    dprintf(NCLVL2, "<-- name_cache_insert() returning %u\n", status);
+    DPRINTF(NCLVL2, ("<-- name_cache_insert() returning %u\n", status));
     return status;
 }
 
@@ -748,8 +750,8 @@ static int name_cache_find_or_create(
 {
     int status = NO_ERROR;
 
-    dprintf(NCLVL1, "--> name_cache_find_or_create('%.*s' under '%s')\n",
-        component->len, component->name, parent->component);
+    DPRINTF(NCLVL1, ("--> name_cache_find_or_create('%.*s' under '%s')\n",
+        component->len, component->name, parent->component));
 
     *target_out = name_cache_search(cache, parent, component);
     if (*target_out)
@@ -764,8 +766,8 @@ static int name_cache_find_or_create(
         goto out_err;
 
 out:
-    dprintf(NCLVL1, "<-- name_cache_find_or_create() returning %d\n",
-        status);
+    DPRINTF(NCLVL1, ("<-- name_cache_find_or_create() returning %d\n",
+        status));
     return status;
 
 out_err:
@@ -786,7 +788,7 @@ int nfs41_name_cache_create(
     struct nfs41_name_cache *cache;
     int status = NO_ERROR;
 
-    dprintf(NCLVL1, "nfs41_name_cache_create()\n");
+    DPRINTF(NCLVL1, ("nfs41_name_cache_create()\n"));
 
     /* allocate the cache */
     cache = calloc(1, sizeof(struct nfs41_name_cache));
@@ -830,7 +832,7 @@ int nfs41_name_cache_free(
     struct nfs41_name_cache *cache = *cache_out;
     int status = NO_ERROR;
 
-    dprintf(NCLVL1, "nfs41_name_cache_free()\n");
+    DPRINTF(NCLVL1, ("nfs41_name_cache_free()\n"));
 
     /* free the attribute cache */
     attr_cache_free(&cache->attributes);
@@ -895,7 +897,7 @@ int nfs41_attr_cache_lookup(
     struct attr_cache_entry *entry;
     int status = NO_ERROR;
 
-    dprintf(NCLVL1, "--> nfs41_attr_cache_lookup(%llu)\n", fileid);
+    DPRINTF(NCLVL1, ("--> nfs41_attr_cache_lookup(%llu)\n", fileid));
 
     AcquireSRWLockShared(&cache->lock);
 
@@ -915,7 +917,7 @@ int nfs41_attr_cache_lookup(
 out_unlock:
     ReleaseSRWLockShared(&cache->lock);
 
-    dprintf(NCLVL1, "<-- nfs41_attr_cache_lookup() returning %d\n", status);
+    DPRINTF(NCLVL1, ("<-- nfs41_attr_cache_lookup() returning %d\n", status));
     return status;
 }
 
@@ -927,7 +929,7 @@ int nfs41_attr_cache_update(
     struct attr_cache_entry *entry;
     int status = NO_ERROR;
 
-    dprintf(NCLVL1, "--> nfs41_attr_cache_update(%llu)\n", fileid);
+    DPRINTF(NCLVL1, ("--> nfs41_attr_cache_update(%llu)\n", fileid));
 
     AcquireSRWLockExclusive(&cache->lock);
 
@@ -947,7 +949,7 @@ int nfs41_attr_cache_update(
 out_unlock:
     ReleaseSRWLockExclusive(&cache->lock);
 
-    dprintf(NCLVL1, "<-- nfs41_attr_cache_update() returning %d\n", status);
+    DPRINTF(NCLVL1, ("<-- nfs41_attr_cache_update() returning %d\n", status));
     return status;
 }
 
@@ -963,8 +965,8 @@ int nfs41_name_cache_insert(
     struct name_cache_entry *parent, *target;
     int status;
 
-    dprintf(NCLVL1, "--> nfs41_name_cache_insert('%.*s')\n",
-        name->name + name->len - path, path);
+    DPRINTF(NCLVL1, ("--> nfs41_name_cache_insert('%.*s')\n",
+        name->name + name->len - path, path));
 
     AcquireSRWLockExclusive(&cache->lock);
 
@@ -1015,8 +1017,8 @@ int nfs41_name_cache_insert(
 out_unlock:
     ReleaseSRWLockExclusive(&cache->lock);
 
-    dprintf(NCLVL1, "<-- nfs41_name_cache_insert() returning %d\n",
-        status);
+    DPRINTF(NCLVL1, ("<-- nfs41_name_cache_insert() returning %d\n",
+        status));
     return status;
 
 out_err_update:
@@ -1050,8 +1052,8 @@ int nfs41_name_cache_delegreturn(
     struct attr_cache_entry *attributes;
     int status;
 
-    dprintf(NCLVL1, "--> nfs41_name_cache_delegreturn(%llu, '%s')\n",
-        fileid, path);
+    DPRINTF(NCLVL1, ("--> nfs41_name_cache_delegreturn(%llu, '%s')\n",
+        fileid, path));
 
     AcquireSRWLockExclusive(&cache->lock);
 
@@ -1090,7 +1092,7 @@ int nfs41_name_cache_delegreturn(
 out_unlock:
     ReleaseSRWLockExclusive(&cache->lock);
 
-    dprintf(NCLVL1, "<-- nfs41_name_cache_delegreturn() returning %d\n", status);
+    DPRINTF(NCLVL1, ("<-- nfs41_name_cache_delegreturn() returning %d\n", status));
     return status;
 }
 
@@ -1105,7 +1107,7 @@ int nfs41_name_cache_remove(
     struct attr_cache_entry *attributes = NULL;
     int status;
 
-    dprintf(NCLVL1, "--> nfs41_name_cache_remove('%s')\n", path);
+    DPRINTF(NCLVL1, ("--> nfs41_name_cache_remove('%s')\n", path));
 
     AcquireSRWLockExclusive(&cache->lock);
 
@@ -1137,13 +1139,13 @@ int nfs41_name_cache_remove(
 out_unlock:
     ReleaseSRWLockExclusive(&cache->lock);
 
-    dprintf(NCLVL1, "<-- nfs41_name_cache_remove() returning %d\n", status);
+    DPRINTF(NCLVL1, ("<-- nfs41_name_cache_remove() returning %d\n", status));
     return status;
 
 out_attributes:
     /* in the presence of other links, we need to update numlinks
      * regardless of a failure to find the target entry */
-    dprintf(NCLVL1, "nfs41_name_cache_remove: need to find attributes for %s\n", path);
+    DPRINTF(NCLVL1, ("nfs41_name_cache_remove: need to find attributes for '%s'\n", path));
     attributes = attr_cache_search(&cache->attributes, fileid);
     if (attributes)
         attributes->numlinks--;
@@ -1163,8 +1165,8 @@ int nfs41_name_cache_rename(
     struct name_cache_entry *dst_parent;
     int status = NO_ERROR;
 
-    dprintf(NCLVL1, "--> nfs41_name_cache_rename('%s' to '%s')\n",
-        src_path, dst_path);
+    DPRINTF(NCLVL1, ("--> nfs41_name_cache_rename('%s' to '%s')\n",
+        src_path, dst_path));
 
     AcquireSRWLockExclusive(&cache->lock);
 
@@ -1179,8 +1181,8 @@ int nfs41_name_cache_rename(
     /* we can't create the dst entry without a parent */
     if (status || dst_parent->attributes == NULL) {
         /* if src exists, make it negative */
-        dprintf(NCLVL1, "nfs41_name_cache_rename: adding negative cache "
-            "entry for %.*s\n", src_name->len, src_name->name);
+        DPRINTF(NCLVL1, ("nfs41_name_cache_rename: adding negative cache "
+            "entry for '%.*s'\n", src_name->len, src_name->name));
         status = name_cache_lookup(cache, 0, src_path,
             src_name->name + src_name->len, NULL, NULL, &src, NULL);
         if (status == NO_ERROR) {
@@ -1198,8 +1200,8 @@ int nfs41_name_cache_rename(
     if (status || src->attributes == NULL) {
         /* remove dst if it exists */
         struct name_cache_entry *dst;
-        dprintf(NCLVL1, "nfs41_name_cache_rename: removing negative cache "
-            "entry for %.*s\n", dst_name->len, dst_name->name);
+        DPRINTF(NCLVL1, ("nfs41_name_cache_rename: removing negative cache "
+            "entry for '%.*s'\n", dst_name->len, dst_name->name));
         dst = name_cache_search(cache, dst_parent, dst_name);
         if (dst) name_cache_unlink(cache, dst);
         goto out_unlock;
@@ -1253,7 +1255,7 @@ int nfs41_name_cache_rename(
 out_unlock:
     ReleaseSRWLockExclusive(&cache->lock);
 
-    dprintf(NCLVL1, "<-- nfs41_name_cache_rename() returning %d\n", status);
+    DPRINTF(NCLVL1, ("<-- nfs41_name_cache_rename() returning %d\n", status));
     return status;
 }
 
@@ -1379,8 +1381,8 @@ static int delete_stale_component(
     struct name_cache_entry *target;
     int status;
 
-    dprintf(NCLVL1, "--> delete_stale_component('%s')\n",
-        component->name);
+    DPRINTF(NCLVL1, ("--> delete_stale_component('%s')\n",
+        component->name));
 
     AcquireSRWLockExclusive(&cache->lock);
 
@@ -1391,7 +1393,7 @@ static int delete_stale_component(
 
     ReleaseSRWLockExclusive(&cache->lock);
 
-    dprintf(NCLVL1, "<-- delete_stale_component() returning %d\n", status);
+    DPRINTF(NCLVL1, ("<-- delete_stale_component() returning %d\n", status));
     return status;
 }
 

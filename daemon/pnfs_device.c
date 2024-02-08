@@ -87,7 +87,7 @@ static enum pnfs_status file_device_find_or_create(
     struct list_entry *entry;
     enum pnfs_status status;
 
-    dprintf(FDLVL, "--> pnfs_file_device_find_or_create()\n");
+    DPRINTF(FDLVL, ("--> pnfs_file_device_find_or_create()\n"));
 
     EnterCriticalSection(&devices->lock);
 
@@ -102,18 +102,18 @@ static enum pnfs_status file_device_find_or_create(
             list_add_tail(&devices->head, &device->entry);
             *device_out = device;
 
-            dprintf(FDLVL, "<-- pnfs_file_device_find_or_create() "
-                "returning new device %p\n", device);
+            DPRINTF(FDLVL, ("<-- pnfs_file_device_find_or_create() "
+                "returning new device 0x%p\n", device));
         } else {
-            dprintf(FDLVL, "<-- pnfs_file_device_find_or_create() "
-                "returning %s\n", pnfs_error_string(status));
+            DPRINTF(FDLVL, ("<-- pnfs_file_device_find_or_create() "
+                "returning '%s'\n", pnfs_error_string(status)));
         }
     } else {
         *device_out = device_entry(entry);
         status = PNFS_SUCCESS;
 
-        dprintf(FDLVL, "<-- pnfs_file_device_find_or_create() "
-            "returning existing device %p\n", *device_out);
+        DPRINTF(FDLVL, ("<-- pnfs_file_device_find_or_create() "
+            "returning existing device 0x%p\n", *device_out));
     }
 
     LeaveCriticalSection(&devices->lock);
@@ -162,7 +162,7 @@ void pnfs_file_device_list_invalidate(
     struct list_entry *entry, *tmp;
     pnfs_file_device *device;
 
-    dprintf(FDLVL, "--> pnfs_file_device_list_invalidate()\n");
+    DPRINTF(FDLVL, ("--> pnfs_file_device_list_invalidate()\n"));
 
     EnterCriticalSection(&devices->lock);
 
@@ -184,7 +184,7 @@ void pnfs_file_device_list_invalidate(
 
     LeaveCriticalSection(&devices->lock);
 
-    dprintf(FDLVL, "<-- pnfs_file_device_list_invalidate()\n");
+    DPRINTF(FDLVL, ("<-- pnfs_file_device_list_invalidate()\n"));
 }
 
 
@@ -199,7 +199,7 @@ enum pnfs_status pnfs_file_device_get(
     enum pnfs_status status;
     enum nfsstat4 nfsstat;
 
-    dprintf(FDLVL, "--> pnfs_file_device_get()\n");
+    DPRINTF(FDLVL, ("--> pnfs_file_device_get()\n"));
 
     status = file_device_find_or_create(deviceid, devices, &device);
     if (status)
@@ -218,27 +218,27 @@ enum pnfs_status pnfs_file_device_get(
             device->device.status = PNFS_DEVICE_GRANTED;
             status = PNFS_SUCCESS;
 
-            dprintf(FDLVL, "Received device info:\n");
+            DPRINTF(FDLVL, ("Received device info:\n"));
             dprint_device(FDLVL, device);
         } else {
             status = PNFSERR_NO_DEVICE;
 
-            eprintf("pnfs_rpc_getdeviceinfo() failed with %s\n",
+            eprintf("pnfs_rpc_getdeviceinfo() failed with '%s'\n",
                 nfs_error_string(nfsstat));
         }
     }
 
     if (status == PNFS_SUCCESS) {
         device->device.layout_count++;
-        dprintf(FDLVL, "pnfs_file_device_get() -> %u\n",
-            device->device.layout_count);
+        DPRINTF(FDLVL, ("pnfs_file_device_get() -> %u\n",
+            device->device.layout_count));
         *device_out = device;
     }
 
     LeaveCriticalSection(&device->device.lock);
 out:
-    dprintf(FDLVL, "<-- pnfs_file_device_get() returning %s\n",
-        pnfs_error_string(status));
+    DPRINTF(FDLVL, ("<-- pnfs_file_device_get() returning '%s'\n",
+        pnfs_error_string(status)));
     return status;
 }
 
@@ -248,7 +248,7 @@ void pnfs_file_device_put(
     uint32_t count;
     EnterCriticalSection(&device->device.lock);
     count = --device->device.layout_count;
-    dprintf(FDLVL, "pnfs_file_device_put() -> %u\n", count);
+    DPRINTF(FDLVL, ("pnfs_file_device_put() -> %u\n", count));
 
     /* if the device was revoked, remove/free the device on last reference */
     if (count == 0 && device->device.status & PNFS_DEVICE_REVOKED) {
@@ -259,7 +259,7 @@ void pnfs_file_device_put(
         LeaveCriticalSection(&device->device.lock);
 
         file_device_free(device);
-        dprintf(FDLVL, "revoked file device freed after last reference\n");
+        DPRINTF(FDLVL, ("revoked file device freed after last reference\n"));
     } else {
         LeaveCriticalSection(&device->device.lock);
     }
@@ -272,8 +272,8 @@ static enum pnfs_status data_client_status(
     enum pnfs_status status = PNFSERR_NOT_CONNECTED;
 
     if (server->client) {
-        dprintf(FDLVL, "pnfs_data_server_client() returning "
-            "existing client %llu\n", server->client->clnt_id);
+        DPRINTF(FDLVL, ("pnfs_data_server_client() returning "
+            "existing client %llu\n", server->client->clnt_id));
         *client_out = server->client;
         status = PNFS_SUCCESS;
     }
@@ -289,8 +289,8 @@ enum pnfs_status pnfs_data_server_client(
     int status;
     enum pnfs_status pnfsstat;
 
-    dprintf(FDLVL, "--> pnfs_data_server_client('%s')\n",
-        server->addrs.arr[0].uaddr);
+    DPRINTF(FDLVL, ("--> pnfs_data_server_client('%s')\n",
+        server->addrs.arr[0].uaddr));
 
     /* if we've already created the client, return it */
     AcquireSRWLockShared(&server->lock);
@@ -304,17 +304,17 @@ enum pnfs_status pnfs_data_server_client(
 
     pnfsstat = data_client_status(server, client_out);
     if (pnfsstat) {
-        status = nfs41_root_mount_addrs(root, &server->addrs, 1, default_lease, 
+        status = nfs41_root_mount_addrs(root, &server->addrs, 1, default_lease,
             &server->client);
         if (status) {
-            dprintf(FDLVL, "data_client_create('%s') failed with %d\n",
-                server->addrs.arr[0].uaddr, status);
+            DPRINTF(FDLVL, ("data_client_create('%s') failed with %d\n",
+                server->addrs.arr[0].uaddr, status));
         } else {
             *client_out = server->client;
             pnfsstat = PNFS_SUCCESS;
 
-            dprintf(FDLVL, "pnfs_data_server_client() returning new client "
-                "%llu\n", server->client->clnt_id);
+            DPRINTF(FDLVL, ("pnfs_data_server_client() returning new client "
+                "%llu\n", server->client->clnt_id));
         }
     }
 
@@ -332,8 +332,8 @@ enum pnfs_status pnfs_file_device_notify(
     struct list_entry *entry;
     enum pnfs_status status = PNFSERR_NO_DEVICE;
 
-    dprintf(FDLVL, "--> pnfs_file_device_notify(%u, %0llX:%0llX)\n",
-        change->type, change->deviceid);
+    DPRINTF(FDLVL, ("--> pnfs_file_device_notify(%u, %0llX:%0llX)\n",
+        change->type, change->deviceid));
 
     if (change->layouttype != PNFS_LAYOUTTYPE_FILE) {
         status = PNFSERR_NOT_SUPPORTED;
@@ -344,22 +344,22 @@ enum pnfs_status pnfs_file_device_notify(
 
     entry = list_search(&devices->head, change->deviceid, deviceid_compare);
     if (entry) {
-        dprintf(FDLVL, "found file device %p\n", device_entry(entry));
+        DPRINTF(FDLVL, ("found file device 0x%p\n", device_entry(entry)));
 
         if (change->type == NOTIFY_DEVICEID4_CHANGE) {
             /* if (change->immediate) ... */
-            dprintf(FDLVL, "CHANGE (%u)\n", change->immediate);
+            DPRINTF(FDLVL, ("CHANGE (%u)\n", change->immediate));
         } else if (change->type == NOTIFY_DEVICEID4_DELETE) {
             /* This notification MUST NOT be sent if the client
              * has a layout that refers to the device ID. */
-            dprintf(FDLVL, "DELETE\n");
+            DPRINTF(FDLVL, ("DELETE\n"));
         }
         status = PNFS_SUCCESS;
     }
 
     LeaveCriticalSection(&devices->lock);
 out:
-    dprintf(FDLVL, "<-- pnfs_file_device_notify() returning %s\n",
-        pnfs_error_string(status));
+    DPRINTF(FDLVL, ("<-- pnfs_file_device_notify() returning '%s'\n",
+        pnfs_error_string(status)));
     return status;
 }

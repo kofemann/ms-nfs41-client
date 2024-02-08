@@ -49,8 +49,8 @@ static int parse_setattr(unsigned char *buffer, uint32_t length, nfs41_upcall *u
     args->root = upcall->root_ref;
     args->state = upcall->state_ref;
 
-    dprintf(1, "parsing NFS41_FILE_SET: filename='%s' info_class=%d "
-        "buf_len=%d\n", args->path, args->set_class, args->buf_len);
+    DPRINTF(1, ("parsing NFS41_FILE_SET: filename='%s' info_class=%d "
+        "buf_len=%d\n", args->path, args->set_class, args->buf_len));
 out:
     return status;
 }
@@ -140,8 +140,8 @@ static int handle_nfs41_setattr(void *daemon_context, setattr_upcall_args *args)
 
     status = nfs41_setattr(state->session, &state->file, &stateid, &info);
     if (status) {
-        dprintf(1, "nfs41_setattr() failed with error %s.\n",
-            nfs_error_string(status));
+        DPRINTF(1, ("nfs41_setattr() failed with error '%s'.\n",
+            nfs_error_string(status)));
         status = nfs_to_windows_error(status, ERROR_NOT_SUPPORTED);
     }
     args->ctime = info.change;
@@ -160,9 +160,10 @@ static int handle_nfs41_remove(void *daemon_context, setattr_upcall_args *args)
 
     status = nfs41_remove(state->session, &state->parent,
         &state->file.name, state->file.fh.fileid);
-    if (status)
-        dprintf(1, "nfs41_remove() failed with error %s.\n",
-            nfs_error_string(status));
+    if (status) {
+        DPRINTF(1, ("nfs41_remove() failed with error '%s'.\n",
+            nfs_error_string(status)));
+    }
 
     return nfs_to_windows_error(status, ERROR_ACCESS_DENIED);
 }
@@ -232,7 +233,8 @@ static int handle_nfs41_rename(void *daemon_context, setattr_upcall_args *args)
         fh_copy(&dst_dir.fh, &state->parent.fh);
 
         create_silly_rename(&dst_path, &state->file.fh, &dst_name);
-        dprintf(1, "silly rename: %s -> %s\n", src_name->name, dst_name.name);
+        DPRINTF(1, ("silly rename: '%s' -> '%s'\n",
+            src_name->name, dst_name.name));
 
         /* break any delegations and truncate before silly rename */
         nfs41_delegation_return(state->session, &state->file,
@@ -242,8 +244,8 @@ static int handle_nfs41_rename(void *daemon_context, setattr_upcall_args *args)
             &state->parent, src_name,
             &dst_dir, &dst_name);
         if (status) {
-            dprintf(1, "nfs41_rename() failed with error %s.\n",
-                nfs_error_string(status));
+            DPRINTF(1, ("nfs41_rename() failed with error '%s'.\n",
+                nfs_error_string(status)));
             status = nfs_to_windows_error(status, ERROR_ACCESS_DENIED);
         } else {
             /* rename state->path on success */
@@ -276,7 +278,7 @@ static int handle_nfs41_rename(void *daemon_context, setattr_upcall_args *args)
         /* replace the path with the symlink target's */
         status = nfs41_symlink_target(dst_session, &dst_dir, &dst_path);
         if (status) {
-            eprintf("nfs41_symlink_target() for %s failed with %d\n", 
+            eprintf("nfs41_symlink_target() for '%s' failed with %d\n",
                 dst_dir.path->path, status);
             goto out;
         }
@@ -299,8 +301,8 @@ static int handle_nfs41_rename(void *daemon_context, setattr_upcall_args *args)
         nfs41_delegation_return(dst_session, &dst,
             OPEN_DELEGATE_WRITE, TRUE);
     } else if (status != ERROR_FILE_NOT_FOUND) {
-        dprintf(1, "nfs41_lookup('%s') failed to find destination "
-            "directory with %d\n", dst_path.path, status);
+        DPRINTF(1, ("nfs41_lookup('%s') failed to find destination "
+            "directory with %d\n", dst_path.path, status));
         goto out;
     }
 
@@ -314,10 +316,10 @@ static int handle_nfs41_rename(void *daemon_context, setattr_upcall_args *args)
 
     status = is_dst_name_opened(&dst_path, dst_session);
     if (status) {
-        /* AGLO: 03/21/2011: we can't handle rename of a file with a filename 
+        /* AGLO: 03/21/2011: we can't handle rename of a file with a filename
          * that is currently opened by this client
          */
-        eprintf("handle_nfs41_rename: %s is opened\n", dst_path.path);
+        eprintf("handle_nfs41_rename: '%s' is opened\n", dst_path.path);
         status = ERROR_FILE_EXISTS;
         goto out;
     }
@@ -330,8 +332,8 @@ static int handle_nfs41_rename(void *daemon_context, setattr_upcall_args *args)
         &state->parent, src_name,
         &dst_dir, &dst_name);
     if (status) {
-        dprintf(1, "nfs41_rename() failed with error %s.\n",
-            nfs_error_string(status));
+        DPRINTF(1, ("nfs41_rename() failed with error '%s'.\n",
+            nfs_error_string(status)));
         status = nfs_to_windows_error(status, ERROR_ACCESS_DENIED);
     } else {
         /* rename state->path on success */
@@ -361,11 +363,11 @@ static int handle_nfs41_set_size(void *daemon_context, setattr_upcall_args *args
     info.attrmask.count = 1;
     info.attrmask.arr[0] = FATTR4_WORD0_SIZE;
 
-    dprintf(2, "calling setattr() with size=%lld\n", info.size);
+    DPRINTF(2, ("calling setattr() with size=%lld\n", info.size));
     status = nfs41_setattr(state->session, &state->file, &stateid, &info);
     if (status) {
-        dprintf(1, "nfs41_setattr() failed with error %s.\n",
-            nfs_error_string(status));
+        DPRINTF(1, ("nfs41_setattr() failed with error '%s'.\n",
+            nfs_error_string(status)));
         goto out;
     }
 
@@ -414,7 +416,7 @@ static int handle_nfs41_link(void *daemon_context, setattr_upcall_args *args)
         /* replace the path with the symlink target's */
         status = nfs41_symlink_target(dst_session, &dst_dir, &dst_path);
         if (status) {
-            eprintf("nfs41_symlink_target() for %s failed with %d\n", 
+            eprintf("nfs41_symlink_target() for '%s' failed with %d\n",
                 dst_dir.path->path, status);
             goto out;
         }
@@ -434,8 +436,8 @@ static int handle_nfs41_link(void *daemon_context, setattr_upcall_args *args)
             goto out;
         }
     } else if (status != ERROR_FILE_NOT_FOUND) {
-        dprintf(1, "nfs41_lookup('%s') failed to find destination "
-            "directory with %d\n", dst_path.path, status);
+        DPRINTF(1, ("nfs41_lookup('%s') failed to find destination "
+            "directory with %d\n", dst_path.path, status));
         goto out;
     }
 
@@ -457,8 +459,8 @@ static int handle_nfs41_link(void *daemon_context, setattr_upcall_args *args)
         status = nfs41_remove(state->session,
             &dst_dir, &dst_name, dst.fh.fileid);
         if (status) {
-            dprintf(1, "nfs41_remove() failed with error %s.\n",
-                nfs_error_string(status));
+            DPRINTF(1, ("nfs41_remove() failed with error '%s'.\n",
+                nfs_error_string(status)));
             status = ERROR_FILE_EXISTS;
             goto out;
         }
@@ -468,11 +470,11 @@ static int handle_nfs41_link(void *daemon_context, setattr_upcall_args *args)
     nfs41_delegation_return(state->session, &state->file,
         OPEN_DELEGATE_READ, FALSE);
 
-    status = nfs41_link(state->session, &state->file, &dst_dir, &dst_name, 
+    status = nfs41_link(state->session, &state->file, &dst_dir, &dst_name,
             &info);
     if (status) {
-        dprintf(1, "nfs41_link() failed with error %s.\n",
-            nfs_error_string(status));
+        DPRINTF(1, ("nfs41_link() failed with error '%s'.\n",
+            nfs_error_string(status)));
         status = nfs_to_windows_error(status, ERROR_INVALID_PARAMETER);
     }
     args->ctime = info.change;

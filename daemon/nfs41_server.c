@@ -101,7 +101,7 @@ static int server_create(
     server = calloc(1, sizeof(nfs41_server));
     if (server == NULL) {
         status = GetLastError();
-        eprintf("failed to allocate server %s\n", info->owner);
+        eprintf("failed to allocate server '%s'\n", info->owner);
         goto out;
     }
 
@@ -128,7 +128,7 @@ out_free:
 static void server_free(
     IN nfs41_server *server)
 {
-    dprintf(SRVLVL, "server_free(%s)\n", server->owner);
+    DPRINTF(SRVLVL, ("server_free('%s')\n", server->owner));
     nfs41_superblock_list_free(&server->superblocks);
     nfs41_name_cache_free(&server->name_cache);
     free(server);
@@ -138,8 +138,8 @@ static __inline void server_ref_locked(
     IN nfs41_server *server)
 {
     server->ref_count++;
-    dprintf(SRVLVL, "nfs41_server_ref(%s) count %d\n",
-        server->owner, server->ref_count);
+    DPRINTF(SRVLVL, ("nfs41_server_ref('%s') count %d\n",
+        server->owner, server->ref_count));
 }
 
 void nfs41_server_ref(
@@ -158,8 +158,8 @@ void nfs41_server_deref(
     EnterCriticalSection(&g_server_list.lock);
 
     server->ref_count--;
-    dprintf(SRVLVL, "nfs41_server_deref(%s) count %d\n",
-        server->owner, server->ref_count);
+    DPRINTF(SRVLVL, ("nfs41_server_deref('%s') count %d\n",
+        server->owner, server->ref_count));
     if (server->ref_count == 0) {
         list_remove(&server->entry);
         server_free(server);
@@ -179,8 +179,8 @@ static void server_addrs_add(
     AcquireSRWLockExclusive(&addrs->lock);
 
     if (multi_addr_find(&addrs->addrs, addr, NULL)) {
-        dprintf(SRVLVL, "server_addrs_add() found existing addr '%s'.\n",
-            addr->uaddr);
+        DPRINTF(SRVLVL, ("server_addrs_add() found existing addr '%s'.\n",
+            addr->uaddr));
     } else {
         /* overwrite the address at 'next_index' */
         StringCchCopyA(addrs->addrs.arr[addrs->next_index].netid,
@@ -194,8 +194,8 @@ static void server_addrs_add(
         if (addrs->addrs.count < addrs->next_index)
             addrs->addrs.count = addrs->next_index;
 
-        dprintf(SRVLVL, "server_addrs_add() added new addr '%s'.\n",
-            addr->uaddr);
+        DPRINTF(SRVLVL, ("server_addrs_add() added new addr '%s'.\n",
+            addr->uaddr));
     }
     ReleaseSRWLockExclusive(&addrs->lock);
 }
@@ -232,7 +232,7 @@ int nfs41_server_find_or_create(
     info.owner = server_owner_major_id;
     info.scope = server_scope;
 
-    dprintf(SRVLVL, "--> nfs41_server_find_or_create(%s)\n", info.owner);
+    DPRINTF(SRVLVL, ("--> nfs41_server_find_or_create('%s')\n", info.owner));
 
     EnterCriticalSection(&g_server_list.lock);
 
@@ -246,18 +246,18 @@ int nfs41_server_find_or_create(
             list_add_tail(&g_server_list.head, &server->entry);
             *server_out = server;
 
-            dprintf(SRVLVL, "<-- nfs41_server_find_or_create() "
-                "returning new server %p\n", server);
+            DPRINTF(SRVLVL, ("<-- nfs41_server_find_or_create() "
+                "returning new server 0x%p\n", server));
         } else {
-            dprintf(SRVLVL, "<-- nfs41_server_find_or_create() "
-                "returning %d\n", status);
+            DPRINTF(SRVLVL, ("<-- nfs41_server_find_or_create() "
+                "returning %d\n", status));
         }
     } else {
         server = server_entry(entry);
         status = NO_ERROR;
 
-        dprintf(SRVLVL, "<-- nfs41_server_find_or_create() "
-            "returning existing server %p\n", server);
+        DPRINTF(SRVLVL, ("<-- nfs41_server_find_or_create() "
+            "returning existing server 0x%p\n", server));
     }
 
     if (server) {
@@ -286,8 +286,8 @@ int nfs41_server_resolve(
     int wse; /* Windows Socket Error */
     int retry_getaddrinfoex_counter = 0;
 
-    dprintf(SRVLVL, "--> nfs41_server_resolve('%s':%u)\n",
-        hostname, port);
+    DPRINTF(SRVLVL, ("--> nfs41_server_resolve('%s':%u)\n",
+        hostname, port));
 
     addrs->count = 0;
 
@@ -312,12 +312,12 @@ retry_getaddrinfoex:
     wse = GetAddrInfoExA(hostname, service, 0, NULL, &hints, &res,
         NULL, NULL, NULL, NULL);
     if (wse != 0) {
-        dprintf(SRVLVL, "GetAddrInfoExA() failed with wse=%d/'%s'\n",
-            wse, gai_strerrorA(wse));
+        DPRINTF(SRVLVL, ("GetAddrInfoExA() failed with wse=%d/'%s'\n",
+            wse, gai_strerrorA(wse)));
         if ((wse == WSATRY_AGAIN) && (retry_getaddrinfoex_counter < 4)) {
-            dprintf(SRVLVL, "GetAddrInfoExA() returned WSATRY_AGAIN, "
+            DPRINTF(SRVLVL, ("GetAddrInfoExA() returned WSATRY_AGAIN, "
                 "retry %d with delay...\n",
-                retry_getaddrinfoex_counter);
+                retry_getaddrinfoex_counter));
 
             retry_getaddrinfoex_counter++;
             Sleep(500*retry_getaddrinfoex_counter);
@@ -328,8 +328,8 @@ retry_getaddrinfoex:
     }
 
     for (info = res; info != NULL; info = info->ai_next) {
-        dprintf(SRVLVL, "GetAddrInfoExA() returned: info.{ai_family=%d}\n",
-            info->ai_family);
+        DPRINTF(SRVLVL, ("GetAddrInfoExA() returned: info.{ai_family=%d}\n",
+            info->ai_family));
 
         /* find the appropriate entry in /etc/netconfig */
         switch (info->ai_family) {
@@ -340,7 +340,7 @@ retry_getaddrinfoex:
 
         nconf = getnetconfigent(netid);
         if (nconf == NULL) {
-            dprintf(SRVLVL, "getnetconfigent(netid='%s') failed.\n", netid);
+            DPRINTF(SRVLVL, ("getnetconfigent(netid='%s') failed.\n", netid));
             continue;
         }
 
@@ -352,7 +352,7 @@ retry_getaddrinfoex:
         freenetconfigent(nconf);
 
         if (uaddr == NULL) {
-            dprintf(SRVLVL, "taddr2uaddr() failed.\n");
+            DPRINTF(SRVLVL, ("taddr2uaddr() failed.\n"));
             continue;
         }
 
@@ -364,7 +364,7 @@ retry_getaddrinfoex:
 
         status = NO_ERROR;
         if (++addrs->count >= NFS41_ADDRS_PER_SERVER) {
-            dprintf(SRVLVL, "error: too many NFS41_ADDRS_PER_SERVER.\n");
+            DPRINTF(SRVLVL, ("error: too many NFS41_ADDRS_PER_SERVER.\n"));
             break;
         }
     }
@@ -378,8 +378,8 @@ retry_getaddrinfoex:
     FreeAddrInfoEx(res);
 out:
     if (status) {
-        dprintf(SRVLVL, "<-- nfs41_server_resolve('%s':%u) returning "
-            "error %d\n", hostname, port, status);
+        DPRINTF(SRVLVL, ("<-- nfs41_server_resolve('%s':%u) returning "
+            "error %d\n", hostname, port, status));
     }
     else {
         unsigned int i;
@@ -392,8 +392,8 @@ out:
                 "'%s', ", addrs->arr[i].uaddr);
         }
 
-        dprintf(SRVLVL, "<-- nfs41_server_resolve('%s':%u) returning "
-            "OK { %s }\n", hostname, port, buff);
+        DPRINTF(SRVLVL, ("<-- nfs41_server_resolve('%s':%u) returning "
+            "OK { %s }\n", hostname, port, buff));
     }
     return status;
 }

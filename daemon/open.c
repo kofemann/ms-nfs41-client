@@ -119,7 +119,7 @@ void nfs41_open_state_ref(
 
     const LONG count = InterlockedIncrement(&state->ref_count);
 
-    dprintf(2, "nfs41_open_state_ref(%s) count %d\n", state->path.path, count);
+    DPRINTF(2, ("nfs41_open_state_ref('%s') count %d\n", state->path.path, count));
 }
 
 void nfs41_open_state_deref(
@@ -127,7 +127,7 @@ void nfs41_open_state_deref(
 {
     const LONG count = InterlockedDecrement(&state->ref_count);
 
-    dprintf(2, "nfs41_open_state_deref(%s) count %d\n", state->path.path, count);
+    DPRINTF(2, ("nfs41_open_state_deref('%s') count %d\n", state->path.path, count));
     if (count == 0)
         open_state_free(state);
 }
@@ -164,7 +164,7 @@ void nfs41_open_stateid_arg(
         if (arg->type == STATEID_DELEG_FILE)
             goto out;
 
-        dprintf(2, "delegation recalled, waiting for open stateid..\n");
+        DPRINTF(2, ("delegation recalled, waiting for open stateid...\n"));
 
         /* wait for nfs41_delegation_to_open() to recover open stateid */
         while (!state->do_close)
@@ -236,8 +236,8 @@ static int do_open(
         &state->file, &delegation, TRUE, &deleg_state);
     if (deleg_state) {
         deleg_state->srv_open = state->srv_open;
-        dprintf(1, "do_open: received delegation: saving srv_open = %x\n", 
-            state->srv_open);
+        DPRINTF(1, ("do_open: received delegation: saving srv_open = %x\n",
+            state->srv_open));
     }
 
     AcquireSRWLockExclusive(&state->lock);
@@ -329,24 +329,34 @@ static int parse_open(unsigned char *buffer, uint32_t length, nfs41_upcall *upca
     status = safe_read(&buffer, &length, &args->ea, sizeof(HANDLE));
     if (status) goto out;
 
-    dprintf(1, "parsing NFS41_OPEN: filename='%s' access mask=%d "
+#ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES
+    DPRINTF(1, ("parsing NFS41_OPEN: filename='%s' access mask=%d "
         "access mode=%d\n\tfile attrs=0x%x create attrs=0x%x "
         "(kernel) disposition=%d\n\topen_owner_id=%d mode=%o "
-#ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES
         "owner_local_uid=%u owner_group_local_gid=%u "
-#endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
-        "srv_open=%p symlink=%s ea=%p\n", args->path, args->access_mask,
+        "srv_open=0x%p symlink=%s ea=0x%p\n", args->path, args->access_mask,
         args->access_mode, args->file_attrs, args->create_opts,
         args->disposition, args->open_owner_id, args->mode,
-#ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES
         (unsigned int)args->owner_local_uid, (unsigned int)args->owner_group_local_gid,
-#endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
         args->srv_open,
-        args->symlink.path, args->ea);
-    print_disposition(2, args->disposition);
-    print_access_mask(2, args->access_mask);
-    print_share_mode(2, args->access_mode);
-    print_create_attributes(2, args->create_opts);
+        args->symlink.path, args->ea));
+#else
+    DPRINTF(1, ("parsing NFS41_OPEN: filename='%s' access mask=%d "
+        "access mode=%d\n\tfile attrs=0x%x create attrs=0x%x "
+        "(kernel) disposition=%d\n\topen_owner_id=%d mode=%o "
+        "srv_open=0x%p symlink=%s ea=0x%p\n", args->path, args->access_mask,
+        args->access_mode, args->file_attrs, args->create_opts,
+        args->disposition, args->open_owner_id, args->mode,
+        args->srv_open,
+        args->symlink.path, args->ea));
+#endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
+
+    if (DPRINTF_LEVEL_ENABLED(2)) {
+        print_disposition(2, args->disposition);
+        print_access_mask(2, args->access_mask);
+        print_share_mode(2, args->access_mode);
+        print_create_attributes(2, args->create_opts);
+    }
 out:
     return status;
 }
@@ -356,13 +366,13 @@ static BOOLEAN open_for_attributes(uint32_t type, ULONG access_mask,
 {
     if (type == NF4DIR) {
         if (disposition == FILE_OPEN || disposition == FILE_OVERWRITE ||
-                (!status && (disposition == FILE_OPEN_IF || 
-                    disposition == FILE_OVERWRITE_IF || 
+                (!status && (disposition == FILE_OPEN_IF ||
+                    disposition == FILE_OVERWRITE_IF ||
                     disposition == FILE_SUPERSEDE))) {
-            dprintf(1, "Opening a directory\n");
+            DPRINTF(1, ("Opening a directory\n"));
             return TRUE;
         } else {
-            dprintf(1, "Creating a directory\n");
+            DPRINTF(1, ("Creating a directory\n"));
             return FALSE;
         }
     }
@@ -378,7 +388,7 @@ static BOOLEAN open_for_attributes(uint32_t type, ULONG access_mask,
             disposition == FILE_OVERWRITE)
         return FALSE;
     else {
-        dprintf(1, "Open call that wants to manage attributes\n");
+        DPRINTF(1, ("Open call that wants to manage attributes\n"));
         return TRUE;
     }
 }
@@ -411,11 +421,11 @@ static int map_disposition_2_nfsopen(ULONG disposition, int in_status, bool_t pe
             *create = OPEN4_NOCREATE;
     } else if (disposition == FILE_OPEN_IF) {
         if (in_status == NFS4ERR_NOENT) {
-            dprintf(1, "creating new file\n");
+            DPRINTF(1, ("creating new file\n"));
             *create = OPEN4_CREATE;
             *last_error = ERROR_FILE_NOT_FOUND;
         } else {
-            dprintf(1, "opening existing file\n");
+            DPRINTF(1, ("opening existing file\n"));
             *create = OPEN4_NOCREATE;
         }
     } else if (disposition == FILE_OVERWRITE) {
@@ -481,7 +491,7 @@ static int check_execute_access(nfs41_open_state *state)
     int status = nfs41_access(state->session, &state->file,
         ACCESS4_EXECUTE | ACCESS4_READ, &supported, &access);
     if (status) {
-        eprintf("nfs41_access() failed with %s for %s\n", 
+        eprintf("nfs41_access() failed with '%s' for '%s'\n",
             nfs_error_string(status), state->path.path);
         status = ERROR_ACCESS_DENIED;
     } else if ((supported & ACCESS4_EXECUTE) == 0) {
@@ -493,11 +503,11 @@ static int check_execute_access(nfs41_open_state *state)
             status = ERROR_ACCESS_DENIED;
         }
     } else if ((access & ACCESS4_EXECUTE) == 0) {
-        dprintf(1, "user does not have execute access to file %s\n", 
-            state->path.path);
+        DPRINTF(1, ("user does not have execute access to file '%s'\n",
+            state->path.path));
         status = ERROR_ACCESS_DENIED;
     } else
-        dprintf(2, "user has execute access to file\n");
+        DPRINTF(2, ("user has execute access to file\n"));
     return status;
 }
 
@@ -572,23 +582,23 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
     // now if file/dir exists, use type returned by lookup
     if (status == NO_ERROR) {
         if (info.type == NF4DIR) {
-            dprintf(2, "handle_nfs41_open: DIRECTORY\n");
+            DPRINTF(2, ("handle_nfs41_open: DIRECTORY\n"));
             if (args->create_opts & FILE_NON_DIRECTORY_FILE) {
-                dprintf(1, "trying to open directory '%s' as a file\n",
-                    state->path.path);
+                DPRINTF(1, ("trying to open directory '%s' as a file\n",
+                    state->path.path));
                 status = ERROR_DIRECTORY;
                 goto out_free_state;
             }
         } else if (info.type == NF4REG) {
-            dprintf(2, "handle nfs41_open: FILE\n");
+            DPRINTF(2, ("handle nfs41_open: FILE\n"));
             if (args->create_opts & FILE_DIRECTORY_FILE) {
-                dprintf(1, "trying to open file '%s' as a directory\n",
-                    state->path.path);
+                DPRINTF(1, ("trying to open file '%s' as a directory\n",
+                    state->path.path));
                 status = ERROR_BAD_FILE_TYPE;
                 goto out_free_state;
             }
         } else if (info.type == NF4LNK) {
-            dprintf(2, "handle nfs41_open: SYMLINK\n");
+            DPRINTF(2, ("handle nfs41_open: SYMLINK\n"));
             if (args->create_opts & FILE_OPEN_REPARSE_POINT) {
                 /* continue and open the symlink itself, but we need to
                  * know if the target is a regular file or directory */
@@ -602,7 +612,7 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
                 status = nfs41_symlink_target(state->session,
                     &state->file, &args->symlink);
                 if (status) {
-                    eprintf("nfs41_symlink_target() for %s failed with %d\n",
+                    eprintf("nfs41_symlink_target() for '%s' failed with %d\n",
                         args->path, status);
                 } else {
                     /* tell the driver to call RxPrepareToReparseSymbolicLink() */
@@ -612,7 +622,7 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
                 goto out_free_state;
             }
         } else
-            dprintf(2, "handle_open(): unsupported type=%d\n", info.type);
+            DPRINTF(2, ("handle_open(): unsupported type=%d\n", info.type));
         state->type = info.type;
     } else if (status != ERROR_FILE_NOT_FOUND)
         goto out_free_state;
@@ -638,7 +648,7 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
         }
 
         /* defer the call to CREATE until we get the symlink set upcall */
-        dprintf(1, "trying to create a symlink, deferring create\n");
+        DPRINTF(1, ("trying to create a symlink, deferring create\n"));
 
         /* because of WRITE_ATTR access, be prepared for a setattr upcall;
          * will crash if the superblock is null, so use the parent's */
@@ -653,13 +663,13 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
         createattrs.attrmask.arr[1] = FATTR4_WORD1_MODE;
         createattrs.mode = 0777;
 
-        dprintf(1, "creating cygwin symlink %s -> %s\n",
-            state->file.name.name, args->symlink.path);
+        DPRINTF(1, ("creating cygwin symlink '%s' -> '%s'\n",
+            state->file.name.name, args->symlink.path));
 
         status = nfs41_create(state->session, NF4LNK, &createattrs,
             args->symlink.path, &state->parent, &state->file, &info);
         if (status) {
-            eprintf("nfs41_create() for symlink=%s failed with %s\n",
+            eprintf("nfs41_create() for symlink='%s' failed with '%s'\n",
                 args->symlink.path, nfs_error_string(status));
             status = map_symlink_errors(status);
             goto out_free_state;
@@ -668,10 +678,10 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
         nfs_to_standard_info(&info, &args->std_info);
         args->mode = info.mode;
         args->changeattr = info.change;
-    } else if (open_for_attributes(state->type, args->access_mask, 
+    } else if (open_for_attributes(state->type, args->access_mask,
                 args->disposition, status)) {
         if (status) {
-            dprintf(1, "nfs41_lookup failed with %d\n", status);
+            DPRINTF(1, ("nfs41_lookup failed with %d\n", status));
             goto out_free_state;
         }
 
@@ -781,10 +791,10 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
                 owner_group, args->owner_group_local_gid);
         }
 
-        dprintf(1, "handle_open('%s'): stat: owner=%u/'%s', owner_group=%u/'%s'\n",
+        DPRINTF(1, ("handle_open('%s'): stat: owner=%u/'%s', owner_group=%u/'%s'\n",
             state->path.path,
             (unsigned int)args->owner_local_uid, owner,
-            (unsigned int)args->owner_group_local_gid, owner_group);
+            (unsigned int)args->owner_group_local_gid, owner_group));
 #endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
     } else {
         nfs41_file_info createattrs = { 0 };
@@ -831,7 +841,7 @@ supersede_retry:
                 nfs41_delegation_return(state->session, &state->file,
                     OPEN_DELEGATE_WRITE, TRUE);
 
-            dprintf(1, "open for FILE_SUPERSEDE removing %s first\n", name->name);
+            DPRINTF(1, ("open for FILE_SUPERSEDE removing '%s' first\n", name->name));
             status = nfs41_remove(state->session, &state->parent,
                 name, state->file.fh.fileid);
             if (status)
@@ -845,16 +855,16 @@ supersede_retry:
         } else {
             createattrs.attrmask.arr[0] |= FATTR4_WORD0_SIZE;
             createattrs.size = 0;
-            dprintf(1, "creating with mod %o\n", args->mode);
-            status = open_or_delegate(state, create, createhowmode, &createattrs, 
+            DPRINTF(1, ("creating with mod %o\n", args->mode));
+            status = open_or_delegate(state, create, createhowmode, &createattrs,
                 TRUE, &info);
             if (status == NFS4_OK && state->delegation.state)
                     args->deleg_type = state->delegation.state->state.type;
         }
         if (status) {
-            dprintf(1, "%s failed with %s\n", (create == OPEN4_CREATE && 
+            DPRINTF(1, ("'%s' failed with '%s'\n", (create == OPEN4_CREATE &&
                 (args->create_opts & FILE_DIRECTORY_FILE))?"nfs41_create":"nfs41_open",
-                nfs_error_string(status));
+                nfs_error_string(status)));
             if (args->disposition == FILE_SUPERSEDE && status == NFS4ERR_EXIST)
                 goto supersede_retry;
             status = nfs_to_windows_error(status, ERROR_FILE_NOT_FOUND);
@@ -919,8 +929,8 @@ static int marshall_open(unsigned char *buffer, uint32_t *length, nfs41_upcall *
             goto out;
         }
     }
-    dprintf(2, "NFS41_OPEN: downcall open_state=0x%p mode %o changeattr 0x%llu\n", 
-        upcall->state_ref, args->mode, args->changeattr);
+    DPRINTF(2, ("NFS41_OPEN: downcall open_state=0x%p mode %o changeattr 0x%llu\n",
+        upcall->state_ref, args->mode, args->changeattr));
 out:
     return status;
 }
@@ -931,9 +941,9 @@ static void cancel_open(IN nfs41_upcall *upcall)
     open_upcall_args *args = &upcall->args.open;
     nfs41_open_state *state = upcall->state_ref;
 
-    dprintf(1, "--> cancel_open('%s')\n", args->path);
+    DPRINTF(1, ("--> cancel_open('%s')\n", args->path));
 
-    if (upcall->state_ref == NULL || 
+    if (upcall->state_ref == NULL ||
             upcall->state_ref == INVALID_HANDLE_VALUE)
         goto out; /* if handle_open() failed, the state was already freed */
 
@@ -945,10 +955,10 @@ static void cancel_open(IN nfs41_upcall *upcall)
         memcpy(&stateid.stateid, &state->stateid, sizeof(stateid4));
 
         status = nfs41_close(state->session, &state->file, &stateid);
-        if (status)
-            dprintf(1, "cancel_open: nfs41_close() failed with %s\n",
-                nfs_error_string(status));
-
+        if (status) {
+            DPRINTF(1, ("cancel_open: nfs41_close() failed with '%s'\n",
+                nfs_error_string(status)));
+        }
     } else if (args->created) {
         const nfs41_component *name = &state->file.name;
         /* break any delegations and truncate before REMOVE */
@@ -957,8 +967,8 @@ static void cancel_open(IN nfs41_upcall *upcall)
         status = nfs41_remove(state->session, &state->parent,
             name, state->file.fh.fileid);
         if (status)
-            dprintf(1, "cancel_open: nfs41_remove() failed with %s\n",
-                nfs_error_string(status));
+            DPRINTF(1, ("cancel_open: nfs41_remove() failed with '%s'\n",
+                nfs_error_string(status)));
     }
 
     /* remove from the client's list of state for recovery */
@@ -966,7 +976,7 @@ static void cancel_open(IN nfs41_upcall *upcall)
     nfs41_open_state_deref(state);
 out:
     status = nfs_to_windows_error(status, ERROR_INTERNAL_ERROR);
-    dprintf(1, "<-- cancel_open() returning %d\n", status);
+    DPRINTF(1, ("<-- cancel_open() returning %d\n", status));
 }
 
 
@@ -987,9 +997,9 @@ static int parse_close(unsigned char *buffer, uint32_t length, nfs41_upcall *upc
         if (status) goto out;
     }
 
-    dprintf(1, "parsing NFS41_CLOSE: remove=%d srv_open=%x renamed=%d "
-        "filename='%s'\n", args->remove, args->srv_open, args->renamed, 
-        args->remove ? args->path : "");
+    DPRINTF(1, ("parsing NFS41_CLOSE: remove=%d srv_open=%x renamed=%d "
+        "filename='%s'\n", args->remove, args->srv_open, args->renamed,
+        args->remove ? args->path : ""));
 out:
     return status;
 }
@@ -1005,8 +1015,8 @@ static int do_nfs41_close(nfs41_open_state *state)
 
     status = nfs41_close(state->session, &state->file, &stateid);
     if (status) {
-        dprintf(1, "nfs41_close() failed with error %s.\n",
-            nfs_error_string(status));
+        DPRINTF(1, ("nfs41_close() failed with error '%s'.\n",
+            nfs_error_string(status)));
         status = nfs_to_windows_error(status, ERROR_INTERNAL_ERROR);
     }
 
@@ -1030,7 +1040,7 @@ static int handle_close(void *deamon_context, nfs41_upcall *upcall)
         nfs41_component *name = &state->file.name;
 
         if (args->renamed) {
-            dprintf(1, "removing a renamed file %s\n", name->name);
+            DPRINTF(1, ("removing a renamed file '%s'\n", name->name));
             create_silly_rename(&state->path, &state->file.fh, name);
             status = do_nfs41_close(state);
             if (status)
@@ -1043,7 +1053,7 @@ static int handle_close(void *deamon_context, nfs41_upcall *upcall)
         nfs41_delegation_return(state->session, &state->file,
             OPEN_DELEGATE_WRITE, TRUE);
 
-		dprintf(1, "calling nfs41_remove for %s\n", name->name);
+        DPRINTF(1, ("calling nfs41_remove for '%s'\n", name->name));
 retry_delete:
         rm_status = nfs41_remove(state->session, &state->parent,
             name, state->file.fh.fileid);
@@ -1055,8 +1065,8 @@ retry_delete:
 					goto retry_delete;
 				}  else goto out;
 			}
-            dprintf(1, "nfs41_remove() failed with error %s.\n",
-                nfs_error_string(rm_status));
+            DPRINTF(1, ("nfs41_remove() failed with error '%s'.\n",
+                nfs_error_string(rm_status)));
             rm_status = nfs_to_windows_error(rm_status, ERROR_INTERNAL_ERROR);
         }
     }

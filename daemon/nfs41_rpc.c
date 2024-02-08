@@ -62,11 +62,11 @@ static int get_client_for_netaddr(
 
     if (server_name) {
         getnameinfo(addr->buf, addr->len, server_name, NI_MAXHOST, NULL, 0, 0);
-        dprintf(1, "servername is %s\n", server_name);
+        DPRINTF(1, ("servername is '%s'\n", server_name));
     }
-    dprintf(1, "callback function %p args %p\n", nfs41_handle_callback, rpc);
-    client = clnt_tli_create(RPC_ANYFD, nconf, addr, NFS41_RPC_PROGRAM, 
-        NFS41_RPC_VERSION, wsize, rsize, rpc ? proc_cb_compound_res : NULL, 
+    DPRINTF(1, ("callback function 0x%p args 0x%p\n", nfs41_handle_callback, rpc));
+    client = clnt_tli_create(RPC_ANYFD, nconf, addr, NFS41_RPC_PROGRAM,
+        NFS41_RPC_VERSION, wsize, rsize, rpc ? proc_cb_compound_res : NULL,
         rpc ? nfs41_handle_callback : NULL, rpc ? rpc : NULL);
     if (client) {
         *client_out = client;
@@ -130,12 +130,13 @@ int create_rpcsec_auth_client(
     }
 
     if (client->cl_auth == NULL) {
-        eprintf("nfs41_rpc_clnt_create: failed to create %s\n", 
+        eprintf("nfs41_rpc_clnt_create: failed to create '%s'\n",
                 secflavorop2name(sec_flavor));
         goto out;
-    } else 
-        dprintf(1, "nfs41_rpc_clnt_create: successfully created %s\n", 
-            secflavorop2name(sec_flavor));
+    } else {
+        DPRINTF(1, ("nfs41_rpc_clnt_create: successfully created '%s'\n",
+            secflavorop2name(sec_flavor)));
+    }
     status = 0;
 out:
     return status;
@@ -209,8 +210,8 @@ int nfs41_rpc_clnt_create(
             status = ERROR_NETWORK_UNREACHABLE;
             goto out_err_client;
         } else
-            dprintf(1, "nfs41_rpc_clnt_create: successfully created %s\n", 
-                secflavorop2name(sec_flavor));
+            DPRINTF(1, ("nfs41_rpc_clnt_create: successfully created '%s'\n",
+                secflavorop2name(sec_flavor)));
     }
     rpc->rpc = client;
 
@@ -254,13 +255,13 @@ static bool_t rpc_renew_in_progress(nfs41_rpc_clnt *rpc, int *value)
     bool_t status = FALSE;
     AcquireSRWLockExclusive(&rpc->lock);
     if (value) {
-        dprintf(1, "nfs41_rpc_renew_in_progress: setting value %d\n", *value);
+        DPRINTF(1, ("nfs41_rpc_renew_in_progress: setting value %d\n", *value));
         rpc->in_recovery = *value;
-        if (!rpc->in_recovery) 
+        if (!rpc->in_recovery)
             SetEvent(rpc->cond);
     } else {
         status = rpc->in_recovery;
-        dprintf(1, "nfs41_rpc_renew_in_progress: returning value %d\n", status);
+        DPRINTF(1, ("nfs41_rpc_renew_in_progress: returning value %d\n", status));
     }
     ReleaseSRWLockExclusive(&rpc->lock);
     return status;
@@ -311,7 +312,7 @@ static int rpc_reconnect(
     rpc->rpc = client;
     rpc->addr_index = addr_index;
     rpc->version++;
-    dprintf(1, "nfs41_send_compound: reestablished RPC connection\n");
+    DPRINTF(1, ("nfs41_send_compound: reestablished RPC connection\n"));
 
 out_unlock:
     ReleaseSRWLockExclusive(&rpc->lock);
@@ -323,7 +324,7 @@ out_unlock:
         status = nfs41_bind_conn_to_session(rpc,
             rpc->client->session->session_id, CDFC4_BACK_OR_BOTH);
         if (status)
-            eprintf("nfs41_bind_conn_to_session() failed with %s\n",
+            eprintf("nfs41_bind_conn_to_session() failed with '%s'\n",
                 nfs_error_string(status));
         status = NFS4_OK;
     }
@@ -354,7 +355,7 @@ int nfs41_send_compound(
     ReleaseSRWLockShared(&rpc->lock);
 
     if (rpc_status != RPC_SUCCESS) {
-        eprintf("clnt_call returned rpc_status = %s\n", 
+        eprintf("clnt_call returned rpc_status = '%s'\n",
             rpc_error_string(rpc_status));
         switch(rpc_status) {
         case RPC_CANTRECV:
@@ -370,8 +371,8 @@ int nfs41_send_compound(
             while (rpc_renew_in_progress(rpc, NULL)) {
                 status = WaitForSingleObjectEx(rpc->cond, INFINITE, FALSE);
                 if (status != WAIT_OBJECT_0) {
-                    dprintf(0, "rpc_renew_in_progress: WaitForSingleObjectEx() failed\n");
-                    print_condwait_status(1, status);
+                    eprintf("rpc_renew_in_progress: WaitForSingleObjectEx() failed\n");
+                    print_condwait_status(0, status);
                     status = ERROR_LOCK_VIOLATION;
                     goto out;
                 }

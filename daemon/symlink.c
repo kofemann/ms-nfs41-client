@@ -103,13 +103,13 @@ int nfs41_symlink_target(
     /* read the link */
     status = nfs41_readlink(session, file, NFS41_MAX_PATH_LEN, link, &link_len);
     if (status) {
-        eprintf("nfs41_readlink() for %s failed with %s\n", file->path->path, 
+        eprintf("nfs41_readlink() for '%s' failed with '%s'\n", file->path->path,
             nfs_error_string(status));
         status = ERROR_PATH_NOT_FOUND;
         goto out;
     }
 
-    dprintf(2, "--> nfs41_symlink_target('%s', '%s')\n", path->path, link);
+    DPRINTF(2, ("--> nfs41_symlink_target('%s', '%s')\n", path->path, link));
 
     /* append any components after the symlink */
     if (FAILED(StringCchCatA(link, NFS41_MAX_PATH_LEN,
@@ -133,13 +133,13 @@ int nfs41_symlink_target(
     }
     status = abs_path_link(target, target->path + path_offset, link, link_len);
     if (status) {
-        eprintf("abs_path_link() for path %s with link %s failed with %d\n", 
+        eprintf("abs_path_link() for path '%s' with link '%s' failed with %d\n",
             target->path, link, status);
         goto out;
     }
 out:
-    dprintf(2, "<-- nfs41_symlink_target('%s') returning %d\n",
-        target->path, status);
+    DPRINTF(2, ("<-- nfs41_symlink_target('%s') returning %d\n",
+        target->path, status));
     return status;
 }
 
@@ -157,7 +157,7 @@ int nfs41_symlink_follow(
     file.path = &path;
     InitializeSRWLock(&path.lock);
 
-    dprintf(2, "--> nfs41_symlink_follow('%s')\n", symlink->path->path);
+    DPRINTF(2, ("--> nfs41_symlink_follow('%s')\n", symlink->path->path));
 
     do {
         if (++depth > NFS41_MAX_SYMLINK_DEPTH) {
@@ -169,7 +169,7 @@ int nfs41_symlink_follow(
         status = nfs41_symlink_target(session, symlink, &path);
         if (status) goto out;
 
-        dprintf(2, "looking up '%s'\n", path.path);
+        DPRINTF(2, ("looking up '%s'\n", path.path));
 
         last_component(path.path, path.path + path.len, &file.name);
 
@@ -181,7 +181,7 @@ int nfs41_symlink_follow(
         symlink = &file;
     } while (info->type == NF4LNK);
 out:
-    dprintf(2, "<-- nfs41_symlink_follow() returning %d\n", status);
+    DPRINTF(2, ("<-- nfs41_symlink_follow() returning %d\n", status));
     return status;
 }
 
@@ -202,8 +202,8 @@ static int parse_symlink(unsigned char *buffer, uint32_t length, nfs41_upcall *u
     else
         args->target_set = NULL;
 
-    dprintf(1, "parsing NFS41_SYMLINK: path='%s' set=%u target='%s'\n",
-        args->path, args->set, args->target_set);
+    DPRINTF(1, ("parsing NFS41_SYMLINK: path='%s' set=%u target='%s'\n",
+        args->path, args->set, args->target_set));
 out:
     return status;
 }
@@ -230,7 +230,7 @@ static int handle_symlink(void *daemon_context, nfs41_upcall *upcall)
             status = nfs41_remove(state->session, &state->parent,
                 &state->file.name, state->file.fh.fileid);
             if (status) {
-                eprintf("nfs41_remove() for symlink=%s failed with %s\n",
+                eprintf("nfs41_remove() for symlink='%s' failed with '%s'\n",
                     args->target_set, nfs_error_string(status));
                 status = map_symlink_errors(status);
                 goto out;
@@ -245,7 +245,7 @@ static int handle_symlink(void *daemon_context, nfs41_upcall *upcall)
         status = nfs41_create(state->session, NF4LNK, &createattrs,
             args->target_set, &state->parent, &state->file, &info);
         if (status) {
-            eprintf("nfs41_create() for symlink=%s failed with %s\n",
+            eprintf("nfs41_create() for symlink='%s' failed with '%s'\n",
                 args->target_set, nfs_error_string(status));
             status = map_symlink_errors(status);
             goto out;
@@ -257,13 +257,13 @@ static int handle_symlink(void *daemon_context, nfs41_upcall *upcall)
         status = nfs41_readlink(state->session, &state->file,
             NFS41_MAX_PATH_LEN, args->target_get.path, &len);
         if (status) {
-            eprintf("nfs41_readlink() for filename=%s failed with %s\n",
+            eprintf("nfs41_readlink() for filename='%s' failed with '%s'\n",
                 state->file.path->path, nfs_error_string(status));
             status = map_symlink_errors(status);
             goto out;
         }
         args->target_get.len = (unsigned short)len;
-        dprintf(2, "returning symlink target '%s'\n", args->target_get.path);
+        DPRINTF(2, ("returning symlink target '%s'\n", args->target_get.path));
     }
 out:
     return status;

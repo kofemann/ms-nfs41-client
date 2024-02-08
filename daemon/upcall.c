@@ -87,7 +87,7 @@ int upcall_parse(
         goto out;
     }
 
-    dprintf(2, "received %d bytes upcall data: processing upcall\n", length);
+    DPRINTF(2, ("received %d bytes upcall data: processing upcall\n", length));
     print_hexbuf(4, (unsigned char *)"upcall buffer: ", buffer, length);
 
     /* parse common elements */
@@ -102,9 +102,9 @@ int upcall_parse(
     status = safe_read(&buffer, &length, &upcall->state_ref, sizeof(HANDLE));
     if (status) goto out;
 
-    dprintf(2, "time=%ld version=%d xid=%d opcode=%s session=0x%x open_state=0x%x\n", 
-        time(NULL), version, upcall->xid, opcode2string(upcall->opcode), upcall->root_ref, 
-        upcall->state_ref);
+    DPRINTF(2, ("time=%ld version=%d xid=%d opcode='%s' session=0x%x open_state=0x%x\n",
+        time(NULL), version, upcall->xid, opcode2string(upcall->opcode), upcall->root_ref,
+        upcall->state_ref));
     if (version != NFS41D_VERSION) {
         eprintf("received version %d expecting version %d\n", version, NFS41D_VERSION);
         upcall->status = status = NFSD_VERSION_MISMATCH;

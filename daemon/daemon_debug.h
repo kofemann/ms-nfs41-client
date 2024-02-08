@@ -48,27 +48,37 @@
             ""#exp"", __FILE__, (long)__LINE__); }
 #define DASSERT(exp, level) \
     if (!(exp)) { \
-        dprintf((level), "ASSERTION '%s' in '%s'/%ld failed.\n", \
-            ""#exp"", __FILE__, (long)__LINE__); }
+        DPRINTF((level), ("ASSERTION '%s' in '%s'/%ld failed.\n", \
+            ""#exp"", __FILE__, (long)__LINE__)); }
 
 #define DASSERT_IS_VALID_NON_NULL_PTR(exp, level) \
     if (!DEBUG_IS_VALID_NON_NULL_PTR(exp)) { \
-        dprintf((level), "ASSERTION " \
-            "!DEBUG_IS_VALID_NON_NULL_PTR('%s'=%p) " \
+        DPRINTF((level), ("ASSERTION " \
+            "!DEBUG_IS_VALID_NON_NULL_PTR('%s'=0x%p) " \
             "in '%s'/%ld failed.\n", \
-            ""#exp"", (void *)(exp), __FILE__, (long)__LINE__); }
+            ""#exp"", (void *)(exp), __FILE__, (long)__LINE__)); }
 
 #define EASSERT_IS_VALID_NON_NULL_PTR(exp) \
     if (!DEBUG_IS_VALID_NON_NULL_PTR(exp)) { \
         eprintf("ASSERTION " \
-            "!DEBUG_IS_VALID_NON_NULL_PTR('%s'=%p) " \
+            "!DEBUG_IS_VALID_NON_NULL_PTR('%s'=0x%p) " \
             "in '%s'/%ld failed.\n", \
             ""#exp"", (void *)(exp), __FILE__, (long)__LINE__); }
+
+extern int g_debug_level;
+
+#define DPRINTF_LEVEL_ENABLED(level) ((level) <= g_debug_level)
+#define DPRINTF(level, args) \
+    { \
+        if (DPRINTF_LEVEL_ENABLED(level)) { \
+            dprintf_out args; \
+        } \
+    }
 
 /* daemon_debug.h */
 void set_debug_level(int level);
 void logprintf(LPCSTR format, ...);
-void dprintf(int level, LPCSTR format, ...);
+void dprintf_out(LPCSTR format, ...);
 void eprintf(LPCSTR format, ...);
 
 void print_windows_access_mask(int on, ACCESS_MASK m);
@@ -80,7 +90,6 @@ void print_disposition(int level, DWORD disposition);
 void print_access_mask(int level, DWORD access_mask);
 void print_share_mode(int level, DWORD mode);
 void print_file_id_both_dir_info(int level, FILE_ID_BOTH_DIR_INFO *p);
-void print_opcode(int level, DWORD opcode);
 const char* opcode2string(DWORD opcode);
 const char* nfs_opnum_to_string(int opnum);
 const char* nfs_error_string(int status);
@@ -103,7 +112,6 @@ const char* pnfs_error_string(enum pnfs_status status);
 const char* pnfs_layout_type_string(enum pnfs_layout_type type);
 const char* pnfs_iomode_string(enum pnfs_iomode iomode);
 
-void dprint_deviceid(int level, const char *title, const unsigned char *deviceid);
 void dprint_layout(int level, const struct __pnfs_file_layout *layout);
 void dprint_device(int level, const struct __pnfs_file_device *device);
 
