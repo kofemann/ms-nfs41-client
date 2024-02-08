@@ -513,6 +513,9 @@ static int map_nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid, char *who_o
      * SIDs, and Unix_User+<uid> or Unix_Group+<gid> SIDs
      */
     switch (status) {
+        /* |LookupAccountSidA()| success */
+        case 0:
+            break;
         /* This happens for Unix_User+<uid> or Unix_Group+<gid> SIDs */
         case ERROR_NONE_MAPPED:
         /* Catch other cases */
@@ -520,6 +523,11 @@ static int map_nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid, char *who_o
         case ERROR_NO_SUCH_GROUP:
             goto out;
         default:
+            eprintf("map_nfs4ace_who: Internal error, "
+                "LookupAccountSidA() returned unexpected ERROR_%d "
+                "for sidstr='%s'\n",
+                status,
+                sidstr);
             status = ERROR_INTERNAL_ERROR;
             goto out;
     }
