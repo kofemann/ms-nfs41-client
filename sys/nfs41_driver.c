@@ -5192,6 +5192,7 @@ NTSTATUS map_query_acl_error(
     switch (error) {
     case NO_ERROR:                  return STATUS_SUCCESS;
     case ERROR_NOT_SUPPORTED:       return STATUS_NOT_SUPPORTED;
+    case ERROR_NONE_MAPPED:         return STATUS_NONE_MAPPED;
     case ERROR_ACCESS_DENIED:       return STATUS_ACCESS_DENIED;
     case ERROR_FILE_NOT_FOUND:      return STATUS_OBJECT_NAME_NOT_FOUND;
     case ERROR_INVALID_PARAMETER:   return STATUS_INVALID_PARAMETER;

@@ -459,11 +459,13 @@ static void map_acemask(ACCESS_MASK mask, int file_type, uint32_t *nfs4_mask)
 
 static int map_nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid, char *who_out, char *domain)
 {
-    int status = ERROR_INTERNAL_ERROR;
+    int status;
     DWORD size = 0, tmp_size = 0;
     SID_NAME_USE sid_type;
     LPSTR tmp_buf = NULL, who = NULL;
     LPSTR sidstr = NULL;
+
+    DPRINTF(ACLLVL, ("--> map_nfs4ace_who(sid=0x%p,owner_sid=0x%p, group_sid=0x%p)\n"));
 
     /* for ace mapping, we want to map owner's sid into "owner@"
      * but for set_owner attribute we want to map owner into a user name
@@ -474,14 +476,16 @@ static int map_nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid, char *who_o
         if (EqualSid(sid, owner_sid)) {
             DPRINTF(ACLLVL, ("map_nfs4ace_who: this is owner's sid\n"));
             memcpy(who_out, ACE4_OWNER, strlen(ACE4_OWNER)+1);
-            return ERROR_SUCCESS;
+            status = ERROR_SUCCESS;
+            goto out;
         }
     }
     if (group_sid) {
         if (EqualSid(sid, group_sid)) {
             DPRINTF(ACLLVL, ("map_nfs4ace_who: this is group's sid\n"));
             memcpy(who_out, ACE4_GROUP, strlen(ACE4_GROUP)+1);
-            return ERROR_SUCCESS;
+            status = ERROR_SUCCESS;
+            goto out;
         }
     }
     status = is_well_known_sid(sid, who_out);
@@ -490,8 +494,9 @@ static int map_nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid, char *who_o
             size = (DWORD)strlen(ACE4_NOBODY);
             goto add_domain;
         }
-        else
-            return ERROR_SUCCESS;
+
+        status = ERROR_SUCCESS;
+        goto out;
     }
 
     if (!ConvertSidToStringSidA(sid, &sidstr)) {
@@ -533,8 +538,18 @@ static int map_nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid, char *who_o
     }
 
     status = GetLastError();
-    if (status != ERROR_INSUFFICIENT_BUFFER)
-        return ERROR_INTERNAL_ERROR;
+    if (status == ERROR_NONE_MAPPED) {
+        DPRINTF(1, ("LookupAccountSidA() returned success, "
+            "GetLastError() returned ERROR_NONE_MAPPED\n"));
+        goto out;
+    }
+
+    if (status != ERROR_INSUFFICIENT_BUFFER) {
+        DPRINTF(1, ("LookupAccountSidA() returned success, "
+            "GetLastError() returned %d\n", status));
+        status = ERROR_INTERNAL_ERROR;
+        goto out;
+    }
     who = malloc(size);
     if (who == NULL) {
         status = GetLastError();
@@ -559,6 +574,7 @@ add_domain:
     if (who) free(who);
     status = ERROR_SUCCESS;
 out:
+    DPRINTF(ACLLVL, ("<-- map_nfs4ace_who() returns %d\n", status));
     if (sidstr)
         LocalFree(sidstr);
     return status;
@@ -654,44 +670,49 @@ static int handle_setacl(void *daemon_context, nfs41_upcall *upcall)
     nfsacl41 nfs4_acl = { 0 };
     PSID sid = NULL, gsid = NULL;
     BOOL sid_default, gsid_default;
+    char ownerbuf[NFS4_OPAQUE_LIMIT+1];
+    char groupbuf[NFS4_OPAQUE_LIMIT+1];
+
+    DPRINTF(ACLLVL, ("--> handle_setacl()\n"));
 
     if (args->query & OWNER_SECURITY_INFORMATION) {
-        char owner[NFS4_OPAQUE_LIMIT];
         DPRINTF(ACLLVL, ("handle_setacl: OWNER_SECURITY_INFORMATION\n"));
         status = GetSecurityDescriptorOwner(args->sec_desc, &sid, &sid_default);
         if (!status) {
             status = GetLastError();
-            eprintf("GetSecurityDescriptorOwner failed with %d\n", status);
+            eprintf("handle_setacl: GetSecurityDescriptorOwner failed with %d\n", status);
             goto out;
         }
-        info.owner = owner;
-        status = map_nfs4ace_who(sid, NULL, NULL, info.owner, nfs41dg->localdomain_name);
+
+        status = map_nfs4ace_who(sid, NULL, NULL, ownerbuf,
+            nfs41dg->localdomain_name);
         if (status)
             goto out;
-        else {
-            info.attrmask.arr[1] |= FATTR4_WORD1_OWNER;
-            info.attrmask.count = 2;
-        }
+
+        info.owner = ownerbuf;
+        info.attrmask.arr[1] |= FATTR4_WORD1_OWNER;
+        info.attrmask.count = 2;
     }
+
     if (args->query & GROUP_SECURITY_INFORMATION) {
-        char group[NFS4_OPAQUE_LIMIT];
         DPRINTF(ACLLVL, ("handle_setacl: GROUP_SECURITY_INFORMATION\n"));
         status = GetSecurityDescriptorGroup(args->sec_desc, &sid, &sid_default);
         if (!status) {
             status = GetLastError();
-            eprintf("GetSecurityDescriptorOwner failed with %d\n", status);
+            eprintf("handle_setacl: GetSecurityDescriptorOwner failed with %d\n", status);
             goto out;
         }
-        info.owner_group = group;
-        status = map_nfs4ace_who(sid, NULL, NULL, info.owner_group,
-                                 nfs41dg->localdomain_name);
+
+        status = map_nfs4ace_who(sid, NULL, NULL, groupbuf,
+            nfs41dg->localdomain_name);
         if (status)
             goto out;
-        else {
-            info.attrmask.arr[1] |= FATTR4_WORD1_OWNER_GROUP;
-            info.attrmask.count = 2;
-        }
+
+        info.owner_group = groupbuf;
+        info.attrmask.arr[1] |= FATTR4_WORD1_OWNER_GROUP;
+        info.attrmask.count = 2;
     }
+
     if (args->query & DACL_SECURITY_INFORMATION) {
         BOOL dacl_present, dacl_default;
         PACL acl;
@@ -719,12 +740,11 @@ static int handle_setacl(void *daemon_context, nfs41_upcall *upcall)
                                     nfs41dg->localdomain_name);
         if (status)
             goto out;
-        else {
-            info.acl = &nfs4_acl;
-            info.attrmask.arr[0] |= FATTR4_WORD0_ACL;
-            if (!info.attrmask.count)
-                info.attrmask.count = 1;
-        }
+
+        info.acl = &nfs4_acl;
+        info.attrmask.arr[0] |= FATTR4_WORD0_ACL;
+        if (!info.attrmask.count)
+            info.attrmask.count = 1;
     }
 
     /* break read delegations before SETATTR */
@@ -742,6 +762,7 @@ static int handle_setacl(void *daemon_context, nfs41_upcall *upcall)
     if (args->query & DACL_SECURITY_INFORMATION)
         free(nfs4_acl.aces);
 out:
+    DPRINTF(ACLLVL, ("<-- handle_setacl() returning %d\n", status));
     return status;
 }
 
