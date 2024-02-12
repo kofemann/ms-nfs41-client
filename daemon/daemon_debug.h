@@ -3,6 +3,7 @@
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
+ * Roland Mainz <roland.mainz@nrubsig.org>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -90,6 +91,7 @@ void print_disposition(int level, DWORD disposition);
 void print_access_mask(int level, DWORD access_mask);
 void print_share_mode(int level, DWORD mode);
 void print_file_id_both_dir_info(int level, FILE_ID_BOTH_DIR_INFO *p);
+void print_sid(const char *label, PSID sid);
 const char* opcode2string(DWORD opcode);
 const char* nfs_opnum_to_string(int opnum);
 const char* nfs_error_string(int status);

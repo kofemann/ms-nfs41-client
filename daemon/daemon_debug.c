@@ -22,6 +22,7 @@
 
 #include <windows.h>
 #include <stdio.h>
+#include <sddl.h>
 
 #include "daemon_debug.h"
 #include "from_kernel.h"
@@ -295,6 +296,23 @@ void print_file_id_both_dir_info(int level, FILE_ID_BOTH_DIR_INFO *pboth_dir_inf
     (void)fprintf(dlog_file, "\tFileName='%S' 0x%p\n",
         pboth_dir_info->FileName,
         pboth_dir_info->FileName);
+}
+
+void print_sid(const char *label, PSID sid)
+{
+    PSTR sidstr = NULL;
+
+    if (ConvertSidToStringSidA(sid, &sidstr)) {
+        dprintf_out("%s=SID('%s')\n", label, sidstr);
+        LocalFree(sidstr);
+    }
+    else {
+        int status;
+
+        status = GetLastError();
+        dprintf_out("%s=<ConvertSidToStringSidA() failed error=%d>\n",
+            label, status);
+    }
 }
 
 const char* opcode2string(DWORD opcode)

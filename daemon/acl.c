@@ -473,6 +473,10 @@ static int map_nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid, char *who_o
      */
     status = 0;
     if (owner_sid) {
+        if (DPRINTF_LEVEL_ENABLED(ACLLVL)) {
+            print_sid("owner_sid", owner_sid);
+        }
+
         if (EqualSid(sid, owner_sid)) {
             DPRINTF(ACLLVL, ("map_nfs4ace_who: this is owner's sid\n"));
             memcpy(who_out, ACE4_OWNER, strlen(ACE4_OWNER)+1);
@@ -481,6 +485,10 @@ static int map_nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid, char *who_o
         }
     }
     if (group_sid) {
+        if (DPRINTF_LEVEL_ENABLED(ACLLVL)) {
+            print_sid("group_sid", group_sid);
+        }
+
         if (EqualSid(sid, group_sid)) {
             DPRINTF(ACLLVL, ("map_nfs4ace_who: this is group's sid\n"));
             memcpy(who_out, ACE4_GROUP, strlen(ACE4_GROUP)+1);
