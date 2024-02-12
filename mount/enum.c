@@ -27,24 +27,31 @@
 #include "nfs41_build_features.h"
 #include "nfs41_driver.h" /* NFS41_PROVIDER_NAME_A */
 
+/* prototypes */
+char *wcs2utf8str(const wchar_t *wstr);
+void PrintErrorMessage(IN DWORD dwError);
 
-void PrintErrorMessage(
-    IN DWORD dwError);
-
+/* fixme: this function needs a cleanup */
 static __inline
 void PrintMountLine(
     LPCTSTR local,
     LPCTSTR remote)
 {
     TCHAR *cygwin_unc_buffer = alloca((_tcslen(remote)+32)*sizeof(TCHAR));
-    TCHAR *b = cygwin_unc_buffer;
-    LPCTSTR s = remote;
+    char *cygwin_nfsurl_buffer = alloca(((_tcslen(remote)+32)*3));
+    TCHAR *b;
+    LPCTSTR s;
     TCHAR sc;
 #ifndef NFS41_DRIVER_MOUNT_DOES_NFS4_PREFIX
-    unsigned int backslash_counter = 0;
+    unsigned int backslash_counter;
 #endif
 
-    while((sc = *s++) != TEXT('\0')) {
+    for(b = cygwin_unc_buffer, s = remote
+#ifndef NFS41_DRIVER_MOUNT_DOES_NFS4_PREFIX
+     , backslash_counter = 0
+#endif
+     ;
+        (sc = *s++) != TEXT('\0') ; ) {
         switch(sc) {
             case TEXT('\\'):
                 *b++ = TEXT('/');
@@ -61,8 +68,93 @@ void PrintMountLine(
         }
     }
     *b = TEXT('\0');
-// FIXME: We should print the URL
-    _tprintf(TEXT("%-8s\t%-40s\t%s\n"), local, remote, cygwin_unc_buffer);
+
+
+    /*
+     * print nfs://-URL
+     */
+/*
+ * From RFC 1738 ("Uniform Resource Locators (URL)"):
+ * unsafe characters in URLS:
+ * "{", "}", "|", "\", "^", "~", "[", "]", and "`"
+ * characters which must always be encoded:
+ * "#", "%"
+ * characters which must be encoded because they have a special meaning:
+ * ";", "/", "?", ":", "@", "=" and "&"
+ * Only alphanumerics, "$-_.+!*'()," and reserved characters
+ * ("/" for nfs://-URLS) are allowed
+ */
+#define ISVALIDURLCHAR(c) \
+	( \
+            ((c) >= '0' && (c) <= '9') || \
+	    ((c) >= 'a' && (c) <= 'z') || \
+	    ((c) >= 'A' && (c) <= 'Z') || \
+            ((c) == '$') || ((c) == '-') || ((c) == '_') || ((c) == '.') || \
+            ((c) == '+') || ((c) == '!') || ((c) == '*') || ((c) == '\'') || \
+            ((c) == '(') || ((c) == ')') || ((c) == ',') || ((c) == '/') \
+        )
+
+    unsigned int slash_counter = 0;
+    char *utf8unc = wcs2utf8str(cygwin_unc_buffer);
+    if (!utf8unc)
+        return;
+    char *utf8unc_p = utf8unc;
+    char *us = cygwin_nfsurl_buffer;
+
+#pragma warning( push )
+    /*
+     * Disable "'strcpy': This function or variable may be unsafe",
+     * in this context it is safe to use
+     */
+#pragma warning (disable : 4996)
+    (void)strcpy(us, "nfs://");
+#pragma warning( pop )
+    us+=6;
+
+    /* skip leading "//" */
+    utf8unc_p += 2;
+
+    for ( ; *utf8unc_p != '\0' ; ) {
+        char uc = *utf8unc_p++;
+
+        if (uc == '/')
+            slash_counter++;
+
+        /*
+         * Skip "nfs4", but not the last '/' to make the nfs://-URL
+         * an absolute URL, not a relative nfs://-URL.
+         * (This assumes that all input strings have "nfs4/"!)
+         */
+        if (slash_counter == 1) {
+            *us++ = uc;
+            utf8unc_p+=4;
+            continue;
+        }
+
+        if ((uc == '@') && (slash_counter == 0)) {
+            *us++ = ':';
+        }
+        else if (ISVALIDURLCHAR(uc)) {
+            *us++ = uc;
+        }
+        else {
+#pragma warning( push )
+    /*
+     * Disable "'sprintf': This function or variable may be unsafe",
+     * in this context it is safe to use
+     */
+#pragma warning (disable : 4996)
+            (void)sprintf(us, "%%%2.2x", uc);
+#pragma warning( pop )
+            us+=3;
+        }
+    }
+    *us = '\0';
+
+    (void)_tprintf(TEXT("%-8s\t%-50s\t%-50s\t%-50S\n"),
+        local, remote, cygwin_unc_buffer, cygwin_nfsurl_buffer);
+
+    free(utf8unc);
 }
 
 /* ENUM_RESOURCE_BUFFER_SIZE
@@ -94,8 +186,10 @@ DWORD EnumMounts(
     if (result)
         goto out_free;
 
-    _tprintf(TEXT("Listing '%s' mounts:\n\n"), TEXT(NFS41_PROVIDER_NAME_A));
-    _tprintf(TEXT("%-8s\t%-40s\t%s\n"), TEXT("Volume"), TEXT("Remote path"), TEXT("Cygwin UNC path"));
+    (void)_tprintf(TEXT("Listing '%s' mounts:\n\n"),
+        TEXT(NFS41_PROVIDER_NAME_A));
+    (void)_tprintf(TEXT("%-8s\t%-50s\t%-50s\t%-50S\n"),
+        TEXT("Volume"), TEXT("Remote path"), TEXT("Cygwin UNC path"), "URL");
 
     do
     {

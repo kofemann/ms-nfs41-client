@@ -293,7 +293,6 @@ static void ConvertUnixSlashes(
 }
 
 
-static
 char *wcs2utf8str(const wchar_t *wstr)
 {
     char *utf8str;
