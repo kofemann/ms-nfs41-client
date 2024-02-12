@@ -525,7 +525,11 @@ VOID ServiceStart(DWORD argc, LPTSTR *argv)
     set_debug_level(cmd_args.debug_level);
     open_log_files();
     nfsd_crt_debug_init();
+#ifdef NFS41_DRIVER_SID_CACHE
     sidcache_init();
+#else
+    DPRINTF(0, ("SID cache disabled\n"));
+#endif /* NFS41_DRIVER_SID_CACHE */
 
     /* acquire and store in global memory current dns domain name.
      * needed for acls */

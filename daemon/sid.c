@@ -176,11 +176,7 @@ BOOL allocate_unixgroup_sid(unsigned long gid, PSID *pSid)
 #endif /* NFS41_DRIVER_FEATURE_MAP_UNMAPPED_USER_TO_UNIXUSER_SID */
 
 
-/* fixme: should be in sys/nfs41_build_features.h */
-#define USE_SID_CACHE 1
-
-
-#ifdef USE_SID_CACHE
+#ifdef NFS41_DRIVER_SID_CACHE
 #define SIDCACHE_SIZE 20
 #define SIDCACHE_TTL 600
 
@@ -305,7 +301,7 @@ done:
     LeaveCriticalSection(&cache->lock);
     return ret_sid;
 }
-#endif /* USE_SID_CACHE */
+#endif /* NFS41_DRIVER_SID_CACHE */
 
 
 int map_nfs4servername_2_sid(nfs41_daemon_globals *nfs41dg, int query, DWORD *sid_len, PSID *sid, LPCSTR name)
@@ -328,17 +324,17 @@ int map_nfs4servername_2_sid(nfs41_daemon_globals *nfs41dg, int query, DWORD *si
         uid_t udummy = -1;
         gid_t gdummy = -1;
 
-#ifdef USE_SID_CACHE
+#ifdef NFS41_DRIVER_SID_CACHE
         if (*sid = sidcache_getcached(&user_sidcache, name)) {
             *sid_len = GetLengthSid(*sid);
             DPRINTF(1, ("map_nfs4servername_2_sid: returning cached sid for '%s'\n", name));
             return 0;
         }
-#endif /* USE_SID_CACHE */
+#endif /* NFS41_DRIVER_SID_CACHE */
 
-#ifndef USE_SID_CACHE
+#ifndef NFS41_DRIVER_SID_CACHE
         /* gisburn: fixme: We must cache this, or the performance impact will be devastating!! */
-#endif /* !USE_SID_CACHE */
+#endif /* !NFS41_DRIVER_SID_CACHE */
         if (!cygwin_getent_passwd(name, name_buff, &udummy, &gdummy)) {
             if (strcmp(name, name_buff)) {
                 DPRINTF(1,
@@ -486,14 +482,14 @@ int map_nfs4servername_2_sid(nfs41_daemon_globals *nfs41dg, int query, DWORD *si
         break;
     }
 out:
-#ifdef USE_SID_CACHE
+#ifdef NFS41_DRIVER_SID_CACHE
     if (*sid) {
         /* fixme: No other flags in |query| must be set!! */
         if (query & OWNER_SECURITY_INFORMATION) {
             sidcache_add(&user_sidcache, orig_name, *sid);
         }
     }
-#endif /* USE_SID_CACHE */
+#endif /* NFS41_DRIVER_SID_CACHE */
 
     return status;
 out_free_sid:

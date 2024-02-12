@@ -48,10 +48,9 @@
 #define NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN 1
 
 /*
- * NFS41_DRIVER_STABILITY_HACKS - use horrible
- * hacks to improve stabilty
+ * Enable cache for username/groupname to SID
  */
-#define NFS41_DRIVER_STABILITY_HACKS 1
+#define NFS41_DRIVER_SID_CACHE 1
 
 /*
  * NFS41_DRIVER_MOUNT_DOES_NFS4_PREFIX - nfs_mount.exe and
@@ -63,5 +62,11 @@
  * users madly.
  */
 #define NFS41_DRIVER_MOUNT_DOES_NFS4_PREFIX 1
+
+/*
+ * NFS41_DRIVER_STABILITY_HACKS - use horrible
+ * hacks to improve stabilty
+ */
+#define NFS41_DRIVER_STABILITY_HACKS 1
 
 #endif /* !_NFS41_DRIVER_BUILDFEATURES_ */
