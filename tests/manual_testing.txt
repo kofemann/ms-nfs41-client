@@ -1,5 +1,5 @@
 #
-# ms-nfs41-client manual testing sequence, 2024-01-05
+# ms-nfs41-client manual testing sequence, 2024-02-12
 #
 # Draft version, needs to be turned into automated tests
 # if possible
@@ -10,6 +10,20 @@
 # cygserver-config
 # net start cygserver
 # sc query cygserver
+
+#
+# Tests for cp -p/mv/chmod/chgrp
+# Testcases, all should print *ONLY* "OK" on stdout, nothing on stderr
+---- snip ----
+ksh93 -c 'builtin mv ; rm -f /tmp/x y ; touch /tmp/x ; mv /tmp/x y && print OK ; true'
+ksh93 -c 'builtin mv ; rm -f /tmp/x y ; touch /tmp/x ; cp -p /tmp/x y && print OK ; true'
+ksh93 -c 'builtin cp ; rm -f /tmp/x y ; touch /tmp/x ; cp -p /tmp/x y && print OK ; true'
+ksh93 -c 'builtin cp ; rm -f x y ; touch x ; cp -p /tmp/x y && print OK ; true'
+ksh93 -c 'builtin cp ; rm -f x y ; touch x ; cp -p x y && print OK ; true'
+ksh93 -c 'builtin cp ; rm -f x y ; touch x ; /usr/bin/cp -p x y && print OK ; true'
+ksh93 -c 'builtin id ; rm -f x ; touch x ; chown "$(id -u -n):$(id -g -n)" x && print OK'
+ksh93 -c 'builtin id ; rm -f x ; touch x ; chgrp "$(id -g -n)" x && print OK'
+---- snip ----
 
 
 #
