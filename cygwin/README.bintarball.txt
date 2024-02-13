@@ -25,6 +25,8 @@ NFSv4.1 client and filesystem driver for Windows 10/11
     client can use different ports per mount)
 
 - Support for nfs://-URL
+    * Why ? nfs://-URLs are crossplatform, portable and Character-Encoding
+      independent descriptions of NFSv4 server resources (exports).
     - including custom ports and raw IPv6 addresses
     - nfs://-URL conversion utility (/usr/bin/nfsurlconv) to convert
         URLs, including non-ASCII/Unicode characters in mount path
@@ -99,12 +101,14 @@ $ wget 'http://www.nrubsig.org/people/gisburn/work/msnfs41client/releases/testin
 #
 $ (cd / && tar -xf ~/download/msnfs41client_cygwin_binaries_git148e927_20231214_12h31m.tar.bz2 )
 $ /sbin/msnfs41client install
+<REBOOT>
 
 
 #
 # 6. Deinstallation:
 #
 $ (set -x ; cd / && tar -tf ~/download/msnfs41client_cygwin_binaries_git148e927_20231214_12h31m.tar.bz2 | while read i ; do [[ -f "$i" ]] && rm "$i" ; done)
+<REBOOT>
 
 
 #
@@ -162,6 +166,11 @@ $ /sbin/nfs_mount
   above get their SIDs, unknown users with valid uid/gid values get
   Unix_User+id/Unix_Group+id SIDs, and all others are mapped
   to nobody/nogroup SIDs.
+
+- Workflow for nfs://-URLs:
+  - Create nfs://-URLs with nfsurlconv, read $ nfsurlconv --man # for usage
+  - pass URL to nfs_mount.exe like this:
+    $ nfs_mount -o sec=sys,rw 'L' nfs://derfwnb4966_ipv4//bigdisk #
 
 - Cygwin symlinks are supported, but might require
   $ fsutil behavior set SymlinkEvaluation L2L:1 R2R:1 L2R:1 R2L:1 #.
