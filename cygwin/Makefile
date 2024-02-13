@@ -90,8 +90,8 @@ installdest: $(VS_BUILD_DIR)/nfsd.exe \
 		/usr/bin/ksh93 $(CYGWIN_MAKEFILE_DIR)/utils/mount_sshnfs/mount_sshnfs.ksh --nroff 2>"$(DESTDIR)/cygdrive/c/cygwin64/sbin/usr/share/man/man1/mount_sshnfs.1" || true
 	cp $(CYGWIN_MAKEFILE_DIR)/utils/sshnfs/sshnfs.ksh $(DESTDIR)/cygdrive/c/cygwin64/sbin/sshnfs
 	chmod a+x $(DESTDIR)/cygdrive/c/cygwin64/sbin/sshnfs
-	cp $(CYGWIN_MAKEFILE_DIR)/utils/nfsurlconv/nfsurlconv.ksh $(DESTDIR)/cygdrive/c/cygwin64/sbin/nfsurlconv
-	chmod a+x $(DESTDIR)/cygdrive/c/cygwin64/sbin/nfsurlconv
+	cp $(CYGWIN_MAKEFILE_DIR)/utils/nfsurlconv/nfsurlconv.ksh $(DESTDIR)/cygdrive/c/cygwin64/bin/nfsurlconv
+	chmod a+x $(DESTDIR)/cygdrive/c/cygwin64/bin/nfsurlconv
 	/usr/bin/ksh93 $(CYGWIN_MAKEFILE_DIR)/utils/nfsurlconv/nfsurlconv.ksh --nroff 2>"$(DESTDIR)/cygdrive/c/cygwin64/sbin/usr/share/man/man1/nfsurlconv.1" || true
 	@ printf "# Package tests\n"
 	cp "$(PROJECT_BASEDIR_DIR)/tests/winfsinfo1/winfsinfo.exe" $(DESTDIR)/cygdrive/c/cygwin64/bin/winfsinfo.exe
