@@ -55,7 +55,14 @@ ULONG _cdecl NFS41DbgPrint(__in LPTSTR fmt, ...)
     va_list marker;
     va_start(marker, fmt);
 
+#pragma warning( push )
+    /*
+     * Disable "'wcscpy': This function or variable may be unsafe",
+     * in this context it is safe to use
+     */
+#pragma warning (disable : 4996)
     (void)wcscpy(szbp, TRACE_TAG);
+#pragma warning( pop )
     szbp += wcslen(szbp);
 
     StringCchVPrintfW(szbp, SZBUFFER_SIZE-(szbp - szbuffer), fmt, marker);
