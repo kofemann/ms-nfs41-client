@@ -89,7 +89,7 @@ out:
     return status;
 }
 
-static unsigned int WINAPI thread_main(void *args)
+static unsigned int nfsd_worker_thread_main(void *args)
 {
     nfs41_daemon_globals *nfs41dg = (nfs41_daemon_globals *)args;
     DWORD status = 0;
@@ -163,6 +163,21 @@ write_downcall:
 
     return GetLastError();
 }
+
+static unsigned int WINAPI nfsd_thread_main(void *args)
+{
+    unsigned int res = 120 /* fixme: semi-random value */;
+
+    __try {
+        res = nfsd_worker_thread_main(args);
+    }
+    __except(EXCEPTION_EXECUTE_HANDLER ) {
+        eprintf("#### FATAL: Worker thread crashed with exception ####\n");
+    }
+
+    return res;
+}
+
 
 #ifndef STANDALONE_NFSD
 VOID ServiceStop()
@@ -595,7 +610,7 @@ VOID ServiceStart(DWORD argc, LPTSTR *argv)
     DPRINTF(1, ("Starting %d worker threads...\n",
         (int)nfs41_dg.num_worker_threads));
     for (i = 0; i < nfs41_dg.num_worker_threads; i++) {
-        tids[i].handle = (HANDLE)_beginthreadex(NULL, 0, thread_main,
+        tids[i].handle = (HANDLE)_beginthreadex(NULL, 0, nfsd_thread_main,
                 &nfs41_dg, 0, &tids[i].tid);
         if (tids[i].handle == INVALID_HANDLE_VALUE) {
             status = GetLastError();
