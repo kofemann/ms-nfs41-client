@@ -429,7 +429,7 @@ NPAddConnection3(
     __in DWORD          dwFlags)
 {
     DWORD   Status;
-    WCHAR   wszScratch[128];
+    WCHAR   wszScratch[1024];
     WCHAR   LocalName[3];
     DWORD   CopyBytes = 0;
     CONNECTION_INFO Connection;
@@ -525,6 +525,31 @@ NPAddConnection3(
     }
 #endif
 
+#if 1
+    /*
+     * Fold repeated backslash into a single backslash
+     * This is a workaround for nfs://-URLs like
+     * nfs://derfwnb4966_ipv4//////////net_tmpfs2//test2
+     * where multiple slashes somehow prevent Windows
+     * from looking up the path from the device letter
+     * (e.g. device letter does not show up in /cygdrive/).
+     * nfsd_daemon will still see the full path with all backslashes
+     * (e.g. "msg=mount(hostport='derfwnb4966_ipv4@2049',
+     * path='\\\\\\\\\net_tmpfs2\\test2')"
+     */
+    {
+        wchar_t *q, *u;
+        q = u = &p[i];
+
+        while(*q != L'\0') {
+            while((*q == '\\') && (*(q+1) == '\\'))
+                q++;
+            *u++ = *q++;
+        }
+        *u = L'\0';
+    }
+#endif
+
 #ifdef NFS41_DRIVER_MOUNT_DOES_NFS4_PREFIX
     if (wcsncmp(&p[i], L"\\nfs4", 5) != 0) {
         DbgP(( L"Connection name '%s' not prefixed with '\\nfs41'\n", &p[i]));
@@ -539,12 +564,14 @@ NPAddConnection3(
         (wcslen(ConnectionName) + 1) * sizeof(WCHAR),
         (lstrlen(ConnectionName) + 1) * sizeof(WCHAR)));
 
-    if ( QueryDosDevice( LocalName, wszScratch, 128 )
-        || GetLastError() != ERROR_FILE_NOT_FOUND) {
+    wszScratch[0] = L'\0';
+    Status = QueryDosDevice(LocalName, wszScratch, 1024);
+    DbgP((L"QueryDosDevice(lpDeviceName='%s',lpTargetPath='%s') "
+        L"returned %d/GetLastError()=%d\n",
+        LocalName, wszScratch, Status, (int)GetLastError()));
+
+    if (Status || (GetLastError() != ERROR_FILE_NOT_FOUND)) {
         Status = WN_ALREADY_CONNECTED;
-        DbgP((L"QueryDosDevice(LocalName='%s',wszScratch='%s') "
-            L"failed with status=%d",
-            LocalName, wszScratch, (int)GetLastError()));
         goto out;
     }
 
