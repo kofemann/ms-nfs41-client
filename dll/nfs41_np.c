@@ -3,6 +3,7 @@
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
+ * Roland Mainz <roland.mainz@nrubsig.org>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -40,24 +41,29 @@
 #else
 #define DbgP(_x_)
 #endif
-#define TRACE_TAG   L"[NFS41_NP]"
-#define WNNC_DRIVER( major, minor ) ( major * 0x00010000 + minor )
+#define TRACE_TAG   L"[NFS41_NP] "
+#define WNNC_DRIVER(major, minor) ((major * 0x00010000) + (minor))
 
 
-ULONG _cdecl NFS41DbgPrint( __in LPTSTR Format, ... )
+ULONG _cdecl NFS41DbgPrint(__in LPTSTR fmt, ...)
 {
     ULONG rc = 0;
-#define szbuffer_SIZE 256
-    TCHAR szbuffer[szbuffer_SIZE];
+#define SZBUFFER_SIZE 1024
+    wchar_t szbuffer[SZBUFFER_SIZE+1];
+    wchar_t *szbp = szbuffer;
 
     va_list marker;
-    va_start( marker, Format );
-    {
-        StringCchVPrintfW( szbuffer, szbuffer_SIZE, Format, marker );
-        szbuffer[szbuffer_SIZE-1] = (TCHAR)0;
-        OutputDebugString( TRACE_TAG );
-        OutputDebugString( szbuffer );
-    }
+    va_start(marker, fmt);
+
+    (void)wcscpy(szbp, TRACE_TAG);
+    szbp += wcslen(szbp);
+
+    StringCchVPrintfW(szbp, SZBUFFER_SIZE-(szbp - szbuffer), fmt, marker);
+    szbuffer[SZBUFFER_SIZE-1] = L'\0';
+
+    OutputDebugString(szbuffer);
+
+    va_end(marker);
 
     return rc;
 }
@@ -201,11 +207,13 @@ static DWORD StoreConnectionInfo(
     INT Index;
     BOOLEAN FreeEntryFound = FALSE;
 
+    DbgP((L"--> StoreConnectionInfo\n"));
+
     status = OpenSharedMemory(&hMutex, &hMemory, &(PVOID)pSharedMemory);
     if (status)
         goto out;
 
-    DbgP((TEXT("StoreConnectionInfo: NextIndex %d, NumResources %d\n"),
+    DbgP((L"StoreConnectionInfo: NextIndex %d, NumResources %d\n",
         pSharedMemory->NextAvailableIndex,
         pSharedMemory->NumberOfResourcesInUse));
 
@@ -257,6 +265,8 @@ static DWORD StoreConnectionInfo(
 out_close:
     CloseSharedMemory(&hMutex, &hMemory, &(PVOID)pSharedMemory);
 out:
+    DbgP((TEXT("<-- StoreConnectionInfo returns %d\n"), (int)status));
+
     return status;
 }
 
@@ -272,8 +282,10 @@ SendTo_NFS41Driver(
     BOOL    rc = FALSE;
     ULONG   Status;
 
+    DbgP((TEXT("--> SendTo_NFS41Driver\n")));
+
     Status = WN_SUCCESS;
-    DbgP((L"[aglo] calling CreateFile\n"));
+    DbgP((L"calling CreateFile\n"));
     DeviceHandle = CreateFile(
         NFS41_USER_DEVICE_NAME,
         GENERIC_READ | GENERIC_WRITE,
@@ -283,11 +295,11 @@ SendTo_NFS41Driver(
         0,
         (HANDLE) NULL );
 
-    DbgP((L"[aglo] after CreateFile Device Handle\n"));
+    DbgP((L"after CreateFile Device Handle\n"));
     if ( INVALID_HANDLE_VALUE != DeviceHandle )
     {
         __try {
-        DbgP((L"[aglo] calling DeviceIoControl\n"));
+        DbgP((L"calling DeviceIoControl\n"));
         rc = DeviceIoControl(
             DeviceHandle,
             IoctlCode,
@@ -300,24 +312,24 @@ SendTo_NFS41Driver(
         } __except(filter(GetExceptionCode())) {
             DbgP((L"#### In except\n"));
         }
-        DbgP((L"[aglo] returned from DeviceIoControl %08lx\n", rc));
+        DbgP((L"returned from DeviceIoControl %08lx\n", rc));
             if ( !rc )
             {
-                DbgP((L"[aglo] SendTo_NFS41Driver: returning error from DeviceIoctl\n"));
+                DbgP((L"SendTo_NFS41Driver: returning error from DeviceIoctl\n"));
                 Status = GetLastError( );
             }
             else
             {
-                DbgP((L"[aglo] SendTo_NFS41Driver: The DeviceIoctl call succeded\n"));
+                DbgP((L"SendTo_NFS41Driver: The DeviceIoctl call succeded\n"));
             }
             CloseHandle(DeviceHandle);
     }
     else
     {
         Status = GetLastError( );
-        DbgP((L"[aglo] SendTo_NFS41Driver: error %08lx opening device \n", Status));
+        DbgP((L"SendTo_NFS41Driver: error %08lx opening device \n", Status));
     }
-    DbgP((L"[aglo] returned from SendTo_NFS41Driver %08lx\n", Status));
+    DbgP((TEXT("<-- SendTo_NFS41Driver returns %d\n"), Status));
     return Status;
 }
 
@@ -327,7 +339,7 @@ NPGetCaps(
 {
    DWORD rc = 0;
 
-    DbgP(( L"[aglo] GetNetCaps %d\n", nIndex ));
+    DbgP(( L"GetNetCaps %d\n", nIndex ));
     switch ( nIndex )
     {
         case WNNC_SPEC_VERSION:
@@ -364,7 +376,7 @@ NPGetCaps(
             rc = 0;
             break;
     }
-    
+
     return rc;
 }
 
@@ -380,7 +392,7 @@ NPLogonNotify(
     __out PWSTR  *lpLogonScript)
 {
     *lpLogonScript = NULL;
-    DbgP(( L"[aglo] NPLogonNotify: returning WN_SUCCESS\n" ));
+    DbgP(( L"NPLogonNotify: returning WN_SUCCESS\n" ));
     return WN_SUCCESS;
 }
 
@@ -394,7 +406,7 @@ NPPasswordChangeNotify (
     LPVOID  StationHandle,
     DWORD   dwChangeInfo )
 {
-    DbgP(( L"[aglo] NPPasswordChangeNotify: WN_NOT_SUPPORTED\n" ));
+    DbgP(( L"NPPasswordChangeNotify: WN_NOT_SUPPORTED\n" ));
     SetLastError( WN_NOT_SUPPORTED );
     return WN_NOT_SUPPORTED;
 }
@@ -426,15 +438,16 @@ NPAddConnection3(
     PWCHAR p;
     DWORD i;
 
-    DbgP(( L"[aglo] NPAddConnection3('%s', '%s')\n",
-        lpNetResource->lpLocalName, lpNetResource->lpRemoteName ));
-    DbgP(( L"[aglo] username = '%s', passwd = '%s'\n", lpUserName, lpPassword));
+    DbgP((L"-->  NPAddConnection3(lpNetResource->lpLocalName='%s', "
+        L"lpNetResource->lpRemoteName='%s', "
+        L"username='%s', passwd='%s')\n",
+        lpNetResource->lpLocalName, lpNetResource->lpRemoteName, lpUserName, lpPassword));
 
     Status = InitializeConnectionInfo(&Connection,
         (PMOUNT_OPTION_BUFFER)lpNetResource->lpComment,
         &ConnectionName);
     if (Status)  {
-        DbgP(( L"InitializeConnectionInfo failed with %d\n", Status ));
+        DbgP((L"InitializeConnectionInfo failed with %d\n", Status));
         goto out;
     }
 
@@ -443,6 +456,8 @@ NPAddConnection3(
     // local name, must start with "X:"
     if (lstrlen(lpNetResource->lpLocalName) < 2 ||
         lpNetResource->lpLocalName[1] != L':') {
+        DbgP((L"lpNetResource->lpLocalName(='%s') is not a device letter\n",
+            lpNetResource->lpLocalName));
         Status = WN_BAD_LOCALNAME;
         goto out;
     }
@@ -512,21 +527,24 @@ NPAddConnection3(
 
 #ifdef NFS41_DRIVER_MOUNT_DOES_NFS4_PREFIX
     if (wcsncmp(&p[i], L"\\nfs4", 5) != 0) {
-        DbgP(( L"[nfs41_np] Connection name '%s' not prefixed with '\\nfs41'\n", &p[i]));
+        DbgP(( L"Connection name '%s' not prefixed with '\\nfs41'\n", &p[i]));
         Status = WN_BAD_NETNAME;
         goto out;
     }
 #endif /* NFS41_DRIVER_MOUNT_DOES_NFS4_PREFIX */
 
     StringCchCatW( ConnectionName, NFS41_SYS_MAX_PATH_LEN, &p[i]);
-    DbgP(( L"[aglo] Full Connect Name: %s\n", ConnectionName ));
-    DbgP(( L"[aglo] Full Connect Name Length: %d %d\n",
+    DbgP(( L"Full Connect Name: '%s'\n", ConnectionName ));
+    DbgP(( L"Full Connect Name Length: %d %d\n",
         (wcslen(ConnectionName) + 1) * sizeof(WCHAR),
         (lstrlen(ConnectionName) + 1) * sizeof(WCHAR)));
 
     if ( QueryDosDevice( LocalName, wszScratch, 128 )
         || GetLastError() != ERROR_FILE_NOT_FOUND) {
         Status = WN_ALREADY_CONNECTED;
+        DbgP((L"QueryDosDevice(LocalName='%s',wszScratch='%s') "
+            L"failed with status=%d",
+            LocalName, wszScratch, (int)GetLastError()));
         goto out;
     }
 
@@ -535,18 +553,20 @@ NPAddConnection3(
     Status = SendTo_NFS41Driver( IOCTL_NFS41_ADDCONN,
         Connection.Buffer, Connection.BufferSize,
         NULL, &CopyBytes );
+    DbgP(( L"SendTo_NFS41Driver() returned %d\n", Status));
     if (Status) {
-        DbgP(( L"[aglo] SendTo_NFS41Driver failed with %d\n", Status));
         goto out;
     }
 
-    DbgP(( L"[aglo] calling DefineDosDevice\n"));
+    DbgP((L"DefineDosDevice(lpNetResource->lpLocalName='%s',ConnectionName='%s')\n", lpNetResource->lpLocalName, ConnectionName));
     if ( !DefineDosDevice( DDD_RAW_TARGET_PATH |
                            DDD_NO_BROADCAST_SYSTEM,
                            lpNetResource->lpLocalName,
                            ConnectionName ) ) {
         Status = GetLastError();
-        DbgP(( L"[aglo] DefineDosDevice failed with %d\n", Status));
+        DbgP(( L"DefineDosDevice(lpNetResource->lpLocalName='%s',"
+            L"ConnectionName='%s') failed with %d\n",
+            lpNetResource->lpLocalName, ConnectionName, Status));
         goto out_delconn;
     }
 
@@ -555,13 +575,13 @@ NPAddConnection3(
     Status = StoreConnectionInfo(LocalName, ConnectionName,
         Connection.Buffer->NameLength, lpNetResource);
     if (Status) {
-        DbgP(( L"[aglo] StoreConnectionInfo failed with %d\n", Status));
+        DbgP(( L"StoreConnectionInfo failed with %d\n", Status));
         goto out_undefine;
     }
 
 out:
     FreeConnectionInfo(&Connection);
-    DbgP(( L"[aglo] NPAddConnection3: status %08X\n", Status));
+    DbgP((TEXT("<-- NPAddConnection3 returns %d\n"), (int)Status));
     return Status;
 out_undefine:
     DefineDosDevice(DDD_REMOVE_DEFINITION | DDD_RAW_TARGET_PATH |
@@ -582,8 +602,8 @@ NPCancelConnection(
     HANDLE  hMutex, hMemory;
     PNFS41NP_SHARED_MEMORY  pSharedMemory;
 
-    DbgP((TEXT("NPCancelConnection\n")));
-    DbgP((TEXT("NPCancelConnection: ConnectionName: %S\n"), lpName));
+    DbgP((TEXT("--> NPCancelConnection(lpName='%s', fForce=%d)\n"),
+        lpName, (int)fForce));
 
     Status = OpenSharedMemory( &hMutex,
                                &hMemory,
@@ -605,9 +625,9 @@ NPCancelConnection(
 
             if (pNetResource->InUse)
             {
-                if ( ( (wcslen(lpName) + 1) * sizeof(WCHAR) == 
+                if ( ( (wcslen(lpName) + 1) * sizeof(WCHAR) ==
                         pNetResource->LocalNameLength)
-                        && ( !wcscmp(lpName, pNetResource->LocalName) )) 
+                        && ( !wcscmp(lpName, pNetResource->LocalName) ))
                 {
                     ULONG CopyBytes;
 
@@ -645,7 +665,7 @@ NPCancelConnection(
                     break;
                 }
 
-                DbgP((TEXT("NPCancelConnection: Name %S EntryName %S\n"),
+                DbgP((TEXT("NPCancelConnection: Name '%s' EntryName '%s'\n"),
                             lpName,pNetResource->LocalName));
                 DbgP((TEXT("NPCancelConnection: Name Length %d Entry Name Length %d\n"),
                            pNetResource->LocalNameLength,pNetResource->LocalName));
@@ -658,6 +678,7 @@ NPCancelConnection(
                           (PVOID)&pSharedMemory);
     }
 
+    DbgP((TEXT("<-- NPCancelConnection returns %d\n"), (int)Status));
     return Status;
 }
 
@@ -671,6 +692,8 @@ NPGetConnection(
 
     HANDLE  hMutex, hMemory;
     PNFS41NP_SHARED_MEMORY  pSharedMemory;
+
+    DbgP((TEXT("--> NPGetConnection(lpLocalName='%s')\n"), lpLocalName));
 
     Status = OpenSharedMemory( &hMutex,
                                &hMemory,
@@ -688,9 +711,9 @@ NPGetConnection(
 
             if (pNetResource->InUse)
             {
-                if ( ( (wcslen(lpLocalName) + 1) * sizeof(WCHAR) == 
+                if ( ( (wcslen(lpLocalName) + 1) * sizeof(WCHAR) ==
                         pNetResource->LocalNameLength)
-                        && ( !wcscmp(lpLocalName, pNetResource->LocalName) )) 
+                        && ( !wcscmp(lpLocalName, pNetResource->LocalName) ))
                 {
                     if (*lpBufferSize < pNetResource->RemoteNameLength)
                     {
@@ -713,6 +736,8 @@ NPGetConnection(
         CloseSharedMemory( &hMutex, &hMemory, (PVOID)&pSharedMemory);
     }
 
+    DbgP((TEXT("<-- NPGetConnection returns %d\n"), (int)Status));
+
     return Status;
 }
 
@@ -726,7 +751,8 @@ NPOpenEnum(
 {
     DWORD   Status;
 
-    DbgP((L"[aglo] NPOpenEnum\n"));
+    DbgP((L" --> NPOpenEnum(dwScope=%d, dwType=%d, dwUsage=%d)\n",
+        (int)dwScope, (int)dwType, (int)dwUsage));
 
     *lphEnum = NULL;
 
@@ -755,7 +781,7 @@ NPOpenEnum(
     }
 
 
-    DbgP((L"[aglo] NPOpenEnum returning Status %lx\n",Status));
+    DbgP((L"<-- NPOpenEnum returns %d\n", (int)Status));
 
     return(Status);
 }
@@ -778,16 +804,13 @@ NPEnumResource(
     PNFS41NP_NETRESOURCE pNfsNetResource;
     INT  Index = *(PULONG)hEnum;
 
-
-    DbgP((L"[aglo] NPEnumResource\n"));
-
-    DbgP((L"[aglo] NPEnumResource Count Requested %d\n", *lpcCount));
+    DbgP((L"--> NPEnumResource(*lpcCount=%d)\n", (int)*lpcCount));
 
     pNetResource = (LPNETRESOURCE) lpBuffer;
     SpaceAvailable = *lpBufferSize;
     EntriesCopied = 0;
     StringZone = (PWCHAR) ((PBYTE)lpBuffer + *lpBufferSize);
-    
+
     Status = OpenSharedMemory( &hMutex,
                                &hMemory,
                                (PVOID)&pSharedMemory);
@@ -795,7 +818,7 @@ NPEnumResource(
     if ( Status == WN_SUCCESS)
     {
         Status = WN_NO_MORE_ENTRIES;
-        for (Index = *(PULONG)hEnum; EntriesCopied < *lpcCount && 
+        for (Index = *(PULONG)hEnum; EntriesCopied < *lpcCount &&
                 Index < pSharedMemory->NextAvailableIndex; Index++)
         {
             pNfsNetResource = &pSharedMemory->NetResources[Index];
@@ -810,7 +833,7 @@ NPEnumResource(
                 if ( SpaceNeeded > SpaceAvailable )
                 {
                     Status = WN_MORE_DATA;
-                    DbgP((L"[aglo] NPEnumResource More Data Needed - %d\n", SpaceNeeded));
+                    DbgP((L"NPEnumResource More Data Needed - %d\n", SpaceNeeded));
                     *lpBufferSize = SpaceNeeded;
                     break;
                 }
@@ -863,7 +886,7 @@ NPEnumResource(
     *lpcCount = EntriesCopied;
     *(PULONG) hEnum = Index;
 
-    DbgP((L"[aglo] NPEnumResource entries returned: %d\n", EntriesCopied));
+    DbgP((L"<-- NPEnumResource returns: %d\n", (int)EntriesCopied));
 
     return Status;
 }
@@ -872,7 +895,7 @@ DWORD APIENTRY
 NPCloseEnum(
     HANDLE hEnum )
 {
-    DbgP((L"[aglo] NPCloseEnum\n"));
+    DbgP((L"NPCloseEnum\n"));
     HeapFree( GetProcessHeap( ), 0, (PVOID) hEnum );
     return WN_SUCCESS;
 }
@@ -883,7 +906,7 @@ NPGetResourceParent(
     LPVOID  lpBuffer,
     LPDWORD lpBufferSize )
 {
-    DbgP(( L"[aglo] NPGetResourceParent: WN_NOT_SUPPORTED\n" ));
+    DbgP(( L"NPGetResourceParent: WN_NOT_SUPPORTED\n" ));
     return WN_NOT_SUPPORTED;
 }
 
@@ -894,7 +917,7 @@ NPGetResourceInformation(
     __inout LPDWORD lpBufferSize,
     __deref_out LPWSTR *lplpSystem )
 {
-    DbgP(( L"[aglo] NPGetResourceInformation: WN_NOT_SUPPORTED\n" ));
+    DbgP(( L"NPGetResourceInformation: WN_NOT_SUPPORTED\n" ));
     return WN_NOT_SUPPORTED;
 }
 
@@ -905,6 +928,7 @@ NPGetUniversalName(
     LPVOID  lpBuffer,
     LPDWORD lpBufferSize )
 {
-    DbgP(( L"[aglo] NPGetUniversalName: WN_NOT_SUPPORTED\n" ));
+    DbgP(( L"NPGetUniversalName(lpLocalPath='%s', dwInfoLevel=%d): WN_NOT_SUPPORTED\n",
+        lpLocalPath, (int)dwInfoLevel));
     return WN_NOT_SUPPORTED;
 }
