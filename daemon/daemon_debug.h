@@ -102,6 +102,7 @@ void print_sr_status_flags(int level, int flags);
 void open_log_files();
 void close_log_files();
 const char* secflavorop2name(DWORD sec_flavor);
+void print_nfs41_file_info(const char *label, void *vinfo);
 
 /* pnfs_debug.c */
 enum pnfs_status;

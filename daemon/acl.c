@@ -578,11 +578,15 @@ static int map_nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid, char *who_o
 add_domain:
     memcpy(who_out+size, "@", sizeof(char));
     memcpy(who_out+size+1, domain, strlen(domain)+1);
-    DPRINTF(ACLLVL, ("map_nfs4ace_who: who='%s'\n", who_out));
     if (who) free(who);
     status = ERROR_SUCCESS;
 out:
-    DPRINTF(ACLLVL, ("<-- map_nfs4ace_who() returns %d\n", status));
+    if (status) {
+        DPRINTF(ACLLVL, ("<-- map_nfs4ace_who() returns %d\n", status));
+    }
+    else {
+        DPRINTF(ACLLVL, ("<-- map_nfs4ace_who(who_out='%s') returns %d\n", who_out, status));
+    }
     if (sidstr)
         LocalFree(sidstr);
     return status;
@@ -760,11 +764,19 @@ static int handle_setacl(void *daemon_context, nfs41_upcall *upcall)
         OPEN_DELEGATE_WRITE, FALSE);
 
     nfs41_open_stateid_arg(state, &stateid);
+    if (DPRINTF_LEVEL_ENABLED(ACLLVL)) {
+        print_nfs41_file_info("handle_setacl: nfs41_setattr() info IN:", &info);
+    }
     status = nfs41_setattr(state->session, &state->file, &stateid, &info);
     if (status) {
         DPRINTF(ACLLVL, ("handle_setacl: nfs41_setattr() failed with error '%s'.\n",
                 nfs_error_string(status)));
         status = nfs_to_windows_error(status, ERROR_NOT_SUPPORTED);
+    }
+    else {
+        if (DPRINTF_LEVEL_ENABLED(ACLLVL)) {
+            print_nfs41_file_info("handle_setacl: nfs41_setattr() success info OUT:", &info);
+        }
     }
     args->ctime = info.change;
     if (args->query & DACL_SECURITY_INFORMATION)

@@ -731,3 +731,74 @@ void print_nfs_access_mask(int on, int m)
     if (m & ACE4_SYNCHRONIZE)
         dprintf_out("\tACE4_SYNCHRONIZE\n");
 }
+
+
+void print_nfs41_file_info(
+    const char *label,
+    const void *vinfo)
+{
+    const nfs41_file_info *info = vinfo;
+    char buf[512];
+    char *p;
+
+    buf[0] = '\0';
+    p = buf;
+
+#define PRNFS41FI_FMT(str, arg) \
+    p += snprintf(p, (sizeof(buf)-(p-buf)), (str), (arg))
+
+    PRNFS41FI_FMT("attrmask.count=%d, ", (int)info->attrmask.count);
+
+    if (info->attrmask.count >= 1) {
+        PRNFS41FI_FMT("{ attrmask.arr[0]=0x%x, ", (int)info->attrmask.arr[0]);
+        if (info->attrmask.arr[0] & FATTR4_WORD0_TYPE)
+            PRNFS41FI_FMT("type=%d, ", (int)(info->type & NFS_FTYPE_MASK));
+        if (info->attrmask.arr[0] & FATTR4_WORD0_CHANGE)
+            PRNFS41FI_FMT("change=%lld, ", (long long)info->change);
+        if (info->attrmask.arr[0] & FATTR4_WORD0_SIZE)
+            PRNFS41FI_FMT("size=%lld, ", (long long)info->size);
+        if (info->attrmask.arr[0] & FATTR4_WORD0_HIDDEN)
+            PRNFS41FI_FMT("hidden=%d, ", (int)info->hidden);
+        if (info->attrmask.arr[0] & FATTR4_WORD0_ARCHIVE)
+            PRNFS41FI_FMT("archive=%d, ", (int)info->archive);
+        p += snprintf(p, (sizeof(buf)-(p-buf)), "} ");
+    }
+    if (info->attrmask.count >= 2) {
+        PRNFS41FI_FMT("{ attrmask.arr[1]=0x%x, ", (int)info->attrmask.arr[1]);
+        if (info->attrmask.arr[1] & FATTR4_WORD1_MODE)
+            PRNFS41FI_FMT("mode=0x%lx, ", (long)info->mode);
+        if (info->attrmask.arr[1] & FATTR4_WORD1_OWNER) {
+            EASSERT(info->owner != NULL);
+            PRNFS41FI_FMT("owner='%s', ", info->owner);
+        }
+        if (info->attrmask.arr[1] & FATTR4_WORD1_OWNER_GROUP) {
+            EASSERT(info->owner_group != NULL);
+            PRNFS41FI_FMT("owner_group='%s', ", info->owner_group);
+        }
+        if (info->attrmask.arr[1] & FATTR4_WORD1_NUMLINKS)
+            PRNFS41FI_FMT("numlinks=%ld, ", (long)info->numlinks);
+        if (info->attrmask.arr[1] & FATTR4_WORD1_TIME_ACCESS) {
+            p += snprintf(p, (sizeof(buf)-(p-buf)),
+                "time_access=(%lds/%ldns), ",
+                (long)info->time_access.seconds,
+                (long)info->time_access.nseconds);
+        }
+        if (info->attrmask.arr[1] & FATTR4_WORD1_TIME_CREATE) {
+            p += snprintf(p, (sizeof(buf)-(p-buf)),
+                "time_create=(%lds/%ldns), ",
+                (long)info->time_create.seconds,
+                (long)info->time_create.nseconds);
+        }
+        if (info->attrmask.arr[1] & FATTR4_WORD1_TIME_MODIFY) {
+            p += snprintf(p, (sizeof(buf)-(p-buf)),
+                "time_modify=(%lds/%ldns), ",
+                (long)info->time_modify.seconds,
+                (long)info->time_modify.nseconds);
+        }
+        if (info->attrmask.arr[1] & FATTR4_WORD1_SYSTEM)
+            PRNFS41FI_FMT("system=%d, ", (int)info->system);
+        p += snprintf(p, (sizeof(buf)-(p-buf)), "} ");
+    }
+
+    dprintf_out("%s={ %s }\n", label, buf);
+}
