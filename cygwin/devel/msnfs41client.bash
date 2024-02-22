@@ -202,6 +202,18 @@ function nfsclient_rundeamon
 				'--crtdbgmem' 'none'
 			)
 		"${nfsd_args[@]}"
+	elif false ; then
+		typeset -i vsdiagnostics_id=50
+		VSDiagnostics \
+			start ${vsdiagnostics_id} \
+			"/launch:$(cygpath -w "$PWD/nfsd_debug.exe")" \
+			"/launchArgs:${nfsd_args[*]:1}" \
+			"/loadConfig:$(cygpath -w "${vsdiagnostics_path}/AgentConfigs/CpuUsageHigh.json")"
+		printf '#\n'
+		printf '# use\n'
+		printf '# $ "%s" stop %d /output:nfsd_debug%d # to correct profiling data\n#\n' \
+			"$(which -a 'VSDiagnostics.exe')" \
+			"${vsdiagnostics_id}" "$$"
 	else
 		"${nfsd_args[@]}"
 	fi
@@ -283,7 +295,20 @@ function nfsclient_system_rundeamon
 				'--crtdbgmem' 'none'
 			)
 		"${nfsd_args[@]}"
+	elif false ; then
+		typeset -i vsdiagnostics_id=50
+		VSDiagnostics \
+			start ${vsdiagnostics_id} \
+			"/launch:$(cygpath -w "$PWD/nfsd_debug.exe")" \
+			"/launchArgs:${nfsd_args[*]:1}" \
+			"/loadConfig:$(cygpath -w "${vsdiagnostics_path}/AgentConfigs/CpuUsageHigh.json")"
+		printf '#\n'
+		printf '# use\n'
+		printf '# $ "%s" stop %d /output:nfsd_debug%d # to correct profiling data\n#\n' \
+			"$(which -a 'VSDiagnostics.exe')" \
+			"${vsdiagnostics_id}" "$$"
 	else
+
 		"${nfsd_args[@]}"
 	fi
 	return $?
@@ -406,6 +431,10 @@ function main
 
 	# path to WinDBG cdb (fixme: 64bit x86-specific)
 	PATH+=':/cygdrive/c/Program Files (x86)/Windows Kits/10/Debuggers/x64/'
+
+	# PATH to VSDiagnostics.exe and AgentConfigs
+	vsdiagnostics_path='/cygdrive/c/Program Files (x86)/Microsoft Visual Studio/2019/Community/Team Tools/DiagnosticsHub/Collector/'
+	PATH+=":${vsdiagnostics_path}"
 
 	# my own path to pstools
 	PATH+=':/home/roland_mainz/work/win_pstools/'
