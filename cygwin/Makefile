@@ -51,7 +51,7 @@ installdest: $(VS_BUILD_DIR)/nfsd.exe \
 	$(PROJECT_BASEDIR_DIR)/etc_netconfig \
 	$(PROJECT_BASEDIR_DIR)/ms-nfs41-idmap.conf \
 	$(CYGWIN_MAKEFILE_DIR)/devel/msnfs41client.bash
-	@if [[ "$$(ps -ef)" =~ "$(DESTDIR)" ]] ; then \
+	@if [[ "$$(ps -ef | grep -v -E "[[:space:]]+$${BASH_PID}[[:space:]]+")" =~ "$(DESTDIR)" ]] ; then \
 		printf 'DIR %q is in use by a process\n' "$DESTDIR" 1>&2 ; \
 		exit 1 ; \
 	fi
