@@ -517,6 +517,24 @@ int map_nfs4servername_2_sid(nfs41_daemon_globals *nfs41dg, int query, DWORD *si
 out:
 #ifdef NFS41_DRIVER_SID_CACHE
     if ((status == 0) && *sid) {
+        if ((query & GROUP_SECURITY_INFORMATION) &&
+            (sid_type == SidTypeAlias)) {
+            /*
+             * Treat |SidTypeAlias| as (local) group
+             *
+             * It seems that |LookupAccountNameA()| will always return
+             * |SidTypeAlias| for local groups created with
+             * $ net localgroup cygwingrp1 /add #
+             *
+             * References:
+             * - https://stackoverflow.com/questions/39373188/lookupaccountnamew-returns-sidtypealias-but-expected-sidtypegroup
+             */
+            DPRINTF(1, ("map_nfs4servername_2_sid(query=%x,name='%s'): "
+                "SID_TYPE='SidTypeAlias' mapped to 'SidTypeGroup'\n",
+                query, orig_name, sid_type));
+            sid_type = SidTypeGroup;
+        }
+
         switch (sid_type) {
             case SidTypeUser:
                 sidcache_add(&user_sidcache, orig_name, *sid);
