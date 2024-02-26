@@ -60,18 +60,39 @@ int nfs41_cached_getattr(
 static int parse_getattr(unsigned char *buffer, uint32_t length, nfs41_upcall *upcall)
 {
     int status;
+
 #ifdef NFS41_DRIVER_STABILITY_HACKS
     EASSERT(length > 4);
     if (length <= 4) {
         status = ERROR_INVALID_PARAMETER;
         goto out;
     }
+
     EASSERT_IS_VALID_NON_NULL_PTR(upcall->state_ref);
     if (!DEBUG_IS_VALID_NON_NULL_PTR(upcall->state_ref)) {
         status = ERROR_INVALID_PARAMETER;
         goto out;
     }
+
+    /*
+     * If |upcall->state_ref| is garbage, then this should trigger
+     * an exception
+     */
+    volatile int ok = 0;
+    __try {
+        if (upcall->state_ref->session->client->server != NULL)
+            ok++;
+    }
+    __except(EXCEPTION_EXECUTE_HANDLER) {
+        eprintf("parse_getattr: Exception accessing upcall->state_ref->session->client->server\n");
+    }
+    if (ok != 1) {
+        status = ERROR_INVALID_PARAMETER;
+        goto out;
+    }
+    EASSERT(upcall->state_ref->ref_count > 0);
 #endif /* NFS41_DRIVER_STABILITY_HACKS */
+
     getattr_upcall_args *args = &upcall->args.getattr;
     status = safe_read(&buffer, &length, &args->query_class, sizeof(args->query_class));
     if (status) goto out;
