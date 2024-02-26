@@ -335,15 +335,41 @@ int wintirpc_accept(int in_s_fd, struct sockaddr *addr, int *addrlen)
 	return out_s_fd;
 }
 
-int wintirpc_send(int s, const char *buf, int len, int flags)
+wintirpc_ssize_t wintirpc_send(int s, const char *buf, size_t len, int flags)
 {
-	return send(_get_osfhandle(s), buf, len, flags);
+	/* handle type overflow |size_t| ---> |int| */
+	assert(len < INT_MAX);
+	return send(_get_osfhandle(s), buf, (int)len, flags);
 }
 
-int wintirpc_sendto(int s, const char *buf, int len, int flags,
-	const struct sockaddr *to, int tolen)
+wintirpc_ssize_t wintirpc_sendto(int s, const char *buf, size_t len, int flags,
+	const struct sockaddr *to, socklen_t tolen)
 {
-	return(sendto(_get_osfhandle(s), buf, len, flags, to, tolen));
+	/* handle type overflow |size_t| ---> |int| */
+	assert(len < INT_MAX);
+	return(sendto(_get_osfhandle(s), buf, (int)len, flags, to, tolen));
+}
+
+wintirpc_ssize_t wintirpc_recv(int socket, void *buffer, size_t length, int flags)
+{
+	/* handle type overflow |size_t| ---> |int| */
+	assert(length < INT_MAX);
+	return recv(_get_osfhandle(socket), buffer, (int)length, flags);
+}
+
+wintirpc_ssize_t wintirpc_recvfrom(int socket, void *restrict buffer, size_t length,
+           int flags, struct sockaddr *restrict address,
+           socklen_t *restrict address_len)
+{
+	/* handle type overflow |size_t| ---> |int| */
+	assert(length < INT_MAX);
+	return recvfrom(_get_osfhandle(socket), buffer, (int)length,
+		flags, address, address_len);
+}
+
+int wintirpc_getsockname(int s, struct sockaddr *name, int *namelen)
+{
+	return getsockname(_get_osfhandle(s), name, namelen);
 }
 
 void wintirpc_syslog(int prio, const char *format, ...)

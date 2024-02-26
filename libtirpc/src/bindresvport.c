@@ -87,7 +87,7 @@ bindresvport_sa(sd, sa)
                 salen = sizeof(myaddr);
                 sa = (struct sockaddr *)&myaddr;
 
-                if (getsockname(_get_osfhandle(sd), (struct sockaddr *)&myaddr, &salen) == -1)
+                if (wintirpc_getsockname(sd, (struct sockaddr *)&myaddr, &salen) == -1)
                         return -1;      /* errno is correctly set */
 
                 af = myaddr.ss_family;
@@ -191,7 +191,7 @@ bindresvport_sa(sd, sa)
 		}
 		af = proto_info.iAddressFamily;
 #else
-		if (getsockname(_get_osfhandle(sd), sa, &salen) == -1)
+		if (wintirpc_getsockname(sd, sa, &salen) == -1)
 			return -1;	/* errno is correctly set */
 
 		af = sa->sa_family;
@@ -260,7 +260,7 @@ bindresvport_sa(sd, sa)
 
 		if (sa != (struct sockaddr *)&myaddr) {
 			/* Hmm, what did the kernel assign? */
-			if (getsockname(_get_osfhandle(sd), sa, &salen) < 0)
+			if (wintirpc_getsockname(sd, sa, &salen) < 0)
 				errno = saved_errno;
 			return (error);
 		}

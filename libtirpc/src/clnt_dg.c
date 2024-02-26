@@ -502,7 +502,7 @@ get_reply:
 
 	/* We have some data now */
 	do {
-		recvlen = recvfrom(_get_osfhandle(cu->cu_fd), cu->cu_inbuf,
+		recvlen = wintirpc_recvfrom(cu->cu_fd, cu->cu_inbuf,
 		    cu->cu_recvsz, 0, NULL, NULL);
 		errno = WSAGetLastError();
 	} while (recvlen == SOCKET_ERROR && errno == WSAEINTR);

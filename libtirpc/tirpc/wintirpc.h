@@ -129,14 +129,28 @@ struct sockaddr_un {
 /* XXX Should this return size_t or unsigned int ?? */
 #define SUN_LEN(ptr) ((unsigned int)(sizeof(int) + strlen ((ptr)->sun_path)))
 
+/*
+ * Define our own version of signed |size_t| because Win32 does not
+ * have |ssize_t|
+ */
+typedef SSIZE_T wintirpc_ssize_t;
+
 /* Prototypes */
 int wintirpc_socket(int af,int type, int protocol);
 int wintirpc_closesocket(int in_fd);
 int wintirpc_close(int in_fd);
 int wintirpc_listen(int in_s, int backlog);
 int wintirpc_accept(int s_fd, struct sockaddr *addr, int *addrlen);
-int wintirpc_send(int s, const char *buf, int len, int flags);
-int wintirpc_sendto(int s, const char *buf, int len, int flags, const struct sockaddr *to, int tolen);
+wintirpc_ssize_t wintirpc_send(int s, const char *buf, size_t len,
+    int flags);
+wintirpc_ssize_t wintirpc_sendto(int s, const char *buf, size_t len,
+    int flags, const struct sockaddr *to, socklen_t tolen);
+wintirpc_ssize_t wintirpc_recv(int socket, void *buffer, size_t length,
+    int flags);
+wintirpc_ssize_t wintirpc_recvfrom(int socket, void *restrict buffer,
+    size_t length, int flags, struct sockaddr *restrict address,
+    socklen_t *restrict address_len);
+int wintirpc_getsockname(int s, struct sockaddr *name, int *namelen);
 void wintirpc_syslog(int prio, const char *format, ...);
 void wintirpc_warnx(const char *format, ...);
 void wintirpc_register_osfhandle_fd(SOCKET handle, int fd);

@@ -408,7 +408,7 @@ __rpc_get_time_offset(td, srv, thost, uaddr, netid)
 			if (res == SOCKET_ERROR)
 				goto error;
 			len = sizeof(from);
-			res = recvfrom(_get_osfhandle(s), (char *)&thetime, sizeof(thetime), 0,
+			res = (int)wintirpc_recvfrom(s, (char *)&thetime, sizeof(thetime), 0,
 					(struct sockaddr *)&from, &len);
 			if (res == SOCKET_ERROR) {
 				msg("recvfrom failed on udp transport.");
@@ -435,7 +435,7 @@ __rpc_get_time_offset(td, srv, thost, uaddr, netid)
 				goto error;
 			}
 //			res = read(_get_osfhandle(s), (char *)&thetime, sizeof(thetime));
-			res = recv(_get_osfhandle(s), (char *)&thetime, sizeof(thetime), 0);
+			res = (int)wintirpc_recv(s, (char *)&thetime, sizeof(thetime), 0);
 			if (res != sizeof(thetime)) {
 				if (saw_alarm)
 					msg("timed out TCP call.");

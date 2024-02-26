@@ -993,7 +993,7 @@ read_vc(ctp, buf, len)
 		break;
 	}
 
-	len = recv(_get_osfhandle(ct->ct_fd), buf, (size_t)len, 0);
+	len = (int)wintirpc_recv(ct->ct_fd, buf, (size_t)len, 0);
 	errno = WSAGetLastError();
 
 	switch (len) {
@@ -1022,7 +1022,7 @@ write_vc(ctp, buf, len)
 	int i = 0, cnt;
 
 	for (cnt = len; cnt > 0; cnt -= i, buf += i) {
-	    if ((i = wintirpc_send(ct->ct_fd, buf, (size_t)cnt, 0)) == SOCKET_ERROR) {
+	    if ((i = (int)wintirpc_send(ct->ct_fd, buf, (size_t)cnt, 0)) == SOCKET_ERROR) {
 		ct->ct_error.re_errno = WSAGetLastError();
 		ct->ct_error.re_status = RPC_CANTSEND;
 		return (-1);

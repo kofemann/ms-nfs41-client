@@ -498,7 +498,7 @@ __rpc_fd2sockinfo(int fd, struct __rpc_sockinfo *sip)
 	ss.ss_family = (ADDRESS_FAMILY)proto_info.iAddressFamily;
 #else
 	len = sizeof ss;
-	if (getsockname(_get_osfhandle(fd), (struct sockaddr *)&ss, &len) == SOCKET_ERROR) {
+	if (wintirpc_getsockname(fd, (struct sockaddr *)&ss, &len) == SOCKET_ERROR) {
 		return 0;
 	}
 #endif
@@ -892,7 +892,7 @@ __rpc_sockisbound(int fd)
 	socklen_t slen;
 
 	slen = sizeof (struct sockaddr_storage);
-	if (getsockname(_get_osfhandle(fd), (struct sockaddr *)(void *)&ss, &slen) == SOCKET_ERROR)
+	if (wintirpc_getsockname(fd, (struct sockaddr *)(void *)&ss, &slen) == SOCKET_ERROR)
 		return 0;
 
 	switch (ss.ss_family) {

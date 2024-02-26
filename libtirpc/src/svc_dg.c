@@ -139,7 +139,7 @@ svc_dg_create(fd, sendsize, recvsize)
 	xprt->xp_rtaddr.maxlen = sizeof (struct sockaddr_storage);
 
 	slen = sizeof ss;
-	if (getsockname(_get_osfhandle(fd), (struct sockaddr *)(void *)&ss, &slen) == SOCKET_ERROR)
+	if (wintirpc_getsockname(fd, (struct sockaddr *)(void *)&ss, &slen) == SOCKET_ERROR)
 		goto freedata;
 	__rpc_set_netbuf(&xprt->xp_ltaddr, &ss, slen);
 
@@ -179,7 +179,7 @@ svc_dg_recv(xprt, msg)
 again:
 	alen = sizeof (struct sockaddr_storage);
 	assert(su->su_iosz < UINT_MAX);
-	rlen = recvfrom(_get_osfhandle(xprt->xp_fd), rpc_buffer(xprt), (u_int)su->su_iosz, 0,
+	rlen = wintirpc_recvfrom(xprt->xp_fd, rpc_buffer(xprt), (u_int)su->su_iosz, 0,
 	    (struct sockaddr *)(void *)&ss, &alen);
 	if (rlen == -1 && errno == EINTR)
 		goto again;

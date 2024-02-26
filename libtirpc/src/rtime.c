@@ -96,7 +96,7 @@ rtime(addrp, timep, timeout)
 	addrp->sin_port = serv->s_port;
 
 	if (type == SOCK_DGRAM) {
-		res = wintirpc_sendto(s, (char *)&thetime, sizeof(thetime), 0,
+		res = (int)wintirpc_sendto(s, (char *)&thetime, sizeof(thetime), 0,
 			     (struct sockaddr *)addrp, sizeof(*addrp));
 		if (res == SOCKET_ERROR) {
 			do_close(s);
@@ -116,7 +116,7 @@ rtime(addrp, timep, timeout)
 			return(-1);	
 		}
 		fromlen = sizeof(from);
-		res = recvfrom(_get_osfhandle(s), (char *)&thetime, sizeof(thetime), 0,
+		res = (int)wintirpc_recvfrom(s, (char *)&thetime, sizeof(thetime), 0,
 			       (struct sockaddr *)&from, &fromlen);
 		do_close(s);
 		if (res == SOCKET_ERROR) {
@@ -127,7 +127,7 @@ rtime(addrp, timep, timeout)
 			do_close(s);
 			return(-1);
 		}
-		res = recv(_get_osfhandle(s), (char *)&thetime, sizeof(thetime), 0);
+		res = (int)wintirpc_recv(s, (char *)&thetime, sizeof(thetime), 0);
 		do_close(s);
 		if (res == SOCKET_ERROR) {
 			return(-1);

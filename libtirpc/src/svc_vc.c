@@ -181,7 +181,7 @@ svc_vc_create(fd, sendsize, recvsize)
 	xprt->xp_fd = fd;
 
 	slen = sizeof (struct sockaddr_storage);
-	if (getsockname(_get_osfhandle(fd), (struct sockaddr *)(void *)&sslocal, &slen) == SOCKET_ERROR) {
+	if (wintirpc_getsockname(fd, (struct sockaddr *)(void *)&sslocal, &slen) == SOCKET_ERROR) {
 		warnx("svc_vc_create: could not retrieve local addr");
 		goto cleanup_svc_vc_create;
 	}
@@ -219,7 +219,7 @@ svc_fd_create(fd, sendsize, recvsize)
 		return NULL;
 
 	slen = sizeof (struct sockaddr_storage);
-	if (getsockname(_get_osfhandle(fd), (struct sockaddr *)(void *)&ss, &slen) == SOCKET_ERROR) {
+	if (wintirpc_getsockname(fd, (struct sockaddr *)(void *)&ss, &slen) == SOCKET_ERROR) {
 		warnx("svc_fd_create: could not retrieve local addr");
 		goto freedata;
 	}
@@ -501,7 +501,7 @@ read_vc(xprtp, buf, len)
 
 	if (cfp->nonblock) {
 #ifdef _WIN32
-		len = recv(_get_osfhandle(sock), buf, (size_t)len, 0);
+		len = (int)wintirpc_recv(sock, buf, (size_t)len, 0);
 #else
 		len = read(sock, buf, (size_t)len);
 #endif
@@ -517,7 +517,11 @@ read_vc(xprtp, buf, len)
 	}
 
 	do {
+#ifdef _WIN32
 		pollfd.fd = _get_osfhandle(sock);
+#else
+		pollfd.fd = sock;
+#endif
 		pollfd.events = POLLIN;
 		pollfd.revents = 0;
 		switch (poll(&pollfd, 1, milliseconds)) {
@@ -534,7 +538,7 @@ read_vc(xprtp, buf, len)
 	} while ((pollfd.revents & POLLIN) == 0);
 
 #ifdef _WIN32
-	if ((len = recv(_get_osfhandle(sock), buf, (size_t)len, 0)) > 0) {
+	if ((len = (int)wintirpc_recv(sock, buf, (size_t)len, 0)) > 0) {
 #else
 	if ((len = read(sock, buf, (size_t)len)) > 0) {
 #endif
@@ -572,7 +576,7 @@ write_vc(xprtp, buf, len)
 	
 	for (cnt = len; cnt > 0; cnt -= i, buf += i) {
 #ifdef _WIN32
-		i = wintirpc_send(xprt->xp_fd, buf, (size_t)cnt, 0);
+		i = (int)wintirpc_send(xprt->xp_fd, buf, (size_t)cnt, 0);
 #else
 		i = write(xprt->xp_fd, buf, (size_t)cnt);
 #endif
