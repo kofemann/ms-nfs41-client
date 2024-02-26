@@ -63,7 +63,7 @@ NFSv4.1 client and filesystem driver for Windows 10/11
 #
 - Windows 10 or Windows 11
 - Cygwin 3.5.0
-    - Packages:
+    - Packages (required):
         cygwin
         cygwin-devel
         cygrunsrv
@@ -87,7 +87,12 @@ NFSv4.1 client and filesystem driver for Windows 10/11
         time
         util-linux
         wget
+    - Packages (recommended):
+        make
+        git
+        dos2unix
 
+#
 #
 # 4. Download:
 #
