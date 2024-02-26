@@ -1,15 +1,50 @@
 #
-# ms-nfs41-client manual testing sequence, 2024-02-12
+# ms-nfs41-client manual testing sequence, 2024-02-26
 #
 # Draft version, needs to be turned into automated tests
 # if possible
 #
 
-# start cygserver as admin before running tests
-# so SysV shared memory works:
-# cygserver-config
-# net start cygserver
-# sc query cygserver
+#
+# Notes:
+# - The following Cygwin packages must be installed for running the tests:
+#   ---- snip ----
+#   make
+#   git
+#   netpbm
+#   subversion
+#   dos2unix
+#   ncurses-devel
+#   libgmp-devel
+#   libmpfr-devel
+#   libmpc-devel
+#   libintl-devel
+#   flex
+#   bison
+#   ---- snip ----
+#
+# - Benchmarking/profiling should be done with the realtime virus checker
+#   disabled, e.g. disable it like this from an "Adminstrator" terminal:
+#   $ powershell -Command 'Set-MpPreference -DisableRealtimeMonitoring 1' #
+#
+# - A timeserver shoud be running on both Windows (NFSv4.1 client and
+#   NFSv4.1 server).
+#   For example on Windows add timeserver 10.49.0.6 like this:
+#   ---- snip ----
+#   net start w32time
+#   w32tm /config /update /manualpeerlist:10.49.0.6
+#   ---- snip ----
+#   (see https://stackoverflow.com/questions/22862236/how-to-sync-windows-time-from-a-ntp-time-server-in-command)
+#   On Linux use xntpd or timesyncd (/etc/systemd/timesyncd.conf)
+#
+# - Start cygserver as admin before running tests
+#   so SysV shared memory works:
+#   ---- snip ----
+#   cygserver-config
+#   net start cygserver
+#   sc query cygserver
+#   ---- snip ----
+#
 
 #
 # Tests for cp -p/mv/chmod/chgrp
@@ -24,6 +59,38 @@ ksh93 -c 'builtin cp ; rm -f x y ; touch x ; /usr/bin/cp -p x y && print OK ; tr
 ksh93 -c 'builtin id ; rm -f x ; touch x ; chown "$(id -u -n):$(id -g -n)" x && print OK'
 ksh93 -c 'builtin id ; rm -f x ; touch x ; chgrp "$(id -g -n)" x && print OK'
 ---- snip ----
+
+
+#
+# Tests for groups
+# (Add groups "cygwingrp1" and "cygwingrp2" to both Linux NFSv4 server
+# and Windows machine, after that $ chgrp cygwingrp2 # should work)
+#
+---- snip ----
+# "WINHOST1" is the Windows machine,
+# "DERFWNB4966" is the Linux NFSv4 server:
+
+# create two groups on the Windows machine
+WINHOST1:~$ net localgroup cygwingrp1 /add
+WINHOST1:~$ net localgroup cygwingrp2 /add
+
+# add user "roland_mainz" to both new groups
+WINHOST1:~$ net localgroup cygwingrp1 roland_mainz /add
+WINHOST1:~$ net localgroup cygwingrp2 roland_mainz /add
+
+# get gid from both groups
+WINHOST1:~$ getent group cygwingrp1
+cygwingrp1:S-1-5-21-3286904461-661230000-4220857270-1003:197611:
+WINHOST1:~$ getent group cygwingrp2
+cygwingrp2:S-1-5-21-3286904461-661230000-4220857270-1004:197612:
+
+# add the two groups to the Linux NFSv4 server, including the gids
+("197611" and "197612"):
+root@DERFWNB4966:~# groupadd -g 197611 cygwingrp1
+root@DERFWNB4966:~# groupadd -g 197612 cygwingrp2
+root@DERFWNB4966:~# usermod -a -G cygwingrp1 roland_mainz
+root@DERFWNB4966:~# usermod -a -G cygwingrp2 roland_mainz
+---- snip ---
 
 
 #
