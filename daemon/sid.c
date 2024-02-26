@@ -182,9 +182,11 @@ BOOL allocate_unixgroup_sid(unsigned long gid, PSID *pSid)
 
 typedef struct _sidcache_entry
 {
-    char    name[128]; /* must fit something like "user@domain" */
+#define SIDCACHE_ENTRY_NAME_SIZE (128)
+    char    name[SIDCACHE_ENTRY_NAME_SIZE]; /* must fit something like "user@domain" */
     PSID    sid;
     DWORD   sid_len;
+    char    sid_buffer[SECURITY_MAX_SID_SIZE+1];
     time_t  timestamp;
 } sidcache_entry;
 
@@ -223,9 +225,9 @@ void sidcache_add(sidcache *cache, const char* name, PSID value)
 
         if ((e->sid != NULL) &&
             (e->timestamp < (currentTimestamp - SIDCACHE_TTL))) {
-            free(e->sid);
             e->sid = NULL;
             e->name[0] = '\0';
+            e->sid_len = 0;
         }
     }
 
@@ -244,22 +246,19 @@ void sidcache_add(sidcache *cache, const char* name, PSID value)
     }
 
     /* Replace the cache entry */
+    sidcache_entry *e = &cache->entries[freeEntryIndex];
     DWORD sid_len = GetLengthSid(value);
-    PSID malloced_sid = malloc(sid_len);
-    if (!malloced_sid)
-        goto done;
-    if (!CopySid(sid_len, malloced_sid, value)) {
-        free(malloced_sid);
+    EASSERT(sid_len <= SECURITY_MAX_SID_SIZE);
+    e->sid = (PSID)e->sid_buffer;
+    if (!CopySid(sid_len, e->sid, value)) {
+        e->sid = NULL;
+        e->name[0] = '\0';
+        e->sid_len = 0;
         goto done;
     }
 
-    sidcache_entry *e = &cache->entries[freeEntryIndex];
-
     e->sid_len = sid_len;
-    if (e->sid)
-        free(e->sid);
-    e->sid = malloced_sid;
-    (void)strcpy_s(e->name, sizeof(e->name), name);
+    (void)strcpy_s(e->name, SIDCACHE_ENTRY_NAME_SIZE, name);
     e->timestamp = currentTimestamp;
 
     cache->cacheIndex = (cache->cacheIndex + 1) % SIDCACHE_SIZE;
