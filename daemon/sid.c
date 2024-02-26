@@ -312,8 +312,8 @@ int map_nfs4servername_2_sid(nfs41_daemon_globals *nfs41dg, int query, DWORD *si
     int status = ERROR_INTERNAL_ERROR;
     SID_NAME_USE sid_type = 0;
     char name_buff[256+2];
-    LPSTR tmp_buf = NULL;
-    DWORD tmp = 0;
+    char domain_buff[256+2];
+    DWORD domain_len = 0;
 #ifdef NFS41_DRIVER_FEATURE_MAP_UNMAPPED_USER_TO_UNIXUSER_SID
     signed long user_uid = -1;
     signed long group_gid = -1;
@@ -377,52 +377,49 @@ int map_nfs4servername_2_sid(nfs41_daemon_globals *nfs41dg, int query, DWORD *si
     }
 #endif /* NFS41_DRIVER_FEATURE_MAP_UNMAPPED_USER_TO_UNIXUSER_SID */
 
-    status = LookupAccountNameA(NULL, name, NULL, sid_len, NULL, &tmp, &sid_type);
+    *sid = malloc(SECURITY_MAX_SID_SIZE+1);
+    if (*sid == NULL) {
+        status = GetLastError();
+        goto out;
+    }
+    *sid_len = SECURITY_MAX_SID_SIZE;
+    domain_len = sizeof(domain_buff);
+
+    status = LookupAccountNameA(NULL, name, *sid, sid_len,
+        domain_buff, &domain_len, &sid_type);
+
+    if (status) {
+        /* |LookupAccountNameA()| success */
+
+        DPRINTF(ACLLVL, ("map_nfs4servername_2_sid(query=%x,name='%s'): "
+            "LookupAccountNameA() returned status=%d "
+            "GetLastError=%d *sid_len=%d domain_buff='%s' domain_len=%d\n",
+            query, name, status, GetLastError(), *sid_len, domain_buff,
+            domain_len));
+
+        status = 0;
+        *sid_len = GetLengthSid(*sid);
+        goto out;
+    }
+
+    /* |LookupAccountNameA()| failed... */
     DPRINTF(ACLLVL, ("map_nfs4servername_2_sid(query=%x,name='%s'): "
-        "LookupAccountName returned %d "
-        "GetLastError %d name len %d domain len %d\n",
-        query, name, status, GetLastError(), *sid_len, tmp));
-    if (status)
-        return ERROR_INTERNAL_ERROR;
+        "LookupAccountNameA() returned status=%d "
+        "GetLastError=%d\n",
+        query, name, status, GetLastError()));
 
     status = GetLastError();
     switch(status) {
     case ERROR_INSUFFICIENT_BUFFER:
-        *sid = malloc(*sid_len);
-        if (*sid == NULL) {
-            status = GetLastError();
-            goto out;
-        }
-        tmp_buf = (LPSTR) malloc(tmp);
-        if (tmp_buf == NULL)
-            goto out_free_sid;
-        status = LookupAccountNameA(NULL, name, *sid, sid_len, tmp_buf,
-                                    &tmp, &sid_type);
-        free(tmp_buf);
-        if (!status) {
-            eprintf("map_nfs4servername_2_sid(query=%x,name='%s'): LookupAccountName failed "
-                    "with %d\n", query, name, GetLastError());
-            goto out_free_sid;
-        } else {
-#ifdef DEBUG_ACLS
-            LPSTR ssid = NULL;
-            if (IsValidSid(*sid))
-                if (ConvertSidToStringSidA(*sid, &ssid)) {
-                    DPRINTF(1, ("map_nfs4servername_2_sid: sid_type = %d SID '%s'\n",
-                        sid_type, ssid));
-                }
-                else {
-                    DPRINTF(1, ("map_nfs4servername_2_sid: ConvertSidToStringSidA failed "
-                        "with %d\n", GetLastError()));
-                }
-            else {
-                DPRINTF(1, ("map_nfs4servername_2_sid: Invalid Sid ?\n"));
-            }
-            if (ssid)
-                LocalFree(ssid);
-#endif
-        }
-        status = ERROR_SUCCESS;
+        /*
+         * This should never happen, as |SECURITY_MAX_SID_SIZE| is
+         * the largest possible SID buffer size for Windows
+         */
+        eprintf("map_nfs4servername_2_sid(query=%x,name='%s'): "
+                "LookupAccountName failed with "
+                "ERROR_INSUFFICIENT_BUFFER\n", query, name);
+
+        return ERROR_INTERNAL_ERROR;
         break;
     case ERROR_NONE_MAPPED:
 #ifdef NFS41_DRIVER_FEATURE_MAP_UNMAPPED_USER_TO_UNIXUSER_SID
