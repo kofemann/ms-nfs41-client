@@ -138,6 +138,10 @@ function nfsclient_rundeamon
 	set -o xtrace
 	set -o nounset
 
+	printf '# uname='%s' isadmin=%d\n' \
+		"$(uname -a)" \
+		"$(is_windows_admin_account ; printf "%d\n" $((${?}?0:1)))"
+
 	typeset -a nfsd_args=(
 		'nfsd_debug.exe'
 		'-d' '0'
@@ -224,6 +228,10 @@ function nfsclient_system_rundeamon
 {
 	set -o xtrace
 	set -o nounset
+
+	printf '# uname='%s' isadmin=%d\n' \
+		"$(uname -a)" \
+		"$(is_windows_admin_account ; printf "%d\n" $((${?}?0:1)))"
 
 	typeset -a nfsd_args=(
 		'nfsd_debug.exe'
