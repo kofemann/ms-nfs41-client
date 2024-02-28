@@ -19,6 +19,7 @@
 #   libmpfr-devel
 #   libmpc-devel
 #   libintl-devel
+#   libisl-devel
 #   flex
 #   bison
 #   ---- snip ----
