@@ -266,4 +266,7 @@ subcmd_popen_context *subcmd_popen(const char *command);
 int subcmd_pclose(subcmd_popen_context *pinfo);
 BOOL subcmd_readcmdoutput(subcmd_popen_context *pinfo, char *buff, size_t buff_size, DWORD *num_buff_read_ptr);
 
+bool_t waitSRWlock(PSRWLOCK srwlock);
+bool_t waitcriticalsection(LPCRITICAL_SECTION cs);
+
 #endif /* !__NFS41_DAEMON_UTIL_H__ */

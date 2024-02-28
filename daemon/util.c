@@ -581,3 +581,50 @@ BOOL subcmd_readcmdoutput(subcmd_popen_context *pinfo, char *buff, size_t buff_s
 {
     return ReadFile(pinfo->hReadPipe, buff, (DWORD)buff_size, num_buff_read_ptr, NULL);
 }
+
+/*
+ * |waitSRWlock()| - Wait for outstanding locks (usually used
+ * before disposing (e.g. |free()| the memory of the structure
+ * of the lock) a SRW lock.
+ * Returns |TRUE| if we didn't had to wait for another thread
+ * to release the lock first.
+ */
+bool_t waitSRWlock(PSRWLOCK srwlock)
+{
+    bool_t srw_locked;
+
+    /* Check whether something is still using the lock */
+    srw_locked = TryAcquireSRWLockExclusive(srwlock);
+    if (srw_locked) {
+        ReleaseSRWLockExclusive(srwlock);
+    }
+    else {
+        AcquireSRWLockExclusive(srwlock);
+        ReleaseSRWLockExclusive(srwlock);
+    }
+    return srw_locked;
+}
+
+/*
+ * |waitcriticalsection()| - Wait for other threads using the
+ * CRITICAL_SECTION (usually used before disposing (e.g.
+ * |free()| the memory of the structure of the CRITICAL_SECTION)
+ * a CRITICAL_SECTION.
+ * Returns |TRUE| if we didn't had to wait for another thread
+ * to release the lock first.
+ */
+bool_t waitcriticalsection(LPCRITICAL_SECTION cs)
+{
+    bool_t cs_locked;
+
+    /* Check whether something is still using the critical section */
+    cs_locked = TryEnterCriticalSection(cs);
+    if (cs_locked) {
+        LeaveCriticalSection(cs);
+    }
+    else {
+        EnterCriticalSection(cs);
+        LeaveCriticalSection(cs);
+    }
+    return cs_locked;
+}

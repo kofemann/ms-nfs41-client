@@ -207,6 +207,11 @@ void nfs41_client_free(
     IN nfs41_client *client)
 {
     DPRINTF(2, ("nfs41_client_free(%llu)\n", client->clnt_id));
+
+    EASSERT(waitcriticalsection(&client->recovery.lock) == TRUE);
+    EASSERT(waitSRWlock(&client->exid_lock) == TRUE);
+    EASSERT(waitcriticalsection(&client->state.lock) == TRUE);
+
     nfs41_client_delegation_free(client);
     if (client->session) nfs41_session_free(client->session);
     nfs41_destroy_clientid(client->rpc, client->clnt_id);

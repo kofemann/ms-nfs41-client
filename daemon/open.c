@@ -86,6 +86,12 @@ static void open_state_free(
 {
     struct list_entry *entry, *tmp;
 
+    EASSERT(waitcriticalsection(&state->ea.lock) == TRUE);
+    EASSERT(waitcriticalsection(&state->locks.lock) == TRUE);
+
+    EASSERT(waitSRWlock(&state->lock) == TRUE);
+    EASSERT(waitSRWlock(&state->path.lock) == TRUE);
+
     /* free associated lock state */
     list_for_each_tmp(entry, tmp, &state->locks.list)
         free(list_container(entry, nfs41_lock_state, open_entry));
@@ -93,6 +99,12 @@ static void open_state_free(
         nfs41_delegation_deref(state->delegation.state);
     if (state->ea.list != INVALID_HANDLE_VALUE)
         free(state->ea.list);
+
+    DeleteCriticalSection(&state->ea.lock);
+    DeleteCriticalSection(&state->locks.lock);
+
+    EASSERT(state->ref_count == 0);
+
     free(state);
 }
 
@@ -119,6 +131,8 @@ void nfs41_open_state_ref(
         return;
 #endif /* NFS41_DRIVER_STABILITY_HACKS */
 
+    EASSERT(state->ref_count > 0);
+
     const LONG count = InterlockedIncrement(&state->ref_count);
 
     DPRINTF(2, ("nfs41_open_state_ref('%s') count %d\n", state->path.path, count));
@@ -127,6 +141,8 @@ void nfs41_open_state_ref(
 void nfs41_open_state_deref(
     IN nfs41_open_state *state)
 {
+    EASSERT(state->ref_count > 0);
+
     const LONG count = InterlockedDecrement(&state->ref_count);
 
     DPRINTF(2, ("nfs41_open_state_deref('%s') count %d\n", state->path.path, count));

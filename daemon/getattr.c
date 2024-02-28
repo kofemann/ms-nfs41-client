@@ -80,11 +80,11 @@ static int parse_getattr(unsigned char *buffer, uint32_t length, nfs41_upcall *u
      */
     volatile int ok = 0;
     __try {
-        if (upcall->state_ref->session->client->server != NULL)
+        if (upcall->state_ref->session->client != NULL)
             ok++;
     }
     __except(EXCEPTION_EXECUTE_HANDLER) {
-        eprintf("parse_getattr: Exception accessing upcall->state_ref->session->client->server\n");
+        eprintf("parse_getattr: Exception accessing upcall->state_ref->session->client\n");
     }
     if (ok != 1) {
         status = ERROR_INVALID_PARAMETER;

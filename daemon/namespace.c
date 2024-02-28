@@ -81,6 +81,8 @@ static void root_free(
 
     DPRINTF(NSLVL, ("--> nfs41_root_free()\n"));
 
+    EASSERT(waitcriticalsection(&root->lock) == TRUE);
+
     /* free clients */
     list_for_each_tmp(entry, tmp, &root->clients)
         nfs41_client_free(client_entry(entry));

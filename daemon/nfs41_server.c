@@ -129,6 +129,9 @@ static void server_free(
     IN nfs41_server *server)
 {
     DPRINTF(SRVLVL, ("server_free('%s')\n", server->owner));
+
+    EASSERT(waitSRWlock(&server->addrs.lock) == TRUE);
+
     nfs41_superblock_list_free(&server->superblocks);
     nfs41_name_cache_free(&server->name_cache);
     free(server);
