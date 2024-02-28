@@ -3,6 +3,7 @@
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
+ * Roland Mainz <roland.mainz@nrubsig.org>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -58,10 +59,11 @@ static int create_open_state(
     path_fh_init(&state->parent, &state->path);
     last_component(state->path.path, state->file.name.name, &state->parent.name);
 
-    StringCchPrintfA((LPSTR)state->owner.owner, NFS4_OPAQUE_LIMIT, "%u", 
+    StringCchPrintfA((LPSTR)state->owner.owner, NFS4_OPAQUE_LIMIT, "%u",
         open_owner_id);
     state->owner.owner_len = (uint32_t)strlen((const char*)state->owner.owner);
-    state->ref_count = 1;
+    InitializeSRWLock(&state->lock);
+    state->ref_count = 1; /* will be released in |cleanup_close()| */
     list_init(&state->locks.list);
     list_init(&state->client_entry);
     InitializeCriticalSection(&state->locks.lock);
