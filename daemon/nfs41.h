@@ -84,7 +84,7 @@ typedef struct __nfs41_server {
     nfs41_superblock_list superblocks;
     struct nfs41_name_cache *name_cache;
     struct list_entry entry; /* position in global server list */
-    LONG ref_count;
+    __declspec(align(8)) volatile LONG ref_count;
 } nfs41_server;
 
 enum delegation_status {
@@ -99,7 +99,7 @@ typedef struct __nfs41_delegation_state {
     nfs41_path_fh parent;
     nfs41_path_fh file;
     struct list_entry client_entry; /* entry in nfs41_client.delegations */
-    LONG ref_count;
+    __declspec(align(8)) volatile LONG ref_count;
 
     enum delegation_status status;
     SRWLOCK lock;
@@ -138,7 +138,7 @@ typedef struct __nfs41_open_state {
     struct __pnfs_layout_state *layout;
     struct list_entry client_entry; /* entry in nfs41_client.opens */
     SRWLOCK lock;
-    LONG ref_count;
+    __declspec(align(8)) volatile LONG ref_count;
     uint32_t share_access;
     uint32_t share_deny;
     uint64_t pnfs_last_offset; /* for layoutcommit */
@@ -296,7 +296,7 @@ typedef struct __nfs41_root {
     struct list_entry clients;
     uint32_t wsize;
     uint32_t rsize;
-    LONG ref_count;
+    __declspec(align(8)) volatile LONG ref_count;
     uint32_t uid;
     uint32_t gid;
     DWORD sec_flavor;
