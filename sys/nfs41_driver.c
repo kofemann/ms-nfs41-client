@@ -1364,7 +1364,56 @@ NTSTATUS handle_upcall(
     ULONG cbOut = LowIoContext->ParamsFor.IoCtl.OutputBufferLength;
     unsigned char *pbOut = LowIoContext->ParamsFor.IoCtl.pOutputBuffer;
 
+#ifdef NFS41_DRIVER_STABILITY_HACKS
+    /*
+     * Workaround for random crashes like this while compiling
+     * the "gcc" compiler with a highly-parallel build.
+     * Stack trace usually looks like this:
+     * ---- snip ----
+     * nt!SeTokenCanImpersonate+0x47
+     * nt!PsImpersonateClient+0x126
+     * nt!SeImpersonateClientEx+0x35
+     * nfs41_driver!handle_upcall+0x59 [C:\cygwin64\home\roland_mainz\work\msnfs41_uidmapping\ms-nfs41-client\sys\nfs41_driver.c @ 1367]
+     * nfs41_driver!nfs41_upcall+0xe7 [C:\cygwin64\home\roland_mainz\work\msnfs41_uidmapping\ms-nfs41-client\sys\nfs41_driver.c @ 1578]
+     * nfs41_driver!nfs41_DevFcbXXXControlFile+0x128 [C:\cygwin64\home\roland_mainz\work\msnfs41_uidmapping\ms-nfs41-client\sys\nfs41_driver.c @ 2418]
+     * nfs41_driver!RxXXXControlFileCallthru+0x76 [base\fs\rdr2\rdbss\ntdevfcb.c @ 130]
+     * nfs41_driver!RxCommonDevFCBIoCtl+0x58 [base\fs\rdr2\rdbss\ntdevfcb.c @ 491]
+     * nfs41_driver!RxFsdCommonDispatch+0x442 [base\fs\rdr2\rdbss\ntfsd.c @ 848]
+     * nfs41_driver!RxFsdDispatch+0xfd [base\fs\rdr2\rdbss\ntfsd.c @ 442]
+     * nfs41_driver!nfs41_FsdDispatch+0x67 [C:\cygwin64\home\roland_mainz\work\msnfs41_uidmapping\ms-nfs41-client\sys\nfs41_driver.c @ 6863]
+     * nt!IofCallDriver+0x55
+     * mup!MupiCallUncProvider+0xb8
+     * mup!MupStateMachine+0x59
+     * mup!MupFsdIrpPassThrough+0x17e
+     * nt!IofCallDriver+0x55
+     * FLTMGR!FltpDispatch+0xd6
+     * nt!IofCallDriver+0x55
+     * nt!IopSynchronousServiceTail+0x34c
+     * nt!IopXxxControlFile+0xd13
+     * nt!NtDeviceIoControlFile+0x56
+     * nt!KiSystemServiceCopyEnd+0x25
+     * ntdll!NtDeviceIoControlFile+0x14
+     * KERNELBASE!DeviceIoControl+0x6b
+     * KERNEL32!DeviceIoControlImplementation+0x81
+     * nfsd_debug+0xc7b14
+     * nfsd_debug+0xc79fb
+     * nfsd_debug+0x171e80
+     * KERNEL32!BaseThreadInitThunk+0x14
+     * ntdll!RtlUserThreadStart+0x21
+     * ---- snip ----
+     */
+    __try {
+        status = SeImpersonateClientEx(entry->psec_ctx, NULL);
+    } __except(EXCEPTION_EXECUTE_HANDLER) {
+        NTSTATUS code;
+        code = GetExceptionCode();
+        print_error("handle_upcall: Call to SeImpersonateClientEx() "
+            "failed due to exception 0x%0x\n", (int)code);
+        status = STATUS_INTERNAL_ERROR;
+    }
+#else
     status = SeImpersonateClientEx(entry->psec_ctx, NULL);
+#endif /* NFS41_DRIVER_STABILITY_HACKS */
     if (status != STATUS_SUCCESS) {
         print_error("SeImpersonateClientEx failed %x\n", status);
         goto out;
