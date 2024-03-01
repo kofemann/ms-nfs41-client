@@ -86,6 +86,14 @@ static void open_state_free(
 {
     struct list_entry *entry, *tmp;
 
+#ifdef NFS41_DRIVER_WORKAROUND_FOR_GETATTR_AFTER_CLOSE_HACKS
+    /*
+     * Remember the pointer here so we can reject it
+     * later in |parse_getattr()|
+     */
+    debug_ptr_add_recently_deleted(state);
+#endif /* NFS41_DRIVER_WORKAROUND_FOR_GETATTR_AFTER_CLOSE_HACKS */
+
     EASSERT(waitcriticalsection(&state->ea.lock) == TRUE);
     EASSERT(waitcriticalsection(&state->locks.lock) == TRUE);
 
@@ -105,15 +113,19 @@ static void open_state_free(
 
     EASSERT(state->ref_count == 0);
 
+#ifdef NFS41_DRIVER_WORKAROUND_FOR_GETATTR_AFTER_CLOSE_HACKS
+    (void)memset(state, 0, sizeof(nfs41_open_state));
+    debug_delayed_free(state);
+#else
     free(state);
+#endif /* NFS41_DRIVER_WORKAROUND_FOR_GETATTR_AFTER_CLOSE_HACKS */
 }
-
 
 /* open state reference counting */
 void nfs41_open_state_ref(
     IN nfs41_open_state *state)
 {
-#ifdef NFS41_DRIVER_STABILITY_HACKS
+#ifdef NFS41_DRIVER_WORKAROUND_FOR_GETATTR_AFTER_CLOSE_HACKS
     /*
      * gisburn: fixme: sometimes this happens under high parallel
      * usage with multiple mounts - but why ?
@@ -129,7 +141,7 @@ void nfs41_open_state_ref(
     EASSERT_IS_VALID_NON_NULL_PTR(state);
     if (!DEBUG_IS_VALID_NON_NULL_PTR(state))
         return;
-#endif /* NFS41_DRIVER_STABILITY_HACKS */
+#endif /* NFS41_DRIVER_WORKAROUND_FOR_GETATTR_AFTER_CLOSE_HACKS */
 
     EASSERT(state->ref_count > 0);
 

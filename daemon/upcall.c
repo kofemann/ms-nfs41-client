@@ -3,6 +3,7 @@
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
+ * Roland Mainz <roland.mainz@nrubsig.org>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -115,8 +116,27 @@ int upcall_parse(
         eprintf("unrecognized upcall opcode %d!\n", upcall->opcode);
         goto out;
     }
+
     if (upcall->root_ref != INVALID_HANDLE_VALUE)
         nfs41_root_ref(upcall->root_ref);
+
+#ifdef NFS41_DRIVER_WORKAROUND_FOR_GETATTR_AFTER_CLOSE_HACKS
+    if (upcall->state_ref != INVALID_HANDLE_VALUE) {
+        if (upcall->state_ref->ref_count == 0) {
+            eprintf("upcall->state_ref(=0x%p).ref_count == 0, "
+                "opcode %d; returning ERROR_INVALID_PARAMETER\n",
+                upcall->state_ref, upcall->opcode);
+            /*
+             * Set |upcall->state_ref| to |INVALID_HANDLE_VALUE|
+             * so that we do not try to dereference it
+             */
+            upcall->state_ref = INVALID_HANDLE_VALUE;
+            status = ERROR_INVALID_PARAMETER;
+            goto out;
+        }
+    }
+#endif /* NFS41_DRIVER_WORKAROUND_FOR_GETATTR_AFTER_CLOSE_HACKS */
+
     if (upcall->state_ref != INVALID_HANDLE_VALUE)
         nfs41_open_state_ref(upcall->state_ref);
 

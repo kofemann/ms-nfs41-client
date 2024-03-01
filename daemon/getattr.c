@@ -3,6 +3,7 @@
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
+ * Roland Mainz <roland.mainz@nrubsig.org>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -61,9 +62,16 @@ static int parse_getattr(unsigned char *buffer, uint32_t length, nfs41_upcall *u
 {
     int status;
 
-#ifdef NFS41_DRIVER_STABILITY_HACKS
+#ifdef NFS41_DRIVER_WORKAROUND_FOR_GETATTR_AFTER_CLOSE_HACKS
     EASSERT(length > 4);
     if (length <= 4) {
+        status = ERROR_INVALID_PARAMETER;
+        goto out;
+    }
+
+    if (debug_ptr_was_recently_deleted(upcall->state_ref)) {
+        eprintf("parse_getattr: upcall->state_ref(=0x%p) was "
+            "recently deleted\n", upcall->state_ref);
         status = ERROR_INVALID_PARAMETER;
         goto out;
     }
@@ -93,7 +101,7 @@ static int parse_getattr(unsigned char *buffer, uint32_t length, nfs41_upcall *u
         goto out;
     }
     EASSERT(upcall->state_ref->ref_count > 0);
-#endif /* NFS41_DRIVER_STABILITY_HACKS */
+#endif /* NFS41_DRIVER_WORKAROUND_FOR_GETATTR_AFTER_CLOSE_HACKS */
 
     getattr_upcall_args *args = &upcall->args.getattr;
     status = safe_read(&buffer, &length, &args->query_class, sizeof(args->query_class));
@@ -115,7 +123,7 @@ static int handle_getattr(void *daemon_context, nfs41_upcall *upcall)
     nfs41_open_state *state = upcall->state_ref;
     nfs41_file_info info = { 0 };
 
-#ifdef NFS41_DRIVER_STABILITY_HACKS
+#ifdef NFS41_DRIVER_WORKAROUND_FOR_GETATTR_AFTER_CLOSE_HACKS
     if (!DEBUG_IS_VALID_NON_NULL_PTR(state->session)) {
         eprintf("handle_getattr: Invalid session ptr=0x%p\n",
             (void *)state->session);
@@ -130,7 +138,7 @@ static int handle_getattr(void *daemon_context, nfs41_upcall *upcall)
         status = ERROR_INVALID_PARAMETER;
         goto out;
     }
-#endif /* NFS41_DRIVER_STABILITY_HACKS */
+#endif /* NFS41_DRIVER_WORKAROUND_FOR_GETATTR_AFTER_CLOSE_HACKS */
 
     status = nfs41_cached_getattr(state->session, &state->file, &info);
     if (status) {
