@@ -413,7 +413,7 @@ clnt_vc_create(fd, raddr, prog, vers, sendsz, recvsz, cb_xdr, cb_fn, cb_args)
 //			thr_sigsetmask(SIG_SETMASK, &(mask), NULL);
 			goto err;
 		}
-		if (connect(_get_osfhandle(fd), (struct sockaddr *)raddr->buf, raddr->len) == SOCKET_ERROR){
+		if (wintirpc_connect(fd, (struct sockaddr *)raddr->buf, raddr->len) == SOCKET_ERROR){
 			rpc_createerr.cf_stat = RPC_SYSTEMERROR;
 			rpc_createerr.cf_error.re_errno = WSAGetLastError();
 			mutex_unlock(&clnt_fd_lock);

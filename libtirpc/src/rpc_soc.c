@@ -546,7 +546,7 @@ clntunix_create(raddr, prog, vers, sockp, sendsz, recvsz)
 	if (*sockp == SOCKET_ERROR) {
 		*sockp = wintirpc_socket(AF_UNIX, SOCK_STREAM, 0);
 		len = SUN_LEN(raddr);
-		if ((*sockp == -1) || (connect(_get_osfhandle(*sockp),
+		if ((*sockp == -1) || (wintirpc_connect(*sockp,
 		    (struct sockaddr *)raddr, len) == SOCKET_ERROR)) {
 			rpc_createerr.cf_stat = RPC_SYSTEMERROR;
 			rpc_createerr.cf_error.re_errno = errno;
@@ -604,7 +604,7 @@ svcunix_create(sock, sendsize, recvsize, path)
 	addrlen = sizeof(struct sockaddr_un);
 	sa = (struct sockaddr *)&sun;
 
-	if (bind(_get_osfhandle(sock), sa, addrlen) == SOCKET_ERROR)
+	if (wintirpc_bind(sock, sa, addrlen) == SOCKET_ERROR)
 		goto done;
 
 	taddr.addr.len = taddr.addr.maxlen = addrlen;

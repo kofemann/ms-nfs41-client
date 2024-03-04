@@ -123,7 +123,7 @@ rtime(addrp, timep, timeout)
 			return(-1);	
 		}
 	} else {
-		if (connect(_get_osfhandle(s), (struct sockaddr *)addrp, sizeof(*addrp)) == SOCKET_ERROR) {
+		if (wintirpc_connect(s, (struct sockaddr *)addrp, sizeof(*addrp)) == SOCKET_ERROR) {
 			do_close(s);
 			return(-1);
 		}

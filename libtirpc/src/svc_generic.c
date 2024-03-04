@@ -224,7 +224,7 @@ svc_tli_create(fd, nconf, bindaddr, sendsz, recvsz)
 			if (bindresvport(fd, NULL) < 0) {
 				memset(&ss, 0, sizeof ss);
 				ss.ss_family = si.si_af;
-				if (bind(_get_osfhandle(fd), (struct sockaddr *)(void *)&ss,
+				if (wintirpc_bind(fd, (struct sockaddr *)(void *)&ss,
 				    (socklen_t)si.si_alen) == SOCKET_ERROR) {
 					warnx(
 						"svc_tli_create: could not bind to anonymous port");
@@ -233,7 +233,7 @@ svc_tli_create(fd, nconf, bindaddr, sendsz, recvsz)
 			}
 			wintirpc_listen(fd, SOMAXCONN);
 		} else {
-			if (bind(_get_osfhandle(fd),
+			if (wintirpc_bind(fd,
 			    (struct sockaddr *)bindaddr->addr.buf,
 			    (socklen_t)si.si_alen) == SOCKET_ERROR) {
 				warnx(

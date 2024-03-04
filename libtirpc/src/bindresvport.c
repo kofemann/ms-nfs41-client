@@ -125,7 +125,7 @@ bindresvport_sa(sd, sa)
                 *portp = htons(port++);
                  if (port > endport) 
                         port = startport;
-                res = bind(_get_osfhandle(sd), sa, salen);
+                res = wintirpc_bind(sd, sa, salen);
 		if (res >= 0 || errno != EADDRINUSE)
 	                break;
         }
@@ -242,7 +242,7 @@ bindresvport_sa(sd, sa)
 	}
 #endif
 
-	error = bind(_get_osfhandle(sd), sa, salen);
+	error = wintirpc_bind(sd, sa, salen);
 	if (error) {
 		int err = WSAGetLastError();
 	}

@@ -141,6 +141,8 @@ int wintirpc_closesocket(int in_fd);
 int wintirpc_close(int in_fd);
 int wintirpc_listen(int in_s, int backlog);
 int wintirpc_accept(int s_fd, struct sockaddr *addr, int *addrlen);
+int wintirpc_bind(int s, const struct sockaddr *name, socklen_t namelen);
+int wintirpc_connect(int s, const struct sockaddr *name, socklen_t namelen);
 wintirpc_ssize_t wintirpc_send(int s, const char *buf, size_t len,
     int flags);
 wintirpc_ssize_t wintirpc_sendto(int s, const char *buf, size_t len,

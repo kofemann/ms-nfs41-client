@@ -335,6 +335,16 @@ int wintirpc_accept(int in_s_fd, struct sockaddr *addr, int *addrlen)
 	return out_s_fd;
 }
 
+int wintirpc_bind(int s, const struct sockaddr *name, socklen_t namelen)
+{
+    return bind(_get_osfhandle(s), name, namelen);
+}
+
+int wintirpc_connect(int s, const struct sockaddr *name, socklen_t namelen)
+{
+    return connect(_get_osfhandle(s), name, namelen);
+}
+
 wintirpc_ssize_t wintirpc_send(int s, const char *buf, size_t len, int flags)
 {
 	/* handle type overflow |size_t| ---> |int| */

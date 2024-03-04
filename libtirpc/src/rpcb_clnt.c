@@ -682,7 +682,7 @@ __rpcbind_is_up()
 	sun.sun_family = AF_UNIX;
 	strncpy(sun.sun_path, _PATH_RPCBINDSOCK, sizeof(sun.sun_path));
 
-	if (connect(_get_osfhandle(sock), (struct sockaddr *)&sun, sizeof(sun)) == SOCKET_ERROR) {
+	if (wintirpc_connect(sock, (struct sockaddr *)&sun, sizeof(sun)) == SOCKET_ERROR) {
 		wintirpc_close(sock);
 		return (FALSE);
 	}

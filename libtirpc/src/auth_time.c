@@ -425,7 +425,7 @@ __rpc_get_time_offset(td, srv, thost, uaddr, netid)
 			saw_alarm = 0;
 			/* XXX Need Windows signal/alarm stuff here XXX */
 #endif
-			res = connect(_get_osfhandle(s), (struct sockaddr *)&sin, sizeof(sin));
+			res = wintirpc_connect(s, (struct sockaddr *)&sin, sizeof(sin));
 			if (res == SOCKET_ERROR) {
 				msg("failed to connect to tcp endpoint.");
 				goto error;
@@ -434,8 +434,11 @@ __rpc_get_time_offset(td, srv, thost, uaddr, netid)
 				msg("alarm caught it, must be unreachable.");
 				goto error;
 			}
-//			res = read(_get_osfhandle(s), (char *)&thetime, sizeof(thetime));
+#ifndef _WIN32
+			res = read(s, (char *)&thetime, sizeof(thetime));
+#else
 			res = (int)wintirpc_recv(s, (char *)&thetime, sizeof(thetime), 0);
+#endif
 			if (res != sizeof(thetime)) {
 				if (saw_alarm)
 					msg("timed out TCP call.");

@@ -366,7 +366,7 @@ clnt_dg_call(cl, proc, xargs, argsp, xresults, resultsp, utimeout)
 	nextsend_time = cu->cu_wait.tv_sec * 1000 + cu->cu_wait.tv_usec / 1000;
 
 	if (cu->cu_connect && !cu->cu_connected) {
-		if (connect(_get_osfhandle(cu->cu_fd), (struct sockaddr *)&cu->cu_raddr,
+		if (wintirpc_connect(cu->cu_fd, (struct sockaddr *)&cu->cu_raddr,
 		    cu->cu_rlen) < 0) {
 			cu->cu_error.re_errno = errno;
 			cu->cu_error.re_status = RPC_CANTSEND;
@@ -477,7 +477,7 @@ get_reply:
 	  msg.msg_flags = 0;
 	  msg.msg_control = cbuf;
 	  msg.msg_controllen = 256;
-	  ret = recvmsg (_get_osfhandle(cu->cu_fd), &msg, MSG_ERRQUEUE);
+	  ret = recvmsg (cu->cu_fd, &msg, MSG_ERRQUEUE);
 	  if (ret >= 0
 	      && memcmp (cbuf + 256, cu->cu_outbuf, ret) == 0
 	      && (msg.msg_flags & MSG_ERRQUEUE)
