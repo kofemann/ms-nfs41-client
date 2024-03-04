@@ -24,6 +24,7 @@
 #include <process.h>
 #include <stdio.h>
 
+#include "nfs41_build_features.h"
 #include "nfs41_ops.h"
 #include "nfs41_callback.h"
 #include "util.h"
@@ -442,5 +443,11 @@ void nfs41_session_free(
     }
     DeleteCriticalSection(&session->table.lock);
     ReleaseSRWLockExclusive(&session->client->session_lock);
+
+#ifdef NFS41_DRIVER_WORKAROUND_FOR_GETATTR_AFTER_CLOSE_HACKS
+    (void)memset(session, 0, sizeof(nfs41_session));
+    debug_delayed_free(session);
+#else
     free(session);
+#endif /* NFS41_DRIVER_WORKAROUND_FOR_GETATTR_AFTER_CLOSE_HACKS */
 }

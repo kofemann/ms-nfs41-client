@@ -121,6 +121,47 @@ static void open_state_free(
 #endif /* NFS41_DRIVER_WORKAROUND_FOR_GETATTR_AFTER_CLOSE_HACKS */
 }
 
+#ifdef NFS41_DRIVER_WORKAROUND_FOR_GETATTR_AFTER_CLOSE_HACKS
+bool isvalidnfs41_open_state_ptr(nfs41_open_state *state_ref)
+{
+    /*
+     * If |>state_ref| is garbage, then this should trigger
+     * an exception
+     */
+    volatile int mark = 0;
+    __try {
+        if (state_ref != NULL) {
+            mark++;
+            if (DEBUG_IS_VALID_NON_NULL_PTR(state_ref)) {
+                mark++;
+                if (state_ref->session != NULL) {
+                    mark++;
+                    if (DEBUG_IS_VALID_NON_NULL_PTR(state_ref->session)) {
+                        mark++;
+                        if (state_ref->session->client != NULL) {
+                            mark++;
+                            if (DEBUG_IS_VALID_NON_NULL_PTR(state_ref->session->client)) {
+                                mark++;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    } __except(EXCEPTION_EXECUTE_HANDLER) {
+        eprintf("isvalidnfs41_open_state_ptr: Exception accessing "
+            "state_ref(=0x%p)->session->client, mark=%d\n",
+            state_ref, mark);
+    }
+
+    if (mark == 6) {
+        return true;
+    }
+
+    return false;
+}
+#endif /* NFS41_DRIVER_WORKAROUND_FOR_GETATTR_AFTER_CLOSE_HACKS */
+
 /* open state reference counting */
 void nfs41_open_state_ref(
     IN nfs41_open_state *state)
@@ -1116,6 +1157,13 @@ out:
 
 static void cleanup_close(nfs41_upcall *upcall)
 {
+#ifdef NFS41_DRIVER_WORKAROUND_FOR_GETATTR_AFTER_CLOSE_HACKS
+    EASSERT(upcall->state_ref != INVALID_HANDLE_VALUE);
+    if (upcall->state_ref == INVALID_HANDLE_VALUE) {
+        return;
+    }
+#endif /* NFS41_DRIVER_WORKAROUND_FOR_GETATTR_AFTER_CLOSE_HACKS */
+
     /* release the initial reference from create_open_state() */
     nfs41_open_state_deref(upcall->state_ref);
 }

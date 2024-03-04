@@ -82,25 +82,18 @@ static int parse_getattr(unsigned char *buffer, uint32_t length, nfs41_upcall *u
         goto out;
     }
 
-    /*
-     * If |upcall->state_ref| is garbage, then this should trigger
-     * an exception
-     */
-    volatile int ok = 0;
-    __try {
-        if (upcall->state_ref->session->client != NULL)
-            ok++;
-    }
-    __except(EXCEPTION_EXECUTE_HANDLER) {
-        eprintf("parse_getattr: Exception accessing "
+    if (!isvalidnfs41_open_state_ptr(upcall->state_ref)) {
+        eprintf("parse_getattr: Error accessing "
             "upcall->state_ref(=0x%p)->session->client\n",
             upcall->state_ref);
-    }
-    if (ok != 1) {
         status = ERROR_INVALID_PARAMETER;
         goto out;
     }
     EASSERT(upcall->state_ref->ref_count > 0);
+    if (upcall->state_ref->ref_count == 0) {
+        status = ERROR_INVALID_PARAMETER;
+        goto out;
+    }
 #endif /* NFS41_DRIVER_WORKAROUND_FOR_GETATTR_AFTER_CLOSE_HACKS */
 
     getattr_upcall_args *args = &upcall->args.getattr;
