@@ -337,12 +337,12 @@ int wintirpc_accept(int in_s_fd, struct sockaddr *addr, int *addrlen)
 
 int wintirpc_bind(int s, const struct sockaddr *name, socklen_t namelen)
 {
-    return bind(_get_osfhandle(s), name, namelen);
+	return bind(_get_osfhandle(s), name, namelen);
 }
 
 int wintirpc_connect(int s, const struct sockaddr *name, socklen_t namelen)
 {
-    return connect(_get_osfhandle(s), name, namelen);
+	return connect(_get_osfhandle(s), name, namelen);
 }
 
 wintirpc_ssize_t wintirpc_send(int s, const char *buf, size_t len, int flags)
@@ -368,8 +368,8 @@ wintirpc_ssize_t wintirpc_recv(int socket, void *buffer, size_t length, int flag
 }
 
 wintirpc_ssize_t wintirpc_recvfrom(int socket, void *restrict buffer, size_t length,
-           int flags, struct sockaddr *restrict address,
-           socklen_t *restrict address_len)
+	int flags, struct sockaddr *restrict address,
+	socklen_t *restrict address_len)
 {
 	/* handle type overflow |size_t| ---> |int| */
 	assert(length < INT_MAX);
@@ -380,6 +380,20 @@ wintirpc_ssize_t wintirpc_recvfrom(int socket, void *restrict buffer, size_t len
 int wintirpc_getsockname(int s, struct sockaddr *name, int *namelen)
 {
 	return getsockname(_get_osfhandle(s), name, namelen);
+}
+
+int wintirpc_getsockopt(int socket, int level, int option_name,
+	void *restrict option_value, socklen_t *restrict option_len)
+{
+	return getsockopt(_get_osfhandle(socket), level, option_name,
+		option_value, option_len);
+}
+
+int wintirpc_setsockopt(int socket, int level, int option_name,
+	const void *option_value, socklen_t option_len)
+{
+	return setsockopt(_get_osfhandle(socket), level, option_name,
+		option_value, option_len);
 }
 
 void wintirpc_syslog(int prio, const char *format, ...)

@@ -153,6 +153,10 @@ wintirpc_ssize_t wintirpc_recvfrom(int socket, void *restrict buffer,
     size_t length, int flags, struct sockaddr *restrict address,
     socklen_t *restrict address_len);
 int wintirpc_getsockname(int s, struct sockaddr *name, int *namelen);
+int wintirpc_getsockopt(int socket, int level, int option_name,
+    void *restrict option_value, socklen_t *restrict option_len);
+int wintirpc_setsockopt(int socket, int level, int option_name,
+    const void *option_value, socklen_t option_len);
 void wintirpc_syslog(int prio, const char *format, ...);
 void wintirpc_warnx(const char *format, ...);
 void wintirpc_register_osfhandle_fd(SOCKET handle, int fd);

@@ -490,7 +490,7 @@ __rpc_fd2sockinfo(int fd, struct __rpc_sockinfo *sip)
 #ifdef _WIN32
 	WSAPROTOCOL_INFO proto_info;
 	int proto_info_size = sizeof(proto_info);
-	if (getsockopt(_get_osfhandle(fd), SOL_SOCKET, SO_PROTOCOL_INFO, (char *)&proto_info, &proto_info_size) == SOCKET_ERROR) {
+	if (wintirpc_getsockopt(fd, SOL_SOCKET, SO_PROTOCOL_INFO, (char *)&proto_info, &proto_info_size) == SOCKET_ERROR) {
 		int err = WSAGetLastError();
 		return 0;
 	}
@@ -505,7 +505,7 @@ __rpc_fd2sockinfo(int fd, struct __rpc_sockinfo *sip)
 	sip->si_alen = len;
 
 	len = sizeof type;
-	if (getsockopt(_get_osfhandle(fd), SOL_SOCKET, SO_TYPE, (char *)&type, &len) == SOCKET_ERROR) {
+	if (wintirpc_getsockopt(fd, SOL_SOCKET, SO_TYPE, (char *)&type, &len) == SOCKET_ERROR) {
 		int err = WSAGetLastError();
 		return 0;
 	}
@@ -570,7 +570,7 @@ __rpc_nconf2fd(const struct netconfig *nconf)
 	    si.si_af == AF_INET6) {
 		int val = 1;
 
-		setsockopt(_get_osfhandle(fd), SOL_IPV6, IPV6_V6ONLY, (const char *)&val, sizeof(val));
+		wintirpc_setsockopt(fd, SOL_IPV6, IPV6_V6ONLY, (const char *)&val, sizeof(val));
 	}
 	return fd;
 }

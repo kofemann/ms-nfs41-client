@@ -281,7 +281,7 @@ clnt_dg_create(fd, svcaddr, program, version, sendsz, recvsz)
 #ifdef IP_RECVERR
 	{
 	int on = 1;
-	setsockopt(_get_osfhandle(fd), SOL_IP, IP_RECVERR, &on, sizeof(on));
+	wintirpc_setsockopt(fd, SOL_IP, IP_RECVERR, &on, sizeof(on));
 	}
 #endif
 	ioctlsocket(_get_osfhandle(fd), FIONBIO, &one);

@@ -404,7 +404,7 @@ clnt_tli_create(const int fd_in, const struct netconfig *nconf,
 		if (nconf &&
 		    ((strcmp(nconf->nc_protofmly, "inet") == 0) ||
 		     (strcmp(nconf->nc_protofmly, "inet6") == 0))) {
-			setsockopt(_get_osfhandle(fd), IPPROTO_TCP, TCP_NODELAY, (const char *)&one,
+			wintirpc_setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (const char *)&one,
 			    sizeof (one));
 		}
 		cl = clnt_vc_create(fd, svcaddr, prog, vers, sendsz, recvsz,

@@ -249,12 +249,12 @@ __rpc_broadenable(int af, int s, struct broadif *bip)
 #if 0
 	if (af == AF_INET6) {
 		fprintf(stderr, "set v6 multicast if to %d\n", bip->index);
-		if (setsockopt(_get_osfhandle(s), IPPROTO_IPV6, IPV6_MULTICAST_IF, &bip->index,
+		if (wintirpc_setsockopt(s, IPPROTO_IPV6, IPV6_MULTICAST_IF, &bip->index,
 			sizeof bip->index) < 0)
 			return -1;
 	} else
 #endif
-		if (setsockopt(_get_osfhandle(s), SOL_SOCKET, SO_BROADCAST, &o, sizeof o) == SOCKET_ERROR)
+		if (wintirpc_setsockopt(s, SOL_SOCKET, SO_BROADCAST, &o, sizeof o) == SOCKET_ERROR)
 			return -1;
 
 	return 0;

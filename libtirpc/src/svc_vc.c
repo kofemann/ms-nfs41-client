@@ -359,7 +359,7 @@ again:
 	if (__rpc_fd2sockinfo(sock, &si) && si.si_proto == IPPROTO_TCP) {
 		len = 1;
 		/* XXX fvdl - is this useful? */
-		setsockopt(_get_osfhandle(sock), IPPROTO_TCP, TCP_NODELAY, (const char *)&len, sizeof (len));
+		wintirpc_setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, (const char *)&len, sizeof (len));
 	}
 
 	cd = (struct cf_conn *)newxprt->xp_p1;

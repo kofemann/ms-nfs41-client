@@ -50,7 +50,7 @@ getpeereid(int s, uid_t *euid, gid_t *egid)
 	int error;
 
 	uclen = sizeof(uc); 
-	error = getsockopt(_get_osfhandle(s), SOL_SOCKET, SO_PEERCRED, &uc, &uclen); /*  SCM_CREDENTIALS */
+	error = wintirpc_getsockopt(s, SOL_SOCKET, SO_PEERCRED, &uc, &uclen); /*  SCM_CREDENTIALS */
 	if (error != 0)
 		return (error);
 	//	if (uc.cr_version != XUCRED_VERSION)

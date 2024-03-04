@@ -185,7 +185,7 @@ bindresvport_sa(sd, sa)
 
 #ifdef _WIN32
 		memset(sa, 0, salen);
-		if (error = getsockopt(_get_osfhandle(sd), SOL_SOCKET, SO_PROTOCOL_INFO, (char *)&proto_info, &proto_info_size) == SOCKET_ERROR) {
+		if (error = wintirpc_getsockopt(sd, SOL_SOCKET, SO_PROTOCOL_INFO, (char *)&proto_info, &proto_info_size) == SOCKET_ERROR) {
 			int sockerr = WSAGetLastError();
 			return -1;
 		}
@@ -231,11 +231,11 @@ bindresvport_sa(sd, sa)
 	if (*portp == 0) {
 		socklen_t oldlen = sizeof(old);
 
-		error = getsockopt(_get_osfhandle(sd), proto, portrange, &old, &oldlen);
+		error = wintirpc_getsockopt(sd, proto, portrange, &old, &oldlen);
 		if (error < 0)
 			return (error);
 
-		error = setsockopt(_get_osfhandle(sd), proto, portrange, &portlow,
+		error = wintirpc_setsockopt(sd, proto, portrange, &portlow,
 				sizeof(portlow));
 		if (error < 0)
 			return (error);
@@ -252,7 +252,7 @@ bindresvport_sa(sd, sa)
 		int saved_errno = errno;
 
 		if (error < 0) {
-			if (setsockopt(_get_osfhandle(sd), proto, portrange, &old,
+			if (wintirpc_setsockopt(sd, proto, portrange, &old,
 				sizeof(old)) < 0)
 			errno = saved_errno;
 			return (error);
