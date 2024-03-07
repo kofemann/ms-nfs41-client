@@ -63,7 +63,7 @@ installdest: $(VS_BUILD_DIR)/nfsd.exe \
 	mkdir -p $(DESTDIR)/cygdrive/c/cygwin64/lib
 	mkdir -p $(DESTDIR)/cygdrive/c/cygwin64/lib/msnfs41client
 	mkdir -p $(DESTDIR)/cygdrive/c/cygwin64/usr/src/msnfs41client
-	mkdir -p $(DESTDIR)/cygdrive/c/cygwin64/sbin/usr/share/man/man1
+	mkdir -p $(DESTDIR)/cygdrive/c/cygwin64/usr/share/man/man1
 	cp -r $(VS_BUILD_DIR)/nfsd.exe		$(DESTDIR)/cygdrive/c/cygwin64/sbin/nfsd_debug.exe
 	cp -r $(VS_BUILD_DIR)/nfsd.pdb		$(DESTDIR)/cygdrive/c/cygwin64/sbin/nfsd_debug.pdb
 	cp -r $(VS_BUILD_DIR)/nfs_mount.*	$(DESTDIR)/cygdrive/c/cygwin64/sbin/.
@@ -87,12 +87,12 @@ installdest: $(VS_BUILD_DIR)/nfsd.exe \
 	cp $(CYGWIN_MAKEFILE_DIR)/utils/mount_sshnfs/mount_sshnfs.ksh $(DESTDIR)/cygdrive/c/cygwin64/sbin/mount_sshnfs
 	chmod a+x $(DESTDIR)/cygdrive/c/cygwin64/sbin/mount_sshnfs
 	PATH+=":$(DESTDIR)/cygdrive/c/cygwin64/sbin/" \
-		/usr/bin/ksh93 $(CYGWIN_MAKEFILE_DIR)/utils/mount_sshnfs/mount_sshnfs.ksh --nroff 2>"$(DESTDIR)/cygdrive/c/cygwin64/sbin/usr/share/man/man1/mount_sshnfs.1" || true
+		/usr/bin/ksh93 $(CYGWIN_MAKEFILE_DIR)/utils/mount_sshnfs/mount_sshnfs.ksh --nroff 2>"$(DESTDIR)/cygdrive/c/cygwin64/usr/share/man/man1/mount_sshnfs.1" || true
 	cp $(CYGWIN_MAKEFILE_DIR)/utils/sshnfs/sshnfs.ksh $(DESTDIR)/cygdrive/c/cygwin64/sbin/sshnfs
 	chmod a+x $(DESTDIR)/cygdrive/c/cygwin64/sbin/sshnfs
 	cp $(CYGWIN_MAKEFILE_DIR)/utils/nfsurlconv/nfsurlconv.ksh $(DESTDIR)/cygdrive/c/cygwin64/bin/nfsurlconv
 	chmod a+x $(DESTDIR)/cygdrive/c/cygwin64/bin/nfsurlconv
-	/usr/bin/ksh93 $(CYGWIN_MAKEFILE_DIR)/utils/nfsurlconv/nfsurlconv.ksh --nroff 2>"$(DESTDIR)/cygdrive/c/cygwin64/sbin/usr/share/man/man1/nfsurlconv.1" || true
+	/usr/bin/ksh93 $(CYGWIN_MAKEFILE_DIR)/utils/nfsurlconv/nfsurlconv.ksh --nroff 2>"$(DESTDIR)/cygdrive/c/cygwin64/usr/share/man/man1/nfsurlconv.1" || true
 	@ printf "# Package tests\n"
 	cp "$(PROJECT_BASEDIR_DIR)/tests/winfsinfo1/winfsinfo.exe" $(DESTDIR)/cygdrive/c/cygwin64/bin/winfsinfo.exe
 	@ printf "# Package ksh93&co (if available) since Cygwin does not ship with it yet\n"
