@@ -35,6 +35,20 @@
 #include "daemon_debug.h"
 #include "util.h"
 
+#ifdef NFS41_DRIVER_STABILITY_HACKS
+/*
+ * gisburn: Fixme: Execute extra code for stability.
+ * We mainly use this to init structs with zeros here, until we have
+ * resources (time, much faster machine) to properly hunt down all
+ * uninitalised memory issues with DrMemory
+ */
+#define NDSH(x) x
+#define NDSH2(x,y) x,y
+#else
+#define NDSH(x)
+#define NDSH2(x,y)
+#endif /* NFS41_DRIVER_STABILITY_HACKS */
+
 int nfs41_exchange_id(
     IN nfs41_rpc_clnt *rpc,
     IN client_owner4 *owner,
@@ -395,7 +409,7 @@ int nfs41_open(
     nfs41_getfh_res getfh_res;
     bitmap4 attr_request;
     nfs41_getattr_args getattr_args;
-    nfs41_getattr_res getattr_res, pgetattr_res;
+    nfs41_getattr_res getattr_res NDSH(= { 0 }), pgetattr_res NDSH(= { 0 });
     nfs41_savefh_res savefh_res;
     nfs41_restorefh_res restorefh_res;
     nfs41_file_info tmp_info, dir_info;
@@ -554,7 +568,7 @@ int nfs41_create(
     nfs41_create_res create_res;
     nfs41_getfh_res getfh_res;
     nfs41_getattr_args getattr_args;
-    nfs41_getattr_res getattr_res, pgetattr_res;
+    nfs41_getattr_res getattr_res NDSH(= { 0 }), pgetattr_res NDSH(= { 0 });
     bitmap4 attr_request;
     nfs41_file_info dir_info;
     nfs41_savefh_res savefh_res;
@@ -646,7 +660,7 @@ int nfs41_close(
     nfs41_op_close_args close_args;
     nfs41_op_close_res close_res;
     nfs41_getattr_args getattr_args;
-    nfs41_getattr_res getattr_res;
+    nfs41_getattr_res getattr_res NDSH(= { 0 });
     bitmap4 attr_request;
     nfs41_file_info info;
 
@@ -1081,7 +1095,7 @@ int nfs41_getattr(
     nfs41_putfh_args putfh_args;
     nfs41_putfh_res putfh_res;
     nfs41_getattr_args getattr_args;
-    nfs41_getattr_res getattr_res;
+    nfs41_getattr_res getattr_res NDSH(= { 0 });
 
     compound_init(&compound, argops, resops, "getattr");
 
@@ -1135,7 +1149,7 @@ int nfs41_superblock_getattr(
     nfs41_putfh_args putfh_args;
     nfs41_putfh_res putfh_res;
     nfs41_getattr_args getattr_args;
-    nfs41_getattr_res getattr_res;
+    nfs41_getattr_res getattr_res NDSH(= { 0 });
     nfs41_openattr_args openattr_args;
     nfs41_openattr_res openattr_res;
 
@@ -1200,7 +1214,7 @@ int nfs41_remove(
     nfs41_remove_args remove_args;
     nfs41_remove_res remove_res;
     nfs41_getattr_args getattr_args;
-    nfs41_getattr_res getattr_res;
+    nfs41_getattr_res getattr_res NDSH(= { 0 });
     bitmap4 attr_request;
     nfs41_file_info info;
 
@@ -1271,7 +1285,7 @@ int nfs41_rename(
     nfs41_rename_args rename_args;
     nfs41_rename_res rename_res;
     nfs41_getattr_args getattr_args;
-    nfs41_getattr_res src_getattr_res, dst_getattr_res;
+    nfs41_getattr_res src_getattr_res NDSH(= { 0 }), dst_getattr_res NDSH(= { 0 });
     nfs41_file_info src_info, dst_info;
     bitmap4 attr_request;
     nfs41_restorefh_res restorefh_res;
@@ -1371,7 +1385,7 @@ int nfs41_setattr(
     nfs41_setattr_args setattr_args;
     nfs41_setattr_res setattr_res;
     nfs41_getattr_args getattr_args;
-    nfs41_getattr_res getattr_res;
+    nfs41_getattr_res getattr_res NDSH(= { 0 });
     bitmap4 attr_request;
 
     compound_init(&compound, argops, resops, "setattr");
@@ -1457,7 +1471,7 @@ int nfs41_link(
     nfs41_lookup_res lookup_res;
     nfs41_getfh_res getfh_res;
     nfs41_getattr_args getattr_args[2];
-    nfs41_getattr_res getattr_res[2];
+    nfs41_getattr_res getattr_res[2] NDSH2(= { 0, 0 });
     nfs41_file_info info = { 0 };
     nfs41_path_fh file;
 
@@ -1782,7 +1796,7 @@ enum nfsstat4 nfs41_fs_locations(
     nfs41_lookup_args lookup_args;
     nfs41_lookup_res lookup_res;
     nfs41_getattr_args getattr_args;
-    nfs41_getattr_res getattr_res;
+    nfs41_getattr_res getattr_res NDSH(= { 0 });
     bitmap4 attr_request = { 1, { FATTR4_WORD0_FS_LOCATIONS } };
     nfs41_file_info info;
 
@@ -2048,7 +2062,7 @@ enum nfsstat4 pnfs_rpc_layoutcommit(
     pnfs_layoutcommit_args lc_args;
     pnfs_layoutcommit_res lc_res;
     nfs41_getattr_args getattr_args;
-    nfs41_getattr_res getattr_res;
+    nfs41_getattr_res getattr_res NDSH(= { 0 });
     bitmap4 attr_request;
 
     nfs41_superblock_getattr_mask(file->fh.superblock, &attr_request);
