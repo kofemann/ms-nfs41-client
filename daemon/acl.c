@@ -490,11 +490,11 @@ static void map_acemask(ACCESS_MASK mask, int file_type, uint32_t *nfs4_mask)
     print_nfs_access_mask(ACLLVL, *nfs4_mask);
 }
 
-static int map_nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid, char *who_out, char *domain)
+static int map_nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid, char *who_out, char *domain, SID_NAME_USE *sid_type_out)
 {
     int status;
     DWORD size = 0, tmp_size = 0;
-    SID_NAME_USE sid_type;
+    SID_NAME_USE sid_type = 0;
     LPSTR tmp_buf = NULL, who = NULL;
     LPSTR sidstr = NULL;
 
@@ -513,6 +513,7 @@ static int map_nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid, char *who_o
         if (EqualSid(sid, owner_sid)) {
             DPRINTF(ACLLVL, ("map_nfs4ace_who: this is owner's sid\n"));
             memcpy(who_out, ACE4_OWNER, strlen(ACE4_OWNER)+1);
+            sid_type = SidTypeUser;
             status = ERROR_SUCCESS;
             goto out;
         }
@@ -525,6 +526,7 @@ static int map_nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid, char *who_o
         if (EqualSid(sid, group_sid)) {
             DPRINTF(ACLLVL, ("map_nfs4ace_who: this is group's sid\n"));
             memcpy(who_out, ACE4_GROUP, strlen(ACE4_GROUP)+1);
+            sid_type = SidTypeGroup;
             status = ERROR_SUCCESS;
             goto out;
         }
@@ -533,9 +535,11 @@ static int map_nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid, char *who_o
     if (status) {
         if (!strncmp(who_out, ACE4_NOBODY, strlen(ACE4_NOBODY))) {
             size = (DWORD)strlen(ACE4_NOBODY);
+            sid_type = SidTypeUser;
             goto add_domain;
         }
 
+        /* fixme: What about |sid_type| */
         status = ERROR_SUCCESS;
         goto out;
     }
@@ -618,7 +622,10 @@ out:
         DPRINTF(ACLLVL, ("<-- map_nfs4ace_who() returns %d\n", status));
     }
     else {
-        DPRINTF(ACLLVL, ("<-- map_nfs4ace_who(who_out='%s') returns %d\n", who_out, status));
+        DPRINTF(ACLLVL, ("<-- map_nfs4ace_who(who_out='%s', sid_type=%d) returns %d\n", who_out, status, sid_type));
+        if (sid_type_out) {
+            *sid_type_out = sid_type;
+        }
     }
     if (sidstr)
         LocalFree(sidstr);
@@ -652,6 +659,7 @@ static int map_dacl_2_nfs4acl(PACL acl, PSID sid, PSID gsid, nfsacl41 *nfs4_acl,
         int i;
         PACE_HEADER ace;
         PBYTE tmp_pointer;
+        SID_NAME_USE who_sid_type = 0;
 
         DPRINTF(ACLLVL, ("NON-NULL dacl with %d ACEs\n", acl->AceCount));
         print_hexbuf_no_asci(ACLLVL, (unsigned char *)"ACL\n",
@@ -690,10 +698,31 @@ static int map_dacl_2_nfs4acl(PACL acl, PSID sid, PSID gsid, nfsacl41 *nfs4_acl,
                         &nfs4_acl->aces[i].acemask);
 
             tmp_pointer += sizeof(ACCESS_MASK) + sizeof(ACE_HEADER);
-            status = map_nfs4ace_who(tmp_pointer, sid, gsid, nfs4_acl->aces[i].who, 
-                                     domain);
+
+            status = map_nfs4ace_who(tmp_pointer, sid, gsid, nfs4_acl->aces[i].who,
+                                     domain, &who_sid_type);
             if (status)
                 goto out_free;
+
+            /*
+             * Treat |SidTypeAlias| as (local) group
+             *
+             * It seems that |LookupAccount*A()| will always return
+             * |SidTypeAlias| for local groups created with
+             * $ net localgroup cygwingrp1 /add #
+             *
+             * References:
+             * - https://stackoverflow.com/questions/39373188/lookupaccountnamew-returns-sidtypealias-but-expected-sidtypegroup
+             */
+            if ((who_sid_type == SidTypeGroup) ||
+                (who_sid_type == SidTypeAlias)) {
+                DPRINTF(ACLLVL, ("map_dacl_2_nfs4acl: "
+                    "who_sid_type=%d, setting group flag for '%s'\n",
+                    (int)who_sid_type,
+                    nfs4_acl->aces[i].who));
+                nfs4_acl->aces[i].aceflag |= ACE4_IDENTIFIER_GROUP;
+            }
+
         }
     }
     status = ERROR_SUCCESS;
@@ -730,7 +759,7 @@ static int handle_setacl(void *daemon_context, nfs41_upcall *upcall)
         }
 
         status = map_nfs4ace_who(sid, NULL, NULL, ownerbuf,
-            nfs41dg->localdomain_name);
+            nfs41dg->localdomain_name, NULL);
         if (status)
             goto out;
 
@@ -749,7 +778,7 @@ static int handle_setacl(void *daemon_context, nfs41_upcall *upcall)
         }
 
         status = map_nfs4ace_who(sid, NULL, NULL, groupbuf,
-            nfs41dg->localdomain_name);
+            nfs41dg->localdomain_name, NULL);
         if (status)
             goto out;
 

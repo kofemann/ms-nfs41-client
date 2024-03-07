@@ -124,6 +124,9 @@ int cygwin_getent_passwd(const char *name, char *res_loginname, uid_t *res_uid, 
         }
     }
 
+    if (!localaccoutname)
+        goto fail;
+
     if (res_loginname)
         (void)strcpy_s(res_loginname, VAL_LEN, localaccoutname);
     *res_uid = uid;
@@ -229,6 +232,9 @@ int cygwin_getent_group(const char* name, char* res_group_name, gid_t* res_gid)
                 goto fail;
         }
     }
+
+    if (!localgroupname)
+        goto fail;
 
     if (res_group_name)
         (void)strcpy_s(res_group_name, VAL_LEN, localgroupname);
