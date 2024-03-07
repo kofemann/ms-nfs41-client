@@ -193,8 +193,7 @@ static int handle_getacl(void *daemon_context, nfs41_upcall *upcall)
     nfs41_daemon_globals *nfs41dg = daemon_context;
     getacl_upcall_args *args = &upcall->args.getacl;
     nfs41_open_state *state = upcall->state_ref;
-    nfs41_file_info info = { 0 };
-    bitmap4 attr_request = { 0 };
+    nfs41_file_info info;
     LPSTR domain = NULL;
     SECURITY_DESCRIPTOR sec_desc;
     PACL dacl = NULL;
@@ -204,23 +203,57 @@ static int handle_getacl(void *daemon_context, nfs41_upcall *upcall)
     char owner[NFS4_OPAQUE_LIMIT], group[NFS4_OPAQUE_LIMIT];
     nfsacl41 acl = { 0 };
 
-    // need to cache owner/group information XX
-    attr_request.count = 2;
-    attr_request.arr[1] = FATTR4_WORD1_OWNER | FATTR4_WORD1_OWNER_GROUP;
     if (args->query & DACL_SECURITY_INFORMATION) {
+use_nfs41_getattr:
+        bitmap4 attr_request = { 0 };
+        (void)memset(&info, 0, sizeof(nfs41_file_info));
+        info.owner = owner;
+        info.owner_group = group;
+
+        attr_request.count = 2;
+        attr_request.arr[0] = FATTR4_WORD0_ACL;
+        attr_request.arr[1] = FATTR4_WORD1_OWNER | FATTR4_WORD1_OWNER_GROUP;
         info.acl = &acl;
-        attr_request.arr[0] |= FATTR4_WORD0_ACL;
-    }
-    info.owner = owner;
-    info.owner_group = group;
-    status = nfs41_getattr(state->session, &state->file, &attr_request, &info);
-    if (status) {
-        eprintf("handle_getacl: nfs41_cached_getattr() failed with %d\n",
+        status = nfs41_getattr(state->session, &state->file, &attr_request, &info);
+        if (status) {
+            eprintf("handle_getacl: nfs41_getattr() failed with %d\n",
                 status);
-        goto out;
+            goto out;
+        }
+    }
+    else {
+        (void)memset(&info, 0, sizeof(nfs41_file_info));
+        info.owner = owner;
+        info.owner_group = group;
+
+        status = nfs41_cached_getattr(state->session, &state->file, &info);
+        if (status) {
+            eprintf("handle_getacl: nfs41_cached_getattr() failed with %d\n",
+                status);
+            goto out;
+        }
+
+        EASSERT(info.attrmask.count >= 2);
+
+        /*
+         * In rare cases owner/owner_group are not in the cache
+         * (usually for new files). In this case do a full
+         * roundtrip to the NFS server to get the data...
+         */
+        if ((info.attrmask.arr[1] &
+            (FATTR4_WORD1_OWNER|FATTR4_WORD1_OWNER_GROUP)) != (FATTR4_WORD1_OWNER|FATTR4_WORD1_OWNER_GROUP)) {
+            DPRINTF(0, ("handle_getattr: owner/owner_group not in cache, doing full lookup...\n"));
+            goto use_nfs41_getattr;
+        }
     }
 
-    status = InitializeSecurityDescriptor(&sec_desc, 
+    EASSERT(info.attrmask.count >= 2);
+    EASSERT((info.attrmask.arr[1] & (FATTR4_WORD1_OWNER|FATTR4_WORD1_OWNER_GROUP)) == (FATTR4_WORD1_OWNER|FATTR4_WORD1_OWNER_GROUP));
+    if (args->query & DACL_SECURITY_INFORMATION) {
+        EASSERT((info.attrmask.arr[0] & (FATTR4_WORD0_ACL)) == (FATTR4_WORD0_ACL));
+    }
+
+    status = InitializeSecurityDescriptor(&sec_desc,
                                           SECURITY_DESCRIPTOR_REVISION);
     if (!status) {
         status = GetLastError();
