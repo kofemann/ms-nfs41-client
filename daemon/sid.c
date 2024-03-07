@@ -43,35 +43,35 @@
 int create_unknownsid(WELL_KNOWN_SID_TYPE type, PSID *sid, DWORD *sid_len)
 {
     int status;
-    *sid_len = 0;
-    *sid = NULL;
+    int lasterr;
 
-    status = CreateWellKnownSid(type, NULL, *sid, sid_len);
-    DPRINTF(ACLLVL,
-        ("create_unknownsid: CreateWellKnownSid(type=%d) returned %d "
-        "GetLastError %d sid len %d needed\n", (int)type, status,
-        GetLastError(), *sid_len));
-    if (status) {
-        status = ERROR_INTERNAL_ERROR;
-        goto err;
-    }
-    status = GetLastError();
-    if (status != ERROR_INSUFFICIENT_BUFFER)
-        goto err;
-
+    *sid_len = SECURITY_MAX_SID_SIZE+1;
     *sid = malloc(*sid_len);
     if (*sid == NULL) {
         status = ERROR_INSUFFICIENT_BUFFER;
         goto err;
     }
+
     status = CreateWellKnownSid(type, NULL, *sid, sid_len);
-    if (status)
+    lasterr = GetLastError();
+    if (status) {
+        *sid_len = GetLengthSid(*sid);
+
+        DPRINTF(ACLLVL,
+            ("create_unknownsid(type=%d): CreateWellKnownSid() "
+            "returned %d GetLastError=%d *sid_len=%d\n",
+            (int)type, status, lasterr, (int)*sid_len));
+
         return ERROR_SUCCESS;
+    }
+
+    status = lasterr;
     free(*sid);
-    *sid = NULL;
-    status = GetLastError();
 err:
-    eprintf("create_unknownsid: CreateWellKnownSid(type=%d) failed with %d\n",
+    *sid = NULL;
+    *sid_len = 0;
+    eprintf("create_unknownsid(type=%d): "
+        "CreateWellKnownSid failed with %d\n",
         (int)type, status);
     return status;
 }
