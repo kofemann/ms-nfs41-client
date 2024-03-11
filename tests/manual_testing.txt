@@ -93,6 +93,41 @@ root@DERFWNB4966:~# usermod -a -G cygwingrp1 roland_mainz
 root@DERFWNB4966:~# usermod -a -G cygwingrp2 roland_mainz
 ---- snip ---
 
+#
+# Test for group ACLs
+#
+Testcase:
+-------- snip --------
+# cd to a NFSv4.1 filesystem
+$ rm -f test1.txt
+$ touch test1.txt
+$ icacls test1.txt /grant:r 'cygwingrp1:(WDAC)' /t /c
+Bearbeitete Datei: test1.txt
+1 Dateien erfolgreich verarbeitet, bei 0 Dateien ist ein Verarbeitungsfehler aufgetreten.
+
+$ icacls test1.txt /grant:r 'cygwingrp2:(WDAC)' /t /c
+Bearbeitete Datei: test1.txt
+1 Dateien erfolgreich verarbeitet, bei 0 Dateien ist ein Verarbeitungsfehler aufgetreten.
+
+# expectation:
+# getfact output should contain both "cygwingrp1" and "cygwingrp2":
+$ getfacl test1.txt
+user::r--
+group::r--
+group:cygwingrp1:r--
+group:cygwingrp2:r--
+mask::r--
+other::r--
+-------- snip --------
+
+or one-liner:
+-------- snip --------
+# cd to a NFSv4.1 filesystem
+# getfact output should contain both "cygwingrp1" and "cygwingrp2"
+ksh93 -c 'rm -f test1.txt ; touch test1.txt ; icacls test1.txt /grant:r "cygwingrp1:(WDAC)" /grant:r "cygwingrp2:(WDAC)" /t /c ; getfacl test1.txt | grep -C 20 --colour -E "cygwingrp[12]"'
+-------- snip --------
+
+
 
 #
 # Compile each of the following package

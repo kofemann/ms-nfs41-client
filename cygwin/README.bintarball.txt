@@ -203,9 +203,9 @@ $ /sbin/nfs_mount
 - ACLs are supported via the normal Windows ACL tools, but on
   Linux require the nfs4_getfacl/nfs4_setfacl utilities to see the
   data.
-  Example (assuming that Windows, Linux NFSv4 client and NFSv4
+  * Example 1 (assuming that Windows, Linux NFSv4 client and NFSv4
   server have a user "siegfried_wulsch"):
-  - On Windows on a NFSv4 filesystem, :
+  - On Windows on a NFSv4 filesystem:
   $ icacls myhorribledata.txt /grant "siegfried_wulsch:WD" #
   - On Linux NFSv4 clients you will then see this:
   ---- snip ----
@@ -213,6 +213,19 @@ $ /sbin/nfs_mount
   A::OWNER@:rwatTcCy
   A::siegfried_wulsch@global.loc:rwatcy
   A::GROUP@:rtcy
+  A::EVERYONE@:rtcy
+  ---- snip ----
+
+  * Example 2 (assuming that Windows, Linux NFSv4 client and NFSv4
+  server have a group "cygwingrp2"):
+  - On Windows on a NFSv4 filesystem:
+  $ icacls myhorribledata.txt /grant "cygwingrp2:(WDAC)" /t /c #
+  - On Linux NFSv4 clients you will then see this:
+  ---- snip ----
+  $ nfs4_getfacl myhorribledata.txt
+  A::OWNER@:rwatTcCy
+  A::GROUP@:rtcy
+  A:g:cygwingrp2@global.loc:rtcy
   A::EVERYONE@:rtcy
   ---- snip ----
 
