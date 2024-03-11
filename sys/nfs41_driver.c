@@ -1020,7 +1020,7 @@ NTSTATUS marshal_nfs41_dirquery(
     *len = header_len;
 
 #ifdef DEBUG_MARSHAL_DETAIL
-    DbgP("marshal_nfs41_dirquery: filter='%wZ'class=%d len=%d "
+    DbgP("marshal_nfs41_dirquery: filter='%wZ' class=%d len=%d "
          "1st\\restart\\single=%d\\%d\\%d\n", entry->u.QueryFile.filter,
          entry->u.QueryFile.InfoClass, entry->buf_len,
          entry->u.QueryFile.initial_query, entry->u.QueryFile.restart_scan,
