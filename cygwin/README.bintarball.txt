@@ -98,13 +98,15 @@ NFSv4.1 client and filesystem driver for Windows 10/11
 #
 $ mkdir -p ~/download
 $ cd ~/download
-$ wget 'http://www.nrubsig.org/people/gisburn/work/msnfs41client/releases/testing/msnfs41client_cygwin_binaries_git148e927_20231214_12h31m.tar.bz2'
+$ wget 'http://www.nrubsig.org/people/gisburn/work/msnfs41client/releases/testing/${bintarball.base_filename}.tar.bz2'
+$ openssl sha256 "${bintarball.base_filename}.tar.bz2"
+SHA2-256(${bintarball.base_filename}.tar.bz2)= ${bintarball.archive_sha256hash}
 
 
 #
 # 5. Installation (as "Administrator"):
 #
-$ (cd / && tar -xf ~/download/msnfs41client_cygwin_binaries_git148e927_20231214_12h31m.tar.bz2 )
+$ (cd / && tar -xf ~/download/${bintarball.base_filename}.tar.bz2 )
 $ /sbin/msnfs41client install
 <REBOOT>
 
@@ -112,7 +114,7 @@ $ /sbin/msnfs41client install
 #
 # 6. Deinstallation:
 #
-$ (set -x ; cd / && tar -tf ~/download/msnfs41client_cygwin_binaries_git148e927_20231214_12h31m.tar.bz2 | while read i ; do [[ -f "$i" ]] && rm "$i" ; done)
+$ (set -o xtrace ; cd / && tar -tf ~/download/${bintarball.base_filename}.tar.bz2 | while read i ; do [[ -f "$i" ]] && rm "$i" ; done)
 <REBOOT>
 
 

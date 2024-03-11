@@ -107,16 +107,19 @@ installdest: $(VS_BUILD_DIR)/nfsd.exe \
 		"$(DESTDIR)/cygdrive/c/cygwin64/sbin/"
 
 bintarball: installdest
-	set -o errexit ; \
+	set -o errexit ; set -o xtrace ; \
 	base_filename="msnfs41client_cygwin_binaries_$$(date +%Y%m%d_%Hh%Mm)_git$$(git rev-parse --short HEAD)" ; \
 	( \
 	cd "$(DESTDIR)" && \
-	cp "../cygwin/README.bintarball.txt" "$${base_filename}.readme" && \
-	tar -cvf - \
+	true tar -cvf - \
 		--owner=SYSTEM:18 \
 		--group=SYSTEM:18 \
 		cygdrive/c/cygwin64 | \
-			bzip2 -9 >"$${base_filename}.tar.bz2" \
+			bzip2 -9 >"$${base_filename}.tar.bz2" ; \
+	archive_sha256hash="$$(openssl sha256 -r "$${base_filename}.tar.bz2" | while read a dummy ; do printf "%s\n" "$$a" ; done)" ; \
+		sed -E <"../cygwin/README.bintarball.txt" \
+			-e "s/\\$$\{bintarball.base_filename\}/$${base_filename}/g" \
+			-e "s/\\$$\{bintarball.archive_sha256hash\}/$${archive_sha256hash}/g" >"$${base_filename}.readme" \
 	) ; \
 	printf "\n#\n# tarball is ready now\n#\n" ; \
 	ls -l "$(DESTDIR)/$${base_filename}.tar.bz2" ; \
