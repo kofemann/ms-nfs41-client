@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <strsafe.h>
 #include <sddl.h>
+#include <Lmcons.h>
 
 #include "nfs41_ops.h"
 #include "nfs41_build_features.h"
@@ -35,7 +36,6 @@
 #include "nfs41_xdr.h"
 #include "sid.h"
 
-//#define DEBUG_ACLS
 #define ACLLVL 2 /* dprintf level for acl logging */
 
 static int parse_getacl(unsigned char *buffer, uint32_t length,
@@ -492,10 +492,12 @@ static void map_acemask(ACCESS_MASK mask, int file_type, uint32_t *nfs4_mask)
 
 static int map_nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid, char *who_out, char *domain, SID_NAME_USE *sid_type_out)
 {
-    int status;
-    DWORD size = 0, tmp_size = 0;
+    int status, lasterr;
     SID_NAME_USE sid_type = 0;
-    LPSTR tmp_buf = NULL, who = NULL;
+    /* |(UNLEN+sizeof('\0'))*2| so we have space for user+domain */
+    char who_buf[(UNLEN+1)*2];
+    char domain_buf[UNLEN+1];
+    DWORD who_size = sizeof(who_buf), domain_size = sizeof(domain_buf);
     LPSTR sidstr = NULL;
 
     DPRINTF(ACLLVL, ("--> map_nfs4ace_who(sid=0x%p,owner_sid=0x%p, group_sid=0x%p)\n"));
@@ -534,12 +536,12 @@ static int map_nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid, char *who_o
     status = is_well_known_sid(sid, who_out);
     if (status) {
         if (!strncmp(who_out, ACE4_NOBODY, strlen(ACE4_NOBODY))) {
-            size = (DWORD)strlen(ACE4_NOBODY);
+            who_size = (DWORD)strlen(ACE4_NOBODY);
             sid_type = SidTypeUser;
             goto add_domain;
         }
 
-        /* fixme: What about |sid_type| */
+        /* fixme: What about |sid_type| ? */
         status = ERROR_SUCCESS;
         goto out;
     }
@@ -551,78 +553,72 @@ static int map_nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid, char *who_o
         goto out;
     }
 
-    status = LookupAccountSidA(NULL, sid, who, &size, tmp_buf,
-        &tmp_size, &sid_type);
-    DPRINTF(ACLLVL, ("map_nfs4ace_who: "
-        "LookupAccountSid(sidtostr(sid)='%s', namelen=%d, domainlen=%d) "
-        "returned %d, GetLastError=%d\n",
-        sidstr, size, tmp_size, status, GetLastError()));
+    status = LookupAccountSidA(NULL, sid, who_buf, &who_size, domain_buf,
+                                &domain_size, &sid_type);
+    lasterr = GetLastError();
 
-    /*
-     * No SID to local account mapping. Can happen for some system
-     * SIDs, and Unix_User+<uid> or Unix_Group+<gid> SIDs
-     */
-    switch (status) {
-        /* |LookupAccountSidA()| success */
-        case 0:
-            break;
-        /* This happens for Unix_User+<uid> or Unix_Group+<gid> SIDs */
-        case ERROR_NONE_MAPPED:
-        /* Catch other cases */
-        case ERROR_NO_SUCH_USER:
-        case ERROR_NO_SUCH_GROUP:
-            goto out;
-        default:
-            eprintf("map_nfs4ace_who: Internal error, "
-                "LookupAccountSidA() returned unexpected ERROR_%d "
-                "for sidstr='%s'\n",
-                status,
-                sidstr);
-            status = ERROR_INTERNAL_ERROR;
-            goto out;
+    if (status) {
+        DPRINTF(ACLLVL, ("map_nfs4ace_who: "
+            "LookupAccountSid(sidtostr(sid)='%s', who_buf='%s', "
+            "who_size=%d, domain='%s', domain_size=%d) "
+            "returned success, status=%d, GetLastError=%d\n",
+            sidstr, who_buf, who_size,
+            domain_buf, domain_size, status, lasterr));
+    }
+    else {
+        DPRINTF(ACLLVL, ("map_nfs4ace_who: "
+            "LookupAccountSid(sidtostr(sid)='%s', who_size=%d, "
+            "domain_size=%d) returned failure, status=%d, "
+            "GetLastError=%d\n",
+            sidstr, who_size, domain_size, status, lasterr));
+
+        /*
+         * No SID to local account mapping. Can happen for some system
+         * SIDs, and Unix_User+<uid> or Unix_Group+<gid> SIDs
+         */
+        switch (lasterr) {
+            /*
+             * This happens for Unix_User+<uid> or Unix_Group+<gid>
+             * SIDs
+             */
+            case ERROR_NONE_MAPPED:
+                DPRINTF(ACLLVL, ("map_nfs4ace_who: LookupAccountSidA() "
+                    "returned ERROR_NONE_MAPPED for sidstr='%s'\n",
+                    sidstr));
+                goto out;
+            /* Catch other cases */
+            case ERROR_NO_SUCH_USER:
+            case ERROR_NO_SUCH_GROUP:
+                eprintf("map_nfs4ace_who: LookupAccountSidA() "
+                    "returned ERROR_NO_SUCH_@(USER|GROUP) for "
+                    "sidstr='%s'\n",
+                    sidstr);
+                goto out;
+            default:
+                eprintf("map_nfs4ace_who: Internal error, "
+                    "LookupAccountSidA() returned unexpected ERROR_%d "
+                    "for sidstr='%s'\n",
+                    status, sidstr);
+                status = ERROR_INTERNAL_ERROR;
+                goto out;
+        }
     }
 
-    status = GetLastError();
-    if (status == ERROR_NONE_MAPPED) {
-        DPRINTF(1, ("LookupAccountSidA() returned success, "
-            "GetLastError() returned ERROR_NONE_MAPPED\n"));
-        goto out;
-    }
-
-    if (status != ERROR_INSUFFICIENT_BUFFER) {
-        DPRINTF(1, ("LookupAccountSidA() returned success, "
-            "GetLastError() returned %d\n", status));
-        status = ERROR_INTERNAL_ERROR;
-        goto out;
-    }
-    who = malloc(size);
-    if (who == NULL) {
-        status = GetLastError();
-        goto out;
-    }
-    tmp_buf = malloc(tmp_size);
-    if (tmp_buf == NULL)
-        goto out_free_who;
-    status = LookupAccountSidA(NULL, sid, who, &size, tmp_buf,
-                                &tmp_size, &sid_type);
-    free(tmp_buf);
-    if (!status) {
-        eprintf("map_nfs4ace_who: LookupAccountSid failed with %d\n",
-                GetLastError());
-        goto out_free_who;
-    }
-    memcpy(who_out, who, size);
+    (void)memcpy(who_out, who_buf, who_size);
 add_domain:
-    memcpy(who_out+size, "@", sizeof(char));
-    memcpy(who_out+size+1, domain, strlen(domain)+1);
-    if (who) free(who);
+    (void)memcpy(who_out+who_size, "@", sizeof(char));
+    (void)memcpy(who_out+who_size+1, domain, strlen(domain)+1);
     status = ERROR_SUCCESS;
 out:
     if (status) {
-        DPRINTF(ACLLVL, ("<-- map_nfs4ace_who() returns %d\n", status));
+        DPRINTF(ACLLVL,
+            ("<-- map_nfs4ace_who() returns %d\n", status));
     }
     else {
-        DPRINTF(ACLLVL, ("<-- map_nfs4ace_who(who_out='%s', sid_type=%d) returns %d\n", who_out, status, sid_type));
+        DPRINTF(ACLLVL,
+            ("<-- map_nfs4ace_who(who_out='%s', sid_type=%d) "
+            "returns %d\n",
+            who_out, sid_type, status));
         if (sid_type_out) {
             *sid_type_out = sid_type;
         }
@@ -630,12 +626,9 @@ out:
     if (sidstr)
         LocalFree(sidstr);
     return status;
-out_free_who:
-    free(who);
-    status = GetLastError();
-    goto out;
 }
-static int map_dacl_2_nfs4acl(PACL acl, PSID sid, PSID gsid, nfsacl41 *nfs4_acl, 
+
+static int map_dacl_2_nfs4acl(PACL acl, PSID sid, PSID gsid, nfsacl41 *nfs4_acl,
                                 int file_type, char *domain)
 {
     int status;
