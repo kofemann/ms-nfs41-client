@@ -200,7 +200,7 @@ static int handle_getacl(void *daemon_context, nfs41_upcall *upcall)
     PSID *sids = NULL;
     PSID osid = NULL, gsid = NULL;
     DWORD sid_len;
-    char owner[NFS4_OPAQUE_LIMIT], group[NFS4_OPAQUE_LIMIT];
+    char owner[NFS4_OPAQUE_LIMIT+1], group[NFS4_OPAQUE_LIMIT+1];
     nfsacl41 acl = { 0 };
 
     if (args->query & DACL_SECURITY_INFORMATION) {

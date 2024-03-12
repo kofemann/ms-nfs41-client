@@ -25,6 +25,7 @@
 #include <time.h>
 #include <strsafe.h>
 #include <sddl.h>
+#include <Lmcons.h>
 
 #include "nfs41_ops.h"
 #include "nfs41_build_features.h"
@@ -181,8 +182,8 @@ BOOL allocate_unixgroup_sid(unsigned long gid, PSID *pSid)
 
 typedef struct _sidcache_entry
 {
-#define SIDCACHE_ENTRY_NAME_SIZE (128)
-    char    name[SIDCACHE_ENTRY_NAME_SIZE]; /* must fit something like "user@domain" */
+#define SIDCACHE_ENTRY_NAME_SIZE (UNLEN + 1)
+    char    win32name[SIDCACHE_ENTRY_NAME_SIZE]; /* must fit something like "user@domain" */
     PSID    sid;
     DWORD   sid_len;
     char    sid_buffer[SECURITY_MAX_SID_SIZE+1];
@@ -209,7 +210,7 @@ void sidcache_init(void)
 }
 
 /* copy SID |value| into cache */
-void sidcache_add(sidcache *cache, const char* name, PSID value)
+void sidcache_add(sidcache *cache, const char* win32name, PSID value)
 {
     int i;
     ssize_t freeEntryIndex;
@@ -225,7 +226,7 @@ void sidcache_add(sidcache *cache, const char* name, PSID value)
         if ((e->sid != NULL) &&
             (e->timestamp < (currentTimestamp - SIDCACHE_TTL))) {
             e->sid = NULL;
-            e->name[0] = '\0';
+            e->win32name[0] = '\0';
             e->sid_len = 0;
         }
     }
@@ -251,13 +252,13 @@ void sidcache_add(sidcache *cache, const char* name, PSID value)
     e->sid = (PSID)e->sid_buffer;
     if (!CopySid(sid_len, e->sid, value)) {
         e->sid = NULL;
-        e->name[0] = '\0';
+        e->win32name[0] = '\0';
         e->sid_len = 0;
         goto done;
     }
 
     e->sid_len = sid_len;
-    (void)strcpy_s(e->name, SIDCACHE_ENTRY_NAME_SIZE, name);
+    (void)strcpy(e->win32name, win32name);
     e->timestamp = currentTimestamp;
 
     cache->cacheIndex = (cache->cacheIndex + 1) % SIDCACHE_SIZE;
@@ -267,7 +268,7 @@ done:
 }
 
 /* return |malloc()|'ed copy of SID from cache entry */
-PSID *sidcache_getcached(sidcache *cache, const char *name)
+PSID *sidcache_getcached(sidcache *cache, const char *win32name)
 {
     int i;
     time_t currentTimestamp;
@@ -281,7 +282,7 @@ PSID *sidcache_getcached(sidcache *cache, const char *name)
         e = &cache->entries[i];
 
         if ((e->sid != NULL) &&
-            (!strcmp(e->name, name)) &&
+            (!strcmp(e->win32name, win32name)) &&
             ((currentTimestamp - e->timestamp) < SIDCACHE_TTL)) {
             PSID malloced_sid = malloc(e->sid_len);
             if (!malloced_sid)
@@ -304,22 +305,22 @@ done:
 #endif /* NFS41_DRIVER_SID_CACHE */
 
 
-int map_nfs4servername_2_sid(nfs41_daemon_globals *nfs41dg, int query, DWORD *sid_len, PSID *sid, LPCSTR name)
+int map_nfs4servername_2_sid(nfs41_daemon_globals *nfs41dg, int query, DWORD *sid_len, PSID *sid, LPCSTR nfsname)
 {
-    const char *orig_name = name;
+    const char *orig_nfsname = nfsname;
 
     int status = ERROR_INTERNAL_ERROR;
     SID_NAME_USE sid_type = 0;
-    char name_buff[256+2];
-    char domain_buff[256+2];
+    char nfsname_buff[UNLEN+1];
+    char domain_buff[UNLEN+1];
     DWORD domain_len = 0;
 #ifdef NFS41_DRIVER_FEATURE_MAP_UNMAPPED_USER_TO_UNIXUSER_SID
     signed long user_uid = -1;
     signed long group_gid = -1;
 #endif /* NFS41_DRIVER_FEATURE_MAP_UNMAPPED_USER_TO_UNIXUSER_SID */
 
-    DPRINTF(ACLLVL, ("--> map_nfs4servername_2_sid(query=%x,name='%s')\n",
-        query, name));
+    DPRINTF(ACLLVL, ("--> map_nfs4servername_2_sid(query=%x,nfsname='%s')\n",
+        query, nfsname));
 
 #ifdef NFS41_DRIVER_FEATURE_MAP_UNMAPPED_USER_TO_UNIXUSER_SID
     /* use our own idmapper script to map nfsv4 owner string to local Windows account */
@@ -328,9 +329,9 @@ int map_nfs4servername_2_sid(nfs41_daemon_globals *nfs41dg, int query, DWORD *si
         gid_t gdummy = -1;
 
 #ifdef NFS41_DRIVER_SID_CACHE
-        if (*sid = sidcache_getcached(&user_sidcache, name)) {
+        if (*sid = sidcache_getcached(&user_sidcache, nfsname)) {
             *sid_len = GetLengthSid(*sid);
-            DPRINTF(1, ("map_nfs4servername_2_sid: returning cached sid for user '%s'\n", name));
+            DPRINTF(1, ("map_nfs4servername_2_sid: returning cached sid for user '%s'\n", nfsname));
             status = 0;
             goto out;
         }
@@ -339,13 +340,13 @@ int map_nfs4servername_2_sid(nfs41_daemon_globals *nfs41dg, int query, DWORD *si
 #ifndef NFS41_DRIVER_SID_CACHE
         /* gisburn: fixme: We must cache this, or the performance impact will be devastating!! */
 #endif /* !NFS41_DRIVER_SID_CACHE */
-        if (!cygwin_getent_passwd(name, name_buff, &udummy, &gdummy)) {
-            if (strcmp(name, name_buff)) {
+        if (!cygwin_getent_passwd(nfsname, nfsname_buff, &udummy, &gdummy)) {
+            if (strcmp(nfsname, nfsname_buff)) {
                 DPRINTF(1,
                     ("map_nfs4servername_2_sid: remap user '%s' --> '%s'\n",
-                    name,
-                    name_buff));
-                name = name_buff;
+                    nfsname,
+                    nfsname_buff));
+                nfsname = nfsname_buff;
             }
         }
     }
@@ -358,9 +359,9 @@ int map_nfs4servername_2_sid(nfs41_daemon_globals *nfs41dg, int query, DWORD *si
         gid_t gdummy = -1;
 
 #ifdef NFS41_DRIVER_SID_CACHE
-        if (*sid = sidcache_getcached(&group_sidcache, name)) {
+        if (*sid = sidcache_getcached(&group_sidcache, nfsname)) {
             *sid_len = GetLengthSid(*sid);
-            DPRINTF(1, ("map_nfs4servername_2_sid: returning cached sid for group '%s'\n", name));
+            DPRINTF(1, ("map_nfs4servername_2_sid: returning cached sid for group '%s'\n", nfsname));
             status = 0;
             goto out;
         }
@@ -369,13 +370,13 @@ int map_nfs4servername_2_sid(nfs41_daemon_globals *nfs41dg, int query, DWORD *si
 #ifndef NFS41_DRIVER_SID_CACHE
         /* gisburn: fixme: We must cache this, or the performance impact will be devastating!! */
 #endif /* !NFS41_DRIVER_SID_CACHE */
-        if (!cygwin_getent_group(name, name_buff, &gdummy)) {
-            if (strcmp(name, name_buff)) {
+        if (!cygwin_getent_group(nfsname, nfsname_buff, &gdummy)) {
+            if (strcmp(nfsname, nfsname_buff)) {
                 DPRINTF(1,
                     ("map_nfs4servername_2_sid: remap group '%s' --> '%s'\n",
-                    name,
-                    name_buff));
-                name = name_buff;
+                    nfsname,
+                    nfsname_buff));
+                nfsname = nfsname_buff;
             }
         }
     }
@@ -389,16 +390,16 @@ int map_nfs4servername_2_sid(nfs41_daemon_globals *nfs41dg, int query, DWORD *si
     *sid_len = SECURITY_MAX_SID_SIZE;
     domain_len = sizeof(domain_buff);
 
-    status = LookupAccountNameA(NULL, name, *sid, sid_len,
+    status = LookupAccountNameA(NULL, nfsname, *sid, sid_len,
         domain_buff, &domain_len, &sid_type);
 
     if (status) {
         /* |LookupAccountNameA()| success */
 
-        DPRINTF(ACLLVL, ("map_nfs4servername_2_sid(query=%x,name='%s'): "
+        DPRINTF(ACLLVL, ("map_nfs4servername_2_sid(query=%x,nfsname='%s'): "
             "LookupAccountNameA() returned status=%d "
             "GetLastError=%d *sid_len=%d domain_buff='%s' domain_len=%d\n",
-            query, name, status, GetLastError(), *sid_len, domain_buff,
+            query, nfsname, status, GetLastError(), *sid_len, domain_buff,
             domain_len));
 
         status = 0;
@@ -407,10 +408,10 @@ int map_nfs4servername_2_sid(nfs41_daemon_globals *nfs41dg, int query, DWORD *si
     }
 
     /* |LookupAccountNameA()| failed... */
-    DPRINTF(ACLLVL, ("map_nfs4servername_2_sid(query=%x,name='%s'): "
+    DPRINTF(ACLLVL, ("map_nfs4servername_2_sid(query=%x,nfsname='%s'): "
         "LookupAccountNameA() returned status=%d "
         "GetLastError=%d\n",
-        query, name, status, GetLastError()));
+        query, nfsname, status, GetLastError()));
 
     status = GetLastError();
     switch(status) {
@@ -419,19 +420,19 @@ int map_nfs4servername_2_sid(nfs41_daemon_globals *nfs41dg, int query, DWORD *si
          * This should never happen, as |SECURITY_MAX_SID_SIZE| is
          * the largest possible SID buffer size for Windows
          */
-        eprintf("map_nfs4servername_2_sid(query=%x,name='%s'): "
+        eprintf("map_nfs4servername_2_sid(query=%x,nfsname='%s'): "
                 "LookupAccountName failed with "
-                "ERROR_INSUFFICIENT_BUFFER\n", query, name);
+                "ERROR_INSUFFICIENT_BUFFER\n", query, nfsname);
 
         status = ERROR_INTERNAL_ERROR;
         goto out;
         break;
     case ERROR_NONE_MAPPED:
 #ifdef NFS41_DRIVER_FEATURE_MAP_UNMAPPED_USER_TO_UNIXUSER_SID
-        DPRINTF(1, ("map_nfs4servername_2_sid(query=%x,name='%s'): "
+        DPRINTF(1, ("map_nfs4servername_2_sid(query=%x,nfsname='%s'): "
             "none mapped, "
             "trying Unix_User+/Unix_Group+ mapping\n",
-            query, name));
+            query, nfsname));
 
         if ((user_uid == -1) && (query & OWNER_SECURITY_INFORMATION)) {
             uid_t map_uid = -1;
@@ -439,14 +440,14 @@ int map_nfs4servername_2_sid(nfs41_daemon_globals *nfs41dg, int query, DWORD *si
 
             if (nfs41_idmap_name_to_ids(
                 nfs41dg->idmapper,
-                name,
+                nfsname,
                 &map_uid,
                 &gid_dummy) == 0) {
                 user_uid = map_uid;
             }
             else {
                 DPRINTF(1, ("map_nfs4servername_2_sid(query=%x,name='%s'): nfs41_idmap_name_to_ids() failed\n",
-                    query, name));
+                    query, nfsname));
                 /* fixme: try harder here, "1234" should to to |atol()| */
             }
         }
@@ -456,63 +457,63 @@ int map_nfs4servername_2_sid(nfs41_daemon_globals *nfs41dg, int query, DWORD *si
 
             if (nfs41_idmap_group_to_gid(
                 nfs41dg->idmapper,
-                name,
+                nfsname,
                 &map_gid) == 0) {
                 group_gid = map_gid;
             }
             else {
-                DPRINTF(1, ("map_nfs4servername_2_sid(query=%x,name='%s'): nfs41_idmap_group_to_gid() failed\n",
-                    query, name));
+                DPRINTF(1, ("map_nfs4servername_2_sid(query=%x,nfsname='%s'): nfs41_idmap_group_to_gid() failed\n",
+                    query, nfsname));
                 /* fixme: try harder here, "1234" should to to |atol()| */
             }
         }
 
         if (user_uid != -1) {
             if (allocate_unixuser_sid(user_uid, sid)) {
-                DPRINTF(ACLLVL, ("map_nfs4servername_2_sid(query=%x,name='%s'): "
+                DPRINTF(ACLLVL, ("map_nfs4servername_2_sid(query=%x,nfsname='%s'): "
                     "allocate_unixuser_sid(uid=%ld) success\n",
-                    query, name, user_uid));
+                    query, nfsname, user_uid));
                 status = ERROR_SUCCESS;
                 sid_type = SidTypeUser;
                 goto out_cache;
             }
 
             status = GetLastError();
-            DPRINTF(ACLLVL, ("map_nfs4servername_2_sid(query=%x,name='%s'): "
+            DPRINTF(ACLLVL, ("map_nfs4servername_2_sid(query=%x,nfsname='%s'): "
                 "allocate_unixuser_sid(uid=%ld) failed, error=%d\n",
-                query, name, user_uid, status));
+                query, nfsname, user_uid, status));
             goto out;
         }
 
         if (group_gid != -1) {
             if (allocate_unixgroup_sid(group_gid, sid)) {
-                DPRINTF(ACLLVL, ("map_nfs4servername_2_sid(query=%x,name='%s'): "
+                DPRINTF(ACLLVL, ("map_nfs4servername_2_sid(query=%x,nfsname='%s'): "
                     "allocate_unixgroup_sid(gid=%ld) success\n",
-                    query, name, group_gid));
+                    query, nfsname, group_gid));
                 status = ERROR_SUCCESS;
                 sid_type = SidTypeGroup;
                 goto out_cache;
             }
 
             status = GetLastError();
-            DPRINTF(ACLLVL, ("map_nfs4servername_2_sid(query=%x,name='%s'): "
+            DPRINTF(ACLLVL, ("map_nfs4servername_2_sid(query=%x,nfsname='%s'): "
                 "allocate_unixgroup_sid(gid=%ld) failed, error=%d\n",
-                query, name, group_gid, status));
+                query, nfsname, group_gid, status));
             goto out;
         }
 #endif /* NFS41_DRIVER_FEATURE_MAP_UNMAPPED_USER_TO_UNIXUSER_SID */
 
-        DPRINTF(1, ("map_nfs4servername_2_sid(query=%x,name='%s'): none mapped, "
+        DPRINTF(1, ("map_nfs4servername_2_sid(query=%x,nfsname='%s'): none mapped, "
             "using WinNullSid mapping\n",
-            query, name));
+            query, nfsname));
 
         status = create_unknownsid(WinNullSid, sid, sid_len);
         if (status)
             goto out_free_sid;
         break;
     default:
-        DPRINTF(1, ("map_nfs4servername_2_sid(query=%x,name='%s'): error %d not handled\n",
-            query, name, GetLastError()));
+        DPRINTF(1, ("map_nfs4servername_2_sid(query=%x,nfsname='%s'): error %d not handled\n",
+            query, nfsname, GetLastError()));
         break;
     }
 out_cache:
@@ -530,23 +531,23 @@ out_cache:
              * References:
              * - https://stackoverflow.com/questions/39373188/lookupaccountnamew-returns-sidtypealias-but-expected-sidtypegroup
              */
-            DPRINTF(1, ("map_nfs4servername_2_sid(query=%x,name='%s'): "
+            DPRINTF(1, ("map_nfs4servername_2_sid(query=%x,nfsname='%s'): "
                 "SID_TYPE='SidTypeAlias' mapped to 'SidTypeGroup'\n",
-                query, orig_name, sid_type));
+                query, orig_nfsname, sid_type));
             sid_type = SidTypeGroup;
         }
 
         switch (sid_type) {
             case SidTypeUser:
-                sidcache_add(&user_sidcache, orig_name, *sid);
+                sidcache_add(&user_sidcache, orig_nfsname, *sid);
                 break;
             case SidTypeGroup:
-                sidcache_add(&group_sidcache, orig_name, *sid);
+                sidcache_add(&group_sidcache, orig_nfsname, *sid);
                 break;
             default:
-                eprintf("map_nfs4servername_2_sid(query=%x,name='%s'): "
+                eprintf("map_nfs4servername_2_sid(query=%x,nfsname='%s'): "
                     "Unknown SID_TYPE=%d\n",
-                    query, orig_name, sid_type);
+                    query, orig_nfsname, sid_type);
                 break;
         }
     }
@@ -555,8 +556,8 @@ out_cache:
 out:
     if (DPRINTF_LEVEL_ENABLED(ACLLVL)) {
         if (status) {
-            dprintf_out("<-- map_nfs4servername_2_sid(query=%x,name='%s'): "
-                "status=%d\n", query, name, status);
+            dprintf_out("<-- map_nfs4servername_2_sid(query=%x,nfsname='%s'): "
+                "status=%d\n", query, nfsname, status);
         }
         else {
             PSTR sidstr = NULL;
@@ -569,9 +570,9 @@ out:
                 sidstr = errsidstrbuf;
             }
 
-            dprintf_out("<-- map_nfs4servername_2_sid(query=%x,name='%s'): "
+            dprintf_out("<-- map_nfs4servername_2_sid(query=%x,nfsname='%s'): "
                 "status=%d sidstr='%s' *sid_len=%d\n",
-                query, name, status, sidstr, *sid_len);
+                query, nfsname, status, sidstr, *sid_len);
 
             if (sidstr && (sidstr != errsidstrbuf))
                 LocalFree(sidstr);
