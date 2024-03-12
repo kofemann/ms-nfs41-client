@@ -242,7 +242,7 @@ use_nfs41_getattr:
          */
         if ((info.attrmask.arr[1] &
             (FATTR4_WORD1_OWNER|FATTR4_WORD1_OWNER_GROUP)) != (FATTR4_WORD1_OWNER|FATTR4_WORD1_OWNER_GROUP)) {
-            DPRINTF(0, ("handle_getattr: owner/owner_group not in cache, doing full lookup...\n"));
+            DPRINTF(ACLLVL, ("handle_getattr: owner/owner_group not in cache, doing full lookup...\n"));
             goto use_nfs41_getattr;
         }
     }
