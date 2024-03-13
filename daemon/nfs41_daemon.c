@@ -520,6 +520,66 @@ void nfsd_crt_debug_init(void)
 #endif /* _DEBUG */
 }
 
+static
+void init_version_string(void)
+{
+    char uname_buff[256];
+    char *s;
+    DWORD buff_read;
+
+    /*
+     * gisburn: fixme:
+     * We should get the Windows version numbers from the
+     * Windows registry, unfortunately this is going to be a
+     * another variantion of vesion hell, as |GetVersionEx()|
+     * is depreciated
+     */
+    subcmd_popen_context *scmd_uname = subcmd_popen("C:\\cygwin64\\bin\\uname.exe -a");
+    if (scmd_uname) {
+        buff_read = 0;
+        if (subcmd_readcmdoutput(scmd_uname, uname_buff, sizeof(uname_buff), &buff_read)) {
+            /* Remove trailing newline */
+            if ((buff_read > 0) && (uname_buff[buff_read-1] == '\n'))
+                uname_buff[buff_read-1] = '\0';
+            else
+                uname_buff[buff_read] = '\0';
+
+            /* Stomp newline&co. */
+            for (s = uname_buff ; *s != '\0' ; s++) {
+                if ((*s == '\n') || (*s == '\r'))
+                    *s = ' ';
+            }
+        }
+        else {
+            eprintf("init_version_string: subcmd_readcmdoutput() for 'uname -a' failed\n");
+            uname_buff[0] = '\0';
+        }
+        subcmd_pclose(scmd_uname);
+    }
+    else {
+        eprintf("init_version_string: subcmd_popen() for 'uname -a' failed\n");
+        uname_buff[0] = '\0';
+    }
+
+    /*
+     * gisburn: fixme:
+     * 1. We should include cygwin uname output only in Cygwin mode
+     * 2. We should determinate the Windows version numvber ourselves
+     * 3. We should include our own version and git tag
+     * 4. We should honor RFC5661: "... it is RECOMMENDED
+     *   that the nii_name be used to distinguish machine architecture,
+     *   machine platforms, revisions, versions, and patch levels. The
+     *   nii_date field is the timestamp of when the software instance
+     *   was published or built..."
+     */
+    (void)snprintf(nfs41_dg.nfs41_nii_name,
+        sizeof(nfs41_dg.nfs41_nii_name),
+        "msnfs41client 0.1 WinNT NFSv4.1 client, cygwin_vers='%s'",
+        uname_buff);
+    DPRINTF(1, ("init_version_string: versionstring='%s'\n",
+        nfs41_dg.nfs41_nii_name));
+}
+
 #ifdef STANDALONE_NFSD
 void __cdecl _tmain(int argc, TCHAR *argv[])
 #else
@@ -539,6 +599,7 @@ VOID ServiceStart(DWORD argc, LPTSTR *argv)
         exit(1);
     set_debug_level(cmd_args.debug_level);
     open_log_files();
+    init_version_string();
     nfsd_crt_debug_init();
 #ifdef NFS41_DRIVER_SID_CACHE
     sidcache_init();

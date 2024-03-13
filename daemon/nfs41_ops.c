@@ -27,6 +27,7 @@
 #include <time.h>
 
 #include "nfs41_build_features.h"
+#include "nfs41_daemon.h"
 #include "nfs41_ops.h"
 #include "nfs41_compound.h"
 #include "nfs41_xdr.h"
@@ -60,14 +61,31 @@ int nfs41_exchange_id(
     nfs_argop4 argop;
     nfs_resop4 resop;
     nfs41_exchange_id_args ex_id;
+    nfs_impl_id4 impl_id = { 0 };
+
+    /* fixme: This should be a function argument */
+    extern nfs41_daemon_globals nfs41_dg;
 
     compound_init(&compound, &argop, &resop, "exchange_id");
 
     compound_add_op(&compound, OP_EXCHANGE_ID, &ex_id, res_out);
+
+    /* gisburn: fixme: We do not have that domain yet */
+    impl_id.nii_domain      = "msnfs41client.org";
+    impl_id.nii_domain_len  = (uint32_t)strlen(impl_id.nii_domain);
+    impl_id.nii_name        = nfs41_dg.nfs41_nii_name;
+    impl_id.nii_name_len    = (uint32_t)strlen(impl_id.nii_name);
+    /*
+     * gisburn: fixme: |impl_id.nii_date| should be the timestamp
+     * of the binary
+     */
+    impl_id.nii_date.seconds = 0LL;
+    impl_id.nii_date.nseconds = 0UL;
+
     ex_id.eia_clientowner = owner;
     ex_id.eia_flags = flags_in;
     ex_id.eia_state_protect.spa_how = SP4_NONE;
-    ex_id.eia_client_impl_id = NULL;
+    ex_id.eia_client_impl_id = &impl_id;
 
     res_out->server_owner.so_major_id_len = NFS4_OPAQUE_LIMIT;
     res_out->server_scope_len = NFS4_OPAQUE_LIMIT;
