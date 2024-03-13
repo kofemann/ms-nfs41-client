@@ -111,7 +111,7 @@ bintarball: installdest
 	base_filename="msnfs41client_cygwin_binaries_$$(date +%Y%m%d_%Hh%Mm)_git$$(git rev-parse --short HEAD)" ; \
 	( \
 	cd "$(DESTDIR)" && \
-	true tar -cvf - \
+	tar -cvf - \
 		--owner=SYSTEM:18 \
 		--group=SYSTEM:18 \
 		cygdrive/c/cygwin64 | \
