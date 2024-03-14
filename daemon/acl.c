@@ -38,6 +38,11 @@
 
 #define ACLLVL 2 /* dprintf level for acl logging */
 
+/* Local prototypes */
+static void map_winace2nfs4aceflags(BYTE win_aceflags, uint32_t *nfs4_aceflags);
+static void map_nfs4aceflags2winaceflags(uint32_t nfs4_aceflags, DWORD *win_aceflags);
+
+
 static int parse_getacl(unsigned char *buffer, uint32_t length,
                         nfs41_upcall *upcall)
 {
@@ -125,8 +130,17 @@ static int convert_nfs4acl_2_dacl(nfs41_daemon_globals *nfs41dg,
             goto out;
         }
         if (!flag) {
+            bool isgroupacl = (acl->aces[i].aceflag & ACE4_IDENTIFIER_GROUP)?true:false;
+
+            if (isgroupacl) {
+                DPRINTF(ACLLVL,
+                    ("convert_nfs4acl_2_dacl: aces[%d].who='%s': "
+                    "Setting group flag\n",
+                    i, acl->aces[i].who));
+            }
+
             status = map_nfs4servername_2_sid(nfs41dg,
-                0xFFFF /* fixme: Unknown whether user or group */,
+                (isgroupacl?GROUP_SECURITY_INFORMATION:OWNER_SECURITY_INFORMATION),
                 &sid_len, &sids[i], acl->aces[i].who);
             if (status) {
                 free_sids(sids, i);
@@ -140,27 +154,42 @@ static int convert_nfs4acl_2_dacl(nfs41_daemon_globals *nfs41dg,
     dacl = malloc(size);
     if (dacl == NULL)
         goto out_free_sids;
-    
+
     if (InitializeAcl(dacl, size, ACL_REVISION)) {
         ACCESS_MASK mask;
+        DWORD win_aceflags;
+
         for (i = 0; i < acl->count; i++) {
+            win_aceflags = 0;
+
             // nfs4 acemask should be exactly the same as file access mask
             mask = acl->aces[i].acemask;
-            DPRINTF(ACLLVL, ("access mask %x ace type '%s'\n", mask,
-                acl->aces[i].acetype?"DENIED ACE":"ALLOWED ACE"));
+            map_nfs4aceflags2winaceflags(acl->aces[i].aceflag, &win_aceflags);
+
+            DPRINTF(ACLLVL, ("aces[%d].who='%s': "
+                "access mask=0x%x, acetype='%s', win_aceflags=0x%x\n",
+                i, acl->aces[i].who,
+                (int)mask,
+                acl->aces[i].acetype?"DENIED ACE":"ALLOWED ACE",
+                (int)win_aceflags));
+
             if (acl->aces[i].acetype == ACE4_ACCESS_ALLOWED_ACE_TYPE) {
-                status = AddAccessAllowedAce(dacl, ACL_REVISION, mask, sids[i]);
+                status = AddAccessAllowedAceEx(dacl, ACL_REVISION, win_aceflags, mask, sids[i]);
                 if (!status) {
-                    eprintf("convert_nfs4acl_2_dacl: AddAccessAllowedAce failed "
-                            "with %d\n", status);
+                    eprintf("convert_nfs4acl_2_dacl: "
+                        "AddAccessAllowedAceEx(dacl=0x%p,win_aceflags=0x%x,mask=0x%x) failed "
+                        "with status=%d\n",
+                        dacl, (int)win_aceflags, (int)mask, status);
                     goto out_free_dacl;
                 }
                 else status = ERROR_SUCCESS;
             } else if (acl->aces[i].acetype == ACE4_ACCESS_DENIED_ACE_TYPE) {
-                status = AddAccessDeniedAce(dacl, ACL_REVISION, mask, sids[i]);
+                status = AddAccessDeniedAceEx(dacl, ACL_REVISION, win_aceflags, mask, sids[i]);
                 if (!status) {
-                    eprintf("convert_nfs4acl_2_dacl: AddAccessDeniedAce failed "
-                            "with %d\n", status);
+                    eprintf("convert_nfs4acl_2_dacl: "
+                        "AddAccessDeniedAceEx(dacl=0x%p,win_aceflags=0x%x,mask=0x%x) failed "
+                        "with status=%d\n",
+                        dacl, (int)win_aceflags, (int)mask, status);
                     goto out_free_dacl;
                 }
                 else status = ERROR_SUCCESS;
@@ -476,6 +505,23 @@ static void map_winace2nfs4aceflags(BYTE win_aceflags, uint32_t *nfs4_aceflags)
         (int)win_aceflags, (int)*nfs4_aceflags));
 }
 
+static void map_nfs4aceflags2winaceflags(uint32_t nfs4_aceflags, DWORD *win_aceflags)
+{
+    if (nfs4_aceflags & ACE4_FILE_INHERIT_ACE)
+        *win_aceflags |= OBJECT_INHERIT_ACE;
+    if (nfs4_aceflags & ACE4_DIRECTORY_INHERIT_ACE)
+        *win_aceflags |= CONTAINER_INHERIT_ACE;
+    if (nfs4_aceflags & ACE4_NO_PROPAGATE_INHERIT_ACE)
+        *win_aceflags |= NO_PROPAGATE_INHERIT_ACE;
+    if (nfs4_aceflags & ACE4_INHERIT_ONLY_ACE)
+        *win_aceflags |= INHERIT_ONLY_ACE;
+    if (nfs4_aceflags & ACE4_INHERITED_ACE)
+        *win_aceflags |= INHERITED_ACE;
+    DPRINTF(ACLLVL,
+        ("map_nfs4aceflags2winace: nfs4_aceflags=0x%x win_aceflags=0x%x\n",
+        (int)nfs4_aceflags, (int)*win_aceflags));
+}
+
 static void map_winaccessmask2nfs4acemask(ACCESS_MASK mask, int file_type, uint32_t *nfs4_mask)
 {
     DPRINTF(ACLLVL,
@@ -725,13 +771,13 @@ static int map_dacl_2_nfs4acl(PACL acl, PSID sid, PSID gsid, nfsacl41 *nfs4_acl,
              */
             if ((who_sid_type == SidTypeGroup) ||
                 (who_sid_type == SidTypeAlias)) {
-                DPRINTF(ACLLVL, ("map_dacl_2_nfs4acl: "
-                    "who_sid_type=%d, setting group flag for '%s'\n",
+                DPRINTF(ACLLVL, ("map_dacl_2_nfs4acl: who_sid_type=%d: "
+                    "aces[%d].who='%s': "
+                    "setting group flag\n",
                     (int)who_sid_type,
-                    nfs4_acl->aces[i].who));
+                    i, nfs4_acl->aces[i].who));
                 nfs4_acl->aces[i].aceflag |= ACE4_IDENTIFIER_GROUP;
             }
-
         }
     }
     status = ERROR_SUCCESS;
