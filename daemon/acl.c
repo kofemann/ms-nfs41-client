@@ -106,6 +106,9 @@ static int convert_nfs4acl_2_dacl(nfs41_daemon_globals *nfs41dg,
     LPSTR domain = NULL;
     BOOLEAN flag;
 
+    DPRINTF(ACLLVL, ("--> convert_nfs4acl_2_dacl(acl=0x%p,file_type=%d)\n",
+        acl, file_type));
+
     sids = malloc(acl->count * sizeof(PSID));
     if (sids == NULL) {
         status = GetLastError();
@@ -113,7 +116,7 @@ static int convert_nfs4acl_2_dacl(nfs41_daemon_globals *nfs41dg,
     }
     for (i = 0; i < acl->count; i++) {
         convert_nfs4name_2_user_domain(acl->aces[i].who, &domain);
-        DPRINTF(ACLLVL, ("handle_getacl: for user='%s' domain='%s'\n",
+        DPRINTF(ACLLVL, ("convert_nfs4acl_2_dacl: for user='%s' domain='%s'\n",
                 acl->aces[i].who, domain?domain:"<null>"));
         status = check_4_special_identifiers(acl->aces[i].who, &sids[i],
                                              &sid_len, &flag);
@@ -178,6 +181,8 @@ static int convert_nfs4acl_2_dacl(nfs41_daemon_globals *nfs41dg,
     *sids_out = sids;
     *dacl_out = dacl;
 out:
+    DPRINTF(ACLLVL, ("<-- convert_nfs4acl_2_dacl(acl=0x%p,file_type=%d) returning %d\n",
+        acl, file_type, status));
     return status;
 out_free_dacl:
     free(dacl);
@@ -202,6 +207,8 @@ static int handle_getacl(void *daemon_context, nfs41_upcall *upcall)
     DWORD sid_len;
     char owner[NFS4_OPAQUE_LIMIT+1], group[NFS4_OPAQUE_LIMIT+1];
     nfsacl41 acl = { 0 };
+
+    DPRINTF(ACLLVL, ("--> handle_getacl()\n"));
 
     if (args->query & DACL_SECURITY_INFORMATION) {
 use_nfs41_getattr:
@@ -354,6 +361,9 @@ out:
         free(dacl);
         nfsacl41_free(info.acl);
     }
+
+    DPRINTF(ACLLVL, ("<-- handle_getacl() returning %d\n", status));
+
     return status;
 }
 
@@ -449,7 +459,7 @@ static int is_well_known_sid(PSID sid, char *who)
     return FALSE;
 }
 
-static void map_aceflags(BYTE win_aceflags, uint32_t *nfs4_aceflags)
+static void map_winace2nfs4aceflags(BYTE win_aceflags, uint32_t *nfs4_aceflags)
 {
     if (win_aceflags & OBJECT_INHERIT_ACE)
         *nfs4_aceflags |= ACE4_FILE_INHERIT_ACE;
@@ -461,13 +471,16 @@ static void map_aceflags(BYTE win_aceflags, uint32_t *nfs4_aceflags)
         *nfs4_aceflags |= ACE4_INHERIT_ONLY_ACE;
     if (win_aceflags & INHERITED_ACE)
         *nfs4_aceflags |= ACE4_INHERITED_ACE;
-    DPRINTF(ACLLVL, ("ACE FLAGS: %x nfs4 aceflags %x\n",
-            win_aceflags, *nfs4_aceflags));
+    DPRINTF(ACLLVL,
+        ("map_winace2nfs4aceflags: win_aceflags=0x%x nfs4_aceflags=0x%x\n",
+        (int)win_aceflags, (int)*nfs4_aceflags));
 }
 
-static void map_acemask(ACCESS_MASK mask, int file_type, uint32_t *nfs4_mask)
+static void map_winaccessmask2nfs4acemask(ACCESS_MASK mask, int file_type, uint32_t *nfs4_mask)
 {
-    DPRINTF(ACLLVL, ("ACE MASK: %x\n", mask));
+    DPRINTF(ACLLVL,
+        ("--> map_winaccessmask2nfs4acemask(mask=0x%x)\n",
+        (int)mask));
     print_windows_access_mask(ACLLVL, mask);
     /* check if any GENERIC bits set */
     if (mask & 0xf000000) {
@@ -488,6 +501,9 @@ static void map_acemask(ACCESS_MASK mask, int file_type, uint32_t *nfs4_mask)
     else /* ignoring generic and reserved bits */
         *nfs4_mask = mask & 0x00ffffff;
     print_nfs_access_mask(ACLLVL, *nfs4_mask);
+    DPRINTF(ACLLVL,
+        ("<-- map_winaccessmask2nfs4acemask(mask=0x%x, *nfs4_mask=0x%x)\n",
+        (int)mask, (int)*nfs4_mask));
 }
 
 static int map_nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid, char *who_out, char *domain, SID_NAME_USE *sid_type_out)
@@ -686,9 +702,9 @@ static int map_dacl_2_nfs4acl(PACL acl, PSID sid, PSID gsid, nfsacl41 *nfs4_acl,
                 goto out_free;
             }
 
-            map_aceflags(ace->AceFlags, &nfs4_acl->aces[i].aceflag);            
-            map_acemask(*(PACCESS_MASK)(ace + 1), file_type, 
-                        &nfs4_acl->aces[i].acemask);
+            map_winace2nfs4aceflags(ace->AceFlags, &nfs4_acl->aces[i].aceflag);
+            map_winaccessmask2nfs4acemask(*(PACCESS_MASK)(ace + 1),
+                file_type, &nfs4_acl->aces[i].acemask);
 
             tmp_pointer += sizeof(ACCESS_MASK) + sizeof(ACE_HEADER);
 
