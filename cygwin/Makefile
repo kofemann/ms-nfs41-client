@@ -98,6 +98,15 @@ installdest: $(VS_BUILD_DIR)/nfsd.exe \
 	@ printf "# Package ksh93&co (if available) since Cygwin does not ship with it yet\n"
 	[[ -x /usr/bin/ksh93.exe ]] && cp /usr/bin/ksh93.exe $(DESTDIR)/cygdrive/c/cygwin64/bin/ksh93.exe
 	[[ -x /usr/bin/shcomp.exe ]] && cp /usr/bin/shcomp.exe $(DESTDIR)/cygdrive/c/cygwin64/bin/shcomp.exe
+	@ printf '# Packaging libs\n'
+	ldd $$(find $(DESTDIR)/cygdrive/c/cygwin64/sbin/ -iname \*.exe -o -iname \*.dll) | \
+		while read dummy1 dummy2 dllfile dummy3 ; do \
+			printf "%s\n" "$$dllfile" ; \
+		done | \
+		sort -f -u | grep -E -i '/cygdrive/c/Windows/.*(ucrt|vcrun)' | \
+		while read i ; do \
+			cp "$$i" $(DESTDIR)/cygdrive/c/cygwin64/sbin/. ; \
+		done
 	@ printf "# Set file flags\n"
 	(cd $(DESTDIR)/cygdrive/c/cygwin64/sbin/ && chmod a+x *.exe *.dll)
 	(cd $(DESTDIR)/cygdrive/c/cygwin64/lib/msnfs41client/ && chmod a+x *.dll)
