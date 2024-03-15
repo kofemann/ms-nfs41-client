@@ -209,7 +209,8 @@ static unsigned int WINAPI clnt_cb_thread(void *args)
     struct rpc_msg reply_msg;
     char cred_area[2 * MAX_AUTH_BYTES + RQCRED_SIZE];
 
-    fprintf(stderr/*stdout*/, "%04lx: Creating callback thread\n", (long)GetCurrentThreadId());
+    (void)fprintf(stderr/*stdout*/,
+        "%04lx: cb: Callback thread running\n", (long)GetCurrentThreadId());
     while(1) {
         cb_req header;
         void *res = NULL;
@@ -228,7 +229,9 @@ static unsigned int WINAPI clnt_cb_thread(void *args)
 	mutex_unlock(&clnt_fd_lock);
 
         if (cl->shutdown) {
-            fprintf(stdout, "%04lx: callback received shutdown signal\n", (long)GetCurrentThreadId());
+            (void)fprintf(stdout,
+                "%04lx: cb: callback received shutdown signal\n",
+                (long)GetCurrentThreadId());
             release_fd_lock(ct->ct_fd, mask);
             goto out;
         }
@@ -262,28 +265,33 @@ process_rpc_call:
         ct->reply_msg.rm_call.cb_cred.oa_base = cred_area;
         ct->reply_msg.rm_call.cb_verf.oa_base = &(cred_area[MAX_AUTH_BYTES]);
         if (!xdr_getcallbody(xdrs, &ct->reply_msg)) {
-            fprintf(stderr, "%04lx: xdr_getcallbody failed\n", (long)GetCurrentThreadId());
+            (void)fprintf(stderr,
+                "%04lx: cb: xdr_getcallbody failed\n",
+                (long)GetCurrentThreadId());
             goto skip_process;
         } else
-            fprintf(stdout, "%04lx: callbody: rpcvers %d cb_prog %d cb_vers %d cb_proc %d\n",
+            (void)fprintf(stdout, "%04lx: cb: callbody: rpcvers=%d cb_prog=%d cb_vers=%d cb_proc=%d\n",
                 (long)GetCurrentThreadId(),
-                ct->reply_msg.rm_call.cb_rpcvers, ct->reply_msg.rm_call.cb_prog,
-                ct->reply_msg.rm_call.cb_vers, ct->reply_msg.rm_call.cb_proc);
+                (int)ct->reply_msg.rm_call.cb_rpcvers,
+                (int)ct->reply_msg.rm_call.cb_prog,
+                (int)ct->reply_msg.rm_call.cb_vers,
+                (int)ct->reply_msg.rm_call.cb_proc);
         header.rq_prog = ct->reply_msg.rm_call.cb_prog;
         header.rq_vers = ct->reply_msg.rm_call.cb_vers;
         header.rq_proc = ct->reply_msg.rm_call.cb_proc;
         header.xdr = xdrs;
         status = (*cl->cb_fn)(cl->cb_args, &header, &res);
         if (status) {
-            fprintf(stderr, "%04lx: callback function failed with %d\n",
+            (void)fprintf(stderr, "%04lx: cb: callback function failed with %d\n",
                 (long)GetCurrentThreadId(), status);
         }
 
         xdrs->x_op = XDR_ENCODE;
         __xdrrec_setblock(xdrs);
         reply_msg.rm_xid = ct->reply_msg.rm_xid;
-        fprintf(stdout, "%04lx: cb: replying to xid %d\n", (long)GetCurrentThreadId(),
-            ct->reply_msg.rm_xid);
+        (void)fprintf(stdout, "%04lx: cb: replying to xid=%x\n",
+            (long)GetCurrentThreadId(),
+            (int)ct->reply_msg.rm_xid);
         ct->reply_msg.rm_xid = 0;
         reply_msg.rm_direction = REPLY;
         reply_msg.rm_reply.rp_stat = MSG_ACCEPTED;
@@ -298,7 +306,8 @@ process_rpc_call:
             (*cl->cb_xdr)(xdrs, res); /* free the results */
         }
         if (! xdrrec_endofrecord(xdrs, 1)) {
-            fprintf(stderr, "%04lx: failed to send REPLY\n", (long)GetCurrentThreadId());
+            (void)fprintf(stderr, "%04lx: cb: failed to send REPLY\n",
+                (long)GetCurrentThreadId());
         }
 skip_process:
         ct->reply_msg.rm_direction = -1;
@@ -485,7 +494,9 @@ clnt_vc_create(fd, raddr, prog, vers, sendsz, recvsz, cb_xdr, cb_fn, cb_args)
         cl->cb_thread = (HANDLE)_beginthreadex(NULL,
             0, clnt_cb_thread, cl, 0, NULL);
         if (cl->cb_thread == INVALID_HANDLE_VALUE) {
-            fprintf(stderr, "_beginthreadex failed %d\n", GetLastError());
+            (void)fprintf(stderr, "%04lx: _beginthreadex() failed %d\n",
+                (long)GetCurrentThreadId(),
+                GetLastError());
             goto err;
         } else
             fprintf(stdout, "%04lx: started the callback thread %04lx\n",
