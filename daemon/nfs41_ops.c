@@ -141,6 +141,9 @@ int nfs41_create_session(nfs41_client *clnt, nfs41_session *session, bool_t try_
     nfs41_create_session_args req = { 0 };
     nfs41_create_session_res reply = { 0 };
 
+    DPRINTF(1, ("--> nfs41_create_session(clnt=0x%p,session=0x%p,try_recovery=%d)\n",
+        clnt, session, (int)try_recovery));
+
     compound_init(&compound, &argop, &resop, "create_session");
 
     compound_add_op(&compound, OP_CREATE_SESSION, &req, &reply);
@@ -166,12 +169,32 @@ int nfs41_create_session(nfs41_client *clnt, nfs41_session *session, bool_t try_
     reply.csr_fore_chan_attrs = &session->fore_chan_attrs;
     reply.csr_back_chan_attrs = &session->back_chan_attrs;
 
+    DPRINTF(1, ("nfs41_create_session: "
+        "Requested req.csa_fore_chan_attrs."
+        "(ca_maxoperations=%d,ca_maxrequests=%d)\n",
+        (int)req.csa_fore_chan_attrs.ca_maxoperations,
+        (int)req.csa_fore_chan_attrs.ca_maxrequests));
+
+
     status = compound_encode_send_decode(session, &compound, try_recovery);
     if (status)
         goto out;
 
     if (compound_error(status = compound.res.status))
         goto out;
+
+    DPRINTF(1, ("nfs41_create_session: "
+        "Response from server: session->fore_chan_attrs->"
+        "(ca_maxoperations=%d,ca_maxrequests=%d)\n",
+        (int)session->fore_chan_attrs.ca_maxoperations,
+        (int)session->fore_chan_attrs.ca_maxrequests));
+
+    if (session->fore_chan_attrs.ca_maxoperations < 64) {
+        eprintf("WARNING: Server returned ca_maxoperations(=%d) "
+        "< 64, this will lead to bad performance for deeply "
+        "nested dirs\n",
+        session->fore_chan_attrs.ca_maxoperations);
+    }
 
     print_hexbuf(1, (unsigned char *)"session id: ", session->session_id, NFS4_SESSIONID_SIZE);
     // check that csa_sequence is same as csr_sequence
@@ -214,6 +237,9 @@ int nfs41_create_session(nfs41_client *clnt, nfs41_session *session, bool_t try_
         session->fore_chan_attrs.ca_maxrequests);
     status = 0;
 out:
+    DPRINTF(1, ("<-- nfs41_create_session() returning %d\n",
+        status));
+
     return status;
 }
 
