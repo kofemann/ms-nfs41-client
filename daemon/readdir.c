@@ -643,8 +643,8 @@ static int handle_readdir(void *deamon_context, nfs41_upcall *upcall)
     const uint32_t max_buf_len = max(args->buf_len,
         sizeof(nfs41_readdir_entry) + NFS41_MAX_COMPONENT_LEN);
 
-    DPRINTF(1, ("-> handle_nfs41_dirquery('%s',%d,%d,%d)\n",
-        args->filter, args->initial, args->restart, args->single));
+    DPRINTF(1, ("--> handle_nfs41_dirquery(filter='%s',initial=%d,restart=%d,single=%d)\n",
+        args->filter, (int)args->initial, (int)args->restart, (int)args->single));
 
     args->query_reply_len = 0;
 
@@ -795,27 +795,33 @@ fetch_entries:
 out_free_entry:
     free(entry_buf);
 out:
-    DPRINTF(1, ("<- handle_nfs41_dirquery('%s',%d,%d,%d) returning ",
-        args->filter, args->initial, args->restart, args->single));
+    const char *debug_status_msg = "<NULL>";
+
     if (status) {
         switch (status) {
         case ERROR_FILE_NOT_FOUND:
-            DPRINTF(1, ("ERROR_FILE_NOT_FOUND.\n"));
+            debug_status_msg = "ERROR_FILE_NOT_FOUND";
             break;
         case ERROR_NO_MORE_FILES:
-            DPRINTF(1, ("ERROR_NO_MORE_FILES.\n"));
+            debug_status_msg = "ERROR_NO_MORE_FILES";
             break;
         case ERROR_BUFFER_OVERFLOW:
             upcall->last_error = status;
             status = ERROR_SUCCESS;
-            break;
-        default:
-            DPRINTF(1, ("error code %d.\n", status));
+            debug_status_msg = "ERROR_BUFFER_OVERFLOW==SUCCESS";
             break;
         }
-    } else {
-        DPRINTF(1, ("success!\n"));
     }
+    else {
+        debug_status_msg = "SUCCESS";
+    }
+
+    DPRINTF(1, ("<-- handle_nfs41_dirquery("
+        "filter='%s',initial=%d,restart=%d,single=%d) "
+        "returning %d ('%s')\n",
+        args->filter, (int)args->initial, (int)args->restart,
+        (int)args->single, status, debug_status_msg));
+
     return status;
 out_free_cookie:
     state->cookie.cookie = 0;
