@@ -3,6 +3,7 @@
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
+ * Roland Mainz <roland.mainz@nrubsig.org>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -45,6 +46,7 @@
  * MAX_LOOKUP_COMPONENTS)|), see |max_lookup_components()| below.
  *
  * Linux 5.10.0-22-rt uses |ca_maxoperations==16|
+ * Linux 6.6.20-rt25  uses |ca_maxoperations==50|
  * simplenfs/nfs4j    uses |ca_maxoperations==128|
  *
  */
@@ -290,12 +292,16 @@ out:
 static uint32_t max_lookup_components(
     IN const nfs41_session *session)
 {
-#define ROUNDUPDIV(x, y) (((x)+((y)-1))/(y))
     const uint32_t comps = min(
         session->fore_chan_attrs.ca_maxoperations,
         MAX_LOOKUP_COMPONENTS);
 
-    return ROUNDUPDIV(comps-4, 3);
+    /*
+     * Make sure we round this value down, otherwise not all
+     * our requests will fit into the
+     * |session->fore_chan_attrs.ca_maxoperations| limit
+     */
+    return ((comps-4) / 3);
 }
 
 static uint32_t get_component_array(
