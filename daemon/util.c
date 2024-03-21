@@ -628,3 +628,27 @@ bool_t waitcriticalsection(LPCRITICAL_SECTION cs)
     }
     return cs_locked;
 }
+
+/*
+ * Get WinNT version numbers
+ *
+ * We use this wrapper function because |RtlGetNtVersionNumbers()|
+ * is a private API, but it should be safe to use as Cygwin and
+ * other software relies on it
+ */
+bool getwinntversionnnumbers(
+    DWORD *MajorVersionPtr,
+    DWORD *MinorVersionPtr,
+    DWORD *BuildNumberPtr)
+{
+    NTSTATUS RtlGetNtVersionNumbers(LPDWORD, LPDWORD, LPDWORD);
+
+    /*
+     * Reference:
+     * https://cygwin.com/git/?p=newlib-cygwin.git;a=blob;f=winsup/cygwin/wincap.cc
+     */
+    (void)RtlGetNtVersionNumbers(MajorVersionPtr, MinorVersionPtr, BuildNumberPtr);
+    *BuildNumberPtr &= 0xffff;
+
+    return true;
+}

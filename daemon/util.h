@@ -22,6 +22,8 @@
 #ifndef __NFS41_DAEMON_UTIL_H__
 #define __NFS41_DAEMON_UTIL_H__
 
+#include <stdbool.h>
+
 #include "nfs41_types.h"
 #include "from_kernel.h"
 
@@ -268,5 +270,7 @@ BOOL subcmd_readcmdoutput(subcmd_popen_context *pinfo, char *buff, size_t buff_s
 
 bool_t waitSRWlock(PSRWLOCK srwlock);
 bool_t waitcriticalsection(LPCRITICAL_SECTION cs);
+
+bool getwinntversionnnumbers(DWORD *MajorVersionPtr, DWORD *MinorVersionPtr, DWORD *BuildNumberPtr);
 
 #endif /* !__NFS41_DAEMON_UTIL_H__ */
