@@ -204,6 +204,9 @@ MSBuild.exe build.vc19/nfs41-client.sln -t:Build  -p:Configuration=Release -p:Pl
 #   max_path_length=131
 #   ---- snip ----
 # - Full build can easily take ~~16 hours minutes
+# - Option "--disable-libstdcxx-pch" is used due to bug
+#   https://gcc.gnu.org/bugzilla/show_bug.cgi?id=114381 ("(Sporadic)
+#   crash generating x86_64-pc-cygwin/bits/extc++.h.gch/O2g.gch")
 #
 git clone -b 'releases/gcc-13.2.0' git://gcc.gnu.org/git/gcc.git
 cd gcc/
@@ -212,7 +215,7 @@ cd gcc/
 # ancient workarounds for issues which no longer exists)
 (set -o xtrace ; sed -i "s/as_ln_s='cp -pR'/as_ln_s='ln -s'/g" $(find . -name configure) )
 # run configure
-./configure
+./configure --disable-libstdcxx-pch
 # repeat:
 make -j4 clean
 (yes | make -j32 all)
