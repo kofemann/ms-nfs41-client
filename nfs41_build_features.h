@@ -77,4 +77,20 @@
  */
 #define NFS41_DRIVER_WORKAROUND_FOR_GETATTR_AFTER_CLOSE_HACKS 1
 
+/*
+ * NFS41_DRIVER_USE_LARGE_SOCKET_RCVSND_BUFFERS - use
+ * static, large buffer size for socket receive and send buffers
+ *
+ * Using a large static buffer avoids the erratic behaviour
+ * caused by automatic scaling, and avoids that the code
+ * spends lots of time waiting for the data to be split into
+ * smaller chunks - this results in much reduced latency.
+ *
+ * Another benefit is that this gives a larger TCP window
+ * (as Windows has no public API to set the TCP window size
+ * per socket), resulting in better performance over WLAN
+ * connections.
+ */
+#define NFS41_DRIVER_USE_LARGE_SOCKET_RCVSND_BUFFERS 1
+
 #endif /* !_NFS41_DRIVER_BUILDFEATURES_ */

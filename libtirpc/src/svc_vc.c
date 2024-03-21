@@ -356,10 +356,21 @@ again:
 
 	__xprt_set_raddr(newxprt, &addr);
 
-	if (__rpc_fd2sockinfo(sock, &si) && si.si_proto == IPPROTO_TCP) {
-		len = 1;
-		/* XXX fvdl - is this useful? */
-		wintirpc_setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, (const char *)&len, sizeof (len));
+	if (__rpc_fd2sockinfo(sock, &si)) {
+		if (si.si_proto == IPPROTO_TCP) {
+			wintirpc_setnfsclientsockopts(sock);
+		}
+		else {
+			wintirpc_warnx("rendezvous_request: "
+				"Unexpected sock=%d, si.si_proto=%d\n",
+				sock,
+				(int)si.si_proto);
+		}
+	}
+	else {
+		wintirpc_warnx("rendezvous_request: "
+			"__rpc_fd2sockinfo(sock=%d) failed\n",
+			sock);
 	}
 
 	cd = (struct cf_conn *)newxprt->xp_p1;

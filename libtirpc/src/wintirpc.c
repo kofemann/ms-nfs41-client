@@ -25,6 +25,8 @@
 #include <stdio.h>
 #include <winsock.h>
 
+#include "../../nfs41_build_features.h"
+
 WSADATA WSAData;
 
 static int init = 0;
@@ -394,6 +396,136 @@ int wintirpc_setsockopt(int socket, int level, int option_name,
 {
 	return setsockopt(_get_osfhandle(socket), level, option_name,
 		option_value, option_len);
+}
+
+void wintirpc_setnfsclientsockopts(int sock)
+{
+	DWORD one;
+	int rcvbufvalue;
+	int sndbufvalue;
+	socklen_t bufsize;
+
+	one = 1;
+	/* XXX fvdl - is this useful? */
+	if (wintirpc_setsockopt(sock, IPPROTO_TCP, TCP_NODELAY,
+		(const char *)&one, sizeof(one)))
+		wintirpc_warnx("wintirpc_setnfsclientsockopts(sock=%d):"
+			" Error setting TCP_NODELAY\n", sock);
+
+	/* gisburn: Is this useful ? */
+	one = 1;
+	if (wintirpc_setsockopt(sock, IPPROTO_TCP, TCP_TIMESTAMPS,
+		(const char *)&one, sizeof(one)))
+		wintirpc_warnx("wintirpc_setnfsclientsockopts(sock=%d):"
+			" Error setting TCP_TIMESTAMPS\n", sock);
+
+#ifdef NFS41_DRIVER_USE_LARGE_SOCKET_RCVSND_BUFFERS
+	/*
+	 * Print default values
+	 */
+	rcvbufvalue = 0;
+	bufsize = sizeof(rcvbufvalue);
+	if (wintirpc_getsockopt(sock, SOL_SOCKET, SO_RCVBUF,
+		(char *)&rcvbufvalue, &bufsize))
+		wintirpc_warnx("wintirpc_setnfsclientsockopts(sock=%d):"
+			" Error getting SO_RCVBUF\n", sock);
+
+	sndbufvalue = 0;
+	bufsize = sizeof(sndbufvalue);
+	if (wintirpc_getsockopt(sock, SOL_SOCKET, SO_SNDBUF,
+		(char *)&sndbufvalue, &bufsize))
+		wintirpc_warnx("wintirpc_setnfsclientsockopts(sock=%d):"
+			" Error getting SO_SNDBUF\n", sock);
+
+#ifdef _DEBUG
+	(void)printf("wintirpc_setnfsclientsockopts(sock=%d): "
+		"SO_RCVBUF=%d\n", sock, (int)rcvbufvalue);
+	(void)printf("wintirpc_setnfsclientsockopts(sock=%d): "
+		"SO_SNDBUF=%d\n", sock, (int)sndbufvalue);
+#endif
+
+	/*
+	 * Set socket rcv and snd buffer sizes to 8M if the current
+	 * value is smaller
+	 *
+	 * Windows 10 defaults to 64k, which is far too small for most
+	 * NFS read&&write requests, which causes significant delays
+	 * for each request
+	 *
+	 * Using a large static buffer avoids the erratic behaviour
+	 * caused by automatic scaling, and avoids that the code
+	 * spends lots of time waiting for the data to be split into
+	 * smaller chunks - this results in much reduced latency.
+	 *
+	 * Another benefit is that this gives a larger TCP window
+	 * (as Windows has no public API to set the TCP window size
+	 * per socket), resulting in better performance over WLAN
+	 * connections.
+	 */
+#define NFSRV_TCPSOCKBUF (8 * 1024 * 1024)
+
+	if (rcvbufvalue < NFSRV_TCPSOCKBUF) {
+		rcvbufvalue = NFSRV_TCPSOCKBUF;
+		bufsize = sizeof(rcvbufvalue);
+		if (wintirpc_setsockopt(sock, SOL_SOCKET, SO_RCVBUF,
+			(const char *)&rcvbufvalue, sizeof(bufsize)))
+			wintirpc_warnx(
+				"wintirpc_setnfsclientsockopts(sock=%d): "
+				"Error setting SO_RCVBUF\n", sock);
+
+		rcvbufvalue = 0;
+		bufsize = sizeof(rcvbufvalue);
+		if (wintirpc_getsockopt(sock, SOL_SOCKET, SO_RCVBUF,
+			(char *)&rcvbufvalue, &bufsize))
+			wintirpc_warnx(
+				"wintirpc_setnfsclientsockopts(sock=%d): "
+				"Error getting SO_RCVBUF\n", sock);
+
+		if (rcvbufvalue != NFSRV_TCPSOCKBUF) {
+			wintirpc_warnx(
+				"wintirpc_setnfsclientsockopts(sock=%d): "
+				"SO_RCVBUF expected size=%d, got size=%d\n",
+				sock,
+				(int)NFSRV_TCPSOCKBUF, (int)rcvbufvalue);
+		}
+
+#ifdef _DEBUG
+		(void)printf("wintirpc_setnfsclientsockopts(sock=%d): "
+			"set SO_RCVBUF to %d\n", sock, (int)rcvbufvalue);
+#endif
+	}
+
+
+	if (sndbufvalue < NFSRV_TCPSOCKBUF) {
+		sndbufvalue = NFSRV_TCPSOCKBUF;
+		bufsize = sizeof(sndbufvalue);
+		if (wintirpc_setsockopt(sock, SOL_SOCKET, SO_SNDBUF,
+			(const char *)&sndbufvalue, sizeof(bufsize)))
+			wintirpc_warnx(
+				"wintirpc_setnfsclientsockopts(sock=%d): "
+				"Error setting SO_SNDBUF\n", sock);
+
+		sndbufvalue = 0;
+		bufsize = sizeof(sndbufvalue);
+		if (wintirpc_getsockopt(sock, SOL_SOCKET, SO_SNDBUF,
+			(char *)&sndbufvalue, &bufsize))
+			wintirpc_warnx(
+				"wintirpc_setnfsclientsockopts(sock=%d): "
+				"Error getting SO_SNDBUF\n", sock);
+
+		if (sndbufvalue != NFSRV_TCPSOCKBUF) {
+			wintirpc_warnx(
+				"wintirpc_setnfsclientsockopts(sock=%d): "
+				"SO_SNDBUF expected size=%d, got size=%d\n",
+				sock, (int)NFSRV_TCPSOCKBUF, (int)sndbufvalue);
+		}
+
+#ifdef _DEBUG
+		(void)printf("wintirpc_setnfsclientsockopts(sock=%d): "
+			"set SO_SNDBUF to %d\n", sock, (int)sndbufvalue);
+#endif
+	}
+#endif /* NFS41_DRIVER_USE_LARGE_SOCKET_RCVSND_BUFFERS */
 }
 
 void wintirpc_syslog(int prio, const char *format, ...)

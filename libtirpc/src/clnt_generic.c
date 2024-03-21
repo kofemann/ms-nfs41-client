@@ -356,7 +356,6 @@ clnt_tli_create(const int fd_in, const struct netconfig *nconf,
 	CLIENT *cl;			/* client handle */
 	bool_t madefd = FALSE;		/* whether fd opened here */
 	long servtype;
-	BOOL one = TRUE;
 	struct __rpc_sockinfo si;
 	extern int __rpc_minfd;
 	int fd = fd_in;
@@ -404,8 +403,7 @@ clnt_tli_create(const int fd_in, const struct netconfig *nconf,
 		if (nconf &&
 		    ((strcmp(nconf->nc_protofmly, "inet") == 0) ||
 		     (strcmp(nconf->nc_protofmly, "inet6") == 0))) {
-			wintirpc_setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (const char *)&one,
-			    sizeof (one));
+			wintirpc_setnfsclientsockopts(fd);
 		}
 		cl = clnt_vc_create(fd, svcaddr, prog, vers, sendsz, recvsz,
             callback_xdr, callback_function, callback_args);
