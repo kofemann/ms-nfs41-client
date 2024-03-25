@@ -322,4 +322,14 @@ $ /sbin/nfs_mount
   might require $ chmod a+rw /dev/vmnet0 # on VMware host, so that
   the VM can use "Promiscuous Mode".
 
+
+#
+# 11. Source code:
+#
+- Source code can be obtained from https://github.com/kofemann/ms-nfs41-client
+
+- Build instructions can be found at
+https://github.com/kofemann/ms-nfs41-client/tree/master/cygwin
+
+
 # EOF.
