@@ -88,6 +88,7 @@ NFSv4.1 client and filesystem driver for Windows 10/11
         util-linux
         wget
     - Packages (recommended):
+        libnfs (for /usr/bin/nfs-ls)
         make
         git
         dos2unix

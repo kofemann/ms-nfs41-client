@@ -229,4 +229,25 @@ cd gcc/
 make -j4 clean
 (yes | make -j32 all)
 
+
+#
+# libnfs
+#
+
+# get sources and patch them
+git clone https://github.com/sahlberg/libnfs.git
+# fix "nfs_v4.c:436:29: error: array subscript has type 'char' [-Werror=char-subscripts]"
+sed -i -E 's/if \(isdigit\(\*buf\)\) \{/if (isdigit((int)*buf)) {/' libnfs/lib/nfs_v4.c
+
+cd libnfs
+git config --global --add safe.directory "$PWD"
+autoupdate
+ln -s /usr/share/libtool/build-aux/ltmain.sh .
+autoreconf || true
+automake --add-missing
+autoreconf
+./configure --without-libkrb5 --enable-utils
+make -j8 all
+
+
 # EOF.
