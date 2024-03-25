@@ -138,16 +138,25 @@ ksh93 -c 'rm -f test1.txt ; touch test1.txt ; icacls test1.txt /grant:r "cygwing
 # ./nfs_mount -p -o sec=sys R derfwnb4966_ipv6:/net_tmpfs2/test2
 #
 
+
 #
 # ksh93 (ast-ksh)
+#
+
+#
+# build ast-ksh ksh93 1.0.8 with UNC support enabled
+# (see ms-nfs41-client/cygwin/cygwin_ksh93/cygwin_ksh93.readme for
+# instructions how to build a Cygwin package)
 #
 git clone -b 'v1.0.8' https://github.com/ksh93/ksh.git
 cd ksh
 git config --global --add safe.directory "$PWD"
+# add patch so UNC path support is enabled (e.g. "cd cd //derfwnb4966_ipv6linklocal@2049/nfs4/net_tmpfs")
+patch -p1 <'../cygwin/cygwin_ksh93/ksh_1_0_8_libast_Cygwin_set_PATH_LEADING_SLASHES_for_UNC_paths.patch'
 sed -i -r 's/mkfifo.+?(-m [[:digit:]]+)/mkfifo /g' ./src/cmd/INIT/package.sh ./bin/package
 # repeat:
 rm -Rf arch
-time ksh93 -c 'export SHELL=/bin/bash HOSTTYPE="cygwin.i386-64"; /bin/bash ./bin/package make CC="/usr/bin/cc -std=gnu17" CCFLAGS="-Os -g" SHELL="$SHELL" HOSTTYPE="$HOSTTYPE"' 2>&1 | tee buildlog.log
+time bash -c 'export SHELL=/bin/bash HOSTTYPE="cygwin.i386-64"; /bin/bash ./bin/package make CC="/usr/bin/cc -std=gnu17" CCFLAGS="-Os -g" SHELL="$SHELL" HOSTTYPE="$HOSTTYPE"' 2>&1 | tee buildlog.log
 
 
 #

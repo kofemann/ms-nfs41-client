@@ -1,0 +1,11 @@
+#
+# Cygwin ast-ksh/ksh93 README
+#
+
+# Build sequence
+cygport --64 ksh93.cygport download
+cygport --64 ksh93.cygport prep
+cygport --64 ksh93.cygport compile
+cygport --64 ksh93.cygport install
+cygport --64 ksh93.cygport package
+# EOF.
