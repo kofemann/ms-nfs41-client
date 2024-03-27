@@ -32,6 +32,7 @@ build:
 	MSBuild.exe '$(shell cygpath -w "$(PROJECT_BASEDIR_DIR)/build.vc19/nfs41-client.sln")' -t:Build  -p:Configuration=Release -p:Platform=x64
 	MSBuild.exe '$(shell cygpath -w "$(PROJECT_BASEDIR_DIR)/build.vc19/nfs41-client.sln")' -t:Build  -p:Configuration=Debug -p:Platform=x64
 	(cd "$(PROJECT_BASEDIR_DIR)/tests/winfsinfo1" && make all)
+	sync
 
 #
 # clean target
@@ -114,6 +115,7 @@ installdest: $(VS_BUILD_DIR)/nfsd.exe \
 	@printf '\n'
 	@printf "\n#\n# Now use\n# $$ cd '%s' && ./msnfs41client install #\n# to install the kernel driver as Admin\n#\n" \
 		"$(DESTDIR)/cygdrive/c/cygwin64/sbin/"
+	sync
 
 bintarball: installdest
 	set -o errexit ; set -o xtrace ; \
@@ -133,6 +135,7 @@ bintarball: installdest
 	printf "\n#\n# tarball is ready now\n#\n" ; \
 	ls -l "$(DESTDIR)/$${base_filename}.tar.bz2" ; \
 	ls -l "$(DESTDIR)/$${base_filename}.readme"
+	sync
 
 #
 # clean destdir/, but only if nfsd*.exe does not use it right now
