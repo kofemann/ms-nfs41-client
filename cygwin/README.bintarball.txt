@@ -129,10 +129,6 @@ $ (set -o xtrace ; cd / && tar -tf ~/download/${bintarball.base_filename}.tar.bz
 $ /sbin/msnfs41client run_daemon
 
 # Mount a filesystem and use it
-# - requires that NFSv4 server accepts connections from a TCP port
-# number > 1024, which can be archived on Linux with the "insecure"
-# export option in /etc/exports, or "resvport" on Solaris/Illumos
-# (see nfs(5))
 $ /sbin/nfs_mount -o rw N 10.49.20.110:/net_tmpfs2
 Successfully mounted '10.49.20.110@2049' to drive 'N:'
 $ cd /cygdrive/n/
@@ -230,15 +226,15 @@ $ /sbin/nfs_mount
   A::EVERYONE@:rtcy
   ---- snip ----
 
-- nfs_mount only works when the NFSv4 server allows connections from
-  ports >= 1024, as Windows does not allow the Windows NFSv4 client
-  to use a "privileged port" (i.e. TCP port number < 1024)).
+- nfs_mount.exe vs. reserved ports:
   By default the NFSv4 server on Solaris, Illumos, Linux
   etc. only accepts connections if the NFSv4 client uses a
-  "privileged (TCP) port", i.e. a port number < 1024.
-  This can be worked around by using the "insecure" export option in
-  Linux /etc/exports, which allows connections from ports >= 1024,
-  and for Solaris/Illumos see nfs(5), option "resvport".
+  "privileged (TCP) port", i.e. using a TCP port number < 1024.
+  If nfsd.exe/nfsd_debug.exe is started without the Windows priviledge
+  to use reserved ports, then a mount attempt can fail.
+  This can be worked around on the NFSv4 server side - on Linux using
+  the "insecure" export option in  /etc/exports and on Solaris/Illumos
+  using export option "resvport" (see nfs(5)).
 
 
 #

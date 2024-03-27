@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2009, Sun Microsystems, Inc.
+ * Copyright (c) 2024, Roland Mainz <roland.mainz@nrubsig.org>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,19 +33,29 @@
  * Copyright (c) 1987 by Sun Microsystems, Inc.
  *
  * Portions Copyright(C) 1996, Jason Downs.  All rights reserved.
+ * Portions Copyright(C) 2024, Roland Mainz <roland.mainz@nrubsig.org>
  */
 
 #include <wintirpc.h>
 #include <sys/types.h>
-//#include <sys/socket.h>
-
-//#include <netinet/in.h>
+#ifndef _WIN32
+#include <sys/socket.h>
+#include <netinet/in.h>
+#endif
 
 #include <errno.h>
 #include <string.h>
-//#include <unistd.h>
+#ifndef _WIN32
+#include <unistd.h>
+#endif
 
 #include <rpc/rpc.h>
+
+#ifdef _WIN32
+#include <winsock2.h>
+#include <mstcpip.h>
+#include <ws2ipdef.h>
+#endif
 
 /*
  * Bind a socket to a privileged IP port
@@ -139,18 +150,147 @@ bindresvport_sa(sd, sa)
         return (res);
 }
 
+#elif defined(_WIN32)
+
+#define STARTPORT 600
+#define ENDPORT (IPPORT_RESERVED - 1)
+#define NPORTS  (ENDPORT - STARTPORT + 1)
+
+/* Debug */
+#if 0
+#define BRP_D(x) x
 #else
-/*----------------------
-#if defined(_WIN32)
+#define BRP_D(x)
+#endif
+
+/* fixme: not threadsafe, we should use |portnum_lock| */
+static int bindresvport_sa_last_n = 0;
 
 int
 bindresvport_sa(int sd, struct sockaddr *sa)
 {
-	fprintf(stderr, "Do-nothing bindresvport_sa!\n");
-	return 0;
+	int res = 1;
+	int ioctlres;
+	int lasterr;
+	SOCKET sd_sock;
+	int currport;
+	int n;
+
+	INET_PORT_RANGE portRange;
+	INET_PORT_RESERVATION_INSTANCE portRes;
+	DWORD bytesReturned;
+
+	BRP_D((void)fprintf(stdout,
+		"--> bindresvport_sa(sd=%d,sa=0x%p): "
+		"bindresvport_sa_last_n=%d\n",
+		sd, sa, bindresvport_sa_last_n));
+
+	sd_sock = _get_osfhandle(sd);
+
+	for (n = 0 ; n < NPORTS ; n++) {
+		currport = ((n+bindresvport_sa_last_n)%NPORTS)+STARTPORT;
+
+		portRange.StartPort = htons(currport);
+		portRange.NumberOfPorts = 1;
+
+		(void)memset(&portRes, 0, sizeof(portRes));
+		bytesReturned = 0;
+
+		BRP_D((void)fprintf(stdout,
+			"bindresvport_sa(sd=%d,sa=0x%p): "
+			"trying n=%d, bindresvport_sa_last_n=%d, port=%d ...\n",
+			sd, sa, n, bindresvport_sa_last_n,
+			(int)ntohs(portRange.StartPort)));
+		ioctlres = WSAIoctl(sd_sock,
+			SIO_ACQUIRE_PORT_RESERVATION,
+			(LPVOID)&portRange,
+			sizeof(INET_PORT_RANGE),
+			(LPVOID)&portRes,
+			sizeof(INET_PORT_RESERVATION_INSTANCE),
+			&bytesReturned, NULL, NULL);
+		lasterr = WSAGetLastError();
+
+		if ((ioctlres != 0) && (lasterr == WSAEADDRINUSE)) {
+			BRP_D((void)fprintf(stderr,
+				"bindresvport_sa(sd=%d,sa=0x%p): "
+				"port=%d in use, trying next port...\n",
+				sd, sa, currport));
+			continue;
+		}
+
+		if (ioctlres != 0) {
+			warnx("bindresvport_sa(sd=%d,sa=0x%p): "
+				"SIO_ACQUIRE_PORT_RESERVATION failed "
+				"with error = %d\n",
+				sd, sa, lasterr);
+			res = 1;
+			bindresvport_sa_last_n = n+1;
+			goto out;
+		}
+
+		/* Success */
+		bindresvport_sa_last_n = n+1;
+		break;
+	}
+
+	if (n == NPORTS) {
+		warnx("bindresvport_sa(sd=%d,sa=0x%p): "
+			"n(=%d) == NPORTS(=%d), "
+			"no reserved port available\n", n, NPORTS);
+		res = 1;
+		goto out;
+	}
+
+	BRP_D((void)fprintf(stdout, "bindresvport_sa(sd=%d,sa=0x%p): "
+		"SIO_ACQUIRE_PORT_RESERVATION succeeded, "
+		"bytesReturned = %u, StartPort=%d, NumberOfPorts=%d, "
+		"Token=0x%llx\n",
+		sd, sa, bytesReturned, (int)ntohs(portRes.StartPort),
+		portRes.NumberOfPorts, (long long)portRes.Token));
+
+	bytesReturned = 0;
+	ioctlres = WSAIoctl(sd_sock, SIO_ASSOCIATE_PORT_RESERVATION,
+		(LPVOID)&portRes.Token, sizeof(ULONG64), NULL, 0,
+		&bytesReturned, NULL, NULL);
+	lasterr = WSAGetLastError();
+	if (ioctlres != 0) {
+		warnx("bindresvport_sa(sd=%d,sa=0x%p): "
+			"WSAIoctl(SIO_ASSOCIATE_PORT_RESERVATION) "
+			"failed with error = %d\n",
+			sd, sa, lasterr);
+		res = 1;
+		goto out;
+	}
+
+	BRP_D((void)fprintf(stdout, "bindresvport_sa(sd=%d,sa=0x%p): "
+		"WSAIoctl(SIO_ASSOCIATE_PORT_RESERVATION) succeeded, "
+		"bytesReturned = %u\n",
+		sd, sa, bytesReturned));
+	res = 0;
+
+	/*
+	 * FIXME: We should call |SIO_RELEASE_PORT_RESERVATION|,
+	 * but we cannot do that while |sd| is open and using the
+	 * reservation.
+	 * So basically we to store the token, and then use a second
+	 * socket, with matching protocol&co attributes, just to
+	 * release the reservation.
+	 *
+	 * A possible solution might be to derive a "control socket"
+	 * from |sd|, and do the reservation ioctl using that socket.
+	 *
+	 * For now we ignore this, and assume noone will do more
+	 * than |NPORTS| { mount, umount }-sequences during
+	 * nfsd.exe/nfsd_debug.exe lifetime
+	 */
+out:
+	BRP_D((void)fprintf(stdout,
+		"<-- bindresvport_sa(sd=%d,sa=0x%p) returning res=%d\n",
+		sd, sa, res));
+	return res;
 }
 #else
--------------------------*/
+
 #define IP_PORTRANGE 19
 #define IP_PORTRANGE_LOW 2
 
@@ -174,29 +314,16 @@ bindresvport_sa(sd, sa)
 	int proto, portrange, portlow;
 	u_int16_t *portp;
 	socklen_t salen;
-#ifdef _WIN32
-		WSAPROTOCOL_INFO proto_info;
-		int proto_info_size = sizeof(proto_info);
-#endif
 
 	if (sa == NULL) {
 		salen = sizeof(myaddr);
 		sa = (struct sockaddr *)&myaddr;
 
-#ifdef _WIN32
-		memset(sa, 0, salen);
-		if (error = wintirpc_getsockopt(sd, SOL_SOCKET, SO_PROTOCOL_INFO, (char *)&proto_info, &proto_info_size) == SOCKET_ERROR) {
-			int sockerr = WSAGetLastError();
-			return -1;
-		}
-		af = proto_info.iAddressFamily;
-#else
 		if (wintirpc_getsockname(sd, sa, &salen) == -1)
 			return -1;	/* errno is correctly set */
 
 		af = sa->sa_family;
 		memset(sa, 0, salen);
-#endif
 	} else
 		af = sa->sa_family;
 
@@ -268,7 +395,4 @@ bindresvport_sa(sd, sa)
 #endif
 	return (error);
 }
-/*
-#endif
-*/
 #endif
