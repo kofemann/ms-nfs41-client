@@ -39,12 +39,18 @@ NFSv4.1 client and filesystem driver for Windows 10/11
 
 - UNC paths
     - IPv6 support in UNC paths
+    - /sbin/nfs_mount prints UNC paths in Win32+Cygwin formats
+    - Cygwin bash+ksh93 support UNC paths, e.g.
+      cd //derfwnb4966@2049/nfs4/bigdisk/mysqldb4/
 
 - IPv6 support
     - IPv6 address within '[', ']'
       (will be converted to *.ipv6-literal.net)
 
 - Windows ACLs
+    - Win32 C:\Windows\system32\icacls.exe
+    - Cygwin /usr/bin/setfacl+/usr/bin/getfacl
+    - Windows Explorer ACL dialog
 
 - SFU/Cygwin support, including:
     - uid/gid
