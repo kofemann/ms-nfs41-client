@@ -259,7 +259,7 @@ src_compile()
 	{
 		printf '#\n# /etc/ksh.kshrc+~/.kshrc are sourced only for interactive shells\n#\n\n'
 		printf '# default prompt\n'
-		printf 'PS1=%q\n' $'\E[32m$(/usr/bin/logname)@$(/usr/bin/hostname) \E[33m${PWD/~(Sl-r)$HOME/"~"}\E[0m\n$ '
+		printf 'PS1=%q\n' $'\E[1;32m$(/usr/bin/logname)@$(/usr/bin/hostname) \E[1;33m${PWD/~(Sl-r)$HOME/"~"}\E[0m\n$ '
 		printf '# default editor mode\n'
 		printf 'set -o gmacs\n'
 	} >${S}/etc_ksh_kshrc

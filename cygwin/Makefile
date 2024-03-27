@@ -63,6 +63,7 @@ installdest: $(VS_BUILD_DIR)/nfsd.exe \
 	# /usr/lib is a bind mount to C:/cygwin64/lib, so copy library data to /cygdrive/c/cygwin64/lib
 	mkdir -p $(DESTDIR)/cygdrive/c/cygwin64/lib
 	mkdir -p $(DESTDIR)/cygdrive/c/cygwin64/lib/msnfs41client
+	mkdir -p $(DESTDIR)/cygdrive/c/cygwin64/etc
 	mkdir -p $(DESTDIR)/cygdrive/c/cygwin64/usr/src/msnfs41client
 	mkdir -p $(DESTDIR)/cygdrive/c/cygwin64/usr/share/man/man1
 	cp -r $(VS_BUILD_DIR)/nfsd.exe		$(DESTDIR)/cygdrive/c/cygwin64/sbin/nfsd_debug.exe
@@ -99,6 +100,7 @@ installdest: $(VS_BUILD_DIR)/nfsd.exe \
 	@ printf "# Package ksh93&co (if available) since Cygwin does not ship with it yet\n"
 	[[ -x /usr/bin/ksh93.exe ]] && cp /usr/bin/ksh93.exe $(DESTDIR)/cygdrive/c/cygwin64/bin/ksh93.exe
 	[[ -x /usr/bin/shcomp.exe ]] && cp /usr/bin/shcomp.exe $(DESTDIR)/cygdrive/c/cygwin64/bin/shcomp.exe
+	cp $(PROJECT_BASEDIR_DIR)/cygwin/cygwin_ksh93/ksh.kshrc $(DESTDIR)/cygdrive/c/cygwin64/etc/ksh.kshrc
 	@ printf '# Packaging libs\n'
 	ldd $$(find $(DESTDIR)/cygdrive/c/cygwin64/sbin/ -iname \*.exe -o -iname \*.dll) | \
 		while read dummy1 dummy2 dllfile dummy3 ; do \
