@@ -752,13 +752,17 @@ NTSTATUS marshal_nfs41_open(
                 MmMapLockedPagesSpecifyCache(entry->u.Open.EaMdl,
                     UserMode, MmNonCached, NULL, TRUE, NormalPagePriority);
             if (entry->u.Open.EaBuffer == NULL) {
-                print_error("MmMapLockedPagesSpecifyCache failed to map pages\n");
+                print_error("marshal_nfs41_open: "
+                    "MmMapLockedPagesSpecifyCache() failed to "
+                    "map pages\n");
                 status = STATUS_INSUFFICIENT_RESOURCES;
                 goto out;
             }
         }
     } __except(EXCEPTION_EXECUTE_HANDLER) {
-        print_error("Call to MmMapLocked failed due to exception 0x%x\n", GetExceptionCode());
+        print_error("marshal_nfs41_open: Call to "
+            "MmMapLockedPagesSpecifyCache() failed "
+            "due to exception 0x%x\n", (int)GetExceptionCode());
         status = STATUS_ACCESS_DENIED;
         goto out;
     }
@@ -823,14 +827,17 @@ NTSTATUS marshal_nfs41_rw(
             MmMapLockedPagesSpecifyCache(entry->u.ReadWrite.MdlAddress,
                 UserMode, MmNonCached, NULL, TRUE, NormalPagePriority);
         if (entry->buf == NULL) {
-            print_error("MmMapLockedPagesSpecifyCache failed to map pages\n");
+            print_error("marshal_nfs41_rw: "
+                "MmMapLockedPagesSpecifyCache() failed to map pages\n");
             status = STATUS_INSUFFICIENT_RESOURCES;
             goto out;
         }
-    } __except(EXCEPTION_EXECUTE_HANDLER) { 
-        NTSTATUS code; 
-        code = GetExceptionCode(); 
-        print_error("Call to MmMapLocked failed due to exception 0x%x\n", code);
+    } __except(EXCEPTION_EXECUTE_HANDLER) {
+        NTSTATUS code;
+        code = GetExceptionCode();
+        print_error("marshal_nfs41_rw: Call to "
+            "MmMapLockedPagesSpecifyCache() failed due to "
+            "exception 0x%x\n", (int)code);
         status = STATUS_ACCESS_DENIED;
         goto out;
     }
@@ -1002,17 +1009,20 @@ NTSTATUS marshal_nfs41_dirquery(
     tmp += sizeof(BOOLEAN);
     __try {
         entry->u.QueryFile.mdl_buf = 
-            MmMapLockedPagesSpecifyCache(entry->u.QueryFile.mdl, 
+            MmMapLockedPagesSpecifyCache(entry->u.QueryFile.mdl,
                 UserMode, MmNonCached, NULL, TRUE, NormalPagePriority);
         if (entry->u.QueryFile.mdl_buf == NULL) {
-            print_error("MmMapLockedPagesSpecifyCache failed to map pages\n");
+            print_error("marshal_nfs41_dirquery: "
+                "MmMapLockedPagesSpecifyCache() failed to map pages\n");
             status = STATUS_INSUFFICIENT_RESOURCES;
             goto out;
         }
-    } __except(EXCEPTION_EXECUTE_HANDLER) { 
-        NTSTATUS code; 
-        code = GetExceptionCode(); 
-        print_error("Call to MmMapLocked failed due to exception 0x%x\n", code);
+    } __except(EXCEPTION_EXECUTE_HANDLER) {
+        NTSTATUS code;
+        code = GetExceptionCode();
+        print_error("marshal_nfs41_dirquery: Call to "
+            "MmMapLockedPagesSpecifyCache() failed "
+            "due to exception 0x%x\n", (int)code);
         status = STATUS_ACCESS_DENIED;
         goto out;
     }
@@ -1744,11 +1754,11 @@ NTSTATUS unmarshal_nfs41_rw(
         */
     __try {
         MmUnmapLockedPages(cur->buf, cur->u.ReadWrite.MdlAddress);
-    } __except(EXCEPTION_EXECUTE_HANDLER) { 
-        NTSTATUS code; 
-        code = GetExceptionCode(); 
-        print_error("Call to MmUnmapLockedPages failed due to"
-            " exception 0x%0x\n", code);
+    } __except(EXCEPTION_EXECUTE_HANDLER) {
+        NTSTATUS code;
+        code = GetExceptionCode();
+        print_error("unmarshal_nfs41_rw: Call to MmUnmapLockedPages() "
+            "failed due to exception 0x%0x\n", (int)code);
         status = STATUS_ACCESS_DENIED;
     }
 #endif
