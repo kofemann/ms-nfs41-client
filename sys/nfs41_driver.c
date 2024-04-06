@@ -750,7 +750,7 @@ NTSTATUS marshal_nfs41_open(
         if (entry->u.Open.EaMdl) {
             entry->u.Open.EaBuffer =
                 MmMapLockedPagesSpecifyCache(entry->u.Open.EaMdl,
-                    UserMode, MmNonCached, NULL, TRUE, NormalPagePriority);
+                    UserMode, MmCached, NULL, TRUE, NormalPagePriority);
             if (entry->u.Open.EaBuffer == NULL) {
                 print_error("marshal_nfs41_open: "
                     "MmMapLockedPagesSpecifyCache() failed to "
@@ -825,7 +825,7 @@ NTSTATUS marshal_nfs41_rw(
 #pragma warning( pop )
         entry->buf =
             MmMapLockedPagesSpecifyCache(entry->u.ReadWrite.MdlAddress,
-                UserMode, MmNonCached, NULL, TRUE, NormalPagePriority);
+                UserMode, MmCached, NULL, TRUE, NormalPagePriority);
         if (entry->buf == NULL) {
             print_error("marshal_nfs41_rw: "
                 "MmMapLockedPagesSpecifyCache() failed to map pages\n");
@@ -1008,9 +1008,9 @@ NTSTATUS marshal_nfs41_dirquery(
     RtlCopyMemory(tmp, &entry->u.QueryFile.return_single, sizeof(BOOLEAN));
     tmp += sizeof(BOOLEAN);
     __try {
-        entry->u.QueryFile.mdl_buf = 
+        entry->u.QueryFile.mdl_buf =
             MmMapLockedPagesSpecifyCache(entry->u.QueryFile.mdl,
-                UserMode, MmNonCached, NULL, TRUE, NormalPagePriority);
+                UserMode, MmCached, NULL, TRUE, NormalPagePriority);
         if (entry->u.QueryFile.mdl_buf == NULL) {
             print_error("marshal_nfs41_dirquery: "
                 "MmMapLockedPagesSpecifyCache() failed to map pages\n");
