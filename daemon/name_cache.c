@@ -798,7 +798,8 @@ int nfs41_name_cache_create(
     struct nfs41_name_cache *cache;
     int status = NO_ERROR;
 
-    DPRINTF(NCLVL1, ("nfs41_name_cache_create()\n"));
+    DPRINTF(NCLVL1, ("nfs41_name_cache_create() with %ld entries\n",
+        (long)NAME_CACHE_MAX_ENTRIES));
 
     /* allocate the cache */
     cache = calloc(1, sizeof(struct nfs41_name_cache));
