@@ -3,6 +3,7 @@
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
+ * Roland Mainz <roland.mainz@nrubsig.org>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -323,15 +324,50 @@ static void readdir_copy_dir_info(
     IN PFILE_DIR_INFO_UNION info)
 {
     info->fdi.FileIndex = (ULONG)entry->attr_info.fileid;
-    nfs_time_to_file_time(&entry->attr_info.time_create,
-        &info->fdi.CreationTime);
-    nfs_time_to_file_time(&entry->attr_info.time_access,
-        &info->fdi.LastAccessTime);
-    nfs_time_to_file_time(&entry->attr_info.time_modify,
-        &info->fdi.LastWriteTime);
+
+    uint32_t attrmask_arr1 = entry->attr_info.attrmask.arr[1];
+
+    if (attrmask_arr1 & FATTR4_WORD1_TIME_CREATE) {
+        nfs_time_to_file_time(&entry->attr_info.time_create,
+            &info->fdi.CreationTime);
+    }
+    else {
+        DPRINTF(1, ("readdir_copy_dir_info(entry->name='%s'): "
+            "time_create not set\n", entry->name));
+        info->fdi.CreationTime.QuadPart = FILE_INFO_TIME_NOT_SET;
+    }
+
+    if (attrmask_arr1 & FATTR4_WORD1_TIME_ACCESS) {
+        nfs_time_to_file_time(&entry->attr_info.time_access,
+            &info->fdi.LastAccessTime);
+    }
+    else {
+        DPRINTF(1, ("readdir_copy_dir_info(entry->name='%s'): "
+            "time_access not set\n", entry->name));
+        info->fdi.LastAccessTime.QuadPart = FILE_INFO_TIME_NOT_SET;
+    }
+
+    if (attrmask_arr1 & FATTR4_WORD1_TIME_MODIFY) {
+        nfs_time_to_file_time(&entry->attr_info.time_modify,
+            &info->fdi.LastWriteTime);
+    }
+    else {
+        DPRINTF(1, ("readdir_copy_dir_info(entry->name='%s'): "
+            "time_modify not set\n", entry->name));
+        info->fdi.LastWriteTime.QuadPart = FILE_INFO_TIME_NOT_SET;
+    }
+
     /* XXX: was using 'change' attr, but that wasn't giving a time */
-    nfs_time_to_file_time(&entry->attr_info.time_modify,
-        &info->fdi.ChangeTime);
+    if (attrmask_arr1 & FATTR4_WORD1_TIME_MODIFY) {
+        nfs_time_to_file_time(&entry->attr_info.time_modify,
+            &info->fdi.ChangeTime);
+    }
+    else {
+        DPRINTF(1, ("readdir_copy_dir_info(entry->name='%s'): "
+            "time_modify2 not set\n", entry->name));
+        info->fdi.ChangeTime.QuadPart = FILE_INFO_TIME_NOT_SET;
+    }
+
     info->fdi.EndOfFile.QuadPart =
         info->fdi.AllocationSize.QuadPart =
             entry->attr_info.size;

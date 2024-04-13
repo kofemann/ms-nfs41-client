@@ -3,6 +3,7 @@
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
+ * Roland Mainz <roland.mainz@nrubsig.org>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -31,6 +32,14 @@ extern DWORD NFS41D_VERSION;
 struct __nfs41_session;
 struct __nfs41_write_verf;
 enum stable_how4;
+
+/*
+ * LargeInteger.QuadPart value to indicate a time value was not
+ * available
+ *
+ * gisburn: FIXME: We need a better header for this
+ */
+#define FILE_INFO_TIME_NOT_SET (0LL)
 
 int safe_read(unsigned char **pos, uint32_t *remaining, void *dest, uint32_t dest_len);
 int safe_write(unsigned char **pos, uint32_t *remaining, void *dest, uint32_t dest_len);
@@ -100,12 +109,14 @@ static __inline void bitmap_intersect(
 ULONG nfs_file_info_to_attributes(
     IN const nfs41_file_info *info);
 void nfs_to_basic_info(
+    IN const char *name,
     IN const nfs41_file_info *info,
     OUT PFILE_BASIC_INFO basic_out);
 void nfs_to_standard_info(
     IN const nfs41_file_info *info,
     OUT PFILE_STANDARD_INFO std_out);
 void nfs_to_network_openinfo(
+    IN const char *name,
     IN const nfs41_file_info *info,
     OUT PFILE_NETWORK_OPEN_INFORMATION std_out);
 void nfs41_file_info_cpy(

@@ -745,7 +745,7 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
             status = map_symlink_errors(status);
             goto out_free_state;
         }
-        nfs_to_basic_info(&info, &args->basic_info);
+        nfs_to_basic_info(state->file.name.name, &info, &args->basic_info);
         nfs_to_standard_info(&info, &args->std_info);
         args->mode = info.mode;
         args->changeattr = info.change;
@@ -756,7 +756,7 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
             goto out_free_state;
         }
 
-        nfs_to_basic_info(&info, &args->basic_info);
+        nfs_to_basic_info(state->file.name.name, &info, &args->basic_info);
         nfs_to_standard_info(&info, &args->std_info);
         args->mode = info.mode;
         args->changeattr = info.change;
@@ -941,7 +941,7 @@ supersede_retry:
             status = nfs_to_windows_error(status, ERROR_FILE_NOT_FOUND);
             goto out_free_state;
         } else {
-            nfs_to_basic_info(&info, &args->basic_info);
+            nfs_to_basic_info(state->file.name.name, &info, &args->basic_info);
             nfs_to_standard_info(&info, &args->std_info);
             args->mode = info.mode;
             args->changeattr = info.change;

@@ -3,6 +3,7 @@
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
+ * Roland Mainz <roland.mainz@nrubsig.org>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -339,14 +340,31 @@ static void copy_attrs(
     OUT nfs41_file_info *dst,
     IN const struct attr_cache_entry *src)
 {
+    dst->attrmask.count = 2;
+    dst->attrmask.arr[0] = FATTR4_WORD0_TYPE | FATTR4_WORD0_CHANGE
+        | FATTR4_WORD0_SIZE | FATTR4_WORD0_FILEID
+        | FATTR4_WORD0_HIDDEN | FATTR4_WORD0_ARCHIVE;
+    dst->attrmask.arr[1] = FATTR4_WORD1_MODE
+        | FATTR4_WORD1_NUMLINKS
+        | FATTR4_WORD1_SYSTEM;
+
     dst->change = src->change;
     dst->size = src->size;
+    if (!((src->time_access_s == 0) && (src->time_access_ns == 0))) {
+        dst->attrmask.arr[1] |= FATTR4_WORD1_TIME_ACCESS;
     dst->time_access.seconds = src->time_access_s;
     dst->time_access.nseconds = src->time_access_ns;
+    }
+    if (!((src->time_create_s == 0) && (src->time_create_ns == 0))) {
+        dst->attrmask.arr[1] |= FATTR4_WORD1_TIME_CREATE;
     dst->time_create.seconds = src->time_create_s;
     dst->time_create.nseconds = src->time_create_ns;
+    }
+    if (!((src->time_modify_s == 0) && (src->time_modify_ns == 0))) {
+        dst->attrmask.arr[1] |= FATTR4_WORD1_TIME_MODIFY;
     dst->time_modify.seconds = src->time_modify_s;
     dst->time_modify.nseconds = src->time_modify_ns;
+    }
     dst->type = src->type;
     dst->numlinks = src->numlinks;
     dst->mode = src->mode;
@@ -373,14 +391,6 @@ static void copy_attrs(
     dst->system = src->system;
     dst->archive = src->archive;
 
-    dst->attrmask.count = 2;
-    dst->attrmask.arr[0] = FATTR4_WORD0_TYPE | FATTR4_WORD0_CHANGE
-        | FATTR4_WORD0_SIZE | FATTR4_WORD0_FILEID 
-        | FATTR4_WORD0_HIDDEN | FATTR4_WORD0_ARCHIVE;
-    dst->attrmask.arr[1] = FATTR4_WORD1_MODE
-        | FATTR4_WORD1_NUMLINKS | FATTR4_WORD1_TIME_ACCESS
-        | FATTR4_WORD1_TIME_CREATE | FATTR4_WORD1_TIME_MODIFY
-        | FATTR4_WORD1_SYSTEM;
     if (dst->owner)
         dst->attrmask.arr[1] |= FATTR4_WORD1_OWNER;
     if (dst->owner_group)

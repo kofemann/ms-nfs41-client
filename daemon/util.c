@@ -164,14 +164,47 @@ ULONG nfs_file_info_to_attributes(
 }
 
 void nfs_to_basic_info(
+    IN const char *name,
     IN const nfs41_file_info *info,
     OUT PFILE_BASIC_INFO basic_out)
 {
-    nfs_time_to_file_time(&info->time_create, &basic_out->CreationTime);
-    nfs_time_to_file_time(&info->time_access, &basic_out->LastAccessTime);
-    nfs_time_to_file_time(&info->time_modify, &basic_out->LastWriteTime);
+    if (info->attrmask.arr[1] & FATTR4_WORD1_TIME_CREATE) {
+        nfs_time_to_file_time(&info->time_create, &basic_out->CreationTime);
+    }
+    else {
+        DPRINTF(1, ("nfs_to_basic_info(name='%s'): "
+            "time_create not set\n", name));
+        basic_out->CreationTime.QuadPart = FILE_INFO_TIME_NOT_SET;
+    }
+
+    if (info->attrmask.arr[1] & FATTR4_WORD1_TIME_ACCESS) {
+        nfs_time_to_file_time(&info->time_access, &basic_out->LastAccessTime);
+    }
+    else {
+        DPRINTF(1, ("nfs_to_basic_info(name='%s'): "
+            "time_access not set\n", name));
+        basic_out->LastAccessTime.QuadPart = FILE_INFO_TIME_NOT_SET;
+    }
+
+    if (info->attrmask.arr[1] & FATTR4_WORD1_TIME_MODIFY) {
+        nfs_time_to_file_time(&info->time_modify, &basic_out->LastWriteTime);
+    }
+    else {
+        DPRINTF(1, ("nfs_to_basic_info(name='%s'): "
+            "time_modify not set\n", name));
+        basic_out->LastWriteTime.QuadPart = FILE_INFO_TIME_NOT_SET;
+    }
+
     /* XXX: was using 'change' attr, but that wasn't giving a time */
-    nfs_time_to_file_time(&info->time_modify, &basic_out->ChangeTime);
+    if (info->attrmask.arr[1] & FATTR4_WORD1_TIME_MODIFY) {
+        nfs_time_to_file_time(&info->time_modify, &basic_out->ChangeTime);
+    }
+    else {
+        DPRINTF(1, ("nfs_to_basic_info(name='%s'): "
+            "time_modify2 not set\n", name));
+        basic_out->ChangeTime.QuadPart = FILE_INFO_TIME_NOT_SET;
+    }
+
     basic_out->FileAttributes = nfs_file_info_to_attributes(info);
 }
 
@@ -190,15 +223,47 @@ void nfs_to_standard_info(
 }
 
 void nfs_to_network_openinfo(
+    IN const char *name,
     IN const nfs41_file_info *info,
     OUT PFILE_NETWORK_OPEN_INFORMATION net_out)
 {
-    
-    nfs_time_to_file_time(&info->time_create, &net_out->CreationTime);
-    nfs_time_to_file_time(&info->time_access, &net_out->LastAccessTime);
-    nfs_time_to_file_time(&info->time_modify, &net_out->LastWriteTime);
+    if (info->attrmask.arr[1] & FATTR4_WORD1_TIME_CREATE) {
+        nfs_time_to_file_time(&info->time_create, &net_out->CreationTime);
+    }
+    else {
+        DPRINTF(1, ("nfs_to_network_openinfo(name='%s'): "
+            "time_create not set\n", name));
+        net_out->CreationTime.QuadPart = FILE_INFO_TIME_NOT_SET;
+    }
+
+    if (info->attrmask.arr[1] & FATTR4_WORD1_TIME_ACCESS) {
+        nfs_time_to_file_time(&info->time_access, &net_out->LastAccessTime);
+    }
+    else {
+        DPRINTF(1, ("nfs_to_network_openinfo(name='%s'): "
+            "time_access not set\n", name));
+        net_out->LastAccessTime.QuadPart = FILE_INFO_TIME_NOT_SET;
+    }
+
+    if (info->attrmask.arr[1] & FATTR4_WORD1_TIME_MODIFY) {
+        nfs_time_to_file_time(&info->time_modify, &net_out->LastWriteTime);
+    }
+    else {
+        DPRINTF(1, ("nfs_to_network_openinfo(name='%s'): "
+            "time_modify not set\n", name));
+        net_out->LastWriteTime.QuadPart = FILE_INFO_TIME_NOT_SET;
+    }
+
     /* XXX: was using 'change' attr, but that wasn't giving a time */
-    nfs_time_to_file_time(&info->time_modify, &net_out->ChangeTime);
+    if (info->attrmask.arr[1] & FATTR4_WORD1_TIME_MODIFY) {
+        nfs_time_to_file_time(&info->time_modify, &net_out->ChangeTime);
+    }
+    else {
+        DPRINTF(1, ("nfs_to_network_openinfo(name='%s'): "
+            "time_modify2 not set\n", name));
+        net_out->ChangeTime.QuadPart = FILE_INFO_TIME_NOT_SET;
+    }
+
     net_out->AllocationSize.QuadPart =
         net_out->EndOfFile.QuadPart = (LONGLONG)info->size;
     net_out->FileAttributes = nfs_file_info_to_attributes(info);

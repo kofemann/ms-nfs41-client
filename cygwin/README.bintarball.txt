@@ -283,6 +283,8 @@ $ /sbin/nfs_mount
 - Does not allow renaming a file on top of an existing open file.
   Connectathon's special test op_ren has been commented out.
 
+- File access timestamps might be wrong for delegations.
+
 - Extended attributes are supported with some limitations:
   a) the server must support NFS Named Attributes,
   b) the order of listings cannot be guaranteed by NFS, and

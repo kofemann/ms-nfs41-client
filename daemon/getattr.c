@@ -149,7 +149,7 @@ static int handle_getattr(void *daemon_context, nfs41_upcall *upcall)
 
     switch (args->query_class) {
     case FileBasicInformation:
-        nfs_to_basic_info(&info, &args->basic_info);
+        nfs_to_basic_info(state->file.name.name, &info, &args->basic_info);
         args->ctime = info.change;
         break;
     case FileStandardInformation:
@@ -164,7 +164,7 @@ static int handle_getattr(void *daemon_context, nfs41_upcall *upcall)
         args->intr_info.IndexNumber.QuadPart = info.fileid;
         break;
     case FileNetworkOpenInformation:
-        nfs_to_network_openinfo(&info, &args->network_info);
+        nfs_to_network_openinfo(state->file.name.name, &info, &args->network_info);
         break;
     default:
         eprintf("unhandled file query class %d\n", args->query_class);
