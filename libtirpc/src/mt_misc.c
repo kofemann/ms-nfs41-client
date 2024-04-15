@@ -104,31 +104,31 @@ mutex_t nc_lock;
 
 #ifdef _WIN32
 /*
- * Initialize all the mutexes (CriticalSections)
+ * Initialize all the mutexes (CriticalSections or SRWLOCK)
  */
 void multithread_init(void)
 {
-	InitializeCriticalSection(&authdes_lock);
-	InitializeCriticalSection(&authdes_ops_lock);
-	InitializeCriticalSection(&svcauthdesstats_lock);
-	InitializeCriticalSection(&authnone_lock);
-	InitializeCriticalSection(&authsvc_lock);
-	InitializeCriticalSection(&clnt_fd_lock);
-	InitializeCriticalSection(&clntraw_lock);
-	InitializeCriticalSection(&dname_lock);
-	InitializeCriticalSection(&dupreq_lock);
-	InitializeCriticalSection(&keyserv_lock);
-	InitializeCriticalSection(&libnsl_trace_lock);
-	InitializeCriticalSection(&loopnconf_lock);
-	InitializeCriticalSection(&ops_lock);
-	InitializeCriticalSection(&portnum_lock);
-	InitializeCriticalSection(&proglst_lock);
-	InitializeCriticalSection(&rpcsoc_lock);
-	InitializeCriticalSection(&svcraw_lock);
-	InitializeCriticalSection(&tsd_lock);
-	InitializeCriticalSection(&xprtlist_lock);
-	InitializeCriticalSection(&serialize_pkey);
-	InitializeCriticalSection(&nc_lock);
+	mutex_init(&authdes_lock, 0);
+	mutex_init(&authdes_ops_lock, 0);
+	mutex_init(&svcauthdesstats_lock, 0);
+	mutex_init(&authnone_lock, 0);
+	mutex_init(&authsvc_lock, 0);
+	mutex_init(&clnt_fd_lock, 0);
+	mutex_init(&clntraw_lock, 0);
+	mutex_init(&dname_lock, 0);
+	mutex_init(&dupreq_lock, 0);
+	mutex_init(&keyserv_lock, 0);
+	mutex_init(&libnsl_trace_lock, 0);
+	mutex_init(&loopnconf_lock, 0);
+	mutex_init(&ops_lock, 0);
+	mutex_init(&portnum_lock, 0);
+	mutex_init(&proglst_lock, 0);
+	mutex_init(&rpcsoc_lock, 0);
+	mutex_init(&svcraw_lock, 0);
+	mutex_init(&tsd_lock, 0);
+	mutex_init(&xprtlist_lock, 0);
+	mutex_init(&serialize_pkey, 0);
+	mutex_init(&nc_lock, 0);
 }
 #endif
 

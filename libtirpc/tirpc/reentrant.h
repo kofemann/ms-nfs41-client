@@ -92,6 +92,7 @@
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
+ * Roland Mainz <roland.mainz@nrubsig.org>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -115,25 +116,51 @@
 
 #include <stdlib.h>
 
+/*
+ * |USE_SRWLOCK_FOR_MUTEX| - Use SRWLOCK for |mutex_t| instead of a
+ * |CRITICAL_SECTION|
+ */
+#define USE_SRWLOCK_FOR_MUTEX 1
 
+#ifdef USE_SRWLOCK_FOR_MUTEX
+#define mutex_t				SRWLOCK
+#else
 #define mutex_t				CRITICAL_SECTION
+#endif /* USE_SRWLOCK_FOR_MUTEX */
 #define cond_t				CONDITION_VARIABLE
 #define rwlock_t			SRWLOCK
 
 
 #define thread_key_t		DWORD
+#ifdef USE_SRWLOCK_FOR_MUTEX
+#define MUTEX_INITIALIZER	SRWLOCK_INIT
+#else
 #define MUTEX_INITIALIZER	-1 /*THIS_NEEDS_HELP*/
-#define RWLOCK_INITIALIZER	-1 /*THIS_NEEDS_HELP*/
+#endif /* USE_SRWLOCK_FOR_MUTEX */
+#define RWLOCK_INITIALIZER	SRWLOCK_INIT
+
+#ifdef USE_SRWLOCK_FOR_MUTEX
+#define mutex_init(m, a)	InitializeSRWLock(m)
+#define mutex_lock(m)		AcquireSRWLockExclusive(m)
+#define mutex_unlock(m)		ReleaseSRWLockExclusive(m)
+#define mutex_trylock(m)	TryAcquireSRWLockExclusive(m)
+#else
 #define mutex_init(m, a)	InitializeCriticalSection(m)
 #define mutex_lock(m)		EnterCriticalSection(m)
 #define mutex_unlock(m)		LeaveCriticalSection(m)
 #define mutex_trylock(m)	TryEnterCriticalSection(m)
+#endif /* USE_SRWLOCK_FOR_MUTEX */
 
 #define cond_init(c, a, p)		InitializeConditionVariable(c)
 #define cond_signal(m)			WakeConditionVariable(m)
 #define cond_broadcast(m)		WakeAllConditionVariable(m)
-#define cond_wait(c, m)			SleepConditionVariableCS(c, m, INFINITE)
-#define cond_wait_timed(c, m, t) SleepConditionVariableCS(c, m, t)
+#ifdef USE_SRWLOCK_FOR_MUTEX
+#define cond_wait(c, m)			SleepConditionVariableSRW((c), (m), INFINITE, 0)
+#define cond_wait_timed(c, m, t)	SleepConditionVariableSRW((c), (m), (t), 0)
+#else
+#define cond_wait(c, m)			SleepConditionVariableCS((c), (m), INFINITE)
+#define cond_wait_timed(c, m, t)	SleepConditionVariableCS((c), (m), (t))
+#endif /* USE_SRWLOCK_FOR_MUTEX */
 
 #define rwlock_init(l, a)		InitializeSRWLock(l)
 #define rwlock_rdlock(l)		AcquireSRWLockShared(l)
