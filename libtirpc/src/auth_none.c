@@ -140,12 +140,16 @@ authnone_marshal(AUTH *client, XDR *xdrs, u_int *seq)
 
 	ap = authnone_private;
 	if (ap == NULL) {
+#if 0 /* gisburn: Disabled, causes mutex over-unlock */
 		mutex_unlock(&authnone_lock);
+#endif
 		return (FALSE);
 	}
 	dummy = (*xdrs->x_ops->x_putbytes)(xdrs,
 	    ap->marshalled_client, ap->mcnt);
+#if 0 /* gisburn: Disabled, causes mutex over-unlock */
 	mutex_unlock(&authnone_lock);
+#endif
 	return (dummy);
 }
 
