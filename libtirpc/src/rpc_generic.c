@@ -563,6 +563,10 @@ __rpc_nconf2fd(const struct netconfig *nconf)
 	struct __rpc_sockinfo si;
 	int fd;
 
+#ifdef _WIN32
+	if (!wintirpc_winsock_init())
+		return 0;
+#endif
 	if (!__rpc_nconf2sockinfo(nconf, &si))
 		return 0;
 

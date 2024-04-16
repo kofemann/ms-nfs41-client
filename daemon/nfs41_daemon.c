@@ -521,6 +521,21 @@ void nfsd_crt_debug_init(void)
 }
 
 static
+bool winsock_init(void)
+{
+	int err;
+        WSADATA WSAData;
+
+	err = WSAStartup(MAKEWORD(2, 2), &WSAData);
+	if (err != 0) {
+		eprintf("winsock_init: WSAStartup() failed!\n");
+		WSACleanup();
+		return false;
+	}
+	return true;
+}
+
+static
 void init_version_string(void)
 {
     DWORD WinNT_MajorVersion = 0;
@@ -625,8 +640,9 @@ VOID ServiceStart(DWORD argc, LPTSTR *argv)
         exit(1);
     set_debug_level(cmd_args.debug_level);
     open_log_files();
-    init_version_string();
     nfsd_crt_debug_init();
+    (void)winsock_init();
+    init_version_string();
 #ifdef NFS41_DRIVER_SID_CACHE
     sidcache_init();
 #else

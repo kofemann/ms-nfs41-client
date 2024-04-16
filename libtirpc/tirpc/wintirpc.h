@@ -39,9 +39,11 @@
 /* use visual studio's debug heap */
 # define _CRTDBG_MAP_ALLOC
 # include <stdlib.h>
+# include <stdbool.h>
 # include <crtdbg.h>
 #else
 # include <stdlib.h>
+# include <stdbool.h>
 #endif
 
 /* Common Windows includes */
@@ -136,6 +138,7 @@ struct sockaddr_un {
 typedef SSIZE_T wintirpc_ssize_t;
 
 /* Prototypes */
+bool wintirpc_winsock_init(void);
 int wintirpc_socket(int af,int type, int protocol);
 int wintirpc_closesocket(int in_fd);
 int wintirpc_close(int in_fd);

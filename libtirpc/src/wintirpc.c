@@ -34,52 +34,21 @@ static DWORD dwTlsIndex;
 
 extern void multithread_init(void);
 
-VOID
-tirpc_report(LPTSTR lpszMsg)
-{
-	WCHAR    chMsg[256];
-	HANDLE   hEventSource;
-	LPCWSTR  lpszStrings[2];
-
-	// Use event logging to log the error.
-	//
-	hEventSource = RegisterEventSource(NULL,
-									   TEXT("tirpc.dll"));
-
-	swprintf_s(chMsg, sizeof(chMsg), L"tirpc report: %d", GetLastError());
-	lpszStrings[0] = (LPCWSTR)chMsg;
-	lpszStrings[1] = lpszMsg;
-
-	if (hEventSource != NULL) {
-		ReportEvent(hEventSource, // handle of event source
-			EVENTLOG_WARNING_TYPE, // event type
-			0,                    // event category
-			0,                    // event ID
-			NULL,                 // current user's SID
-			2,                    // strings in lpszStrings
-			0,                    // no bytes of raw data
-			lpszStrings,          // array of error strings
-			NULL);                // no raw data
-
-		(VOID) DeregisterEventSource(hEventSource);
-	}
-}
-
 void tirpc_criticalsection_init(void) {
 	multithread_init();
 }
 
-BOOL winsock_init(void)
+bool wintirpc_winsock_init(void)
 {
 	int err;
-	err = WSAStartup(MAKEWORD( 3, 3 ), &WSAData);	// XXX THIS SHOULD BE FAILING!!!!!!!!!!!!!!!!!
+	err = WSAStartup(MAKEWORD(2, 2), &WSAData);
 	if (err != 0) {
 		init = 0;
-		tirpc_report(L"WSAStartup failed!\n");
+		(void)fprintf(stderr, "winsock_init: WSAStartup failed!\n");
 		WSACleanup();
-		return FALSE;
+		return false;
 	}
-	return TRUE;
+	return true;
 }
 
 BOOL winsock_fini(void)
@@ -102,18 +71,14 @@ BOOL WINAPI DllMain/*tirpc_main*/(HINSTANCE hinstDLL,	// DLL module handle
 	switch (fdwReason) 
     {
 		// The DLL is loading due to process
-		// initialization or a call to LoadLibrary. 
+		// initialization or a call to LoadLibrary.
         case DLL_PROCESS_ATTACH:
-			
-			// Initialize socket library
-			if (winsock_init() == FALSE)
-				return FALSE;
+            // Do NOT init WinSock here, it is not legal and AppVerifer will complain
+            // Initialize CriticalSections
+            tirpc_criticalsection_init();
 
-			// Initialize CriticalSections
-			tirpc_criticalsection_init();
-
-            // Allocate a TLS index. 
-            if ((dwTlsIndex = TlsAlloc()) == TLS_OUT_OF_INDEXES) 
+            // Allocate a TLS index.
+            if ((dwTlsIndex = TlsAlloc()) == TLS_OUT_OF_INDEXES)
                 return FALSE; 
  
             // No break: Initialize the index for first thread.
@@ -149,11 +114,13 @@ BOOL WINAPI DllMain/*tirpc_main*/(HINSTANCE hinstDLL,	// DLL module handle
             // Release the TLS index.
             TlsFree(dwTlsIndex);
 
-			// Clean up winsock stuff
-			winsock_fini();
+            // Clean up winsock stuff
+	    // FIXME: This is not legal in DllMain, we should use
+	    // recounting instead
+            winsock_fini();
 
-            break; 
- 
+            break;
+
         default: 
             break; 
     } 
