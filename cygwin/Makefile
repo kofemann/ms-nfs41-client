@@ -111,8 +111,8 @@ installdest: $(VS_BUILD_DIR)/nfsd.exe \
 			cp "$$i" $(DESTDIR)/cygdrive/c/cygwin64/sbin/. ; \
 		done
 	@ printf "# Set file flags\n"
-	(cd $(DESTDIR)/cygdrive/c/cygwin64/sbin/ && chmod a+x *.exe *.dll)
-	(cd $(DESTDIR)/cygdrive/c/cygwin64/lib/msnfs41client/ && chmod a+x *.dll)
+	(cd $(DESTDIR)/cygdrive/c/cygwin64/sbin/ && chmod a+rx *.exe *.dll)
+	(cd $(DESTDIR)/cygdrive/c/cygwin64/lib/msnfs41client/ && chmod a+rx *.dll)
 	@printf "\n#\n# TEST sbin dir is %s\n#\n" "$(DESTDIR)/cygdrive/c/cygwin64/sbin/"
 	@printf '\n'
 	@printf "\n#\n# Now use\n# $$ cd '%s' && ./msnfs41client install #\n# to install the kernel driver as Admin\n#\n" \
