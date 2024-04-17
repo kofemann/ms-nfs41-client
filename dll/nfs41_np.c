@@ -469,7 +469,7 @@ NPAddConnection3(
         goto out;
     }
 
-    LocalName[0] = (WCHAR) toupper(lpNetResource->lpLocalName[0]);
+    LocalName[0] = towupper(lpNetResource->lpLocalName[0]);
     LocalName[1] = L':';
     LocalName[2] = L'\0';
     StringCchCopyW( ConnectionName, NFS41_SYS_MAX_PATH_LEN, NFS41_DEVICE_NAME );
