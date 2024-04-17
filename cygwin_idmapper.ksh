@@ -3,6 +3,8 @@
 set -o nounset
 typeset IFS=''
 
+export PATH='/bin:/usr/bin'
+
 #
 # global variables for this script
 # (stored in compound variable so we
