@@ -23,6 +23,7 @@
 #include <windows.h>
 #include <stdio.h>
 #include <sddl.h>
+#include <lmcons.h>
 
 #include "daemon_debug.h"
 #include "from_kernel.h"
@@ -87,17 +88,24 @@ void dprintf_out(LPCSTR format, ...)
 void logprintf(LPCSTR format, ...)
 {
     SYSTEMTIME stime;
+    char username[UNLEN+1];
+    DWORD username_len = sizeof(username);
 
     GetLocalTime(&stime);
+    if (!GetUserNameA(username, &username_len)) {
+        (void)strcpy(username, "<unknown>");
+    }
+
     va_list args;
     va_start(args, format);
     (void)fprintf(dlog_file,
         "# LOG: ts=%04d-%02d-%02d_%02d:%02d:%02d:%04d"
-        " thr=%04x msg=",
+        " thr=%04x user='%s' msg=",
         (int)stime.wYear, (int)stime.wMonth, (int)stime.wDay,
         (int)stime.wHour, (int)stime.wMinute, (int)stime.wSecond,
         (int)stime.wMilliseconds,
-        (int)GetCurrentThreadId());
+        (int)GetCurrentThreadId(),
+        username);
     (void)vfprintf(dlog_file, format, args);
     (void)fflush(dlog_file);
     va_end(args);
