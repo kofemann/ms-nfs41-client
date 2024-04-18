@@ -409,10 +409,10 @@ int nfs41_session_set_lease(
 
     session->lease_time = lease_time;
     session->renew.cancel_event = CreateEventA(NULL, TRUE, FALSE,
-        "renew.cancel_event");
+        NULL);
     if (!valid_handle(session->renew.cancel_event)) {
         status = GetLastError();
-        eprintf("nfs41_session_set_lease: CreateEventA() failed %d\n",
+        eprintf("nfs41_session_set_lease: CreateEventA() failed, status=%d\n",
             status);
         goto out;
     }
