@@ -129,7 +129,44 @@ $ (set -o xtrace ; cd / && tar -tf ~/download/${bintarball.base_filename}.tar.bz
 # 7. Usage:
 #
 
-# Run the NFSv4 client daemon:
+# Option a)
+# * Start NFSv4 client daemon as Windows service (requires
+# "Adminstrator" account):
+
+$ sc start ms-nfs41-client-service
+
+# * Notes:
+# - requires "Adminstrator" account, and one nfsd client daemon is
+#   used for all users on a machine.
+# - The "ms-nfs41-client-service" service is installed by default as
+#   "disabled" and therefore always requires a "manual" start (e.g.
+#   $ sc start ms-nfs41-client-service #)
+# - note that DOS devices are virtualised per LSA Logon, so each Logon
+#   needs to do a separare nfs_mount.exe to mount a NFSv4 share
+# - nfsd_debug.exe will run as user "SYSTEM", but will do user
+#   impersonation for each request
+# - stopping the service will NOT unmount filesystems, and due to a
+#   bug a reboot is required to restart and mount any NFSv4
+#   filesystems again
+
+# * Administration:
+# - Follow new log messages:
+$ tail -f '/var/log/ms-nfs41-client-service.log'
+# - Query service status:
+$ sc queryex ms-nfs41-client-service
+# - Query service config:
+$ sc qc ms-nfs41-client-service
+# - Start service automatically:
+# (nfsd_debug.exe will be started automagically, but mounts are
+# not restored):
+$ sc config ms-nfs41-client-service start=auto
+# - Start service manually (default):
+$ sc config ms-nfs41-client-service start=disabled
+
+
+# Option b)
+# Run the NFSv4 client daemon manually:
+#
 # - run this preferably as "Administrator", but this is not a requirement
 # - requires separate terminal
 $ /sbin/msnfs41client run_daemon

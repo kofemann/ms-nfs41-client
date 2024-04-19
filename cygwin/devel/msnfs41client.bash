@@ -123,6 +123,32 @@ function nfsclient_install
 
 	openfiles /local ON
 
+	#
+	# install "msnfs41client run_daemon" as system service
+	# 'ms-nfs41-client-service'
+	# "off" by default, requires manual starting
+	#
+
+	# remove 'ms-nfs41-client-service'
+	sc stop 'ms-nfs41-client-service' || true
+	cygrunsrv --remove 'ms-nfs41-client-service' || true
+	if [[ -f '/var/log/ms-nfs41-client-service.log' ]] ; then
+		mv \
+			'/var/log/ms-nfs41-client-service.log' \
+			"/var/log/ms-nfs41-client-service.log.old$(date +%Y%m%d_%Hh%Mm)"
+	fi
+
+	# install new 'ms-nfs41-client-service'
+	cygrunsrv --install \
+		'ms-nfs41-client-service' \
+		--path "$PWD/msnfs41client" \
+		--args 'run_daemon' \
+		--type 'manual' \
+		--chdir "$PWD"
+
+	# query new 'ms-nfs41-client-service'
+	sc query 'ms-nfs41-client-service'
+
 	# check whether the driver really has been installed
 	md5sum \
 		"$PWD/nfs41_driver.sys" \
@@ -135,12 +161,14 @@ function nfsclient_install
 
 function nfsclient_rundeamon
 {
-	set -o xtrace
 	set -o nounset
 
-	printf '# uname='%s' isadmin=%d\n' \
+	printf '# user='%s' uname='%s' isadmin=%d\n' \
+		"$(id -u -n)" \
 		"$(uname -a)" \
 		"$(is_windows_admin_account ; printf "%d\n" $((${?}?0:1)))"
+
+	set -o xtrace
 
 	typeset -a nfsd_args=(
 		'nfsd_debug.exe'
@@ -226,12 +254,14 @@ function nfsclient_rundeamon
 
 function nfsclient_system_rundeamon
 {
-	set -o xtrace
 	set -o nounset
 
-	printf '# uname='%s' isadmin=%d\n' \
+	printf '# user='%s' uname='%s' isadmin=%d\n' \
+		"$(id -u -n)" \
 		"$(uname -a)" \
 		"$(is_windows_admin_account ; printf "%d\n" $((${?}?0:1)))"
+
+	set -o xtrace
 
 	typeset -a nfsd_args=(
 		'nfsd_debug.exe'
