@@ -368,12 +368,16 @@ int nfs41_client_owner(
     DWORD length;
     const ULONGLONG time_created = GetTickCount64();
     int status;
-    char username[UNLEN + 1];
-    DWORD len = UNLEN + 1;
+    char username[UNLEN+1];
 
-    if (!GetUserNameA(username, &len)) {
+    /*
+     * gisburn: What about primary group (for /usr/bin/newgrp
+     * support) ?
+     */
+    if (!get_token_user_name(GetCurrentThreadEffectiveToken(),
+        username)) {
         status = GetLastError();
-        eprintf("GetUserName() failed with %d\n", status);
+        eprintf("get_token_user_name() failed with %d\n", status);
         goto out;
     }
 
