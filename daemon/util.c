@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <wincrypt.h> /* for Crypt*() functions */
+#include <Lmcons.h>
 
 #include "daemon_debug.h"
 #include "util.h"
@@ -714,6 +715,86 @@ bool getwinntversionnnumbers(
      */
     (void)RtlGetNtVersionNumbers(MajorVersionPtr, MinorVersionPtr, BuildNumberPtr);
     *BuildNumberPtr &= 0xffff;
+
+    return true;
+}
+
+/*
+ * Performance hack:
+ * GETTOKINFO_EXTRA_BUFFER - extra space for more data
+ * |GetTokenInformation()| for |TOKEN_USER| and |TOKEN_PRIMARY_GROUP|
+ * always fails in Win10 with |ERROR_INSUFFICIENT_BUFFER| if you
+ * just pass the |sizeof(TOKEN_*)| value. Instead of calling
+ * |GetTokenInformation()| with |NULL| arg to obtain the size to
+ * allocate we just provide 2048 bytes of extra space after the
+ * |TOKEN_*| size, and pray it is enough
+ */
+#define GETTOKINFO_EXTRA_BUFFER (2048)
+
+bool get_token_user_name(HANDLE tok, char *out_buffer)
+{
+    DWORD tokdatalen;
+    PTOKEN_USER ptuser;
+    PSID pusid;
+    DWORD namesize = UNLEN+1;
+    char domainbuffer[UNLEN+1];
+    DWORD domainbuffer_size = sizeof(domainbuffer);
+    SID_NAME_USE name_use;
+
+    tokdatalen = sizeof(TOKEN_USER)+GETTOKINFO_EXTRA_BUFFER;
+    ptuser = _alloca(tokdatalen);
+    if (!GetTokenInformation(tok, TokenUser, ptuser,
+        tokdatalen, &tokdatalen)) {
+        eprintf("get_token_username: "
+            "GetTokenInformation(tok=0x%p, TokenUser) failed, "
+            "status=%d\n",
+            (void *)tok, (int)GetLastError());
+        return false;
+    }
+
+    pusid = ptuser->User.Sid;
+
+    if (!LookupAccountSidA(NULL, pusid, out_buffer, &namesize,
+        domainbuffer, &domainbuffer_size, &name_use)) {
+        eprintf("get_token_user_name: "
+            "LookupAccountSidA() failed, status=%d\n",
+            (int)GetLastError());
+        return false;
+    }
+
+    return true;
+}
+
+bool get_token_primarygroup_name(HANDLE tok, char *out_buffer)
+{
+    DWORD tokdatalen;
+    PTOKEN_PRIMARY_GROUP ptpgroup;
+    PSID pgsid;
+    DWORD namesize = GNLEN+1;
+    char domainbuffer[UNLEN+1];
+    DWORD domainbuffer_size = sizeof(domainbuffer);
+    SID_NAME_USE name_use;
+
+    tokdatalen = sizeof(TOKEN_PRIMARY_GROUP)+GETTOKINFO_EXTRA_BUFFER;
+    ptpgroup = _alloca(tokdatalen);
+    if (!GetTokenInformation(tok, TokenPrimaryGroup, ptpgroup,
+        tokdatalen, &tokdatalen)) {
+        eprintf("get_token_primarygroup_name: "
+            "GetTokenInformation(tok=0x%p, TokenPrimaryGroup) failed, "
+            "status=%d\n",
+            (void *)tok, (int)GetLastError());
+        return false;
+    }
+
+    pgsid = ptpgroup->PrimaryGroup;
+
+    if (!LookupAccountSidA(NULL, pgsid, out_buffer, &namesize,
+        domainbuffer, &domainbuffer_size, &name_use)) {
+        eprintf("get_token_username: "
+            "LookupAccountSidA() failed, status=%d\n",
+            (int)GetLastError());
+        return false;
+    }
 
     return true;
 }
