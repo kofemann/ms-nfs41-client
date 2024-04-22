@@ -89,23 +89,28 @@ void logprintf(LPCSTR format, ...)
 {
     SYSTEMTIME stime;
     char username[UNLEN+1];
-    DWORD username_len = sizeof(username);
+    char groupname[GNLEN+1];
 
     GetLocalTime(&stime);
-    if (!GetUserNameA(username, &username_len)) {
+    if (!get_token_user_name(GetCurrentThreadEffectiveToken(),
+        username)) {
         (void)strcpy(username, "<unknown>");
+    }
+    if (!get_token_primarygroup_name(GetCurrentThreadEffectiveToken(),
+        groupname)) {
+        (void)strcpy(groupname, "<unknown>");
     }
 
     va_list args;
     va_start(args, format);
     (void)fprintf(dlog_file,
         "# LOG: ts=%04d-%02d-%02d_%02d:%02d:%02d:%04d"
-        " thr=%04x user='%s' msg=",
+        " thr=%04x user='%s'/'%s' msg=",
         (int)stime.wYear, (int)stime.wMonth, (int)stime.wDay,
         (int)stime.wHour, (int)stime.wMinute, (int)stime.wSecond,
         (int)stime.wMilliseconds,
         (int)GetCurrentThreadId(),
-        username);
+        username, groupname);
     (void)vfprintf(dlog_file, format, args);
     (void)fflush(dlog_file);
     va_end(args);
