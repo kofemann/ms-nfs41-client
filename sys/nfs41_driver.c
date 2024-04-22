@@ -41,7 +41,15 @@
 #include "nfs41_build_features.h"
 
 
+/*
+ * FIXME: NFS41_DRIVER_SETGID_NEWGRP_SUPPORT - we need the correct
+ * |TOKEN_PRIMARY_GROUP| for |setgid()|/newgrp(1)
+ * support, and |#define USE_MOUNT_SEC_CONTEXT| currently breaks
+ * that
+ */
+#ifndef NFS41_DRIVER_SETGID_NEWGRP_SUPPORT
 #define USE_MOUNT_SEC_CONTEXT
+#endif
 
 /* debugging printout defines */
 #define DEBUG_MARSHAL_HEADER

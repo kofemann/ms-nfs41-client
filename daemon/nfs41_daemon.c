@@ -67,25 +67,59 @@ typedef struct _nfs41_process_thread {
     uint32_t tid;
 } nfs41_process_thread;
 
-static int map_current_user_to_ids(nfs41_idmapper *idmapper, uid_t *uid, gid_t *gid)
+static int map_current_user_to_ids(nfs41_idmapper *idmapper, uid_t *puid, gid_t *pgid)
 {
-    char username[UNLEN + 1];
-    DWORD len = UNLEN + 1;
+    char username[UNLEN+1];
+    char pgroupname[GNLEN+1];
     int status = NO_ERROR;
+    HANDLE impersonation_tok = GetCurrentThreadEffectiveToken();
+    gid_t dummygid;
 
-    if (!GetUserNameA(username, &len)) {
+    if (!get_token_user_name(impersonation_tok, username)) {
         status = GetLastError();
-        eprintf("map_current_user_to_ids: GetUserName() failed with %d\n", status);
+        eprintf("map_current_user_to_ids: "
+            "get_token_user_name() failed with %d\n", status);
         goto out;
     }
-    DPRINTF(1, ("map_current_user_to_ids: mapping user '%s'\n", username));
 
-    if (nfs41_idmap_name_to_ids(idmapper, username, uid, gid)) {
-        /* instead of failing for auth_sys, fall back to 'nobody' uid/gid */
-        *uid = nfs41_dg.default_uid;
-        *gid = nfs41_dg.default_gid;
+    if (!get_token_primarygroup_name(impersonation_tok, pgroupname)) {
+        status = GetLastError();
+        eprintf("map_current_user_to_ids: "
+            "get_token_primarygroup_name() failed with %d\n", status);
+        goto out;
     }
+
+    if (nfs41_idmap_name_to_ids(idmapper, username, puid, &dummygid)) {
+        /* instead of failing for auth_sys, fall back to 'nobody' uid/gid */
+        DPRINTF(1,
+            ("map_current_user_to_ids: "
+                "nfs41_idmap_name_to_ids(username='%s') failed, "
+                "returning nobody/nogroup defaults\n",
+                username));
+        *puid = nfs41_dg.default_uid;
+        *pgid = nfs41_dg.default_gid;
+        status = NO_ERROR;
+        goto out;
+    }
+
+    if (nfs41_idmap_group_to_gid(
+        idmapper,
+        pgroupname,
+        pgid)) {
+        DPRINTF(1,
+            ("map_current_user_to_ids: "
+                "nfs41_idmap_group_to_gid(pgroupname='%s') failed, "
+                "returning nogroup\n",
+                pgroupname));
+        *pgid = nfs41_dg.default_gid;
+    }
+
 out:
+    DPRINTF(1,
+        ("map_current_user_to_ids: "
+            "mapping user=(name='%s' ==> uid=%d)/pgroup=(name='%s' ==> gid=%d)\n",
+            username, (int)*puid,
+            pgroupname, (int)*pgid));
     return status;
 }
 
@@ -648,6 +682,8 @@ VOID ServiceStart(DWORD argc, LPTSTR *argv)
 #else
     DPRINTF(0, ("SID cache disabled\n"));
 #endif /* NFS41_DRIVER_SID_CACHE */
+
+    logprintf("NFS client daemon starting...\n");
 
     /* acquire and store in global memory current dns domain name.
      * needed for acls */

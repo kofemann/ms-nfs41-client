@@ -941,6 +941,29 @@ supersede_retry:
             status = nfs_to_windows_error(status, ERROR_FILE_NOT_FOUND);
             goto out_free_state;
         } else {
+#ifdef NFS41_DRIVER_SETGID_NEWGRP_SUPPORT
+            /*
+             * Hack: Support |setgid()|/newgrp(1) by fetching group
+             * name from auth token for new files and do a "manual"
+             * chgrp on the new file
+             */
+            if (create == OPEN4_CREATE) {
+                nfs41_file_info createchgrpattrs = { 0 };
+                createchgrpattrs.attrmask.count = 2;
+                createchgrpattrs.attrmask.arr[1] |= FATTR4_WORD1_OWNER_GROUP;
+                createchgrpattrs.owner_group = createchgrpattrs.owner_group_buf;
+                (void)get_token_primarygroup_name(GetCurrentThreadEffectiveToken(),
+                    createchgrpattrs.owner_group);
+                (void)strcat(createchgrpattrs.owner_group, "@");
+                (void)strcat(createchgrpattrs.owner_group,  nfs41dg->localdomain_name);
+                DPRINTF(1, ("handle_open(): create(), groupname='%s'\n", createchgrpattrs.owner_group));
+
+                stateid_arg stateid;
+                nfs41_open_stateid_arg(state, &stateid);
+                (void)nfs41_setattr(state->session, &state->file, &stateid, &createchgrpattrs);
+            }
+#endif /* NFS41_DRIVER_SETGID_NEWGRP_SUPPORT */
+
             nfs_to_basic_info(state->file.name.name, &info, &args->basic_info);
             nfs_to_standard_info(&info, &args->std_info);
             args->mode = info.mode;

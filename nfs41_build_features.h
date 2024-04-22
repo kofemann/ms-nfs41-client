@@ -93,4 +93,10 @@
  */
 #define NFS41_DRIVER_USE_LARGE_SOCKET_RCVSND_BUFFERS 1
 
+/*
+ * Support /usr/bin/newgrp&co, which have a non-default
+ * |TOKEN_PRIMARY_GROUP|
+ */
+#define NFS41_DRIVER_SETGID_NEWGRP_SUPPORT 1
+
 #endif /* !_NFS41_DRIVER_BUILDFEATURES_ */
