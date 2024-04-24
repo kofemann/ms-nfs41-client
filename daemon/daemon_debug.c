@@ -90,14 +90,32 @@ void logprintf(LPCSTR format, ...)
     SYSTEMTIME stime;
     char username[UNLEN+1];
     char groupname[GNLEN+1];
+    HANDLE tok;
+    const char *tok_src;
+    bool free_tok = false;
 
     GetLocalTime(&stime);
-    if (!get_token_user_name(GetCurrentThreadEffectiveToken(),
-        username)) {
+
+    if (OpenThreadToken(GetCurrentThread(), TOKEN_QUERY, FALSE, &tok)) {
+        tok_src = "impersonated_user";
+        free_tok = true;
+    }
+    else {
+        int lasterr = GetLastError();
+        if (lasterr == ERROR_CANT_OPEN_ANONYMOUS) {
+            tok_src = "anon_user";
+        }
+        else {
+            tok_src = "proc_user";
+        }
+
+        tok = GetCurrentProcessToken();
+    }
+
+    if (!get_token_user_name(tok, username)) {
         (void)strcpy(username, "<unknown>");
     }
-    if (!get_token_primarygroup_name(GetCurrentThreadEffectiveToken(),
-        groupname)) {
+    if (!get_token_primarygroup_name(tok, groupname)) {
         (void)strcpy(groupname, "<unknown>");
     }
 
@@ -105,15 +123,20 @@ void logprintf(LPCSTR format, ...)
     va_start(args, format);
     (void)fprintf(dlog_file,
         "# LOG: ts=%04d-%02d-%02d_%02d:%02d:%02d:%04d"
-        " thr=%04x user='%s'/'%s' msg=",
+        " thr=%04x %s='%s'/'%s' msg=",
         (int)stime.wYear, (int)stime.wMonth, (int)stime.wDay,
         (int)stime.wHour, (int)stime.wMinute, (int)stime.wSecond,
         (int)stime.wMilliseconds,
         (int)GetCurrentThreadId(),
+        tok_src,
         username, groupname);
     (void)vfprintf(dlog_file, format, args);
     (void)fflush(dlog_file);
     va_end(args);
+
+    if (free_tok) {
+        (void)CloseHandle(tok);
+    }
 }
 
 void eprintf(LPCSTR format, ...)
