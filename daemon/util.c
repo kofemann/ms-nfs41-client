@@ -798,3 +798,43 @@ bool get_token_primarygroup_name(HANDLE tok, char *out_buffer)
 
     return true;
 }
+
+bool set_token_privilege(HANDLE tok, const char *seprivname, bool enable_priv)
+{
+    TOKEN_PRIVILEGES tp;
+    LUID luid;
+    bool res;
+
+    if(!LookupPrivilegeValueA(NULL, seprivname, &luid)) {
+        DPRINTF(1, ("set_token_privilege: "
+            "LookupPrivilegeValue(seprivname='%s') failed, "
+            "status=%d\n",
+            seprivname,
+            (int)GetLastError()));
+        res = false;
+        goto out;
+    }
+
+    tp.PrivilegeCount = 1;
+    tp.Privileges[0].Luid = luid;
+    tp.Privileges[0].Attributes = enable_priv?(SE_PRIVILEGE_ENABLED):0;
+
+    if(!AdjustTokenPrivileges(tok,
+        FALSE, &tp, sizeof(TOKEN_PRIVILEGES),
+        NULL, NULL)) {
+        DPRINTF(1, ("set_token_privilege: "
+            "AdjustTokenPrivileges() for '%s' failed, status=%d\n",
+            seprivname,
+            (int)GetLastError()));
+        res = false;
+        goto out;
+    }
+
+    res = true;
+out:
+    DPRINTF(0,
+        ("set_token_privilege(seprivname='%s',enable_priv=%d), res=%d\n",
+        seprivname, (int)enable_priv, (int)res));
+
+    return res;
+}

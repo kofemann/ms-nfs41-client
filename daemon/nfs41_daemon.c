@@ -655,6 +655,29 @@ void init_version_string(void)
         nfs41_dg.nfs41_nii_name));
 }
 
+static
+void set_nfs_daemon_privileges(void)
+{
+    HANDLE proc_token;
+
+    DPRINTF(0, ("Enabling priviledges...\n"));
+
+    if (!OpenProcessToken(GetCurrentProcess(),
+        TOKEN_QUERY|TOKEN_ADJUST_PRIVILEGES, &proc_token)) {
+        eprintf("set_nfs_daemon_privileges: "
+            "cannot open process token\n");
+        exit(1);
+    }
+
+    (void)set_token_privilege(proc_token,
+        "SeImpersonatePrivilege", true);
+    (void)set_token_privilege(proc_token,
+        "SeDelegateSessionUserImpersonatePrivilege", true);
+
+    (void)CloseHandle(proc_token);
+}
+
+
 #ifdef STANDALONE_NFSD
 void __cdecl _tmain(int argc, TCHAR *argv[])
 #else
@@ -684,6 +707,9 @@ VOID ServiceStart(DWORD argc, LPTSTR *argv)
 #endif /* NFS41_DRIVER_SID_CACHE */
 
     logprintf("NFS client daemon starting...\n");
+
+    /* Enable Win32 privileges */
+    set_nfs_daemon_privileges();
 
     /* acquire and store in global memory current dns domain name.
      * needed for acls */
