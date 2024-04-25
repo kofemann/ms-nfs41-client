@@ -168,6 +168,10 @@ function nfsclient_rundeamon
 		"$(uname -a)" \
 		"$(is_windows_admin_account ; printf "%d\n" $((${?}?0:1)))"
 
+	# sync before starting nfs41 client daemon, to limit the damage
+	# if the kernel module generates a crash on startup
+	sync
+
 	set -o xtrace
 
 	typeset -a nfsd_args=(
@@ -260,6 +264,10 @@ function nfsclient_system_rundeamon
 		"$(id -u -n)" \
 		"$(uname -a)" \
 		"$(is_windows_admin_account ; printf "%d\n" $((${?}?0:1)))"
+
+	# sync before starting nfs41 client daemon, to limit the damage
+	# if the kernel module generates a crash on startup
+	sync
 
 	set -o xtrace
 
