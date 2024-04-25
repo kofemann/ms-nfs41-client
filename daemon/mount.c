@@ -3,6 +3,7 @@
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
+ * Roland Mainz <roland.mainz@nrubsig.org>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -70,6 +71,24 @@ static int handle_mount(void *daemon_context, nfs41_upcall *upcall)
     nfs41_path_fh file;
 
     EASSERT(args->hostport != NULL);
+
+#define MOUNT_REJECT_REQUESTS_WITHOUT_IMPERSONATION_TOKEN 1
+
+#ifdef MOUNT_REJECT_REQUESTS_WITHOUT_IMPERSONATION_TOKEN
+    logprintf("mount(hostport='%s', path='%s') request\n",
+        args->hostport?args->hostport:"<NULL>",
+        args->path?args->path:"<NULL>");
+
+    HANDLE tok;
+    if (OpenThreadToken(GetCurrentThread(), TOKEN_QUERY, FALSE, &tok)) {
+        (void)CloseHandle(tok);
+    }
+    else {
+        eprintf("handle_mount: Thread has no impersonation token\n");
+        status = ERROR_NO_IMPERSONATION_TOKEN;
+        goto out;
+    }
+#endif /* MOUNT_REJECT_REQUESTS_WITHOUT_IMPERSONATION_TOKEN */
 
     if ((args->path == NULL) || (strlen(args->path) == 0)) {
         DPRINTF(1, ("handle_mount: empty mount root\n"));
