@@ -73,12 +73,52 @@ void open_log_files()
 }
 #endif
 
+#define DPRINTF_PRINT_IMPERSONATION_USER 1
 
 void dprintf_out(LPCSTR format, ...)
 {
     va_list args;
     va_start(args, format);
+#ifdef DPRINTF_PRINT_IMPERSONATION_USER
+    char username[UNLEN+1];
+    char groupname[GNLEN+1];
+    HANDLE tok;
+    const char *tok_src;
+    bool free_tok = false;
+
+    if (OpenThreadToken(GetCurrentThread(), TOKEN_QUERY, FALSE, &tok)) {
+        tok_src = "impersonated_user";
+        free_tok = true;
+    }
+    else {
+        int lasterr = GetLastError();
+        if (lasterr == ERROR_CANT_OPEN_ANONYMOUS) {
+            tok_src = "anon_user";
+        }
+        else {
+            tok_src = "proc_user";
+        }
+
+        tok = GetCurrentProcessToken();
+    }
+
+    if (!get_token_user_name(tok, username)) {
+        (void)strcpy(username, "<unknown>");
+    }
+    if (!get_token_primarygroup_name(tok, groupname)) {
+        (void)strcpy(groupname, "<unknown>");
+    }
+
+    (void)fprintf(dlog_file, "%04x/%s='%s'/%s' ",
+        (int)GetCurrentThreadId(),
+        tok_src, username, groupname);
+
+    if (free_tok) {
+        (void)CloseHandle(tok);
+    }
+#else
     (void)fprintf(dlog_file, "%04x: ", (int)GetCurrentThreadId());
+#endif /* DPRINTF_PRINT_IMPERSONATION_USER */
     (void)vfprintf(dlog_file, format, args);
     (void)fflush(dlog_file);
     va_end(args);
