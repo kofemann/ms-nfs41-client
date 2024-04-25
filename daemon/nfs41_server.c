@@ -3,6 +3,7 @@
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
+ * Roland Mainz <roland.mainz@nrubsig.org>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -311,7 +312,36 @@ int nfs41_server_resolve(
     hints.ai_flags    |= AI_FILESERVER;
 #endif
 
+/*
+ * Windows bug: |GetAddrInfoExA()| ends impersonation
+ * Tested on CYGWIN_NT-10.0-19045 3.6.0-0.115.g579064bf4d40.x86
+ */
+#define WINDOWS_GETADDRINFOEXA_STOPS_IMPERSONATION_BUG 1
+
+#ifdef WINDOWS_GETADDRINFOEXA_STOPS_IMPERSONATION_BUG
+    HANDLE tok;
+
+    /*
+     * Windows bug: |GetAddrInfoExA()| ends impersonation, so we copy
+     * the current (impersonation) thread token, and later
+     * set it after we are done with |GetAddrInfoExA()|
+     */
+    if (!OpenThreadToken(GetCurrentThread(),
+        TOKEN_QUERY|TOKEN_IMPERSONATE, FALSE, &tok)) {
+        tok = INVALID_HANDLE_VALUE;
+        DPRINTF(0, ("nfs41_server_resolve: OpenThreadToken() failed, "
+            "lasterr=%d.\n", (int)GetLastError()));
+    }
+#endif /* WINDOWS_GETADDRINFOEXA_STOPS_IMPERSONATION_BUG */
+
 retry_getaddrinfoex:
+#ifdef WINDOWS_GETADDRINFOEXA_STOPS_IMPERSONATION_BUG
+    if (!SetThreadToken(NULL, tok)) {
+        DPRINTF(0, ("nfs41_server_resolve: SetThreadToken() failed, "
+            "lasterr=%d\n", (int)GetLastError()));
+    }
+#endif /* WINDOWS_GETADDRINFOEXA_STOPS_IMPERSONATION_BUG */
+
     wse = GetAddrInfoExA(hostname, service, 0, NULL, &hints, &res,
         NULL, NULL, NULL, NULL);
     if (wse != 0) {
@@ -329,6 +359,13 @@ retry_getaddrinfoex:
 
         goto out;
     }
+
+#ifdef WINDOWS_GETADDRINFOEXA_STOPS_IMPERSONATION_BUG
+    if (!SetThreadToken(NULL, tok)) {
+        DPRINTF(0, ("nfs41_server_resolve: SetThreadToken() failed, "
+            "lasterr=%d\n", (int)GetLastError()));
+    }
+#endif /* WINDOWS_GETADDRINFOEXA_STOPS_IMPERSONATION_BUG */
 
     for (info = res; info != NULL; info = info->ai_next) {
         DPRINTF(SRVLVL, ("GetAddrInfoExA() returned: info.{ai_family=%d}\n",
@@ -398,5 +435,10 @@ out:
         DPRINTF(SRVLVL, ("<-- nfs41_server_resolve('%s':%u) returning "
             "OK { %s }\n", hostname, port, buff));
     }
+
+#ifdef WINDOWS_GETADDRINFOEXA_STOPS_IMPERSONATION_BUG
+    /* FIXME: We leak the token here */
+#endif /* WINDOWS_GETADDRINFOEXA_STOPS_IMPERSONATION_BUG */
+
     return status;
 }
