@@ -183,6 +183,10 @@ write_downcall:
         upcall_marshall(&upcall, inbuf, (uint32_t)inbuf_len, (uint32_t*)&outbuf_len);
 
         DPRINTF(2, ("making a downcall: outbuf_len %ld\n\n", outbuf_len));
+        /*
+         * Note: Caller impersonation ends here - nfs41_driver.sys
+         * |IOCTL_NFS41_WRITE| calls |SeStopImpersonatingClient()|
+         */
         status = DeviceIoControl(pipe, IOCTL_NFS41_WRITE,
             inbuf, inbuf_len, NULL, 0, (LPDWORD)&outbuf_len, NULL);
         if (!status) {
