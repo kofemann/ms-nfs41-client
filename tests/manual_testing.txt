@@ -32,7 +32,8 @@
 #   NFSv4.1 server).
 #   For example on Windows add timeserver 10.49.0.6 like this:
 #   ---- snip ----
-#   net start w32time
+#   sc config w32time start=auto
+#   sc start w32time
 #   w32tm /config /update /manualpeerlist:10.49.0.6
 #   ---- snip ----
 #   (see https://stackoverflow.com/questions/22862236/how-to-sync-windows-time-from-a-ntp-time-server-in-command)
