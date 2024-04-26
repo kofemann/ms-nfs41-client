@@ -169,7 +169,7 @@ static unsigned int nfsd_worker_thread_main(void *args)
         }
 
         if (upcall.opcode == NFS41_SHUTDOWN) {
-            printf("Shutting down..\n");
+            printf("Shutting down...\n");
             exit(0);
         }
 
