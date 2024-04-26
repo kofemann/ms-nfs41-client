@@ -18,13 +18,5 @@
     <ClCompile Include="..\..\install\nfs_install.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\install\nfsreginst.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\..\install\nfsreginst.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
   </ItemGroup>
 </Project>

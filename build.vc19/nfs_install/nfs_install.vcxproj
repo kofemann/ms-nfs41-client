@@ -150,11 +150,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\install\nfsreginst.c" />
     <ClCompile Include="..\..\install\nfs_install.c" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\..\install\nfsreginst.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

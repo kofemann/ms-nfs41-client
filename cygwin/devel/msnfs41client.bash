@@ -74,7 +74,7 @@ function nfsclient_install
 		#regtool -s set '/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Control/NetworkProvider/Order/ProviderOrder' 'RDPNP,LanmanWorkstation,webclient'
 
 		printf 'before nfs_install: ProviderOrder="%s"\n' "$( strings -a '/proc/registry/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Control/NetworkProvider/Order/ProviderOrder')"
-		nfs_install
+		nfs_install -D
 		printf 'after nfs_install:  ProviderOrder="%s"\n' "$( strings -a '/proc/registry/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Control/NetworkProvider/Order/ProviderOrder')"
 
 		rundll32 setupapi.dll,InstallHinfSection DefaultInstall 132 ./nfs41rdr.inf

@@ -1,6 +1,6 @@
 TARGETTYPE=PROGRAM
 TARGETNAME=nfs_install
-SOURCES=nfs_install.c nfsreginst.c
+SOURCES=nfs_install.c
 UMTYPE=console
 USE_MSVCRT=1
 INCLUDES=..\sys
