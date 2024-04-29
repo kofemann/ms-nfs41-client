@@ -28,6 +28,13 @@
 #   disabled, e.g. disable it like this from an "Adminstrator" terminal:
 #   $ powershell -Command 'Set-MpPreference -DisableRealtimeMonitoring 1' #
 #
+# - Microsoft Compatibility Telemetry daemon should be disabled,
+#   as it can ruin profiling runs.
+#   The daemon can be disabled from a Cygwin Adminstrator shell like this:
+#   ---- snip ----
+#   regtool -i set '/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows/CurrentVersion/Policies/DataCollection/AllowTelemetry' 0
+#   ---- snip ----
+#
 # - A timeserver shoud be running on both Windows (NFSv4.1 client and
 #   NFSv4.1 server).
 #   For example on Windows add timeserver 10.49.0.6 like this:
