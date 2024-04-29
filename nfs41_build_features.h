@@ -99,4 +99,11 @@
  */
 #define NFS41_DRIVER_SETGID_NEWGRP_SUPPORT 1
 
+/*
+ * Disable 8DOT3 ShortName filename generation.
+ * The current code is broken anyway,so we disable it until we
+ * can implement it better..
+ */
+#define NFS41_DRIVER_DISABLE_8DOT3_SHORTNAME_GENERATION 1
+
 #endif /* !_NFS41_DRIVER_BUILDFEATURES_ */

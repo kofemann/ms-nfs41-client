@@ -375,6 +375,7 @@ static void readdir_copy_dir_info(
         &entry->attr_info);
 }
 
+#ifndef NFS41_DRIVER_DISABLE_8DOT3_SHORTNAME_GENERATION
 static void readdir_copy_shortname(
     IN LPCWSTR name,
     OUT LPWSTR name_out,
@@ -387,6 +388,7 @@ static void readdir_copy_shortname(
         *name_size_out *= sizeof(WCHAR);
     }
 }
+#endif /* !NFS41_DRIVER_DISABLE_8DOT3_SHORTNAME_GENERATION */
 
 static void readdir_copy_full_dir_info(
     IN nfs41_readdir_entry *entry,
@@ -408,8 +410,13 @@ static void readdir_copy_both_dir_info(
     IN PFILE_DIR_INFO_UNION info)
 {
     readdir_copy_full_dir_info(entry, info);
+#ifdef NFS41_DRIVER_DISABLE_8DOT3_SHORTNAME_GENERATION
+    info->fbdi.ShortName[0] = L'\0';
+    info->fbdi.ShortNameLength = 0;
+#else
     readdir_copy_shortname(wname, info->fbdi.ShortName,
         &info->fbdi.ShortNameLength);
+#endif /* NFS41_DRIVER_DISABLE_8DOT3_SHORTNAME_GENERATION */
 }
 
 static void readdir_copy_filename(
