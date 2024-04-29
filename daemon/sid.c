@@ -204,7 +204,6 @@ sidcache group_sidcache = { 0 };
 
 void sidcache_init(void)
 {
-    DPRINTF(1, ("SID cache init\n"));
     InitializeCriticalSection(&user_sidcache.lock);
     InitializeCriticalSection(&group_sidcache.lock);
 }
@@ -268,7 +267,7 @@ done:
 }
 
 /* return |malloc()|'ed copy of SID from cache entry */
-PSID *sidcache_getcached(sidcache *cache, const char *win32name)
+PSID *sidcache_getcached_byname(sidcache *cache, const char *win32name)
 {
     int i;
     time_t currentTimestamp;
@@ -302,6 +301,35 @@ done:
     LeaveCriticalSection(&cache->lock);
     return ret_sid;
 }
+
+bool sidcache_getcached_bysid(sidcache *cache, PSID sid, char *out_win32name)
+{
+    int i;
+    time_t currentTimestamp;
+    sidcache_entry *e;
+    bool ret = false;
+
+    EnterCriticalSection(&cache->lock);
+    currentTimestamp = time(NULL);
+
+    for (i = 0; i < SIDCACHE_SIZE; i++) {
+        e = &cache->entries[i];
+
+        if ((e->sid != NULL) &&
+            (EqualSid(sid, e->sid) &&
+            ((currentTimestamp - e->timestamp) < SIDCACHE_TTL))) {
+
+            (void)strcpy(out_win32name, e->win32name);
+
+            ret = true;
+            goto done;
+        }
+    }
+
+done:
+    LeaveCriticalSection(&cache->lock);
+    return ret;
+}
 #endif /* NFS41_DRIVER_SID_CACHE */
 
 
@@ -329,7 +357,7 @@ int map_nfs4servername_2_sid(nfs41_daemon_globals *nfs41dg, int query, DWORD *si
         gid_t gdummy = -1;
 
 #ifdef NFS41_DRIVER_SID_CACHE
-        if (*sid = sidcache_getcached(&user_sidcache, nfsname)) {
+        if (*sid = sidcache_getcached_byname(&user_sidcache, nfsname)) {
             *sid_len = GetLengthSid(*sid);
             DPRINTF(1, ("map_nfs4servername_2_sid: returning cached sid for user '%s'\n", nfsname));
             status = 0;
@@ -359,7 +387,7 @@ int map_nfs4servername_2_sid(nfs41_daemon_globals *nfs41dg, int query, DWORD *si
         gid_t gdummy = -1;
 
 #ifdef NFS41_DRIVER_SID_CACHE
-        if (*sid = sidcache_getcached(&group_sidcache, nfsname)) {
+        if (*sid = sidcache_getcached_byname(&group_sidcache, nfsname)) {
             *sid_len = GetLengthSid(*sid);
             DPRINTF(1, ("map_nfs4servername_2_sid: returning cached sid for group '%s'\n", nfsname));
             status = 0;

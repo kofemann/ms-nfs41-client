@@ -701,12 +701,11 @@ VOID ServiceStart(DWORD argc, LPTSTR *argv)
         exit(1);
     set_debug_level(cmd_args.debug_level);
     open_log_files();
+    sidcache_init();
     nfsd_crt_debug_init();
     (void)winsock_init();
     init_version_string();
-#ifdef NFS41_DRIVER_SID_CACHE
-    sidcache_init();
-#else
+#ifndef NFS41_DRIVER_SID_CACHE
     DPRINTF(0, ("SID cache disabled\n"));
 #endif /* NFS41_DRIVER_SID_CACHE */
 
