@@ -42,6 +42,8 @@ static int create_open_state(
 {
     int status;
     nfs41_open_state *state;
+    size_t path_len;
+
 
     state = calloc(1, sizeof(nfs41_open_state));
     if (state == NULL) {
@@ -50,18 +52,28 @@ static int create_open_state(
     }
 
     InitializeSRWLock(&state->path.lock);
-    if (FAILED(StringCchCopyA(state->path.path, NFS41_MAX_PATH_LEN, path))) {
+
+    path_len = strlen(path);
+    if (path_len >= NFS41_MAX_PATH_LEN) {
         status = ERROR_FILENAME_EXCED_RANGE;
         goto out_free;
     }
-    state->path.len = (unsigned short)strlen(state->path.path);
+
+    (void)strcpy(state->path.path, path);
+    state->path.len = (unsigned short)path_len;
+
     path_fh_init(&state->file, &state->path);
     path_fh_init(&state->parent, &state->path);
     last_component(state->path.path, state->file.name.name, &state->parent.name);
 
-    StringCchPrintfA((LPSTR)state->owner.owner, NFS4_OPAQUE_LIMIT, "%u",
-        open_owner_id);
+    /*
+     * We use |_ultoa()| as optimised version of this code:
+     * |StringCchPrintfA((LPSTR)state->owner.owner, NFS4_OPAQUE_LIMIT, "%u",
+     * open_owner_id);|
+     */
+    (void)_ultoa(open_owner_id, (LPSTR)state->owner.owner, 10);
     state->owner.owner_len = (uint32_t)strlen((const char*)state->owner.owner);
+
     InitializeSRWLock(&state->lock);
     state->ref_count = 1; /* will be released in |cleanup_close()| */
     list_init(&state->locks.list);
