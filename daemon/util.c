@@ -810,7 +810,7 @@ bool get_token_primarygroup_name(HANDLE tok, char *out_buffer)
 
     if (!LookupAccountSidA(NULL, pgsid, out_buffer, &namesize,
         domainbuffer, &domainbuffer_size, &name_use)) {
-        eprintf("get_token_username: "
+        eprintf("get_token_primarygroup_name: "
             "LookupAccountSidA() failed, status=%d\n",
             (int)GetLastError());
         return false;
