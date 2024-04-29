@@ -247,7 +247,7 @@ function nfsclient_rundeamon
 			"/loadConfig:$(cygpath -w "${vsdiagnostics_path}/AgentConfigs/CpuUsageHigh.json")"
 		printf '#\n'
 		printf '# use\n'
-		printf '# $ "%s" stop %d /output:nfsd_debug%d # to correct profiling data\n#\n' \
+		printf '# $ "%s" stop %d /output:nfsd_debug%d # to collect profiling data\n#\n' \
 			"$(which -a 'VSDiagnostics.exe')" \
 			"${vsdiagnostics_id}" "$$"
 	else
@@ -350,7 +350,7 @@ function nfsclient_system_rundeamon
 			"/loadConfig:$(cygpath -w "${vsdiagnostics_path}/AgentConfigs/CpuUsageHigh.json")"
 		printf '#\n'
 		printf '# use\n'
-		printf '# $ "%s" stop %d /output:nfsd_debug%d # to correct profiling data\n#\n' \
+		printf '# $ "%s" stop %d /output:nfsd_debug%d # to collect profiling data\n#\n' \
 			"$(which -a 'VSDiagnostics.exe')" \
 			"${vsdiagnostics_id}" "$$"
 	else
