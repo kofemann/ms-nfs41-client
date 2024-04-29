@@ -85,6 +85,8 @@ void dprintf_out(LPCSTR format, ...)
     HANDLE tok;
     const char *tok_src;
     bool free_tok = false;
+    /* |in_dprintf_out| - protect against recursive calls */
+    __declspec(thread) static bool in_dprintf_out = false;
 
     if (OpenThreadToken(GetCurrentThread(), TOKEN_QUERY, FALSE, &tok)) {
         tok_src = "impersonated_user";
@@ -102,11 +104,21 @@ void dprintf_out(LPCSTR format, ...)
         tok = GetCurrentProcessToken();
     }
 
-    if (!get_token_user_name(tok, username)) {
-        (void)strcpy(username, "<unknown>");
+    if (in_dprintf_out) {
+        (void)strcpy(username, "<unknown-recursive>");
+        (void)strcpy(groupname, "<unknown-recursive>");
     }
-    if (!get_token_primarygroup_name(tok, groupname)) {
-        (void)strcpy(groupname, "<unknown>");
+    else {
+        in_dprintf_out = true;
+
+        if (!get_token_user_name(tok, username)) {
+            (void)strcpy(username, "<unknown>");
+        }
+        if (!get_token_primarygroup_name(tok, groupname)) {
+            (void)strcpy(groupname, "<unknown>");
+        }
+
+        in_dprintf_out = false;
     }
 
     (void)fprintf(dlog_file, "%04x/%s='%s'/%s' ",
