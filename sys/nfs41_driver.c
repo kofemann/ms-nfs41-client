@@ -48,7 +48,8 @@
  * that
  */
 #ifndef NFS41_DRIVER_SETGID_NEWGRP_SUPPORT
-#define USE_MOUNT_SEC_CONTEXT
+#define USE_MOUNT_SEC_CONTEXT 1
+#define STORE_MOUNT_SEC_CONTEXT 1
 #endif
 
 /* debugging printout defines */
@@ -395,7 +396,7 @@ typedef struct _NFS41_V_NET_ROOT_EXTENSION {
     BOOLEAN                 read_only;
     BOOLEAN                 write_thru;
     BOOLEAN                 nocache;
-#define STORE_MOUNT_SEC_CONTEXT
+
 #ifdef STORE_MOUNT_SEC_CONTEXT
     SECURITY_CLIENT_CONTEXT mount_sec_ctx;
 #endif
