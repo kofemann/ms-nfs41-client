@@ -1549,16 +1549,17 @@ NTSTATUS nfs41_UpcallCreate(
         sec_qos.ImpersonationLevel = SecurityImpersonation;
         sec_qos.Length = sizeof(SECURITY_QUALITY_OF_SERVICE);
         sec_qos.EffectiveOnly = 0;
-        status = SeCreateClientSecurityFromSubjectContext(&sec_ctx, &sec_qos, 
-                    1, &entry->sec_ctx);
+        entry->psec_ctx = &entry->sec_ctx;
+        status = SeCreateClientSecurityFromSubjectContext(&sec_ctx, &sec_qos,
+                    1, entry->psec_ctx);
         if (status != STATUS_SUCCESS) {
             print_error("nfs41_UpcallCreate: "
                 "SeCreateClientSecurityFromSubjectContext failed with %x\n",
                 status);
             RxFreePool(entry);
 	    entry = NULL;
-        } else
-            entry->psec_ctx = &entry->sec_ctx;
+        }
+
         SeReleaseSubjectContext(&sec_ctx);
     } else
         entry->psec_ctx = clnt_sec_ctx;
@@ -2106,7 +2107,10 @@ NTSTATUS nfs41_shutdown_daemon(
     if (status) goto out;
 
     status = nfs41_UpcallWaitForReply(entry, UPCALL_TIMEOUT_DEFAULT);
-    SeDeleteClientSecurity(&entry->sec_ctx);
+    if (entry->psec_ctx == &entry->sec_ctx) {
+        SeDeleteClientSecurity(entry->psec_ctx);
+    }
+    entry->psec_ctx = NULL;
     if (status) goto out;
 
     RxFreePool(entry);
@@ -2363,9 +2367,12 @@ NTSTATUS nfs41_unmount(
 #ifdef DEBUG_MOUNT
     DbgEn();
 #endif
-    status = nfs41_UpcallCreate(NFS41_UNMOUNT, NULL, session, 
+    status = nfs41_UpcallCreate(NFS41_UNMOUNT, NULL, session,
         INVALID_HANDLE_VALUE, version, NULL, &entry);
-    SeDeleteClientSecurity(&entry->sec_ctx);
+    if (entry->psec_ctx == &entry->sec_ctx) {
+        SeDeleteClientSecurity(entry->psec_ctx);
+    }
+    entry->psec_ctx = NULL;
     if (status) goto out;
 
     nfs41_UpcallWaitForReply(entry, timeout);
@@ -2748,7 +2755,10 @@ NTSTATUS nfs41_mount(
     entry->u.Mount.FsAttrs = FsAttrs;
 
     status = nfs41_UpcallWaitForReply(entry, config->timeout);
-    SeDeleteClientSecurity(&entry->sec_ctx);
+    if (entry->psec_ctx == &entry->sec_ctx) {
+        SeDeleteClientSecurity(entry->psec_ctx);
+    }
+    entry->psec_ctx = NULL;
     if (status) goto out;
     *session = entry->session;
     if (entry->u.Mount.lease_time > config->timeout)
@@ -3937,7 +3947,10 @@ retry_on_link:
 
     status = nfs41_UpcallWaitForReply(entry, pVNetRootContext->timeout);
 #ifndef USE_MOUNT_SEC_CONTEXT
-    SeDeleteClientSecurity(&entry->sec_ctx);
+    if (entry->psec_ctx == &entry->sec_ctx) {
+        SeDeleteClientSecurity(entry->psec_ctx);
+    }
+    entry->psec_ctx = NULL;
 #endif
     if (status) goto out;
 
