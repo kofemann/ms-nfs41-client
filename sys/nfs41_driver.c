@@ -1545,7 +1545,7 @@ NTSTATUS nfs41_UpcallCreate(
 
     if (clnt_sec_ctx == NULL) {
         SeCaptureSubjectContext(&sec_ctx);
-        sec_qos.ContextTrackingMode = SECURITY_DYNAMIC_TRACKING;
+        sec_qos.ContextTrackingMode = SECURITY_STATIC_TRACKING;
         sec_qos.ImpersonationLevel = SecurityImpersonation;
         sec_qos.Length = sizeof(SECURITY_QUALITY_OF_SERVICE);
         sec_qos.EffectiveOnly = 0;
@@ -3009,7 +3009,7 @@ NTSTATUS nfs41_GetLUID(
     SECURITY_CLIENT_CONTEXT clnt_sec_ctx;
 
     SeCaptureSubjectContext(&sec_ctx);
-    sec_qos.ContextTrackingMode = SECURITY_DYNAMIC_TRACKING;
+    sec_qos.ContextTrackingMode = SECURITY_STATIC_TRACKING;
     sec_qos.ImpersonationLevel = SecurityIdentification;
     sec_qos.Length = sizeof(SECURITY_QUALITY_OF_SERVICE);
     sec_qos.EffectiveOnly = 0;
