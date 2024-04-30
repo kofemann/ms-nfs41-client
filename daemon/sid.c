@@ -233,7 +233,15 @@ void sidcache_add(sidcache *cache, const char* win32name, PSID value)
     /* Find the oldest valid cache entry */
     freeEntryIndex = -1;
     for (i = 0; i < SIDCACHE_SIZE; i++) {
-        if (cache->entries[i].sid == NULL) {
+        if (cache->entries[i].sid) {
+            /* Same name ? Then reuse this slot... */
+            if (!strcmp(cache->entries[i].win32name, win32name)) {
+                freeEntryIndex = i;
+                break;
+            }
+        }
+        else {
+            /* (cache->entries[i].sid == NULL) --> empty slot... */
             freeEntryIndex = i;
             break;
         }
