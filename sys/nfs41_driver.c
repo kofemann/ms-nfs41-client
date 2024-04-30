@@ -2369,13 +2369,14 @@ NTSTATUS nfs41_unmount(
 #endif
     status = nfs41_UpcallCreate(NFS41_UNMOUNT, NULL, session,
         INVALID_HANDLE_VALUE, version, NULL, &entry);
+    if (status) goto out;
+
+    nfs41_UpcallWaitForReply(entry, timeout);
+
     if (entry->psec_ctx == &entry->sec_ctx) {
         SeDeleteClientSecurity(entry->psec_ctx);
     }
     entry->psec_ctx = NULL;
-    if (status) goto out;
-
-    nfs41_UpcallWaitForReply(entry, timeout);
     RxFreePool(entry);
 out:
 #ifdef ENABLE_TIMINGS
