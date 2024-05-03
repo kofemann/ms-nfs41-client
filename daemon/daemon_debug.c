@@ -191,6 +191,15 @@ void logprintf(LPCSTR format, ...)
     }
 }
 
+void eprintf_out(LPCSTR format, ...)
+{
+    va_list args;
+    va_start(args, format);
+    (void)vfprintf(elog_file, format, args);
+    (void)fflush(elog_file);
+    va_end(args);
+}
+
 void eprintf(LPCSTR format, ...)
 {
     va_list args;

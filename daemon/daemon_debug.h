@@ -48,10 +48,20 @@
     if (!(exp)) { \
         eprintf("ASSERTION '%s' in '%s'/%ld failed.\n", \
             ""#exp"", __FILE__, (long)__LINE__); }
+#define EASSERT_MSG(exp, msg) \
+    if (!(exp)) { \
+        eprintf("ASSERTION '%s' in '%s'/%ld failed, msg=", \
+            ""#exp"", __FILE__, (long)__LINE__); \
+        eprintf_out msg ; }
 #define DASSERT(exp, level) \
     if (!(exp)) { \
         DPRINTF((level), ("ASSERTION '%s' in '%s'/%ld failed.\n", \
             ""#exp"", __FILE__, (long)__LINE__)); }
+#define DASSERT_MSG(exp, level, msg) \
+    if (!(exp) && DPRINTF_LEVEL_ENABLED(level)) { \
+        DPRINTF((level), ("ASSERTION '%s' in '%s'/%ld failed, msg=", \
+            ""#exp"", __FILE__, (long)__LINE__)); \
+        dprintf_out msg ; }
 
 #define DASSERT_IS_VALID_NON_NULL_PTR(exp, level) \
     if (!DEBUG_IS_VALID_NON_NULL_PTR(exp)) { \
@@ -81,6 +91,7 @@ extern int g_debug_level;
 void set_debug_level(int level);
 void logprintf(LPCSTR format, ...);
 void dprintf_out(LPCSTR format, ...);
+void eprintf_out(LPCSTR format, ...);
 void eprintf(LPCSTR format, ...);
 
 void print_windows_access_mask(int on, ACCESS_MASK m);
