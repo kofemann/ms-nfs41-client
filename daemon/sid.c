@@ -215,6 +215,8 @@ void sidcache_add(sidcache *cache, const char* win32name, PSID value)
     ssize_t freeEntryIndex;
     time_t currentTimestamp;
 
+    EASSERT(win32name[0] != '\0');
+
     EnterCriticalSection(&cache->lock);
     currentTimestamp = time(NULL);
 
