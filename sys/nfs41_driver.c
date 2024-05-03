@@ -167,7 +167,7 @@ typedef enum _nfs41_updowncall_state {
 typedef struct _updowncall_entry {
     DWORD version;
     LONGLONG xid;
-    DWORD opcode;
+    nfs41_opcodes opcode;
     NTSTATUS status;
     nfs41_updowncall_state state;
     FAST_MUTEX lock;
