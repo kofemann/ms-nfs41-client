@@ -647,6 +647,7 @@ static int map_nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid, char *who_o
                 DPRINTF(ACLLVL, ("map_nfs4ace_who: LookupAccountSidA() "
                     "returned ERROR_NONE_MAPPED for sidstr='%s'\n",
                     sidstr));
+                status = lasterr;
                 goto out;
             /* Catch other cases */
             case ERROR_NO_SUCH_USER:
@@ -655,6 +656,7 @@ static int map_nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid, char *who_o
                     "returned ERROR_NO_SUCH_@(USER|GROUP) for "
                     "sidstr='%s'\n",
                     sidstr);
+                status = lasterr;
                 goto out;
             default:
                 eprintf("map_nfs4ace_who: Internal error, "
@@ -821,6 +823,9 @@ static int handle_setacl(void *daemon_context, nfs41_upcall *upcall)
         info.owner = ownerbuf;
         info.attrmask.arr[1] |= FATTR4_WORD1_OWNER;
         info.attrmask.count = 2;
+
+        EASSERT_MSG(info.owner[0] != '\0',
+            ("info.owner='%s'\n", info.owner));
     }
 
     if (args->query & GROUP_SECURITY_INFORMATION) {
@@ -840,6 +845,9 @@ static int handle_setacl(void *daemon_context, nfs41_upcall *upcall)
         info.owner_group = groupbuf;
         info.attrmask.arr[1] |= FATTR4_WORD1_OWNER_GROUP;
         info.attrmask.count = 2;
+
+        EASSERT_MSG(info.owner_group[0] != '\0',
+            ("info.owner_group='%s'\n", info.owner_group));
     }
 
     if (args->query & DACL_SECURITY_INFORMATION) {
