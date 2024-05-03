@@ -279,12 +279,6 @@ function nfsclient_system_rundeamon
 		#'--gid' '1616' '--uid' '1616'
 	)
 
-	# run everything as su_system
-	nfsd_args=(
-		'su_system'
-		"${nfsd_args[@]}"
-	)
-
 	#
 	# cdb cheat sheet:
 	#
@@ -304,6 +298,13 @@ function nfsclient_system_rundeamon
 			'--args'
 			"${nfsd_args[@]}"
 		)
+
+		# run everything as su_system
+		nfsd_args=(
+			'su_system'
+			"${nfsd_args[@]}"
+		)
+
 		"${nfsd_args[@]}"
 	elif false ; then
 		export _NT_ALT_SYMBOL_PATH="$(cygpath -w "$PWD");srv*https://msdl.microsoft.com/download/symbols"
@@ -314,6 +315,13 @@ function nfsclient_system_rundeamon
 			"$(cygpath -w "$PWD/${nfsd_args[0]}")"
 			"${nfsd_args[@]:1}"
 		)
+
+		# run everything as su_system
+		nfsd_args=(
+			'su_system'
+			"${nfsd_args[@]}"
+		)
+
 		"${nfsd_args[@]}"
 	elif false ; then
 		#
@@ -340,10 +348,18 @@ function nfsclient_system_rundeamon
 				"${nfsd_args[@]}"
 				'--crtdbgmem' 'none'
 			)
+
+		# run everything as su_system
+		nfsd_args=(
+			'su_system'
+			"${nfsd_args[@]}"
+		)
+
 		"${nfsd_args[@]}"
 	elif false ; then
 		typeset -i vsdiagnostics_id=50
-		VSDiagnostics \
+		# run everything as su_system
+		su_system VSDiagnostics \
 			start ${vsdiagnostics_id} \
 			"/launch:$(cygpath -w "$PWD/nfsd_debug.exe")" \
 			"/launchArgs:${nfsd_args[*]:1}" \
@@ -354,6 +370,11 @@ function nfsclient_system_rundeamon
 			"$(which -a 'VSDiagnostics.exe')" \
 			"${vsdiagnostics_id}" "$$"
 	else
+		# run everything as su_system
+		nfsd_args=(
+			'su_system'
+			"${nfsd_args[@]}"
+		)
 
 		"${nfsd_args[@]}"
 	fi
