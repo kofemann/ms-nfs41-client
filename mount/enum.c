@@ -38,7 +38,7 @@ void PrintMountLine(
     LPCTSTR remote)
 {
     TCHAR *cygwin_unc_buffer = alloca((_tcslen(remote)+32)*sizeof(TCHAR));
-    char *cygwin_nfsurl_buffer = alloca(((_tcslen(remote)+32)*3));
+    char *cygwin_nfsurl_buffer = alloca(((_tcslen(remote)+32)*3)+8);
     TCHAR *b;
     LPCTSTR s;
     TCHAR sc;
