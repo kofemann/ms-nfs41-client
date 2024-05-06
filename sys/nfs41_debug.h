@@ -55,6 +55,7 @@ void print_open_error(int on, int status);
 void print_wait_status(int on, const char *str, NTSTATUS status,
                        const char *opcode, PVOID entry, LONGLONG xid);
 void print_acl_args(SECURITY_INFORMATION info);
+const char *fsctl2string(ULONG fsctl);
 
 #define PTR2PTRDIFF_T(p) (((char *)(p))-((char *)0))
 #define PsGetCurrentProcessShortDebugId() ((int)PTR2PTRDIFF_T(PsGetCurrentProcessId()))

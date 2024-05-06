@@ -6890,20 +6890,33 @@ NTSTATUS nfs41_FsCtl(
     DbgEn();
     print_debug_header(RxContext);
 #endif
-    switch (RxContext->LowIoContext.ParamsFor.FsCtl.FsControlCode) {
+    const ULONG fscontrolcode =
+        RxContext->LowIoContext.ParamsFor.FsCtl.FsControlCode;
+
+    switch (fscontrolcode) {
     case FSCTL_SET_REPARSE_POINT:
         status = nfs41_SetReparsePoint(RxContext);
         break;
-
     case FSCTL_GET_REPARSE_POINT:
         status = nfs41_GetReparsePoint(RxContext);
         break;
-#ifdef DEBUG_FSCTL
     default:
-        DbgP("nfs41_FsCtl: FsControlCode: %d\n",
-             (int)RxContext->LowIoContext.ParamsFor.FsCtl.FsControlCode);
-#endif
+        break;
     }
+
+#ifdef DEBUG_FSCTL
+    const char *fsctl_str = fsctl2string(fscontrolcode);
+
+    if (fsctl_str) {
+        DbgP("nfs41_FsCtl: FsControlCode='%s', status=0x%x\n",
+            fsctl_str, (int)status);
+    }
+    else {
+        DbgP("nfs41_FsCtl: FsControlCode=0x%lx, status=0x%x\n",
+            (unsigned long)fscontrolcode, (int)status);
+    }
+#endif /* DEBUG_FSCTL */
+
 #ifdef DEBUG_FSCTL
     DbgEx();
 #endif
