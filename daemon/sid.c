@@ -476,15 +476,14 @@ int map_nfs4servername_2_sid(nfs41_daemon_globals *nfs41dg, int query, DWORD *si
             uid_t map_uid = -1;
             gid_t gid_dummy = -1;
 
-            if (nfs41_idmap_name_to_ids(
-                nfs41dg->idmapper,
-                nfsname,
-                &map_uid,
-                &gid_dummy) == 0) {
+            if (nfs41_idmap_name_to_uid(nfs41dg->idmapper,
+                nfsname, &map_uid) == 0) {
                 user_uid = map_uid;
             }
             else {
-                DPRINTF(1, ("map_nfs4servername_2_sid(query=%x,name='%s'): nfs41_idmap_name_to_ids() failed\n",
+                DPRINTF(1,
+                    ("map_nfs4servername_2_sid(query=%x,name='%s'): "
+                    "nfs41_idmap_name_to_uid() failed\n",
                     query, nfsname));
                 /* fixme: try harder here, "1234" should to to |atol()| */
             }

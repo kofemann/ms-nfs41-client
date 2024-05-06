@@ -36,6 +36,10 @@ void nfs41_idmap_free(
     nfs41_idmapper *context);
 
 
+int nfs41_idmap_name_to_uid(
+    struct idmap_context *context,
+    const char *username,
+    uid_t *uid_out);
 int nfs41_idmap_name_to_ids(
     nfs41_idmapper *context,
     const char *username,

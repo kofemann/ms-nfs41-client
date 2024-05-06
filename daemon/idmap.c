@@ -1004,6 +1004,36 @@ static int username_cmp(const struct list_entry *list, const void *value)
     return strcmp(entry->username, username);
 }
 
+
+int nfs41_idmap_name_to_uid(
+    struct idmap_context *context,
+    const char *username,
+    uid_t *uid_out)
+{
+    struct idmap_lookup lookup = { ATTR_USER_NAME,
+        CLASS_USER, TYPE_STR, username_cmp };
+    struct idmap_user user;
+    int status;
+
+    DPRINTF(IDLVL, ("--> nfs41_idmap_name_to_uid('%s')\n", username));
+
+    lookup.value = username;
+
+    /* look up the user entry */
+    status = idmap_lookup_user(context, &lookup, &user);
+    if (status) {
+        DPRINTF(IDLVL, ("<-- nfs41_idmap_name_to_uid('%s') "
+            "failed with %d\n", username, status));
+        goto out;
+    }
+
+    *uid_out = user.uid;
+    DPRINTF(IDLVL, ("<-- nfs41_idmap_name_to_uid('%s') "
+        "returning uid=%u\n", username, user.uid));
+out:
+    return status;
+}
+
 int nfs41_idmap_name_to_ids(
     struct idmap_context *context,
     const char *username,

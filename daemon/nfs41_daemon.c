@@ -73,33 +73,30 @@ static int map_current_user_to_ids(nfs41_idmapper *idmapper, uid_t *puid, gid_t 
     char pgroupname[GNLEN+1];
     int status = NO_ERROR;
     HANDLE impersonation_tok = GetCurrentThreadEffectiveToken();
-    gid_t dummygid;
 
     if (!get_token_user_name(impersonation_tok, username)) {
         status = GetLastError();
         eprintf("map_current_user_to_ids: "
             "get_token_user_name() failed with %d\n", status);
-        goto out;
+        goto out_map_default_ids;
     }
 
     if (!get_token_primarygroup_name(impersonation_tok, pgroupname)) {
         status = GetLastError();
         eprintf("map_current_user_to_ids: "
             "get_token_primarygroup_name() failed with %d\n", status);
-        goto out;
+        goto out_map_default_ids;
     }
 
-    if (nfs41_idmap_name_to_ids(idmapper, username, puid, &dummygid)) {
+    if (nfs41_idmap_name_to_uid(idmapper, username, puid)) {
         /* instead of failing for auth_sys, fall back to 'nobody' uid/gid */
         DPRINTF(1,
             ("map_current_user_to_ids: "
-                "nfs41_idmap_name_to_ids(username='%s') failed, "
+                "nfs41_idmap_name_to_uid(username='%s') failed, "
                 "returning nobody/nogroup defaults\n",
                 username));
-        *puid = nfs41_dg.default_uid;
-        *pgid = nfs41_dg.default_gid;
         status = NO_ERROR;
-        goto out;
+        goto out_map_default_ids;
     }
 
     if (nfs41_idmap_group_to_gid(
@@ -121,6 +118,11 @@ out:
             username, (int)*puid,
             pgroupname, (int)*pgid));
     return status;
+
+out_map_default_ids:
+    *puid = nfs41_dg.default_uid;
+    *pgid = nfs41_dg.default_gid;
+    goto out;
 }
 
 static unsigned int nfsd_worker_thread_main(void *args)

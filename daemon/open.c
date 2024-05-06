@@ -776,7 +776,6 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
 #ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES
         char owner[NFS4_OPAQUE_LIMIT], owner_group[NFS4_OPAQUE_LIMIT];
         uid_t map_uid = -1;
-        gid_t gid_dummy = -1;
         gid_t map_gid = -1;
         char *at_ch; /* pointer to '@' */
 
@@ -835,11 +834,10 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
         if (at_ch = strchr(owner, '@'))
             *at_ch = '\0';
 
-        if (nfs41_idmap_name_to_ids(
+        if (nfs41_idmap_name_to_uid(
             nfs41dg->idmapper,
             owner,
-            &map_uid,
-            &gid_dummy) == 0) {
+            &map_uid) == 0) {
              args->owner_local_uid = map_uid;
         }
         else {
