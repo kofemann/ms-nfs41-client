@@ -708,6 +708,16 @@ bool getwinntversionnnumbers(
     DWORD *MinorVersionPtr,
     DWORD *BuildNumberPtr)
 {
+#ifdef _WIN64
+    /*
+     * Windows private API, so we add prototype here ourselves
+     *
+     * Note that this currently only works with 64bit Windows,
+     * 32bit Windows generates this build error:
+     * ---- snip ----
+     * util.obj : error LNK2019: unresolved external symbol __RtlGetNtVersionNumbers referenced in function _getwinntversionnnumbers
+     * ---- snip ----
+     */
     NTSTATUS RtlGetNtVersionNumbers(LPDWORD, LPDWORD, LPDWORD);
 
     /*
@@ -718,6 +728,9 @@ bool getwinntversionnnumbers(
     *BuildNumberPtr &= 0xffff;
 
     return true;
+#else
+    return false;
+#endif /* _WIN64 */
 }
 
 /*
