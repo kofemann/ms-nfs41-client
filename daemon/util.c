@@ -757,7 +757,6 @@ bool get_token_user_name(HANDLE tok, char *out_buffer)
 
 #ifdef NFS41_DRIVER_SID_CACHE
     if (sidcache_getcached_bysid(&user_sidcache, pusid, out_buffer)) {
-        DPRINTF(2, ("get_token_user_name: cached '%s'\n", out_buffer));
         return true;
     }
 #endif /* NFS41_DRIVER_SID_CACHE */
@@ -771,7 +770,6 @@ bool get_token_user_name(HANDLE tok, char *out_buffer)
     }
 
 #ifdef NFS41_DRIVER_SID_CACHE
-    DPRINTF(2, ("get_token_user_name: NOT cached '%s'\n", out_buffer));
     sidcache_add(&user_sidcache, out_buffer, pusid);
 #endif /* NFS41_DRIVER_SID_CACHE */
 
@@ -803,7 +801,6 @@ bool get_token_primarygroup_name(HANDLE tok, char *out_buffer)
 
 #ifdef NFS41_DRIVER_SID_CACHE
     if (sidcache_getcached_bysid(&group_sidcache, pgsid, out_buffer)) {
-        DPRINTF(2, ("get_token_primarygroup_name: cached '%s'\n", out_buffer));
         return true;
     }
 #endif /* NFS41_DRIVER_SID_CACHE */
@@ -817,7 +814,6 @@ bool get_token_primarygroup_name(HANDLE tok, char *out_buffer)
     }
 
 #ifdef NFS41_DRIVER_SID_CACHE
-    DPRINTF(2, ("get_token_primarygroup_name: NOT cached '%s'\n", out_buffer));
     sidcache_add(&group_sidcache, out_buffer, pgsid);
 #endif /* NFS41_DRIVER_SID_CACHE */
 
