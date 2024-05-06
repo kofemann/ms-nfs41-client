@@ -347,7 +347,9 @@ static DWORD ParseRemoteName(
     PFILE_FULL_EA_INFORMATION port_option_val;
     wchar_t remotename[NFS41_SYS_MAX_PATH_LEN];
     wchar_t *premotename = remotename;
-    wchar_t srvname[NFS41_SYS_MAX_PATH_LEN+1+32]; /* sizeof(hostname+'@'+integer) */
+/* sizeof(hostname+'@'+integer) */
+#define SRVNAME_LEN (NFS41_SYS_MAX_PATH_LEN+1+32)
+    wchar_t srvname[SRVNAME_LEN];
     url_parser_context *uctx = NULL;
 
     result = StringCchCopy(premotename, NFS41_SYS_MAX_PATH_LEN, pRemoteName);
@@ -534,12 +536,12 @@ static DWORD ParseRemoteName(
 	 * 2. ALWAYS add port number to hostname, so UNC paths use it
 	 *   too
 	 */
-        (void)swprintf(srvname, sizeof(srvname),
+        (void)swprintf(srvname, SRVNAME_LEN,
 	    TEXT("%s.ipv6-literal.net@%d"), premotename, port);
     }
     else {
         /* ALWAYS add port number to hostname, so UNC paths use it too */
-        (void)swprintf(srvname, sizeof(srvname), TEXT("%s@%d"),
+        (void)swprintf(srvname, SRVNAME_LEN, TEXT("%s@%d"),
 	    premotename, port);
     }
 
