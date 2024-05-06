@@ -69,7 +69,7 @@
 //#define DEBUG_EA_QUERY
 //#define DEBUG_EA_SET
 //#define DEBUG_LOCK
-//#define DEBUG_MISC
+#define DEBUG_FSCTL
 #define DEBUG_TIME_BASED_COHERENCY
 //#define DEBUG_MOUNT
 //#define DEBUG_VOLUME_QUERY
@@ -6886,7 +6886,7 @@ NTSTATUS nfs41_FsCtl(
     IN OUT PRX_CONTEXT RxContext)
 {
     NTSTATUS status = STATUS_INVALID_DEVICE_REQUEST;
-#ifdef DEBUG_MISC
+#ifdef DEBUG_FSCTL
     DbgEn();
     print_debug_header(RxContext);
 #endif
@@ -6898,13 +6898,13 @@ NTSTATUS nfs41_FsCtl(
     case FSCTL_GET_REPARSE_POINT:
         status = nfs41_GetReparsePoint(RxContext);
         break;
-#ifdef DEBUG_MISC
+#ifdef DEBUG_FSCTL
     default:
-        DbgP("FsControlCode: %d\n", 
-             RxContext->LowIoContext.ParamsFor.FsCtl.FsControlCode);
+        DbgP("nfs41_FsCtl: FsControlCode: %d\n",
+             (int)RxContext->LowIoContext.ParamsFor.FsCtl.FsControlCode);
 #endif
     }
-#ifdef DEBUG_MISC
+#ifdef DEBUG_FSCTL
     DbgEx();
 #endif
     return status;
