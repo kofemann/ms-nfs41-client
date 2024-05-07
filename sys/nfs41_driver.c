@@ -177,6 +177,12 @@ typedef struct _updowncall_entry {
     BOOLEAN async_op;
     SECURITY_CLIENT_CONTEXT sec_ctx;
     PSECURITY_CLIENT_CONTEXT psec_ctx;
+    /*
+     * Refcount client token during lifetime of this |updowncall_entry|
+     * to avoid crashes during |SeImpersonateClientEx()| if the
+     * calling thread disappears.
+     */
+    PVOID psec_ctx_clienttoken;
     HANDLE open_state;
     HANDLE session;
     PUNICODE_STRING filename;
@@ -1562,13 +1568,38 @@ NTSTATUS nfs41_UpcallCreate(
         }
 
         SeReleaseSubjectContext(&sec_ctx);
-    } else
+    } else {
         entry->psec_ctx = clnt_sec_ctx;
+    }
+
+    if (entry && entry->psec_ctx) {
+        /*
+         * Refcount client token (as |entry->psec_ctx_clienttoken|)
+         * during lifetime of this |updowncall_entry| to avoid
+         * crashes during |SeImpersonateClientEx()| if the
+         * calling client thread exits.
+         */
+        entry->psec_ctx_clienttoken = entry->psec_ctx->ClientToken;
+        ObReferenceObject(entry->psec_ctx_clienttoken);
+    }
 
     *entry_out = entry;
 out:
     return status;
 }
+
+void nfs41_UpcallDestroy(nfs41_updowncall_entry *entry)
+{
+    if (!entry)
+        return;
+
+    if (entry->psec_ctx_clienttoken) {
+        ObDereferenceObject(entry->psec_ctx_clienttoken);
+    }
+
+    RxFreePool(entry);
+}
+
 
 NTSTATUS nfs41_UpcallWaitForReply(
     IN nfs41_updowncall_entry *entry,
@@ -2023,7 +2054,7 @@ NTSTATUS nfs41_downcall(
         }
         ExReleaseFastMutex(&cur->lock);
         nfs41_RemoveEntry(downcallLock, cur);
-        RxFreePool(cur);
+        nfs41_UpcallDestroy(cur);
         status = STATUS_UNSUCCESSFUL;
         goto out_free;
     }
@@ -2086,9 +2117,9 @@ NTSTATUS nfs41_downcall(
         }
         nfs41_RemoveEntry(downcallLock, cur);
         RxLowIoCompletion(cur->u.ReadWrite.rxcontext);
-        RxFreePool(cur);
+        nfs41_UpcallDestroy(cur);
     } else
-        KeSetEvent(&cur->cond, 0, FALSE);    
+        KeSetEvent(&cur->cond, 0, FALSE);
 
 out_free:
     RxFreePool(tmp);
@@ -2114,7 +2145,7 @@ NTSTATUS nfs41_shutdown_daemon(
     entry->psec_ctx = NULL;
     if (status) goto out;
 
-    RxFreePool(entry);
+    nfs41_UpcallDestroy(entry);
 out:
     DbgEx();
     return status;
@@ -2378,7 +2409,7 @@ NTSTATUS nfs41_unmount(
         SeDeleteClientSecurity(entry->psec_ctx);
     }
     entry->psec_ctx = NULL;
-    RxFreePool(entry);
+    nfs41_UpcallDestroy(entry);
 out:
 #ifdef ENABLE_TIMINGS
     print_op_stat("lookup", &lookup, 1);
@@ -2770,7 +2801,7 @@ NTSTATUS nfs41_mount(
     status = map_mount_errors(entry->status);
     if (status == STATUS_SUCCESS)
         *version = entry->version;
-    RxFreePool(entry);
+    nfs41_UpcallDestroy(entry);
 out:
 #ifdef DEBUG_MOUNT
     DbgEx();
@@ -3933,7 +3964,8 @@ retry_on_link:
             FALSE, FALSE, NULL);
         if (entry->u.Open.EaMdl == NULL) {
             status = STATUS_INTERNAL_ERROR;
-            RxFreePool(entry);
+            nfs41_UpcallDestroy(entry);
+            entry = NULL;
             goto out;
         }
 #pragma warning( push )
@@ -4187,7 +4219,7 @@ retry_on_link:
 
 out_free:
     if (entry)
-        RxFreePool(entry);
+        nfs41_UpcallDestroy(entry);
 out:
 #ifdef ENABLE_TIMINGS
     t2 = KeQueryPerformanceCounter(NULL);
@@ -4359,7 +4391,7 @@ NTSTATUS nfs41_CloseSrvOpen(
 
     /* map windows ERRORs to NTSTATUS */
     status = map_close_errors(entry->status);
-    RxFreePool(entry);
+    nfs41_UpcallDestroy(entry);
 out:
 #ifdef ENABLE_TIMINGS
     t2 = KeQueryPerformanceCounter(NULL);
@@ -4503,7 +4535,7 @@ NTSTATUS nfs41_QueryDirectory(
         RxContext->Info.LengthRemaining, FALSE, FALSE, NULL);
     if (entry->u.QueryFile.mdl == NULL) {
         status = STATUS_INTERNAL_ERROR;
-        RxFreePool(entry);
+        nfs41_UpcallDestroy(entry);
         goto out;
     }
 #pragma warning( push )
@@ -4543,7 +4575,7 @@ NTSTATUS nfs41_QueryDirectory(
         status = map_querydir_errors(entry->status);
     }
     IoFreeMdl(entry->u.QueryFile.mdl);
-    RxFreePool(entry);
+    nfs41_UpcallDestroy(entry);
 out:
 #ifdef ENABLE_TIMINGS
     t2 = KeQueryPerformanceCounter(NULL);
@@ -4751,7 +4783,7 @@ NTSTATUS nfs41_QueryVolumeInformation(
     } else {
         status = map_volume_errors(entry->status);
     }
-    RxFreePool(entry);
+    nfs41_UpcallDestroy(entry);
 out:
 #ifdef ENABLE_TIMINGS
     t2 = KeQueryPerformanceCounter(NULL);
@@ -4963,7 +4995,8 @@ NTSTATUS nfs41_SetEaInformation(
                 "(eainfo=%p, buflen=%lu, &(error_offset=%d))\n",
                 (int)status, (void *)eainfo, buflen,
                 (int)error_offset);
-            RxFreePool(entry);
+            nfs41_UpcallDestroy(entry);
+            entry = NULL;
             goto out;
         }
     }
@@ -4987,7 +5020,7 @@ NTSTATUS nfs41_SetEaInformation(
         nfs41_fcb->changeattr = entry->ChangeTime;
         nfs41_fcb->mode = entry->u.SetEa.mode;
     }
-    RxFreePool(entry);
+    nfs41_UpcallDestroy(entry);
 out:
 #ifdef ENABLE_TIMINGS
     t2 = KeQueryPerformanceCounter(NULL);
@@ -5090,7 +5123,7 @@ static NTSTATUS QueryCygwinSymlink(
         RxContext->InformationToReturn = HeaderLen +
             entry->u.Symlink.target->Length;
     }
-    RxFreePool(entry);
+    nfs41_UpcallDestroy(entry);
 out:
     return status;
 }
@@ -5253,7 +5286,7 @@ NTSTATUS nfs41_QueryEaInformation(
     } else {
         status = map_setea_error(entry->status);
     }
-    RxFreePool(entry);
+    nfs41_UpcallDestroy(entry);
 out:
 #ifdef ENABLE_TIMINGS
     t2 = KeQueryPerformanceCounter(NULL);
@@ -5408,7 +5441,7 @@ NTSTATUS nfs41_QuerySecurityInformation(
     } else {
         status = map_query_acl_error(entry->status);
     }
-    RxFreePool(entry);
+    nfs41_UpcallDestroy(entry);
 out:
 #ifdef ENABLE_TIMINGS
     t2 = KeQueryPerformanceCounter(NULL);
@@ -5522,7 +5555,7 @@ NTSTATUS nfs41_SetSecurityInformation(
             nfs41_update_fcb_list(RxContext->pFcb, entry->ChangeTime);
         nfs41_fcb->changeattr = entry->ChangeTime;
     }
-    RxFreePool(entry);
+    nfs41_UpcallDestroy(entry);
 out:
 #ifdef ENABLE_TIMINGS
     t2 = KeQueryPerformanceCounter(NULL);
@@ -5699,7 +5732,7 @@ NTSTATUS nfs41_QueryFileInformation(
         status = map_queryfile_error(entry->status);
         print_error("status(0x%lx) = map_queryfile_error(entry->status(0x%lx));\n", (long)status, (long)entry->status);
     }
-    RxFreePool(entry);
+    nfs41_UpcallDestroy(entry);
 out:
 #ifdef ENABLE_TIMINGS
     t2 = KeQueryPerformanceCounter(NULL);
@@ -5949,7 +5982,7 @@ NTSTATUS nfs41_SetFileInformation(
             nfs41_update_fcb_list(RxContext->pFcb, entry->ChangeTime);
         nfs41_fcb->changeattr = entry->ChangeTime;
     }
-    RxFreePool(entry);
+    nfs41_UpcallDestroy(entry);
 out:
 #ifdef ENABLE_TIMINGS
     t2 = KeQueryPerformanceCounter(NULL);
@@ -6219,7 +6252,7 @@ NTSTATUS nfs41_Read(
         RxContext->CurrentIrp->IoStatus.Status = status;
         RxContext->IoStatusBlock.Information = 0;
     }
-    RxFreePool(entry);
+    nfs41_UpcallDestroy(entry);
 out:
 #ifdef ENABLE_TIMINGS
     t2 = KeQueryPerformanceCounter(NULL);
@@ -6347,7 +6380,7 @@ NTSTATUS nfs41_Write(
         RxContext->CurrentIrp->IoStatus.Status = status;
         RxContext->IoStatusBlock.Information = 0;
     }
-    RxFreePool(entry);
+    nfs41_UpcallDestroy(entry);
 out:
 #ifdef ENABLE_TIMINGS
     t2 = KeQueryPerformanceCounter(NULL);
@@ -6500,7 +6533,7 @@ retry_upcall:
     status = map_lock_errors(entry->status);
     RxContext->CurrentIrp->IoStatus.Status = status;
 
-    RxFreePool(entry);
+    nfs41_UpcallDestroy(entry);
 out:
 #ifdef ENABLE_TIMINGS
     t2 = KeQueryPerformanceCounter(NULL);
@@ -6596,7 +6629,7 @@ NTSTATUS nfs41_Unlock(
 
     status = map_lock_errors(entry->status);
     RxContext->CurrentIrp->IoStatus.Status = status;
-    RxFreePool(entry);
+    nfs41_UpcallDestroy(entry);
 out:
 #ifdef ENABLE_TIMINGS
     t2 = KeQueryPerformanceCounter(NULL);
@@ -6767,7 +6800,7 @@ NTSTATUS nfs41_SetReparsePoint(
     if (status) goto out;
 
     status = map_symlink_errors(entry->status);
-    RxFreePool(entry);
+    nfs41_UpcallDestroy(entry);
 out:
 #ifdef DEBUG_SYMLINK
     DbgEx();
@@ -6874,7 +6907,7 @@ NTSTATUS nfs41_GetReparsePoint(
     } else if (status == STATUS_BUFFER_TOO_SMALL) {
         RxContext->InformationToReturn = HeaderLen + TargetName.Length;
     }
-    RxFreePool(entry);
+    nfs41_UpcallDestroy(entry);
 out:
 #ifdef DEBUG_SYMLINK
     DbgEx();
@@ -7199,7 +7232,7 @@ VOID fcbopen_main(PVOID ctx)
             }
             nfs41_fcb = (PNFS41_FCB)cur->fcb->Context;
             nfs41_fcb->changeattr = entry->ChangeTime;
-            RxFreePool(entry);
+            nfs41_UpcallDestroy(entry);
 out:
             if (pEntry->Flink == &openlist.head) {
 #ifdef DEBUG_TIME_BASED_COHERENCY
