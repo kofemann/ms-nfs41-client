@@ -267,10 +267,79 @@ done:
     return res;
 }
 
+/*
+ * |FILE_NAME_INFORMATION| variation with 4096 bytes, matching
+ * Linux |PATH_MAX| value of 4096
+ */
+typedef struct _FILE_NAME_INFORMATION4096 {
+  ULONG FileNameLength;
+  WCHAR FileName[4096];
+} FILE_NAME_INFORMATION4096, *PFILE_NAME_INFORMATION4096;
+
+
+static
+bool get_filenormalizednameinfo(const char *progname, const char *filename)
+{
+    int res = EXIT_FAILURE;
+    bool ok;
+    FILE_NAME_INFORMATION4096 finfo = { 0 };
+
+    HANDLE fileHandle = CreateFileA(filename,
+        GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING,
+        FILE_FLAG_BACKUP_SEMANTICS, NULL);
+    if (fileHandle == INVALID_HANDLE_VALUE) {
+        (void)fprintf(stderr,
+            "%s: Error opening file '%s'. Last error was %d.\n",
+            progname,
+            filename,
+            GetLastError());
+        return EXIT_FAILURE;
+    }
+
+    /*
+     * |FileNormalizedNameInfo| value:
+     * Per
+     * https://learn.microsoft.com/en-us/windows/win32/api/minwinbase/ne-minwinbase-file_info_by_handle_class
+     * |FileNormalizedNameInfo| should be |24|, but on Cygwin 3.6 we
+     * get the value |48|. Since |24| works and |48| returns an
+     * "Invalid Parameter" error we assume this is a Cygwin bug.
+     */
+    ok = GetFileInformationByHandleEx(fileHandle,
+        24/*FileNormalizedNameInfo*/,
+        &finfo, sizeof(finfo));
+
+    if (!ok) {
+        (void)fprintf(stderr, "%s: GetFileInformationByHandleEx() "
+            "error. GetLastError()==%d.\n",
+            progname,
+            GetLastError());
+        res = EXIT_FAILURE;
+        goto done;
+    }
+
+    (void)printf("(\n");
+    (void)printf("\tfilename='%s'\n", filename);
+
+    (void)printf("\tFileNameLength=%ld\n",
+        (long)finfo.FileNameLength);
+    (void)printf("\tFileName='%S'\n",   finfo.FileName);
+    (void)printf(")\n");
+    res = EXIT_SUCCESS;
+
+done:
+    CloseHandle(fileHandle);
+    return res;
+}
+
 static
 void usage(void)
 {
-    (void)fprintf(stderr, "winfsinfo <getvolumeinfo|filebasicinfo|filestandardinfo> path\n");
+    (void)fprintf(stderr, "winfsinfo <"
+        "getvolumeinfo|"
+        "filebasicinfo|"
+        "filestandardinfo|"
+        "filenormalizednameinfo"
+        "> path\n");
 }
 
 int main(int ac, char *av[])
@@ -292,6 +361,9 @@ int main(int ac, char *av[])
     }
     else if (!strcmp(subcmd, "filestandardinfo")) {
         return get_file_standard_info(av[0], av[2]);
+    }
+    else if (!strcmp(subcmd, "filenormalizednameinfo")) {
+        return get_filenormalizednameinfo(av[0], av[2]);
     }
     else {
         (void)fprintf(stderr, "%s: Unknown subcmd '%s'\n", av[0], subcmd);
