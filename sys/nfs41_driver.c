@@ -4078,9 +4078,11 @@ retry_on_link:
     nfs41_fobx = (PNFS41_FOBX)(RxContext->pFobx)->Context;
     nfs41_fobx->nfs41_open_state = entry->open_state;
 #ifndef USE_MOUNT_SEC_CONTEXT
-    status = nfs41_get_sec_ctx(SecurityImpersonation, &nfs41_fobx->sec_ctx);
-    if (status)
-        goto out_free;
+    if (nfs41_fobx->sec_ctx.ClientToken == NULL) {
+        status = nfs41_get_sec_ctx(SecurityImpersonation, &nfs41_fobx->sec_ctx);
+        if (status)
+            goto out_free;
+    }
 #else
     RtlCopyMemory(&nfs41_fobx->sec_ctx, &pVNetRootContext->mount_sec_ctx,
         sizeof(nfs41_fobx->sec_ctx));
@@ -4384,9 +4386,6 @@ NTSTATUS nfs41_CloseSrvOpen(
         entry->u.Close.renamed = nfs41_fcb->Renamed;
 
     status = nfs41_UpcallWaitForReply(entry, pVNetRootContext->timeout);
-#ifndef USE_MOUNT_SEC_CONTEXT
-    SeDeleteClientSecurity(&nfs41_fobx->sec_ctx);
-#endif
     if (status) goto out;
 
     /* map windows ERRORs to NTSTATUS */
@@ -4428,6 +4427,12 @@ NTSTATUS nfs41_DeallocateForFobx(
         RxFreePool(nfs41_fobx->acl);
         nfs41_fobx->acl = NULL;
     }
+
+    if (nfs41_fobx->sec_ctx.ClientToken) {
+        SeDeleteClientSecurity(&nfs41_fobx->sec_ctx);
+        nfs41_fobx->sec_ctx.ClientToken = NULL;
+    }
+
     return STATUS_SUCCESS;
 }
 
@@ -7167,10 +7172,10 @@ VOID fcbopen_main(PVOID ctx)
         pEntry = openlist.head.Flink;
         while (!IsListEmpty(&openlist.head)) {
             PNFS41_NETROOT_EXTENSION pNetRootContext;
-            nfs41_updowncall_entry *entry;
+            nfs41_updowncall_entry *entry = NULL;
             FILE_BASIC_INFORMATION binfo;
             PNFS41_FCB nfs41_fcb;
-            cur = (nfs41_fcb_list_entry *)CONTAINING_RECORD(pEntry, 
+            cur = (nfs41_fcb_list_entry *)CONTAINING_RECORD(pEntry,
                     nfs41_fcb_list_entry, next);
 
 #ifdef DEBUG_TIME_BASED_COHERENCY
@@ -7179,7 +7184,13 @@ VOID fcbopen_main(PVOID ctx)
                 cur->ChangeTime, cur->skip);
 #endif
             if (cur->skip) goto out;
-            pNetRootContext = 
+
+#ifdef NFS41_DRIVER_STABILITY_HACKS
+            /* FIXME: Why ? */
+            if (!cur->nfs41_fobx->sec_ctx.ClientToken)
+                goto out;
+#endif /* NFS41_DRIVER_STABILITY_HACKS */
+            pNetRootContext =
                 NFS41GetNetRootExtension(cur->fcb->pNetRoot);
             /* place an upcall for this srv_open */
             status = nfs41_UpcallCreate(NFS41_FILE_QUERY, 
@@ -7232,8 +7243,9 @@ VOID fcbopen_main(PVOID ctx)
             }
             nfs41_fcb = (PNFS41_FCB)cur->fcb->Context;
             nfs41_fcb->changeattr = entry->ChangeTime;
-            nfs41_UpcallDestroy(entry);
 out:
+            nfs41_UpcallDestroy(entry);
+            entry = NULL;
             if (pEntry->Flink == &openlist.head) {
 #ifdef DEBUG_TIME_BASED_COHERENCY
                 DbgP("fcbopen_main: reached end of the fcb list\n");
