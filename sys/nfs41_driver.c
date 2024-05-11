@@ -41,17 +41,6 @@
 #include "nfs41_build_features.h"
 
 
-/*
- * FIXME: NFS41_DRIVER_SETGID_NEWGRP_SUPPORT - we need the correct
- * |TOKEN_PRIMARY_GROUP| for |setgid()|/newgrp(1)
- * support, and |#define USE_MOUNT_SEC_CONTEXT| currently breaks
- * that
- */
-#ifndef NFS41_DRIVER_SETGID_NEWGRP_SUPPORT
-#define USE_MOUNT_SEC_CONTEXT 1
-#define STORE_MOUNT_SEC_CONTEXT 1
-#endif
-
 /* debugging printout defines */
 #define DEBUG_MARSHAL_HEADER
 #define DEBUG_MARSHAL_DETAIL
@@ -402,10 +391,6 @@ typedef struct _NFS41_V_NET_ROOT_EXTENSION {
     BOOLEAN                 read_only;
     BOOLEAN                 write_thru;
     BOOLEAN                 nocache;
-
-#ifdef STORE_MOUNT_SEC_CONTEXT
-    SECURITY_CLIENT_CONTEXT mount_sec_ctx;
-#endif
 } NFS41_V_NET_ROOT_EXTENSION, *PNFS41_V_NET_ROOT_EXTENSION;
 #define NFS41GetVNetRootExtension(pVNetRoot)      \
         (((pVNetRoot) == NULL) ? NULL :           \
@@ -3407,10 +3392,6 @@ NTSTATUS nfs41_CreateVNetRoot(
 #ifdef DEBUG_MOUNT
     DbgP("Saving new session 0x%x\n", pVNetRootContext->session);
 #endif
-#ifdef STORE_MOUNT_SEC_CONTEXT
-    status = nfs41_get_sec_ctx(SecurityImpersonation, 
-        &pVNetRootContext->mount_sec_ctx);
-#endif
 
 out_free:
     RxFreePool(Config);
@@ -3606,18 +3587,9 @@ NTSTATUS nfs41_FinalizeVNetRoot(
     DbgEn();
     print_v_net_root(1, pVNetRoot);
 #endif
-    if (pVNetRoot->pNetRoot->Type != NET_ROOT_DISK && 
+    if (pVNetRoot->pNetRoot->Type != NET_ROOT_DISK &&
             pVNetRoot->pNetRoot->Type != NET_ROOT_WILD)
         status = STATUS_NOT_SUPPORTED;
-#ifdef STORE_MOUNT_SEC_CONTEXT
-    else if (pVNetRootContext->session != INVALID_HANDLE_VALUE) {
-#ifdef DEBUG_MOUNT
-        DbgP("nfs41_FinalizeVNetRoot: deleting security context: %p\n",
-            pVNetRootContext->mount_sec_ctx.ClientToken);
-#endif
-        SeDeleteClientSecurity(&pVNetRootContext->mount_sec_ctx);
-    }
-#endif
 #ifdef DEBUG_MOUNT
     DbgEx();
 #endif
@@ -3913,13 +3885,9 @@ NTSTATUS nfs41_Create(
     status = check_nfs41_create_args(RxContext);
     if (status) goto out;
 
-#if defined(STORE_MOUNT_SEC_CONTEXT) && defined (USE_MOUNT_SEC_CONTEXT)
-    status = nfs41_UpcallCreate(NFS41_OPEN, &pVNetRootContext->mount_sec_ctx,
-#else
     status = nfs41_UpcallCreate(NFS41_OPEN, NULL,
-#endif
-        pVNetRootContext->session, INVALID_HANDLE_VALUE, 
-        pNetRootContext->nfs41d_version, 
+        pVNetRootContext->session, INVALID_HANDLE_VALUE,
+        pNetRootContext->nfs41d_version,
         SrvOpen->pAlreadyPrefixedName, &entry);
     if (status) goto out;
 
@@ -3980,12 +3948,10 @@ retry_on_link:
     }
 
     status = nfs41_UpcallWaitForReply(entry, pVNetRootContext->timeout);
-#ifndef USE_MOUNT_SEC_CONTEXT
     if (entry->psec_ctx == &entry->sec_ctx) {
         SeDeleteClientSecurity(entry->psec_ctx);
     }
     entry->psec_ctx = NULL;
-#endif
     if (status) goto out;
 
     if (entry->u.Open.EaMdl) {
@@ -4077,19 +4043,14 @@ retry_on_link:
 #endif
     nfs41_fobx = (PNFS41_FOBX)(RxContext->pFobx)->Context;
     nfs41_fobx->nfs41_open_state = entry->open_state;
-#ifndef USE_MOUNT_SEC_CONTEXT
     if (nfs41_fobx->sec_ctx.ClientToken == NULL) {
         status = nfs41_get_sec_ctx(SecurityImpersonation, &nfs41_fobx->sec_ctx);
         if (status)
             goto out_free;
     }
-#else
-    RtlCopyMemory(&nfs41_fobx->sec_ctx, &pVNetRootContext->mount_sec_ctx,
-        sizeof(nfs41_fobx->sec_ctx));
-#endif
 
     // we get attributes only for data access and file (not directories)
-    if (Fcb->OpenCount == 0 || 
+    if (Fcb->OpenCount == 0 ||
             (Fcb->OpenCount > 0 && 
                 nfs41_fcb->changeattr != entry->ChangeTime)) {
         FCB_INIT_PACKET InitPacket;
