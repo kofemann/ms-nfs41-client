@@ -65,7 +65,7 @@ static int handle_mount(void *daemon_context, nfs41_upcall *upcall)
     char *s;
     int port = 0;
     nfs41_abs_path path;
-    multi_addr4 addrs;
+    multi_addr4 addrs = { 0 };
     nfs41_root *root;
     nfs41_client *client;
     nfs41_path_fh file;
