@@ -22,6 +22,7 @@
 
 #include <Windows.h>
 #include <stdio.h>
+#include <stdbool.h>
 #include <time.h>
 #include <strsafe.h>
 #include <sddl.h>
@@ -172,6 +173,48 @@ BOOL allocate_unixgroup_sid(unsigned long gid, PSID *pSid)
         "SID for Unix_Group+%lu: error code %d\n",
         gid, GetLastError()));
     return FALSE;
+}
+
+bool unixuser_sid2uid(PSID psid, uid_t *puid)
+{
+    if (!psid)
+        return false;
+
+    PSID_IDENTIFIER_AUTHORITY psia = GetSidIdentifierAuthority(psid);
+    if ((*GetSidSubAuthorityCount(psid) == 2) &&
+        (psia->Value[0] == 0) &&
+        (psia->Value[1] == 0) &&
+        (psia->Value[2] == 0) &&
+        (psia->Value[3] == 0) &&
+        (psia->Value[4] == 0) &&
+        (psia->Value[5] == 22) &&
+        (*GetSidSubAuthority(psid, 0) == 1)) {
+        *puid = *GetSidSubAuthority(psid, 1);
+        return true;
+    }
+
+    return false;
+}
+
+bool unixgroup_sid2gid(PSID psid, gid_t *pgid)
+{
+    if (!psid)
+        return false;
+
+    PSID_IDENTIFIER_AUTHORITY psia = GetSidIdentifierAuthority(psid);
+    if ((*GetSidSubAuthorityCount(psid) == 2) &&
+        (psia->Value[0] == 0) &&
+        (psia->Value[1] == 0) &&
+        (psia->Value[2] == 0) &&
+        (psia->Value[3] == 0) &&
+        (psia->Value[4] == 0) &&
+        (psia->Value[5] == 22) &&
+        (*GetSidSubAuthority(psid, 0) == 2)) {
+        *pgid = *GetSidSubAuthority(psid, 1);
+        return true;
+    }
+
+    return false;
 }
 #endif /* NFS41_DRIVER_FEATURE_MAP_UNMAPPED_USER_TO_UNIXUSER_SID */
 
