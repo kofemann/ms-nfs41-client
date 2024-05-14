@@ -96,13 +96,13 @@ void eprintf(LPCSTR format, ...);
 
 void print_windows_access_mask(int on, ACCESS_MASK m);
 void print_nfs_access_mask(int on, int m);
-void print_hexbuf_no_asci(int on, unsigned char *title, unsigned char *buf, int len);
-void print_hexbuf(int level, unsigned char *title, unsigned char *buf, int len);
+void print_hexbuf_no_asci(const char *title, const unsigned char *buf, int len);
+void print_hexbuf(const char *title, const unsigned char *buf, int len);
 void print_create_attributes(int level, DWORD create_opts);
 void print_disposition(int level, DWORD disposition);
 void print_access_mask(int level, DWORD access_mask);
 void print_share_mode(int level, DWORD mode);
-void print_file_id_both_dir_info(int level, FILE_ID_BOTH_DIR_INFO *p);
+void print_file_id_both_dir_info(int level, const FILE_ID_BOTH_DIR_INFO *p);
 void print_sid(const char *label, PSID sid);
 const char* opcode2string(DWORD opcode);
 const char* nfs_opnum_to_string(int opnum);

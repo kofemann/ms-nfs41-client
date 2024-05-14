@@ -719,8 +719,10 @@ static int map_dacl_2_nfs4acl(PACL acl, PSID sid, PSID gsid, nfsacl41 *nfs4_acl,
         SID_NAME_USE who_sid_type = 0;
 
         DPRINTF(ACLLVL, ("NON-NULL dacl with %d ACEs\n", acl->AceCount));
-        print_hexbuf_no_asci(ACLLVL, (unsigned char *)"ACL\n",
-                            (unsigned char *)acl, acl->AclSize);
+        if (DPRINTF_LEVEL_ENABLED(ACLLVL)) {
+            print_hexbuf_no_asci("ACL\n",
+                (const unsigned char *)acl, acl->AclSize);
+        }
         nfs4_acl->count = acl->AceCount;
         nfs4_acl->aces = calloc(nfs4_acl->count, sizeof(nfsace4));
         if (nfs4_acl->aces == NULL) {
@@ -736,8 +738,10 @@ static int map_dacl_2_nfs4acl(PACL acl, PSID sid, PSID gsid, nfsacl41 *nfs4_acl,
                 goto out_free;
             }
             tmp_pointer = (PBYTE)ace;
-            print_hexbuf_no_asci(ACLLVL, (unsigned char *)"ACE\n",
-                                    (unsigned char *)ace, ace->AceSize);
+            if (DPRINTF_LEVEL_ENABLED(ACLLVL)) {
+                print_hexbuf_no_asci("ACE\n",
+                    (const unsigned char *)ace, ace->AceSize);
+            }
             DPRINTF(ACLLVL, ("ACE TYPE: %x\n", ace->AceType));
             if (ace->AceType == ACCESS_ALLOWED_ACE_TYPE)
                 nfs4_acl->aces[i].acetype = ACE4_ACCESS_ALLOWED_ACE_TYPE;

@@ -210,10 +210,9 @@ void eprintf(LPCSTR format, ...)
     va_end(args);
 }
 
-void print_hexbuf(int level, unsigned char *title, unsigned char *buf, int len) 
+void print_hexbuf(const char *title, const unsigned char *buf, int len)
 {
     int j, k;
-    if (level > g_debug_level) return;
     fprintf(dlog_file, "%s", title);
     for(j = 0, k = 0; j < len; j++, k++) {
         fprintf(dlog_file, "%02x '%c' ", buf[j], isascii(buf[j])? buf[j]:' ');
@@ -224,10 +223,9 @@ void print_hexbuf(int level, unsigned char *title, unsigned char *buf, int len)
     fprintf(dlog_file, "\n");
 }
 
-void print_hexbuf_no_asci(int level, unsigned char *title, unsigned char *buf, int len) 
+void print_hexbuf_no_asci(const char *title, const unsigned char *buf, int len)
 {
     int j, k;
-    if (level > g_debug_level) return;
     fprintf(dlog_file, "%s", title);
     for(j = 0, k = 0; j < len; j++, k++) {
         fprintf(dlog_file, "%02x ", buf[j]);
@@ -340,7 +338,7 @@ void print_share_mode(int level, DWORD mode)
     fprintf(dlog_file, "\n");
 }
 
-void print_file_id_both_dir_info(int level, FILE_ID_BOTH_DIR_INFO *pboth_dir_info)
+void print_file_id_both_dir_info(int level, const FILE_ID_BOTH_DIR_INFO *pboth_dir_info)
 {
     /* printf %zd is for |size_t| */
 
@@ -415,91 +413,93 @@ void print_sid(const char *label, PSID sid)
 const char* opcode2string(DWORD opcode)
 {
     switch(opcode) {
-    case NFS41_SHUTDOWN:    return "NFS41_SHUTDOWN";
-    case NFS41_MOUNT:       return "NFS41_MOUNT";
-    case NFS41_UNMOUNT:     return "NFS41_UNMOUNT";
-    case NFS41_OPEN:        return "NFS41_OPEN";
-    case NFS41_CLOSE:       return "NFS41_CLOSE";
-    case NFS41_READ:        return "NFS41_READ";
-    case NFS41_WRITE:       return "NFS41_WRITE";
-    case NFS41_LOCK:        return "NFS41_LOCK";
-    case NFS41_UNLOCK:      return "NFS41_UNLOCK";
-    case NFS41_DIR_QUERY:   return "NFS41_DIR_QUERY";
-    case NFS41_FILE_QUERY:  return "NFS41_FILE_QUERY";
-    case NFS41_FILE_SET:    return "NFS41_FILE_SET";
-    case NFS41_EA_SET:      return "NFS41_EA_SET";
-    case NFS41_EA_GET:      return "NFS41_EA_GET";
-    case NFS41_SYMLINK:     return "NFS41_SYMLINK";
-    case NFS41_VOLUME_QUERY: return "NFS41_VOLUME_QUERY";
-    case NFS41_ACL_QUERY:   return "NFS41_ACL_QUERY";
-    case NFS41_ACL_SET:     return "NFS41_ACL_SET";
-    default:                return "UNKNOWN";
+#define NFSOPCODE_TO_STRLITERAL(e) case e: return #e;
+        NFSOPCODE_TO_STRLITERAL(NFS41_SHUTDOWN)
+        NFSOPCODE_TO_STRLITERAL(NFS41_MOUNT)
+        NFSOPCODE_TO_STRLITERAL(NFS41_UNMOUNT)
+        NFSOPCODE_TO_STRLITERAL(NFS41_OPEN)
+        NFSOPCODE_TO_STRLITERAL(NFS41_CLOSE)
+        NFSOPCODE_TO_STRLITERAL(NFS41_READ)
+        NFSOPCODE_TO_STRLITERAL(NFS41_WRITE)
+        NFSOPCODE_TO_STRLITERAL(NFS41_LOCK)
+        NFSOPCODE_TO_STRLITERAL(NFS41_UNLOCK)
+        NFSOPCODE_TO_STRLITERAL(NFS41_DIR_QUERY)
+        NFSOPCODE_TO_STRLITERAL(NFS41_FILE_QUERY)
+        NFSOPCODE_TO_STRLITERAL(NFS41_FILE_SET)
+        NFSOPCODE_TO_STRLITERAL(NFS41_EA_SET)
+        NFSOPCODE_TO_STRLITERAL(NFS41_EA_GET)
+        NFSOPCODE_TO_STRLITERAL(NFS41_SYMLINK)
+        NFSOPCODE_TO_STRLITERAL(NFS41_VOLUME_QUERY)
+        NFSOPCODE_TO_STRLITERAL(NFS41_ACL_QUERY)
+        NFSOPCODE_TO_STRLITERAL(NFS41_ACL_SET)
     }
+    return "<unknown NFS41 opcode>";
 }
 
 const char* nfs_opnum_to_string(int opnum)
 {
     switch (opnum)
     {
-    case OP_ACCESS: return "ACCESS";
-    case OP_CLOSE: return "CLOSE";
-    case OP_COMMIT: return "COMMIT";
-    case OP_CREATE: return "CREATE";
-    case OP_DELEGPURGE: return "DELEGPURGE";
-    case OP_DELEGRETURN: return "DELEGRETURN";
-    case OP_GETATTR: return "GETATTR";
-    case OP_GETFH: return "GETFH";
-    case OP_LINK: return "LINK";
-    case OP_LOCK: return "LOCK";
-    case OP_LOCKT: return "LOCKT";
-    case OP_LOCKU: return "LOCKU";
-    case OP_LOOKUP: return "LOOKUP";
-    case OP_LOOKUPP: return "LOOKUPP";
-    case OP_NVERIFY: return "NVERIFY";
-    case OP_OPEN: return "OPEN";
-    case OP_OPENATTR: return "OPENATTR";
-    case OP_OPEN_CONFIRM: return "OPEN_CONFIRM";
-    case OP_OPEN_DOWNGRADE: return "OPEN_DOWNGRADE";
-    case OP_PUTFH: return "PUTFH";
-    case OP_PUTPUBFH: return "PUTPUBFH";
-    case OP_PUTROOTFH: return "PUTROOTFH";
-    case OP_READ: return "READ";
-    case OP_READDIR: return "READDIR";
-    case OP_READLINK: return "READLINK";
-    case OP_REMOVE: return "REMOVE";
-    case OP_RENAME: return "RENAME";
-    case OP_RENEW: return "RENEW";
-    case OP_RESTOREFH: return "RESTOREFH";
-    case OP_SAVEFH: return "SAVEFH";
-    case OP_SECINFO: return "SECINFO";
-    case OP_SETATTR: return "SETATTR";
-    case OP_SETCLIENTID: return "SETCLIENTID";
-    case OP_SETCLIENTID_CONFIRM: return "SETCLIENTID_CONFIRM";
-    case OP_VERIFY: return "VERIFY";
-    case OP_WRITE: return "WRITE";
-    case OP_RELEASE_LOCKOWNER: return "RELEASE_LOCKOWNER";
-    case OP_BACKCHANNEL_CTL: return "BACKCHANNEL_CTL";
-    case OP_BIND_CONN_TO_SESSION: return "BIND_CONN_TO_SESSION";
-    case OP_EXCHANGE_ID: return "EXCHANGE_ID";
-    case OP_CREATE_SESSION: return "CREATE_SESSION";
-    case OP_DESTROY_SESSION: return "DESTROY_SESSION";
-    case OP_FREE_STATEID: return "FREE_STATEID";
-    case OP_GET_DIR_DELEGATION: return "GET_DIR_DELEGATION";
-    case OP_GETDEVICEINFO: return "GETDEVICEINFO";
-    case OP_GETDEVICELIST: return "GETDEVICELIST";
-    case OP_LAYOUTCOMMIT: return "LAYOUTCOMMIT";
-    case OP_LAYOUTGET: return "LAYOUTGET";
-    case OP_LAYOUTRETURN: return "LAYOUTRETURN";
-    case OP_SECINFO_NO_NAME: return "SECINFO_NO_NAME";
-    case OP_SEQUENCE: return "SEQUENCE";
-    case OP_SET_SSV: return "SET_SSV";
-    case OP_TEST_STATEID: return "TEST_STATEID";
-    case OP_WANT_DELEGATION: return "WANT_DELEGATION";
-    case OP_DESTROY_CLIENTID: return "DESTROY_CLIENTID";
-    case OP_RECLAIM_COMPLETE: return "RECLAIM_COMPLETE";
-    case OP_ILLEGAL: return "ILLEGAL";
-    default: return "invalid nfs opnum";
+#define NFSOPNUM_TO_STRLITERAL(e) case e: return #e;
+        NFSOPNUM_TO_STRLITERAL(OP_ACCESS)
+        NFSOPNUM_TO_STRLITERAL(OP_CLOSE)
+        NFSOPNUM_TO_STRLITERAL(OP_COMMIT)
+        NFSOPNUM_TO_STRLITERAL(OP_CREATE)
+        NFSOPNUM_TO_STRLITERAL(OP_DELEGPURGE)
+        NFSOPNUM_TO_STRLITERAL(OP_DELEGRETURN)
+        NFSOPNUM_TO_STRLITERAL(OP_GETATTR)
+        NFSOPNUM_TO_STRLITERAL(OP_GETFH)
+        NFSOPNUM_TO_STRLITERAL(OP_LINK)
+        NFSOPNUM_TO_STRLITERAL(OP_LOCK)
+        NFSOPNUM_TO_STRLITERAL(OP_LOCKT)
+        NFSOPNUM_TO_STRLITERAL(OP_LOCKU)
+        NFSOPNUM_TO_STRLITERAL(OP_LOOKUP)
+        NFSOPNUM_TO_STRLITERAL(OP_LOOKUPP)
+        NFSOPNUM_TO_STRLITERAL(OP_NVERIFY)
+        NFSOPNUM_TO_STRLITERAL(OP_OPEN)
+        NFSOPNUM_TO_STRLITERAL(OP_OPENATTR)
+        NFSOPNUM_TO_STRLITERAL(OP_OPEN_CONFIRM)
+        NFSOPNUM_TO_STRLITERAL(OP_OPEN_DOWNGRADE)
+        NFSOPNUM_TO_STRLITERAL(OP_PUTFH)
+        NFSOPNUM_TO_STRLITERAL(OP_PUTPUBFH)
+        NFSOPNUM_TO_STRLITERAL(OP_PUTROOTFH)
+        NFSOPNUM_TO_STRLITERAL(OP_READ)
+        NFSOPNUM_TO_STRLITERAL(OP_READDIR)
+        NFSOPNUM_TO_STRLITERAL(OP_READLINK)
+        NFSOPNUM_TO_STRLITERAL(OP_REMOVE)
+        NFSOPNUM_TO_STRLITERAL(OP_RENAME)
+        NFSOPNUM_TO_STRLITERAL(OP_RENEW)
+        NFSOPNUM_TO_STRLITERAL(OP_RESTOREFH)
+        NFSOPNUM_TO_STRLITERAL(OP_SAVEFH)
+        NFSOPNUM_TO_STRLITERAL(OP_SECINFO)
+        NFSOPNUM_TO_STRLITERAL(OP_SETATTR)
+        NFSOPNUM_TO_STRLITERAL(OP_SETCLIENTID)
+        NFSOPNUM_TO_STRLITERAL(OP_SETCLIENTID_CONFIRM)
+        NFSOPNUM_TO_STRLITERAL(OP_VERIFY)
+        NFSOPNUM_TO_STRLITERAL(OP_WRITE)
+        NFSOPNUM_TO_STRLITERAL(OP_RELEASE_LOCKOWNER)
+        NFSOPNUM_TO_STRLITERAL(OP_BACKCHANNEL_CTL)
+        NFSOPNUM_TO_STRLITERAL(OP_BIND_CONN_TO_SESSION)
+        NFSOPNUM_TO_STRLITERAL(OP_EXCHANGE_ID)
+        NFSOPNUM_TO_STRLITERAL(OP_CREATE_SESSION)
+        NFSOPNUM_TO_STRLITERAL(OP_DESTROY_SESSION)
+        NFSOPNUM_TO_STRLITERAL(OP_FREE_STATEID)
+        NFSOPNUM_TO_STRLITERAL(OP_GET_DIR_DELEGATION)
+        NFSOPNUM_TO_STRLITERAL(OP_GETDEVICEINFO)
+        NFSOPNUM_TO_STRLITERAL(OP_GETDEVICELIST)
+        NFSOPNUM_TO_STRLITERAL(OP_LAYOUTCOMMIT)
+        NFSOPNUM_TO_STRLITERAL(OP_LAYOUTGET)
+        NFSOPNUM_TO_STRLITERAL(OP_LAYOUTRETURN)
+        NFSOPNUM_TO_STRLITERAL(OP_SECINFO_NO_NAME)
+        NFSOPNUM_TO_STRLITERAL(OP_SEQUENCE)
+        NFSOPNUM_TO_STRLITERAL(OP_SET_SSV)
+        NFSOPNUM_TO_STRLITERAL(OP_TEST_STATEID)
+        NFSOPNUM_TO_STRLITERAL(OP_WANT_DELEGATION)
+        NFSOPNUM_TO_STRLITERAL(OP_DESTROY_CLIENTID)
+        NFSOPNUM_TO_STRLITERAL(OP_RECLAIM_COMPLETE)
+        NFSOPNUM_TO_STRLITERAL(OP_ILLEGAL)
     }
+    return "<invalid nfs opnum>";
 }
 
 const char* nfs_error_string(int status)
@@ -620,39 +620,41 @@ const char* nfs_error_string(int status)
     NFSERR_TO_STRLITERAL(NFS4ERR_OFFLOAD_NO_REQS)
     NFSERR_TO_STRLITERAL(NFS4ERR_NOXATTR)
     NFSERR_TO_STRLITERAL(NFS4ERR_XATTR2BIG)
-    default: return "invalid nfs error code";
     }
+    return "<invalid NFS4ERR_* code>";
 }
 
 const char* rpc_error_string(int status)
 {
     switch (status)
     {
-    case RPC_CANTENCODEARGS: return "RPC_CANTENCODEARGS";
-    case RPC_CANTDECODERES: return "RPC_CANTDECODERES";
-    case RPC_CANTSEND: return "RPC_CANTSEND";
-    case RPC_CANTRECV: return "RPC_CANTRECV";
-    case RPC_TIMEDOUT: return "RPC_TIMEDOUT";
-    case RPC_INTR: return "RPC_INTR";
-    case RPC_UDERROR: return "RPC_UDERROR";
-    case RPC_VERSMISMATCH: return "RPC_VERSMISMATCH";
-    case RPC_AUTHERROR: return "RPC_AUTHERROR";
-    case RPC_PROGUNAVAIL: return "RPC_PROGUNAVAIL";
-    case RPC_PROGVERSMISMATCH: return "RPC_PROGVERSMISMATCH";
-    case RPC_PROCUNAVAIL: return "RPC_PROCUNAVAIL";
-    case RPC_CANTDECODEARGS: return "RPC_CANTDECODEARGS";
-    case RPC_SYSTEMERROR: return "RPC_SYSTEMERROR";
-    default: return "invalid rpc error code";
+#define RPCERR_TO_STRLITERAL(e) case e: return #e;
+        RPCERR_TO_STRLITERAL(RPC_CANTENCODEARGS)
+        RPCERR_TO_STRLITERAL(RPC_CANTDECODERES)
+        RPCERR_TO_STRLITERAL(RPC_CANTSEND)
+        RPCERR_TO_STRLITERAL(RPC_CANTRECV)
+        RPCERR_TO_STRLITERAL(RPC_TIMEDOUT)
+        RPCERR_TO_STRLITERAL(RPC_INTR)
+        RPCERR_TO_STRLITERAL(RPC_UDERROR)
+        RPCERR_TO_STRLITERAL(RPC_VERSMISMATCH)
+        RPCERR_TO_STRLITERAL(RPC_AUTHERROR)
+        RPCERR_TO_STRLITERAL(RPC_PROGUNAVAIL)
+        RPCERR_TO_STRLITERAL(RPC_PROGVERSMISMATCH)
+        RPCERR_TO_STRLITERAL(RPC_PROCUNAVAIL)
+        RPCERR_TO_STRLITERAL(RPC_CANTDECODEARGS)
+        RPCERR_TO_STRLITERAL(RPC_SYSTEMERROR)
     }
+    return "<invalid RPC_* error code>";
 }
 
 const char* gssauth_string(int type) {
     switch(type) {
-    case RPCSEC_SSPI_SVC_NONE: return "RPCSEC_SSPI_SVC_NONE";
-    case RPCSEC_SSPI_SVC_INTEGRITY: return "RPCSEC_SSPI_SVC_INTEGRITY";
-    case RPCSEC_SSPI_SVC_PRIVACY: return "RPCSEC_SSPI_SVC_PRIVACY";
-    default: return "invalid gss auth type";
+#define RPCSEC_TO_STRLITERAL(e) case e: return #e;
+        RPCSEC_TO_STRLITERAL(RPCSEC_SSPI_SVC_NONE)
+        RPCSEC_TO_STRLITERAL(RPCSEC_SSPI_SVC_INTEGRITY)
+        RPCSEC_TO_STRLITERAL(RPCSEC_SSPI_SVC_PRIVACY)
     }
+    return "<invalid RPCSEC_SSPI_* gss auth type>";
 }
 
 void print_condwait_status(int level, int status)
@@ -703,13 +705,14 @@ void print_sr_status_flags(int level, int flags)
 const char* secflavorop2name(DWORD sec_flavor)
 {
     switch(sec_flavor) {
-    case RPCSEC_AUTH_SYS:      return "AUTH_SYS";
-    case RPCSEC_AUTHGSS_KRB5:  return "AUTHGSS_KRB5";
-    case RPCSEC_AUTHGSS_KRB5I: return "AUTHGSS_KRB5I";
-    case RPCSEC_AUTHGSS_KRB5P: return "AUTHGSS_KRB5P";
+#define RPCSEC_AUTH_TO_STRLITERAL(e) case e: return #e;
+        RPCSEC_AUTH_TO_STRLITERAL(RPCSEC_AUTH_SYS)
+        RPCSEC_AUTH_TO_STRLITERAL(RPCSEC_AUTHGSS_KRB5)
+        RPCSEC_AUTH_TO_STRLITERAL(RPCSEC_AUTHGSS_KRB5I)
+        RPCSEC_AUTH_TO_STRLITERAL(RPCSEC_AUTHGSS_KRB5P)
     }
 
-    return "UNKNOWN FLAVOR";
+    return "<Unknown RPCSEC_AUTH* flavour>";
 }
 
 void print_windows_access_mask(int on, ACCESS_MASK m)

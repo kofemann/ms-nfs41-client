@@ -196,7 +196,10 @@ int nfs41_create_session(nfs41_client *clnt, nfs41_session *session, bool_t try_
         session->fore_chan_attrs.ca_maxoperations);
     }
 
-    print_hexbuf(1, (unsigned char *)"session id: ", session->session_id, NFS4_SESSIONID_SIZE);
+    if (DPRINTF_LEVEL_ENABLED(1)) {
+        print_hexbuf("session id: ",
+            session->session_id, NFS4_SESSIONID_SIZE);
+    }
     // check that csa_sequence is same as csr_sequence
     if (reply.csr_sequence != clnt->seq_id) {
         eprintf("ERROR: CREATE_SESSION: csa_sequence %d != "

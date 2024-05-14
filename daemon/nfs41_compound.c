@@ -166,13 +166,15 @@ retry:
                 goto out_free_slot;
             }
             // returned sessionid must be the same we sent
-            if (memcmp(seq->sr_resok4.sr_sessionid, args->sa_sessionid, 
+            if (memcmp(seq->sr_resok4.sr_sessionid, args->sa_sessionid,
                     NFS4_SESSIONID_SIZE)) {
                 eprintf("[session] sr_sessionid != sa_sessionid\n");
-                print_hexbuf(1, (unsigned char *)"sr_sessionid", 
-                    seq->sr_resok4.sr_sessionid, NFS4_SESSIONID_SIZE);
-                print_hexbuf(1, (unsigned char *)"sa_sessionid", 
-                    args->sa_sessionid, NFS4_SESSIONID_SIZE);
+                if (DPRINTF_LEVEL_ENABLED(1)) {
+                    print_hexbuf("sr_sessionid",
+                        seq->sr_resok4.sr_sessionid, NFS4_SESSIONID_SIZE);
+                    print_hexbuf("sa_sessionid",
+                        args->sa_sessionid, NFS4_SESSIONID_SIZE);
+                }
                 status = NFS4ERR_IO;
                 goto out_free_slot;
             }
