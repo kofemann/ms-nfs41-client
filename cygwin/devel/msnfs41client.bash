@@ -223,7 +223,7 @@ function nfsclient_rundeamon
 				'-brief'
 				'-no_follow_children'
 				'-lib_blocklist_frames' '1'
-				'-check_uninit_blocklist' 'MSWSOCK,WS2_32'
+				'-check_uninit_blocklist' 'MSWSOCK,WS2_32,ucrtbased.dll,ucrtbase.dll'
 				'-malloc_callstacks'
 				'-delay_frees' '16384'
 				'-delay_frees_maxsz' $((64*1024*1024))
@@ -334,7 +334,7 @@ function nfsclient_system_rundeamon
 				'-brief'
 				'-no_follow_children'
 				'-lib_blocklist_frames' '1'
-				'-check_uninit_blocklist' 'MSWSOCK,WS2_32'
+				'-check_uninit_blocklist' 'MSWSOCK,WS2_32,ucrtbased.dll,ucrtbase.dll'
 				'-malloc_callstacks'
 				'-delay_frees' '16384'
 				'-delay_frees_maxsz' $((64*1024*1024))
