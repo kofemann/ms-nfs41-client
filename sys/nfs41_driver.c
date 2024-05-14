@@ -1464,6 +1464,7 @@ NTSTATUS handle_upcall(
         status = marshal_nfs41_dirquery(entry, pbOut, cbOut, len);
         break;
     case NFS41_FILE_QUERY:
+    case NFS41_FILE_QUERY_TIME_BASED_COHERENCY:
         status = marshal_nfs41_filequery(entry, pbOut, cbOut, len);
         break;
     case NFS41_FILE_SET:
@@ -2064,6 +2065,7 @@ NTSTATUS nfs41_downcall(
             status = unmarshal_nfs41_dirquery(cur, &buf);
             break;
         case NFS41_FILE_QUERY:
+        case NFS41_FILE_QUERY_TIME_BASED_COHERENCY:
             unmarshal_nfs41_getattr(cur, &buf);
             break;
         case NFS41_EA_GET:
@@ -7154,8 +7156,9 @@ VOID fcbopen_main(PVOID ctx)
             pNetRootContext =
                 NFS41GetNetRootExtension(cur->fcb->pNetRoot);
             /* place an upcall for this srv_open */
-            status = nfs41_UpcallCreate(NFS41_FILE_QUERY, 
-                &cur->nfs41_fobx->sec_ctx, cur->session, 
+            status = nfs41_UpcallCreate(
+                NFS41_FILE_QUERY_TIME_BASED_COHERENCY,
+                &cur->nfs41_fobx->sec_ctx, cur->session,
                 cur->nfs41_fobx->nfs41_open_state,
                 pNetRootContext->nfs41d_version, NULL, &entry);
             if (status) goto out;

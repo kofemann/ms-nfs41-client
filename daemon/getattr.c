@@ -27,6 +27,7 @@
 #include "nfs41_build_features.h"
 #include "nfs41_ops.h"
 #include "name_cache.h"
+#include "nfs41_driver.h" /* only for |NFS41_FILE_QUERY*| */
 #include "upcall.h"
 #include "daemon_debug.h"
 
@@ -57,7 +58,7 @@ int nfs41_cached_getattr(
     return status;
 }
 
-/* NFS41_FILE_QUERY */
+/* NFS41_FILE_QUERY, NFS41_FILE_QUERY_TIME_BASED_COHERENCY */
 static int parse_getattr(unsigned char *buffer, uint32_t length, nfs41_upcall *upcall)
 {
     int status;
@@ -65,32 +66,47 @@ static int parse_getattr(unsigned char *buffer, uint32_t length, nfs41_upcall *u
 #ifdef NFS41_DRIVER_WORKAROUND_FOR_GETATTR_AFTER_CLOSE_HACKS
     EASSERT(length > 4);
     if (length <= 4) {
+        eprintf("parse_getattr: "
+            "upcall->opcode='%s' upcall->state_ref(=0x%p) "
+            "length(=%d) < 4\n",
+            opcode2string(upcall->opcode), upcall->state_ref,
+            (int)length);
         status = ERROR_INVALID_PARAMETER;
         goto out;
     }
 
     if (debug_ptr_was_recently_deleted(upcall->state_ref)) {
-        eprintf("parse_getattr: upcall->state_ref(=0x%p) was "
-            "recently deleted\n", upcall->state_ref);
+        eprintf("parse_getattr: "
+            "upcall->opcode='%s' upcall->state_ref(=0x%p) was "
+            "recently deleted\n",
+            opcode2string(upcall->opcode), upcall->state_ref);
         status = ERROR_INVALID_PARAMETER;
         goto out;
     }
 
     EASSERT_IS_VALID_NON_NULL_PTR(upcall->state_ref);
     if (!DEBUG_IS_VALID_NON_NULL_PTR(upcall->state_ref)) {
+        eprintf("parse_getattr: "
+            "upcall->opcode='%s' upcall->state_ref(=0x%p) not valid\n",
+            opcode2string(upcall->opcode), upcall->state_ref);
         status = ERROR_INVALID_PARAMETER;
         goto out;
     }
 
     if (!isvalidnfs41_open_state_ptr(upcall->state_ref)) {
-        eprintf("parse_getattr: Error accessing "
+        eprintf("parse_getattr: upcall->opcode='%s': Error accessing "
             "upcall->state_ref(=0x%p)->session->client\n",
+            opcode2string(upcall->opcode),
             upcall->state_ref);
         status = ERROR_INVALID_PARAMETER;
         goto out;
     }
     EASSERT(upcall->state_ref->ref_count > 0);
     if (upcall->state_ref->ref_count == 0) {
+        eprintf("parse_getattr: upcall->opcode='%s': "
+            "upcall->state_ref(=0x%p) ref_count==0\n",
+            opcode2string(upcall->opcode),
+            upcall->state_ref);
         status = ERROR_INVALID_PARAMETER;
         goto out;
     }
@@ -102,7 +118,9 @@ static int parse_getattr(unsigned char *buffer, uint32_t length, nfs41_upcall *u
     status = safe_read(&buffer, &length, &args->buf_len, sizeof(args->buf_len));
     if (status) goto out;
 
-    DPRINTF(1, ("parsing NFS41_FILE_QUERY: info_class=%d buf_len=%d file='%.*s'\n",
+    DPRINTF(1, ("parsing '%s': "
+        "info_class=%d buf_len=%d file='%.*s'\n",
+        opcode2string(upcall->opcode),
         args->query_class, args->buf_len, upcall->state_ref->path.len,
         upcall->state_ref->path.path));
 out:
