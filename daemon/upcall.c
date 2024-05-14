@@ -48,7 +48,9 @@ extern const nfs41_upcall_op nfs41_op_volume;
 extern const nfs41_upcall_op nfs41_op_getacl;
 extern const nfs41_upcall_op nfs41_op_setacl;
 
+/* |_nfs41_opcodes| and |g_upcall_op_table| must be in sync! */
 static const nfs41_upcall_op *g_upcall_op_table[] = {
+    NULL,
     &nfs41_op_mount,
     &nfs41_op_unmount,
     &nfs41_op_open,
@@ -98,8 +100,11 @@ int upcall_parse(
     if (status) goto out;
     status = safe_read(&buffer, &length, &upcall->xid, sizeof(uint64_t));
     if (status) goto out;
-    status = safe_read(&buffer, &length, &upcall->opcode, sizeof(uint32_t));
+    /* |sizeof(enum)| might not be the same as |sizeof(uint32_t)| */
+    uint32_t upcall_upcode = 0;
+    status = safe_read(&buffer, &length, &upcall_upcode, sizeof(uint32_t));
     if (status) goto out;
+    upcall->opcode = upcall_upcode;
     status = safe_read(&buffer, &length, &upcall->root_ref, sizeof(HANDLE));
     if (status) goto out;
     status = safe_read(&buffer, &length, &upcall->state_ref, sizeof(HANDLE));
@@ -113,9 +118,10 @@ int upcall_parse(
         upcall->status = status = NFSD_VERSION_MISMATCH;
         goto out;
     }
-    if (upcall->opcode >= g_upcall_op_table_size) {
+    if (upcall_upcode >= g_upcall_op_table_size) {
         status = ERROR_NOT_SUPPORTED;
-        eprintf("unrecognized upcall opcode %d!\n", upcall->opcode);
+        eprintf("upcall_parse: unrecognized upcall opcode %d!\n",
+            upcall->opcode);
         goto out;
     }
 

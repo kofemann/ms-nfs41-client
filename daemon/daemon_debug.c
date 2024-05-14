@@ -410,10 +410,11 @@ void print_sid(const char *label, PSID sid)
     }
 }
 
-const char* opcode2string(DWORD opcode)
+const char* opcode2string(nfs41_opcodes opcode)
 {
     switch(opcode) {
 #define NFSOPCODE_TO_STRLITERAL(e) case e: return #e;
+        NFSOPCODE_TO_STRLITERAL(NFS41_INVALID_OPCODE0)
         NFSOPCODE_TO_STRLITERAL(NFS41_SHUTDOWN)
         NFSOPCODE_TO_STRLITERAL(NFS41_MOUNT)
         NFSOPCODE_TO_STRLITERAL(NFS41_UNMOUNT)

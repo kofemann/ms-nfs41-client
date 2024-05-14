@@ -60,7 +60,9 @@
  */
 #define NFS41_SYS_MAX_PATH_LEN          4096
 
+/* |_nfs41_opcodes| and |g_upcall_op_table| must be in sync! */
 typedef enum _nfs41_opcodes {
+    NFS41_INVALID_OPCODE0,
     NFS41_MOUNT,
     NFS41_UNMOUNT,
     NFS41_OPEN,
@@ -79,7 +81,7 @@ typedef enum _nfs41_opcodes {
     NFS41_ACL_QUERY,
     NFS41_ACL_SET,
     NFS41_SHUTDOWN,
-    INVALID_OPCODE
+    NFS41_INVALID_OPCODE1
 } nfs41_opcodes;
 
 enum rpcsec_flavors {

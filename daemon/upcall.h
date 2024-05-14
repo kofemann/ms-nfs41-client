@@ -195,9 +195,11 @@ typedef union __upcall_args {
     setacl_upcall_args      setacl;
 } upcall_args;
 
+typedef enum _nfs41_opcodes nfs41_opcodes;
+
 typedef struct __nfs41_upcall {
     uint64_t                xid;
-    uint32_t                opcode;
+    nfs41_opcodes           opcode;
     uint32_t                status;
     uint32_t                last_error;
     upcall_args             args;
