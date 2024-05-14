@@ -72,23 +72,15 @@ static int handle_mount(void *daemon_context, nfs41_upcall *upcall)
 
     EASSERT(args->hostport != NULL);
 
-#define MOUNT_REJECT_REQUESTS_WITHOUT_IMPERSONATION_TOKEN 1
-
-#ifdef MOUNT_REJECT_REQUESTS_WITHOUT_IMPERSONATION_TOKEN
     logprintf("mount(hostport='%s', path='%s') request\n",
         args->hostport?args->hostport:"<NULL>",
         args->path?args->path:"<NULL>");
 
-    HANDLE tok;
-    if (OpenThreadToken(GetCurrentThread(), TOKEN_QUERY, FALSE, &tok)) {
-        (void)CloseHandle(tok);
-    }
-    else {
+    if (upcall->currentthread_token == INVALID_HANDLE_VALUE){
         eprintf("handle_mount: Thread has no impersonation token\n");
         status = ERROR_NO_IMPERSONATION_TOKEN;
         goto out;
     }
-#endif /* MOUNT_REJECT_REQUESTS_WITHOUT_IMPERSONATION_TOKEN */
 
     if ((args->path == NULL) || (strlen(args->path) == 0)) {
         DPRINTF(1, ("handle_mount: empty mount root\n"));

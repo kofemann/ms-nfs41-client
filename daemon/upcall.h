@@ -202,6 +202,20 @@ typedef struct __nfs41_upcall {
     uint32_t                last_error;
     upcall_args             args;
 
+    /*
+     * |currentthread_token| - (Impersonation) thread token and
+     * local uid/gid of the user we are impersonating
+     * This should be |INVALID_HANDLE_VALUE| if the thread
+     * has no impersonation token, as we use this for access
+     * checking.
+     */
+    HANDLE                  currentthread_token;
+    /*
+     * Local uid/gid of impersonated user/primary_group
+     * The NFSv4 server might use different uid/gid, and our
+     * idmapper is resposible for the
+     * local_uid/local_gid <--> owner/owner_group translation
+     */
     uid_t                   uid;
     gid_t                   gid;
 

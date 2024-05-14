@@ -67,12 +67,12 @@ typedef struct _nfs41_process_thread {
     uint32_t tid;
 } nfs41_process_thread;
 
-static int map_current_user_to_ids(nfs41_idmapper *idmapper, uid_t *puid, gid_t *pgid)
+static int map_current_user_to_ids(nfs41_idmapper *idmapper,
+    HANDLE impersonation_tok, uid_t *puid, gid_t *pgid)
 {
     char username[UNLEN+1];
     char pgroupname[GNLEN+1];
     int status = NO_ERROR;
-    HANDLE impersonation_tok = GetCurrentThreadEffectiveToken();
 
     if (!get_token_user_name(impersonation_tok, username)) {
         status = GetLastError();
@@ -159,11 +159,21 @@ static unsigned int nfsd_worker_thread_main(void *args)
             goto write_downcall;
         }
 
+        if (!OpenThreadToken(GetCurrentThread(),
+            TOKEN_QUERY/*|TOKEN_IMPERSONATE*/, FALSE,
+            &upcall.currentthread_token)) {
+            upcall.currentthread_token = INVALID_HANDLE_VALUE;
+            DPRINTF(0, ("nfsd_worker_thread_main: "
+                "OpenThreadToken() failed, lasterr=%d.\n",
+                (int)GetLastError()));
+        }
+
         /*
-         * Map current username to uid/gid
+         * Map current { user, primary_group } to { uid, gid }
          * Each thread can handle a different user
          */
         status = map_current_user_to_ids(nfs41dg->idmapper,
+            upcall.currentthread_token,
             &upcall.uid, &upcall.gid);
         if (status) {
             upcall.status = status;
@@ -184,11 +194,15 @@ write_downcall:
 
         upcall_marshall(&upcall, inbuf, (uint32_t)inbuf_len, (uint32_t*)&outbuf_len);
 
-        DPRINTF(2, ("making a downcall: outbuf_len %ld\n\n", outbuf_len));
         /*
-         * Note: Caller impersonation ends here - nfs41_driver.sys
-         * |IOCTL_NFS41_WRITE| calls |SeStopImpersonatingClient()|
+         * Note: Caller impersonation ends with |IOCTL_NFS41_WRITE| -
+         * nfs41_driver.sys |IOCTL_NFS41_WRITE| calls
+         * |SeStopImpersonatingClient()|
          */
+        (void)CloseHandle(upcall.currentthread_token);
+        upcall.currentthread_token = INVALID_HANDLE_VALUE;
+
+        DPRINTF(2, ("making a downcall: outbuf_len %ld\n\n", outbuf_len));
         status = DeviceIoControl(pipe, IOCTL_NFS41_WRITE,
             inbuf, inbuf_len, NULL, 0, (LPDWORD)&outbuf_len, NULL);
         if (!status) {
