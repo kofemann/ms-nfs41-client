@@ -752,7 +752,8 @@ NTSTATUS marshal_nfs41_open(
         if (entry->u.Open.EaMdl) {
             entry->u.Open.EaBuffer =
                 MmMapLockedPagesSpecifyCache(entry->u.Open.EaMdl,
-                    UserMode, MmCached, NULL, TRUE, NormalPagePriority);
+                    UserMode, MmCached, NULL, TRUE,
+                    NormalPagePriority|MdlMappingNoExecute);
             if (entry->u.Open.EaBuffer == NULL) {
                 print_error("marshal_nfs41_open: "
                     "MmMapLockedPagesSpecifyCache() failed to "
@@ -1012,7 +1013,8 @@ NTSTATUS marshal_nfs41_dirquery(
     __try {
         entry->u.QueryFile.mdl_buf =
             MmMapLockedPagesSpecifyCache(entry->u.QueryFile.mdl,
-                UserMode, MmCached, NULL, TRUE, NormalPagePriority);
+                UserMode, MmCached, NULL, TRUE,
+                NormalPagePriority|MdlMappingNoExecute);
         if (entry->u.QueryFile.mdl_buf == NULL) {
             print_error("marshal_nfs41_dirquery: "
                 "MmMapLockedPagesSpecifyCache() failed to map pages\n");
@@ -1514,7 +1516,7 @@ NTSTATUS nfs41_UpcallCreate(
     SECURITY_SUBJECT_CONTEXT sec_ctx;
     SECURITY_QUALITY_OF_SERVICE sec_qos;
 
-    entry = RxAllocatePoolWithTag(NonPagedPool, sizeof(nfs41_updowncall_entry), 
+    entry = RxAllocatePoolWithTag(NonPagedPoolNx, sizeof(nfs41_updowncall_entry),
                 NFS41_MM_POOLTAG_UP);
     if (entry == NULL) {
         status = STATUS_INSUFFICIENT_RESOURCES;
@@ -1835,7 +1837,7 @@ NTSTATUS unmarshal_nfs41_open(
         *buf += sizeof(USHORT);
         cur->u.Open.symlink.Length = cur->u.Open.symlink.MaximumLength -
             sizeof(WCHAR);
-        cur->u.Open.symlink.Buffer = RxAllocatePoolWithTag(NonPagedPool, 
+        cur->u.Open.symlink.Buffer = RxAllocatePoolWithTag(NonPagedPoolNx,
             cur->u.Open.symlink.MaximumLength, NFS41_MM_POOLTAG);
         if (cur->u.Open.symlink.Buffer == NULL) {
             cur->status = STATUS_INSUFFICIENT_RESOURCES;
@@ -1944,7 +1946,7 @@ NTSTATUS unmarshal_nfs41_getacl(
 
     RtlCopyMemory(&buf_len, *buf, sizeof(DWORD));
     *buf += sizeof(DWORD);
-    cur->buf = RxAllocatePoolWithTag(NonPagedPool, 
+    cur->buf = RxAllocatePoolWithTag(NonPagedPoolNx,
         buf_len, NFS41_MM_POOLTAG_ACL);
     if (cur->buf == NULL) {
         cur->status = status = STATUS_INSUFFICIENT_RESOURCES;
@@ -1990,7 +1992,7 @@ NTSTATUS nfs41_downcall(
 
     print_hexbuf(0, (unsigned char *)"downcall buffer", buf, in_len);
 
-    tmp = RxAllocatePoolWithTag(NonPagedPool, sizeof(nfs41_updowncall_entry), 
+    tmp = RxAllocatePoolWithTag(NonPagedPoolNx, sizeof(nfs41_updowncall_entry),
             NFS41_MM_POOLTAG_DOWN);
     if (tmp == NULL) goto out;
 
@@ -2653,7 +2655,7 @@ NTSTATUS _nfs41_CreateSrvCall(
     }
 
     /* Let's create our own representation of the server */
-    pServerEntry = (PNFS41_SERVER_ENTRY)RxAllocatePoolWithTag(NonPagedPool,
+    pServerEntry = (PNFS41_SERVER_ENTRY)RxAllocatePoolWithTag(NonPagedPoolNx,
         sizeof(NFS41_SERVER_ENTRY), NFS41_MM_POOLTAG);
     if (pServerEntry == NULL) {
         status = STATUS_INSUFFICIENT_RESOURCES;
@@ -3145,7 +3147,7 @@ NTSTATUS nfs41_CreateVNetRoot(
     pNetRoot->MRxNetRootState = MRX_NET_ROOT_STATE_GOOD;
     pNetRoot->DeviceType = FILE_DEVICE_DISK;
 
-    Config = RxAllocatePoolWithTag(NonPagedPool, 
+    Config = RxAllocatePoolWithTag(NonPagedPoolNx,
             sizeof(NFS41_MOUNT_CONFIG), NFS41_MM_POOLTAG);
     if (Config == NULL) {
         status = STATUS_INSUFFICIENT_RESOURCES;
@@ -3346,7 +3348,7 @@ NTSTATUS nfs41_CreateVNetRoot(
     if (!found_existing_mount) {
         /* create a new mount entry and add it to the list */
         nfs41_mount_entry *entry;
-        entry = RxAllocatePoolWithTag(NonPagedPool, sizeof(nfs41_mount_entry), 
+        entry = RxAllocatePoolWithTag(NonPagedPoolNx, sizeof(nfs41_mount_entry),
             NFS41_MM_POOLTAG_MOUNT);
         if (entry == NULL) {
             status = STATUS_INSUFFICIENT_RESOURCES;
@@ -3980,7 +3982,7 @@ retry_on_link:
         AbsPath.Length = DeviceObject->DeviceName.Length +
             VNetRootPrefix->Length + entry->u.Open.symlink.Length;
         AbsPath.MaximumLength = AbsPath.Length + sizeof(UNICODE_NULL);
-        AbsPath.Buffer = RxAllocatePoolWithTag(NonPagedPool,
+        AbsPath.Buffer = RxAllocatePoolWithTag(NonPagedPoolNx,
             AbsPath.MaximumLength, NFS41_MM_POOLTAG);
         if (AbsPath.Buffer == NULL) {
             status = STATUS_INSUFFICIENT_RESOURCES;
@@ -4155,7 +4157,7 @@ retry_on_link:
             DbgP("nfs41_Create: received no delegations: srv_open=%p "
                 "ctime=%llu\n", SrvOpen, entry->ChangeTime);
 #endif
-            oentry = RxAllocatePoolWithTag(NonPagedPool, 
+            oentry = RxAllocatePoolWithTag(NonPagedPoolNx,
                 sizeof(nfs41_fcb_list_entry), NFS41_MM_POOLTAG_OPEN);
             if (oentry == NULL) {
                 status = STATUS_INSUFFICIENT_RESOURCES;
@@ -6099,7 +6101,7 @@ void enable_caching(
 #ifdef DEBUG_TIME_BASED_COHERENCY
         DbgP("enable_caching: delegation recalled: srv_open=%p\n", SrvOpen);
 #endif
-        oentry = RxAllocatePoolWithTag(NonPagedPool, 
+        oentry = RxAllocatePoolWithTag(NonPagedPoolNx,
             sizeof(nfs41_fcb_list_entry), NFS41_MM_POOLTAG_OPEN);
         if (oentry == NULL) return;
         oentry->fcb = SrvOpen->pFcb;
