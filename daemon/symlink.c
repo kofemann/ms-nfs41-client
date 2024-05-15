@@ -293,7 +293,8 @@ out:
 
 
 const nfs41_upcall_op nfs41_op_symlink = {
-    parse_symlink,
-    handle_symlink,
-    marshall_symlink
+    .parse = parse_symlink,
+    .handle = handle_symlink,
+    .marshall = marshall_symlink,
+    .arg_size = sizeof(symlink_upcall_args)
 };

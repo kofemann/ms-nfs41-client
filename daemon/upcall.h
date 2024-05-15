@@ -242,6 +242,7 @@ typedef struct __nfs41_upcall_op {
     upcall_marshall_proc    marshall;
     upcall_cancel_proc      cancel;
     upcall_cleanup_proc     cleanup;
+    size_t                  arg_size;
 } nfs41_upcall_op;
 
 

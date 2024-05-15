@@ -316,12 +316,14 @@ out:
 
 
 const nfs41_upcall_op nfs41_op_read = {
-    parse_rw,
-    handle_read,
-    marshall_rw
+    .parse = parse_rw,
+    .handle = handle_read,
+    .marshall = marshall_rw,
+    .arg_size = sizeof(readwrite_upcall_args)
 };
 const nfs41_upcall_op nfs41_op_write = {
-    parse_rw,
-    handle_write,
-    marshall_rw
+    .parse = parse_rw,
+    .handle = handle_write,
+    .marshall = marshall_rw,
+    .arg_size = sizeof(readwrite_upcall_args)
 };

@@ -522,7 +522,8 @@ static int marshall_setattr(unsigned char *buffer, uint32_t *length, nfs41_upcal
 
 
 const nfs41_upcall_op nfs41_op_setattr = {
-    parse_setattr,
-    handle_setattr,
-    marshall_setattr
+    .parse = parse_setattr,
+    .handle = handle_setattr,
+    .marshall = marshall_setattr,
+    .arg_size = sizeof(setattr_upcall_args)
 };

@@ -882,7 +882,8 @@ static int marshall_readdir(unsigned char *buffer, uint32_t *length, nfs41_upcal
 
 
 const nfs41_upcall_op nfs41_op_readdir = {
-    parse_readdir,
-    handle_readdir,
-    marshall_readdir
+    .parse = parse_readdir,
+    .handle = handle_readdir,
+    .marshall = marshall_readdir,
+    .arg_size = sizeof(readdir_upcall_args)
 };

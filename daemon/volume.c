@@ -170,7 +170,8 @@ out:
 
 
 const nfs41_upcall_op nfs41_op_volume = {
-    parse_volume,
-    handle_volume,
-    marshall_volume
+    .parse = parse_volume,
+    .handle = handle_volume,
+    .marshall = marshall_volume,
+    .arg_size = sizeof(volume_upcall_args)
 };

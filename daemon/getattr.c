@@ -249,7 +249,8 @@ out:
 
 
 const nfs41_upcall_op nfs41_op_getattr = {
-    parse_getattr,
-    handle_getattr,
-    marshall_getattr
+    .parse = parse_getattr,
+    .handle = handle_getattr,
+    .marshall = marshall_getattr,
+    .arg_size = sizeof(getattr_upcall_args)
 };

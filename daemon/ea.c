@@ -681,13 +681,15 @@ out:
 
 
 const nfs41_upcall_op nfs41_op_setexattr = {
-    parse_setexattr,
-    handle_setexattr,
-    marshall_setexattr
+    .parse = parse_setexattr,
+    .handle = handle_setexattr,
+    .marshall = marshall_setexattr,
+    .arg_size = sizeof(setexattr_upcall_args)
 };
 
 const nfs41_upcall_op nfs41_op_getexattr = {
-    parse_getexattr,
-    handle_getexattr,
-    marshall_getexattr
+    .parse = parse_getexattr,
+    .handle = handle_getexattr,
+    .marshall = marshall_getexattr,
+    .arg_size = sizeof(getexattr_upcall_args)
 };

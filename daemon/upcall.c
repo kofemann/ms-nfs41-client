@@ -83,8 +83,19 @@ int upcall_parse(
     int status;
     const nfs41_upcall_op *op;
     DWORD version;
+    uint32_t upcall_upcode = 0;
 
-    ZeroMemory(upcall, sizeof(nfs41_upcall));
+    /*
+     * Init generic |upcall| data
+     * (Note that the |upcall->args| will be initialized before
+     * |op->parse()| below)
+     */
+    upcall->opcode = 0;
+    upcall->status = 0;
+    upcall->last_error = 0;
+    upcall->root_ref = NULL;
+    upcall->state_ref = NULL;
+
     if (!length) {
         eprintf("empty upcall\n");
         upcall->status = status = 102;
@@ -102,7 +113,6 @@ int upcall_parse(
     status = safe_read(&buffer, &length, &upcall->xid, sizeof(uint64_t));
     if (status) goto out;
     /* |sizeof(enum)| might not be the same as |sizeof(uint32_t)| */
-    uint32_t upcall_upcode = 0;
     status = safe_read(&buffer, &length, &upcall_upcode, sizeof(uint32_t));
     if (status) goto out;
     upcall->opcode = upcall_upcode;
@@ -112,7 +122,7 @@ int upcall_parse(
     if (status) goto out;
 
     DPRINTF(2, ("time=%ld version=%d xid=%d opcode='%s' session=0x%x open_state=0x%x\n",
-        time(NULL), version, upcall->xid, opcode2string(upcall->opcode), upcall->root_ref,
+        time(NULL), version, upcall->xid, opcode2string(upcall_upcode), upcall->root_ref,
         upcall->state_ref));
     if (version != NFS41D_VERSION) {
         eprintf("received version %d expecting version %d\n", version, NFS41D_VERSION);
@@ -121,8 +131,8 @@ int upcall_parse(
     }
     if (upcall_upcode >= g_upcall_op_table_size) {
         status = ERROR_NOT_SUPPORTED;
-        eprintf("upcall_parse: unrecognized upcall opcode %d!\n",
-            upcall->opcode);
+        eprintf("upcall_parse: unrecognized upcall opcode %u!\n",
+            (unsigned int)upcall_upcode);
         goto out;
     }
 
@@ -133,9 +143,9 @@ int upcall_parse(
     if (upcall->state_ref != INVALID_HANDLE_VALUE) {
         if (!isvalidnfs41_open_state_ptr(upcall->state_ref)) {
             eprintf("upcall_parse: Error accessing "
-                "upcall->state_ref(=0x%p), opcode %d; "
+                "upcall->state_ref(=0x%p), opcode %u; "
                 "returning ERROR_INVALID_PARAMETER\n",
-                upcall->state_ref, upcall->opcode);
+                upcall->state_ref, (unsigned int)upcall_upcode);
             /*
              * Set |upcall->state_ref| to |INVALID_HANDLE_VALUE|
              * so that we do not try to dereference it
@@ -147,8 +157,8 @@ int upcall_parse(
 
         if (upcall->state_ref->ref_count == 0) {
             eprintf("upcall_parse: upcall->state_ref(=0x%p).ref_count == 0, "
-                "opcode %d; returning ERROR_INVALID_PARAMETER\n",
-                upcall->state_ref, upcall->opcode);
+                "opcode %u; returning ERROR_INVALID_PARAMETER\n",
+                upcall->state_ref, (unsigned int)upcall_upcode);
             /*
              * Set |upcall->state_ref| to |INVALID_HANDLE_VALUE|
              * so that we do not try to dereference it
@@ -164,16 +174,27 @@ int upcall_parse(
         nfs41_open_state_ref(upcall->state_ref);
 
     /* parse the operation's arguments */
-    op = g_upcall_op_table[upcall->opcode];
+    op = g_upcall_op_table[upcall_upcode];
+
+    if (op) {
+        /* |NFS41_UNMOUNT| has 0 payload */
+        if (upcall_upcode != NFS41_UNMOUNT) {
+            EASSERT_MSG(op->arg_size >= sizeof(void*),
+                ("upcall->opcode=%u\n", (unsigned int)upcall_upcode));
+        }
+        (void)memset(&upcall->args, 0, op->arg_size);
+    }
+
     if (op && op->parse) {
         /* |NFS41_UNMOUNT| has 0 payload */
-        if (upcall->opcode != NFS41_UNMOUNT) {
+        if (upcall_upcode != NFS41_UNMOUNT) {
             EASSERT(length > 0);
         }
+
         status = op->parse(buffer, length, upcall);
         if (status) {
             eprintf("parsing of upcall '%s' failed with %d.\n",
-                opcode2string(upcall->opcode), status);
+                opcode2string(upcall_upcode), status);
             goto out;
         }
     }

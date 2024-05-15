@@ -1203,15 +1203,15 @@ static void cleanup_close(nfs41_upcall *upcall)
 
 
 const nfs41_upcall_op nfs41_op_open = {
-    parse_open,
-    handle_open,
-    marshall_open,
-    cancel_open
+    .parse = parse_open,
+    .handle = handle_open,
+    .marshall = marshall_open,
+    .cancel = cancel_open,
+    .arg_size = sizeof(open_upcall_args)
 };
 const nfs41_upcall_op nfs41_op_close = {
-    parse_close,
-    handle_close,
-    NULL,
-    NULL,
-    cleanup_close
+    .parse = parse_close,
+    .handle = handle_close,
+    .cleanup = cleanup_close,
+    .arg_size = sizeof(close_upcall_args)
 };

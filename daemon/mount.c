@@ -209,10 +209,11 @@ static void cancel_mount(IN nfs41_upcall *upcall)
 }
 
 const nfs41_upcall_op nfs41_op_mount = {
-    parse_mount,
-    handle_mount,
-    marshall_mount,
-    cancel_mount
+    .parse = parse_mount,
+    .handle = handle_mount,
+    .marshall = marshall_mount,
+    .cancel = cancel_mount,
+    .arg_size = sizeof(mount_upcall_args)
 };
 
 
@@ -234,6 +235,7 @@ static int handle_unmount(void *daemon_context, nfs41_upcall *upcall)
 }
 
 const nfs41_upcall_op nfs41_op_unmount = {
-    parse_unmount,
-    handle_unmount
+    .parse = parse_unmount,
+    .handle = handle_unmount,
+    .arg_size = 0
 };

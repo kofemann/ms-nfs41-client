@@ -412,12 +412,13 @@ out:
 }
 
 const nfs41_upcall_op nfs41_op_getacl = {
-    parse_getacl,
-    handle_getacl,
-    marshall_getacl
+    .parse = parse_getacl,
+    .handle = handle_getacl,
+    .marshall = marshall_getacl,
+    .arg_size = sizeof(getacl_upcall_args)
 };
 
-static int parse_setacl(unsigned char *buffer, uint32_t length, 
+static int parse_setacl(unsigned char *buffer, uint32_t length,
                         nfs41_upcall *upcall)
 {
     int status;
@@ -922,7 +923,8 @@ static int marshall_setacl(unsigned char *buffer, uint32_t *length, nfs41_upcall
 }
 
 const nfs41_upcall_op nfs41_op_setacl = {
-    parse_setacl,
-    handle_setacl,
-    marshall_setacl
+    .parse = parse_setacl,
+    .handle = handle_setacl,
+    .marshall = marshall_setacl,
+    .arg_size = sizeof(setacl_upcall_args)
 };

@@ -358,12 +358,14 @@ static int handle_unlock(void *daemon_context, nfs41_upcall *upcall)
 
 
 const nfs41_upcall_op nfs41_op_lock = {
-    parse_lock,
-    handle_lock,
-    NULL,
-    cancel_lock
+    .parse = parse_lock,
+    .handle = handle_lock,
+    .cancel = cancel_lock,
+    .arg_size = sizeof(lock_upcall_args)
 };
+
 const nfs41_upcall_op nfs41_op_unlock = {
-    parse_unlock,
-    handle_unlock
+    .parse = parse_unlock,
+    .handle = handle_unlock,
+    .arg_size = sizeof(unlock_upcall_args)
 };
