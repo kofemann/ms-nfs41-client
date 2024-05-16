@@ -26,12 +26,20 @@ $(VS_BUILD_DIR)/nfsd.exe \
 #
 # build the code
 #
-build:
+build_64bit_release:
 	@printf '#\n# PATH is %q\n#\n' '$(PATH)'
 	which MSBuild.exe
 	MSBuild.exe '$(shell cygpath -w "$(PROJECT_BASEDIR_DIR)/build.vc19/nfs41-client.sln")' -t:Build  -p:Configuration=Release -p:Platform=x64
+
+build_64bit_debug:
+	@printf '#\n# PATH is %q\n#\n' '$(PATH)'
+	which MSBuild.exe
 	MSBuild.exe '$(shell cygpath -w "$(PROJECT_BASEDIR_DIR)/build.vc19/nfs41-client.sln")' -t:Build  -p:Configuration=Debug -p:Platform=x64
+
+build_testutils:
 	(cd "$(PROJECT_BASEDIR_DIR)/tests/winfsinfo1" && make all)
+
+build: build_64bit_release build_64bit_debug build_testutils
 	sync
 
 #
