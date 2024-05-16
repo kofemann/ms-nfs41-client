@@ -353,6 +353,13 @@ static int handle_nfs41_set_size(void *daemon_context, setattr_upcall_args *args
     nfs41_open_state *state = args->state;
     int status;
 
+    EASSERT_MSG(args->buf_len == sizeof(size->QuadPart),
+        ("args->buf_len=%ld\n", (long)args->buf_len));
+
+    DPRINTF(2,
+        ("handle_nfs41_set_size: args->set_class=%d, new_file=%lld\n",
+            (int)args->set_class, (long long)size->QuadPart));
+
     /* break read delegations before SETATTR */
     nfs41_delegation_return(state->session, &state->file,
         OPEN_DELEGATE_READ, FALSE);
@@ -363,7 +370,6 @@ static int handle_nfs41_set_size(void *daemon_context, setattr_upcall_args *args
     info.attrmask.count = 1;
     info.attrmask.arr[0] = FATTR4_WORD0_SIZE;
 
-    DPRINTF(2, ("calling setattr() with size=%lld\n", info.size));
     status = nfs41_setattr(state->session, &state->file, &stateid, &info);
     if (status) {
         DPRINTF(1, ("nfs41_setattr() failed with error '%s'.\n",

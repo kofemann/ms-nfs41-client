@@ -5896,6 +5896,14 @@ NTSTATUS nfs41_SetFileInformation(
             status = STATUS_SUCCESS;
             goto out;
         }
+    case FileAllocationInformation:
+        /*
+         * Fixme: What is the correct way to handle
+         * |FileAllocationInformation| ? NFSv4 does not have the
+         * concept of a difference between "allocation size" and
+         * "end-of-file" position
+         */
+        break;
     case FileEndOfFileInformation:
         {
             PFILE_END_OF_FILE_INFORMATION info =
