@@ -659,6 +659,64 @@ const char* gssauth_string(int type) {
     return "<invalid RPCSEC_SSPI_* gss auth type>";
 }
 
+const char *FILE_INFORMATION_CLASS2string(int fic)
+{
+    switch(fic) {
+#define FIC_TO_STRLITERAL(e) case e: return #e;
+        FIC_TO_STRLITERAL(FileDirectoryInformation)
+        FIC_TO_STRLITERAL(FileFullDirectoryInformation)
+        FIC_TO_STRLITERAL(FileBothDirectoryInformation)
+        FIC_TO_STRLITERAL(FileBasicInformation)
+        FIC_TO_STRLITERAL(FileStandardInformation)
+        FIC_TO_STRLITERAL(FileInternalInformation)
+        FIC_TO_STRLITERAL(FileEaInformation)
+        FIC_TO_STRLITERAL(FileAccessInformation)
+        FIC_TO_STRLITERAL(FileNameInformation)
+        FIC_TO_STRLITERAL(FileRenameInformation)
+        FIC_TO_STRLITERAL(FileLinkInformation)
+        FIC_TO_STRLITERAL(FileNamesInformation)
+        FIC_TO_STRLITERAL(FileDispositionInformation)
+        FIC_TO_STRLITERAL(FilePositionInformation)
+        FIC_TO_STRLITERAL(FileFullEaInformation)
+        FIC_TO_STRLITERAL(FileModeInformation)
+        FIC_TO_STRLITERAL(FileAlignmentInformation)
+        FIC_TO_STRLITERAL(FileAllInformation)
+        FIC_TO_STRLITERAL(FileAllocationInformation)
+        FIC_TO_STRLITERAL(FileEndOfFileInformation)
+        FIC_TO_STRLITERAL(FileAlternateNameInformation)
+        FIC_TO_STRLITERAL(FileStreamInformation)
+        FIC_TO_STRLITERAL(FilePipeInformation)
+        FIC_TO_STRLITERAL(FilePipeLocalInformation)
+        FIC_TO_STRLITERAL(FilePipeRemoteInformation)
+        FIC_TO_STRLITERAL(FileMailslotQueryInformation)
+        FIC_TO_STRLITERAL(FileMailslotSetInformation)
+        FIC_TO_STRLITERAL(FileCompressionInformation)
+        FIC_TO_STRLITERAL(FileObjectIdInformation)
+        FIC_TO_STRLITERAL(FileCompletionInformation)
+        FIC_TO_STRLITERAL(FileMoveClusterInformation)
+        FIC_TO_STRLITERAL(FileQuotaInformation)
+        FIC_TO_STRLITERAL(FileReparsePointInformation)
+        FIC_TO_STRLITERAL(FileNetworkOpenInformation)
+        FIC_TO_STRLITERAL(FileAttributeTagInformation)
+        FIC_TO_STRLITERAL(FileTrackingInformation)
+        FIC_TO_STRLITERAL(FileIdBothDirectoryInformation)
+        FIC_TO_STRLITERAL(FileIdFullDirectoryInformation)
+        FIC_TO_STRLITERAL(FileValidDataLengthInformation)
+        FIC_TO_STRLITERAL(FileShortNameInformation)
+        FIC_TO_STRLITERAL(FileIoCompletionNotificationInformation)
+        FIC_TO_STRLITERAL(FileIoStatusBlockRangeInformation)
+        FIC_TO_STRLITERAL(FileIoPriorityHintInformation)
+        FIC_TO_STRLITERAL(FileSfioReserveInformation)
+        FIC_TO_STRLITERAL(FileSfioVolumeInformation)
+        FIC_TO_STRLITERAL(FileHardLinkInformation)
+        FIC_TO_STRLITERAL(FileProcessIdsUsingFileInformation)
+        FIC_TO_STRLITERAL(FileNormalizedNameInformation)
+        FIC_TO_STRLITERAL(FileNetworkPhysicalNameInformation)
+        FIC_TO_STRLITERAL(FileIdGlobalTxDirectoryInformation)
+    }
+    return "<unknown FILE_INFORMATION_CLASS>";
+}
+
 void print_condwait_status(int level, int status)
 {
     if (level > g_debug_level) return;

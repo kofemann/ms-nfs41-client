@@ -357,8 +357,9 @@ static int handle_nfs41_set_size(void *daemon_context, setattr_upcall_args *args
         ("args->buf_len=%ld\n", (long)args->buf_len));
 
     DPRINTF(2,
-        ("handle_nfs41_set_size: args->set_class=%d, new_file=%lld\n",
-            (int)args->set_class, (long long)size->QuadPart));
+        ("handle_nfs41_set_size: set_class='%s', new_file=%lld\n",
+            FILE_INFORMATION_CLASS2string(args->set_class),
+            (long long)size->QuadPart));
 
     /* break read delegations before SETATTR */
     nfs41_delegation_return(state->session, &state->file,

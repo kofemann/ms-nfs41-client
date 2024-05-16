@@ -110,6 +110,7 @@ const char* nfs_opnum_to_string(int opnum);
 const char* nfs_error_string(int status);
 const char* rpc_error_string(int status);
 const char* gssauth_string(int type);
+const char *FILE_INFORMATION_CLASS2string(int fic);
 void print_condwait_status(int level, int status);
 void print_sr_status_flags(int level, int flags);
 void open_log_files();
