@@ -38,10 +38,15 @@
 
 #define VAL_LEN 257
 
+#ifdef _WIN64
 #define CYGWIN_IDMAPPER_SCRIPT \
     ("C:\\cygwin64\\bin\\ksh93.exe " \
     "/cygdrive/c/cygwin64/lib/msnfs41client/cygwin_idmapper.ksh")
-
+#else
+#define CYGWIN_IDMAPPER_SCRIPT \
+    ("C:\\cygwin\\bin\\ksh93.exe " \
+    "/cygdrive/c/cygwin/lib/msnfs41client/cygwin_idmapper.ksh")
+#endif /* _WIN64 */
 
 #ifdef NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN
 int cygwin_getent_passwd(const char *name, char *res_loginname, uid_t *res_uid, gid_t *res_gid)

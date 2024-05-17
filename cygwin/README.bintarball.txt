@@ -67,8 +67,11 @@ NFSv4.1 client and filesystem driver for Windows 10/11
 #
 # 3. Requirements:
 #
-- Windows 10 or Windows 11
-- Cygwin 3.5.3 (or 3.6.x-devel)
+- Windows 10 (32bit or 64bit) or Windows 11
+- Cygwin:
+    - Cygwin versions:
+        - 64bit: >= 3.5.3 (or 3.6.x-devel)
+        - 32bit: >= 3.3.6
     - Packages (required):
         cygwin
         cygwin-devel

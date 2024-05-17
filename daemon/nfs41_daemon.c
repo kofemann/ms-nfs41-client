@@ -633,8 +633,13 @@ void init_version_string(void)
     /*
      * Add cygwin version, if Cygwin idmapper is enabled
      */
+#ifdef _WIN64
+#define CYGWIN_UNAME_A_CMD "C:\\cygwin64\\bin\\uname.exe -a"
+#else
+#define CYGWIN_UNAME_A_CMD "C:\\cygwin\\bin\\uname.exe -a"
+#endif /*  _WIN64 */
     subcmd_popen_context *scmd_uname =
-        subcmd_popen("C:\\cygwin64\\bin\\uname.exe -a");
+        subcmd_popen(CYGWIN_UNAME_A_CMD);
     if (scmd_uname) {
         char unamebuf[256];
         char *s;
