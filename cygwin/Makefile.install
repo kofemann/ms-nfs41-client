@@ -1,0 +1,90 @@
+#
+# ms-nfs41-client/cygwin/Makefile.install
+#
+# Simple (Cygwin) Makfile for quick&dirty nfsd_debug.exe testing
+#
+# Written by Roland Mainz <roland.mainz@nrubsig.org>
+#
+
+SHELL := /bin/bash
+
+CYGWIN_MAKEFILE_DIR := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
+PROJECT_BASEDIR_DIR := $(shell dirname $(realpath $(CYGWIN_MAKEFILE_DIR)/))
+
+DESTDIR := $(PROJECT_BASEDIR_DIR)/destdir
+
+
+# install in DESTDIR
+installdest:
+	#
+	# installing into destdir
+	#
+	@if [[ "$$(ps -ef | grep -v -E "[[:space:]]+$${BASH_PID}[[:space:]]+")" =~ "$(DESTDIR)" ]] ; then \
+		printf 'DIR %q is in use by a process\n' "$DESTDIR" 1>&2 ; \
+		exit 1 ; \
+	fi
+	mkdir -p $(DESTDIR)
+	mkdir -p $(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/
+	# /usr/bin is a bind mount to C:/cygwin64/bin, so copy binaries to /$(CYGWIN_BASEPATH)/bin
+	mkdir -p $(DESTDIR)/$(CYGWIN_BASEPATH)/bin
+	# /usr/lib is a bind mount to C:/cygwin64/lib, so copy library data to /$(CYGWIN_BASEPATH)/lib
+	mkdir -p $(DESTDIR)/$(CYGWIN_BASEPATH)/lib
+	mkdir -p $(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client
+	mkdir -p $(DESTDIR)/$(CYGWIN_BASEPATH)/etc
+	mkdir -p $(DESTDIR)/$(CYGWIN_BASEPATH)/usr/src/msnfs41client
+	mkdir -p $(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/man/man1
+	cp -r $(VS_BUILD_DIR)/nfsd.exe		$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/nfsd_debug.exe
+	cp -r $(VS_BUILD_DIR)/nfsd.pdb		$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/nfsd_debug.pdb
+	cp -r $(VS_BUILD_DIR)/nfs_mount.*	$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/.
+	cp -r $(VS_BUILD_DIR)/nfsd.*		$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/.
+	cp -r $(VS_BUILD_DIR)/nfs_install.*	$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/.
+	cp -r $(VS_BUILD_DIR)/libtirpc.*	$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/.
+	cp -r $(VS_BUILD_DIR)/nfs41_np.*	$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/.
+	cp -r $(VS_BUILD_DIR)/nfs41_driver.*	$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/.
+	cp $(PROJECT_BASEDIR_DIR)/nfs41rdr.inf	$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/.
+	cp $(PROJECT_BASEDIR_DIR)/etc_netconfig	$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/.
+	cp $(PROJECT_BASEDIR_DIR)/ms-nfs41-idmap.conf		$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/.
+	cp $(CYGWIN_MAKEFILE_DIR)/devel/msnfs41client.bash	$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/msnfs41client
+	chmod a+x "$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/msnfs41client"
+	(cd "$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/" && ln -sf ../lib/msnfs41client/msnfs41client .)
+	cp $(PROJECT_BASEDIR_DIR)/cygwin_idmapper.ksh		$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/.
+	@ printf "# Package sources and diffs\n"
+	git bundle create "$(DESTDIR)/$(CYGWIN_BASEPATH)/usr/src/msnfs41client/msnfs41client_git.bundle" HEAD
+	git diff -w	>"$(DESTDIR)/$(CYGWIN_BASEPATH)/usr/src/msnfs41client/msnfs41client_diff_w.diff"
+	git diff	>"$(DESTDIR)/$(CYGWIN_BASEPATH)/usr/src/msnfs41client/msnfs41client_diff.diff"
+	@ printf "# Package utilties\n"
+	cp $(CYGWIN_MAKEFILE_DIR)/utils/mount_sshnfs/mount_sshnfs.ksh $(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/mount_sshnfs
+	chmod a+x $(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/mount_sshnfs
+	PATH+=":$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/" \
+		/usr/bin/ksh93 $(CYGWIN_MAKEFILE_DIR)/utils/mount_sshnfs/mount_sshnfs.ksh --nroff 2>"$(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/man/man1/mount_sshnfs.1" || true
+	cp $(CYGWIN_MAKEFILE_DIR)/utils/sshnfs/sshnfs.ksh $(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/sshnfs
+	chmod a+x $(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/sshnfs
+	cp $(CYGWIN_MAKEFILE_DIR)/utils/nfsurlconv/nfsurlconv.ksh $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/nfsurlconv
+	chmod a+x $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/nfsurlconv
+	/usr/bin/ksh93 $(CYGWIN_MAKEFILE_DIR)/utils/nfsurlconv/nfsurlconv.ksh --nroff 2>"$(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/man/man1/nfsurlconv.1" || true
+	@ printf "# Package tests\n"
+	cp "$(PROJECT_BASEDIR_DIR)/tests/winfsinfo1/winfsinfo.exe" $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/winfsinfo.exe
+	@ printf "# Package ksh93&co (if available) since Cygwin does not ship with it yet\n"
+	[[ -x $(CYGWIN_BASEPATH)/bin/ksh93.exe ]] && cp $(CYGWIN_BASEPATH)/bin/ksh93.exe $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/ksh93.exe
+	[[ -x $(CYGWIN_BASEPATH)/bin/shcomp.exe ]] && cp $(CYGWIN_BASEPATH)/bin/shcomp.exe $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/shcomp.exe
+	cp $(PROJECT_BASEDIR_DIR)/cygwin/cygwin_ksh93/ksh.kshrc $(DESTDIR)/$(CYGWIN_BASEPATH)/etc/ksh.kshrc
+	@ printf '# Packaging libs\n'
+	ldd $$(find $(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/ -iname \*.exe -o -iname \*.dll) | \
+		while read dummy1 dummy2 dllfile dummy3 ; do \
+			printf "%s\n" "$$dllfile" ; \
+		done | \
+		sort -f -u | grep -E -i '/cygdrive/c/Windows/.*(ucrt|vcrun)' | \
+		while read i ; do \
+			cp "$$i" $(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/. ; \
+		done
+	@ printf "# Set file flags\n"
+	(cd $(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/ && chmod a+rx *.exe *.dll)
+	(cd $(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/ && chmod a+rx *.dll)
+	@printf "\n#\n# TEST sbin dir is %s\n#\n" "$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/"
+	@printf '\n'
+	@printf "\n#\n# Now use\n# $$ cd '%s' && ./msnfs41client install #\n# to install the kernel driver as Admin\n#\n" \
+		"$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/"
+	sync
+
+
+# EOF.
