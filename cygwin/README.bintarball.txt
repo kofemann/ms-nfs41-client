@@ -289,9 +289,13 @@ setup-x86.exe --allow-unsupported-windows -q --no-verify --site http://ctm.crouc
   If nfsd.exe/nfsd_debug.exe is started without the Windows priviledge
   to use reserved ports, then a mount attempt can fail.
   This can be worked around on the NFSv4 server side - on Linux using
-  the "insecure" export option in  /etc/exports and on Solaris/Illumos
+  the "insecure" export option in /etc/exports and on Solaris/Illumos
   using export option "resvport" (see nfs(5)).
 
+- Accessing mounts from a VMware/QEMU/VirtualBox VM using NAT requires
+  the the "insecure" export option in /etc/exports and on
+  Solaris/Illumos using export option "resvport" (see nfs(5)), as the
+  NFSv4 client source TCP port will be >= 1024.
 
 #
 # 9. Known issues:
