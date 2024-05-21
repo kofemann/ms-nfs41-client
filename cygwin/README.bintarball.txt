@@ -101,6 +101,7 @@ NFSv4.1 client and filesystem driver for Windows 10/11
         make
         git
         dos2unix
+        unzip
 
 #
 #
@@ -199,6 +200,15 @@ $ /sbin/nfs_mount
 #
 # 8. Notes:
 #
+- Cygwin 32bit can be installed like this:
+---- snip ----
+# Install Cygwin 32bit on Windows 32 with packages required by "ms-nfs41-client"
+# (Windows NFSv4.1 client):
+# 1. Get installer from https://www.cygwin.com/setup-x86.exe
+# 2. Run installer with these arguments:
+setup-x86.exe --allow-unsupported-windows -q --no-verify --site http://ctm.crouchingtigerhiddenfruitbat.org/pub/cygwin/circa/2022/11/23/063457 -P cygwin,cygwin-devel,cygrunsrv,cygutils,cygutils-extra,bash,bzip2,coreutils,getent,gdb,grep,hostname,less,libiconv,libiconv2,pax,pbzip2,procps-ng,sed,tar,time,util-linux,wget,libnfs,make,git,dos2unix,unzip
+---- snip ----
+
 - Idmapping (including uid/gid mapping) between NFSv4 client and
   NFSv4 server works via /lib/msnfs41client/cygwin_idmapper.ksh,
   which either uses builtin static data, or /usr/bin/getent passwd
@@ -331,6 +341,8 @@ $ /sbin/nfs_mount
   c) the EaSize field cannot be reported for directory queries of
   FileBothDirInformation, FileFullDirInfo, or FileIdFullDirInfo.
 
+- Win10/32bit-only: $ net use H: /delete # does not work,
+  use $ nfs_mount -d 'H' instead #
 
 #
 # 10. Notes for troubleshooting && finding bugs/debugging:

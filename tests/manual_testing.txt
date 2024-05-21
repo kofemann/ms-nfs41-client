@@ -1,5 +1,5 @@
 #
-# ms-nfs41-client manual testing sequence, 2024-02-26
+# ms-nfs41-client manual testing sequence, 2024-05-21
 #
 # Draft version, needs to be turned into automated tests
 # if possible
@@ -9,10 +9,15 @@
 # Notes:
 # - The following Cygwin packages must be installed for running the tests:
 #   ---- snip ----
+#   gcc-core
+#   gcc-g++
+#   clang
+#   gdb
 #   make
-#   git
 #   netpbm
+#   git
 #   subversion
+#   cygport
 #   dos2unix
 #   ncurses-devel
 #   libgmp-devel
@@ -22,6 +27,12 @@
 #   libisl-devel
 #   flex
 #   bison
+#   unzip
+#   pax
+#   tar
+#   konsole
+#   nedit
+#   emacs
 #   ---- snip ----
 #
 # - Benchmarking/profiling should be done with the realtime virus checker
