@@ -44,6 +44,42 @@ function is_windows_admin_account
 	return 1
 }
 
+function check_machine_arch
+{
+	typeset winpwd
+	typeset uname_m
+
+	# get the location where this script is installed,
+	# because on Cygwin the script will be installed
+	# in /cygdrive/c/cygwin/lib/msnfs41client/ (32bit) or
+	# in /cygdrive/c/cygwin64/lib/msnfs41client/ (64bit).
+	winpwd="$(cygpath -w "$(dirname -- "$(realpath "${BASH_SOURCE[0]}")")")"
+
+	uname_m="$(uname -m)"
+
+	case "${uname_m}" in
+		'x86_64')
+			if [[ "${winpwd}" != 'C:\cygwin64\'* ]] ; then
+				printf $"%s: Requires 64bit Cygwin\n" "$0" 1>&2
+				return 1
+			fi
+			return 0
+			;;
+		'i686')
+			if [[ "${winpwd}" != 'C:\cygwin\'* ]] ; then
+				printf $"%s: Requires 32bit Cygwin\n" "$0" 1>&2
+				return 1
+			fi
+			return 0
+			;;
+		*)
+			printf $"%s: Unknown arch/Cygwin combination ('%s'/'%s')\n" "$0" "${uname_m}" "${winpwd}" 1>&2
+			return 1
+			;;
+	esac
+	# not reached
+}
+
 function nfsclient_install
 {
 	set -o nounset
@@ -52,13 +88,9 @@ function nfsclient_install
 
 	# switch to the location where this script is installed,
 	# because on Cygwin the script will be installed
-	# in /cygdrive/c/cygwin64/lib/msnfs41client/
+	# in /cygdrive/c/cygwin/lib/msnfs41client/ (32bit) or
+	# in /cygdrive/c/cygwin64/lib/msnfs41client/ (64bit).
 	cd -P "$(dirname -- "$(realpath "${BASH_SOURCE[0]}")")"
-
-	if ! is_windows_admin_account ; then
-		printf $"%s: Install requires Windows Adminstator permissions.\n" "$0"
-		return 1
-	fi
 
 	# make sure all binaries are executable, Windows cmd does
 	# not care, but Cygwin&bash do.
@@ -383,18 +415,30 @@ function nfsclient_system_rundeamon
 
 function watch_kernel_debuglog
 {
+	typeset dbgview_cmd
+
 	printf "# logging start...\n" 1>&2
+
+	case "$(uname -m)" in
+		'x86_64') dbgview_cmd='dbgview64' ;;
+		'i686')   dbgview_cmd='dbgview' ;;
+		*)
+			printf $"%s: Unknown machine type\n" "$0" 1>&2
+			return 1
+			;;
+	esac
+
 	# seperate process so SIGINT works
 	# use DebugView (https://learn.microsoft.com/en-gb/sysinternals/downloads/debugview) to print kernel log
-	bash -c '
+	dbgview_cmd="${dbgview_cmd}" bash -c '
 		klogname="msnfs41client_watch_kernel_debuglog$$.log"
-		dbgview64 /t /k /l "$klogname" &
+		$dbgview_cmd /t /k /l "$klogname" &
 		(( dbgview_pid=$! ))
 		trap "(( dbgview_pid != 0)) && kill $dbgview_pid && wait ; (( dbgview_pid=0 ))" INT TERM EXIT
 		sleep 2
 		printf "# logging %s ...\n" "$klogname" 1>&2
 		tail -n0 -f "$klogname"'
-	printf "# logging done\n" 1>&2
+	printf '# logging done\n' 1>&2
 	return 0
 }
 
@@ -481,12 +525,13 @@ function sys_terminal
 	PsExec -accepteula -nobanner \
 		-i \
 		-s -w "$(cygpath -w "$PWD")" \
-		'C:\cygwin64\bin\mintty.exe'
+		"$(cygpath -w "$(which mintty.exe)")" --nodaemon
 }
 
 function main
 {
 	typeset cmd="$1"
+	typeset -i numerr=0
 
 	# path where this script is installed
 	typeset scriptpath="$(dirname -- "$(realpath "${BASH_SOURCE[0]}")")"
@@ -511,66 +556,109 @@ function main
 
 	case "$cmd" in
 		'install')
+			check_machine_arch || (( numerr++ ))
+			require_cmd 'regtool.exe' || (( numerr++ ))
+			require_cmd 'cygrunsrv.exe' || (( numerr++ ))
+			require_cmd 'nfsd.exe' || (( numerr++ ))
+			require_cmd 'nfs_install.exe' || (( numerr++ ))
+			require_cmd 'rundll32.exe' || (( numerr++ ))
+			require_cmd 'bcdedit.exe' || (( numerr++ ))
+			require_cmd 'fsutil.exe' || (( numerr++ ))
+			require_cmd 'sc.exe' || (( numerr++ ))
+			if ! is_windows_admin_account ; then
+				printf $"%s: %q requires Windows Adminstator permissions.\n" "$0" "$cmd"
+				(( numerr++ ))
+			fi
+			(( numerr > 0 )) && return 1
+
 			nfsclient_install
 			return $?
 			;;
 		'run_deamon' | 'run_daemon')
-			#require_cmd 'cdb.exe' || return 1
-			require_cmd 'nfsd.exe' || return 1
-			require_cmd 'nfsd_debug.exe' || return 1
-			require_cmd 'nfs_mount.exe' || return 1
+			check_machine_arch || (( numerr++ ))
+			#require_cmd 'cdb.exe' || (( numerr++ ))
+			require_cmd 'nfsd.exe' || (( numerr++ ))
+			require_cmd 'nfsd_debug.exe' || (( numerr++ ))
+			require_cmd 'nfs_mount.exe' || (( numerr++ ))
+			(( numerr > 0 )) && return 1
+
 			nfsclient_rundeamon
 			return $?
 			;;
 		'sys_run_deamon' | 'sys_run_daemon')
-			#require_cmd 'cdb.exe' || return 1
-			require_cmd 'PsExec.exe' || return 1
-			require_cmd 'nfsd.exe' || return 1
-			require_cmd 'nfsd_debug.exe' || return 1
-			require_cmd 'nfs_mount.exe' || return 1
+			check_machine_arch || (( numerr++ ))
+			#require_cmd 'cdb.exe' || (( numerr++ ))
+			require_cmd 'PsExec.exe' || (( numerr++ ))
+			require_cmd 'nfsd.exe' || (( numerr++ ))
+			require_cmd 'nfsd_debug.exe' || (( numerr++ ))
+			require_cmd 'nfs_mount.exe' || (( numerr++ ))
 			if ! is_windows_admin_account ; then
 				printf $"%s: %q requires Windows Adminstator permissions.\n" "$0" "$cmd"
-				return 1
+				(( numerr++ ))
 			fi
+			(( numerr > 0 )) && return 1
+
 			nfsclient_system_rundeamon
 			return $?
 			;;
 		'sys_mount_homedir')
-			require_cmd 'nfs_mount.exe' || return 1
+			check_machine_arch || (( numerr++ ))
+			require_cmd 'nfs_mount.exe' || (( numerr++ ))
 			if ! is_windows_admin_account ; then
 				printf $"%s: %q requires Windows Adminstator permissions.\n" "$0" "$cmd"
-				return 1
+				(( numerr++ ))
 			fi
+			(( numerr > 0 )) && return 1
+
 			nfsclient_system_mount_homedir
 			return $?
 			;;
 		'mount_homedir')
-			require_cmd 'nfs_mount.exe' || return 1
+			check_machine_arch || (( numerr++ ))
+			require_cmd 'nfs_mount.exe' || (( numerr++ ))
+			(( numerr > 0 )) && return 1
+
 			nfsclient_mount_homedir
 			return $?
 			;;
 		'umount_homedir')
-			require_cmd 'nfs_mount.exe' || return 1
+			check_machine_arch || (( numerr++ ))
+			require_cmd 'nfs_mount.exe' || (( numerr++ ))
+			(( numerr > 0 )) && return 1
+
 			nfsclient_umount_homedir
 			return $?
 			;;
 		# misc
 		'watch_kernel_debuglog')
-			require_cmd 'dbgview64' || return 1
+			check_machine_arch || (( numerr++ ))
+			case "$(uname -m)" in
+				'x86_64') require_cmd 'dbgview64' || (( numerr++ )) ;;
+				'i686')   require_cmd 'dbgview' || (( numerr++ )) ;;
+				*)
+					printf $"%s: Unknown machine type\n" "$0" 1>&2
+					(( numerr++ ))
+					;;
+			esac
 			if ! is_windows_admin_account ; then
 				printf $"%s: %q requires Windows Adminstator permissions.\n" "$0" "$cmd"
-				return 1
+				(( numerr++ ))
 			fi
+			(( numerr > 0 )) && return 1
+
 			watch_kernel_debuglog
 			return $?
 			;;
 		'sys_terminal')
-			require_cmd 'mintty.exe' || return 1
-			require_cmd 'PsExec.exe' || return 1
+			check_machine_arch || (( numerr++ ))
+			require_cmd 'mintty.exe' || (( numerr++ ))
+			require_cmd 'PsExec.exe' || (( numerr++ ))
 			if ! is_windows_admin_account ; then
 				printf $"%s: %q requires Windows Adminstator permissions.\n" "$0" "$cmd"
-				return 1
+				(( numerr++ ))
 			fi
+			(( numerr > 0 )) && return 1
+
 			sys_terminal
 			return $?
 			;;
