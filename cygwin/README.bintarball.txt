@@ -100,6 +100,11 @@ NFSv4.1 client and filesystem driver for Windows 10/11
         libnfs (for /usr/bin/nfs-ls)
         make
         git
+        gcc-core
+        gcc-g++
+        clang
+        mingw64-i686-clang
+        mingw64-x86_64-clang
         dos2unix
         unzip
 

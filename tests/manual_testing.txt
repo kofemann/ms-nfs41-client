@@ -12,6 +12,8 @@
 #   gcc-core
 #   gcc-g++
 #   clang
+#   mingw64-i686-clang
+#   mingw64-x86_64-clang
 #   gdb
 #   make
 #   netpbm

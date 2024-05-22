@@ -63,7 +63,13 @@ installdest:
 	chmod a+x $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/nfsurlconv
 	/usr/bin/ksh93 $(CYGWIN_MAKEFILE_DIR)/utils/nfsurlconv/nfsurlconv.ksh --nroff 2>"$(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/man/man1/nfsurlconv.1" || true
 	@ printf "# Package tests\n"
-	cp "$(PROJECT_BASEDIR_DIR)/tests/winfsinfo1/winfsinfo.exe" $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/winfsinfo.exe
+	cp "$(PROJECT_BASEDIR_DIR)/tests/winfsinfo1/winfsinfo.x86_64.exe" $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/winfsinfo.x86_64.exe
+	cp "$(PROJECT_BASEDIR_DIR)/tests/winfsinfo1/winfsinfo.i686.exe" $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/winfsinfo.i686.exe
+	if [[ "$(CYGWIN_BASEPATH)" == *64* ]] ; then \
+		(cd $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/ && ln -sf winfsinfo.x86_64.exe winfsinfo.exe) \
+	else \
+		(cd $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/ && ln -sf winfsinfo.i686.exe winfsinfo.exe) \
+	fi
 	@ printf "# Package ksh93&co (if available) since Cygwin does not ship with it yet\n"
 	[[ -x $(CYGWIN_BASEPATH)/bin/ksh93.exe ]] && cp $(CYGWIN_BASEPATH)/bin/ksh93.exe $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/ksh93.exe || true
 	[[ -x $(CYGWIN_BASEPATH)/bin/shcomp.exe ]] && cp $(CYGWIN_BASEPATH)/bin/shcomp.exe $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/shcomp.exe || true

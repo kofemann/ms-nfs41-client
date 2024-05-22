@@ -137,7 +137,8 @@ bool get_file_basic_info(const char *progname, const char *filename)
 {
     int res = EXIT_FAILURE;
     bool ok;
-    FILE_BASIC_INFO finfo = { 0 };
+    FILE_BASIC_INFO finfo;
+    (void)memset(&finfo, 0, sizeof(finfo));
 
     HANDLE fileHandle = CreateFileA(filename,
         GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING,
@@ -225,7 +226,8 @@ bool get_file_standard_info(const char *progname, const char *filename)
 {
     int res = EXIT_FAILURE;
     bool ok;
-    FILE_STANDARD_INFO finfo = { 0 };
+    FILE_STANDARD_INFO finfo;
+    (void)memset(&finfo, 0, sizeof(finfo));
 
     HANDLE fileHandle = CreateFileA(filename,
         GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING,
@@ -282,7 +284,8 @@ bool get_filenormalizednameinfo(const char *progname, const char *filename)
 {
     int res = EXIT_FAILURE;
     bool ok;
-    FILE_NAME_INFORMATION4096 finfo = { 0 };
+    FILE_NAME_INFORMATION4096 finfo;
+    (void)memset(&finfo, 0, sizeof(finfo));
 
     HANDLE fileHandle = CreateFileA(filename,
         GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING,
