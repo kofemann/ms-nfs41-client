@@ -112,7 +112,7 @@ int main(int ac, char *av[])
     if (dataSize > 0) {
         /* Read the existing data */
         result = RegQueryValueExA(hKey, "ProviderOrder", NULL, NULL,
-            originalValue, &dataSize);
+            (BYTE *)originalValue, &dataSize);
         if (result != ERROR_SUCCESS) {
             (void)fprintf(stderr, "%s: Error reading registry value: %d\n",
                 av[0], result);
@@ -165,12 +165,10 @@ int main(int ac, char *av[])
         char *s;
 
         DPRINTF(1, ("# value before removal '%s'\n", new_buffer));
-        while (s = strstr(new_buffer, PROVIDER_NAME_COMMA)) {
-            if (s) {
-                char *end = s+strlen(PROVIDER_NAME_COMMA);
-                (void)memmove(s, end, strlen(end)+1);
-                DPRINTF(1, ("# value after removal '%s'\n", new_buffer));
-            }
+        while ((s = strstr(new_buffer, PROVIDER_NAME_COMMA)) != NULL) {
+            char *end = s+strlen(PROVIDER_NAME_COMMA);
+            (void)memmove(s, end, strlen(end)+1);
+            DPRINTF(1, ("# value after removal '%s'\n", new_buffer));
         }
 
         if (!strcmp(new_buffer, PROVIDER_NAME)) {
@@ -184,7 +182,7 @@ int main(int ac, char *av[])
      * Set the new value of the ProviderOrder key
      */
     result = RegSetValueExA(hKey, "ProviderOrder", 0, REG_SZ,
-        new_buffer, (DWORD)strlen(new_buffer));
+        (BYTE *)new_buffer, (DWORD)strlen(new_buffer));
 
     if (result != ERROR_SUCCESS) {
         (void)fprintf(stderr, "%s: Error setting registry value: %d\n",
