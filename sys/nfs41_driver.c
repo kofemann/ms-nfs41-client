@@ -3585,8 +3585,6 @@ NTSTATUS nfs41_FinalizeVNetRoot(
     IN PBOOLEAN ForceDisconnect)
 {
     NTSTATUS status = STATUS_SUCCESS;
-    PNFS41_V_NET_ROOT_EXTENSION pVNetRootContext =
-        NFS41GetVNetRootExtension(pVNetRoot);
 #ifdef DEBUG_MOUNT
     DbgEn();
     print_v_net_root(1, pVNetRoot);

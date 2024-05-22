@@ -75,9 +75,9 @@ const char *fsctl2string(ULONG fsctl);
 #define DbgR() DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, \
         "<-- [%s] [%04x] %s\n", _DRIVER_NAME_, PsGetCurrentProcessShortDebugId(), __FUNCTION__); \
         } except (EXCEPTION_EXECUTE_HANDLER) { \
-            NTSTATUS status; \
-            status = GetExceptionCode() ; \
-            DbgP("Exception encountered with value = Ox%x\n", status); \
+            NTSTATUS exc_status; \
+            exc_status = GetExceptionCode() ; \
+            DbgP("Exception encountered with value = Ox%x\n", (int)exc_status); \
         }
 
 /* These are for ToasterDebugPrint */
