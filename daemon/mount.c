@@ -66,7 +66,7 @@ static int handle_mount(void *daemon_context, nfs41_upcall *upcall)
     int port = 0;
     nfs41_abs_path path;
     multi_addr4 addrs = { 0 };
-    nfs41_root *root;
+    nfs41_root *root = NULL;
     nfs41_client *client;
     nfs41_path_fh file;
 
@@ -89,7 +89,8 @@ static int handle_mount(void *daemon_context, nfs41_upcall *upcall)
     }
 
     (void)strcpy_s(hostname, sizeof(hostname), args->hostport);
-    if (s = strchr(hostname, '@')) {
+    s = strchr(hostname, '@');
+    if (s) {
         *s++ = '\0';
 	port = atoi(s);
 	if ((port < 1) || (port > 65535)) {

@@ -56,8 +56,8 @@ int cygwin_getent_passwd(const char *name, char *res_loginname, uid_t *res_uid, 
     DWORD num_buff_read;
     subcmd_popen_context *script_pipe = NULL;
     int res = 1;
-    unsigned long uid = -1;
-    unsigned long gid = -1;
+    unsigned long uid = ~0UL;
+    unsigned long gid = ~0UL;
     void *cpvp = NULL;
     int numcnv = 0;
     int i = 0;
@@ -171,7 +171,7 @@ int cygwin_getent_group(const char* name, char* res_group_name, gid_t* res_gid)
     DWORD num_buff_read;
     subcmd_popen_context *script_pipe = NULL;
     int res = 1;
-    unsigned long gid = -1;
+    unsigned long gid = ~0UL;
     void *cpvp = NULL;
     int numcnv = 0;
     int i = 0;

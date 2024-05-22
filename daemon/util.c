@@ -604,15 +604,15 @@ subcmd_popen_context *subcmd_popen(const char *command)
         goto fail;
     }
 
-    CloseHandle(pinfo->hWritePipe);
+    (void)CloseHandle(pinfo->hWritePipe);
 
     return pinfo;
 fail:
     if (pinfo) {
         if (pinfo->hReadPipe)
-            CloseHandle(pinfo->hReadPipe);
+            (void)CloseHandle(pinfo->hReadPipe);
         if (pinfo->hWritePipe)
-            CloseHandle(pinfo->hWritePipe);
+            (void)CloseHandle(pinfo->hWritePipe);
 
         free(pinfo);
     }
@@ -624,17 +624,18 @@ int subcmd_pclose(subcmd_popen_context *pinfo)
     DWORD status;
 
     /* Close the read handle to the pipe from the child process */
-    CloseHandle(pinfo->hReadPipe);
+    (void)CloseHandle(pinfo->hReadPipe);
 
     status = WaitForSingleObjectEx(pinfo->pi.hProcess, INFINITE, FALSE);
     EASSERT(status == WAIT_OBJECT_0);
 
     if (!GetExitCodeProcess(pinfo->pi.hProcess, &status)) {
-        status = -1;
+        /* fixme: We need a better error code */
+        status = ERROR_INVALID_ACCESS;
     }
 
-    CloseHandle(pinfo->pi.hProcess);
-    CloseHandle(pinfo->pi.hThread);
+    (void)CloseHandle(pinfo->pi.hProcess);
+    (void)CloseHandle(pinfo->pi.hThread);
 
     if (status != 0) {
         DPRINTF(0, ("subcmd_pclose(): exit code=%d\n", (int)status));
@@ -703,27 +704,29 @@ bool_t waitcriticalsection(LPCRITICAL_SECTION cs)
  * is a private API, but it should be safe to use as Cygwin and
  * other software relies on it
  */
+#ifdef _WIN64
+/*
+ * Windows private API, so we add prototype here ourselves
+ *
+ * Note that this currently only works with 64bit Windows,
+ * 32bit Windows generates this build error:
+ * ---- snip ----
+ * util.obj : error LNK2019: unresolved external symbol __RtlGetNtVersionNumbers referenced in function _getwinntversionnnumbers
+ * ---- snip ----
+ */
+/*
+ * Reference:
+ * https://cygwin.com/git/?p=newlib-cygwin.git;a=blob;f=winsup/cygwin/wincap.cc
+ */
+NTSTATUS RtlGetNtVersionNumbers(LPDWORD, LPDWORD, LPDWORD);
+#endif /* _WIN64 */
+
 bool getwinntversionnnumbers(
     DWORD *MajorVersionPtr,
     DWORD *MinorVersionPtr,
     DWORD *BuildNumberPtr)
 {
 #ifdef _WIN64
-    /*
-     * Windows private API, so we add prototype here ourselves
-     *
-     * Note that this currently only works with 64bit Windows,
-     * 32bit Windows generates this build error:
-     * ---- snip ----
-     * util.obj : error LNK2019: unresolved external symbol __RtlGetNtVersionNumbers referenced in function _getwinntversionnnumbers
-     * ---- snip ----
-     */
-    NTSTATUS RtlGetNtVersionNumbers(LPDWORD, LPDWORD, LPDWORD);
-
-    /*
-     * Reference:
-     * https://cygwin.com/git/?p=newlib-cygwin.git;a=blob;f=winsup/cygwin/wincap.cc
-     */
     (void)RtlGetNtVersionNumbers(MajorVersionPtr, MinorVersionPtr, BuildNumberPtr);
     *BuildNumberPtr &= 0xffff;
 

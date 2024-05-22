@@ -85,7 +85,11 @@ typedef struct __nfs41_server {
     nfs41_superblock_list superblocks;
     struct nfs41_name_cache *name_cache;
     struct list_entry entry; /* position in global server list */
+#pragma warning( push )
+/* Ignore "C4324: structure was padded due to alignment specifier" */
+#pragma warning (disable : 4324)
     __declspec(align(8)) volatile LONG ref_count;
+#pragma warning( pop )
 } nfs41_server;
 
 enum delegation_status {
@@ -297,7 +301,11 @@ typedef struct __nfs41_root {
     struct list_entry clients;
     uint32_t wsize;
     uint32_t rsize;
+#pragma warning( push )
+/* Ignore "C4324: structure was padded due to alignment specifier" */
+#pragma warning (disable : 4324)
     __declspec(align(8)) volatile LONG ref_count;
+#pragma warning( pop )
     uint32_t uid;
     uint32_t gid;
     DWORD sec_flavor;

@@ -775,8 +775,8 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
 
 #ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES
         char owner[NFS4_OPAQUE_LIMIT], owner_group[NFS4_OPAQUE_LIMIT];
-        uid_t map_uid = -1;
-        gid_t map_gid = -1;
+        uid_t map_uid = ~0UL;
+        gid_t map_gid = ~0UL;
         char *at_ch; /* pointer to '@' */
 
 #if 1
@@ -785,7 +785,6 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
             ((info.attrmask.arr[1] & FATTR4_WORD1_OWNER_GROUP) == 0)) {
             bitmap4 og_attr_request = { 0 };
             nfs41_file_info og_info = { 0 };
-            nfsacl41 acl = { 0 };
 
             og_attr_request.count = 2;
             og_attr_request.arr[1] =
@@ -831,7 +830,8 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
          *  ("gisburn") or username@domain ("gisburn@sun.com")
          */
         /* stomp over '@' */
-        if (at_ch = strchr(owner, '@'))
+        at_ch = strchr(owner, '@');
+        if (at_ch)
             *at_ch = '\0';
 
         if (nfs41_idmap_name_to_uid(
@@ -855,7 +855,8 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
          * ("gisgrp") or username@domain ("gisgrp@sun.com")
          */
         /* stomp over '@' */
-        if (at_ch = strchr(owner_group, '@'))
+        at_ch = strchr(owner_group, '@');
+        if (at_ch)
             *at_ch = '\0';
 
         if (nfs41_idmap_group_to_gid(

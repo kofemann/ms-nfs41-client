@@ -71,10 +71,10 @@ int nfs41_exchange_id(
     compound_add_op(&compound, OP_EXCHANGE_ID, &ex_id, res_out);
 
     /* gisburn: fixme: We do not have that domain yet */
-    impl_id.nii_domain      = "msnfs41client.org";
-    impl_id.nii_domain_len  = (uint32_t)strlen(impl_id.nii_domain);
-    impl_id.nii_name        = nfs41_dg.nfs41_nii_name;
-    impl_id.nii_name_len    = (uint32_t)strlen(impl_id.nii_name);
+    impl_id.nii_domain      = (unsigned char *)"msnfs41client.org";
+    impl_id.nii_domain_len  = (uint32_t)strlen((const char *)impl_id.nii_domain);
+    impl_id.nii_name        = (unsigned char *)nfs41_dg.nfs41_nii_name;
+    impl_id.nii_name_len    = (uint32_t)strlen((const char *)impl_id.nii_name);
     /*
      * gisburn: fixme: |impl_id.nii_date| should be the timestamp
      * of the binary

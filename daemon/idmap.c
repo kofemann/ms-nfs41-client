@@ -654,12 +654,14 @@ static int idmap_lookup_user(
     struct idmap_user *user)
 {
     PCHAR* values[NUM_ATTRIBUTES] = { NULL };
+#ifndef NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN
     const unsigned attributes = ATTR_FLAG(ATTR_USER_NAME)
         | ATTR_FLAG(ATTR_PRINCIPAL)
         | ATTR_FLAG(ATTR_UID)
         | ATTR_FLAG(ATTR_GID);
     /* principal is optional; we'll cache it if we have it */
     const unsigned optional = ATTR_FLAG(ATTR_PRINCIPAL);
+#endif /* !NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN */
     int i, status;
 
     /* check the user cache for an existing entry */
@@ -742,7 +744,7 @@ static int idmap_lookup_user(
          * fixme: This does not work with multiple domains
          */
         (void)strcpy_s(search_name, sizeof(search_name), lookup->value);
-        if (s = strchr(search_name, '@'))
+        if ((s = strchr(search_name, '@')) != NULL)
             *s = '\0';
 
         if (!cygwin_getent_passwd(search_name, NULL, &cy_uid, &cy_gid)) {
@@ -805,7 +807,9 @@ static int idmap_lookup_user(
         /* insert the entry into the cache */
         cache_insert(&context->users, lookup, &user->entry);
     }
+#ifndef NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN
 out_free_values:
+#endif
     for (i = 0; i < NUM_ATTRIBUTES; i++)
         ldap_value_freeA(values[i]);
 out:
@@ -818,8 +822,10 @@ static int idmap_lookup_group(
     struct idmap_group *group)
 {
     PCHAR* values[NUM_ATTRIBUTES] = { NULL };
+#ifndef NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN
     const unsigned attributes = ATTR_FLAG(ATTR_GROUP_NAME)
         | ATTR_FLAG(ATTR_GID);
+#endif
     int i, status;
 
     /* check the group cache for an existing entry */
@@ -906,7 +912,9 @@ static int idmap_lookup_group(
         /* insert the entry into the cache */
         cache_insert(&context->groups, lookup, &group->entry);
     }
+#ifndef NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN
 out_free_values:
+#endif
     for (i = 0; i < NUM_ATTRIBUTES; i++)
         ldap_value_freeA(values[i]);
 out:

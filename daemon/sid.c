@@ -406,11 +406,12 @@ int map_nfs4servername_2_sid(nfs41_daemon_globals *nfs41dg, int query, DWORD *si
 #ifdef NFS41_DRIVER_FEATURE_MAP_UNMAPPED_USER_TO_UNIXUSER_SID
     /* use our own idmapper script to map nfsv4 owner string to local Windows account */
     if (query & OWNER_SECURITY_INFORMATION) {
-        uid_t udummy = -1;
-        gid_t gdummy = -1;
+        uid_t udummy = ~0UL;
+        gid_t gdummy = ~0UL;
 
 #ifdef NFS41_DRIVER_SID_CACHE
-        if (*sid = sidcache_getcached_byname(&user_sidcache, nfsname)) {
+        *sid = sidcache_getcached_byname(&user_sidcache, nfsname);
+        if (*sid) {
             *sid_len = GetLengthSid(*sid);
             DPRINTF(1, ("map_nfs4servername_2_sid: returning cached sid for user '%s'\n", nfsname));
             status = 0;
@@ -437,10 +438,11 @@ int map_nfs4servername_2_sid(nfs41_daemon_globals *nfs41dg, int query, DWORD *si
 #ifdef NFS41_DRIVER_FEATURE_MAP_UNMAPPED_USER_TO_UNIXUSER_SID
     /* use our own idmapper script to map nfsv4 owner string to local Windows account */
     if (query & GROUP_SECURITY_INFORMATION) {
-        gid_t gdummy = -1;
+        gid_t gdummy = ~0UL;
 
 #ifdef NFS41_DRIVER_SID_CACHE
-        if (*sid = sidcache_getcached_byname(&group_sidcache, nfsname)) {
+        *sid = sidcache_getcached_byname(&group_sidcache, nfsname);
+        if (*sid) {
             *sid_len = GetLengthSid(*sid);
             DPRINTF(1, ("map_nfs4servername_2_sid: returning cached sid for group '%s'\n", nfsname));
             status = 0;
@@ -516,8 +518,7 @@ int map_nfs4servername_2_sid(nfs41_daemon_globals *nfs41dg, int query, DWORD *si
             query, nfsname));
 
         if ((user_uid == -1) && (query & OWNER_SECURITY_INFORMATION)) {
-            uid_t map_uid = -1;
-            gid_t gid_dummy = -1;
+            uid_t map_uid = ~0UL;
 
             if (nfs41_idmap_name_to_uid(nfs41dg->idmapper,
                 nfsname, &map_uid) == 0) {
@@ -533,7 +534,7 @@ int map_nfs4servername_2_sid(nfs41_daemon_globals *nfs41dg, int query, DWORD *si
         }
 
         if ((group_gid == -1) && (query & GROUP_SECURITY_INFORMATION)) {
-            gid_t map_gid = -1;
+            gid_t map_gid = ~0UL;
 
             if (nfs41_idmap_group_to_gid(
                 nfs41dg->idmapper,

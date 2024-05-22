@@ -997,8 +997,8 @@ int nfs41_name_cache_insert(
     if (path == NULL || name == NULL || name->len == 0) {
         /* create the root entry if it doesn't exist */
         if (cache->root == NULL) {
-            const nfs41_component name = { "ROOT", 4 };
-            status = name_cache_entry_create(cache, &name, &cache->root);
+            const nfs41_component nc_name = { "ROOT", 4 };
+            status = name_cache_entry_create(cache, &nc_name, &cache->root);
             if (status)
                 goto out_err_deleg;
         }

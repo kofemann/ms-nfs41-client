@@ -37,12 +37,21 @@
 
 
 /* 0xdd..dd is the filler by the debug memory allocator */
+#ifdef _WIN64
 #define DEBUG_IS_VALID_NON_NULL_PTR(ptr) \
     ( \
         (((char *)(ptr)) != ((char *)0xddddddddddddddddLL)) && \
         (((char *)(ptr)) != ((char *)0xffffffffffffffffLL)) && \
         ((ptr) != NULL) \
     )
+#else
+#define DEBUG_IS_VALID_NON_NULL_PTR(ptr) \
+    ( \
+        (((char *)(ptr)) != ((char *)0xddddddddL)) && \
+        (((char *)(ptr)) != ((char *)0xffffffffL)) && \
+        ((ptr) != NULL) \
+    )
+#endif /* _WIN64 */
 
 #define EASSERT(exp) \
     if (!(exp)) { \

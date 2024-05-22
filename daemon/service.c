@@ -495,7 +495,7 @@ void CmdRemoveService()
 //
 void CmdDebugService(int argc, char ** argv)
 {
-   DWORD dwArgc;
+   int dwArgc;
    LPTSTR *lpszArgv;
 
 #ifdef UNICODE
