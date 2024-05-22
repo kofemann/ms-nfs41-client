@@ -38,6 +38,11 @@
  * making this function safe
  */
 #pragma warning (disable : 4996)
+/*
+ * Disable "warning C4706: assignment within conditional expression"
+ * because it is safe to use in our code.
+ */
+#pragma warning (disable : 4706)
 
 /*
  * Original extended regular expression:
@@ -123,6 +128,9 @@ url_parser_context *url_parser_create_context(const char *in_url, unsigned int f
 	char *s;
 	size_t in_url_len;
 	size_t context_len;
+
+	/* |flags| is for future extensions */
+	(void)flags;
 
 	if (!in_url)
 		return NULL;
