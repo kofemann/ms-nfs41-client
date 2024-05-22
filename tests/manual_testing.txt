@@ -21,7 +21,7 @@
 #   subversion
 #   cygport
 #   dos2unix
-#   ncurses-devel
+#   libncurses-devel
 #   libgmp-devel
 #   libmpfr-devel
 #   libmpc-devel
