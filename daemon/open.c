@@ -959,14 +959,17 @@ supersede_retry:
              * chgrp on the new file
              */
             if (create == OPEN4_CREATE) {
+                char *s;
+
                 nfs41_file_info createchgrpattrs = { 0 };
                 createchgrpattrs.attrmask.count = 2;
                 createchgrpattrs.attrmask.arr[1] |= FATTR4_WORD1_OWNER_GROUP;
                 createchgrpattrs.owner_group = createchgrpattrs.owner_group_buf;
                 (void)get_token_primarygroup_name(GetCurrentThreadEffectiveToken(),
                     createchgrpattrs.owner_group);
-                (void)strcat(createchgrpattrs.owner_group, "@");
-                (void)strcat(createchgrpattrs.owner_group,  nfs41dg->localdomain_name);
+                s = createchgrpattrs.owner_group+strlen(createchgrpattrs.owner_group);
+                s = stpcpy(s, "@");
+                (void)stpcpy(s, nfs41dg->localdomain_name);
                 DPRINTF(1, ("handle_open(): create(), groupname='%s'\n", createchgrpattrs.owner_group));
 
                 stateid_arg stateid;

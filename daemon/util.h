@@ -45,6 +45,8 @@ enum stable_how4;
 #define PTR2PTRDIFF_T(p) ((ptrdiff_t)((char *)((void *)(p)) - ((char *)0)))
 #define PTRDIFF_T2PTR(d) ((void *)(((char *)0) + (d)))
 
+char *stpcpy(char *restrict s1, const char *restrict s2);
+
 int safe_read(unsigned char **pos, uint32_t *remaining, void *dest, uint32_t dest_len);
 int safe_write(unsigned char **pos, uint32_t *remaining, void *dest, uint32_t dest_len);
 int get_name(unsigned char **pos, uint32_t *remaining, const char **out_name);

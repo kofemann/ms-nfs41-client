@@ -33,7 +33,13 @@
 #include "nfs41_ops.h"
 
 
-int safe_read(unsigned char **pos, uint32_t *remaining, void *dest, uint32_t dest_len) 
+char *stpcpy(char *restrict s1, const char *restrict s2)
+{
+    size_t l = strlen(s2);
+    return ((char *)memcpy(s1, s2, l+1)) + l;
+}
+
+int safe_read(unsigned char **pos, uint32_t *remaining, void *dest, uint32_t dest_len)
 {
     if (*remaining < dest_len)
         return ERROR_BUFFER_OVERFLOW;
