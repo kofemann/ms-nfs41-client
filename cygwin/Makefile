@@ -55,6 +55,7 @@ build_32bit_debug:
 
 build_testutils:
 	(cd "$(PROJECT_BASEDIR_DIR)/tests/winfsinfo1" && make all)
+	(cd "$(PROJECT_BASEDIR_DIR)/tests/winsg" && make all)
 
 build: build_32bit_release build_32bit_debug build_64bit_release build_64bit_debug build_testutils
 	sync
@@ -65,6 +66,7 @@ build: build_32bit_release build_32bit_debug build_64bit_release build_64bit_deb
 clean:
 	rm -vRf $$(find "$(PROJECT_BASEDIR_DIR)/build.vc19" -name Debug -o -name Release)
 	(cd "$(PROJECT_BASEDIR_DIR)/tests/winfsinfo1" && make clean)
+	(cd "$(PROJECT_BASEDIR_DIR)/tests/winsg" && make clean)
 
 installdest: \
 	$(VS_BUILD_DIR32)/nfsd.exe \

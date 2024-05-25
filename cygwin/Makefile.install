@@ -70,6 +70,11 @@ installdest:
 	else \
 		(cd $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/ && ln -sf winfsinfo.i686.exe winfsinfo.exe) \
 	fi
+	if [[ "$(CYGWIN_BASEPATH)" == *64* ]] ; then \
+		cp "$(PROJECT_BASEDIR_DIR)/tests/winsg/winsg.x86_64.exe" $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/winsg.exe ; \
+	else \
+		cp "$(PROJECT_BASEDIR_DIR)/tests/winsg/winsg.i686.exe" $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/winsg.exe ; \
+	fi
 	@ printf "# Package ksh93&co (if available) since Cygwin does not ship with it yet\n"
 	[[ -x $(CYGWIN_BASEPATH)/bin/ksh93.exe ]] && cp -f $(CYGWIN_BASEPATH)/bin/ksh93.exe $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/ksh93.exe || true
 	[[ -x $(CYGWIN_BASEPATH)/bin/shcomp.exe ]] && cp -f $(CYGWIN_BASEPATH)/bin/shcomp.exe $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/shcomp.exe || true

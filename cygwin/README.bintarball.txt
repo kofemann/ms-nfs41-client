@@ -56,6 +56,16 @@ NFSv4.1 client and filesystem driver for Windows 10/11
     - uid/gid
     - Cygwin symlinks
 
+- Custom primary group support
+    - Supports primary group changes in the calling process/thread
+      (via |SetTokenInformation(..., TokenPrimaryGroup,...)|), e.g.
+      if the calling process/threads switches the primary group
+      in its access token then the NFSv4.1 client will use that
+      group as GID for file creation.
+    - newgrp(1)/sg(1)-style "winsg" utilty to run cmd.exe with
+      different primary group, e.g.
+      $ winsg [-] -g group [-c command | /C command] #
+
 - Software compatibility:
     - Any NFSv4.1 server (Linux, Solaris, Illumos, FreeBSD, nfs4j,
         ...)
