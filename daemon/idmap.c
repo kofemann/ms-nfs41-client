@@ -32,6 +32,13 @@
 #include "nfs41_const.h"
 #include "list.h"
 #include "daemon_debug.h"
+#include "util.h"
+
+#define PTR2UID_T(p) ((uid_t)PTR2PTRDIFF_T(p))
+#define PTR2GID_T(p) ((gid_t)PTR2PTRDIFF_T(p))
+#define PTR2UINT(p)  ((UINT)PTR2PTRDIFF_T(p))
+#define UID_T2PTR(u) (PTRDIFF_T2PTR((ptrdiff_t)u))
+#define GID_T2PTR(g) (PTRDIFF_T2PTR((ptrdiff_t)g))
 
 #define IDLVL 2         /* dprintf level for idmap logging */
 #define CYGWINIDLVL 2   /* dprintf level for idmap logging */
@@ -554,19 +561,19 @@ static int idmap_filter(
     char *filter,
     size_t filter_len)
 {
-    UINT_PTR i;
+    UINT i;
     int status = NO_ERROR;
 
     switch (lookup->type) {
     case TYPE_INT:
-        i = (UINT_PTR)lookup->value;
+        i = PTR2UINT(lookup->value);
         if (FAILED(StringCchPrintfA(filter, filter_len,
                 "(&(objectClass=%s)(%s=%u))",
                 config->classes[lookup->klass],
-                config->attributes[lookup->attr], (UINT)i))) {
+                config->attributes[lookup->attr], i))) {
             status = ERROR_BUFFER_OVERFLOW;
             eprintf("ldap filter buffer overflow: '%s=%u'\n",
-                config->attributes[lookup->attr], (UINT)i);
+                config->attributes[lookup->attr], i);
         }
         break;
 
@@ -764,7 +771,7 @@ static int idmap_lookup_user(
         }
     }
     else if (lookup->attr == ATTR_UID) {
-        uid_t search_uid = (uid_t)(lookup->value);
+        uid_t search_uid = PTR2UID_T(lookup->value);
         char search_name[VAL_LEN];
         char res_username[VAL_LEN];
         char principal_name[VAL_LEN];
@@ -876,7 +883,7 @@ static int idmap_lookup_group(
         }
     }
     else if (lookup->attr == ATTR_GID) {
-        gid_t search_gid = (gid_t)(lookup->value);
+        gid_t search_gid = PTR2GID_T(lookup->value);
         char search_name[VAL_LEN];
         char res_groupname[VAL_LEN];
         gid_t cy_gid = 0;
@@ -1081,8 +1088,8 @@ static int uid_cmp(const struct list_entry *list, const void *value)
 {
     const struct idmap_user *entry = list_container(list,
         const struct idmap_user, entry);
-    const UINT_PTR uid = (const UINT_PTR)value;
-    return (UINT)uid - entry->uid;
+    const uid_t uid = PTR2UID_T(value);
+    return (int)uid - (int)entry->uid;
 }
 
 int nfs41_idmap_uid_to_name(
@@ -1091,14 +1098,13 @@ int nfs41_idmap_uid_to_name(
     char *name,
     size_t len)
 {
-    UINT_PTR uidp = uid; /* convert to pointer size to pass as void* */
     struct idmap_lookup lookup = { ATTR_UID, CLASS_USER, TYPE_INT, uid_cmp };
     struct idmap_user user;
     int status;
 
     DPRINTF(IDLVL, ("--> nfs41_idmap_uid_to_name(%u)\n", (unsigned int)uid));
 
-    lookup.value = (const void*)uidp;
+    lookup.value = UID_T2PTR(uid);
 
     /* look up the user entry */
     status = idmap_lookup_user(context, &lookup, &user);
@@ -1204,8 +1210,8 @@ static int gid_cmp(const struct list_entry *list, const void *value)
 {
     const struct idmap_group *entry = list_container(list,
         const struct idmap_group, entry);
-    const UINT_PTR gid = (const UINT_PTR)value;
-    return (UINT)gid - entry->gid;
+    const gid_t gid = PTR2GID_T(value);
+    return (int)gid - (int)entry->gid;
 }
 
 int nfs41_idmap_gid_to_group(
@@ -1214,14 +1220,13 @@ int nfs41_idmap_gid_to_group(
     char *name,
     size_t len)
 {
-    UINT_PTR gidp = gid; /* convert to pointer size to pass as void* */
     struct idmap_lookup lookup = { ATTR_GID, CLASS_GROUP, TYPE_INT, gid_cmp };
     struct idmap_group group;
     int status;
 
     DPRINTF(IDLVL, ("--> nfs41_idmap_gid_to_group(%u)\n", gid));
 
-    lookup.value = (const void*)gidp;
+    lookup.value = GID_T2PTR(gid);
 
     /* look up the group entry */
     status = idmap_lookup_group(context, &lookup, &group);

@@ -23,6 +23,7 @@
 #ifndef __NFS41_DAEMON_UTIL_H__
 #define __NFS41_DAEMON_UTIL_H__
 
+#include <stdlib.h>
 #include <stdbool.h>
 
 #include "nfs41_types.h"
@@ -40,6 +41,9 @@ enum stable_how4;
  * gisburn: FIXME: We need a better header for this
  */
 #define FILE_INFO_TIME_NOT_SET (0LL)
+
+#define PTR2PTRDIFF_T(p) ((ptrdiff_t)((char *)((void *)(p)) - ((char *)0)))
+#define PTRDIFF_T2PTR(d) ((void *)(((char *)0) + (d)))
 
 int safe_read(unsigned char **pos, uint32_t *remaining, void *dest, uint32_t dest_len);
 int safe_write(unsigned char **pos, uint32_t *remaining, void *dest, uint32_t dest_len);
