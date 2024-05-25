@@ -954,27 +954,42 @@ supersede_retry:
         } else {
 #ifdef NFS41_DRIVER_SETGID_NEWGRP_SUPPORT
             /*
-             * Hack: Support |setgid()|/newgrp(1) by fetching group
-             * name from auth token for new files and do a "manual"
-             * chgrp on the new file
+             * Hack: Support |setgid()|/newgrp(1)/sg(1)/winsg(1) by
+             * fetching groupname from auth token for new files and
+             * do a "manual" chgrp on the new file
              */
             if (create == OPEN4_CREATE) {
                 char *s;
-
+                int chgrp_status;
+                stateid_arg stateid;
                 nfs41_file_info createchgrpattrs = { 0 };
+
                 createchgrpattrs.attrmask.count = 2;
                 createchgrpattrs.attrmask.arr[1] |= FATTR4_WORD1_OWNER_GROUP;
                 createchgrpattrs.owner_group = createchgrpattrs.owner_group_buf;
-                (void)get_token_primarygroup_name(GetCurrentThreadEffectiveToken(),
-                    createchgrpattrs.owner_group);
+                /* fixme: we should store the |owner_group| name in |upcall| */
+                if (!get_token_primarygroup_name(upcall->currentthread_token,
+                    createchgrpattrs.owner_group)) {
+                    eprintf("handle_open(): OPEN4_CREATE: "
+                        "get_token_primarygroup_name() failed.\n");
+                    goto create_chgrp_out;
+                }
                 s = createchgrpattrs.owner_group+strlen(createchgrpattrs.owner_group);
                 s = stpcpy(s, "@");
                 (void)stpcpy(s, nfs41dg->localdomain_name);
-                DPRINTF(1, ("handle_open(): create(), groupname='%s'\n", createchgrpattrs.owner_group));
+                DPRINTF(1, ("handle_open(): OPEN4_CREATE: owner_group='%s'\n",
+                    createchgrpattrs.owner_group));
 
-                stateid_arg stateid;
                 nfs41_open_stateid_arg(state, &stateid);
-                (void)nfs41_setattr(state->session, &state->file, &stateid, &createchgrpattrs);
+                chgrp_status = nfs41_setattr(state->session,
+                    &state->file, &stateid, &createchgrpattrs);
+                if (chgrp_status) {
+                    eprintf("handle_open(): OPEN4_CREATE: "
+                        "nfs41_setattr(owner_group='%s') failed with error '%s'.\n",
+                        createchgrpattrs.owner_group, nfs_error_string(chgrp_status));
+                }
+create_chgrp_out:
+                ;
             }
 #endif /* NFS41_DRIVER_SETGID_NEWGRP_SUPPORT */
 
