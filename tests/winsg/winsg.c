@@ -60,11 +60,18 @@
 /*
  * DECLARE_SID_BUFFER - declare a buffer for a SID value
  * Note that buffers with SID values must be 16byte aligned
- * on Windows 32, othewise the kernel might return
- * |ERROR_NOACCESS|(=998) - "Invalid access to memory location.
+ * on Windows 10/32bit, othewise the kernel might return
+ * |ERROR_NOACCESS|(=998) - "Invalid access to memory location".
  */
+#ifdef _MSC_BUILD
+/* Visual Studio */
+#define DECLARE_SID_BUFFER(varname) \
+    __declspec(align(16)) char (varname)[SECURITY_MAX_SID_SIZE+1]
+#else
+/* clang */
 #define DECLARE_SID_BUFFER(varname) \
     char (varname)[SECURITY_MAX_SID_SIZE+1] __attribute__((aligned(16)))
+#endif /* _MSC_BUILD */
 
 /*
  * Performance hack:

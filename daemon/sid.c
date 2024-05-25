@@ -229,7 +229,10 @@ typedef struct _sidcache_entry
     char    win32name[SIDCACHE_ENTRY_NAME_SIZE]; /* must fit something like "user@domain" */
     PSID    sid;
     DWORD   sid_len;
-    char    sid_buffer[SECURITY_MAX_SID_SIZE+1];
+#pragma warning( push )
+#pragma warning (disable : 4324)
+    DECLARE_SID_BUFFER(sid_buffer);
+#pragma warning( pop )
     time_t  timestamp;
 } sidcache_entry;
 
