@@ -99,7 +99,8 @@ xdr_rpc_sspi_wrap_data(XDR *xdrs, xdrproc_t xdr_func, caddr_t xdr_ptr,
 {
 	sspi_buffer_desc databuf, wrapbuf;
 	uint32_t maj_stat;
-	int start, end, conf_state;
+	int start, end;
+        u_int conf_state;
 	bool_t xdr_stat;
 
     log_debug("in xdr_rpc_sspi_wrap_data()");
@@ -180,8 +181,9 @@ xdr_rpc_sspi_unwrap_data(XDR *xdrs, xdrproc_t xdr_func, caddr_t xdr_ptr,
 	XDR tmpxdrs;
 	sspi_buffer_desc databuf, wrapbuf;
 	uint32_t maj_stat;
-	u_int seq_num, qop_state;
-	int conf_state;
+	u_int seq_num;
+        unsigned long qop_state;
+	u_int conf_state;
 	bool_t xdr_stat;
 
     log_debug("in xdr_rpc_sspi_unwrap_data()");

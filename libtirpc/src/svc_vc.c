@@ -575,7 +575,7 @@ write_vc(xprtp, buf, len)
 	SVCXPRT *xprt;
 	int i, cnt;
 	struct cf_conn *cd;
-	struct timeval tv0, tv1;
+	struct timeval tv0 = { 0 }, tv1;
 
 	xprt = (SVCXPRT *)xprtp;
 	assert(xprt != NULL);

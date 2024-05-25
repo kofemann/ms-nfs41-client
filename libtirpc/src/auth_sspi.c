@@ -159,7 +159,7 @@ authsspi_create_default(CLIENT *clnt, char *service, int svc)
         goto out_err;
     sec->svc = svc;
     // Let's acquire creds here for now
-    maj_stat = AcquireCredentialsHandleA(NULL, sec_pkg_name, SECPKG_CRED_BOTH,
+    maj_stat = AcquireCredentialsHandleA(NULL, (LPSTR)sec_pkg_name, SECPKG_CRED_BOTH,
         NULL, NULL, NULL, NULL, &sec->cred, &sec->expiry);
     if (maj_stat != SEC_E_OK) {
         log_debug("authgss_create_default: AcquireCredentialsHandleA failed with %x", maj_stat);
@@ -275,7 +275,8 @@ static bool_t
 authsspi_validate(AUTH *auth, struct opaque_auth *verf, u_int seq)
 {
 	struct rpc_sspi_data *gd;
-	u_int num, qop_state, cur_seq;
+	u_int num, cur_seq = 0;
+	unsigned long qop_state;
 	sspi_buffer_desc signbuf, checksum;
 	uint32_t maj_stat;
 
@@ -345,8 +346,9 @@ authsspi_refresh(AUTH *auth, void *tmp)
 	struct rpc_sspi_data *gd;
 	struct rpc_sspi_init_res gr;
     sspi_buffer_desc *recv_tokenp, send_token;
-	uint32_t maj_stat, call_stat, ret_flags, i;
-    unsigned long flags = 
+	uint32_t maj_stat, call_stat, i;
+	unsigned long ret_flags;
+    unsigned long flags =
         ISC_REQ_MUTUAL_AUTH|ISC_REQ_INTEGRITY|ISC_REQ_ALLOCATE_MEMORY;
     SecBufferDesc out_desc, in_desc;
     SecBuffer wtkn[1], rtkn[1];    
@@ -493,8 +495,9 @@ authsspi_refresh(AUTH *auth, void *tmp)
 		 */
 		if (maj_stat == SEC_E_OK) {
 			sspi_buffer_desc bufin;
-			u_int seq, qop_state = 0;
-            
+			u_int seq;
+			unsigned long qop_state = 0;
+
             print_negotiated_attrs(&gd->ctx);
 
 			seq = htonl(gr.gr_win);
@@ -664,7 +667,7 @@ uint32_t sspi_get_mic(PCtxtHandle ctx, u_int qop, u_int seq,
     maj_stat = QueryContextAttributesA(ctx, SECPKG_ATTR_SIZES, &ContextSizes);
     if (maj_stat != SEC_E_OK) return maj_stat;
 
-    if (ContextSizes.cbMaxSignature == 0) return SEC_E_INTERNAL_ERROR;
+    if (ContextSizes.cbMaxSignature == 0) return (uint32_t)SEC_E_INTERNAL_ERROR;
 
     desc.cBuffers = 2;
     desc.pBuffers = sec_tkn;
@@ -675,7 +678,7 @@ uint32_t sspi_get_mic(PCtxtHandle ctx, u_int qop, u_int seq,
     sec_tkn[1].BufferType = SECBUFFER_TOKEN;
     sec_tkn[1].cbBuffer = ContextSizes.cbMaxSignature;
     sec_tkn[1].pvBuffer = calloc(ContextSizes.cbMaxSignature, sizeof(char));
-    if (sec_tkn[1].pvBuffer == NULL) return SEC_E_INSUFFICIENT_MEMORY;
+    if (sec_tkn[1].pvBuffer == NULL) return (uint32_t)SEC_E_INSUFFICIENT_MEMORY;
 
     maj_stat = MakeSignature(ctx, 0, &desc, seq);
     if (maj_stat == SEC_E_OK) {
@@ -688,11 +691,11 @@ uint32_t sspi_get_mic(PCtxtHandle ctx, u_int qop, u_int seq,
     return maj_stat;
 }
 
-uint32_t sspi_verify_mic(PCtxtHandle ctx, u_int seq, sspi_buffer_desc *bufin, 
-                            sspi_buffer_desc *bufout, u_int *qop_state)
+uint32_t sspi_verify_mic(PCtxtHandle ctx, u_int seq, sspi_buffer_desc *bufin,
+                            sspi_buffer_desc *bufout, unsigned long *qop_state)
 {
     SecBufferDesc desc;
-    SecBuffer sec_tkn[2];    
+    SecBuffer sec_tkn[2];
 
     desc.cBuffers = 2;
     desc.pBuffers = sec_tkn;
@@ -722,7 +725,7 @@ uint32_t sspi_import_name(sspi_buffer_desc *name_in, sspi_name_t *name_out)
 {
     *name_out = calloc((size_t)name_in->length + 5L, sizeof(char));
     if (*name_out == NULL)
-        return SEC_E_INSUFFICIENT_MEMORY;
+        return (uint32_t)SEC_E_INSUFFICIENT_MEMORY;
 
     strcpy(*name_out, "nfs/");
     strncat(*name_out, name_in->value, name_in->length);
@@ -785,9 +788,9 @@ out:
     return maj_stat;
 }
 
-uint32_t sspi_unwrap(PCtxtHandle ctx, u_int seq, sspi_buffer_desc *bufin, 
-                     sspi_buffer_desc *bufout, u_int *conf_state, 
-                     u_int *qop_state)
+uint32_t sspi_unwrap(PCtxtHandle ctx, u_int seq, sspi_buffer_desc *bufin,
+                     sspi_buffer_desc *bufout, u_int *conf_state,
+                     unsigned long *qop_state)
 {
     uint32_t maj_stat;
     SecBufferDesc BuffDesc;
@@ -913,7 +916,7 @@ void print_negotiated_attrs(PCtxtHandle ctx)
 
 }
 
-void log_hexdump(bool_t on, const u_char *title, const u_char *buf, 
+void log_hexdump(bool_t on, const char *title, const u_char *buf,
                     int len, int offset)
 {
 	int i, j, jm, c;

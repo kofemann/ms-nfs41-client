@@ -125,7 +125,7 @@ rpc_call(host, prognum, versnum, procnum, inproc, in, outproc, out, nettype)
 	}
 	if ((nettype == NULL) || (nettype[0] == 0))
 		nettype = "netpath";
-	if (!(rcp->valid && rcp->pid == getpid() &&
+	if (!(rcp->valid && rcp->pid == (pid_t)getpid() &&
 		(rcp->prognum == prognum) &&
 		(rcp->versnum == versnum) &&
 		(!strcmp(rcp->host, host)) &&

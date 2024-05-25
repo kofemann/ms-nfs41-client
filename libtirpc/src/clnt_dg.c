@@ -420,7 +420,7 @@ send_again:
 		goto out;
 	}
 	nextsend_time = cu->cu_wait.tv_sec * 1000 + cu->cu_wait.tv_usec / 1000;
-	if (wintirpc_sendto(cu->cu_fd, cu->cu_outbuf, (int)outlen, 0, sa, salen) != outlen) {
+	if ((size_t)wintirpc_sendto(cu->cu_fd, cu->cu_outbuf, (int)outlen, 0, sa, salen) != outlen) {
 		cu->cu_error.re_errno = errno;
 		cu->cu_error.re_status = RPC_CANTSEND;
 		goto out;

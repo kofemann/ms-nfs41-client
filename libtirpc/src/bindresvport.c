@@ -190,7 +190,7 @@ bindresvport_sa(int sd, struct sockaddr *sa)
 	for (n = 0 ; n < NPORTS ; n++) {
 		currport = ((n+bindresvport_sa_last_n)%NPORTS)+STARTPORT;
 
-		portRange.StartPort = htons(currport);
+		portRange.StartPort = htons((unsigned short)currport);
 		portRange.NumberOfPorts = 1;
 
 		(void)memset(&portRes, 0, sizeof(portRes));

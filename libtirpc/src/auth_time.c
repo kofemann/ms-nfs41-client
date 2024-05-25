@@ -248,8 +248,10 @@ __rpc_get_time_offset(td, srv, thost, uaddr, netid)
 	int			a1, a2, a3, a4;
 	char			ut[64], ipuaddr[64];
 	endpoint		teps[32];
-	nis_server		tsrv;
+	nis_server		tsrv = { 0 };
+#ifndef _WIN32
 	void			(*oldsig)() = NULL; /* old alarm handler */
+#endif
 	struct sockaddr_in	sin;
 	int			s = RPC_ANYSOCK;
 	socklen_t len;
@@ -404,7 +406,7 @@ __rpc_get_time_offset(td, srv, thost, uaddr, netid)
 				FD_SET(_get_osfhandle(s), &readfds);
 				res = select(_rpc_dtablesize(), &readfds,
 					(fd_set *)NULL, (fd_set *)NULL, &timeout);
-			} while (res == SOCKET_ERROR && WSAGetLastError() == WSAEINTR);
+			} while (res == (int)SOCKET_ERROR && WSAGetLastError() == WSAEINTR);
 			if (res == SOCKET_ERROR)
 				goto error;
 			len = sizeof(from);

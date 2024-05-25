@@ -201,7 +201,7 @@ clnt_create_timed(const char *hostname, const rpcprog_t prog, const rpcvers_t ve
 	CLIENT *clnt = NULL;
 	void *handle;
 	enum clnt_stat	save_cf_stat = RPC_SUCCESS;
-	struct rpc_err	save_cf_error;
+	struct rpc_err	save_cf_error = { 0 };
 	char nettype_array[NETIDLEN];
 	char *nettype = &nettype_array[0];
 

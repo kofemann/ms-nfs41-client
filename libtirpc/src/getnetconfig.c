@@ -44,11 +44,6 @@
 //#include <unistd.h>
 #include "rpc_com.h"
 
-// XXX FIXME - this is in wintirpc.c, but that is not currently built
-static void wintirpc_debug(char *fmt, ...)
-{
-    return;
-}
 
 /*
  * The five library routines in this file provide application access to the

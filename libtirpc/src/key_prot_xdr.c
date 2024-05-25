@@ -3,7 +3,13 @@
  * It was generated using rpcgen.
  */
 
-#ifndef _WIN32
+#ifdef _WIN32
+/*
+ * Disable "warning C4206: nonstandard extension
+ * used: translation unit is empty" warning
+ */
+#pragma warning (disable : 4206)
+#else
 #include <rpc/key_prot.h>
 /*
  * Copyright (c) 2009, Sun Microsystems, Inc.

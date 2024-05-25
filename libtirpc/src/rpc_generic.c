@@ -263,7 +263,8 @@ __rpc_getconfip(nettype)
 		struct netconfig *nconf;
 		void *confighandle;
 
-		if (!(confighandle = setnetconfig())) {
+		confighandle = setnetconfig();
+		if (!confighandle) {
 			syslog (LOG_ERR, "rpc: failed to open " NETCONFIG);
 			return (NULL);
 		}
@@ -318,7 +319,8 @@ __rpc_setconf(nettype)
 	case _RPC_NETPATH:
 	case _RPC_CIRCUIT_N:
 	case _RPC_DATAGRAM_N:
-		if (!(handle->nhandle = setnetpath())) {
+		handle->nhandle = setnetpath();
+		if (!handle->nhandle) {
 			free(handle);
 			return (NULL);
 		}
@@ -329,7 +331,8 @@ __rpc_setconf(nettype)
 	case _RPC_DATAGRAM_V:
 	case _RPC_TCP:
 	case _RPC_UDP:
-		if (!(handle->nhandle = setnetconfig())) {
+		handle->nhandle = setnetconfig();
+		if (!handle->nhandle) {
 			syslog (LOG_ERR, "rpc: failed to open " NETCONFIG);
 			free(handle);
 			return (NULL);
@@ -491,7 +494,6 @@ __rpc_fd2sockinfo(int fd, struct __rpc_sockinfo *sip)
 	WSAPROTOCOL_INFO proto_info;
 	int proto_info_size = sizeof(proto_info);
 	if (wintirpc_getsockopt(fd, SOL_SOCKET, SO_PROTOCOL_INFO, (char *)&proto_info, &proto_info_size) == SOCKET_ERROR) {
-		int err = WSAGetLastError();
 		return 0;
 	}
 	len = proto_info.iMaxSockAddr;
@@ -506,7 +508,6 @@ __rpc_fd2sockinfo(int fd, struct __rpc_sockinfo *sip)
 
 	len = sizeof type;
 	if (wintirpc_getsockopt(fd, SOL_SOCKET, SO_TYPE, (char *)&type, &len) == SOCKET_ERROR) {
-		int err = WSAGetLastError();
 		return 0;
 	}
 
@@ -744,13 +745,13 @@ __rpc_uaddr2taddr_af(int af, const char *uaddr)
 		p = strrchr(addrstr, '.');
 		if (p == NULL)
 			goto out;
-		portlo = (unsigned)atoi(p + 1);
+		portlo = (unsigned short)atoi(p + 1);
 		*p = '\0';
 
 		p = strrchr(addrstr, '.');
 		if (p == NULL)
 			goto out;
-		porthi = (unsigned)atoi(p + 1);
+		porthi = (unsigned short)atoi(p + 1);
 		*p = '\0';
 		port = (porthi << 8) | portlo;
 	}

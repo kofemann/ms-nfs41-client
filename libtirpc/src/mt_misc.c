@@ -87,11 +87,11 @@ mutex_t	tsd_lock;
 
 /* Library global tsd keys */
 thread_key_t clnt_broadcast_key;
-thread_key_t rpc_call_key = -1;
-thread_key_t tcp_key = -1;
-thread_key_t udp_key = -1;
-thread_key_t nc_key = -1;
-thread_key_t rce_key = -1;
+thread_key_t rpc_call_key = (DWORD)-1;
+thread_key_t tcp_key = (DWORD)-1;
+thread_key_t udp_key = (DWORD)-1;
+thread_key_t nc_key = (DWORD)-1;
+thread_key_t rce_key = (DWORD)-1;
 
 /* xprtlist (svc_generic.c) */
 mutex_t	xprtlist_lock;

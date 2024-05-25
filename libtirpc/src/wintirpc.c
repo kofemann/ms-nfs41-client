@@ -160,7 +160,7 @@ void wintirpc_unregister_osfhandle(SOCKET handle)
 
 	for (i=0 ; i < WINTIRPC_MAX_OSFHANDLE_FD_NHANDLE_VALUE ; i++) {
 		if (handle_fd_map[i].m_s == handle) {
-			handle_fd_map[i].m_s = SOCKET_ERROR;
+			handle_fd_map[i].m_s = (SOCKET)SOCKET_ERROR;
 			handle_fd_map[i].m_fd = -1;
 			return;
 		}
@@ -178,7 +178,7 @@ void wintirpc_unregister_osf_fd(int fd)
 
 	for (i=0 ; i < WINTIRPC_MAX_OSFHANDLE_FD_NHANDLE_VALUE ; i++) {
 		if (handle_fd_map[i].m_fd == fd) {
-			handle_fd_map[i].m_s = SOCKET_ERROR;
+			handle_fd_map[i].m_s = (SOCKET)SOCKET_ERROR;
 			handle_fd_map[i].m_fd = -1;
 			return;
 		}

@@ -464,6 +464,13 @@ xdr_enum(xdrs, ep)
 	/*
 	 * enums are treated as ints
 	 */
+
+
+#ifdef _WIN32
+#pragma warning( push )
+/* Disable "warning C4127: conditional expression is constant" */
+#pragma warning (disable : 4127)
+#endif
 	/* LINTED */ if (sizeof (enum sizecheck) == sizeof (long)) {
 		return (xdr_long(xdrs, (long *)(void *)ep));
 	} else /* LINTED */ if (sizeof (enum sizecheck) == sizeof (int)) {
@@ -473,6 +480,9 @@ xdr_enum(xdrs, ep)
 	} else {
 		return (FALSE);
 	}
+#ifdef _WIN32
+#pragma warning( pop )
+#endif
 }
 
 /*

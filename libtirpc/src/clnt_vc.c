@@ -534,7 +534,7 @@ clnt_vc_call(cl, proc, xdr_args, args_ptr, xdr_results, results_ptr, timeout)
 	u_int32_t *msg_x_id = &ct->ct_u.ct_mcalli;    /* yuk */
 	bool_t shipnow;
 	static int refreshes = 2;
-    u_int seq = -1;
+    u_int seq = (u_int)-1;
     time_t start_send, time_now;
 #ifndef _WIN32
 	sigset_t mask, newmask;
