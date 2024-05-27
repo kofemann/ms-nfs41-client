@@ -271,4 +271,12 @@ autoreconf
 make -j8 all
 
 
+#
+# Run Cygwin installer from NFSv4.1 share
+#
+wget 'https://www.cygwin.com/setup-x86_64.exe'
+chmod a+rx setup-x86_64.exe
+# check whether this will open the Cygwin installer window
+./setup-x86_64 --no-admin
+
 # EOF.

@@ -1545,8 +1545,15 @@ NTSTATUS nfs41_UpcallCreate(
         sec_qos.Length = sizeof(SECURITY_QUALITY_OF_SERVICE);
         sec_qos.EffectiveOnly = 0;
         entry->psec_ctx = &entry->sec_ctx;
+        /*
+         * Arg |ServerIsRemote| must be |FALSE|, otherwise processes
+         * like Cygwin setup-x86_64.exe can fail during "Activation
+         * Context" creation in
+         * |SeCreateClientSecurityFromSubjectContext()| with
+         * |STATUS_BAD_IMPERSONATION_LEVEL|
+         */
         status = SeCreateClientSecurityFromSubjectContext(&sec_ctx, &sec_qos,
-                    1, entry->psec_ctx);
+                    FALSE, entry->psec_ctx);
         if (status != STATUS_SUCCESS) {
             print_error("nfs41_UpcallCreate: "
                 "SeCreateClientSecurityFromSubjectContext failed with %x\n",
@@ -3045,8 +3052,15 @@ NTSTATUS nfs41_GetLUID(
     sec_qos.ImpersonationLevel = SecurityIdentification;
     sec_qos.Length = sizeof(SECURITY_QUALITY_OF_SERVICE);
     sec_qos.EffectiveOnly = 0;
-    status = SeCreateClientSecurityFromSubjectContext(&sec_ctx, &sec_qos, 1, 
-                &clnt_sec_ctx);
+    /*
+     * Arg |ServerIsRemote| must be |FALSE|, otherwise processes
+     * like Cygwin setup-x86_64.exe can fail during "Activation
+     * Context" creation in
+     * |SeCreateClientSecurityFromSubjectContext()| with
+     * |STATUS_BAD_IMPERSONATION_LEVEL|
+     */
+    status = SeCreateClientSecurityFromSubjectContext(&sec_ctx, &sec_qos,
+        FALSE, &clnt_sec_ctx);
     if (status) {
         print_error("nfs41_GetLUID: SeCreateClientSecurityFromSubjectContext "
              "failed %x\n", status);
@@ -3078,7 +3092,15 @@ NTSTATUS nfs41_get_sec_ctx(
     sec_qos.ImpersonationLevel = level;
     sec_qos.Length = sizeof(SECURITY_QUALITY_OF_SERVICE);
     sec_qos.EffectiveOnly = 0;
-    status = SeCreateClientSecurityFromSubjectContext(&ctx, &sec_qos, 1, out_ctx);
+    /*
+     * Arg |ServerIsRemote| must be |FALSE|, otherwise processes
+     * like Cygwin setup-x86_64.exe can fail during "Activation
+     * Context" creation in
+     * |SeCreateClientSecurityFromSubjectContext()| with
+     * |STATUS_BAD_IMPERSONATION_LEVEL|
+     */
+    status = SeCreateClientSecurityFromSubjectContext(&ctx, &sec_qos,
+        FALSE, out_ctx);
     if (status != STATUS_SUCCESS) {
         print_error("SeCreateClientSecurityFromSubjectContext "
             "failed with %x\n", status);
