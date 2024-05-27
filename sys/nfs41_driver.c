@@ -1612,7 +1612,7 @@ NTSTATUS nfs41_UpcallWaitForReply(
     timeout.QuadPart = RELATIVE(SECONDS(secs));
 retry_wait:
     status = KeWaitForSingleObject(&entry->cond, Executive,
-                UserMode, TRUE, &timeout);
+                UserMode, FALSE, &timeout);
 
     if (status == STATUS_TIMEOUT)
             status = STATUS_NETWORK_UNREACHABLE;
