@@ -482,6 +482,16 @@ typedef enum _NULMRX_STORAGE_TYPE_CODES {
 #define RDR_STARTING    7
 #define RDR_STARTED     8
 
+/*
+ * Assume network speed is 10MB/s (100base-T ethernet, lowest common
+ * denominator which we support) plus disk speed is 10MB/s so add
+ * time to transfer requested bytes over the network and read from
+ * disk.
+ * FIXME: What about ssh-tunneled NFSv4 mounts - should this be a
+ * tuneable/mount option ?
+ */
+#define EXTRA_TIMEOUT_PER_BYTE(size)  ((2LL * (size)) / (10*1024*1024LL))
+
 nfs41_init_driver_state nfs41_init_state = NFS41_INIT_DRIVER_STARTABLE;
 nfs41_start_driver_state nfs41_start_state = NFS41_START_DRIVER_STARTABLE;
 
@@ -6223,10 +6233,9 @@ NTSTATUS nfs41_Read(
         async = entry->async_op = TRUE;
     }
 
-    /* assume network speed is 100MB/s and disk speed is 100MB/s so add
-     * time to transfer requested bytes over the network and read from disk
-     */
-    io_delay = pVNetRootContext->timeout + 2 * entry->buf_len / 104857600;
+    /* Add extra timeout depending on buffer size */
+    io_delay = pVNetRootContext->timeout +
+        EXTRA_TIMEOUT_PER_BYTE(entry->buf_len);
     status = nfs41_UpcallWaitForReply(entry, io_delay);
     if (status) goto out;
 
@@ -6342,10 +6351,9 @@ NTSTATUS nfs41_Write(
         async = entry->async_op = TRUE;
     }
 
-    /* assume network speed is 100MB/s and disk speed is 100MB/s so add
-     * time to transfer requested bytes over the network and write to disk
-     */
-    io_delay = pVNetRootContext->timeout + 2 * entry->buf_len / 104857600;
+    /* Add extra timeout depending on buffer size */
+    io_delay = pVNetRootContext->timeout +
+        EXTRA_TIMEOUT_PER_BYTE(entry->buf_len);
     status = nfs41_UpcallWaitForReply(entry, io_delay);
     if (status) goto out;
 
