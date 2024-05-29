@@ -158,6 +158,54 @@ bool is_group_in_token(HANDLE tok, PSID qsid)
 }
 
 static
+int print_groups_in_token(HANDLE tok)
+{
+    DWORD tokdatalen;
+    PTOKEN_GROUPS ptgroups;
+    char namebuffer[GNLEN+1];
+    DWORD namesize = GNLEN+1;
+    char domainbuffer[UNLEN+1];
+    DWORD domainbuffer_size = sizeof(domainbuffer);
+    SID_NAME_USE name_use;
+
+    tokdatalen = sizeof(TOKEN_GROUPS)+GETTOKINFO_EXTRA_BUFFER;
+    ptgroups = _alloca(tokdatalen);
+    if (!GetTokenInformation(tok, TokenGroups, ptgroups,
+        tokdatalen, &tokdatalen)) {
+        D((void)fprintf(stderr, "print_groups_in_token: "
+            "GetTokenInformation(tok=0x%p, TokenGroups) failed, "
+            "status=%d.\n",
+            (void *)tok, (int)GetLastError()));
+        return 1;
+    }
+
+    int i;
+    D(
+        (void)fprintf(stderr, "print_groups_in_token: got %d groups\n",
+            (int)ptgroups->GroupCount)
+    );
+    for (i = 0 ; i < ptgroups->GroupCount ; i++) {
+        if (!(ptgroups->Groups[i].Attributes & SE_GROUP_ENABLED)) {
+            continue;
+        }
+
+        if (!LookupAccountSidA(NULL, ptgroups->Groups[i].Sid,
+            namebuffer, &namesize, domainbuffer, &domainbuffer_size, &name_use)) {
+            D((void)fprintf(stderr, "print_groups_in_token: "
+                "LookupAccountSidA() failed, status=%d.\n",
+                (int)GetLastError()));
+            continue;
+        }
+
+        (void)printf("group='%s'\n", namebuffer);
+    }
+
+    D((void)puts("is_group_in_token: #no match"));
+
+    return 0;
+}
+
+static
 bool get_group_sid(const char *groupname, PSID pgsid, PDWORD pgsid_size)
 {
     char domainbuffer[UNLEN+1];
@@ -226,8 +274,10 @@ void win32cmd_quotearg(char *s1, const char *s2)
 static
 int usage(void)
 {
-    (void)fprintf(stderr, "Usage: "
-        "winsg [-] [/? | -h | --help] -g group [-c command | /C command]]\n"
+    (void)fprintf(stderr,
+        "Usage: winsg [-] -g group [-c command | /C command]]\n"
+        "Usage: winsg -L\n"
+        "Usage: winsg /? | -h | --help\n"
         "Execute command as different primary group ID\n"
         "\n"
         "Examples:\n"
@@ -243,6 +293,10 @@ int usage(void)
         "\t4. Start /bin/id from Cygwin bash with primary group "
             "'abc4':\n"
         "\t\twinsg abc4 -c '/bin/id.exe -a'\n"
+        "\n"
+        "\t5. List currently available groups which can be passed to "
+            "winsg -g ...\n"
+        "\t\twinsg -L\n"
         "\n"
         "Please report bugs to "
         "Roland Mainz <roland.mainz@nrubsig.org>.\n");
@@ -267,6 +321,8 @@ int main(int ac, char *av[])
     int subcmdret = EXIT_FAILURE;
     int retval = 1;
     int i;
+    bool cmd_runasgroup = false;
+    bool cmd_list_token = false;
 
     for (i=1 ; i < ac ; i++) {
         D((void)fprintf(stderr, "# i=%d, av[i]='%s'\n", i, av[i]));
@@ -286,6 +342,7 @@ int main(int ac, char *av[])
                 goto done;
             }
 
+            cmd_runasgroup = true;
             st = SHELLTYPE_SYSTEM;
             cmd_arg_index = i+1;
             break;
@@ -299,6 +356,7 @@ int main(int ac, char *av[])
                 goto done;
             }
 
+            cmd_runasgroup = true;
             st = SHELLTYPE_CMD;
             cmd_arg_index = i+1;
             break;
@@ -306,6 +364,7 @@ int main(int ac, char *av[])
         else if (!strcmp(av[i], "-g")) {
             newgrpname = av[i+1];
             i++;
+            cmd_runasgroup = true;
         }
         else if ((!strcmp(av[i], "/?")) ||
                 (!strcmp(av[i], "-h")) ||
@@ -313,6 +372,9 @@ int main(int ac, char *av[])
                 (!strcmp(av[i], "--usage"))) {
             retval = usage();
             goto done;
+        }
+        else if (!strcmp(av[i], "-L")) {
+            cmd_list_token = true;
         }
         else if ((av[i][0] == '-') || (av[i][0] == '/')) {
             (void)fprintf(stderr, "%s: "
@@ -322,14 +384,23 @@ int main(int ac, char *av[])
         }
         else {
             if ((i == 1) && (*av[i] != '-')) {
+                cmd_runasgroup = true;
                 newgrpname = av[i];
                 continue;
             }
 
+            cmd_runasgroup = true;
             cmd_arg_index = i+1;
             st = SHELLTYPE_NONE;
             break;
         }
+    }
+
+    if (((int)cmd_runasgroup+(int)cmd_list_token) > 1) {
+        (void)fprintf(stderr, "%s: Incompatible option combination\n",
+            av[0]);
+        retval = 1;
+        goto done;
     }
 
     /*
@@ -338,13 +409,14 @@ int main(int ac, char *av[])
      * $ winsg -g cygwingrp1
      * $ winsg cygwingrp1
      */
-    if ((st == SHELLTYPE_NOT_SET) && (cmd_arg_index == -1)) {
+    if (cmd_runasgroup &&
+        (st == SHELLTYPE_NOT_SET) && (cmd_arg_index == -1)) {
         st = SHELLTYPE_NONE;
         /* set |cmd_arg_index| to the end of |av|, which is |NULL| */
         cmd_arg_index = i;
     }
 
-    if (!newgrpname) {
+    if (cmd_runasgroup && (!newgrpname)) {
         (void)fprintf(stderr, "%s: No group name given.\n", av[0]);
         retval = 1;
         goto done;
@@ -361,6 +433,11 @@ int main(int ac, char *av[])
         &tok)) {
         (void)fprintf(stderr, "%s: Cannot open token.\n", av[0]);
         retval = 1;
+        goto done;
+    }
+
+    if (cmd_list_token) {
+        retval = print_groups_in_token(tok);
         goto done;
     }
 
