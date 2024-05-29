@@ -275,24 +275,25 @@ static
 int usage(void)
 {
     (void)fprintf(stderr,
-        "Usage: winsg [-] -g group [-c command | /C command]]\n"
+        "Usage: winsg [-] -g group [-c command]\n"
+        "Usage: winsg [-] /g group [/C command]\n"
         "Usage: winsg -L\n"
         "Usage: winsg /? | -h | --help\n"
         "Execute command as different primary group ID\n"
         "\n"
         "Examples:\n"
         "\t1. Run new cmd.exe with primary group 'abc1':\n"
-        "\t\twinsg -g abc1 /C\n"
+        "\t\twinsg /g abc1 /C\n"
         "\n"
-        "\t2. Run new Cygwin bash with primary group 'abc2':\n"
-        "\t\twinsg -g abc2 /C\n"
+        "\t2. Run new Cygwin shell (bash) with primary group 'abc2':\n"
+        "\t\twinsg -g abc2 -g\n"
         "\n"
         "\t3. Start /bin/id from cmd.exe with primary group 'abc3':\n"
-        "\t\twinsg abc3 /C 'C:\\cygwin64\\bin\\id.exe -a'\n"
+        "\t\twinsg /g abc3 /C 'C:\\cygwin64\\bin\\id.exe -a'\n"
         "\n"
-        "\t4. Start /bin/id from Cygwin bash with primary group "
-            "'abc4':\n"
-        "\t\twinsg abc4 -c '/bin/id.exe -a'\n"
+        "\t4. Start /bin/id from Cygwin shell (bash) with primary "
+            "group 'abc4':\n"
+        "\t\twinsg -g abc4 -c '/bin/id.exe -a'\n"
         "\n"
         "\t5. List currently available groups which can be passed to "
             "winsg -g ...\n"
@@ -361,7 +362,8 @@ int main(int ac, char *av[])
             cmd_arg_index = i+1;
             break;
         }
-        else if (!strcmp(av[i], "-g")) {
+        else if ((!strcmp(av[i], "-g")) ||
+            (!strcmp(av[i], "/g"))) {
             newgrpname = av[i+1];
             i++;
             cmd_runasgroup = true;
