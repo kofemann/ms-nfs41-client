@@ -227,7 +227,7 @@ static
 int usage(void)
 {
     (void)fprintf(stderr, "Usage: "
-        "winsg [-] -g group [-c command | /C command]]\n"
+        "winsg [-] [/? | -h | --help] -g group [-c command | /C command]]\n"
         "Execute command as different primary group ID\n"
         "\n"
         "Examples:\n"
@@ -307,7 +307,8 @@ int main(int ac, char *av[])
             newgrpname = av[i+1];
             i++;
         }
-        else if ((!strcmp(av[i], "-h")) ||
+        else if ((!strcmp(av[i], "/?")) ||
+                (!strcmp(av[i], "-h")) ||
                 (!strcmp(av[i], "--help")) ||
                 (!strcmp(av[i], "--usage"))) {
             retval = usage();
