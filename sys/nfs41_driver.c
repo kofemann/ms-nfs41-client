@@ -2757,6 +2757,7 @@ NTSTATUS map_mount_errors(
 {
     switch (status) {
     case NO_ERROR:              return STATUS_SUCCESS;
+    case ERROR_ACCESS_DENIED:   return STATUS_ACCESS_DENIED;
     case ERROR_NETWORK_UNREACHABLE: return STATUS_NETWORK_UNREACHABLE;
     case ERROR_BAD_NET_RESP:    return STATUS_UNEXPECTED_NETWORK_ERROR;
     case ERROR_BAD_NET_NAME:    return STATUS_BAD_NETWORK_NAME;
