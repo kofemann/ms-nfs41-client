@@ -25,7 +25,6 @@
 #include <Winldap.h>
 #include <stdlib.h> /* for strtoul() */
 #include <errno.h>
-#include <time.h>
 
 #include "nfs41_build_features.h"
 #include "idmap.h"
@@ -481,7 +480,7 @@ struct idmap_user {
     char principal[VAL_LEN];
     uid_t uid;
     gid_t gid;
-    time_t last_updated;
+    util_reltimestamp last_updated;
 };
 
 static struct list_entry* user_cache_alloc()
@@ -517,7 +516,7 @@ struct idmap_group {
     struct list_entry entry;
     char name[VAL_LEN];
     gid_t gid;
-    time_t last_updated;
+    util_reltimestamp last_updated;
 };
 
 static struct list_entry* group_cache_alloc()
@@ -676,7 +675,7 @@ static int idmap_lookup_user(
     if (status == NO_ERROR) {
         /* don't return expired entries; query new attributes
          * and overwrite the entry with cache_insert() */
-        if (difftime(time(NULL), user->last_updated) < (double)context->config.cache_ttl)
+        if (UTIL_DIFFRELTIME(UTIL_GETRELTIME(), user->last_updated) < context->config.cache_ttl)
             goto out;
     }
 #ifndef NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN
@@ -715,7 +714,7 @@ static int idmap_lookup_user(
         status = ERROR_INVALID_PARAMETER;
         goto out_free_values;
     }
-    user->last_updated = time(NULL);
+    user->last_updated = UTIL_GETRELTIME();
 #else
     if (lookup->attr == ATTR_USER_NAME) {
         char principal_name[VAL_LEN];
@@ -801,7 +800,7 @@ static int idmap_lookup_user(
     }
 
     if (status == 0) {
-        user->last_updated = time(NULL);
+        user->last_updated = UTIL_GETRELTIME();
         DPRINTF(CYGWINIDLVL, ("## idmap_lookup_user: "
             "found username='%s', principal='%s', uid=%u, gid=%u\n",
             user->username,
@@ -840,7 +839,7 @@ static int idmap_lookup_group(
     if (status == NO_ERROR) {
         /* don't return expired entries; query new attributes
          * and overwrite the entry with cache_insert() */
-        if (difftime(time(NULL), group->last_updated) < (double)context->config.cache_ttl)
+        if (UTIL_DIFFRELTIME(UTIL_GETRELTIME(), group->last_updated) < context->config.cache_ttl)
             goto out;
     }
 #ifndef NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN
@@ -865,7 +864,7 @@ static int idmap_lookup_group(
         status = ERROR_INVALID_PARAMETER;
         goto out_free_values;
     }
-    group->last_updated = time(NULL);
+    group->last_updated = UTIL_GETRELTIME();
 #else
     if (lookup->attr == ATTR_GROUP_NAME) {
         gid_t cy_gid = 0;
@@ -908,7 +907,7 @@ static int idmap_lookup_group(
     }
 
     if (status == 0) {
-        group->last_updated = time(NULL);
+        group->last_updated = UTIL_GETRELTIME();
         DPRINTF(CYGWINIDLVL,
             ("## idmap_lookup_group: found name='%s', gid=%u\n",
             group->name,

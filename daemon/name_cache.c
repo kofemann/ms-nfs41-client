@@ -75,7 +75,6 @@ static __inline bool_t is_delegation(
     return type == OPEN_DELEGATE_READ || type == OPEN_DELEGATE_WRITE;
 }
 
-
 /* attribute cache */
 struct attr_cache_entry {
     RB_ENTRY(attr_cache_entry) rbnode;
@@ -94,7 +93,7 @@ struct attr_cache_entry {
     unsigned                hidden : 1;
     unsigned                system : 1;
     unsigned                archive : 1;
-    time_t                  expiration;
+    util_reltimestamp       expiration;
     unsigned                ref_count : 26;
     unsigned                type : 4;
     unsigned                invalidated : 1;
@@ -181,7 +180,7 @@ static __inline int attr_cache_entry_expired(
     IN const struct attr_cache_entry *entry)
 {
     return entry->invalidated ||
-        (!entry->delegated && time(NULL) > entry->expiration);
+        ((!entry->delegated) && (UTIL_GETRELTIME() > entry->expiration));
 }
 
 /* attr_cache */
@@ -294,7 +293,7 @@ static void attr_cache_update(
             entry->change = info->change;
             /* revalidate whenever we get a change attribute */
             entry->invalidated = 0;
-            entry->expiration = time(NULL) + NAME_CACHE_EXPIRATION;
+            entry->expiration = UTIL_GETRELTIME() + NAME_CACHE_EXPIRATION;
         }
         if (info->attrmask.arr[0] & FATTR4_WORD0_SIZE)
             entry->size = info->size;
@@ -408,7 +407,7 @@ struct name_cache_entry {
     struct attr_cache_entry *attributes;
     struct name_cache_entry *parent;
     struct list_entry       exp_entry;
-    time_t                  expiration;
+    util_reltimestamp         expiration;
     unsigned short          component_len;
 };
 #define NAME_ENTRY_SIZE sizeof(struct name_cache_entry)
@@ -553,7 +552,7 @@ static void name_cache_entry_updated(
     IN struct name_cache_entry *entry)
 {
     /* update the expiration timer */
-    entry->expiration = time(NULL) + cache->expiration;
+    entry->expiration = UTIL_GETRELTIME() + cache->expiration;
     name_cache_entry_accessed(cache, entry);
 }
 
@@ -669,7 +668,7 @@ static int entry_invis(
     OUT OPTIONAL bool_t *is_negative)
 {
     /* name entry timer expired? */
-    if (!list_empty(&entry->exp_entry) && time(NULL) > entry->expiration) {
+    if (!list_empty(&entry->exp_entry) && (UTIL_GETRELTIME() > entry->expiration)) {
         DPRINTF(NCLVL2, ("name_entry_expired('%s')\n", entry->component));
         return 1;
     }

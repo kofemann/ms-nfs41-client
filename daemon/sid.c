@@ -233,7 +233,7 @@ typedef struct _sidcache_entry
 #pragma warning (disable : 4324)
     DECLARE_SID_BUFFER(sid_buffer);
 #pragma warning( pop )
-    time_t  timestamp;
+    util_reltimestamp  timestamp;
 } sidcache_entry;
 
 typedef struct _sidcache
@@ -259,12 +259,12 @@ void sidcache_add(sidcache *cache, const char* win32name, PSID value)
 {
     int i;
     ssize_t freeEntryIndex;
-    time_t currentTimestamp;
+    util_reltimestamp currentTimestamp;
 
     EASSERT(win32name[0] != '\0');
 
     EnterCriticalSection(&cache->lock);
-    currentTimestamp = time(NULL);
+    currentTimestamp = UTIL_GETRELTIME();
 
     /* purge obsolete entries */
     for (i = 0; i < SIDCACHE_SIZE; i++) {
@@ -326,12 +326,12 @@ done:
 PSID *sidcache_getcached_byname(sidcache *cache, const char *win32name)
 {
     int i;
-    time_t currentTimestamp;
+    util_reltimestamp currentTimestamp;
     sidcache_entry *e;
     PSID *ret_sid = NULL;
 
     EnterCriticalSection(&cache->lock);
-    currentTimestamp = time(NULL);
+    currentTimestamp = UTIL_GETRELTIME();
 
     for (i = 0; i < SIDCACHE_SIZE; i++) {
         e = &cache->entries[i];
@@ -361,12 +361,12 @@ done:
 bool sidcache_getcached_bysid(sidcache *cache, PSID sid, char *out_win32name)
 {
     int i;
-    time_t currentTimestamp;
+    util_reltimestamp currentTimestamp;
     sidcache_entry *e;
     bool ret = false;
 
     EnterCriticalSection(&cache->lock);
-    currentTimestamp = time(NULL);
+    currentTimestamp = UTIL_GETRELTIME();
 
     for (i = 0; i < SIDCACHE_SIZE; i++) {
         e = &cache->entries[i];

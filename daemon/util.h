@@ -35,6 +35,20 @@ struct __nfs41_write_verf;
 enum stable_how4;
 
 /*
+ * UTIL_GETRELTIME - Get a relative time stamp
+ * |GetTickCount64()| is almost twice as fast as |time()|, and
+ * cache code only needs a relative timestamp and not the
+ * absolute time to implement cache element expiration.
+ * |GetTickCount64()| also includes time spend in hibernation&co.,
+ * so hibernation longer than |NAME_CACHE_EXPIRATION| will
+ * automagically invalidate the cache
+ */
+#define UTIL_GETRELTIME() (GetTickCount64()/1000UL)
+#define UTIL_DIFFRELTIME(t1, t2) \
+    (((signed long long)(t1))-((signed long long)(t2)))
+typedef ULONGLONG util_reltimestamp;
+
+/*
  * LargeInteger.QuadPart value to indicate a time value was not
  * available
  *
