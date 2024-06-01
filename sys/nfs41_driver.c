@@ -5942,19 +5942,28 @@ NTSTATUS nfs41_SetFileInformation(
             goto out;
         }
     case FileAllocationInformation:
-        /*
-         * Fixme: What is the correct way to handle
-         * |FileAllocationInformation| ? NFSv4 does not have the
-         * concept of a difference between "allocation size" and
-         * "end-of-file" position
-         */
-        break;
+        {
+            PFILE_ALLOCATION_INFORMATION info =
+                (PFILE_ALLOCATION_INFORMATION)RxContext->Info.Buffer;
+
+            nfs41_fcb->StandardInfo.AllocationSize.QuadPart = info->AllocationSize.QuadPart;
+            if (nfs41_fcb->StandardInfo.EndOfFile.QuadPart > info->AllocationSize.QuadPart) {
+                nfs41_fcb->StandardInfo.EndOfFile.QuadPart = info->AllocationSize.QuadPart;
+            }
+            break;
+        }
     case FileEndOfFileInformation:
         {
             PFILE_END_OF_FILE_INFORMATION info =
                 (PFILE_END_OF_FILE_INFORMATION)RxContext->Info.Buffer;
-            nfs41_fcb->StandardInfo.AllocationSize =
-                nfs41_fcb->StandardInfo.EndOfFile = info->EndOfFile;
+
+            if (info->EndOfFile.QuadPart > nfs41_fcb->StandardInfo.AllocationSize.QuadPart) {
+                nfs41_fcb->StandardInfo.AllocationSize.QuadPart =
+                    nfs41_fcb->StandardInfo.EndOfFile.QuadPart = info->EndOfFile.QuadPart;
+            }
+            else {
+                nfs41_fcb->StandardInfo.EndOfFile.QuadPart = info->EndOfFile.QuadPart;
+            }
             break;
         }
     case FileRenameInformation:
