@@ -74,8 +74,9 @@
  * horrible hacks to improve stabilty because sometimes we use
  * |nfs41_open_state| afer a file close in highly parallel
  * workloads (e.g. building the gcc compiler in parallel).
+ *
+ * #define NFS41_DRIVER_WORKAROUND_FOR_GETATTR_AFTER_CLOSE_HACKS 1
  */
-#define NFS41_DRIVER_WORKAROUND_FOR_GETATTR_AFTER_CLOSE_HACKS 1
 
 /*
  * NFS41_DRIVER_USE_LARGE_SOCKET_RCVSND_BUFFERS - use
