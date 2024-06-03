@@ -59,56 +59,82 @@
 #define FILE_MAXIMUM_DISPOSITION        0x00000005
 
 typedef enum _FILE_INFORMATION_CLASS {
-    FileDirectoryInformation         = 1,
-    FileFullDirectoryInformation,   // 2
-    FileBothDirectoryInformation,   // 3
-    FileBasicInformation,           // 4
-    FileStandardInformation,        // 5
-    FileInternalInformation,        // 6
-    FileEaInformation,              // 7
-    FileAccessInformation,          // 8
-    FileNameInformation,            // 9
-    FileRenameInformation,          // 10
-    FileLinkInformation,            // 11
-    FileNamesInformation,           // 12
-    FileDispositionInformation,     // 13
-    FilePositionInformation,        // 14
-    FileFullEaInformation,          // 15
-    FileModeInformation,            // 16
-    FileAlignmentInformation,       // 17
-    FileAllInformation,             // 18
-    FileAllocationInformation,      // 19
-    FileEndOfFileInformation,       // 20
-    FileAlternateNameInformation,   // 21
-    FileStreamInformation,          // 22
-    FilePipeInformation,            // 23
-    FilePipeLocalInformation,       // 24
-    FilePipeRemoteInformation,      // 25
-    FileMailslotQueryInformation,   // 26
-    FileMailslotSetInformation,     // 27
-    FileCompressionInformation,     // 28
-    FileObjectIdInformation,        // 29
-    FileCompletionInformation,      // 30
-    FileMoveClusterInformation,     // 31
-    FileQuotaInformation,           // 32
-    FileReparsePointInformation,    // 33
-    FileNetworkOpenInformation,     // 34
-    FileAttributeTagInformation,    // 35
-    FileTrackingInformation,        // 36
-    FileIdBothDirectoryInformation, // 37
-    FileIdFullDirectoryInformation, // 38
-    FileValidDataLengthInformation, // 39
-    FileShortNameInformation,       // 40
-    FileIoCompletionNotificationInformation, // 41
-    FileIoStatusBlockRangeInformation,       // 42
-    FileIoPriorityHintInformation,           // 43
-    FileSfioReserveInformation,              // 44
-    FileSfioVolumeInformation,               // 45
-    FileHardLinkInformation,                 // 46
-    FileProcessIdsUsingFileInformation,      // 47
-    FileNormalizedNameInformation,           // 48
-    FileNetworkPhysicalNameInformation,      // 49
-    FileIdGlobalTxDirectoryInformation,      // 50
+    FileDirectoryInformation                         = 1,
+    FileFullDirectoryInformation,                   // 2
+    FileBothDirectoryInformation,                   // 3
+    FileBasicInformation,                           // 4
+    FileStandardInformation,                        // 5
+    FileInternalInformation,                        // 6
+    FileEaInformation,                              // 7
+    FileAccessInformation,                          // 8
+    FileNameInformation,                            // 9
+    FileRenameInformation,                          // 10
+    FileLinkInformation,                            // 11
+    FileNamesInformation,                           // 12
+    FileDispositionInformation,                     // 13
+    FilePositionInformation,                        // 14
+    FileFullEaInformation,                          // 15
+    FileModeInformation,                            // 16
+    FileAlignmentInformation,                       // 17
+    FileAllInformation,                             // 18
+    FileAllocationInformation,                      // 19
+    FileEndOfFileInformation,                       // 20
+    FileAlternateNameInformation,                   // 21
+    FileStreamInformation,                          // 22
+    FilePipeInformation,                            // 23
+    FilePipeLocalInformation,                       // 24
+    FilePipeRemoteInformation,                      // 25
+    FileMailslotQueryInformation,                   // 26
+    FileMailslotSetInformation,                     // 27
+    FileCompressionInformation,                     // 28
+    FileObjectIdInformation,                        // 29
+    FileCompletionInformation,                      // 30
+    FileMoveClusterInformation,                     // 31
+    FileQuotaInformation,                           // 32
+    FileReparsePointInformation,                    // 33
+    FileNetworkOpenInformation,                     // 34
+    FileAttributeTagInformation,                    // 35
+    FileTrackingInformation,                        // 36
+    FileIdBothDirectoryInformation,                 // 37
+    FileIdFullDirectoryInformation,                 // 38
+    FileValidDataLengthInformation,                 // 39
+    FileShortNameInformation,                       // 40
+    FileIoCompletionNotificationInformation,        // 41
+    FileIoStatusBlockRangeInformation,              // 42
+    FileIoPriorityHintInformation,                  // 43
+    FileSfioReserveInformation,                     // 44
+    FileSfioVolumeInformation,                      // 45
+    FileHardLinkInformation,                        // 46
+    FileProcessIdsUsingFileInformation,             // 47
+    FileNormalizedNameInformation,                  // 48
+    FileNetworkPhysicalNameInformation,             // 49
+    FileIdGlobalTxDirectoryInformation,             // 50
+    FileIsRemoteDeviceInformation,                  // 51
+    FileUnusedInformation,                          // 52
+    FileNumaNodeInformation,                        // 53
+    FileStandardLinkInformation,                    // 54
+    FileRemoteProtocolInformation,                  // 55
+    FileRenameInformationBypassAccessCheck,         // 56
+    FileLinkInformationBypassAccessCheck,           // 57
+    FileVolumeNameInformation,                      // 58
+    FileIdInformation,                              // 59
+    FileIdExtdDirectoryInformation,                 // 60
+    FileReplaceCompletionInformation,               // 61
+    FileHardLinkFullIdInformation,                  // 62
+    FileIdExtdBothDirectoryInformation,             // 63
+    FileDispositionInformationEx,                   // 64
+    FileRenameInformationEx,                        // 65
+    FileRenameInformationExBypassAccessCheck,       // 66
+    FileDesiredStorageClassInformation,             // 67
+    FileStatInformation,                            // 68
+    FileMemoryPartitionInformation,                 // 69
+    FileStatLxInformation,                          // 70
+    FileCaseSensitiveInformation,                   // 71
+    FileLinkInformationEx,                          // 72
+    FileLinkInformationExBypassAccessCheck,         // 73
+    FileStorageReserveIdInformation,                // 74
+    FileCaseSensitiveInformationForceAccessCheck,   // 75
+
     FileMaximumInformation
 } FILE_INFORMATION_CLASS, *PFILE_INFORMATION_CLASS;
 
@@ -218,16 +244,20 @@ typedef struct _FILE_NETWORK_OPEN_INFORMATION {
 
 /* wdm.h */
 typedef enum _FSINFOCLASS {
-    FileFsVolumeInformation       = 1,
-    FileFsLabelInformation,      // 2
-    FileFsSizeInformation,       // 3
-    FileFsDeviceInformation,     // 4
-    FileFsAttributeInformation,  // 5
-    FileFsControlInformation,    // 6
-    FileFsFullSizeInformation,   // 7
-    FileFsObjectIdInformation,   // 8
-    FileFsDriverPathInformation, // 9
-    FileFsVolumeFlagsInformation,// 10
+    FileFsVolumeInformation         = 1,
+    FileFsLabelInformation,         // 2
+    FileFsSizeInformation,          // 3
+    FileFsDeviceInformation,        // 4
+    FileFsAttributeInformation,     // 5
+    FileFsControlInformation,       // 6
+    FileFsFullSizeInformation,      // 7
+    FileFsObjectIdInformation,      // 8
+    FileFsDriverPathInformation,    // 9
+    FileFsVolumeFlagsInformation,   // 10
+    FileFsSectorSizeInformation,    // 11
+    FileFsDataCopyInformation,      // 12
+    FileFsMetadataSizeInformation,  // 13
+    FileFsFullSizeInformationEx,    // 14
     FileFsMaximumInformation
 } FS_INFORMATION_CLASS, *PFS_INFORMATION_CLASS;
 
@@ -241,6 +271,8 @@ typedef enum _FSINFOCLASS {
 #define FILE_SUPPORTS_SPARSE_FILES          0x00000040
 #define FILE_SUPPORTS_REPARSE_POINTS        0x00000080
 #define FILE_SUPPORTS_REMOTE_STORAGE        0x00000100
+#define FILE_RETURNS_CLEANUP_RESULT_INFO    0x00000200
+#define FILE_SUPPORTS_POSIX_UNLINK_RENAME   0x00000400
 #define FILE_VOLUME_IS_COMPRESSED           0x00008000
 #define FILE_SUPPORTS_OBJECT_IDS            0x00010000
 #define FILE_SUPPORTS_ENCRYPTION            0x00020000
@@ -252,6 +284,11 @@ typedef enum _FSINFOCLASS {
 #define FILE_SUPPORTS_EXTENDED_ATTRIBUTES   0x00800000
 #define FILE_SUPPORTS_OPEN_BY_FILE_ID       0x01000000
 #define FILE_SUPPORTS_USN_JOURNAL           0x02000000
+#define FILE_SUPPORTS_INTEGRITY_STREAMS     0x04000000
+#define FILE_SUPPORTS_BLOCK_REFCOUNTING     0x08000000
+#define FILE_SUPPORTS_SPARSE_VDL            0x10000000
+#define FILE_DAX_VOLUME                     0x20000000
+#define FILE_SUPPORTS_GHOSTING              0x40000000
 
 typedef struct _FILE_FS_ATTRIBUTE_INFORMATION {
     ULONG FileSystemAttributes;
