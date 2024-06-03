@@ -418,7 +418,7 @@ int main(int ac, char *av[])
         cmd_arg_index = i;
     }
 
-    if (cmd_runasgroup && (!newgrpname)) {
+    if ((!cmd_list_token) && (!newgrpname)) {
         (void)fprintf(stderr, "%s: No group name given.\n", av[0]);
         retval = 1;
         goto done;
