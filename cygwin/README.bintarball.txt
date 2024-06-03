@@ -119,9 +119,42 @@ NFSv4.1 client and filesystem driver for Windows 10/11
         unzip
 
 #
+# 4. Download and install Cygwin (if not installed yet):
 #
-# 4. Download:
+# Windows 32bit-vs.-64bit can be tested from Windows cmd.exe console:
+# Run this command:
+# ---- snip ----
+echo %PROCESSOR_ARCHITECTURE%
+# ---- snip ----
+# If this returns "AMD64" then you have a Windows 64bit kernel, and
+# if it returns "x86" then you have Windows 32bit kernel.
+# If you get any other value then this is a (documentation) bug.
+
+- Cygwin 64bit can be installed like this:
+---- snip ----
+# Install Cygwin 64bit on Windows 64bit with packages required by "ms-nfs41-client"
+# (Windows NFSv4.1 client):
+# 1. Get installer from https://cygwin.com/setup-x86_64.exe
+curl --remote-name 'https://www.cygwin.com/setup-x86_64.exe'
+# 2. Run installer with these arguments:
+setup-x86_64.exe -q --site https://mirrors.kernel.org -P cygwin,cygwin-devel,cygrunsrv,cygutils,cygutils-extra,bash,bzip2,coreutils,getent,gdb,grep,hostname,less,libiconv,libiconv2,pax,pbzip2,procps-ng,sed,tar,time,util-linux,wget,libnfs,make,git,dos2unix,unzip
+
+
+- Cygwin 32bit can be installed like this:
+---- snip ----
+# Install Cygwin 32bit on Windows 32bit with packages required by "ms-nfs41-client"
+# (Windows NFSv4.1 client):
+# 1. Get installer from https://www.cygwin.com/setup-x86.exe
+curl --remote-name 'https://www.cygwin.com/setup-x86.exe'
+# 2. Run installer with these arguments:
+setup-x86.exe --allow-unsupported-windows -q --no-verify --site http://ctm.crouchingtigerhiddenfruitbat.org/pub/cygwin/circa/2022/11/23/063457 -P cygwin,cygwin-devel,cygrunsrv,cygutils,cygutils-extra,bash,bzip2,coreutils,getent,gdb,grep,hostname,less,libiconv,libiconv2,pax,pbzip2,procps-ng,sed,tar,time,util-linux,wget,libnfs,make,git,dos2unix,unzip
+---- snip ----
+
+
 #
+# 5. Download "ms-nfs41-client" installation tarball:
+#
+# (from a Cygwin terminal)
 $ mkdir -p ~/download
 $ cd ~/download
 $ wget 'http://www.nrubsig.org/people/gisburn/work/msnfs41client/releases/testing/${bintarball.base_filename}.tar.bz2'
@@ -130,7 +163,7 @@ SHA2-256(${bintarball.base_filename}.tar.bz2)= ${bintarball.archive_sha256hash}
 
 
 #
-# 5. Installation (as "Administrator"):
+# 6. Installation (as "Administrator"):
 #
 $ (cd / && tar -xf ~/download/${bintarball.base_filename}.tar.bz2 )
 $ /sbin/msnfs41client install
@@ -138,14 +171,14 @@ $ /sbin/msnfs41client install
 
 
 #
-# 6. Deinstallation:
+# 7. Deinstallation:
 #
 $ (set -o xtrace ; cd / && tar -tf ~/download/${bintarball.base_filename}.tar.bz2 | while read i ; do [[ -f "$i" ]] && rm "$i" ; done)
 <REBOOT>
 
 
 #
-# 7. Usage:
+# 8. Usage:
 #
 
 # Option a)
@@ -213,16 +246,8 @@ $ /sbin/nfs_mount
 
 
 #
-# 8. Notes:
+# 9. Notes:
 #
-- Cygwin 32bit can be installed like this:
----- snip ----
-# Install Cygwin 32bit on Windows 32 with packages required by "ms-nfs41-client"
-# (Windows NFSv4.1 client):
-# 1. Get installer from https://www.cygwin.com/setup-x86.exe
-# 2. Run installer with these arguments:
-setup-x86.exe --allow-unsupported-windows -q --no-verify --site http://ctm.crouchingtigerhiddenfruitbat.org/pub/cygwin/circa/2022/11/23/063457 -P cygwin,cygwin-devel,cygrunsrv,cygutils,cygutils-extra,bash,bzip2,coreutils,getent,gdb,grep,hostname,less,libiconv,libiconv2,pax,pbzip2,procps-ng,sed,tar,time,util-linux,wget,libnfs,make,git,dos2unix,unzip
----- snip ----
 
 - Idmapping (including uid/gid mapping) between NFSv4 client and
   NFSv4 server works via /lib/msnfs41client/cygwin_idmapper.ksh,
@@ -313,7 +338,7 @@ setup-x86.exe --allow-unsupported-windows -q --no-verify --site http://ctm.crouc
   NFSv4 client source TCP port will be >= 1024.
 
 #
-# 9. Known issues:
+# 10. Known issues:
 #
 - The kernel driver ("nfs41_driver.sys") does not yet have a
   cryptographic signature for SecureBoot - which means it will only
@@ -364,7 +389,7 @@ setup-x86.exe --allow-unsupported-windows -q --no-verify --site http://ctm.crouc
   use $ nfs_mount -d 'H' instead #
 
 #
-# 10. Notes for troubleshooting && finding bugs/debugging:
+# 11. Notes for troubleshooting && finding bugs/debugging:
 #
 - nfsd_debug.exe has the -d option to set a level for debug
   output.
@@ -399,7 +424,7 @@ setup-x86.exe --allow-unsupported-windows -q --no-verify --site http://ctm.crouc
 
 
 #
-# 11. Source code:
+# 12. Source code:
 #
 - Source code can be obtained from https://github.com/kofemann/ms-nfs41-client
 
