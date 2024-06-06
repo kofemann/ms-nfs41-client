@@ -51,7 +51,7 @@ bool getvolumeinfo(const char *progname, const char *filename)
             "%s: Error opening file '%s'. Last error was %d.\n",
             progname,
             filename,
-            GetLastError());
+            (int)GetLastError());
         return EXIT_FAILURE;
     }
 
@@ -63,7 +63,7 @@ bool getvolumeinfo(const char *progname, const char *filename)
         (void)fprintf(stderr, "%s: GetVolumeInformationByHandleW() "
             "error. GetLastError()==%d.\n",
             progname,
-            GetLastError());
+            (int)GetLastError());
         res = EXIT_FAILURE;
         goto done;
     }
@@ -148,7 +148,7 @@ bool get_file_basic_info(const char *progname, const char *filename)
             "%s: Error opening file '%s'. Last error was %d.\n",
             progname,
             filename,
-            GetLastError());
+            (int)GetLastError());
         return EXIT_FAILURE;
     }
 
@@ -159,7 +159,7 @@ bool get_file_basic_info(const char *progname, const char *filename)
         (void)fprintf(stderr, "%s: GetFileInformationByHandleEx() "
             "error. GetLastError()==%d.\n",
             progname,
-            GetLastError());
+            (int)GetLastError());
         res = EXIT_FAILURE;
         goto done;
     }
@@ -237,7 +237,7 @@ bool get_file_standard_info(const char *progname, const char *filename)
             "%s: Error opening file '%s'. Last error was %d.\n",
             progname,
             filename,
-            GetLastError());
+            (int)GetLastError());
         return EXIT_FAILURE;
     }
 
@@ -248,7 +248,7 @@ bool get_file_standard_info(const char *progname, const char *filename)
         (void)fprintf(stderr, "%s: GetFileInformationByHandleEx() "
             "error. GetLastError()==%d.\n",
             progname,
-            GetLastError());
+            (int)GetLastError());
         res = EXIT_FAILURE;
         goto done;
     }
@@ -295,7 +295,7 @@ bool get_filenormalizednameinfo(const char *progname, const char *filename)
             "%s: Error opening file '%s'. Last error was %d.\n",
             progname,
             filename,
-            GetLastError());
+            (int)GetLastError());
         return EXIT_FAILURE;
     }
 
@@ -315,7 +315,7 @@ bool get_filenormalizednameinfo(const char *progname, const char *filename)
         (void)fprintf(stderr, "%s: GetFileInformationByHandleEx() "
             "error. GetLastError()==%d.\n",
             progname,
-            GetLastError());
+            (int)GetLastError());
         res = EXIT_FAILURE;
         goto done;
     }
