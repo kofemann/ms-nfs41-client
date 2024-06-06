@@ -41,7 +41,7 @@
 #else
 #define DbgP(_x_)
 #endif
-#define TRACE_TAG   L"[NFS41_NP] "
+#define TRACE_TAG   L"[NFS41_NP]"
 #define WNNC_DRIVER(major, minor) ((major * 0x00010000) + (minor))
 
 
@@ -55,17 +55,12 @@ ULONG _cdecl NFS41DbgPrint(__in LPTSTR fmt, ...)
     va_list marker;
     va_start(marker, fmt);
 
-#pragma warning( push )
-    /*
-     * Disable "'wcscpy': This function or variable may be unsafe",
-     * in this context it is safe to use
-     */
-#pragma warning (disable : 4996)
-    (void)wcscpy(szbp, TRACE_TAG);
-#pragma warning( pop )
+    (void)StringCchPrintfW(szbp, SZBUFFER_SIZE-(szbp - szbuffer),
+        TRACE_TAG TEXT("[thr=%04x] "), (int)GetCurrentThreadId());
     szbp += wcslen(szbp);
 
-    StringCchVPrintfW(szbp, SZBUFFER_SIZE-(szbp - szbuffer), fmt, marker);
+    (void)StringCchVPrintfW(szbp, SZBUFFER_SIZE-(szbp - szbuffer),
+        fmt, marker);
     szbuffer[SZBUFFER_SIZE-1] = L'\0';
 
     OutputDebugString(szbuffer);
