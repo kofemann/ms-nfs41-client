@@ -300,12 +300,15 @@ bool get_filenormalizednameinfo(const char *progname, const char *filename)
     }
 
     /*
-     * |FileNormalizedNameInfo| value:
+     * MinGW header bug: Wrong |FileNormalizedNameInfo| value
      * Per
      * https://learn.microsoft.com/en-us/windows/win32/api/minwinbase/ne-minwinbase-file_info_by_handle_class
-     * |FileNormalizedNameInfo| should be |24|, but on Cygwin 3.6 we
-     * get the value |48|. Since |24| works and |48| returns an
-     * "Invalid Parameter" error we assume this is a Cygwin bug.
+     * |FileNormalizedNameInfo| should be |24|, but with older MinGW
+     * headers we get the value |48|.
+     * This has been reported as
+     * https://github.com/mingw-w64/mingw-w64/issues/48 ("Integer
+     * value of |FileNormalizedNameInfo| shifts with Windows
+     * version")
      */
     ok = GetFileInformationByHandleEx(fileHandle,
         24/*FileNormalizedNameInfo*/,
