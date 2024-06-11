@@ -842,6 +842,27 @@ bool get_token_primarygroup_name(HANDLE tok, char *out_buffer)
     return true;
 }
 
+bool get_token_authenticationid(HANDLE tok, LUID *out_authenticationid)
+{
+    DWORD tokdatalen;
+    PTOKEN_GROUPS_AND_PRIVILEGES ptgp;
+
+    tokdatalen = sizeof(TOKEN_GROUPS_AND_PRIVILEGES)+GETTOKINFO_EXTRA_BUFFER;
+    ptgp = _alloca(tokdatalen);
+    if (!GetTokenInformation(tok, TokenGroupsAndPrivileges, ptgp,
+        tokdatalen, &tokdatalen)) {
+        eprintf("get_token_authenticationid: "
+            "GetTokenInformation(tok=0x%p, TokenGroupsAndPrivileges) failed, "
+            "status=%d\n",
+            (void *)tok, (int)GetLastError());
+        return false;
+    }
+
+    *out_authenticationid = ptgp->AuthenticationId;
+
+    return true;
+}
+
 bool set_token_privilege(HANDLE tok, const char *seprivname, bool enable_priv)
 {
     TOKEN_PRIVILEGES tp;

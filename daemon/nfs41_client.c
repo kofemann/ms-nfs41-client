@@ -369,6 +369,7 @@ int nfs41_client_owner(
     const ULONGLONG time_created = GetTickCount64();
     int status;
     char username[UNLEN+1];
+    LUID authenticationid;
 
     /*
      * gisburn: What about primary group (for /usr/bin/newgrp
@@ -380,6 +381,19 @@ int nfs41_client_owner(
         eprintf("get_token_user_name() failed with %d\n", status);
         goto out;
     }
+
+    if (!get_token_authenticationid(GetCurrentThreadEffectiveToken(),
+        &authenticationid)) {
+        status = GetLastError();
+        eprintf("get_token_authenticationid() failed with %d\n", status);
+        goto out;
+    }
+
+    DPRINTF(0, ("nfs41_client_owner: "
+        "username='%s' authenticationid=(0x%x/0x%lx)\n",
+        username,
+        (int)authenticationid.LowPart,
+        (long)authenticationid.HighPart));
 
     /* owner.verifier = "time created" */
     memcpy(owner->co_verifier, &time_created, sizeof(time_created));
@@ -410,6 +424,18 @@ int nfs41_client_owner(
     }
 
     if (!CryptHashData(hash, (const BYTE*)name, (DWORD)strlen(name), 0)) {
+        status = GetLastError();
+        eprintf("CryptHashData() failed with %d\n", status);
+        goto out_hash;
+    }
+
+    if (!CryptHashData(hash, (const BYTE*)&authenticationid.LowPart, (DWORD)sizeof(DWORD), 0)) {
+        status = GetLastError();
+        eprintf("CryptHashData() failed with %d\n", status);
+        goto out_hash;
+    }
+
+    if (!CryptHashData(hash, (const BYTE*)&authenticationid.HighPart, (DWORD)sizeof(LONG), 0)) {
         status = GetLastError();
         eprintf("CryptHashData() failed with %d\n", status);
         goto out_hash;
