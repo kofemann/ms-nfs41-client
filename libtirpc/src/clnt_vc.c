@@ -93,6 +93,9 @@
 #include <rpc/rpc.h>
 #include "rpc_com.h"
 
+#define DEBUG_TIRPC_CB_DEADLOCKS 1
+
+
 #define MCALL_MSG_SIZE 24
 
 #define CMGROUP_MAX    16
@@ -175,6 +178,7 @@ static cond_t   *vc_cv;
 /* XXX Need Windows signal/event stuff XXX */
 #define release_fd_lock(fd, mask) {	\
 	mutex_lock(&clnt_fd_lock);	\
+	assert(vc_fd_locks[(fd)] != 0); \
 	vc_fd_locks[(fd)] = 0;		\
 	\
 	cond_broadcast(&vc_cv[(fd)]);	\
@@ -195,6 +199,20 @@ static const char clnt_vc_str[] = "clnt_vc_create";
 static const char clnt_read_vc_str[] = "read_vc";
 static const char __no_mem_str[] = "out of memory";
 
+#ifdef DEBUG_TIRPC_CB_DEADLOCKS
+#define TIRPCDbgEnter() __try {
+#define TIRPCDbgLeave() ; } \
+	__except(EXCEPTION_EXECUTE_HANDLER) { \
+		(void)fprintf(stderr, \
+			"#### FATAL: exception in " \
+			"thr=%04lx'%s'/%ld ####\n", \
+			(long)GetCurrentThreadId(), \
+			__FILE__, (long)__LINE__); }
+#else
+#define TIRPCDbgEnter()
+#define TIRPCDbgLeave()
+#endif /* DEBUG_TIRPC_CB_DEADLOCKS */
+
 /* callback thread */
 #define CALLBACK_TIMEOUT 5000
 #define	RQCRED_SIZE	400	/* this size is excessive */
@@ -211,19 +229,44 @@ static unsigned int WINAPI clnt_cb_thread(void *args)
 
     (void)fprintf(stderr/*stdout*/,
         "%04lx: cb: Callback thread running\n", (long)GetCurrentThreadId());
+
+#ifdef DEBUG_TIRPC_CB_DEADLOCKS
+    int cond_wait_timed_fails;
+    DWORD lasterr;
+
+loop_restart:
+#endif /* DEBUG_TIRPC_CB_DEADLOCKS */
     while(1) {
         cb_req header;
         void *res = NULL;
+
+#ifdef DEBUG_TIRPC_CB_DEADLOCKS
+        TIRPCDbgEnter();
+#endif /* DEBUG_TIRPC_CB_DEADLOCKS */
         mutex_lock(&clnt_fd_lock);
+#ifdef DEBUG_TIRPC_CB_DEADLOCKS
+        cond_wait_timed_fails = 0;
+#endif /* DEBUG_TIRPC_CB_DEADLOCKS */
 	    while (vc_fd_locks[ct->ct_fd] ||
                 !ct->use_stored_reply_msg ||
                 (ct->use_stored_reply_msg && ct->reply_msg.rm_direction != CALL)) {
             if (cl->shutdown)
                 break;
-		    if (!cond_wait_timed(&vc_cv[ct->ct_fd], &clnt_fd_lock,
-                CALLBACK_TIMEOUT))
+	    if (!cond_wait_timed(&vc_cv[ct->ct_fd], &clnt_fd_lock,
+                CALLBACK_TIMEOUT)) {
+#ifdef DEBUG_TIRPC_CB_DEADLOCKS
+                lasterr = GetLastError();
+                if (cond_wait_timed_fails++ > 2) {
+                    mutex_unlock(&clnt_fd_lock);
+                    (void)fprintf(stdout,
+                        "%04lx: cb: possible deadlockm, lasterr=%d\n",
+                        (long)GetCurrentThreadId(), (int)lasterr);
+                    goto loop_restart;
+                }
+#endif /* DEBUG_TIRPC_CB_DEADLOCKS */
                 if (!vc_fd_locks[ct->ct_fd])
                     break;
+	    }
 	}
 	vc_fd_locks[ct->ct_fd] = 1;
 	mutex_unlock(&clnt_fd_lock);
@@ -316,6 +359,9 @@ skip_setlastfrag:
         ct->ct_wait.tv_sec = saved_timeout_sec;
         ct->ct_wait.tv_usec = saved_timeout_usec;
         release_fd_lock(ct->ct_fd, mask);
+#ifdef DEBUG_TIRPC_CB_DEADLOCKS
+        TIRPCDbgLeave();
+#endif /* DEBUG_TIRPC_CB_DEADLOCKS */
     }
 out:
     return status;
@@ -541,7 +587,9 @@ clnt_vc_call(cl, proc, xdr_args, args_ptr, xdr_results, results_ptr, timeout)
 #else
 	/* XXX Need Windows signal/event stuff XXX */
 #endif
-    enum clnt_stat status;
+    enum clnt_stat status = RPC_SYSTEMERROR;
+
+	TIRPCDbgEnter();
 
 	assert(cl != NULL);
 
@@ -586,7 +634,8 @@ call_again:
 	}
 	if (! shipnow) {
 		release_fd_lock(ct->ct_fd, mask);
-		return (RPC_SUCCESS);
+		status = RPC_SUCCESS;
+		goto out_status;
 	}
 
 #ifdef NO_CB_4_KRB5P
@@ -711,6 +760,8 @@ call_again:
 out:
     status = ct->ct_error.re_status;
 	release_fd_lock(ct->ct_fd, mask);
+out_status:
+	TIRPCDbgLeave();
 	return status;
 }
 
