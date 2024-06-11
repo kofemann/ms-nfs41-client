@@ -304,10 +304,4 @@ bool_t waitcriticalsection(LPCRITICAL_SECTION cs);
 
 bool getwinntversionnnumbers(DWORD *MajorVersionPtr, DWORD *MinorVersionPtr, DWORD *BuildNumberPtr);
 
-bool get_token_user_name(HANDLE tok, char *out_buffer);
-bool get_token_primarygroup_name(HANDLE tok, char *out_buffer);
-bool get_token_authenticationid(HANDLE tok, LUID *out_authenticationid);
-bool set_token_privilege(HANDLE tok, const char *seprivname, bool enable_priv);
-
-
 #endif /* !__NFS41_DAEMON_UTIL_H__ */

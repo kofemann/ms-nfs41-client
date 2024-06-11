@@ -40,6 +40,7 @@
 #include "daemon_debug.h"
 #include "upcall.h"
 #include "sid.h"
+#include "accesstoken.h"
 #include "util.h"
 
 /* nfs41_dg.num_worker_threads sets the actual number of worker threads */

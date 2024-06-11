@@ -31,6 +31,7 @@
 #include "delegation.h"
 #include "daemon_debug.h"
 #include "nfs41_ops.h"
+#include "accesstoken.h"
 
 
 uint32_t nfs41_exchange_id_flags(

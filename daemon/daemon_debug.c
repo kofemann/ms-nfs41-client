@@ -32,6 +32,7 @@
 #include "service.h"
 #include "rpc/rpc.h"
 #include "rpc/auth_sspi.h"
+#include "accesstoken.h"
 
 extern int g_debug_level = DEFAULT_DEBUG_LEVEL;
 

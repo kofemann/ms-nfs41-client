@@ -34,6 +34,7 @@
 #include "upcall.h"
 #include "util.h"
 #include "idmap.h"
+#include "accesstoken.h"
 
 static int create_open_state(
     IN const char *path,
