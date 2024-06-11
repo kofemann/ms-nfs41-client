@@ -30,7 +30,7 @@
 typedef struct idmap_context nfs41_idmapper;
 
 int nfs41_idmap_create(
-    nfs41_idmapper **context_out);
+    nfs41_idmapper **context_out, const char *localdomain_name);
 
 void nfs41_idmap_free(
     nfs41_idmapper *context);

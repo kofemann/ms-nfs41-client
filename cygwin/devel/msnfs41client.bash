@@ -143,7 +143,13 @@ function nfsclient_install
 	bcdedit /dbgsettings local
 
 	# set domain name
+	typeset win_domainname=''
+	if [[ -f '/proc/registry/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Services/Tcpip/Parameters/Domain' ]] ; then
+		win_domainname="$( strings '/proc/registry/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Services/Tcpip/Parameters/Domain' )"
+	fi
+	if [[ "${win_domainname}" == '' ]] ; then
 	regtool -s set '/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Services/Tcpip/Parameters/Domain' 'GLOBAL.LOC'
+	fi
 
 	# disable DFS
 	sc query Dfsc
@@ -204,10 +210,11 @@ function nfsclient_rundeamon
 {
 	set -o nounset
 
-	printf '# user='%s' uname='%s' isadmin=%d\n' \
+	printf '# user="%s" uname="%s" isadmin=%d domainname="%s"\n' \
 		"$(id -u -n)" \
 		"$(uname -a)" \
-		"$(is_windows_admin_account ; printf "%d\n" $((${?}?0:1)))"
+		"$(is_windows_admin_account ; printf "%d\n" $((${?}?0:1)))" \
+		"$(domainname)"
 
 	# sync before starting nfs41 client daemon, to limit the damage
 	# if the kernel module generates a crash on startup
@@ -301,10 +308,11 @@ function nfsclient_system_rundeamon
 {
 	set -o nounset
 
-	printf '# user='%s' uname='%s' isadmin=%d\n' \
+	printf '# user="%s" uname="%s" isadmin=%d domainname="%s"\n' \
 		"$(id -u -n)" \
 		"$(uname -a)" \
-		"$(is_windows_admin_account ; printf "%d\n" $((${?}?0:1)))"
+		"$(is_windows_admin_account ; printf "%d\n" $((${?}?0:1)))" \
+		"$(domainname)"
 
 	# sync before starting nfs41 client daemon, to limit the damage
 	# if the kernel module generates a crash on startup

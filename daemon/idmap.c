@@ -84,6 +84,7 @@ static const char CONFIG_FILENAME[] = "C:\\etc\\ms-nfs41-idmap.conf";
 struct idmap_config {
     /* ldap server information */
     char hostname[NFS41_HOSTNAME_LEN+1];
+    char localdomain_name[NFS41_HOSTNAME_LEN+1];
     UINT port;
     UINT version;
     UINT timeout;
@@ -728,7 +729,8 @@ static int idmap_lookup_user(
                 ("# ATTR_USER_NAME: cygwin_getent_passwd: returned '%s', uid=%u, gid=%u\n",
                 lookup->value, (unsigned int)cy_uid, (unsigned int)cy_gid));
             (void)snprintf(principal_name, sizeof(principal_name),
-                "%s@%s", (const char *)lookup->value, "GLOBAL.LOC");
+                "%s@%s", (const char *)lookup->value,
+                context->config.localdomain_name);
             StringCchCopyA(user->username, VAL_LEN, lookup->value);
             StringCchCopyA(user->principal, VAL_LEN, principal_name);
             user->uid = cy_uid;
@@ -758,7 +760,8 @@ static int idmap_lookup_user(
                 ("# ATTR_PRINCIPAL: cygwin_getent_passwd: returned '%s', uid=%u, gid=%u\n",
                 lookup->value, (unsigned int)cy_uid, (unsigned int)cy_gid));
             (void)snprintf(principal_name, sizeof(principal_name),
-                "%s@%s", (const char *)lookup->value, "GLOBAL.LOC");
+                "%s@%s", (const char *)lookup->value,
+                context->config.localdomain_name);
 
             if (!strcmp(principal_name, lookup->value)) {
                 StringCchCopyA(user->username, VAL_LEN, search_name);
@@ -785,7 +788,8 @@ static int idmap_lookup_user(
             DPRINTF(CYGWINIDLVL,
                 ("# ATTR_UID: cygwin_getent_passwd: returned '%s', uid=%u, gid=%u\n",
                 res_username, (unsigned int)cy_uid, (unsigned int)cy_gid));
-            (void)snprintf(principal_name, sizeof(principal_name), "%s@%s", res_username, "GLOBAL.LOC");
+            (void)snprintf(principal_name, sizeof(principal_name),
+                "%s@%s", res_username, context->config.localdomain_name);
 
             StringCchCopyA(user->username, VAL_LEN, res_username);
             StringCchCopyA(user->principal, VAL_LEN, principal_name);
@@ -929,12 +933,20 @@ out:
 
 /* public idmap interface */
 int nfs41_idmap_create(
-    struct idmap_context **context_out)
+    struct idmap_context **context_out, const char *localdomain_name)
 {
     struct idmap_context *context;
     int status = NO_ERROR;
 
     context = calloc(1, sizeof(struct idmap_context));
+    if (context == NULL) {
+        status = GetLastError();
+        goto out;
+    }
+
+    (void)strcpy_s(context->config.localdomain_name,
+        sizeof(context->config.localdomain_name),
+        localdomain_name);
     if (context == NULL) {
         status = GetLastError();
         goto out;

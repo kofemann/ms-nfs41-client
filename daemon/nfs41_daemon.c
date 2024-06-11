@@ -762,7 +762,10 @@ VOID ServiceStart(DWORD argc, LPTSTR *argv)
     nfs41_server_list_init();
 
     if (cmd_args.ldap_enable) {
-        status = nfs41_idmap_create(&(nfs41_dg.idmapper));
+        EASSERT(nfs41_dg.localdomain_name[0] != '\0');
+
+        status = nfs41_idmap_create(&(nfs41_dg.idmapper),
+            nfs41_dg.localdomain_name);
         if (status) {
             eprintf("id mapping initialization failed with %d\n", status);
             goto out_logs;
