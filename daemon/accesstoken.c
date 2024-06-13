@@ -19,9 +19,15 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  */
 
+#include "nfs41_build_features.h"
 #include "accesstoken.h"
+#include "sid.h"
 #include "daemon_debug.h"
 #include <Lmcons.h>
+
+#ifndef _NFS41_DRIVER_BUILDFEATURES_
+#error NFS41 build config not included
+#endif
 
 /*
  * Performance hack:
