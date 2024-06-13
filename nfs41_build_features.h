@@ -107,4 +107,14 @@
  */
 #define NFS41_DRIVER_DISABLE_8DOT3_SHORTNAME_GENERATION 1
 
+/*
+ * NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE - use
+ * |TOKEN_GROUPS_AND_PRIVILEGES.AuthenticationId| for
+ * mount namespace separation between users.
+ * This avoid that mounts from different users can interfere
+ * with each other, e.g. if they are mounted with different
+ * mount (e.g. "rw" vs. "ro") options.
+ */
+#define NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE 1
+
 #endif /* !_NFS41_DRIVER_BUILDFEATURES_ */

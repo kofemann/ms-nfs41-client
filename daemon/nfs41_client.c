@@ -3,6 +3,7 @@
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
+ * Roland Mainz <roland.mainz@nrubsig.org>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -27,6 +28,7 @@
 #include <wincrypt.h> /* for Crypt*() functions */
 #include <winsock2.h> /* for hostent struct */
 
+#include "nfs41_build_features.h"
 #include "tree.h"
 #include "delegation.h"
 #include "daemon_debug.h"
@@ -370,31 +372,37 @@ int nfs41_client_owner(
     const ULONGLONG time_created = GetTickCount64();
     int status;
     char username[UNLEN+1];
+    HANDLE thrtoken = GetCurrentThreadEffectiveToken();
+#ifdef NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE
     LUID authenticationid;
+#endif /* NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE */
 
     /*
      * gisburn: What about primary group (for /usr/bin/newgrp
      * support) ?
      */
-    if (!get_token_user_name(GetCurrentThreadEffectiveToken(),
+    if (!get_token_user_name(thrtoken,
         username)) {
         status = GetLastError();
         eprintf("get_token_user_name() failed with %d\n", status);
         goto out;
     }
 
-    if (!get_token_authenticationid(GetCurrentThreadEffectiveToken(),
+#ifdef NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE
+    if (!get_token_authenticationid(thrtoken,
         &authenticationid)) {
         status = GetLastError();
-        eprintf("get_token_authenticationid() failed with %d\n", status);
+        eprintf("nfs41_client_owner: get_token_authenticationid() "
+            "failed with %d\n", status);
         goto out;
     }
 
-    DPRINTF(0, ("nfs41_client_owner: "
-        "username='%s' authenticationid=(0x%x/0x%lx)\n",
+    DPRINTF(1, ("nfs41_client_owner: "
+        "username='%s' authid=(0x%x.0x%lx)\n",
         username,
         (int)authenticationid.LowPart,
         (long)authenticationid.HighPart));
+#endif /* NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE */
 
     /* owner.verifier = "time created" */
     memcpy(owner->co_verifier, &time_created, sizeof(time_created));
@@ -430,6 +438,11 @@ int nfs41_client_owner(
         goto out_hash;
     }
 
+#ifdef NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE
+    /*
+     * |LUID| may have (hidden) padding fields, so we hash each
+     * member seperately
+     */
     if (!CryptHashData(hash, (const BYTE*)&authenticationid.LowPart, (DWORD)sizeof(DWORD), 0)) {
         status = GetLastError();
         eprintf("CryptHashData() failed with %d\n", status);
@@ -441,6 +454,7 @@ int nfs41_client_owner(
         eprintf("CryptHashData() failed with %d\n", status);
         goto out_hash;
     }
+#endif /* NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE */
 
     if (!CryptHashData(hash, (const BYTE*)&port, (DWORD)sizeof(port), 0)) {
         status = GetLastError();

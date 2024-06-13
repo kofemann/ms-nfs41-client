@@ -73,6 +73,56 @@ ULONG _cdecl NFS41DbgPrint(__in LPTSTR fmt, ...)
     return rc;
 }
 
+#ifdef NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE
+/*
+ * |equal_luid()| - |LUID| might contain padding fields, so
+ * we cannot use |memcpy()|!
+ */
+static
+bool equal_luid(LUID *l1, LUID *l2)
+{
+    return((l1->LowPart == l2->LowPart) &&
+        (l1->HighPart == l2->HighPart));
+}
+
+/*
+ * Performance hack:
+ * GETTOKINFO_EXTRA_BUFFER - extra space for more data
+ * |GetTokenInformation()| for |TOKEN_USER|, |TOKEN_PRIMARY_GROUP|
+ * and |TOKEN_GROUPS_AND_PRIVILEGES| always fails in Win10 with
+ * |ERROR_INSUFFICIENT_BUFFER| if you just pass the |sizeof(TOKEN_*)|
+ * value.
+ * Instead of calling |GetTokenInformation()| with |NULL| arg to
+ * obtain the size to allocate we just provide 2048 bytes of extra
+ * space after the |TOKEN_*| size, and pray it is enough.
+ */
+#define GETTOKINFO_EXTRA_BUFFER (2048)
+
+static
+bool get_token_authenticationid(HANDLE tok, LUID *out_authenticationid)
+{
+    DWORD tokdatalen;
+    PTOKEN_GROUPS_AND_PRIVILEGES ptgp;
+
+    tokdatalen =
+        sizeof(TOKEN_GROUPS_AND_PRIVILEGES)+GETTOKINFO_EXTRA_BUFFER;
+    ptgp = _alloca(tokdatalen);
+    if (!GetTokenInformation(tok, TokenGroupsAndPrivileges, ptgp,
+        tokdatalen, &tokdatalen)) {
+        DbgP((L"get_token_authenticationid: "
+            L"GetTokenInformation(tok=0x%p, TokenGroupsAndPrivileges) "
+            L"failed, "
+            L"status=%d\n",
+            (void *)tok, (int)GetLastError()));
+        return false;
+    }
+
+    *out_authenticationid = ptgp->AuthenticationId;
+
+    return true;
+}
+#endif /* NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE */
+
 int filter(unsigned int code)
 {
     DbgP((L"####Got exception %u\n", code));
@@ -203,8 +253,16 @@ static DWORD StoreConnectionInfo(
     PNFS41NP_NETRESOURCE pNfs41NetResource;
     INT i;
     bool FreeEntryFound = false;
+#ifdef NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE
+    LUID authenticationid = { .LowPart = 0, .HighPart = 0L };
+#endif /* NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE */
 
     DbgP((L"--> StoreConnectionInfo\n"));
+
+#ifdef NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE
+    (void)get_token_authenticationid(GetCurrentThreadEffectiveToken(),
+        &authenticationid);
+#endif /* NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE */
 
     status = OpenSharedMemory(&hMutex, &hMemory,
         &(PVOID)pSharedMemory);
@@ -243,6 +301,9 @@ static DWORD StoreConnectionInfo(
     pNfs41NetResource->dwDisplayType    =
         lpNetResource->dwDisplayType;
     pNfs41NetResource->dwUsage          = RESOURCEUSAGE_CONNECTABLE;
+#ifdef NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE
+    pNfs41NetResource->MountAuthId      = authenticationid;
+#endif /* NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE */
     pNfs41NetResource->LocalNameLength  =
         (USHORT)(wcslen(LocalName) + 1) * sizeof(WCHAR);
     pNfs41NetResource->RemoteNameLength =
@@ -660,9 +721,17 @@ NPCancelConnection(
 
     HANDLE  hMutex, hMemory;
     PNFS41NP_SHARED_MEMORY  pSharedMemory;
+#ifdef NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE
+    LUID authenticationid = { .LowPart = 0, .HighPart = 0L };
+#endif /* NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE */
 
     DbgP((L"--> NPCancelConnection(lpName='%s', fForce=%d)\n",
         lpName, (int)fForce));
+
+#ifdef NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE
+    (void)get_token_authenticationid(GetCurrentThreadEffectiveToken(),
+        &authenticationid);
+#endif /* NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE */
 
     Status = OpenSharedMemory(&hMutex,
         &hMemory,
@@ -684,7 +753,12 @@ NPCancelConnection(
         pNetResource = &pSharedMemory->NetResources[Index];
 
         if (pNetResource->InUse) {
-            if ((((wcslen(lpName)+1) * sizeof(WCHAR)) ==
+            if (
+#ifdef NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE
+                equal_luid(&authenticationid,
+                    &pNetResource->MountAuthId) &&
+#endif /* NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE */
+                (((wcslen(lpName)+1) * sizeof(WCHAR)) ==
                 pNetResource->LocalNameLength) &&
                 (!wcscmp(lpName, pNetResource->LocalName))) {
                 ULONG CopyBytes;
@@ -749,8 +823,16 @@ NPGetConnection(
 
     HANDLE  hMutex, hMemory;
     PNFS41NP_SHARED_MEMORY  pSharedMemory;
+#ifdef NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE
+    LUID authenticationid = { .LowPart = 0, .HighPart = 0L };
+#endif /* NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE */
 
     DbgP((L"--> NPGetConnection(lpLocalName='%s')\n", lpLocalName));
+
+#ifdef NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE
+    (void)get_token_authenticationid(GetCurrentThreadEffectiveToken(),
+        &authenticationid);
+#endif /* NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE */
 
     Status = OpenSharedMemory(&hMutex,
         &hMemory,
@@ -767,7 +849,13 @@ NPGetConnection(
         pNetResource = &pSharedMemory->NetResources[Index];
 
         if (pNetResource->InUse) {
-            if ((((wcslen(lpLocalName)+1)*sizeof(WCHAR)) ==
+            if (
+#ifdef NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE
+                equal_luid(&authenticationid,
+                    &pNetResource->MountAuthId) &&
+#endif /* NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE */
+                (((wcslen(lpLocalName)+1)*sizeof(WCHAR)) ==
+
                     pNetResource->LocalNameLength) &&
                     (!wcscmp(lpLocalName, pNetResource->LocalName))) {
                 if (*lpBufferSize < pNetResource->RemoteNameLength) {
@@ -853,10 +941,19 @@ NPEnumResource(
     HANDLE  hMutex, hMemory;
     PNFS41NP_SHARED_MEMORY  pSharedMemory;
     PNFS41NP_NETRESOURCE pNfsNetResource;
-    INT  Index = *(PULONG)hEnum;
+    INT             Index = *(PULONG)hEnum;
+#ifdef NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE
+    LUID            authenticationid =
+        { .LowPart = 0, .HighPart = 0L };
+#endif /* NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE */
 
     DbgP((L"--> NPEnumResource(hEnum=0x%x, *lpcCount=%d)\n",
         HANDLE2INT(hEnum), (int)*lpcCount));
+
+#ifdef NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE
+    (void)get_token_authenticationid(GetCurrentThreadEffectiveToken(),
+        &authenticationid);
+#endif /* NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE */
 
     pNetResource = (LPNETRESOURCE) lpBuffer;
     SpaceAvailable = *lpBufferSize;
@@ -875,8 +972,12 @@ NPEnumResource(
     {
         pNfsNetResource = &pSharedMemory->NetResources[Index];
 
-        if (pNfsNetResource->InUse)
-        {
+        if (pNfsNetResource->InUse
+#ifdef NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE
+            && equal_luid(&authenticationid,
+                &pNfsNetResource->MountAuthId)
+#endif /* NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE */
+                ) {
             SpaceNeeded  = sizeof(NETRESOURCE);
             SpaceNeeded += pNfsNetResource->LocalNameLength;
             SpaceNeeded += pNfsNetResource->RemoteNameLength;

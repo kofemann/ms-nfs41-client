@@ -24,10 +24,14 @@
 #include <strsafe.h>
 #include <stdio.h>
 
+#include "nfs41_build_features.h"
 #include "daemon_debug.h"
 #include "nfs41_ops.h"
 #include "upcall.h"
 #include "util.h"
+#ifdef NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE
+#include "accesstoken.h"
+#endif /* NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE */
 
 
 /* NFS41_MOUNT */
@@ -72,9 +76,24 @@ static int handle_mount(void *daemon_context, nfs41_upcall *upcall)
 
     EASSERT(args->hostport != NULL);
 
+#ifdef NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE
+    LUID authenticationid = { .LowPart = 0, .HighPart = 0L };
+
+    /* We ignore errors here since this is for logging only */
+    (void)get_token_authenticationid(upcall->currentthread_token,
+        &authenticationid);
+
+    logprintf("mount(hostport='%s', path='%s', "
+        "authid=(0x%x.0x%lx)) request\n",
+        args->hostport?args->hostport:"<NULL>",
+        args->path?args->path:"<NULL>",
+        (int)authenticationid.LowPart,
+        (long)authenticationid.HighPart);
+#else
     logprintf("mount(hostport='%s', path='%s') request\n",
         args->hostport?args->hostport:"<NULL>",
         args->path?args->path:"<NULL>");
+#endif /* NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE */
 
     if (upcall->currentthread_token == INVALID_HANDLE_VALUE){
         eprintf("handle_mount: Thread has no impersonation token\n");
@@ -167,16 +186,36 @@ static int handle_mount(void *daemon_context, nfs41_upcall *upcall)
     args->lease_time = client->session->lease_time;
 out:
     if (status == 0) {
+#ifdef NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE
+        logprintf("mount(hostport='%s', path='%s', "
+            "authid=(0x%x.0x%lx)) success, root=0x%p\n",
+            args->hostport?args->hostport:"<NULL>",
+            args->path?args->path:"<NULL>",
+            (int)authenticationid.LowPart,
+            (long)authenticationid.HighPart,
+            root);
+#else
         logprintf("mount(hostport='%s', path='%s') success, root=0x%p\n",
             args->hostport?args->hostport:"<NULL>",
             args->path?args->path:"<NULL>",
             root);
+#endif /* NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE */
     }
     else {
+#ifdef NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE
+        logprintf("mount(hostport='%s', path='%s', "
+            "authid=(0x%x.0x%lx))) failed, status=%d\n",
+            args->hostport?args->hostport:"<NULL>",
+            args->path?args->path:"<NULL>",
+            (int)authenticationid.LowPart,
+            (long)authenticationid.HighPart,
+            (int)status);
+#else
         logprintf("mount(hostport='%s', path='%s') failed, status=%d\n",
             args->hostport?args->hostport:"<NULL>",
             args->path?args->path:"<NULL>",
             (int)status);
+#endif /* NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE */
     }
     return status;
 

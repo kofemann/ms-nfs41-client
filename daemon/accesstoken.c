@@ -32,12 +32,13 @@
 /*
  * Performance hack:
  * GETTOKINFO_EXTRA_BUFFER - extra space for more data
- * |GetTokenInformation()| for |TOKEN_USER| and |TOKEN_PRIMARY_GROUP|
- * always fails in Win10 with |ERROR_INSUFFICIENT_BUFFER| if you
- * just pass the |sizeof(TOKEN_*)| value. Instead of calling
- * |GetTokenInformation()| with |NULL| arg to obtain the size to
- * allocate we just provide 2048 bytes of extra space after the
- * |TOKEN_*| size, and pray it is enough
+ * |GetTokenInformation()| for |TOKEN_USER|, |TOKEN_PRIMARY_GROUP|
+ * and |TOKEN_GROUPS_AND_PRIVILEGES| always fails in Win10 with
+ * |ERROR_INSUFFICIENT_BUFFER| if you just pass the |sizeof(TOKEN_*)|
+ * value.
+ * Instead of calling |GetTokenInformation()| with |NULL| arg to
+ * obtain the size to allocate we just provide 2048 bytes of extra
+ * space after the |TOKEN_*| size, and pray it is enough.
  */
 #define GETTOKINFO_EXTRA_BUFFER (2048)
 
