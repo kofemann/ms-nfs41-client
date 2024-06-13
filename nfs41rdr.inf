@@ -1,10 +1,8 @@
 [Version]
 Signature="$CHICAGO$"
-DriverVer=05/27/2009,1.0
-ClassGUID={00000000-0000-0000-0000-000000000000}
-;Its possible that we should be using:
-;Class=NetService
-;ClassGUID={4d36e974-e325-11ce-bfc1-08002be10318}
+DriverVer=06/12/2024,1.0.0.0
+Class=NetService
+ClassGUID={4d36e974-e325-11ce-bfc1-08002be10318}
 CatalogFile=catalogfile.cat
 Provider=%ProviderName%
 

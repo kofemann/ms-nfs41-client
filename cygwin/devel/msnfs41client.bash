@@ -98,19 +98,8 @@ function nfsclient_install
 	chmod a+x *.dll
 	chmod a+x ../../sbin/nfs*.exe ../../sbin/libtirpc*.dll
 
-	if false ; then
-		# install.bat needs PATH to include $PWD
-		PATH="$PWD:$PATH" cmd /c install.bat
-	else
-		# devel: set default in case "nfs_install" ruined it:
-		#regtool -s set '/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Control/NetworkProvider/Order/ProviderOrder' 'RDPNP,LanmanWorkstation,webclient'
-
-		printf 'before nfs_install: ProviderOrder="%s"\n' "$( strings -a '/proc/registry/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Control/NetworkProvider/Order/ProviderOrder')"
-		nfs_install -D
-		printf 'after nfs_install:  ProviderOrder="%s"\n' "$( strings -a '/proc/registry/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Control/NetworkProvider/Order/ProviderOrder')"
-
-		rundll32 setupapi.dll,InstallHinfSection DefaultInstall 132 ./nfs41rdr.inf
-	fi
+	# (re-)install driver
+	nfsclient_adddriver
 
 	mkdir -p /cygdrive/c/etc
 	cp etc_netconfig /cygdrive/c/etc/netconfig
@@ -200,6 +189,52 @@ function nfsclient_install
 	md5sum \
 		"$PWD/nfs41_driver.sys" \
 		'/cygdrive/c/Windows/System32/drivers/nfs41_driver.sys'
+
+	sync
+
+	return 0
+}
+
+function nfsclient_adddriver
+{
+	set -o nounset
+	set -o xtrace
+	set -o errexit
+
+	# switch to the location where this script is installed,
+	# because on Cygwin the script will be installed
+	# in /cygdrive/c/cygwin/lib/msnfs41client/ (32bit) or
+	# in /cygdrive/c/cygwin64/lib/msnfs41client/ (64bit).
+	cd -P "$(dirname -- "$(realpath "${BASH_SOURCE[0]}")")"
+
+	# devel: set default in case "nfs_install" ruined it:
+	#regtool -s set '/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Control/NetworkProvider/Order/ProviderOrder' 'RDPNP,LanmanWorkstation,webclient'
+
+	printf 'before nfs_install: ProviderOrder="%s"\n' "$( strings -a '/proc/registry/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Control/NetworkProvider/Order/ProviderOrder')"
+	nfs_install -D
+	printf 'after nfs_install:  ProviderOrder="%s"\n' "$( strings -a '/proc/registry/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Control/NetworkProvider/Order/ProviderOrder')"
+
+	rundll32 setupapi.dll,InstallHinfSection DefaultInstall 132 ./nfs41rdr.inf
+
+	return 0
+}
+
+function nfsclient_removedriver
+{
+	set -o nounset
+	set -o xtrace
+	set -o errexit
+
+	# switch to the location where this script is installed,
+	# because on Cygwin the script will be installed
+	# in /cygdrive/c/cygwin/lib/msnfs41client/ (32bit) or
+	# in /cygdrive/c/cygwin64/lib/msnfs41client/ (64bit).
+	cd -P "$(dirname -- "$(realpath "${BASH_SOURCE[0]}")")"
+
+	nfs_install.exe 0
+	rundll32.exe setupapi.dll,InstallHinfSection DefaultUninstall 132 ./nfs41rdr.inf
+	rm /cygdrive/c/Windows/System32/nfs41_np.dll || true
+	rm /cygdrive/c/Windows/System32/drivers/nfs41_driver.sys || true
 
 	sync
 
@@ -589,6 +624,23 @@ function main
 			(( numerr > 0 )) && return 1
 
 			nfsclient_install
+			return $?
+			;;
+		#
+		# 'removedriver' should only be used by developers,
+		# as 'install' can always overwrite an existing driver
+		#
+		'removedriver')
+			check_machine_arch || (( numerr++ ))
+			require_cmd 'nfs_install.exe' || (( numerr++ ))
+			require_cmd 'rundll32.exe' || (( numerr++ ))
+			if ! is_windows_admin_account ; then
+				printf $"%s: %q requires Windows Adminstator permissions.\n" "$0" "$cmd"
+				(( numerr++ ))
+			fi
+			(( numerr > 0 )) && return 1
+
+			nfsclient_removedriver
 			return $?
 			;;
 		'run_deamon' | 'run_daemon')
