@@ -528,7 +528,9 @@ static void map_winaccessmask2nfs4acemask(ACCESS_MASK mask, int file_type, uint3
     DPRINTF(ACLLVL,
         ("--> map_winaccessmask2nfs4acemask(mask=0x%x)\n",
         (int)mask));
-    print_windows_access_mask(ACLLVL, mask);
+    if (DPRINTF_LEVEL_ENABLED(0)) {
+        print_windows_access_mask(mask);
+    }
     /* check if any GENERIC bits set */
     if (mask & 0xf000000) {
         if (mask & GENERIC_ALL) {
@@ -547,7 +549,9 @@ static void map_winaccessmask2nfs4acemask(ACCESS_MASK mask, int file_type, uint3
     }
     else /* ignoring generic and reserved bits */
         *nfs4_mask = mask & 0x00ffffff;
-    print_nfs_access_mask(ACLLVL, *nfs4_mask);
+    if (DPRINTF_LEVEL_ENABLED(0)) {
+        print_nfs_access_mask(*nfs4_mask);
+    }
     DPRINTF(ACLLVL,
         ("<-- map_winaccessmask2nfs4acemask(mask=0x%x, *nfs4_mask=0x%x)\n",
         (int)mask, (int)*nfs4_mask));

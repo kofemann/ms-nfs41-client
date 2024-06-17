@@ -31,6 +31,7 @@
 #else
 # include <stdlib.h>
 #endif
+#include <stdint.h>
 #include <stdbool.h>
 
 #define DEFAULT_DEBUG_LEVEL 1
@@ -103,8 +104,8 @@ void dprintf_out(LPCSTR format, ...);
 void eprintf_out(LPCSTR format, ...);
 void eprintf(LPCSTR format, ...);
 
-void print_windows_access_mask(int on, ACCESS_MASK m);
-void print_nfs_access_mask(int on, int m);
+void print_windows_access_mask(ACCESS_MASK win_mask);
+void print_nfs_access_mask(uint32_t nfs_mask);
 void print_hexbuf_no_asci(const char *title, const unsigned char *buf, int len);
 void print_hexbuf(const char *title, const unsigned char *buf, int len);
 void print_create_attributes(int level, DWORD create_opts);

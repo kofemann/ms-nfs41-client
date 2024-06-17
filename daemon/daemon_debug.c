@@ -801,121 +801,91 @@ const char* secflavorop2name(DWORD sec_flavor)
     return "<Unknown RPCSEC_AUTH* flavour>";
 }
 
-void print_windows_access_mask(int on, ACCESS_MASK m)
+void print_windows_access_mask(ACCESS_MASK win_mask)
 {
-    if (!on)
-        return;
-    if (!DPRINTF_LEVEL_ENABLED(1))
-        return;
+    dprintf_out("--> print_windows_access_mask: 0x%lx\n", (long)win_mask);
+#define PRINTWINACCESSMASKBITS(s) \
+    if ((win_mask & (s)) == (s)) { \
+        dprintf_out("\t" #s "\n"); \
+        win_mask &= ~(s); \
+    }
+    PRINTWINACCESSMASKBITS(GENERIC_READ);
+    PRINTWINACCESSMASKBITS(GENERIC_WRITE);
+    PRINTWINACCESSMASKBITS(GENERIC_EXECUTE);
+    PRINTWINACCESSMASKBITS(GENERIC_ALL);
+    PRINTWINACCESSMASKBITS(MAXIMUM_ALLOWED);
+    PRINTWINACCESSMASKBITS(ACCESS_SYSTEM_SECURITY);
+    PRINTWINACCESSMASKBITS(SPECIFIC_RIGHTS_ALL);
+    PRINTWINACCESSMASKBITS(STANDARD_RIGHTS_ALL);
+    PRINTWINACCESSMASKBITS(STANDARD_RIGHTS_REQUIRED);
+    PRINTWINACCESSMASKBITS(SYNCHRONIZE);
+    PRINTWINACCESSMASKBITS(WRITE_OWNER);
+    PRINTWINACCESSMASKBITS(WRITE_DAC);
+    PRINTWINACCESSMASKBITS(READ_CONTROL);
+    PRINTWINACCESSMASKBITS(DELETE);
+    PRINTWINACCESSMASKBITS(FILE_READ_DATA);
+    PRINTWINACCESSMASKBITS(FILE_LIST_DIRECTORY);
+    PRINTWINACCESSMASKBITS(FILE_WRITE_DATA);
+    PRINTWINACCESSMASKBITS(FILE_ADD_FILE);
+    PRINTWINACCESSMASKBITS(FILE_APPEND_DATA);
+    PRINTWINACCESSMASKBITS(FILE_ADD_SUBDIRECTORY);
+    PRINTWINACCESSMASKBITS(FILE_CREATE_PIPE_INSTANCE);
+    PRINTWINACCESSMASKBITS(FILE_READ_EA);
+    PRINTWINACCESSMASKBITS(FILE_WRITE_EA);
+    PRINTWINACCESSMASKBITS(FILE_EXECUTE);
+    PRINTWINACCESSMASKBITS(FILE_TRAVERSE);
+    PRINTWINACCESSMASKBITS(FILE_DELETE_CHILD);
+    PRINTWINACCESSMASKBITS(FILE_READ_ATTRIBUTES);
+    PRINTWINACCESSMASKBITS(FILE_WRITE_ATTRIBUTES);
+    PRINTWINACCESSMASKBITS(FILE_ALL_ACCESS);
+    PRINTWINACCESSMASKBITS(FILE_GENERIC_READ);
+    PRINTWINACCESSMASKBITS(FILE_GENERIC_WRITE);
+    PRINTWINACCESSMASKBITS(FILE_GENERIC_EXECUTE);
 
-    dprintf_out("--> print_windows_access_mask: %x\n", m);
-    if (m & GENERIC_READ)
-        dprintf_out("\tGENERIC_READ\n");
-    if (m & GENERIC_WRITE)
-        dprintf_out("\tGENERIC_WRITE\n");
-    if (m & GENERIC_EXECUTE)
-        dprintf_out("\tGENERIC_EXECUTE\n");
-    if (m & GENERIC_ALL)
-        dprintf_out("\tGENERIC_ALL\n");
-    if (m & MAXIMUM_ALLOWED)
-        dprintf_out("\tMAXIMUM_ALLOWED\n");
-    if (m & ACCESS_SYSTEM_SECURITY)
-        dprintf_out("\tACCESS_SYSTEM_SECURITY\n");
-    if ((m & SPECIFIC_RIGHTS_ALL) == SPECIFIC_RIGHTS_ALL)
-        dprintf_out("\tSPECIFIC_RIGHTS_ALL\n");
-    if ((m & STANDARD_RIGHTS_ALL) == STANDARD_RIGHTS_ALL)
-        dprintf_out("\tSTANDARD_RIGHTS_ALL\n");
-    if ((m & STANDARD_RIGHTS_REQUIRED) == STANDARD_RIGHTS_REQUIRED)
-        dprintf_out("\tSTANDARD_RIGHTS_REQUIRED\n");
-    if (m & SYNCHRONIZE)
-        dprintf_out("\tSYNCHRONIZE\n");
-    if (m & WRITE_OWNER)
-        dprintf_out("\tWRITE_OWNER\n");
-    if (m & WRITE_DAC)
-        dprintf_out("\tWRITE_DAC\n");
-    if (m & READ_CONTROL)
-        dprintf_out("\tREAD_CONTROL\n");
-    if (m & DELETE)
-        dprintf_out("\tDELETE\n");
-    if (m & FILE_READ_DATA)
-        dprintf_out("\tFILE_READ_DATA\n");
-    if (m & FILE_LIST_DIRECTORY)
-        dprintf_out("\tFILE_LIST_DIRECTORY\n");
-    if (m & FILE_WRITE_DATA)
-        dprintf_out("\tFILE_WRITE_DATA\n");
-    if (m & FILE_ADD_FILE)
-        dprintf_out("\tFILE_ADD_FILE\n");
-    if (m & FILE_APPEND_DATA)
-        dprintf_out("\tFILE_APPEND_DATA\n");
-    if (m & FILE_ADD_SUBDIRECTORY)
-        dprintf_out("\tFILE_ADD_SUBDIRECTORY\n");
-    if (m & FILE_CREATE_PIPE_INSTANCE)
-        dprintf_out("\tFILE_CREATE_PIPE_INSTANCE\n");
-    if (m & FILE_READ_EA)
-        dprintf_out("\tFILE_READ_EA\n");
-    if (m & FILE_WRITE_EA)
-        dprintf_out("\tFILE_WRITE_EA\n");
-    if (m & FILE_EXECUTE)
-        dprintf_out("\tFILE_EXECUTE\n");
-    if (m & FILE_TRAVERSE)
-        dprintf_out("\tFILE_TRAVERSE\n");
-    if (m & FILE_DELETE_CHILD)
-        dprintf_out("\tFILE_DELETE_CHILD\n");
-    if (m & FILE_READ_ATTRIBUTES)
-        dprintf_out("\tFILE_READ_ATTRIBUTES\n");
-    if (m & FILE_WRITE_ATTRIBUTES)
-        dprintf_out("\tFILE_WRITE_ATTRIBUTES\n");
-    if ((m & FILE_ALL_ACCESS) == FILE_ALL_ACCESS)
-        dprintf_out("\tFILE_ALL_ACCESS\n");
-    if ((m & FILE_GENERIC_READ) == FILE_GENERIC_READ)
-        dprintf_out("\tFILE_GENERIC_READ\n");
-    if ((m & FILE_GENERIC_WRITE) == FILE_GENERIC_WRITE)
-        dprintf_out("\tFILE_GENERIC_WRITE\n");
-    if ((m & FILE_GENERIC_EXECUTE) == FILE_GENERIC_EXECUTE)
-        dprintf_out("\tFILE_GENERIC_EXECUTE\n");
+    /* Print any "leftover" bits */
+    if (win_mask) {
+        dprintf_out("\t0x%lx\n", (long)win_mask);
+    }
+    dprintf_out("<-- print_windows_access_mask\n");
 }
 
-void print_nfs_access_mask(int on, int m)
+void print_nfs_access_mask(uint32_t nfs_mask)
 {
-    if (!on) return;
-    if (!DPRINTF_LEVEL_ENABLED(1))
-        return;
+    dprintf_out("--> print_nfs_access_mask: 0x%lx\n", (long)nfs_mask);
+#define PRINTNFSMASKBITS(s) \
+    if ((nfs_mask & (s)) == (s)) { \
+        dprintf_out("\t" #s "\n"); \
+        nfs_mask &= ~(s); \
+    }
+    PRINTNFSMASKBITS(ACE4_READ_DATA);
+    PRINTNFSMASKBITS(ACE4_LIST_DIRECTORY);
+    PRINTNFSMASKBITS(ACE4_WRITE_DATA);
+    PRINTNFSMASKBITS(ACE4_ADD_FILE);
+    PRINTNFSMASKBITS(ACE4_APPEND_DATA);
+    PRINTNFSMASKBITS(ACE4_ADD_SUBDIRECTORY);
+    PRINTNFSMASKBITS(ACE4_READ_NAMED_ATTRS);
+    PRINTNFSMASKBITS(ACE4_WRITE_NAMED_ATTRS);
+    PRINTNFSMASKBITS(ACE4_EXECUTE);
+    PRINTNFSMASKBITS(ACE4_DELETE_CHILD);
+    PRINTNFSMASKBITS(ACE4_READ_ATTRIBUTES);
+    PRINTNFSMASKBITS(ACE4_WRITE_ATTRIBUTES);
+    PRINTNFSMASKBITS(ACE4_DELETE);
+    PRINTNFSMASKBITS(ACE4_READ_ACL);
+    PRINTNFSMASKBITS(ACE4_WRITE_ACL);
+    PRINTNFSMASKBITS(ACE4_WRITE_OWNER);
+    PRINTNFSMASKBITS(ACE4_SYNCHRONIZE);
+    PRINTNFSMASKBITS(ACE4_ALL_FILE);
+    PRINTNFSMASKBITS(ACE4_ALL_DIR);
+    PRINTNFSMASKBITS(ACE4_GENERIC_READ);
+    PRINTNFSMASKBITS(ACE4_GENERIC_WRITE);
+    PRINTNFSMASKBITS(ACE4_GENERIC_EXECUTE);
+    PRINTNFSMASKBITS(ACE4_FILE_ALL_ACCESS);
 
-    dprintf_out("--> print_nfs_access_mask: %x\n", m);
-    if (m & ACE4_READ_DATA)
-        dprintf_out("\tACE4_READ_DATA\n");
-    if (m & ACE4_LIST_DIRECTORY)
-        dprintf_out("\tACE4_LIST_DIRECTORY\n");
-    if (m & ACE4_WRITE_DATA)
-        dprintf_out("\tACE4_WRITE_DATA\n");
-    if (m & ACE4_ADD_FILE)
-        dprintf_out("\tACE4_ADD_FILE\n");
-    if (m & ACE4_APPEND_DATA)
-        dprintf_out("\tACE4_APPEND_DATA\n");
-    if (m & ACE4_ADD_SUBDIRECTORY)
-        dprintf_out("\tACE4_ADD_SUBDIRECTORY\n");
-    if (m & ACE4_READ_NAMED_ATTRS)
-        dprintf_out("\tACE4_READ_NAMED_ATTRS\n");
-    if (m & ACE4_WRITE_NAMED_ATTRS)
-        dprintf_out("\tACE4_WRITE_NAMED_ATTRS\n");
-    if (m & ACE4_EXECUTE)
-        dprintf_out("\tACE4_EXECUTE\n");
-    if (m & ACE4_DELETE_CHILD)
-        dprintf_out("\tACE4_DELETE_CHILD\n");
-    if (m & ACE4_READ_ATTRIBUTES)
-        dprintf_out("\tACE4_READ_ATTRIBUTES\n");
-    if (m & ACE4_WRITE_ATTRIBUTES)
-        dprintf_out("\tACE4_WRITE_ATTRIBUTES\n");
-    if (m & ACE4_DELETE)
-        dprintf_out("\tACE4_DELETE\n");
-    if (m & ACE4_READ_ACL)
-        dprintf_out("\tACE4_READ_ACL\n");
-    if (m & ACE4_WRITE_ACL)
-        dprintf_out("\tACE4_WRITE_ACL\n");
-    if (m & ACE4_WRITE_OWNER)
-        dprintf_out("\tACE4_WRITE_OWNER\n");
-    if (m & ACE4_SYNCHRONIZE)
-        dprintf_out("\tACE4_SYNCHRONIZE\n");
+    /* Print any "leftover" bits */
+    if (nfs_mask) {
+        dprintf_out("\t0x%lx\n", (long)nfs_mask);
+    }
+    dprintf_out("<-- print_nfs_access_mask\n");
 }
 
 
