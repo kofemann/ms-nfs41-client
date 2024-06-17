@@ -123,4 +123,14 @@
  */
 #define NFS41_DRIVER_DEFAULT_CREATE_MODE (0755)
 
+/*
+ * NFS41_DRIVER_DEBUG_FS_NAME - define which filesystem name should
+ * be returned by |FileFsAttributeInfo|
+ * 1 == "NFS" (like Microsoft, Exceed and OpenText NFS drivers)
+ * 2 == "DEBUG-NFS41" (custom value, used for disabling
+ *     hardcoded codepaths for "nfs" drivers, and just treat
+ *     this like a normal non-NFS MiniRDR driver
+ */
+#define NFS41_DRIVER_DEBUG_FS_NAME 1
+
 #endif /* !_NFS41_DRIVER_BUILDFEATURES_ */

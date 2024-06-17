@@ -376,7 +376,13 @@ typedef struct _NFS41_NETROOT_EXTENSION {
         (PNFS41_NETROOT_EXTENSION)((pNetRoot)->Context))
 
 /* FileSystemName as reported by FileFsAttributeInfo query */
+#if ((NFS41_DRIVER_DEBUG_FS_NAME) == 1)
 #define FS_NAME     L"NFS"
+#elif  ((NFS41_DRIVER_DEBUG_FS_NAME) == 2)
+#define FS_NAME     L"DEBUG-NFS41"
+#else
+#error NFS41_DRIVER_DEBUG_FS_NAME not defined
+#endif
 #define FS_NAME_LEN (sizeof(FS_NAME) - sizeof(WCHAR))
 #define FS_ATTR_LEN (sizeof(FILE_FS_ATTRIBUTE_INFORMATION) + FS_NAME_LEN)
 
