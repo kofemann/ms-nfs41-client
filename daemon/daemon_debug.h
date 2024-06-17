@@ -104,6 +104,7 @@ void dprintf_out(LPCSTR format, ...);
 void eprintf_out(LPCSTR format, ...);
 void eprintf(LPCSTR format, ...);
 
+const char *map_nfs_ftype2str(int ftype);
 void print_windows_access_mask(ACCESS_MASK win_mask);
 void print_nfs_access_mask(uint32_t nfs_mask);
 void print_hexbuf_no_asci(const char *title, const unsigned char *buf, int len);

@@ -111,8 +111,8 @@ static int convert_nfs4acl_2_dacl(nfs41_daemon_globals *nfs41dg,
     LPSTR domain = NULL;
     BOOLEAN flag;
 
-    DPRINTF(ACLLVL, ("--> convert_nfs4acl_2_dacl(acl=0x%p,file_type=%d)\n",
-        acl, file_type));
+    DPRINTF(ACLLVL, ("--> convert_nfs4acl_2_dacl(acl=0x%p,file_type='%s'(=%d))\n",
+        acl, map_nfs_ftype2str(file_type), file_type));
 
     sids = malloc(acl->count * sizeof(PSID));
     if (sids == NULL) {
@@ -210,8 +210,9 @@ static int convert_nfs4acl_2_dacl(nfs41_daemon_globals *nfs41dg,
     *sids_out = sids;
     *dacl_out = dacl;
 out:
-    DPRINTF(ACLLVL, ("<-- convert_nfs4acl_2_dacl(acl=0x%p,file_type=%d) returning %d\n",
-        acl, file_type, status));
+    DPRINTF(ACLLVL, ("<-- convert_nfs4acl_2_dacl("
+        "acl=0x%p,file_type='%s'(=%d)) returning %d\n",
+        acl, map_nfs_ftype2str(file_type), file_type, status));
     return status;
 out_free_dacl:
     free(dacl);

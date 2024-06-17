@@ -801,6 +801,24 @@ const char* secflavorop2name(DWORD sec_flavor)
     return "<Unknown RPCSEC_AUTH* flavour>";
 }
 
+const char *map_nfs_ftype2str(int ftype)
+{
+    switch(ftype) {
+#define NFSTYPE2STRLITERAL(e) case e: return #e;
+        NFSTYPE2STRLITERAL(NF4REG)
+        NFSTYPE2STRLITERAL(NF4DIR)
+        NFSTYPE2STRLITERAL(NF4BLK)
+        NFSTYPE2STRLITERAL(NF4CHR)
+        NFSTYPE2STRLITERAL(NF4LNK)
+        NFSTYPE2STRLITERAL(NF4SOCK)
+        NFSTYPE2STRLITERAL(NF4FIFO)
+        NFSTYPE2STRLITERAL(NF4ATTRDIR)
+        NFSTYPE2STRLITERAL(NF4NAMEDATTR)
+    }
+
+    return "<Unknown nfs_ftype4 type>";
+}
+
 void print_windows_access_mask(ACCESS_MASK win_mask)
 {
     dprintf_out("--> print_windows_access_mask: 0x%lx\n", (long)win_mask);
