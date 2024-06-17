@@ -44,6 +44,7 @@
 /* debugging printout defines */
 #define DEBUG_MARSHAL_HEADER
 #define DEBUG_MARSHAL_DETAIL
+#define DEBUG_MOUNTCONFIG
 //#define DEBUG_OPEN
 //#define DEBUG_CLOSE
 //#define DEBUG_CACHE
@@ -304,6 +305,10 @@ typedef struct _NFS41_MOUNT_CONFIG {
     WCHAR sec_flavor_buffer[MAX_SEC_FLAVOR_LEN];
     UNICODE_STRING SecFlavor;
     DWORD timeout;
+    struct {
+        BOOLEAN use_nfsv3attrsea_mode;
+        DWORD mode;
+    } createmode;
 } NFS41_MOUNT_CONFIG, *PNFS41_MOUNT_CONFIG;
 
 typedef struct _nfs41_mount_entry {
@@ -387,6 +392,10 @@ typedef struct _NFS41_V_NET_ROOT_EXTENSION {
     FILE_FS_ATTRIBUTE_INFORMATION FsAttrs;
     DWORD                   sec_flavor;
     DWORD                   timeout;
+    struct {
+        BOOLEAN use_nfsv3attrsea_mode;
+        DWORD mode;
+    } createmode;
     USHORT                  MountPathLen;
     BOOLEAN                 read_only;
     BOOLEAN                 write_thru;
@@ -2842,6 +2851,8 @@ void nfs41_MountConfig_InitDefaults(
     Config->SecFlavor.Buffer = Config->sec_flavor_buffer;
     RtlCopyUnicodeString(&Config->SecFlavor, &AUTH_SYS_NAME);
     Config->timeout = UPCALL_TIMEOUT_DEFAULT;
+    Config->createmode.use_nfsv3attrsea_mode = TRUE;
+    Config->createmode.mode = NFS41_DRIVER_DEFAULT_CREATE_MODE;
 }
 
 NTSTATUS nfs41_MountConfig_ParseBoolean(
@@ -3001,6 +3012,71 @@ NTSTATUS nfs41_MountConfig_ParseOptions(
             else
                 RtlCopyUnicodeString(&Config->SecFlavor, &usValue);
         }
+        else if (wcsncmp(L"createmode", Name, NameLen) == 0) {
+#define NFSV3ATTRMODE_WSTR L"nfsv3attrmode+"
+#define NFSV3ATTRMODE_WCSLEN (14)
+#define NFSV3ATTRMODE_BYTELEN (NFSV3ATTRMODE_WCSLEN*sizeof(WCHAR))
+            if ((usValue.Length >= NFSV3ATTRMODE_BYTELEN) &&
+                (!wcsncmp(NFSV3ATTRMODE_WSTR,
+                    usValue.Buffer,
+                    min(NFSV3ATTRMODE_WCSLEN,
+                        usValue.Length/sizeof(WCHAR))))) {
+                usValue.Buffer += NFSV3ATTRMODE_WCSLEN;
+                usValue.Length = usValue.MaximumLength =
+                    usValue.Length - NFSV3ATTRMODE_BYTELEN;
+#ifdef DEBUG_MOUNTCONFIG
+                DbgP("nfs41_MountConfig_ParseOptions: createmode "
+                    "nfs4attr "
+                    "leftover option/usValue='%wZ'/%ld\n",
+                    &usValue, (long)usValue.Length);
+#endif /* DEBUG_MOUNTCONFIG */
+
+                Config->createmode.use_nfsv3attrsea_mode = TRUE;
+            }
+            else {
+#ifdef DEBUG_MOUNTCONFIG
+                DbgP("nfs41_MountConfig_ParseOptions: createmode "
+                    "leftover option/usValue='%wZ'/%ld\n",
+                    &usValue, (long)usValue.Length);
+#endif /* DEBUG_MOUNTCONFIG */
+                Config->createmode.use_nfsv3attrsea_mode = FALSE;
+            }
+
+            /*
+             * Reject mode values not prefixed with "0o", as
+             * |RtlUnicodeStringToInteger()| uses
+             * 0o (e.g. "0o123") as prefix for octal values,
+             * and does not understand the traditional
+             * UNIX/POSIX/ISO C "0" (e.g. "0123") prefix
+             */
+            if ((usValue.Length >= (3*sizeof(WCHAR))) &&
+                (usValue.Buffer[0] == L'0') &&
+                (usValue.Buffer[1] == L'o')) {
+                status = nfs41_MountConfig_ParseDword(Option,
+                    &usValue,
+                    &Config->createmode.mode, 0,
+                    0777);
+                if (status == STATUS_SUCCESS) {
+                    if (Config->createmode.mode > 0777) {
+                        status = STATUS_INVALID_PARAMETER;
+                        print_error("mode 0o%o out of bounds\n",
+                            (int)Config->createmode.mode);
+                    }
+                }
+            }
+            else {
+                status = STATUS_INVALID_PARAMETER;
+                print_error("Invalid createmode '%wZ'\n",
+                    usValue);
+            }
+
+            DbgP("nfs41_MountConfig_ParseOptions: createmode: "
+                "status=0x%lx, "
+                "createmode=(use_nfsv3attrsea_mode=%d, mode=0o%o\n",
+                (long)status,
+                (int)Config->createmode.use_nfsv3attrsea_mode,
+                (int)Config->createmode.mode);
+        }
         else {
             status = STATUS_INVALID_PARAMETER;
             print_error("Unrecognized option '%ls' -> '%wZ'\n",
@@ -3015,7 +3091,7 @@ NTSTATUS nfs41_MountConfig_ParseOptions(
     }
 
 out:
-    DbgP("<-- nfs41_MountConfig_ParseOptions, status=%ld\n", (long)status);
+    DbgP("<-- nfs41_MountConfig_ParseOptions, status=0x%lx\n", (long)status);
     return status;
 }
 
@@ -3288,15 +3364,31 @@ NTSTATUS nfs41_CreateVNetRoot(
         pVNetRootContext->nocache = Config->nocache;
     }
 
-    DbgP("Config->{ MntPt='%wZ', SrvName='%wZ', ReadOnly=%d, write_thru=%d, nocache=%d }\n",
+    DbgP("Config->{ "
+        "MntPt='%wZ', "
+        "SrvName='%wZ', "
+        "ReadOnly=%d, "
+        "write_thru=%d, "
+        "nocache=%d "
+        "timeout=%d "
+        "createmode.use_nfsv3attrsea_mode=%d "
+        "Config->createmode.mode=0o%o "
+        "}\n",
         &Config->MntPt,
         &Config->SrvName,
         Config->ReadOnly?1:0,
         Config->write_thru?1:0,
-        Config->nocache?1:0);
+        Config->nocache?1:0,
+        Config->timeout,
+        Config->createmode.use_nfsv3attrsea_mode?1:0,
+        Config->createmode.mode);
 
     pVNetRootContext->MountPathLen = Config->MntPt.Length;
     pVNetRootContext->timeout = Config->timeout;
+    pVNetRootContext->createmode.use_nfsv3attrsea_mode =
+        Config->createmode.use_nfsv3attrsea_mode;
+    pVNetRootContext->createmode.mode =
+        Config->createmode.mode;
 
     status = map_sec_flavor(&Config->SecFlavor, &pVNetRootContext->sec_flavor);
     if (status != STATUS_SUCCESS) {
@@ -3949,16 +4041,34 @@ NTSTATUS nfs41_Create(
         entry->u.Open.open_owner_id = InterlockedIncrement(&open_owner_id);
     // if we are creating a file check if nfsv3attributes were passed in
     if (params->Disposition != FILE_OPEN && params->Disposition != FILE_OVERWRITE) {
-        entry->u.Open.mode = 0777;
-        if (ea && AnsiStrEq(&NfsV3Attributes, ea->EaName, ea->EaNameLength)) {
-            nfs3_attrs *attrs = (nfs3_attrs *)(ea->EaName + ea->EaNameLength + 1);
-#ifdef DEBUG_OPEN
-            DbgP("creating file with mode 0%o\n", attrs->mode);
-#endif
+        /* Get default mode */
+        entry->u.Open.mode = pVNetRootContext->createmode.mode;
+
+        /* Use mode from NfsV3Attributes */
+        if (pVNetRootContext->createmode.use_nfsv3attrsea_mode &&
+            ea && AnsiStrEq(&NfsV3Attributes,
+            ea->EaName, ea->EaNameLength)) {
+            nfs3_attrs *attrs =
+                (nfs3_attrs *)(ea->EaName + ea->EaNameLength + 1);
+
             entry->u.Open.mode = attrs->mode;
+#ifdef DEBUG_OPEN
+            DbgP("creating file with EA mode 0%o\n",
+                entry->u.Open.mode);
+#endif
         }
-        if (params->FileAttributes & FILE_ATTRIBUTE_READONLY)
-            entry->u.Open.mode = 0444;
+        else {
+#ifdef DEBUG_OPEN
+            DbgP("creating file with default mode 0%o\n",
+                entry->u.Open.mode);
+#endif
+        }
+
+        if (params->FileAttributes & FILE_ATTRIBUTE_READONLY) {
+            entry->u.Open.mode &= ~0222;
+            DbgP("FILE_ATTRIBUTE_READONLY set, using mode 0%o\n",
+                entry->u.Open.mode);
+        }
     }
     if (entry->u.Open.disp == FILE_CREATE && ea &&
             AnsiStrEq(&NfsSymlinkTargetName, ea->EaName, ea->EaNameLength)) {

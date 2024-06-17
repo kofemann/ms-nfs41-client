@@ -117,4 +117,10 @@
  */
 #define NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE 1
 
+/*
+ * Default POSIX permission mode bits for new files
+ * Can be ovrriden with a "NfsV3Attributes" EA
+ */
+#define NFS41_DRIVER_DEFAULT_CREATE_MODE (0755)
+
 #endif /* !_NFS41_DRIVER_BUILDFEATURES_ */

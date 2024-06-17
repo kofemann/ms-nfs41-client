@@ -93,7 +93,13 @@ static VOID PrintUsage(LPTSTR pProcess)
         TEXT("\tnowritethru\tturns on rdbss caching for writes (default)\n")
         TEXT("\tcache\tturns on rdbss caching (default)\n")
         TEXT("\tnocache\tturns off rdbss caching\n")
-        TEXT("\ttimeout=#\tspecify upcall timeout value in seconds (default 120s)\n")
+        TEXT("\twsize=#\twrite buffer size in bytes\n")
+        TEXT("\tcreatemode=\tspecify default POSIX permission mode\n"
+            "\t\tfor new files created on the NFS share.\n"
+            "\t\tArgument is an octal value prefixed with '0o',\n"
+            "\t\tif this value is prefixed with 'nfsv3attrmode+'\n"
+            "\t\tthe mode value from a \"NfsV3Attributes\" EA will be used\n"
+            "\t\t(defaults \"nfsv3attrmode+0o%o\").\n")
         TEXT("* Hostname:\n")
         TEXT("\tDNS name, or hostname in domain\n")
         TEXT("\tentry in C:\\Windows\\System32\\drivers\\etc\\hosts\n")
@@ -111,7 +117,7 @@ static VOID PrintUsage(LPTSTR pProcess)
         TEXT("\tnfs_mount.exe -o sec=sys,rw '*' nfs://[fe80::21b:1bff:fec3:7713]//net_tmpfs2/test2\n")
         TEXT("\tnfs_mount.exe -o sec=sys,rw S nfs://myhost1//dirwithspace/dir%%20space/test2\n")
         TEXT("\tnfs_mount.exe -o sec=sys,rw S nfs://myhost1//dirwithspace/dir+space/test2\n"),
-        pProcess);
+        pProcess, (int)NFS41_DRIVER_DEFAULT_CREATE_MODE);
 }
 
 DWORD __cdecl _tmain(DWORD argc, LPTSTR argv[])
