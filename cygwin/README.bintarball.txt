@@ -388,6 +388,37 @@ $ /sbin/nfs_mount
 - Win10/32bit-only: $ net use H: /delete # does not work,
   use $ nfs_mount -d 'H' instead #
 
+- Bug: Subversion checkout can fail with
+  "sqlite[S11]: database disk image is malformed" like this:
+  ---- snip ----
+  $ svn checkout https://svn.FreeBSD.org/base/head/share/man
+  A    man/man4
+  A    man/man4/tcp.4
+  A    man/man4/ndis.4
+  A    man/man4/Makefile
+  A    man/man4/altq.4
+  A    man/man4/miibus.4
+  A    man/man4/vlan.4
+  A    man/man4/ng_macfilter.4
+  A    man/man4/mn.4
+  A    man/man4/ossl.4
+  A    man/man4/ktls.4
+  A    man/man4/ftwd.4
+  A    man/man4/inet6.4
+  A    man/man4/crypto.4
+  A    man/man4/rtsx.4
+  A    man/man4/isp.4
+  svn: E200030: sqlite[S11]: database disk image is malformed
+  svn: E200042: Additional errors:
+  svn: E200030: sqlite[S11]: database disk image is malformed
+  svn: E200030: sqlite[S11]: database disk image is malformed
+  svn: E200030: sqlite[S11]: database disk image is malformed
+  ---- snip ----
+  Workaround is to mount the NFS filesystem with the "writethru"
+  option, e.g.
+  $ /sbin/nfs_mount -o rw,writethru 'j' derfwpc5131:/export/home/rmainz #
+
+
 #
 # 11. Notes for troubleshooting && finding bugs/debugging:
 #
