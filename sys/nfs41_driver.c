@@ -1649,7 +1649,7 @@ retry_wait:
     case STATUS_USER_APC:
     case STATUS_ALERTED:
         DbgP("nfs41_UpcallWaitForReply: KeWaitForSingleObject() "
-            "returned status(=%ld), "
+            "returned status(=0x%lx), "
             "retry waiting for '%s' entry=0x%p xid=%lld\n",
             (long)status,
             ENTRY_OPCODE2STRING(entry),
@@ -1723,7 +1723,7 @@ retry_wait:
             case STATUS_USER_APC:
             case STATUS_ALERTED:
                 DbgP("nfs41_upcall: KeWaitForSingleObject() "
-                    "returned status(=%ld)"
+                    "returned status(=0x%lx)"
 #ifdef NFSV41_UPCALL_RETRY_WAIT
                     ", retry waiting"
 #endif /* NFSV41_UPCALL_RETRY_WAIT */
@@ -1736,7 +1736,7 @@ retry_wait:
 #endif /* NFSV41_UPCALL_RETRY_WAIT */
             default:
                 DbgP("nfs41_upcall: KeWaitForSingleObject() "
-                    "returned UNEXPECTED status(=%ld)\n",
+                    "returned UNEXPECTED status(=0x%lx)\n",
                     (long)status);
                 goto out;
         }
@@ -1760,8 +1760,10 @@ void unmarshal_nfs41_header(
     RtlCopyMemory(&tmp->errno, *buf, sizeof(tmp->errno));
     *buf += sizeof(tmp->errno);
 #ifdef DEBUG_MARSHAL_HEADER
-    DbgP("[downcall header] xid=%lld opcode='%s' status=0x%x errno=%d\n", tmp->xid,
-        ENTRY_OPCODE2STRING(tmp), tmp->status, tmp->errno);
+    DbgP("[downcall header] "
+        "xid=%lld opcode='%s' status=0x%lx errno=%d\n",
+        tmp->xid,
+        ENTRY_OPCODE2STRING(tmp), (long)tmp->status, tmp->errno);
 #endif
 }
 
@@ -2921,9 +2923,9 @@ NTSTATUS nfs41_MountConfig_ParseOptions(
 
     status = IoCheckEaBufferValidity(EaBuffer, EaLength, &error_offset);
     if (status) {
-        DbgP("status(=0x%x)=IoCheckEaBufferValidity"
+        DbgP("status(=0x%lx)=IoCheckEaBufferValidity"
             "(eainfo=0x%p, buflen=%lu, &(error_offset=%d)) failed\n",
-            (int)status, (void *)EaBuffer, EaLength,
+            (long)status, (void *)EaBuffer, EaLength,
             (int)error_offset);
         goto out;
     }
@@ -3091,7 +3093,8 @@ NTSTATUS nfs41_MountConfig_ParseOptions(
     }
 
 out:
-    DbgP("<-- nfs41_MountConfig_ParseOptions, status=0x%lx\n", (long)status);
+    DbgP("<-- nfs41_MountConfig_ParseOptions, status=0x%lx\n",
+        (long)status);
     return status;
 }
 
@@ -5114,9 +5117,9 @@ NTSTATUS nfs41_SetEaInformation(
         status = IoCheckEaBufferValidity(eainfo, buflen, &error_offset);
         if (status) {
             DbgP("nfs41_SetEaInformation: "
-                "status(=0x%x)=IoCheckEaBufferValidity"
+                "status(=0x%lx)=IoCheckEaBufferValidity"
                 "(eainfo=0x%p, buflen=%lu, &(error_offset=%d))\n",
-                (int)status, (void *)eainfo, buflen,
+                (long)status, (void *)eainfo, buflen,
                 (int)error_offset);
             nfs41_UpcallDestroy(entry);
             entry = NULL;
@@ -5773,8 +5776,8 @@ NTSTATUS nfs41_QueryFileInformation(
         pVNetRootContext->session, nfs41_fobx->nfs41_open_state,
         pNetRootContext->nfs41d_version, SrvOpen->pAlreadyPrefixedName, &entry);
     if (status) {
-        print_error("nfs41_UpcallCreate() failed, status=0x%x\n",
-            status);
+        print_error("nfs41_UpcallCreate() failed, status=0x%lx\n",
+            (long)status);
         goto out;
     }
 
@@ -5784,8 +5787,8 @@ NTSTATUS nfs41_QueryFileInformation(
 
     status = nfs41_UpcallWaitForReply(entry, pVNetRootContext->timeout);
     if (status) {
-        print_error("nfs41_UpcallWaitForReply() failed, status=0x%x\n",
-            status);
+        print_error("nfs41_UpcallWaitForReply() failed, status=0x%lx\n",
+            (long)status);
         goto out;
     }
 
@@ -5855,7 +5858,8 @@ NTSTATUS nfs41_QueryFileInformation(
         }
     } else {
         status = map_queryfile_error(entry->status);
-        print_error("status(0x%lx) = map_queryfile_error(entry->status(0x%lx));\n", (long)status, (long)entry->status);
+        print_error("status(0x%lx) = map_queryfile_error(entry->status(0x%lx));\n",
+            (long)status, (long)entry->status);
     }
     nfs41_UpcallDestroy(entry);
 out:
@@ -7081,12 +7085,12 @@ NTSTATUS nfs41_FsCtl(
     const char *fsctl_str = fsctl2string(fscontrolcode);
 
     if (fsctl_str) {
-        DbgP("nfs41_FsCtl: FsControlCode='%s', status=0x%x\n",
-            fsctl_str, (int)status);
+        DbgP("nfs41_FsCtl: FsControlCode='%s', status=0x%lx\n",
+            fsctl_str, (long)status);
     }
     else {
-        DbgP("nfs41_FsCtl: FsControlCode=0x%lx, status=0x%x\n",
-            (unsigned long)fscontrolcode, (int)status);
+        DbgP("nfs41_FsCtl: FsControlCode=0x%lx, status=0x%lx\n",
+            (unsigned long)fscontrolcode, (long)status);
     }
 #endif /* DEBUG_FSCTL */
 
@@ -7135,8 +7139,8 @@ NTSTATUS nfs41_FsdDispatch (
 
 out:
 #ifdef DEBUG_FSDDISPATCH
-    DbgP("IoStatus status = 0x%x info = 0x%x\n",
-        Irp->IoStatus.Status,
+    DbgP("IoStatus status = 0x%lx info = 0x%x\n",
+        (long)Irp->IoStatus.Status,
         Irp->IoStatus.Information);
     DbgEx();
 #endif
