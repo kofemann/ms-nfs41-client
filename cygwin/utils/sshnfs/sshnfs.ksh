@@ -453,11 +453,22 @@ function main
 						-O 'check' \
 						"${c.nfsserver_ssh_login_name}@${c.nfs_server.host}"
 
-				print -u2 -f $"# Use this to mount the directory:\n"
+				print -u2 -f $"# Linux: Use this to mount the directory:\n"
 				print -u2 -f $"# $ mkdir /mnt_nfs\n"
 				print -u2 -f $"# $ mount -vvv -t nfs -o vers=4.2,port=%d localhost:%s /mnt_nfs\n" \
 					c.destination_nfs_port \
 					"${c.nfs_server.uripath}"
+				print -u2 -f $"\n"
+
+				# note that OpenSSH on Windows (not Cygwin) will clear the screen
+				# imediately after login
+				print -u2 -f $"# Windows/ms-nfs41-client: Use this to mount the directory:\n"
+				print -u2 -f $"# > %s --login\n" "C:\cygwin64\bin\bash.exe"
+				print -u2 -f $"# $ /sbin/nfs_mount -o rw 'S' nfs://localhost:%d/%(url)q\n" \
+					c.destination_nfs_port \
+					"${c.nfs_server.uripath}"
+				print -u2 -f $"\n\n"
+
 
 				#
 				# add NFS forwarding options to main ssh argument list
