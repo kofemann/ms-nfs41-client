@@ -819,13 +819,26 @@ const char *map_nfs_ftype2str(int ftype)
     return "<Unknown nfs_ftype4 type>";
 }
 
-void print_windows_access_mask(ACCESS_MASK win_mask)
+const char *map_nfs_acetype2str(uint32_t ace_type)
 {
-    dprintf_out("--> print_windows_access_mask: 0x%lx\n", (long)win_mask);
+    switch(ace_type) {
+#define ACETYPE2STRLITERAL(e) case e: return #e;
+        ACETYPE2STRLITERAL(ACE4_ACCESS_ALLOWED_ACE_TYPE)
+        ACETYPE2STRLITERAL(ACE4_ACCESS_DENIED_ACE_TYPE)
+        ACETYPE2STRLITERAL(ACE4_SYSTEM_AUDIT_ACE_TYPE)
+        ACETYPE2STRLITERAL(ACE4_SYSTEM_ALARM_ACE_TYPE)
+    }
+
+    return "<Unknown ace_type type>";
+}
+
+void print_windows_access_mask(const char *label, ACCESS_MASK win_mask)
+{
+    dprintf_out("--> print_windows_access_mask"
+        "(label='%s',win_mask=0x%lx)\n", label, (long)win_mask);
 #define PRINTWINACCESSMASKBITS(s) \
-    if ((win_mask & (s)) == (s)) { \
+    if (win_mask & (s)) { \
         dprintf_out("\t" #s "\n"); \
-        win_mask &= ~(s); \
     }
     PRINTWINACCESSMASKBITS(GENERIC_READ);
     PRINTWINACCESSMASKBITS(GENERIC_WRITE);
@@ -860,20 +873,16 @@ void print_windows_access_mask(ACCESS_MASK win_mask)
     PRINTWINACCESSMASKBITS(FILE_GENERIC_WRITE);
     PRINTWINACCESSMASKBITS(FILE_GENERIC_EXECUTE);
 
-    /* Print any "leftover" bits */
-    if (win_mask) {
-        dprintf_out("\t0x%lx\n", (long)win_mask);
-    }
     dprintf_out("<-- print_windows_access_mask\n");
 }
 
-void print_nfs_access_mask(uint32_t nfs_mask)
+void print_nfs_access_mask(const char *label, uint32_t nfs_mask)
 {
-    dprintf_out("--> print_nfs_access_mask: 0x%lx\n", (long)nfs_mask);
+    dprintf_out("--> print_nfs_access_mask("
+        "label='%s',nfs_mask=0x%lx)\n", label, (long)nfs_mask);
 #define PRINTNFSMASKBITS(s) \
-    if ((nfs_mask & (s)) == (s)) { \
+    if (nfs_mask & (s)) { \
         dprintf_out("\t" #s "\n"); \
-        nfs_mask &= ~(s); \
     }
     PRINTNFSMASKBITS(ACE4_READ_DATA);
     PRINTNFSMASKBITS(ACE4_LIST_DIRECTORY);
@@ -899,10 +908,6 @@ void print_nfs_access_mask(uint32_t nfs_mask)
     PRINTNFSMASKBITS(ACE4_GENERIC_EXECUTE);
     PRINTNFSMASKBITS(ACE4_FILE_ALL_ACCESS);
 
-    /* Print any "leftover" bits */
-    if (nfs_mask) {
-        dprintf_out("\t0x%lx\n", (long)nfs_mask);
-    }
     dprintf_out("<-- print_nfs_access_mask\n");
 }
 
