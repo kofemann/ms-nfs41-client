@@ -768,16 +768,18 @@ static int map_nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid, char *who_o
 
     DPRINTF(ACLLVL, ("--> map_nfs4ace_who(sid=0x%p,owner_sid=0x%p, group_sid=0x%p)\n"));
 
+    if (DPRINTF_LEVEL_ENABLED(ACLLVL)) {
+        print_sid("sid", sid);
+        print_sid("owner_sid", owner_sid);
+        print_sid("group_sid", group_sid);
+    }
+
     /* for ace mapping, we want to map owner's sid into "owner@"
      * but for set_owner attribute we want to map owner into a user name
      * same applies to group
      */
     status = 0;
     if (owner_sid) {
-        if (DPRINTF_LEVEL_ENABLED(ACLLVL)) {
-            print_sid("owner_sid", owner_sid);
-        }
-
         if (EqualSid(sid, owner_sid)) {
             DPRINTF(ACLLVL, ("map_nfs4ace_who: this is owner's sid\n"));
             memcpy(who_out, ACE4_OWNER, strlen(ACE4_OWNER)+1);
@@ -787,10 +789,6 @@ static int map_nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid, char *who_o
         }
     }
     if (group_sid) {
-        if (DPRINTF_LEVEL_ENABLED(ACLLVL)) {
-            print_sid("group_sid", group_sid);
-        }
-
         if (EqualSid(sid, group_sid)) {
             DPRINTF(ACLLVL, ("map_nfs4ace_who: this is group's sid\n"));
             memcpy(who_out, ACE4_GROUP, strlen(ACE4_GROUP)+1);
