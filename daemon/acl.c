@@ -36,8 +36,10 @@
 #include "nfs41_xdr.h"
 #include "sid.h"
 
-#define ACLLVL 2 /* dprintf level for acl logging */
-#define ACLLVL2 3 /* dprintf level for acl logging */
+/* |DPRINTF()| levels for acl logging */
+#define ACLLVL1 1
+#define ACLLVL2 2
+#define ACLLVL3 3
 
 /* Local prototypes */
 static void map_winace2nfs4aceflags(BYTE win_aceflags, uint32_t *nfs4_aceflags);
@@ -115,7 +117,7 @@ static int convert_nfs4acl_2_dacl(nfs41_daemon_globals *nfs41dg,
     LPSTR domain = NULL;
     BOOLEAN flag;
 
-    DPRINTF(ACLLVL, ("--> convert_nfs4acl_2_dacl(acl=0x%p,file_type='%s'(=%d))\n",
+    DPRINTF(ACLLVL2, ("--> convert_nfs4acl_2_dacl(acl=0x%p,file_type='%s'(=%d))\n",
         acl, map_nfs_ftype2str(file_type), file_type));
 
     sids = malloc(acl->count * sizeof(PSID));
@@ -125,7 +127,7 @@ static int convert_nfs4acl_2_dacl(nfs41_daemon_globals *nfs41dg,
     }
     for (i = 0; i < acl->count; i++) {
         convert_nfs4name_2_user_domain(acl->aces[i].who, &domain);
-        DPRINTF(ACLLVL, ("convert_nfs4acl_2_dacl: for user='%s' domain='%s'\n",
+        DPRINTF(ACLLVL2, ("convert_nfs4acl_2_dacl: for user='%s' domain='%s'\n",
                 acl->aces[i].who, domain?domain:"<null>"));
         status = check_4_special_identifiers(acl->aces[i].who, &sids[i],
                                              &sid_len, &flag);
@@ -137,7 +139,7 @@ static int convert_nfs4acl_2_dacl(nfs41_daemon_globals *nfs41dg,
             bool isgroupacl = (acl->aces[i].aceflag & ACE4_IDENTIFIER_GROUP)?true:false;
 
             if (isgroupacl) {
-                DPRINTF(ACLLVL,
+                DPRINTF(ACLLVL2,
                     ("convert_nfs4acl_2_dacl: aces[%d].who='%s': "
                     "Setting group flag\n",
                     i, acl->aces[i].who));
@@ -172,7 +174,7 @@ static int convert_nfs4acl_2_dacl(nfs41_daemon_globals *nfs41dg,
             map_nfs4acemask2winaccessmask(acl->aces[i].acemask,
                 file_type, &mask);
 
-            if (DPRINTF_LEVEL_ENABLED(ACLLVL)) {
+            if (DPRINTF_LEVEL_ENABLED(ACLLVL1)) {
                 dprintf_out("nfs2win: acl->aces[%d].who='%s': "
                     "acetype='%s', "
                     "nfs_acemask=0x%lx, win_mask=0x%lx, "
@@ -225,7 +227,7 @@ static int convert_nfs4acl_2_dacl(nfs41_daemon_globals *nfs41dg,
     *sids_out = sids;
     *dacl_out = dacl;
 out:
-    DPRINTF(ACLLVL, ("<-- convert_nfs4acl_2_dacl("
+    DPRINTF(ACLLVL2, ("<-- convert_nfs4acl_2_dacl("
         "acl=0x%p,file_type='%s'(=%d)) returning %d\n",
         acl, map_nfs_ftype2str(file_type), file_type, status));
     return status;
@@ -253,7 +255,7 @@ static int handle_getacl(void *daemon_context, nfs41_upcall *upcall)
     char owner[NFS4_OPAQUE_LIMIT+1], group[NFS4_OPAQUE_LIMIT+1];
     nfsacl41 acl = { 0 };
 
-    DPRINTF(ACLLVL, ("--> handle_getacl(state->path.path='%s')\n",
+    DPRINTF(ACLLVL1, ("--> handle_getacl(state->path.path='%s')\n",
         state->path.path));
 
     if (args->query & DACL_SECURITY_INFORMATION) {
@@ -295,7 +297,7 @@ use_nfs41_getattr:
          */
         if ((info.attrmask.arr[1] &
             (FATTR4_WORD1_OWNER|FATTR4_WORD1_OWNER_GROUP)) != (FATTR4_WORD1_OWNER|FATTR4_WORD1_OWNER_GROUP)) {
-            DPRINTF(ACLLVL, ("handle_getattr: owner/owner_group not in cache, doing full lookup...\n"));
+            DPRINTF(ACLLVL2, ("handle_getattr: owner/owner_group not in cache, doing full lookup...\n"));
             goto use_nfs41_getattr;
         }
     }
@@ -322,7 +324,7 @@ use_nfs41_getattr:
     if (args->query & OWNER_SECURITY_INFORMATION) {
         // parse user@domain. currently ignoring domain part XX
         convert_nfs4name_2_user_domain(info.owner, &domain);
-        DPRINTF(ACLLVL, ("handle_getacl: OWNER_SECURITY_INFORMATION: for user='%s' "
+        DPRINTF(ACLLVL2, ("handle_getacl: OWNER_SECURITY_INFORMATION: for user='%s' "
                 "domain='%s'\n", info.owner, domain?domain:"<null>"));
         sid_len = 0;
         status = map_nfs4servername_2_sid(nfs41dg,
@@ -340,7 +342,7 @@ use_nfs41_getattr:
 
     if (args->query & GROUP_SECURITY_INFORMATION) {
         convert_nfs4name_2_user_domain(info.owner_group, &domain);
-        DPRINTF(ACLLVL, ("handle_getacl: GROUP_SECURITY_INFORMATION: for '%s' "
+        DPRINTF(ACLLVL2, ("handle_getacl: GROUP_SECURITY_INFORMATION: for '%s' "
                 "domain='%s'\n", info.owner_group, domain?domain:"<null>"));
         sid_len = 0;
         status = map_nfs4servername_2_sid(nfs41dg,
@@ -356,7 +358,7 @@ use_nfs41_getattr:
         }
     }
     if (args->query & DACL_SECURITY_INFORMATION) {
-        DPRINTF(ACLLVL, ("handle_getacl: DACL_SECURITY_INFORMATION\n"));
+        DPRINTF(ACLLVL2, ("handle_getacl: DACL_SECURITY_INFORMATION\n"));
         status = convert_nfs4acl_2_dacl(nfs41dg,
             info.acl, state->type, &dacl, &sids);
         if (status)
@@ -408,7 +410,9 @@ out:
         nfsacl41_free(info.acl);
     }
 
-    DPRINTF(ACLLVL, ("<-- handle_getacl() returning %d\n", status));
+    DPRINTF(ACLLVL1, ("<-- handle_getacl(state->path.path='%s') "
+        "returning %d\n",
+        state->path.path, status));
 
     return status;
 }
@@ -461,7 +465,7 @@ static int is_well_known_sid(PSID sid, char *who, SID_NAME_USE *snu_out)
         status = IsWellKnownSid(sid, (WELL_KNOWN_SID_TYPE)i);
         if (!status) continue;
         else {
-            DPRINTF(ACLLVL, ("WELL_KNOWN_SID_TYPE %d\n", i));
+            DPRINTF(ACLLVL3, ("WELL_KNOWN_SID_TYPE %d\n", i));
             switch((WELL_KNOWN_SID_TYPE)i) {
             case WinCreatorOwnerSid:
                 memcpy(who, ACE4_OWNER, strlen(ACE4_OWNER)+1);
@@ -522,7 +526,7 @@ static void map_winace2nfs4aceflags(BYTE win_aceflags, uint32_t *nfs4_aceflags)
         *nfs4_aceflags |= ACE4_INHERIT_ONLY_ACE;
     if (win_aceflags & INHERITED_ACE)
         *nfs4_aceflags |= ACE4_INHERITED_ACE;
-    DPRINTF(ACLLVL,
+    DPRINTF(ACLLVL3,
         ("map_winace2nfs4aceflags: win_aceflags=0x%x nfs4_aceflags=0x%x\n",
         (int)win_aceflags, (int)*nfs4_aceflags));
 }
@@ -539,7 +543,7 @@ static void map_nfs4aceflags2winaceflags(uint32_t nfs4_aceflags, DWORD *win_acef
         *win_aceflags |= INHERIT_ONLY_ACE;
     if (nfs4_aceflags & ACE4_INHERITED_ACE)
         *win_aceflags |= INHERITED_ACE;
-    DPRINTF(ACLLVL,
+    DPRINTF(ACLLVL3,
         ("map_nfs4aceflags2winace: nfs4_aceflags=0x%x win_aceflags=0x%x\n",
         (int)nfs4_aceflags, (int)*win_aceflags));
 }
@@ -771,9 +775,9 @@ static int map_nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid, char *who_o
     DWORD who_size = sizeof(who_buf), domain_size = sizeof(domain_buf);
     LPSTR sidstr = NULL;
 
-    DPRINTF(ACLLVL, ("--> map_nfs4ace_who(sid=0x%p,owner_sid=0x%p, group_sid=0x%p)\n"));
+    DPRINTF(ACLLVL2, ("--> map_nfs4ace_who(sid=0x%p,owner_sid=0x%p, group_sid=0x%p)\n"));
 
-    if (DPRINTF_LEVEL_ENABLED(ACLLVL)) {
+    if (DPRINTF_LEVEL_ENABLED(ACLLVL2)) {
         print_sid("sid", sid);
         print_sid("owner_sid", owner_sid);
         print_sid("group_sid", group_sid);
@@ -786,7 +790,7 @@ static int map_nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid, char *who_o
     status = 0;
     if (owner_sid) {
         if (EqualSid(sid, owner_sid)) {
-            DPRINTF(ACLLVL, ("map_nfs4ace_who: this is owner's sid\n"));
+            DPRINTF(ACLLVL2, ("map_nfs4ace_who: this is owner's sid\n"));
             memcpy(who_out, ACE4_OWNER, strlen(ACE4_OWNER)+1);
             sid_type = SidTypeUser;
             status = ERROR_SUCCESS;
@@ -795,7 +799,7 @@ static int map_nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid, char *who_o
     }
     if (group_sid) {
         if (EqualSid(sid, group_sid)) {
-            DPRINTF(ACLLVL, ("map_nfs4ace_who: this is group's sid\n"));
+            DPRINTF(ACLLVL2, ("map_nfs4ace_who: this is group's sid\n"));
             memcpy(who_out, ACE4_GROUP, strlen(ACE4_GROUP)+1);
             sid_type = SidTypeGroup;
             status = ERROR_SUCCESS;
@@ -826,7 +830,7 @@ static int map_nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid, char *who_o
     lasterr = GetLastError();
 
     if (status) {
-        DPRINTF(ACLLVL, ("map_nfs4ace_who: "
+        DPRINTF(ACLLVL2, ("map_nfs4ace_who: "
             "LookupAccountSid(sidtostr(sid)='%s', who_buf='%s', "
             "who_size=%d, domain='%s', domain_size=%d) "
             "returned success, status=%d, GetLastError=%d\n",
@@ -834,7 +838,7 @@ static int map_nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid, char *who_o
             domain_buf, domain_size, status, lasterr));
     }
     else {
-        DPRINTF(ACLLVL, ("map_nfs4ace_who: "
+        DPRINTF(ACLLVL2, ("map_nfs4ace_who: "
             "LookupAccountSid(sidtostr(sid)='%s', who_size=%d, "
             "domain_size=%d) returned failure, status=%d, "
             "GetLastError=%d\n",
@@ -850,7 +854,7 @@ static int map_nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid, char *who_o
              * SIDs
              */
             case ERROR_NONE_MAPPED:
-                DPRINTF(ACLLVL, ("map_nfs4ace_who: LookupAccountSidA() "
+                DPRINTF(ACLLVL2, ("map_nfs4ace_who: LookupAccountSidA() "
                     "returned ERROR_NONE_MAPPED for sidstr='%s'\n",
                     sidstr));
                 status = lasterr;
@@ -881,11 +885,11 @@ add_domain:
     status = ERROR_SUCCESS;
 out:
     if (status) {
-        DPRINTF(ACLLVL,
+        DPRINTF(ACLLVL2,
             ("<-- map_nfs4ace_who() returns %d\n", status));
     }
     else {
-        DPRINTF(ACLLVL,
+        DPRINTF(ACLLVL2,
             ("<-- map_nfs4ace_who(who_out='%s', sid_type=%d) "
             "returns %d\n",
             who_out, sid_type, status));
@@ -903,7 +907,7 @@ static int map_dacl_2_nfs4acl(PACL acl, PSID sid, PSID gsid, nfsacl41 *nfs4_acl,
 {
     int status;
     if (acl == NULL) {
-        DPRINTF(ACLLVL, ("this is a NULL dacl: all access to an object\n"));
+        DPRINTF(ACLLVL2, ("this is a NULL dacl: all access to an object\n"));
         nfs4_acl->count = 1;
         nfs4_acl->aces = calloc(1, sizeof(nfsace4));
         if (nfs4_acl->aces == NULL) {
@@ -925,8 +929,8 @@ static int map_dacl_2_nfs4acl(PACL acl, PSID sid, PSID gsid, nfsacl41 *nfs4_acl,
         SID_NAME_USE who_sid_type = 0;
         ACCESS_MASK win_mask;
 
-        DPRINTF(ACLLVL, ("NON-NULL dacl with %d ACEs\n", acl->AceCount));
-        if (DPRINTF_LEVEL_ENABLED(ACLLVL)) {
+        DPRINTF(ACLLVL2, ("NON-NULL dacl with %d ACEs\n", acl->AceCount));
+        if (DPRINTF_LEVEL_ENABLED(ACLLVL3)) {
             print_hexbuf_no_asci("ACL\n",
                 (const unsigned char *)acl, acl->AclSize);
         }
@@ -945,11 +949,11 @@ static int map_dacl_2_nfs4acl(PACL acl, PSID sid, PSID gsid, nfsacl41 *nfs4_acl,
                 goto out_free;
             }
             tmp_pointer = (PBYTE)ace;
-            if (DPRINTF_LEVEL_ENABLED(ACLLVL)) {
+            if (DPRINTF_LEVEL_ENABLED(ACLLVL3)) {
                 print_hexbuf_no_asci("ACE\n",
                     (const unsigned char *)ace, ace->AceSize);
             }
-            DPRINTF(ACLLVL, ("ACE TYPE: %x\n", ace->AceType));
+            DPRINTF(ACLLVL3, ("ACE TYPE: %x\n", ace->AceType));
             if (ace->AceType == ACCESS_ALLOWED_ACE_TYPE)
                 nfs4_acl->aces[i].acetype = ACE4_ACCESS_ALLOWED_ACE_TYPE;
             else if (ace->AceType == ACCESS_DENIED_ACE_TYPE)
@@ -987,7 +991,7 @@ static int map_dacl_2_nfs4acl(PACL acl, PSID sid, PSID gsid, nfsacl41 *nfs4_acl,
              */
             if ((who_sid_type == SidTypeGroup) ||
                 (who_sid_type == SidTypeAlias)) {
-                DPRINTF(ACLLVL, ("map_dacl_2_nfs4acl: who_sid_type='%s': "
+                DPRINTF(ACLLVL3, ("map_dacl_2_nfs4acl: who_sid_type='%s': "
                     "aces[%d].who='%s': "
                     "setting group flag\n",
                     map_SID_NAME_USE2str(who_sid_type),
@@ -995,7 +999,7 @@ static int map_dacl_2_nfs4acl(PACL acl, PSID sid, PSID gsid, nfsacl41 *nfs4_acl,
                 nfs4_acl->aces[i].aceflag |= ACE4_IDENTIFIER_GROUP;
             }
 
-            if (DPRINTF_LEVEL_ENABLED(0)) {
+            if (DPRINTF_LEVEL_ENABLED(ACLLVL1)) {
                 dprintf_out("win2nfs: nfs4_acl->aces[%d]=(who='%s', "
                     "acetype='%s', "
                     "aceflag='%s'/0x%lx, "
@@ -1041,11 +1045,11 @@ static int handle_setacl(void *daemon_context, nfs41_upcall *upcall)
     char ownerbuf[NFS4_OPAQUE_LIMIT+1];
     char groupbuf[NFS4_OPAQUE_LIMIT+1];
 
-    DPRINTF(ACLLVL, ("--> handle_setacl(state->path.path='%s')\n",
+    DPRINTF(ACLLVL1, ("--> handle_setacl(state->path.path='%s')\n",
         state->path.path));
 
     if (args->query & OWNER_SECURITY_INFORMATION) {
-        DPRINTF(ACLLVL, ("handle_setacl: OWNER_SECURITY_INFORMATION\n"));
+        DPRINTF(ACLLVL2, ("handle_setacl: OWNER_SECURITY_INFORMATION\n"));
         status = GetSecurityDescriptorOwner(args->sec_desc, &sid, &sid_default);
         if (!status) {
             status = GetLastError();
@@ -1067,7 +1071,7 @@ static int handle_setacl(void *daemon_context, nfs41_upcall *upcall)
     }
 
     if (args->query & GROUP_SECURITY_INFORMATION) {
-        DPRINTF(ACLLVL, ("handle_setacl: GROUP_SECURITY_INFORMATION\n"));
+        DPRINTF(ACLLVL2, ("handle_setacl: GROUP_SECURITY_INFORMATION\n"));
         status = GetSecurityDescriptorGroup(args->sec_desc, &sid, &sid_default);
         if (!status) {
             status = GetLastError();
@@ -1091,7 +1095,7 @@ static int handle_setacl(void *daemon_context, nfs41_upcall *upcall)
     if (args->query & DACL_SECURITY_INFORMATION) {
         BOOL dacl_present, dacl_default;
         PACL acl;
-        DPRINTF(ACLLVL, ("handle_setacl: DACL_SECURITY_INFORMATION\n"));
+        DPRINTF(ACLLVL2, ("handle_setacl: DACL_SECURITY_INFORMATION\n"));
         status = GetSecurityDescriptorDacl(args->sec_desc, &dacl_present,
                                             &acl, &dacl_default);
         if (!status) {
@@ -1127,17 +1131,17 @@ static int handle_setacl(void *daemon_context, nfs41_upcall *upcall)
         OPEN_DELEGATE_WRITE, FALSE);
 
     nfs41_open_stateid_arg(state, &stateid);
-    if (DPRINTF_LEVEL_ENABLED(ACLLVL)) {
+    if (DPRINTF_LEVEL_ENABLED(ACLLVL2)) {
         print_nfs41_file_info("handle_setacl: nfs41_setattr() info IN:", &info);
     }
     status = nfs41_setattr(state->session, &state->file, &stateid, &info);
     if (status) {
-        DPRINTF(ACLLVL, ("handle_setacl: nfs41_setattr() failed with error '%s'.\n",
+        DPRINTF(ACLLVL1, ("handle_setacl: nfs41_setattr() failed with error '%s'.\n",
                 nfs_error_string(status)));
         status = nfs_to_windows_error(status, ERROR_NOT_SUPPORTED);
     }
     else {
-        if (DPRINTF_LEVEL_ENABLED(ACLLVL)) {
+        if (DPRINTF_LEVEL_ENABLED(ACLLVL1)) {
             print_nfs41_file_info("handle_setacl: nfs41_setattr() success info OUT:", &info);
         }
     }
@@ -1145,7 +1149,7 @@ static int handle_setacl(void *daemon_context, nfs41_upcall *upcall)
     if (args->query & DACL_SECURITY_INFORMATION)
         free(nfs4_acl.aces);
 out:
-    DPRINTF(ACLLVL, ("<-- handle_setacl() returning %d\n", status));
+    DPRINTF(ACLLVL1, ("<-- handle_setacl() returning %d\n", status));
     return status;
 }
 
