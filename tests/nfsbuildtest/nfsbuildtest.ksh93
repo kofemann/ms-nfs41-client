@@ -1,0 +1,131 @@
+#!/usr/bin/ksh93
+
+#
+# nfsbuildtest.ksh93
+#
+# Simple NFSv4 torture test by building gcc in parallel
+# on a NFS filesystem
+#
+set -o xtrace
+set -o errexit
+set -o nounset
+
+#
+# build config
+#
+typeset config_cp_p_function_not_implemented_workaround=false
+typeset config_use_posix_ksh93_builtins=true
+
+compound gitdata=(
+	typeset url='git://repo.or.cz/gcc.git'
+        # use fixed git tag, so build times are compareable
+	typeset tag='releases/gcc-13.1.0'
+)
+
+typeset -a configure_options=(
+	# Per irc://irc.oftc.net/#gcc:
+	# ".. pch is broken on windows as allocation using the fixed
+	# address might not succeed in general and there is fixed
+	# retry loop using delay that kills all performance
+	# benefits..."
+	'--disable-libstdcxx-pch'
+)
+
+#
+# temp dir setup
+#
+
+# fixme: Does not work with NFSv4.1 filesystem from exported Linux tmpfs - why ?
+#tmpdir='/cygdrive/m/tmpdir'
+#mkdir -p "$tmpdir"
+#chmod a=rwxt "$tmpdir"
+#if [[ -d "$tmpdir" && -w "$tmpdir" ]] ; then
+#	export TMPDIR="$tmpdir"
+#fi
+
+#
+# print user info
+#
+id -a
+pwd
+
+#
+# source checkout
+#
+
+#time git -c checkout.workers=16 clone -b "${gitdata.tag}" --single-branch git://gcc.gnu.org/git/gcc.git
+#time git -c checkout.workers=16 clone -b "${gitdata.tag}" --single-branch https://github.com/gcc-mirror/gcc.git
+
+if [[ -f '../gitbundles/gcc.bundle' ]] ; then
+	# Use local bundle as cache,
+        # so build times only depend on local filesystem performance
+        # and not HTTPS speed
+        #
+	# The bundle was created like this:
+	# ---- snip ----
+	# git clone git://repo.or.cz/gcc.git
+	# cd gcc
+	# git bundle create '../gitbundles/gcc.bundle' --all
+	# cd ..
+	# rm -Rf gcc
+	# ---- snip ----
+	time git -c checkout.workers=16 clone -b "${gitdata.tag}" --single-branch '../gitbundles/gcc.bundle'
+else
+	time git -c checkout.workers=16 clone -b "${gitdata.tag}" --single-branch "${gitdata.url}"
+fi
+
+cd "$PWD/gcc/"
+
+if $config_use_posix_ksh93_builtins ; then
+	PATH="/usr/ast/bin:/opt/ast/bin:$PATH"
+fi
+
+#
+# patch sources and configure build
+#
+
+# Cygwin: workaround for configure using cp -p where ln -s should be used
+# (this is an automake/autoconf issue, they should trust Cygwin and not use
+# ancient workarounds for issues which no longer exists)
+(set -o xtrace ; sed -i "s/as_ln_s='cp -pR'/as_ln_s='ln -s'/g" $(find . -name 'configure') )
+
+if $config_use_posix_ksh93_builtins ; then
+	(set -o xtrace ; sed -i "s/\/bin\/sh/\/bin\/ksh93/g" $(find . -name 'configure') )
+fi
+
+if $config_use_posix_ksh93_builtins ; then
+	ksh93 ./configure "${configure_options[@]}"
+else
+	bash ./configure "${configure_options[@]}"
+fi
+
+if $config_cp_p_function_not_implemented_workaround ; then
+	# workaround for $ cp -p # failing with "Function not
+	# implemented" in older versions of ms-nfs41-client
+	if $config_use_posix_ksh93_builtins ; then
+		(
+			set -o xtrace
+			sed -i -r 's/(cp.*)([[:space:]]+-p[[:space:]]+)/\1\2 -A pt /g' \
+				$(find . -name 'Makefile' -o -name 'Makefile.in')
+		)
+	else
+		(
+			set -o xtrace ; sed -i -r 's/(cp.*)([[:space:]]+-p[[:space:]]+)/\1\2--no-preserve=ownership /g' \
+				$(find . -name 'Makefile' -o -name 'Makefile.in')
+		)
+	fi
+fi
+
+if $config_use_posix_ksh93_builtins ; then
+	# replace /bin/sh with /bin/ksh93 for speed
+	(set -o xtrace ; sed -i -r 's/\/bin\/sh/\/bin\/ksh93/g' \
+		$(find . -name 'Makefile' -o -name 'Makefile.in') )
+fi
+
+#
+# build gcc
+#
+time ksh93 -c 'export SHELL=/bin/ksh93 ; (yes | make -j8 all)'
+echo $?
+
+echo "#Done."
