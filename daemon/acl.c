@@ -37,6 +37,7 @@
 #include "sid.h"
 
 #define ACLLVL 2 /* dprintf level for acl logging */
+#define ACLLVL2 3 /* dprintf level for acl logging */
 
 /* Local prototypes */
 static void map_winace2nfs4aceflags(BYTE win_aceflags, uint32_t *nfs4_aceflags);
@@ -453,7 +454,7 @@ out:
     return status;
 }
 
-static int is_well_known_sid(PSID sid, char *who) 
+static int is_well_known_sid(PSID sid, char *who, SID_NAME_USE *snu_out)
 {
     int status, i;
     for (i = 0; i < 78; i++) {
@@ -464,22 +465,26 @@ static int is_well_known_sid(PSID sid, char *who)
             switch((WELL_KNOWN_SID_TYPE)i) {
             case WinCreatorOwnerSid:
                 memcpy(who, ACE4_OWNER, strlen(ACE4_OWNER)+1);
-                return TRUE;
-            case WinNullSid:
-                memcpy(who, ACE4_NOBODY, strlen(ACE4_NOBODY)+1); 
-                return TRUE;
-            case WinAnonymousSid:
-                memcpy(who, ACE4_ANONYMOUS, strlen(ACE4_ANONYMOUS)+1); 
-                return TRUE;
-            case WinWorldSid:
-                memcpy(who, ACE4_EVERYONE, strlen(ACE4_EVERYONE)+1); 
+                *snu_out = SidTypeUser;
                 return TRUE;
             case WinCreatorGroupSid:
             case WinBuiltinUsersSid:
-                memcpy(who, ACE4_GROUP, strlen(ACE4_GROUP)+1); 
+                memcpy(who, ACE4_GROUP, strlen(ACE4_GROUP)+1);
+                *snu_out = SidTypeGroup;
+                return TRUE;
+            case WinNullSid:
+                memcpy(who, ACE4_NOBODY, strlen(ACE4_NOBODY)+1);
+                *snu_out = SidTypeUser;
+                return TRUE;
+            case WinAnonymousSid:
+                memcpy(who, ACE4_ANONYMOUS, strlen(ACE4_ANONYMOUS)+1);
+                return TRUE;
+            case WinWorldSid:
+                memcpy(who, ACE4_EVERYONE, strlen(ACE4_EVERYONE)+1);
+                *snu_out = SidTypeGroup;
                 return TRUE;
             case WinAuthenticatedUserSid:
-                memcpy(who, ACE4_AUTHENTICATED, strlen(ACE4_AUTHENTICATED)+1); 
+                memcpy(who, ACE4_AUTHENTICATED, strlen(ACE4_AUTHENTICATED)+1);
                 return TRUE;
             case WinDialupSid:
                 memcpy(who, ACE4_DIALUP, strlen(ACE4_DIALUP)+1); 
@@ -797,11 +802,10 @@ static int map_nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid, char *who_o
             goto out;
         }
     }
-    status = is_well_known_sid(sid, who_out);
+    status = is_well_known_sid(sid, who_out, &sid_type);
     if (status) {
         if (!strncmp(who_out, ACE4_NOBODY, strlen(ACE4_NOBODY))) {
             who_size = (DWORD)strlen(ACE4_NOBODY);
-            sid_type = SidTypeUser;
             goto add_domain;
         }
 
