@@ -975,20 +975,6 @@ static int map_dacl_2_nfs4acl(PACL acl, PSID sid, PSID gsid, nfsacl41 *nfs4_acl,
             map_winaccessmask2nfs4acemask(win_mask,
                 file_type, &nfs4_acl->aces[i].acemask);
 
-            if (DPRINTF_LEVEL_ENABLED(ACLLVL)) {
-                dprintf_out("win2nfs: nfs4_acl->aces[%d].who='%s', "
-                    "acetype='%s', "
-                    "win_mask=0x%lx, nfs_acemask=0x%lx\n",
-                    i, nfs4_acl->aces[i].who,
-                    (nfs4_acl->aces[i].acetype?
-                        "DENIED ACE":"ALLOWED ACE"),
-                    (long)win_mask, (long)nfs4_acl->aces[i].acemask);
-                print_windows_access_mask(nfs4_acl->aces[i].who,
-                    win_mask);
-                print_nfs_access_mask(nfs4_acl->aces[i].who,
-                    nfs4_acl->aces[i].acemask);
-            }
-
             /*
              * Treat |SidTypeAlias| as (local) group
              *
@@ -1001,12 +987,35 @@ static int map_dacl_2_nfs4acl(PACL acl, PSID sid, PSID gsid, nfsacl41 *nfs4_acl,
              */
             if ((who_sid_type == SidTypeGroup) ||
                 (who_sid_type == SidTypeAlias)) {
-                DPRINTF(ACLLVL, ("map_dacl_2_nfs4acl: who_sid_type=%d: "
+                DPRINTF(ACLLVL, ("map_dacl_2_nfs4acl: who_sid_type='%s': "
                     "aces[%d].who='%s': "
                     "setting group flag\n",
-                    (int)who_sid_type,
+                    map_SID_NAME_USE2str(who_sid_type),
                     i, nfs4_acl->aces[i].who));
                 nfs4_acl->aces[i].aceflag |= ACE4_IDENTIFIER_GROUP;
+            }
+
+            if (DPRINTF_LEVEL_ENABLED(0)) {
+                dprintf_out("win2nfs: nfs4_acl->aces[%d]=(who='%s', "
+                    "acetype='%s', "
+                    "aceflag='%s'/0x%lx, "
+                    "acemask='%s'/0x%lx(=win_mask=0x%lx)), "
+                    "who_sid_type='%s'\n",
+                    i,
+                    nfs4_acl->aces[i].who,
+                    map_nfs_acetype2str(nfs4_acl->aces[i].acetype),
+                    nfs_aceflag2shortname(nfs4_acl->aces[i].aceflag),
+                    nfs4_acl->aces[i].aceflag,
+                    nfs_mask2shortname(nfs4_acl->aces[i].acemask),
+                    (long)nfs4_acl->aces[i].acemask,
+                    (long)win_mask,
+                    map_SID_NAME_USE2str(who_sid_type));
+                if (DPRINTF_LEVEL_ENABLED(ACLLVL2)) {
+                    print_windows_access_mask(nfs4_acl->aces[i].who,
+                        win_mask);
+                    print_nfs_access_mask(nfs4_acl->aces[i].who,
+                        nfs4_acl->aces[i].acemask);
+                }
             }
         }
     }

@@ -660,6 +660,25 @@ const char* gssauth_string(int type) {
     return "<invalid RPCSEC_SSPI_* gss auth type>";
 }
 
+const char* map_SID_NAME_USE2str(SID_NAME_USE snu)
+{
+    switch(snu) {
+#define SID_NAME_USE_TO_STRLITERAL(e) case e: return #e;
+        SID_NAME_USE_TO_STRLITERAL(SidTypeUser)
+        SID_NAME_USE_TO_STRLITERAL(SidTypeGroup)
+        SID_NAME_USE_TO_STRLITERAL(SidTypeDomain)
+        SID_NAME_USE_TO_STRLITERAL(SidTypeAlias)
+        SID_NAME_USE_TO_STRLITERAL(SidTypeWellKnownGroup)
+        SID_NAME_USE_TO_STRLITERAL(SidTypeDeletedAccount)
+        SID_NAME_USE_TO_STRLITERAL(SidTypeInvalid)
+        SID_NAME_USE_TO_STRLITERAL(SidTypeUnknown)
+        SID_NAME_USE_TO_STRLITERAL(SidTypeComputer)
+        SID_NAME_USE_TO_STRLITERAL(SidTypeLabel)
+        SID_NAME_USE_TO_STRLITERAL(SidTypeLogonSession)
+    }
+    return "<unknown SID_NAME_USE type>";
+}
+
 const char *FILE_INFORMATION_CLASS2string(int fic)
 {
     switch(fic) {
@@ -911,6 +930,69 @@ void print_nfs_access_mask(const char *label, uint32_t nfs_mask)
     dprintf_out("<-- print_nfs_access_mask\n");
 }
 
+const char *nfs_mask2shortname(uint32_t nfs_mask)
+{
+    /*
+     * |snam_buffer| - per thread buffer, we assume that
+     * the caller will not use the function multiple times
+     * in one |dprintf_out()|
+     */
+    __declspec(thread) static char snam_buffer[128];
+    char *sb = snam_buffer;
+    sb[0] = '\0';
+#define WRITENFSMASKBITS(mflag, shortname) \
+    if (nfs_mask & (mflag)) { \
+        if (sb != snam_buffer) { \
+            *sb++ = ','; \
+        } \
+        sb = stpcpy(sb, (shortname)); \
+    }
+    WRITENFSMASKBITS(ACE4_READ_DATA,            "RD");
+    WRITENFSMASKBITS(ACE4_WRITE_DATA,           "WD");
+    WRITENFSMASKBITS(ACE4_APPEND_DATA,          "AD");
+    WRITENFSMASKBITS(ACE4_READ_NAMED_ATTRS,     "REA");
+    WRITENFSMASKBITS(ACE4_WRITE_NAMED_ATTRS,    "WEA");
+    WRITENFSMASKBITS(ACE4_EXECUTE,              "X");
+    WRITENFSMASKBITS(ACE4_DELETE_CHILD,         "DC");
+    WRITENFSMASKBITS(ACE4_READ_ATTRIBUTES,      "RA");
+    WRITENFSMASKBITS(ACE4_WRITE_ATTRIBUTES,     "RA");
+    WRITENFSMASKBITS(ACE4_DELETE,               "DE");
+    WRITENFSMASKBITS(ACE4_READ_ACL,             "RACL");
+    WRITENFSMASKBITS(ACE4_WRITE_ACL,            "WACL");
+    WRITENFSMASKBITS(ACE4_WRITE_OWNER,          "WO");
+    WRITENFSMASKBITS(ACE4_SYNCHRONIZE,          "S");
+
+    return snam_buffer;
+}
+
+const char *nfs_aceflag2shortname(uint32_t aceflag)
+{
+    /*
+     * |sacf_buffer| - per thread buffer, we assume that
+     * the caller will not use the function multiple times
+     * in one |dprintf_out()|
+     */
+    __declspec(thread) static char sacf_buffer[128];
+    char *sb = sacf_buffer;
+    sb[0] = '\0';
+#define WRITENFSACEFLAGBITS(mflag, shortname) \
+    if (aceflag & (mflag)) { \
+        if (sb != sacf_buffer) { \
+            *sb++ = ','; \
+        } \
+        sb = stpcpy(sb, (shortname)); \
+    }
+    WRITENFSACEFLAGBITS(ACE4_FILE_INHERIT_ACE,              "(FI)");
+    WRITENFSACEFLAGBITS(ACE4_DIRECTORY_INHERIT_ACE,         "(DI)");
+    WRITENFSACEFLAGBITS(ACE4_NO_PROPAGATE_INHERIT_ACE,      "(NPI)");
+    WRITENFSACEFLAGBITS(ACE4_INHERIT_ONLY_ACE,              "(IO)");
+    WRITENFSACEFLAGBITS(ACE4_SUCCESSFUL_ACCESS_ACE_FLAG,    "(SA)");
+    WRITENFSACEFLAGBITS(ACE4_FAILED_ACCESS_ACE_FLAG,        "(FA)");
+    WRITENFSACEFLAGBITS(ACE4_IDENTIFIER_GROUP,              "(G)");
+    WRITENFSACEFLAGBITS(ACE4_INHERITED_ACE,                 "(I)");
+
+    return sacf_buffer;
+}
 
 void print_nfs41_file_info(
     const char *label,
