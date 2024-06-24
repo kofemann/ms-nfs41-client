@@ -36,18 +36,23 @@
 #include "nfs41_xdr.h"
 #include "sid.h"
 
+#define MAP_WIN32GENERIC2ACE4GENERIC 1
+
 /* |DPRINTF()| levels for acl logging */
 #define ACLLVL1 1
 #define ACLLVL2 2
 #define ACLLVL3 3
 
+#define ACE4_RW_NAMED_ATTRS \
+    (ACE4_READ_NAMED_ATTRS|ACE4_WRITE_NAMED_ATTRS)
+
 /* Local prototypes */
 static void map_winace2nfs4aceflags(BYTE win_aceflags, uint32_t *nfs4_aceflags);
 static void map_nfs4aceflags2winaceflags(uint32_t nfs4_aceflags, DWORD *win_aceflags);
 static void map_winaccessmask2nfs4acemask(ACCESS_MASK win_mask,
-    int file_type, uint32_t *nfs4_mask);
+    int file_type, bool named_attr_support, uint32_t *nfs4_mask);
 static void map_nfs4acemask2winaccessmask(uint32_t nfs4_mask,
-    int file_type, ACCESS_MASK *win_mask);
+    int file_type, bool named_attr_support, ACCESS_MASK *win_mask);
 
 static int parse_getacl(unsigned char *buffer, uint32_t length,
                         nfs41_upcall *upcall)
@@ -107,7 +112,8 @@ static int check_4_special_identifiers(char *who, PSID *sid, DWORD *sid_len,
 }
 
 static int convert_nfs4acl_2_dacl(nfs41_daemon_globals *nfs41dg,
-    nfsacl41 *acl, int file_type, PACL *dacl_out, PSID **sids_out)
+    nfsacl41 *acl, int file_type, PACL *dacl_out, PSID **sids_out,
+    bool named_attr_support)
 {
     int status = ERROR_NOT_SUPPORTED, size = 0;
     uint32_t i;
@@ -117,8 +123,10 @@ static int convert_nfs4acl_2_dacl(nfs41_daemon_globals *nfs41dg,
     LPSTR domain = NULL;
     BOOLEAN flag;
 
-    DPRINTF(ACLLVL2, ("--> convert_nfs4acl_2_dacl(acl=0x%p,file_type='%s'(=%d))\n",
-        acl, map_nfs_ftype2str(file_type), file_type));
+    DPRINTF(ACLLVL2, ("--> convert_nfs4acl_2_dacl(acl=0x%p,"
+        "file_type='%s'(=%d), named_attr_support=%d)\n",
+        acl, map_nfs_ftype2str(file_type), file_type,
+        (int)named_attr_support));
 
     sids = malloc(acl->count * sizeof(PSID));
     if (sids == NULL) {
@@ -167,12 +175,11 @@ static int convert_nfs4acl_2_dacl(nfs41_daemon_globals *nfs41dg,
 
         for (i = 0; i < acl->count; i++) {
             win_aceflags = 0;
-            mask = 0;
 
             map_nfs4aceflags2winaceflags(acl->aces[i].aceflag,
                 &win_aceflags);
             map_nfs4acemask2winaccessmask(acl->aces[i].acemask,
-                file_type, &mask);
+                file_type, named_attr_support, &mask);
 
             if (DPRINTF_LEVEL_ENABLED(ACLLVL1)) {
                 dprintf_out("nfs2win: acl->aces[%d].who='%s': "
@@ -360,7 +367,8 @@ use_nfs41_getattr:
     if (args->query & DACL_SECURITY_INFORMATION) {
         DPRINTF(ACLLVL2, ("handle_getacl: DACL_SECURITY_INFORMATION\n"));
         status = convert_nfs4acl_2_dacl(nfs41dg,
-            info.acl, state->type, &dacl, &sids);
+            info.acl, state->type, &dacl, &sids,
+            state->file.fh.superblock->ea_support?true:false);
         if (status)
             goto out;
         status = SetSecurityDescriptorDacl(&sec_desc, TRUE, dacl, TRUE);
@@ -550,63 +558,86 @@ static void map_nfs4aceflags2winaceflags(uint32_t nfs4_aceflags, DWORD *win_acef
 
 static
 void map_winaccessmask2nfs4acemask(ACCESS_MASK win_mask,
-    int file_type, uint32_t *nfs4_mask)
+    int file_type, bool named_attr_support, uint32_t *nfs4_mask)
 {
+    *nfs4_mask = 0;
+
     /* check if any GENERIC bits set */
     if (win_mask & 0xf000000) {
+        /* Filtered |ACE4_GENERIC_*| masks */
+        uint32_t ace4_generic_read_filt = ACE4_GENERIC_READ;
+        uint32_t ace4_generic_write_filt =  ACE4_GENERIC_WRITE;
+        uint32_t ace4_generic_execute_filt = ACE4_GENERIC_EXECUTE;
+        uint32_t ace4_all_file_filt = ACE4_ALL_FILE;
+        uint32_t ace4_all_dir_filt = ACE4_ALL_DIR;
+
+#ifdef MAP_WIN32GENERIC2ACE4GENERIC
+        if (!named_attr_support) {
+            /*
+             * Filter out unsupported features for
+             * |GENERIC_*| --> |ACE_*ATTR| conversion.
+             * Do not filter out explicit individual flags below!
+             */
+            ace4_generic_read_filt &= ~ACE4_RW_NAMED_ATTRS;
+            ace4_generic_write_filt &= ~ACE4_RW_NAMED_ATTRS;
+            ace4_generic_execute_filt &= ~ACE4_RW_NAMED_ATTRS;
+            ace4_all_file_filt &= ~ACE4_RW_NAMED_ATTRS;
+            ace4_all_dir_filt &= ~ACE4_RW_NAMED_ATTRS;
+        }
+#endif /* MAP_WIN32GENERIC2ACE4GENERIC */
+
         if (win_mask & GENERIC_ALL) {
             if (file_type == NF4DIR)
-                *nfs4_mask |= ACE4_ALL_DIR;
+                *nfs4_mask |= ace4_all_dir_filt;
             else
-                *nfs4_mask |= ACE4_ALL_FILE;
+                *nfs4_mask |= ace4_all_file_filt;
         } else {
             if (win_mask & GENERIC_READ)
-                *nfs4_mask |= ACE4_GENERIC_READ;
+                *nfs4_mask |= ace4_generic_read_filt;
             if (win_mask & GENERIC_WRITE)
-                *nfs4_mask |= ACE4_GENERIC_WRITE;
+                *nfs4_mask |= ace4_generic_write_filt;
             if (win_mask & GENERIC_EXECUTE)
-                *nfs4_mask |= ACE4_GENERIC_EXECUTE;
+                *nfs4_mask |= ace4_generic_execute_filt;
+        }
+    }
+
+    /* Individual flags */
+    if (file_type == NF4DIR) {
+        if (win_mask & FILE_LIST_DIRECTORY) {
+            *nfs4_mask |= ACE4_LIST_DIRECTORY;
+        }
+        if (win_mask & FILE_ADD_FILE) {
+            *nfs4_mask |= ACE4_ADD_FILE;
+        }
+        if (win_mask & FILE_ADD_SUBDIRECTORY) {
+            *nfs4_mask |= ACE4_ADD_SUBDIRECTORY;
+        }
+        if (win_mask & FILE_DELETE_CHILD) {
+            *nfs4_mask |= ACE4_DELETE_CHILD;
+        }
+        if (win_mask & FILE_TRAVERSE) {
+            *nfs4_mask |= ACE4_EXECUTE;
         }
     }
     else {
-       /* Individual flags */
-        if (file_type == NF4DIR) {
-            if (win_mask & FILE_LIST_DIRECTORY) {
-                *nfs4_mask |= ACE4_LIST_DIRECTORY;
-            }
-            if (win_mask & FILE_ADD_FILE) {
-                *nfs4_mask |= ACE4_ADD_FILE;
-            }
-            if (win_mask & FILE_ADD_SUBDIRECTORY) {
-                *nfs4_mask |= ACE4_ADD_SUBDIRECTORY;
-            }
-            if (win_mask & FILE_DELETE_CHILD) {
-                *nfs4_mask |= ACE4_DELETE_CHILD;
-            }
-            if (win_mask & FILE_TRAVERSE) {
-                *nfs4_mask |= ACE4_EXECUTE;
-            }
+        if (win_mask & FILE_READ_DATA) {
+            *nfs4_mask |= ACE4_READ_DATA;
         }
-        else {
-            if (win_mask & FILE_READ_DATA) {
-                *nfs4_mask |= ACE4_READ_DATA;
-            }
-            if (win_mask & FILE_WRITE_DATA) {
-                *nfs4_mask |= ACE4_WRITE_DATA;
-            }
-            if (win_mask & FILE_APPEND_DATA) {
-                *nfs4_mask |= ACE4_APPEND_DATA;
-            }
-            if (win_mask & FILE_EXECUTE) {
-                *nfs4_mask |= ACE4_EXECUTE;
-            }
-            /*
-             * gisburn: Why does Win10 set |FILE_DELETE_CHILD| for
-             * plain files ?
-             */
-            if (win_mask & FILE_DELETE_CHILD) {
-                *nfs4_mask |= ACE4_DELETE_CHILD;
-            }
+        if (win_mask & FILE_WRITE_DATA) {
+            *nfs4_mask |= ACE4_WRITE_DATA;
+        }
+        if (win_mask & FILE_APPEND_DATA) {
+            *nfs4_mask |= ACE4_APPEND_DATA;
+        }
+        if (win_mask & FILE_EXECUTE) {
+            *nfs4_mask |= ACE4_EXECUTE;
+        }
+        /*
+         * gisburn: Why does Win10 set |FILE_DELETE_CHILD| for
+         * plain files ?
+         */
+        if (win_mask & FILE_DELETE_CHILD) {
+            *nfs4_mask |= ACE4_DELETE_CHILD;
         }
     }
 
@@ -650,45 +681,66 @@ void map_winaccessmask2nfs4acemask(ACCESS_MASK win_mask,
 
 static
 void map_nfs4acemask2winaccessmask(uint32_t nfs4_mask,
-    int file_type, ACCESS_MASK *win_mask)
+    int file_type, bool named_attr_support, ACCESS_MASK *win_mask)
 {
-#ifdef GENERIC_DISABLED_FOR_NOW
+    *win_mask = 0;
+
+#ifdef MAP_WIN32GENERIC2ACE4GENERIC
     bool is_generic = false;
+
+    /* Filtered |ACE4_GENERIC_*| masks */
+    uint32_t ace4_generic_read_filt = ACE4_GENERIC_READ;
+    uint32_t ace4_generic_write_filt =  ACE4_GENERIC_WRITE;
+    uint32_t ace4_generic_execute_filt = ACE4_GENERIC_EXECUTE;
+    uint32_t ace4_all_file_filt = ACE4_ALL_FILE;
+    uint32_t ace4_all_dir_filt = ACE4_ALL_DIR;
+
+    if (!named_attr_support) {
+        /*
+         * Filter out unsupported features for
+         * |ACE_*ATTR| --> |GENERIC_*| conversion.
+         * Do not filter out explicit individual flags below!
+         */
+        ace4_generic_read_filt &= ~ACE4_RW_NAMED_ATTRS;
+        ace4_generic_write_filt &= ~ACE4_RW_NAMED_ATTRS;
+        ace4_generic_execute_filt &= ~ACE4_RW_NAMED_ATTRS;
+        ace4_all_file_filt &= ~ACE4_RW_NAMED_ATTRS;
+        ace4_all_dir_filt &= ~ACE4_RW_NAMED_ATTRS;
+    }
 
     /*
      * Generic masks
-     * (|ACE4_GENERIC_*| contain multiple bits
+     * (|ACE4_GENERIC_*| contain multiple bits)
      */
-    if ((nfs4_mask & ACE4_GENERIC_READ) == ACE4_GENERIC_READ) {
-        *win_mask |= GENERIC_READ;
-        is_generic = true;
-    }
-    if ((nfs4_mask & ACE4_GENERIC_WRITE) == ACE4_GENERIC_WRITE) {
-        *win_mask |= GENERIC_WRITE;
-        is_generic = true;
-    }
-    if ((nfs4_mask & ACE4_GENERIC_EXECUTE) == ACE4_GENERIC_EXECUTE) {
-        *win_mask |= GENERIC_EXECUTE;
-        is_generic = true;
-    }
-
+#define ACEMASK_TEST_MASK(value, mask) (((value)&(mask)) == (mask))
     if (file_type == NF4DIR) {
-        if ((nfs4_mask & ACE4_ALL_DIR) == ACE4_ALL_DIR) {
+        if (ACEMASK_TEST_MASK(nfs4_mask, ace4_all_dir_filt)) {
             *win_mask |= GENERIC_ALL;
             is_generic = true;
         }
     }
     else {
-        if ((nfs4_mask & ACE4_ALL_FILE) == ACE4_ALL_FILE) {
+        if (ACEMASK_TEST_MASK(nfs4_mask, ace4_all_file_filt)) {
             *win_mask |= GENERIC_ALL;
             is_generic = true;
         }
     }
-#if 0
-    if (is_generic)
-        goto mapping_done;
-#endif
-#endif /* GENERIC_DISABLED_FOR_NOW */
+
+    if (!(*win_mask & GENERIC_ALL)) {
+        if (ACEMASK_TEST_MASK(nfs4_mask, ace4_generic_read_filt)) {
+            *win_mask |= GENERIC_READ;
+            is_generic = true;
+        }
+        if (ACEMASK_TEST_MASK(nfs4_mask, ace4_generic_write_filt)) {
+            *win_mask |= GENERIC_WRITE;
+            is_generic = true;
+        }
+        if (ACEMASK_TEST_MASK(nfs4_mask, ace4_generic_execute_filt)) {
+            *win_mask |= GENERIC_EXECUTE;
+            is_generic = true;
+        }
+    }
+#endif /* MAP_WIN32GENERIC2ACE4GENERIC */
 
     /* Individual flags */
     if (file_type == NF4DIR) {
@@ -751,17 +803,18 @@ void map_nfs4acemask2winaccessmask(uint32_t nfs4_mask,
         *win_mask |= DELETE;
     }
 
-#ifdef GENERIC_DISABLED_FOR_NOW
-mapping_done:
-#endif
-
 #if 1
     /* Compare old and new code */
-    EASSERT_MSG(((long)*win_mask == (long)(nfs4_mask /*& 0x00ffffff*/)),
-        ("#### map_nfs4acemask2winaccessmask: "
-        "new code win_mask=0x%lx, "
-        "old code win_mask=0x%lx\n",
-        (long)*win_mask, (long)(nfs4_mask /*& 0x00ffffff*/)));
+#ifdef MAP_WIN32GENERIC2ACE4GENERIC
+    if (!is_generic)
+#endif /* MAP_WIN32GENERIC2ACE4GENERIC */
+    {
+        EASSERT_MSG(((long)*win_mask == (long)(nfs4_mask /*& 0x00ffffff*/)),
+            ("#### map_nfs4acemask2winaccessmask: "
+            "new code win_mask=0x%lx, "
+            "old code win_mask=0x%lx\n",
+            (long)*win_mask, (long)(nfs4_mask /*& 0x00ffffff*/)));
+    }
 #endif
 }
 
@@ -903,7 +956,7 @@ out:
 }
 
 static int map_dacl_2_nfs4acl(PACL acl, PSID sid, PSID gsid, nfsacl41 *nfs4_acl,
-                                int file_type, char *domain)
+    int file_type, bool named_attr_support, char *domain)
 {
     int status;
     if (acl == NULL) {
@@ -917,10 +970,25 @@ static int map_dacl_2_nfs4acl(PACL acl, PSID sid, PSID gsid, nfsacl41 *nfs4_acl,
         nfs4_acl->flag = 0;
         memcpy(nfs4_acl->aces->who, ACE4_EVERYONE, strlen(ACE4_EVERYONE)+1);
         nfs4_acl->aces->acetype = ACE4_ACCESS_ALLOWED_ACE_TYPE;
-        if (file_type == NF4DIR)
-            nfs4_acl->aces->acemask = ACE4_ALL_DIR;
-        else
-            nfs4_acl->aces->acemask = ACE4_ALL_FILE;
+
+        if (file_type == NF4DIR) {
+            uint32_t ace4_all_dir_filt = ACE4_ALL_DIR;
+#ifdef MAP_WIN32GENERIC2ACE4GENERIC
+            /* Filter out unsupported features */
+            if (!named_attr_support)
+                ace4_all_dir_filt &= ~ACE4_RW_NAMED_ATTRS;
+#endif /* MAP_WIN32GENERIC2ACE4GENERIC */
+            nfs4_acl->aces->acemask = ace4_all_dir_filt;
+        }
+        else {
+            uint32_t ace4_all_file_filt = ACE4_ALL_FILE;
+#ifdef MAP_WIN32GENERIC2ACE4GENERIC
+            /* Filter out unsupported features */
+            if (!named_attr_support)
+                ace4_all_file_filt &= ~ACE4_RW_NAMED_ATTRS;
+#endif /* MAP_WIN32GENERIC2ACE4GENERIC */
+            nfs4_acl->aces->acemask = ace4_all_file_filt;
+        }
         nfs4_acl->aces->aceflag = 0;
     } else {
         int i;
@@ -977,7 +1045,8 @@ static int map_dacl_2_nfs4acl(PACL acl, PSID sid, PSID gsid, nfsacl41 *nfs4_acl,
             map_winace2nfs4aceflags(ace->AceFlags,
                 &nfs4_acl->aces[i].aceflag);
             map_winaccessmask2nfs4acemask(win_mask,
-                file_type, &nfs4_acl->aces[i].acemask);
+                file_type, named_attr_support,
+                &nfs4_acl->aces[i].acemask);
 
             /*
              * Treat |SidTypeAlias| as (local) group
@@ -1115,8 +1184,10 @@ static int handle_setacl(void *daemon_context, nfs41_upcall *upcall)
             eprintf("GetSecurityDescriptorOwner failed with %d\n", status);
             goto out;
         }
-        status = map_dacl_2_nfs4acl(acl, sid, gsid, &nfs4_acl, state->type,
-                                    nfs41dg->localdomain_name);
+        status = map_dacl_2_nfs4acl(acl, sid, gsid, &nfs4_acl,
+             state->type,
+             state->file.fh.superblock->ea_support?true:false,
+            nfs41dg->localdomain_name);
         if (status)
             goto out;
 
