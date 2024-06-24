@@ -811,6 +811,20 @@ VOID ServiceStart(DWORD argc, LPTSTR *argv)
             goto out_pipe;
         }
     }
+
+    /*
+     * Give worker threads time to settle...
+     * (the correct solution would be that each worker threads
+     * sends an event to show that it is ready, but in real life
+     * this is overkill...)
+     */
+    (void)SwitchToThread();
+
+    /*
+     * ... and then report the RUNNING status to the log and SCMgr
+     */
+    logprintf("nfsd is running.\n");
+
 #ifndef STANDALONE_NFSD
     // report the status to the service control manager.
     if (!ReportStatusToSCMgr(SERVICE_RUNNING, NO_ERROR, 0))
