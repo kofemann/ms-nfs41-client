@@ -175,8 +175,6 @@ static int convert_nfs4acl_2_dacl(nfs41_daemon_globals *nfs41dg,
         DWORD win_aceflags;
 
         for (i = 0; i < acl->count; i++) {
-            win_aceflags = 0;
-
             map_nfs4aceflags2winaceflags(acl->aces[i].aceflag,
                 &win_aceflags);
             map_nfs4acemask2winaccessmask(acl->aces[i].acemask,
@@ -525,6 +523,8 @@ static int is_well_known_sid(PSID sid, char *who, SID_NAME_USE *snu_out)
 
 static void map_winace2nfs4aceflags(BYTE win_aceflags, uint32_t *nfs4_aceflags)
 {
+    *nfs4_aceflags = 0;
+
     if (win_aceflags & OBJECT_INHERIT_ACE)
         *nfs4_aceflags |= ACE4_FILE_INHERIT_ACE;
     if (win_aceflags & CONTAINER_INHERIT_ACE)
@@ -542,6 +542,8 @@ static void map_winace2nfs4aceflags(BYTE win_aceflags, uint32_t *nfs4_aceflags)
 
 static void map_nfs4aceflags2winaceflags(uint32_t nfs4_aceflags, DWORD *win_aceflags)
 {
+    *win_aceflags = 0;
+
     if (nfs4_aceflags & ACE4_FILE_INHERIT_ACE)
         *win_aceflags |= OBJECT_INHERIT_ACE;
     if (nfs4_aceflags & ACE4_DIRECTORY_INHERIT_ACE)
