@@ -37,6 +37,7 @@
 #include "sid.h"
 
 #define MAP_WIN32GENERIC2ACE4GENERIC 1
+#define WORKAROUND_FOR_LINUX_NFSD_NOT_SETTING_ACE4_WRITE_ATTRIBUTES 1
 
 /* |DPRINTF()| levels for acl logging */
 #define ACLLVL1 1
@@ -706,6 +707,36 @@ void map_nfs4acemask2winaccessmask(uint32_t nfs4_mask,
         ace4_generic_execute_filt &= ~ACE4_RW_NAMED_ATTRS;
         ace4_all_file_filt &= ~ACE4_RW_NAMED_ATTRS;
         ace4_all_dir_filt &= ~ACE4_RW_NAMED_ATTRS;
+
+#ifdef WORKAROUND_FOR_LINUX_NFSD_NOT_SETTING_ACE4_WRITE_ATTRIBUTES
+        /*
+         * BUG(?): Linux 6.6.32-RT32 does not return
+         * |ACE4_WRITE_ATTRIBUTES| even when the attributes are
+         * writeable.
+         *
+         * Since |ACE4_GENERIC_WRITE| includes the
+         * |ACE4_WRITE_ATTRIBUTES| bit an attempt to set
+         * |GENERIC_WRITE| will succeed, but we can never get all
+         * the |ACE4_*| bits in |ACE4_GENERIC_WRITE| back when
+         * reading the ACL, so without this workaround we could
+         * never match |GENERIC_WRITE| when constructing the Win32
+         * ACLs.
+         *
+         * Testcase:
+         * ---- snip ----
+         * $ ksh93 -c 'rm -f test1.txt
+         * touch test1.txt
+         * icacls test1.txt /grant "siegfried_wulsch:(GW)"
+         * icacls test1.txt'
+         * ---- snip ----
+         * Second icacls should return "GW" for user "siegfried_wulsch".
+         */
+        ace4_generic_read_filt &= ~ACE4_WRITE_ATTRIBUTES;
+        ace4_generic_write_filt &= ~ACE4_WRITE_ATTRIBUTES;
+        ace4_generic_execute_filt &= ~ACE4_WRITE_ATTRIBUTES;
+        ace4_all_file_filt &= ~ACE4_WRITE_ATTRIBUTES;
+        ace4_all_dir_filt &= ~ACE4_WRITE_ATTRIBUTES;
+#endif /* WORKAROUND_FOR_LINUX_NFSD_NOT_SETTING_ACE4_WRITE_ATTRIBUTES */
     }
 
     /*
