@@ -320,6 +320,11 @@ function nfsclient_rundeamon
 				"${nfsd_args[@]}"
 				'--crtdbgmem' 'none'
 			)
+
+		# Killing DrMemory with <CTRL-C> does not terminate nfsd,
+		# so we have to do it ourselves
+		trap 'taskkill /F /IM nfsd_debug.exe' SIGINT SIGTERM
+
 		"${nfsd_args[@]}"
 	elif false ; then
 		typeset -i vsdiagnostics_id=50
@@ -438,6 +443,10 @@ function nfsclient_system_rundeamon
 			'su_system'
 			"${nfsd_args[@]}"
 		)
+
+		# Killing DrMemory with <CTRL-C> does not terminate nfsd,
+		# so we have to do it ourselves
+		trap 'taskkill /F /IM nfsd_debug.exe' SIGINT SIGTERM
 
 		"${nfsd_args[@]}"
 	elif false ; then
