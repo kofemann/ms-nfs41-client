@@ -56,36 +56,55 @@
 
 #define EASSERT(exp) \
     if (!(exp)) { \
+        DWORD d_saved_lasterr = GetLastError(); \
         eprintf("ASSERTION '%s' in '%s'/%ld failed.\n", \
-            ""#exp"", __FILE__, (long)__LINE__); }
+            ""#exp"", __FILE__, (long)__LINE__); \
+        SetLastError(d_saved_lasterr); \
+    }
 #define EASSERT_MSG(exp, msg) \
     if (!(exp)) { \
+        DWORD d_saved_lasterr = GetLastError(); \
         eprintf("ASSERTION '%s' in '%s'/%ld failed, msg=", \
             ""#exp"", __FILE__, (long)__LINE__); \
-        eprintf_out msg ; }
+        eprintf_out msg ; \
+        SetLastError(d_saved_lasterr); \
+    }
 #define DASSERT(exp, level) \
-    if (!(exp)) { \
-        DPRINTF((level), ("ASSERTION '%s' in '%s'/%ld failed.\n", \
-            ""#exp"", __FILE__, (long)__LINE__)); }
+    if (!(exp) && DPRINTF_LEVEL_ENABLED(level)) { \
+        DWORD d_saved_lasterr = GetLastError(); \
+        dprintf_out("ASSERTION '%s' in '%s'/%ld failed.\n", \
+            ""#exp"", __FILE__, (long)__LINE__); \
+        SetLastError(d_saved_lasterr); \
+    }
 #define DASSERT_MSG(exp, level, msg) \
     if (!(exp) && DPRINTF_LEVEL_ENABLED(level)) { \
-        DPRINTF((level), ("ASSERTION '%s' in '%s'/%ld failed, msg=", \
-            ""#exp"", __FILE__, (long)__LINE__)); \
-        dprintf_out msg ; }
+        DWORD d_saved_lasterr = GetLastError(); \
+        dprintf_out("ASSERTION '%s' in '%s'/%ld failed, msg=", \
+            ""#exp"", __FILE__, (long)__LINE__); \
+        dprintf_out msg ; \
+        SetLastError(d_saved_lasterr); \
+    }
 
 #define DASSERT_IS_VALID_NON_NULL_PTR(exp, level) \
-    if (!DEBUG_IS_VALID_NON_NULL_PTR(exp)) { \
-        DPRINTF((level), ("ASSERTION " \
+    if (!DEBUG_IS_VALID_NON_NULL_PTR(exp) && \
+        DPRINTF_LEVEL_ENABLED(level)) { \
+        DWORD d_saved_lasterr = GetLastError(); \
+        dprintf_out("ASSERTION " \
             "!DEBUG_IS_VALID_NON_NULL_PTR('%s'=0x%p) " \
             "in '%s'/%ld failed.\n", \
-            ""#exp"", (void *)(exp), __FILE__, (long)__LINE__)); }
+            ""#exp"", (void *)(exp), __FILE__, (long)__LINE__); \
+        SetLastError(d_saved_lasterr); \
+    }
 
 #define EASSERT_IS_VALID_NON_NULL_PTR(exp) \
     if (!DEBUG_IS_VALID_NON_NULL_PTR(exp)) { \
+        DWORD d_saved_lasterr = GetLastError(); \
         eprintf("ASSERTION " \
             "!DEBUG_IS_VALID_NON_NULL_PTR('%s'=0x%p) " \
             "in '%s'/%ld failed.\n", \
-            ""#exp"", (void *)(exp), __FILE__, (long)__LINE__); }
+            ""#exp"", (void *)(exp), __FILE__, (long)__LINE__); \
+        SetLastError(d_saved_lasterr); \
+    }
 
 extern int g_debug_level;
 
@@ -93,7 +112,9 @@ extern int g_debug_level;
 #define DPRINTF(level, args) \
     { \
         if (DPRINTF_LEVEL_ENABLED(level)) { \
+            DWORD d_saved_lasterr = GetLastError(); \
             dprintf_out args; \
+            SetLastError(d_saved_lasterr); \
         } \
     }
 
