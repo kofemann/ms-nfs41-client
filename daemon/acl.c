@@ -673,12 +673,13 @@ void map_winaccessmask2nfs4acemask(ACCESS_MASK win_mask,
     }
 
 #if 1
-    /* Compare old and new code */
-    EASSERT_MSG(((long)*nfs4_mask == (long)(win_mask /*& 0x00ffffff*/)),
+    /* DEBUG: Compare old and new code */
+    DASSERT_MSG(0,
+        ((long)*nfs4_mask == (long)(win_mask & 0x00ffffff)),
         ("map_winaccessmask2nfs4acemask: "
         "new code nfs4_mask=0x%lx, "
         "old code nfs4_mask=0x%lx\n",
-        (long)*nfs4_mask, (long)(win_mask /*& 0x00ffffff*/)));
+        (long)*nfs4_mask, (long)(win_mask & 0x00ffffff)));
 #endif
 }
 
@@ -837,12 +838,13 @@ void map_nfs4acemask2winaccessmask(uint32_t nfs4_mask,
     }
 
 #if 1
-    /* Compare old and new code */
+    /* DEBUG: Compare old and new code */
 #ifdef MAP_WIN32GENERIC2ACE4GENERIC
     if (!is_generic)
 #endif /* MAP_WIN32GENERIC2ACE4GENERIC */
     {
-        EASSERT_MSG(((long)*win_mask == (long)(nfs4_mask /*& 0x00ffffff*/)),
+        DASSERT_MSG(0,
+            ((long)*win_mask == (long)(nfs4_mask /*& 0x00ffffff*/)),
             ("#### map_nfs4acemask2winaccessmask: "
             "new code win_mask=0x%lx, "
             "old code win_mask=0x%lx\n",
@@ -1080,6 +1082,32 @@ static int map_dacl_2_nfs4acl(PACL acl, PSID sid, PSID gsid, nfsacl41 *nfs4_acl,
             map_winaccessmask2nfs4acemask(win_mask,
                 file_type, named_attr_support,
                 &nfs4_acl->aces[i].acemask);
+
+            /*
+             * Clear |ACE4_INHERITED_ACE|
+             *
+             * (See RFC 8884 Section-6.2.1.4.1:
+             * ACE4_INHERITED_ACE
+             * Indicates that this ACE is inherited from a parent
+             * directory. A server that supports automatic inheritance
+             * will place this flag on any ACEs inherited from the
+             * parent directory when creating a new object.
+             * Client applications will use this to perform automatic
+             * inheritance. Clients and servers MUST clear this bit in
+             * the acl attribute; it may only be used in the dacl and
+             * sacl attributes.
+             * ---- snip ----
+             * )
+             *
+             * If we do not clear this bit Linux 6.6.32-RT32 nfsd
+             * will reject setting ACLs |NFS4ERR_ATTRNOTSUPP| via
+             * icacls(1win) if the parent directory has inheritance
+             * ACLs.
+             */
+            if (nfs4_acl->aces[i].aceflag & ACE4_INHERITED_ACE) {
+                nfs4_acl->aces[i].aceflag &= ~ACE4_INHERITED_ACE;
+                DPRINTF(ACLLVL3, ("clearning ACE4_INHERITED_ACE\n"));
+            }
 
             /*
              * Treat |SidTypeAlias| as (local) group

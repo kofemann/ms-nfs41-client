@@ -1,5 +1,5 @@
 #
-# ms-nfs41-client manual testing sequence, 2024-05-21
+# ms-nfs41-client manual testing sequence, 2024-06-26
 #
 # Draft version, needs to be turned into automated tests
 # if possible
@@ -154,6 +154,16 @@ ksh93 -c 'rm -f test1.txt ; touch test1.txt ; icacls test1.txt /grant:r "cygwing
 $ ksh93 -c 'set -o xtrace ; rm -f test1.txt ; touch test1.txt ; icacls test1.txt /grant "siegfried_wulsch:(GW)" ; icacls test1.txt | grep --colour -E "siegfried_wulsch.+GW"'
 # Expectation:
 The ACL entry for user "siegfried_wulsch" should have the "GW" flag set
+
+#
+# Test for default (inheritance) ACLs:
+#
+mkdir test1
+cd test1
+icacls . /grant "cygwingrp2:(OI)(CI)(IO)(GR)"
+touch mytestfile1.txt
+icacls mytestfile1.txt | grep --colour -E 'cygwingrp2.+GR'
+# file "mytestfile1.txt" must have the "GR" flag set
 
 #
 # Compile each of the following package
