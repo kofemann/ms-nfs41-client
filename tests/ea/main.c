@@ -3,6 +3,7 @@
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
+ * Roland Mainz <roland.mainz@nrubsig.org>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -23,6 +24,9 @@
 #include <strsafe.h>
 #include <stdio.h>
 
+#if 1
+typedef unsigned long DWORD, *PDWORD, *LPDWORD;
+#endif
 
 #define MAX_LIST_LEN 4096
 #define MAX_EA_VALUE 256
@@ -33,11 +37,13 @@
 static NTSTATUS ea_list(
     HANDLE FileHandle)
 {
-    IO_STATUS_BLOCK IoStatusBlock = { 0 };
+    IO_STATUS_BLOCK IoStatusBlock;
     CHAR Buffer[MAX_LIST_LEN];
     PFILE_FULL_EA_INFORMATION EaBuffer;
     NTSTATUS status;
     BOOLEAN RestartScan = TRUE;
+
+    (void)memset(&IoStatusBlock, 0, sizeof(IoStatusBlock));
 
 on_overflow:
     EaBuffer = (PFILE_FULL_EA_INFORMATION)Buffer;
@@ -49,10 +55,10 @@ on_overflow:
     case STATUS_BUFFER_OVERFLOW:
         break;
     case STATUS_NO_EAS_ON_FILE:
-        printf("No EAs on file.\n", status);
+        printf("No EAs on file, status=0x%lx.\n", (long)status);
         goto out;
     default:
-        fprintf(stderr, "ZwQueryEaFile() failed with %X\n", status);
+        fprintf(stderr, "ZwQueryEaFile() failed with 0x%lx\n", (long)status);
         goto out;
     }
 
@@ -67,7 +73,7 @@ on_overflow:
     }
 
     if (status == STATUS_BUFFER_OVERFLOW) {
-        printf("overflow, querying more\n", status);
+        printf("overflow, querying more, status=0x%lx\n", (long)status);
         RestartScan = FALSE;
         goto on_overflow;
     }
@@ -80,7 +86,7 @@ static NTSTATUS ea_get(
     IN LPCWSTR EaNames[],
     IN DWORD Count)
 {
-    IO_STATUS_BLOCK IoStatusBlock = { 0 };
+    IO_STATUS_BLOCK IoStatusBlock;
     CHAR GetBuffer[MAX_LIST_LEN] = { 0 };
     CHAR FullBuffer[MAX_LIST_LEN] = { 0 };
     PFILE_GET_EA_INFORMATION EaList = (PFILE_GET_EA_INFORMATION)GetBuffer, EaQuery;
@@ -88,6 +94,8 @@ static NTSTATUS ea_get(
     ULONG ActualByteCount, EaListLength;
     DWORD i;
     NTSTATUS status;
+
+    (void)memset(&IoStatusBlock, 0, sizeof(IoStatusBlock));
 
     EaQuery = EaList;
     EaListLength = 0;
@@ -100,7 +108,7 @@ static NTSTATUS ea_get(
         status = RtlUnicodeToUTF8N(EaQuery->EaName, MAX_EA_VALUE,
             &ActualByteCount, EaName, EaNameLength);
         if (status) {
-            fwprintf(stderr, L"RtlUnicodeToUTF8N('%s') failed with %X\n", EaName, status);
+            fwprintf(stderr, L"RtlUnicodeToUTF8N('%s') failed with 0x%lx\n", EaName, (long)status);
             goto out;
         }
         EaQuery->EaNameLength = (UCHAR)ActualByteCount - 1;
@@ -115,20 +123,20 @@ static NTSTATUS ea_get(
         }
         EaQuery = (PFILE_GET_EA_INFORMATION)((PCHAR)EaQuery + EaQuery->NextEntryOffset);
     }
- 
+
     status = ZwQueryEaFile(FileHandle, &IoStatusBlock,
         EaBuffer, MAX_FULLEA, FALSE, EaList, EaListLength, NULL, TRUE);
     switch (status) {
     case STATUS_SUCCESS:
         break;
     case STATUS_NO_EAS_ON_FILE:
-        printf("No EAs on file.\n", status);
+        printf("No EAs on file, status=0x%lx.\n", (long)status);
         goto out;
     default:
-        fprintf(stderr, "ZwQueryEaFile('%s') failed with %X\n", EaList->EaName, status);
+        fprintf(stderr, "ZwQueryEaFile('%s') failed with 0x%lx\n", EaList->EaName, (long)status);
         goto out;
     }
-    
+
     while (EaBuffer) {
         printf("%s = %.*s\n", EaBuffer->EaName, EaBuffer->EaValueLength,
             EaBuffer->EaName + EaBuffer->EaNameLength + 1);
@@ -161,7 +169,7 @@ static NTSTATUS full_ea_init(
         FIELD_OFFSET(FILE_FULL_EA_INFORMATION, EaName),
         &ActualByteCount, EaName, EaNameLength);
     if (status) {
-        fwprintf(stderr, L"RtlUnicodeToUTF8N('%s') failed with %X\n", EaName, status);
+        fwprintf(stderr, L"RtlUnicodeToUTF8N('%s') failed with 0x%lx\n", EaName, (long)status);
         goto out;
     }
     EaBuffer->EaNameLength = (UCHAR)ActualByteCount - 1;
@@ -176,7 +184,7 @@ static NTSTATUS full_ea_init(
             MAX_FULLEA - FIELD_OFFSET(FILE_FULL_EA_INFORMATION, EaName) - EaBuffer->EaNameLength - 1,
             &ActualByteCount, EaValue, EaValueLength);
         if (status) {
-            fwprintf(stderr, L"RtlUnicodeToUTF8N('%s') failed with %X\n", EaName, status);
+            fwprintf(stderr, L"RtlUnicodeToUTF8N('%s') failed with 0x%lx\n", EaName, (long)status);
             goto out;
         }
         EaBuffer->EaValueLength = (UCHAR)ActualByteCount - 1;
@@ -193,8 +201,10 @@ static NTSTATUS ea_set(
     IN PFILE_FULL_EA_INFORMATION EaBuffer,
     IN ULONG EaLength)
 {
-    IO_STATUS_BLOCK IoStatusBlock = { 0 };
+    IO_STATUS_BLOCK IoStatusBlock;
     NTSTATUS status;
+
+    (void)memset(&IoStatusBlock, 0, sizeof(IoStatusBlock));
 
     status = ZwSetEaFile(FileHandle, &IoStatusBlock, EaBuffer, EaLength);
     switch (status) {
@@ -203,13 +213,13 @@ static NTSTATUS ea_set(
             EaBuffer->EaName + EaBuffer->EaNameLength + 1);
         break;
     default:
-        fprintf(stderr, "ZwSetEaFile() failed with %X\n", status);
+        fprintf(stderr, "ZwSetEaFile() failed with 0x%lx\n", (long)status);
         break;
     }
     return status;
 }
 
-int wmain(DWORD argc, LPWSTR argv[])
+int wmain(int argc, const wchar_t *argv[])
 {
     UNICODE_STRING FileName;
     OBJECT_ATTRIBUTES ObjectAttributes;
@@ -228,13 +238,13 @@ int wmain(DWORD argc, LPWSTR argv[])
     ULONG EaLength = 0;
 
     if (argc < 3) {
-        fwprintf(stderr, L"Usage: nfs_ea <filename> <create|set|get|list> ...\n");
+        fwprintf(stderr, L"Usage: nfs_ea <ntobjectpath> <create|set|get|list> ...\n");
         status = STATUS_INVALID_PARAMETER;
         goto out;
     }
     if (wcscmp(argv[2], L"create") == 0) {
         if (argc < 5) {
-            fwprintf(stderr, L"Usage: nfs_ea <filename> create <name> <value>\n");
+            fwprintf(stderr, L"Usage: nfs_ea <ntobjectpath> create <name> <value>\n");
             status = STATUS_INVALID_PARAMETER;
             goto out;
         }
@@ -246,19 +256,19 @@ int wmain(DWORD argc, LPWSTR argv[])
         wprintf(L"Creating file %s.\n", argv[1]);
     } else if (wcscmp(argv[2], L"set") == 0) {
         if (argc < 4) {
-            fwprintf(stderr, L"Usage: nfs_ea <filename> set <name> [value]\n");
+            fwprintf(stderr, L"Usage: nfs_ea <ntobjectpath> set <name> [value]\n");
             status = STATUS_INVALID_PARAMETER;
             goto out;
         }
         DesiredAccess |= GENERIC_WRITE;
     } else if (wcscmp(argv[2], L"get") == 0) {
         if (argc < 4) {
-            fwprintf(stderr, L"Usage: nfs_ea <filename> get <name> [name...]\n");
+            fwprintf(stderr, L"Usage: nfs_ea <ntobjectpath> get <name> [name...]\n");
             status = STATUS_INVALID_PARAMETER;
             goto out;
         }
     } else if (wcscmp(argv[2], L"list") != 0) {
-        fwprintf(stderr, L"Usage: nfs_ea <filename> <create|set|get|list> ...\n");
+        fwprintf(stderr, L"Usage: nfs_ea <ntobjectpath> <create|set|get|list> ...\n");
         status = STATUS_INVALID_PARAMETER;
         goto out;
     }
@@ -270,7 +280,7 @@ int wmain(DWORD argc, LPWSTR argv[])
         &IoStatusBlock, NULL, FileAttributes, ShareAccess,
         CreateDisposition, CreateOptions, EaBuffer, EaLength);
     if (status) {
-        fwprintf(stderr, L"NtCreateFile(%s) failed with %X\n", FileName.Buffer, status);
+        fwprintf(stderr, L"NtCreateFile(%s) failed with 0x%lx\n", FileName.Buffer, (long)status);
         goto out;
     }
 
@@ -281,15 +291,15 @@ int wmain(DWORD argc, LPWSTR argv[])
         if (status)
             goto out_close;
 
-        wprintf(L"Setting extended attribute '%s' on file %s:\n",
+        wprintf(L"Setting extended attribute '%s' on file '%s':\n",
             argv[3], FileName.Buffer);
         status = ea_set(FileHandle, EaBuffer, EaLength);
     } else if (wcscmp(argv[2], L"get") == 0) {
-        wprintf(L"Querying extended attribute on file %s:\n",
+        wprintf(L"Querying extended attribute on file '%s':\n",
             argv[3], FileName.Buffer);
         status = ea_get(FileHandle, argv + 3, argc - 3);
     } else if (wcscmp(argv[2], L"list") == 0) {
-        wprintf(L"Listing extended attributes for %s:\n", FileName.Buffer);
+        wprintf(L"Listing extended attributes for '%s':\n", FileName.Buffer);
         status = ea_list(FileHandle);
     } else if (wcscmp(argv[2], L"create") == 0) {
         wprintf(L"File '%s' was created with \n", FileName.Buffer);

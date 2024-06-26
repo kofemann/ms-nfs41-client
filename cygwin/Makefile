@@ -54,6 +54,7 @@ build_32bit_debug:
 	MSBuild.exe '$(shell cygpath -w "$(PROJECT_BASEDIR_DIR)/build.vc19/nfs41-client.sln")' -t:Build  -p:Configuration=Debug -p:Platform=x86
 
 build_testutils:
+	(cd "$(PROJECT_BASEDIR_DIR)/tests/ea" && make all)
 	(cd "$(PROJECT_BASEDIR_DIR)/tests/winfsinfo1" && make all)
 	(cd "$(PROJECT_BASEDIR_DIR)/tests/winsg" && make all)
 
