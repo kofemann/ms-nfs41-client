@@ -117,6 +117,9 @@ void nfs41_session_free_slot(
     }
     /* update highest_used if necessary */
     if (slotid == table->highest_used) {
+        EASSERT_MSG((table->highest_used < NFS41_MAX_NUM_SLOTS),
+            ("table->highest_used=%lu\n",
+            (unsigned long)table->highest_used));
         while (table->highest_used && !table->used_slots[table->highest_used])
             table->highest_used--;
     }
