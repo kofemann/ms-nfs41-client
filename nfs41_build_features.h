@@ -133,4 +133,24 @@
  */
 #define NFS41_DRIVER_DEBUG_FS_NAME 1
 
+/*
+ * NFS41_DRIVER_ACLS_SETACL_SKIP_WINNULLSID_ACES - Skip ACEs
+ * with SID==|WinNullSid|
+ *
+ * Cygwin generates artificial ACEs with SID user |WinNullSid| to
+ * encode permission information (follow |CYG_ACE_ISBITS_TO_POSIX()|
+ * in Cygwin newlib-cygwin/winsup/cygwin/sec/acl.cc
+ *
+ * This assumes that the filesystem which storesthe ACL data leaves
+ * them 1:1 intact - which is not the case for the Linux NFSv4.1
+ * server (tested with Linux 6.6.32), which transforms the NFSv4.1
+ * ACLs into POSIX ACLs at setacl time, and the POSIX ACLs back to
+ * NFSv4 ACLs at getacl time.
+ * And this lossy transformation screws-up Cygwin completly.
+ * The best we can do for now is to skip such ACEs, as we have no
+ * way to detect whether the NFS server supports full NFSv4 ACLs,
+ * or only POSIX ACLs disguised as NFSv4 ACLs.
+ */
+#define NFS41_DRIVER_ACLS_SETACL_SKIP_WINNULLSID_ACES 1
+
 #endif /* !_NFS41_DRIVER_BUILDFEATURES_ */

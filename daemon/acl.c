@@ -117,7 +117,7 @@ static int convert_nfs4acl_2_dacl(nfs41_daemon_globals *nfs41dg,
     bool named_attr_support)
 {
     int status = ERROR_NOT_SUPPORTED, size = 0;
-    uint32_t i;
+    uint32_t nfs_i = 0, win_i = 0;
     DWORD sid_len;
     PSID *sids;
     PACL dacl;
@@ -129,42 +129,71 @@ static int convert_nfs4acl_2_dacl(nfs41_daemon_globals *nfs41dg,
         acl, map_nfs_ftype2str(file_type), file_type,
         (int)named_attr_support));
 
-    sids = malloc(acl->count * sizeof(PSID));
+    bool *skip_aces = _alloca(acl->count * sizeof(bool));
+
+    /*
+     * We use |calloc()| here to get |NULL| pointer for unallocated
+     * slots in case of error codepaths below...
+     */
+    sids = calloc(acl->count, sizeof(PSID));
     if (sids == NULL) {
         status = GetLastError();
         goto out;
     }
-    for (i = 0; i < acl->count; i++) {
-        convert_nfs4name_2_user_domain(acl->aces[i].who, &domain);
+    for (nfs_i = win_i = 0; nfs_i < acl->count; nfs_i++) {
+        nfsace4 *curr_nfsace = &acl->aces[nfs_i];
+
+        skip_aces[nfs_i] = false;
+
+        convert_nfs4name_2_user_domain(curr_nfsace->who, &domain);
         DPRINTF(ACLLVL2, ("convert_nfs4acl_2_dacl: for user='%s' domain='%s'\n",
-                acl->aces[i].who, domain?domain:"<null>"));
-        status = check_4_special_identifiers(acl->aces[i].who, &sids[i],
+                curr_nfsace->who, domain?domain:"<null>"));
+
+#ifdef NFS41_DRIVER_ACLS_SETACL_SKIP_WINNULLSID_ACES
+        /*
+         * Skip "nobody" ACEs - Cygwin uses |WinNullSid| ACEs (mapped
+         * to NFS user "nobody") to store special data.
+         * We skip these here, because we cannot use them, as Linux nfsd
+         * only supports POSIX ACLs translated to NFSv4 ACLs, which
+         * corrupts the Cygwin data.
+         */
+        if (!strcmp(curr_nfsace->who, ACE4_NOBODY)) {
+            DPRINTF(ACLLVL3, ("Skipping 'nobody' ACE, "
+                "win_i=%d nfs_i=%d\n", (int)win_i, (int)nfs_i));
+            skip_aces[nfs_i] = true;
+            continue;
+        }
+#endif /* NFS41_DRIVER_ACLS_SETACL_SKIP_WINNULLSID_ACES */
+
+        status = check_4_special_identifiers(curr_nfsace->who, &sids[win_i],
                                              &sid_len, &flag);
         if (status) {
-            free_sids(sids, i);
+            free_sids(sids, win_i);
             goto out;
         }
         if (!flag) {
-            bool isgroupacl = (acl->aces[i].aceflag & ACE4_IDENTIFIER_GROUP)?true:false;
+            bool isgroupacl = (curr_nfsace->aceflag & ACE4_IDENTIFIER_GROUP)?true:false;
 
             if (isgroupacl) {
                 DPRINTF(ACLLVL2,
                     ("convert_nfs4acl_2_dacl: aces[%d].who='%s': "
                     "Setting group flag\n",
-                    i, acl->aces[i].who));
+                    nfs_i, curr_nfsace->who));
             }
 
             status = map_nfs4servername_2_sid(nfs41dg,
                 (isgroupacl?GROUP_SECURITY_INFORMATION:OWNER_SECURITY_INFORMATION),
-                &sid_len, &sids[i], acl->aces[i].who);
+                &sid_len, &sids[win_i], curr_nfsace->who);
             if (status) {
-                free_sids(sids, i);
+                free_sids(sids, win_i);
                 goto out;
             }
         }
         size += sid_len - sizeof(DWORD);
+
+        win_i++;
     }
-    size += sizeof(ACL) + (sizeof(ACCESS_ALLOWED_ACE)*acl->count);
+    size += sizeof(ACL) + (sizeof(ACCESS_ALLOWED_ACE)*win_i);
     size = align8(size); // align size on |DWORD| boundry
     dacl = malloc(size);
     if (dacl == NULL)
@@ -174,10 +203,15 @@ static int convert_nfs4acl_2_dacl(nfs41_daemon_globals *nfs41dg,
         ACCESS_MASK mask;
         DWORD win_aceflags;
 
-        for (i = 0; i < acl->count; i++) {
-            map_nfs4aceflags2winaceflags(acl->aces[i].aceflag,
+        for (nfs_i = win_i = 0; nfs_i < acl->count; nfs_i++) {
+            nfsace4 *curr_nfsace = &acl->aces[nfs_i];
+
+            if (skip_aces[nfs_i])
+                continue;
+
+            map_nfs4aceflags2winaceflags(curr_nfsace->aceflag,
                 &win_aceflags);
-            map_nfs4acemask2winaccessmask(acl->aces[i].acemask,
+            map_nfs4acemask2winaccessmask(curr_nfsace->acemask,
                 file_type, named_attr_support, &mask);
 
             if (DPRINTF_LEVEL_ENABLED(ACLLVL1)) {
@@ -185,19 +219,20 @@ static int convert_nfs4acl_2_dacl(nfs41_daemon_globals *nfs41dg,
                     "acetype='%s', "
                     "nfs_acemask=0x%lx, win_mask=0x%lx, "
                     "win_aceflags=0x%lx\n",
-                    i, acl->aces[i].who,
-                    map_nfs_acetype2str(acl->aces[i].acetype),
-                    (long)acl->aces[i].acemask,
+                    nfs_i, curr_nfsace->who,
+                    map_nfs_acetype2str(curr_nfsace->acetype),
+                    (long)curr_nfsace->acemask,
                     (long)mask,
                     (long)win_aceflags);
 
-                print_nfs_access_mask(acl->aces[i].who,
-                    acl->aces[i].acemask);
-                print_windows_access_mask(acl->aces[i].who, mask);
+                print_nfs_access_mask(curr_nfsace->who,
+                    curr_nfsace->acemask);
+                print_windows_access_mask(curr_nfsace->who, mask);
             }
 
-            if (acl->aces[i].acetype == ACE4_ACCESS_ALLOWED_ACE_TYPE) {
-                status = AddAccessAllowedAceEx(dacl, ACL_REVISION, win_aceflags, mask, sids[i]);
+            if (curr_nfsace->acetype == ACE4_ACCESS_ALLOWED_ACE_TYPE) {
+                status = AddAccessAllowedAceEx(dacl, ACL_REVISION,
+                    win_aceflags, mask, sids[win_i]);
                 if (!status) {
                     eprintf("convert_nfs4acl_2_dacl: "
                         "AddAccessAllowedAceEx(dacl=0x%p,win_aceflags=0x%x,mask=0x%x) failed "
@@ -206,8 +241,9 @@ static int convert_nfs4acl_2_dacl(nfs41_daemon_globals *nfs41dg,
                     goto out_free_dacl;
                 }
                 else status = ERROR_SUCCESS;
-            } else if (acl->aces[i].acetype == ACE4_ACCESS_DENIED_ACE_TYPE) {
-                status = AddAccessDeniedAceEx(dacl, ACL_REVISION, win_aceflags, mask, sids[i]);
+            } else if (curr_nfsace->acetype == ACE4_ACCESS_DENIED_ACE_TYPE) {
+                status = AddAccessDeniedAceEx(dacl, ACL_REVISION,
+                    win_aceflags, mask, sids[win_i]);
                 if (!status) {
                     eprintf("convert_nfs4acl_2_dacl: "
                         "AddAccessDeniedAceEx(dacl=0x%p,win_aceflags=0x%x,mask=0x%x) failed "
@@ -218,12 +254,14 @@ static int convert_nfs4acl_2_dacl(nfs41_daemon_globals *nfs41dg,
                 else status = ERROR_SUCCESS;
             } else {
                 eprintf("convert_nfs4acl_2_dacl: unknown acetype %d\n",
-                        acl->aces[i].acetype);
+                        curr_nfsace->acetype);
                 status = ERROR_INTERNAL_ERROR;
                 free(dacl);
-                free_sids(sids, acl->count);
+                free_sids(sids, win_i);
                 goto out;
             }
+
+            win_i++;
         }
     } else {
         eprintf("convert_nfs4acl_2_dacl: InitializeAcl failed with %d\n", status);
@@ -240,7 +278,7 @@ out:
 out_free_dacl:
     free(dacl);
 out_free_sids:
-    free_sids(sids, acl->count);
+    free_sids(sids, win_i);
     status = GetLastError();
     goto out;
 }
@@ -1026,7 +1064,7 @@ static int map_dacl_2_nfs4acl(PACL acl, PSID sid, PSID gsid, nfsacl41 *nfs4_acl,
         }
         nfs4_acl->aces->aceflag = 0;
     } else {
-        int i;
+        int win_i, nfs_i;
         PACE_HEADER ace;
         PBYTE tmp_pointer;
         SID_NAME_USE who_sid_type = 0;
@@ -1037,15 +1075,18 @@ static int map_dacl_2_nfs4acl(PACL acl, PSID sid, PSID gsid, nfsacl41 *nfs4_acl,
             print_hexbuf_no_asci("ACL\n",
                 (const unsigned char *)acl, acl->AclSize);
         }
-        nfs4_acl->count = acl->AceCount;
-        nfs4_acl->aces = calloc(nfs4_acl->count, sizeof(nfsace4));
+
+        nfs4_acl->aces = calloc(acl->AceCount, sizeof(nfsace4));
         if (nfs4_acl->aces == NULL) {
             status = GetLastError();
             goto out;
         }
         nfs4_acl->flag = 0;
-        for (i = 0; i < acl->AceCount; i++) {
-            status = GetAce(acl, i, &ace);
+        for (win_i = nfs_i = 0; win_i < acl->AceCount; win_i++) {
+            nfsace4 *curr_nfsace = &nfs4_acl->aces[nfs_i];
+            PSID ace_sid;
+
+            status = GetAce(acl, win_i, &ace);
             if (!status) {
                 status = GetLastError();
                 eprintf("map_dacl_2_nfs4acl: GetAce failed with %d\n", status);
@@ -1058,9 +1099,9 @@ static int map_dacl_2_nfs4acl(PACL acl, PSID sid, PSID gsid, nfsacl41 *nfs4_acl,
             }
             DPRINTF(ACLLVL3, ("ACE TYPE: %x\n", ace->AceType));
             if (ace->AceType == ACCESS_ALLOWED_ACE_TYPE)
-                nfs4_acl->aces[i].acetype = ACE4_ACCESS_ALLOWED_ACE_TYPE;
+                curr_nfsace->acetype = ACE4_ACCESS_ALLOWED_ACE_TYPE;
             else if (ace->AceType == ACCESS_DENIED_ACE_TYPE)
-                nfs4_acl->aces[i].acetype = ACE4_ACCESS_DENIED_ACE_TYPE;
+                curr_nfsace->acetype = ACE4_ACCESS_DENIED_ACE_TYPE;
             else {
                 eprintf("map_dacl_2_nfs4acl: unsupported ACE type %d\n",
                     ace->AceType);
@@ -1069,8 +1110,40 @@ static int map_dacl_2_nfs4acl(PACL acl, PSID sid, PSID gsid, nfsacl41 *nfs4_acl,
             }
 
             tmp_pointer += sizeof(ACCESS_MASK) + sizeof(ACE_HEADER);
+            ace_sid = tmp_pointer;
 
-            status = map_nfs4ace_who(tmp_pointer, sid, gsid, nfs4_acl->aces[i].who,
+#ifdef NFS41_DRIVER_ACLS_SETACL_SKIP_WINNULLSID_ACES
+            if (IsWellKnownSid(ace_sid, WinNullSid)) {
+                /*
+                 * Skip ACEs with SID==|WinNullSid|
+                 *
+                 * Cygwin generates artificial ACEs with SID user
+                 * |WinNullSid| to encode permission information
+                 * (see |CYG_ACE_ISBITS_TO_POSIX()| in
+                 * Cygwin newlib-cygwin/winsup/cygwin/sec/acl.cc
+                 *
+                 * This assumes that the filesystem which stores
+                 * the ACL data leaves them 1:1 intact - which is
+                 * not the case for the Linux NFSv4.1 server
+                 * (tested with Linux 6.6.32), which transforms the
+                 * NFSv4.1 ACLs into POSIX ACLs at setacl time,
+                 * and the POSIX ACLs back to NFSv4 ACLs at getacl
+                 * time.
+                 * And this lossy transformation screws-up Cygwin
+                 * completly.
+                 * The best we can do for now is to skip such
+                 * ACEs, as we have no way to detect whether
+                 * the NFS server supports full NFSv4 ACLs, or
+                 * only POSIX ACLs disguised as NFSv4 ACLs.
+                 */
+                DPRINTF(ACLLVL3, ("Skipping WinNullSid ACE, "
+                    "win_i=%d nfs_i=%d\n", (int)win_i, (int)nfs_i));
+                continue;
+            }
+#endif /* NFS41_DRIVER_ACLS_SETACL_SKIP_WINNULLSID_ACES */
+
+            status = map_nfs4ace_who(ace_sid, sid, gsid,
+                curr_nfsace->who,
                                      domain, &who_sid_type);
             if (status)
                 goto out_free;
@@ -1078,10 +1151,10 @@ static int map_dacl_2_nfs4acl(PACL acl, PSID sid, PSID gsid, nfsacl41 *nfs4_acl,
             win_mask = *(PACCESS_MASK)(ace + 1);
 
             map_winace2nfs4aceflags(ace->AceFlags,
-                &nfs4_acl->aces[i].aceflag);
+                &curr_nfsace->aceflag);
             map_winaccessmask2nfs4acemask(win_mask,
                 file_type, named_attr_support,
-                &nfs4_acl->aces[i].acemask);
+                &curr_nfsace->acemask);
 
             /*
              * Clear |ACE4_INHERITED_ACE|
@@ -1104,8 +1177,8 @@ static int map_dacl_2_nfs4acl(PACL acl, PSID sid, PSID gsid, nfsacl41 *nfs4_acl,
              * icacls(1win) if the parent directory has inheritance
              * ACLs.
              */
-            if (nfs4_acl->aces[i].aceflag & ACE4_INHERITED_ACE) {
-                nfs4_acl->aces[i].aceflag &= ~ACE4_INHERITED_ACE;
+            if (curr_nfsace->aceflag & ACE4_INHERITED_ACE) {
+                curr_nfsace->aceflag &= ~ACE4_INHERITED_ACE;
                 DPRINTF(ACLLVL3, ("clearning ACE4_INHERITED_ACE\n"));
             }
 
@@ -1125,8 +1198,8 @@ static int map_dacl_2_nfs4acl(PACL acl, PSID sid, PSID gsid, nfsacl41 *nfs4_acl,
                     "aces[%d].who='%s': "
                     "setting group flag\n",
                     map_SID_NAME_USE2str(who_sid_type),
-                    i, nfs4_acl->aces[i].who));
-                nfs4_acl->aces[i].aceflag |= ACE4_IDENTIFIER_GROUP;
+                    nfs_i, curr_nfsace->who));
+                curr_nfsace->aceflag |= ACE4_IDENTIFIER_GROUP;
             }
 
             if (DPRINTF_LEVEL_ENABLED(ACLLVL1)) {
@@ -1134,24 +1207,30 @@ static int map_dacl_2_nfs4acl(PACL acl, PSID sid, PSID gsid, nfsacl41 *nfs4_acl,
                     "acetype='%s', "
                     "aceflag='%s'/0x%lx, "
                     "acemask='%s'/0x%lx(=win_mask=0x%lx)), "
-                    "who_sid_type='%s'\n",
-                    i,
-                    nfs4_acl->aces[i].who,
-                    map_nfs_acetype2str(nfs4_acl->aces[i].acetype),
-                    nfs_aceflag2shortname(nfs4_acl->aces[i].aceflag),
-                    nfs4_acl->aces[i].aceflag,
-                    nfs_mask2shortname(nfs4_acl->aces[i].acemask),
-                    (long)nfs4_acl->aces[i].acemask,
+                    "who_sid_type='%s', "
+                    "win_i=%d\n",
+                    nfs_i,
+                    curr_nfsace->who,
+                    map_nfs_acetype2str(curr_nfsace->acetype),
+                    nfs_aceflag2shortname(curr_nfsace->aceflag),
+                    curr_nfsace->aceflag,
+                    nfs_mask2shortname(curr_nfsace->acemask),
+                    (long)curr_nfsace->acemask,
                     (long)win_mask,
-                    map_SID_NAME_USE2str(who_sid_type));
+                    map_SID_NAME_USE2str(who_sid_type),
+                    (int)win_i);
                 if (DPRINTF_LEVEL_ENABLED(ACLLVL2)) {
-                    print_windows_access_mask(nfs4_acl->aces[i].who,
+                    print_windows_access_mask(curr_nfsace->who,
                         win_mask);
-                    print_nfs_access_mask(nfs4_acl->aces[i].who,
-                        nfs4_acl->aces[i].acemask);
+                    print_nfs_access_mask(curr_nfsace->who,
+                        curr_nfsace->acemask);
                 }
             }
+
+            nfs_i++;
         }
+
+        nfs4_acl->count = nfs_i;
     }
     status = ERROR_SUCCESS;
 out:
