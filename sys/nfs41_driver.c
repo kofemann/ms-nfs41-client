@@ -61,7 +61,7 @@
 //#define DEBUG_LOCK
 #define DEBUG_FSCTL
 #define DEBUG_TIME_BASED_COHERENCY
-//#define DEBUG_MOUNT
+#define DEBUG_MOUNT
 //#define DEBUG_VOLUME_QUERY
 
 //#define ENABLE_TIMINGS
@@ -3337,6 +3337,11 @@ NTSTATUS nfs41_CreateVNetRoot(
         if (status)
             goto out_free;
 
+#ifdef DEBUG_MOUNT
+        DbgP("UNC path LUID 0x%lx.0x%lx\n",
+            (long)luid.HighPart, (long)luid.LowPart);
+#endif
+
         PLIST_ENTRY pEntry;
 
         status = STATUS_NFS_SHARE_NOT_MOUNTED;
@@ -3348,10 +3353,21 @@ NTSTATUS nfs41_CreateVNetRoot(
             existing_mount = (nfs41_mount_entry *)CONTAINING_RECORD(pEntry,
                     nfs41_mount_entry, next);
 
+#ifdef DEBUG_MOUNT
+            DbgP("finding mount config: "
+                "comparing luid=(0x%lx.0x%lx) with "
+                "existing_mount->login_id=(0x%lx.0x%lx)\n",
+                (long)luid.HighPart, (long)luid.LowPart,
+                (long)existing_mount->login_id.HighPart,
+                (long)existing_mount->login_id.LowPart);
+#endif
+
             if (RtlEqualLuid(&luid, &existing_mount->login_id)) {
                 /* found existing mount */
                 copy_nfs41_mount_config(Config, &existing_mount->Config);
-                DbgP("Found existing mount: Entry Config->MntPt='%wZ'\n",
+                DbgP("Found existing mount: LUID=(0x%lx.0x%lx) Entry Config->MntPt='%wZ'\n",
+                    (long)existing_mount->login_id.HighPart,
+                    (long)existing_mount->login_id.LowPart,
                     &Config->MntPt);
                 status = STATUS_SUCCESS;
                 break;
@@ -3426,10 +3442,10 @@ NTSTATUS nfs41_CreateVNetRoot(
             existing_mount = (nfs41_mount_entry *)CONTAINING_RECORD(pEntry,
                     nfs41_mount_entry, next);
 #ifdef DEBUG_MOUNT
-            DbgP("comparing 0x%x.0x%x with 0x%x.0x%x\n",
-                luid.HighPart, luid.LowPart,
-                existing_mount->login_id.HighPart,
-                existing_mount->login_id.LowPart);
+            DbgP("comparing 0x%lx.0x%lx with 0x%lx.0x%lx\n",
+                (long)luid.HighPart, (long)luid.LowPart,
+                (long)existing_mount->login_id.HighPart,
+                (long)existing_mount->login_id.LowPart);
 #endif
             if (RtlEqualLuid(&luid, &existing_mount->login_id)) {
 #ifdef DEBUG_MOUNT
@@ -3654,11 +3670,12 @@ NTSTATUS nfs41_FinalizeNetRoot(
         if (mount_tmp == NULL)
             break;
 #ifdef DEBUG_MOUNT
-        DbgP("Removing entry luid 0x%x.0x%x from mount list\n",
-            mount_tmp->login_id.HighPart, mount_tmp->login_id.LowPart);
+        DbgP("Removing entry luid 0x%lx.0x%lx from mount list\n",
+            (long)mount_tmp->login_id.HighPart,
+            (long)mount_tmp->login_id.LowPart);
 #endif
         if (mount_tmp->authsys_session != INVALID_HANDLE_VALUE) {
-            status = nfs41_unmount(mount_tmp->authsys_session, 
+            status = nfs41_unmount(mount_tmp->authsys_session,
                 pNetRootContext->nfs41d_version, UPCALL_TIMEOUT_DEFAULT);
             if (status)
                 print_error("nfs41_unmount AUTH_SYS failed with %d\n", status);

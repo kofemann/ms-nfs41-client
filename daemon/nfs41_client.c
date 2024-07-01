@@ -398,10 +398,10 @@ int nfs41_client_owner(
     }
 
     DPRINTF(1, ("nfs41_client_owner: "
-        "username='%s' authid=(0x%x.0x%lx)\n",
+        "username='%s' authid=(0x%lx.0x%lx)\n",
         username,
-        (int)authenticationid.LowPart,
-        (long)authenticationid.HighPart));
+        (long)authenticationid.HighPart,
+        (long)authenticationid.LowPart));
 #endif /* NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE */
 
     /* owner.verifier = "time created" */
@@ -443,13 +443,13 @@ int nfs41_client_owner(
      * |LUID| may have (hidden) padding fields, so we hash each
      * member seperately
      */
-    if (!CryptHashData(hash, (const BYTE*)&authenticationid.LowPart, (DWORD)sizeof(DWORD), 0)) {
+    if (!CryptHashData(hash, (const BYTE*)&authenticationid.HighPart, (DWORD)sizeof(LONG), 0)) {
         status = GetLastError();
         eprintf("CryptHashData() failed with %d\n", status);
         goto out_hash;
     }
 
-    if (!CryptHashData(hash, (const BYTE*)&authenticationid.HighPart, (DWORD)sizeof(LONG), 0)) {
+    if (!CryptHashData(hash, (const BYTE*)&authenticationid.LowPart, (DWORD)sizeof(DWORD), 0)) {
         status = GetLastError();
         eprintf("CryptHashData() failed with %d\n", status);
         goto out_hash;

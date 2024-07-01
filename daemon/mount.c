@@ -84,11 +84,11 @@ static int handle_mount(void *daemon_context, nfs41_upcall *upcall)
         &authenticationid);
 
     logprintf("mount(hostport='%s', path='%s', "
-        "authid=(0x%x.0x%lx)) request\n",
+        "authid=(0x%lx.0x%lx)) request\n",
         args->hostport?args->hostport:"<NULL>",
         args->path?args->path:"<NULL>",
-        (int)authenticationid.LowPart,
-        (long)authenticationid.HighPart);
+        (long)authenticationid.HighPart,
+        (long)authenticationid.LowPart);
 #else
     logprintf("mount(hostport='%s', path='%s') request\n",
         args->hostport?args->hostport:"<NULL>",
@@ -188,11 +188,11 @@ out:
     if (status == 0) {
 #ifdef NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE
         logprintf("mount(hostport='%s', path='%s', "
-            "authid=(0x%x.0x%lx)) success, root=0x%p\n",
+            "authid=(0x%lx.0x%lx)) success, root=0x%p\n",
             args->hostport?args->hostport:"<NULL>",
             args->path?args->path:"<NULL>",
-            (int)authenticationid.LowPart,
             (long)authenticationid.HighPart,
+            (long)authenticationid.LowPart,
             root);
 #else
         logprintf("mount(hostport='%s', path='%s') success, root=0x%p\n",
@@ -204,11 +204,11 @@ out:
     else {
 #ifdef NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE
         logprintf("mount(hostport='%s', path='%s', "
-            "authid=(0x%x.0x%lx))) failed, status=%d\n",
+            "authid=(0x%lx.0x%lx))) failed, status=%d\n",
             args->hostport?args->hostport:"<NULL>",
             args->path?args->path:"<NULL>",
-            (int)authenticationid.LowPart,
             (long)authenticationid.HighPart,
+            (long)authenticationid.LowPart,
             (int)status);
 #else
         logprintf("mount(hostport='%s', path='%s') failed, status=%d\n",
