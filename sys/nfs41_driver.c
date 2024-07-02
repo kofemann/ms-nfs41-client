@@ -40,6 +40,7 @@
 #include "nfs41_debug.h"
 #include "nfs41_build_features.h"
 
+// #define USE_ENTIRE_PATH_FOR_NETROOT 1
 
 /* debugging printout defines */
 #define DEBUG_MARSHAL_HEADER
@@ -3110,6 +3111,42 @@ NTSTATUS has_nfs_prefix(
 {
     NTSTATUS status = STATUS_BAD_NETWORK_NAME;
 
+#ifdef USE_ENTIRE_PATH_FOR_NETROOT
+    if (NetRootName->Length >=
+        (SrvCallName->Length + NfsPrefix.Length)) {
+        size_t len = NetRootName->Length / 2;
+        size_t i;
+        int state = 0;
+
+        /* Scan \hostname@port\nfs4 */
+        for (i = 0 ; i < len ; i++) {
+            wchar_t ch = NetRootName->Buffer[i];
+
+            if ((ch == L'\\') && (state == 0)) {
+                state = 1;
+                continue;
+            }
+            else if ((ch == L'@') && (state == 1)) {
+                state = 2;
+                continue;
+            }
+            else if ((ch == L'\\') && (state == 2)) {
+                state = 3;
+                break;
+            }
+            else if (ch == L'\\') {
+                /* Abort, '\\' with wrong state */
+                break;
+            }
+        }
+
+        if ((state == 3) &&
+            (!memcmp(&NetRootName->Buffer[i], L"\\nfs4",
+                (4*sizeof(wchar_t))))) {
+            status = STATUS_SUCCESS;
+        }
+    }
+#else
     if (NetRootName->Length == SrvCallName->Length + NfsPrefix.Length) {
         const UNICODE_STRING NetRootPrefix = {
             NfsPrefix.Length,
@@ -3119,6 +3156,7 @@ NTSTATUS has_nfs_prefix(
         if (RtlCompareUnicodeString(&NetRootPrefix, &NfsPrefix, FALSE) == 0)
             status = STATUS_SUCCESS;
     }
+#endif
     return status;
 }
 
@@ -3585,7 +3623,7 @@ VOID nfs41_ExtractNetRootName(
     w += (SrvCall->pSrvCallName->Length/sizeof(WCHAR));
     NetRootName->Buffer = wlow = w;
     /* parse the entire path into NetRootName */
-#if USE_ENTIRE_PATH
+#if USE_ENTIRE_PATH_FOR_NETROOT
     w = wlimit;
 #else
     for (;;) {
@@ -3599,7 +3637,9 @@ VOID nfs41_ExtractNetRootName(
     NetRootName->Length = NetRootName->MaximumLength
                 = (USHORT)((PCHAR)w - (PCHAR)wlow);
 #ifdef DEBUG_MOUNT
-    DbgP("In: pSrvCall 0x%p PathName='%wZ' SrvCallName='%wZ' Out: NetRootName='%wZ'\n",
+    DbgP("nfs41_ExtractNetRootName: "
+        "In: pSrvCall 0x%p PathName='%wZ' SrvCallName='%wZ' "
+        "Out: NetRootName='%wZ'\n",
         SrvCall, FilePathName, SrvCall->pSrvCallName, NetRootName);
 #endif
     return;
