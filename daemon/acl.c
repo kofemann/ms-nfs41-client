@@ -980,11 +980,78 @@ static int map_nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid, char *who_o
              * SIDs
              */
             case ERROR_NONE_MAPPED:
+                /*
+                 * This can happen for two reasons:
+                 * 1. Someone copied a file from a NFS(v3) filesystem,
+                 * and Cygwin generated an Unix_User+<uid> or
+                 * Unix_Group+<gid> SID for the source file, which
+                 * tools like Cygwin cp(1) just copy.
+                 * 2. We have an uid/gid for which we do not have
+                 * a user-/group-name mapped.
+                 */
+#ifdef NFS41_DRIVER_FEATURE_MAP_UNMAPPED_USER_TO_UNIXUSER_SID
+                /* fixme: This should be a function argument */
+                extern nfs41_daemon_globals nfs41_dg;
+
+                uid_t unixuser_uid = ~0U;
+                gid_t unixgroup_gid = ~0U;
+
+                if (unixuser_sid2uid(sid, &unixuser_uid)) {
+                    if (!nfs41_idmap_uid_to_name(nfs41_dg.idmapper,
+                        unixuser_uid, who_out, UNLEN)) {
+                        who_size = (DWORD)strlen(who_out);
+                        sid_type = SidTypeUser;
+                        status = ERROR_SUCCESS;
+
+                        DPRINTF(ACLLVL1, ("map_nfs4ace_who: "
+                            "Unix_User+%d SID "
+                            "mapped to user '%s'\n",
+                            unixuser_uid, who_out));
+                        goto add_domain;
+                    }
+
+                    eprintf("map_nfs4ace_who: "
+                        "unixuser_sid2uid(sid='%s',unixuser_uid=%d) "
+                        "returned no mapping.\n",
+                        sidstr, (int)unixuser_uid);
+                    goto err_none_mapped;
+                }
+
+                if (unixgroup_sid2gid(sid, &unixgroup_gid)) {
+                    if (!nfs41_idmap_gid_to_group(nfs41_dg.idmapper,
+                        unixgroup_gid, who_out, GNLEN)) {
+                        who_size = (DWORD)strlen(who_out);
+                        sid_type = SidTypeGroup;
+                        status = ERROR_SUCCESS;
+
+                        DPRINTF(ACLLVL1, ("map_nfs4ace_who: "
+                            "Unix_Group+%d SID "
+                            "mapped to group '%s'\n",
+                            unixgroup_gid, who_out));
+                        goto add_domain;
+                    }
+
+                    eprintf("map_nfs4ace_who: "
+                        "unixgroup_sid2gid(sid='%s',unixgroup_gid=%d) "
+                        "returned no mapping.\n",
+                        sidstr, (int)unixgroup_gid);
+                    goto err_none_mapped;
+                }
+
+                eprintf("map_nfs4ace_who: LookupAccountSidA() "
+                    "returned ERROR_NONE_MAPPED+no "
+                    "Unix_@(User|Group)+ mapping for sidstr='%s'\n",
+                    sidstr);
+err_none_mapped:
+                status = ERROR_NONE_MAPPED;
+#else
                 DPRINTF(ACLLVL2, ("map_nfs4ace_who: LookupAccountSidA() "
                     "returned ERROR_NONE_MAPPED for sidstr='%s'\n",
                     sidstr));
                 status = lasterr;
                 goto out;
+#endif /* NFS41_DRIVER_FEATURE_MAP_UNMAPPED_USER_TO_UNIXUSER_SID */
+
             /* Catch other cases */
             case ERROR_NO_SUCH_USER:
             case ERROR_NO_SUCH_GROUP:

@@ -52,6 +52,10 @@ extern sidcache group_sidcache;
 
 /* prototypes */
 int create_unknownsid(WELL_KNOWN_SID_TYPE type, PSID *sid, DWORD *sid_len);
+#ifdef NFS41_DRIVER_FEATURE_MAP_UNMAPPED_USER_TO_UNIXUSER_SID
+bool unixuser_sid2uid(PSID psid, uid_t *puid);
+bool unixgroup_sid2gid(PSID psid, gid_t *pgid);
+#endif /* NFS41_DRIVER_FEATURE_MAP_UNMAPPED_USER_TO_UNIXUSER_SID */
 void sidcache_init(void);
 void sidcache_add(sidcache *cache, const char* win32name, PSID value);
 PSID *sidcache_getcached_byname(sidcache *cache, const char *win32name);
