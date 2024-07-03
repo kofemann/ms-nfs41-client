@@ -891,7 +891,9 @@ void map_nfs4acemask2winaccessmask(uint32_t nfs4_mask,
 #endif
 }
 
-static int map_nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid, char *who_out, char *domain, SID_NAME_USE *sid_type_out)
+static
+int map_sid2nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid,
+    char *who_out, char *domain, SID_NAME_USE *sid_type_out)
 {
     int status, lasterr;
     SID_NAME_USE sid_type = 0;
@@ -901,7 +903,9 @@ static int map_nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid, char *who_o
     DWORD who_size = sizeof(who_buf), domain_size = sizeof(domain_buf);
     LPSTR sidstr = NULL;
 
-    DPRINTF(ACLLVL2, ("--> map_nfs4ace_who(sid=0x%p,owner_sid=0x%p, group_sid=0x%p)\n"));
+    DPRINTF(ACLLVL2, ("--> map_sid2nfs4ace_who("
+        "sid=0x%p,owner_sid=0x%p, group_sid=0x%p)\n",
+        sid, owner_sid, group_sid));
 
     if (DPRINTF_LEVEL_ENABLED(ACLLVL2)) {
         print_sid("sid", sid);
@@ -916,7 +920,7 @@ static int map_nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid, char *who_o
     status = 0;
     if (owner_sid) {
         if (EqualSid(sid, owner_sid)) {
-            DPRINTF(ACLLVL2, ("map_nfs4ace_who: this is owner's sid\n"));
+            DPRINTF(ACLLVL2, ("this is owner's sid\n"));
             memcpy(who_out, ACE4_OWNER, strlen(ACE4_OWNER)+1);
             sid_type = SidTypeUser;
             status = ERROR_SUCCESS;
@@ -925,7 +929,7 @@ static int map_nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid, char *who_o
     }
     if (group_sid) {
         if (EqualSid(sid, group_sid)) {
-            DPRINTF(ACLLVL2, ("map_nfs4ace_who: this is group's sid\n"));
+            DPRINTF(ACLLVL2, ("this is group's sid\n"));
             memcpy(who_out, ACE4_GROUP, strlen(ACE4_GROUP)+1);
             sid_type = SidTypeGroup;
             status = ERROR_SUCCESS;
@@ -946,8 +950,8 @@ static int map_nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid, char *who_o
 
     if (!ConvertSidToStringSidA(sid, &sidstr)) {
         status = GetLastError();
-        eprintf("map_nfs4ace_who: ConvertSidToStringSidA() failed, "
-            "error=%d\n", status);
+        eprintf("map_sid2nfs4ace_who: ConvertSidToStringSidA() "
+            "failed, error=%d\n", status);
         goto out;
     }
 
@@ -956,7 +960,7 @@ static int map_nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid, char *who_o
     lasterr = GetLastError();
 
     if (status) {
-        DPRINTF(ACLLVL2, ("map_nfs4ace_who: "
+        DPRINTF(ACLLVL2, ("map_sid2nfs4ace_who: "
             "LookupAccountSid(sidtostr(sid)='%s', who_buf='%s', "
             "who_size=%d, domain='%s', domain_size=%d) "
             "returned success, status=%d, GetLastError=%d\n",
@@ -964,7 +968,7 @@ static int map_nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid, char *who_o
             domain_buf, domain_size, status, lasterr));
     }
     else {
-        DPRINTF(ACLLVL2, ("map_nfs4ace_who: "
+        DPRINTF(ACLLVL2, ("map_sid2nfs4ace_who: "
             "LookupAccountSid(sidtostr(sid)='%s', who_size=%d, "
             "domain_size=%d) returned failure, status=%d, "
             "GetLastError=%d\n",
@@ -1003,14 +1007,14 @@ static int map_nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid, char *who_o
                         sid_type = SidTypeUser;
                         status = ERROR_SUCCESS;
 
-                        DPRINTF(ACLLVL1, ("map_nfs4ace_who: "
+                        DPRINTF(ACLLVL1, ("map_sid2nfs4ace_who: "
                             "Unix_User+%d SID "
                             "mapped to user '%s'\n",
                             unixuser_uid, who_out));
                         goto add_domain;
                     }
 
-                    eprintf("map_nfs4ace_who: "
+                    eprintf("map_sid2nfs4ace_who: "
                         "unixuser_sid2uid(sid='%s',unixuser_uid=%d) "
                         "returned no mapping.\n",
                         sidstr, (int)unixuser_uid);
@@ -1024,28 +1028,28 @@ static int map_nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid, char *who_o
                         sid_type = SidTypeGroup;
                         status = ERROR_SUCCESS;
 
-                        DPRINTF(ACLLVL1, ("map_nfs4ace_who: "
+                        DPRINTF(ACLLVL1, ("map_sid2nfs4ace_who: "
                             "Unix_Group+%d SID "
                             "mapped to group '%s'\n",
                             unixgroup_gid, who_out));
                         goto add_domain;
                     }
 
-                    eprintf("map_nfs4ace_who: "
+                    eprintf("map_sid2nfs4ace_who: "
                         "unixgroup_sid2gid(sid='%s',unixgroup_gid=%d) "
                         "returned no mapping.\n",
                         sidstr, (int)unixgroup_gid);
                     goto err_none_mapped;
                 }
 
-                eprintf("map_nfs4ace_who: LookupAccountSidA() "
+                eprintf("map_sid2nfs4ace_who: LookupAccountSidA() "
                     "returned ERROR_NONE_MAPPED+no "
                     "Unix_@(User|Group)+ mapping for sidstr='%s'\n",
                     sidstr);
 err_none_mapped:
                 status = ERROR_NONE_MAPPED;
 #else
-                DPRINTF(ACLLVL2, ("map_nfs4ace_who: LookupAccountSidA() "
+                DPRINTF(ACLLVL2, ("map_sid2nfs4ace_who: LookupAccountSidA() "
                     "returned ERROR_NONE_MAPPED for sidstr='%s'\n",
                     sidstr));
                 status = lasterr;
@@ -1055,14 +1059,14 @@ err_none_mapped:
             /* Catch other cases */
             case ERROR_NO_SUCH_USER:
             case ERROR_NO_SUCH_GROUP:
-                eprintf("map_nfs4ace_who: LookupAccountSidA() "
+                eprintf("map_sid2nfs4ace_who: LookupAccountSidA() "
                     "returned ERROR_NO_SUCH_@(USER|GROUP) for "
                     "sidstr='%s'\n",
                     sidstr);
                 status = lasterr;
                 goto out;
             default:
-                eprintf("map_nfs4ace_who: Internal error, "
+                eprintf("map_sid2nfs4ace_who: Internal error, "
                     "LookupAccountSidA() returned unexpected ERROR_%d "
                     "for sidstr='%s'\n",
                     status, sidstr);
@@ -1079,13 +1083,15 @@ add_domain:
 out:
     if (status) {
         DPRINTF(ACLLVL2,
-            ("<-- map_nfs4ace_who() returns %d\n", status));
+            ("<-- map_sid2nfs4ace_who() returns %d\n", status));
     }
     else {
         DPRINTF(ACLLVL2,
-            ("<-- map_nfs4ace_who(who_out='%s', sid_type=%d) "
+            ("<-- map_sid2nfs4ace_who(who_out='%s', sid_type='%s'/%d) "
             "returns %d\n",
-            who_out, sid_type, status));
+            who_out,
+            map_SID_NAME_USE2str(sid_type), sid_type,
+            status));
         if (sid_type_out) {
             *sid_type_out = sid_type;
         }
@@ -1209,9 +1215,8 @@ static int map_dacl_2_nfs4acl(PACL acl, PSID sid, PSID gsid, nfsacl41 *nfs4_acl,
             }
 #endif /* NFS41_DRIVER_ACLS_SETACL_SKIP_WINNULLSID_ACES */
 
-            status = map_nfs4ace_who(ace_sid, sid, gsid,
-                curr_nfsace->who,
-                                     domain, &who_sid_type);
+            status = map_sid2nfs4ace_who(ace_sid, sid, gsid,
+                curr_nfsace->who, domain, &who_sid_type);
             if (status)
                 goto out_free;
 
@@ -1333,7 +1338,7 @@ static int handle_setacl(void *daemon_context, nfs41_upcall *upcall)
             goto out;
         }
 
-        status = map_nfs4ace_who(sid, NULL, NULL, ownerbuf,
+        status = map_sid2nfs4ace_who(sid, NULL, NULL, ownerbuf,
             nfs41dg->localdomain_name, NULL);
         if (status)
             goto out;
@@ -1355,7 +1360,7 @@ static int handle_setacl(void *daemon_context, nfs41_upcall *upcall)
             goto out;
         }
 
-        status = map_nfs4ace_who(sid, NULL, NULL, groupbuf,
+        status = map_sid2nfs4ace_who(sid, NULL, NULL, groupbuf,
             nfs41dg->localdomain_name, NULL);
         if (status)
             goto out;
