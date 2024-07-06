@@ -1,0 +1,15 @@
+# Patch to avoid ETXTBUSY when trying to replace mamake.exe
+diff --git a/bin/package b/bin/package
+index 8d969c8b..f9ba6ab6 100755
+--- a/bin/package
++++ b/bin/package
+@@ -2515,7 +2515,8 @@ checkaout()	# cmd ...
+				done
+			fi
+			rm -f "$INSTALLROOT/dyn/bin/$i" "$INSTALLROOT/src/lib/libast/$i" &
+-			$exec $CC -O $CCFLAGS $LDFLAGS -o $INSTALLROOT/bin/$i $INITROOT/$i.c || return
++			$exec $CC -O $CCFLAGS $LDFLAGS -o $INSTALLROOT/bin/${i}_bootstrap $INITROOT/$i.c || return
++			$exec ln -s ${i}_bootstrap $INSTALLROOT/bin/$i
+			test -f $i.o && $exec rm -f $i.o
+			hash -r
+			;;
