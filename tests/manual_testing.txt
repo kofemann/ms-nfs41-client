@@ -1,5 +1,5 @@
 #
-# ms-nfs41-client manual testing sequence, 2024-06-26
+# ms-nfs41-client manual testing sequence, 2024-07-04
 #
 # Draft version, needs to be turned into automated tests
 # if possible
@@ -21,6 +21,7 @@
 #   subversion
 #   cygport
 #   dos2unix
+#   libiconv-devel
 #   libncurses-devel
 #   libgmp-devel
 #   libmpfr-devel
@@ -35,6 +36,7 @@
 #   konsole
 #   nedit
 #   emacs
+#   cygport
 #   ---- snip ----
 #
 # - Benchmarking/profiling should be done with the realtime virus checker

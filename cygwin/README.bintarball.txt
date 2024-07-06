@@ -117,6 +117,9 @@ NFSv4.1 client and filesystem driver for Windows 10/11
         mingw64-x86_64-clang
         dos2unix
         unzip
+        bison
+        cygport
+        libiconv-devel
 
 #
 # 4. Download and install Cygwin (if not installed yet):
