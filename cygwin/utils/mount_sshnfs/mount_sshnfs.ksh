@@ -240,6 +240,32 @@ function netstat_find_next_free_local_tcp_port
 }
 
 
+function urldecodestr
+{
+	nameref out=$1
+	typeset s="$2"
+
+	#
+	# build format string for printf(1) ...
+	#
+
+	# quote backslashes
+	s="${s//$'\\'/$'\\\\'}"
+	# urldecode '+' to ' '
+	s="${s//+/ }"
+	# urldecode %<hexdigit><hexdigit>
+	s="${s//~(E)(?:%([[:xdigit:]][[:xdigit:]]))/\\x\1}"
+	# quote any remaining "%" to make it safe for printf(1)
+	s="${s//%/%%}"
+
+	#
+	# ... and then let printf(1) do the formatting
+	#
+	out="${ printf "$s" ; }"
+	return 0
+}
+
+
 #
 # parse_rfc1738_url - parse RFC 1838 URLs
 #
@@ -253,6 +279,7 @@ function parse_rfc1738_url
 	typeset url="$2"
 	typeset leftover
 	nameref data="$1" # output compound variable
+	typeset url_param_str
 
 	# ~(E) is POSIX extended regular expression matching (instead
 	# of shell pattern), "x" means "multiline", "l" means "left
@@ -271,7 +298,9 @@ function parse_rfc1738_url
 				(?::([[:digit:]]+))? # port (optional)
 			)
 		)
-		(?:\/(.*?))?/X}"		# path (optional)
+		(?:\/(.*?))?			# path (optional)
+		(?:\?(.*?))?			# URL parameters (optional)
+		/X}"
 
 	# All parsed data should be captured via eregex in .sh.match - if
 	# there is anything left (except the 'X') then the input string did
@@ -291,8 +320,34 @@ function parse_rfc1738_url
 	[[ "${.sh.match[7]-}" != '' ]] && integer data.port="${.sh.match[7]}"
 	[[ "${.sh.match[8]-}" != '' ]] && data.uripath="${.sh.match[8]}"
 
+	if [[ "${.sh.match[9]-}" != '' ]] ; then
+		compound -a data.parameters
+
+		url_param_str="${.sh.match[9]-}"
+
+		while [[ "$url_param_str" != '' ]] ; do
+			leftover="${url_param_str/~(Elrx)(?:(.+?)(?:=(.+?))?)(?:&(.*))?/X}"
+
+			# save matches because urldecodestr uses .sh.match, too
+			typeset dp_name="${.sh.match[1]-}"
+			typeset dp_value="${.sh.match[2]-}"
+			typeset dp_next="${.sh.match[3]-}"
+
+			urldecodestr dp_name "${dp_name}"
+			urldecodestr dp_value "${dp_value}"
+
+			data.parameters+=(
+				name="${dp_name}"
+				value="${dp_value}"
+				)
+
+			# next parameter
+			url_param_str="${dp_next}"
+		done
+	fi
+
 	if [[ -v data.uripath ]] ; then
-		data.path="${ printf "${data.uripath//~(E)(?:%([[:xdigit:]][[:xdigit:]]))/\\x\1}" ; }"
+		urldecodestr data.path "${data.uripath}"
 	fi
 
 	return 0
@@ -367,7 +422,7 @@ function cmd_mount
 
 	# fixme: Need better text layout for $ mount_sshnfs mount --man #
 	typeset -r mount_sshnfs_cmdmount_usage=$'+
-	[-?\n@(#)\$Id: mount_sshnfs mount (Roland Mainz) 2024-01-31 \$\n]
+	[-?\n@(#)\$Id: mount_sshnfs mount (Roland Mainz) 2024-07-08 \$\n]
 	[-author?Roland Mainz <roland.mainz@nrubsig.org>]
 	[+NAME?mount_sshnfs mount - mount NFSv4 filesystem through ssh
 		tunnel]
@@ -472,8 +527,8 @@ function cmd_mount
 		if [[ "$s" == ~(Elr)mount_sshnfs.+=.+ ]] ; then
 			case "$s" in
 				~(Eli)mount_sshnfs_jumphost=)
-                                        [[ ! -v c.ssh_jumphost_args ]] && typeset -a c.ssh_jumphost_args
-                                        c.ssh_jumphost_args+=( "-J" "${c.mount_nfs_options[i]/~(Eli)mount_sshnfs_jumphost=}" )
+					[[ ! -v c.ssh_jumphost_args ]] && typeset -a c.ssh_jumphost_args
+					c.ssh_jumphost_args+=( "-J" "${c.mount_nfs_options[i]/~(Eli)mount_sshnfs_jumphost=}" )
 					;;
 				~(Eli)mount_sshnfs_local_forward_port=)
 					# command(1) prevents that the shell interpreter
@@ -733,7 +788,7 @@ function cmd_umount
 	typeset mydebug=false # fixme: should be "bool" for ksh93v
 	# fixme: Need better text layout for $ mount_sshnfs mount --man #
 	typeset -r mount_sshnfs_cmdumount_usage=$'+
-	[-?\n@(#)\$Id: mount_sshnfs umount (Roland Mainz) 2024-01-31 \$\n]
+	[-?\n@(#)\$Id: mount_sshnfs umount (Roland Mainz) 2024-07-08 \$\n]
 	[-author?Roland Mainz <roland.mainz@nrubsig.org>]
 	[+NAME?mount_sshnfs umount - unmount NFSv4 filesystem mounted
 		via mount_sshnfs mount]
@@ -837,7 +892,7 @@ function main
 
 	# fixme: Need better text layout for $ mount_sshnfs --man #
 	typeset -r mount_sshnfs_usage=$'+
-	[-?\n@(#)\$Id: mount_sshnfs (Roland Mainz) 2024-01-31 \$\n]
+	[-?\n@(#)\$Id: mount_sshnfs (Roland Mainz) 2024-07-08 \$\n]
 	[-author?Roland Mainz <roland.mainz@nrubsig.org>]
 	[+NAME?mount_sshnfs - mount/umount NFSv4 filesystem via ssh
 		tunnel]

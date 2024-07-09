@@ -26,8 +26,16 @@
 
 #include <stdlib.h>
 
-typedef
-struct _url_parser_context {
+#ifdef _MSC_VER
+typedef signed long long ssize_t;
+#endif
+
+typedef struct _url_parser_name_value {
+	char *name;
+	char *value;
+} url_parser_name_value;
+
+typedef struct _url_parser_context {
 	char *in_url;
 
 	char *scheme;
@@ -40,6 +48,9 @@ struct _url_parser_context {
 		signed int port;
 	} hostport;
 	char *path;
+
+	ssize_t num_parameters;
+	url_parser_name_value *parameters;
 } url_parser_context;
 
 /* Prototypes */

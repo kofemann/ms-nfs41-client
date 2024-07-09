@@ -28,10 +28,23 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+#include <ctype.h>
 #include <stdio.h>
+
+// #define TEST_URLPARSER 1
 
 #include "urlparser1.h"
 
+typedef struct _url_parser_context_private {
+	url_parser_context c;
+
+	/* Private data */
+	char *parameter_string_buff;
+} url_parser_context_private;
+
+#define MAX_URL_PARAMETERS 256
+
+#ifdef _MSC_VER
 /*
  * Disable "warning C4996: 'wcscpy': This function or variable may be
  * unsafe." because in this case the buffers are properly sized,
@@ -43,88 +56,81 @@
  * because it is safe to use in our code.
  */
 #pragma warning (disable : 4706)
+#endif /* _MSC_VER */
 
 /*
  * Original extended regular expression:
  *
  * "^"
- * "(.+?)"			 // scheme
- * "://"  			 // '://'
- * "("				 // login
- * 	 "(?:"
- * 		 "(.+?)"	 // user (optional)
- * 		 "(?::(.+))?"	 // password (optional)
- * 		 "@"
- * 	 ")?"
- * 	 "("			 // hostport
- * 		 "(.+?)"	 // host
- * 		 "(?::([[:digit:]]+))?" // port (optional)
- * 	 ")"
+ * "(.+?)"				// scheme
+ * "://"				// '://'
+ * "("					// login
+ *	"(?:"
+ *	"(.+?)"				// user (optional)
+ *		"(?::(.+))?"		// password (optional)
+ *		"@"
+ *	")?"
+ *	"("				// hostport
+ *		"(.+?)"			// host
+ *		"(?::([[:digit:]]+))?"	// port (optional)
+ *	")"
  * ")"
- * "(?:/(.*?))?"  		 // path (optional)
+ * "(?:/(.*?))?"			// path (optional)
+ * "(?:\?(.*?))?"			// URL parameters (optional)
  * "$"
  */
 
 #define DBGNULLSTR(s) (((s)!=NULL)?(s):"<NULL>")
-#if 0
+#if 0 || defined(TEST_URLPARSER)
 #define D(x) x
 #else
 #define D(x)
 #endif
 
 static
-void urldecodestr(char *dst, const char *src, size_t len)
+void urldecodestr(char *outbuff, const char *buffer, size_t len)
 {
-	/*
-	 * Unicode characters with a code point > 255 are encoded
-	 * as UTF-8 bytes
-	 */
-#define isurlxdigit(c) \
-	(((c) >= '0' && (c) <= '9') || \
-	((c) >= 'a' && (c) <= 'f') || \
-	((c) >= 'A' && (c) <= 'F'))
-	char a, b;
-	while (*src && len--) {
-		if (len > 2) {
-			if ((*src == '%') &&
-				(a = src[1]) && (b = src[2])) {
-				if ((isurlxdigit(a) &&
-					isurlxdigit(b))) {
-					if (a >= 'a')
-						a -= 'a'-'A';
-					if (a >= 'A')
-						a -= ('A' - 10);
-					else
-						a -= '0';
+	size_t i, j;
 
-					if (b >= 'a')
-						b -= 'a'-'A';
-					if (b >= 'A')
-						b -= ('A' - 10);
-					else
-						b -= '0';
-
-					*dst++ = 16*a+b;
-
-					src+=3;
-					len-=2;
-					continue;
+	for (i = j = 0 ; i < len ; ) {
+		switch (buffer[i]) {
+			case '%':
+				if ((i + 2) < len) {
+					if (isxdigit((int)buffer[i+1]) && isxdigit((int)buffer[i+2])) {
+						const char hexstr[3] = {
+							buffer[i+1],
+							buffer[i+2],
+							'\0'
+						};
+						outbuff[j++] = (unsigned char)strtol(hexstr, NULL, 16);
+						i += 3;
+					} else {
+						/* invalid hex digit */
+						outbuff[j++] = buffer[i];
+						i++;
+					}
+				} else {
+					/* incomplete hex digit */
+					outbuff[j++] = buffer[i];
+					i++;
 				}
-			}
-                }
-		if (*src == '+') {
-			*dst++ = ' ';
-			src++;
-			continue;
-                }
-		*dst++ = *src++;
+				break;
+			case '+':
+				outbuff[j++] = ' ';
+				i++;
+				break;
+			default:
+				outbuff[j++] = buffer[i++];
+				break;
+		}
 	}
-	*dst++ = '\0';
+
+	outbuff[j] = '\0';
 }
 
 url_parser_context *url_parser_create_context(const char *in_url, unsigned int flags)
 {
-	url_parser_context *uctx;
+	url_parser_context_private *uctx;
 	char *s;
 	size_t in_url_len;
 	size_t context_len;
@@ -137,30 +143,36 @@ url_parser_context *url_parser_create_context(const char *in_url, unsigned int f
 
 	in_url_len = strlen(in_url);
 
-	context_len = sizeof(url_parser_context) +
-		((in_url_len+1)*5);
+	context_len = sizeof(url_parser_context_private) +
+		((in_url_len+1)*6) +
+		(sizeof(url_parser_name_value)*MAX_URL_PARAMETERS)+sizeof(void*);
 	uctx = malloc(context_len);
 	if (!uctx)
 		return NULL;
 
 	s = (void *)(uctx+1);
-	uctx->in_url = s;		s+= in_url_len+1;
-	(void)strcpy(uctx->in_url, in_url);
-	uctx->scheme = s;		s+= in_url_len+1;
-	uctx->login.username = s;	s+= in_url_len+1;
-	uctx->hostport.hostname = s;	s+= in_url_len+1;
-	uctx->path = s;			s+= in_url_len+1;
-	uctx->hostport.port = -1;
+	uctx->c.in_url = s;		s+= in_url_len+1;
+	(void)strcpy(uctx->c.in_url, in_url);
+	uctx->c.scheme = s;		s+= in_url_len+1;
+	uctx->c.login.username = s;	s+= in_url_len+1;
+	uctx->c.hostport.hostname = s;	s+= in_url_len+1;
+	uctx->c.path = s;		s+= in_url_len+1;
+	uctx->c.hostport.port = -1;
+	uctx->c.num_parameters = -1;
+	uctx->c.parameters = (void *)s;		s+= (sizeof(url_parser_name_value)*MAX_URL_PARAMETERS)+sizeof(void*);
+	uctx->parameter_string_buff = s;	s+= in_url_len+1;
 
-	return uctx;
+	return &uctx->c;
 }
 
-int url_parser_parse(url_parser_context *uctx)
+int url_parser_parse(url_parser_context *ctx)
 {
-	D((void)fprintf(stderr, "## parser in_url='%s'\n", uctx->in_url));
+	url_parser_context_private *uctx = (url_parser_context_private *)ctx;
+
+	D((void)fprintf(stderr, "## parser in_url='%s'\n", uctx->c.in_url));
 
 	char *s;
-	const char *urlstr = uctx->in_url;
+	const char *urlstr = uctx->c.in_url;
 	size_t slen;
 
 	s = strstr(urlstr, "://");
@@ -170,57 +182,120 @@ int url_parser_parse(url_parser_context *uctx)
 	}
 
 	slen = s-urlstr;
-	(void)memcpy(uctx->scheme, urlstr, slen);
-	uctx->scheme[slen] = '\0';
+	(void)memcpy(uctx->c.scheme, urlstr, slen);
+	uctx->c.scheme[slen] = '\0';
 	urlstr += slen + 3;
 
-	D((void)fprintf(stdout, "scheme='%s', rest='%s'\n", uctx->scheme, urlstr));
+	D((void)fprintf(stdout, "scheme='%s', rest='%s'\n", uctx->c.scheme, urlstr));
 
 	s = strstr(urlstr, "@");
 	if (s) {
 		/* URL has user/password */
 		slen = s-urlstr;
-		urldecodestr(uctx->login.username, urlstr, slen);
+		urldecodestr(uctx->c.login.username, urlstr, slen);
 		urlstr += slen + 1;
 
-		s = strstr(uctx->login.username, ":");
+		s = strstr(uctx->c.login.username, ":");
 		if (s) {
 			/* found passwd */
-			uctx->login.passwd = s+1;
+			uctx->c.login.passwd = s+1;
 			*s = '\0';
 		}
 		else
 		{
-			uctx->login.passwd = NULL;
+			uctx->c.login.passwd = NULL;
 		}
 
 		/* catch password-only URLs */
-		if (uctx->login.username[0] == '\0')
-			uctx->login.username = NULL;
+		if (uctx->c.login.username[0] == '\0')
+			uctx->c.login.username = NULL;
 	}
 	else
 	{
-		uctx->login.username = NULL;
-		uctx->login.passwd = NULL;
+		uctx->c.login.username = NULL;
+		uctx->c.login.passwd = NULL;
 	}
 
 	D((void)fprintf(stdout, "login='%s', passwd='%s', rest='%s'\n",
-		DBGNULLSTR(uctx->login.username),
-		DBGNULLSTR(uctx->login.passwd),
+		DBGNULLSTR(uctx->c.login.username),
+		DBGNULLSTR(uctx->c.login.passwd),
 		DBGNULLSTR(urlstr)));
+
+	char *raw_parameters;
+
+	uctx->c.num_parameters = 0;
+	raw_parameters = strstr(urlstr, "?");
+	if (raw_parameters) {
+		*raw_parameters++ = '\0';
+		D((void)fprintf(stdout, "raw parameters = '%s'\n", raw_parameters));
+
+		char *ps = raw_parameters;
+		char *pv; /* parameter value */
+		char *na; /* next '&' */
+		char *pb = uctx->parameter_string_buff;
+		char *pname;
+		char *pvalue;
+		ssize_t pi;
+
+		for (pi = 0; pi < MAX_URL_PARAMETERS ; pi++) {
+			pname = ps;
+
+			/*
+			 * Handle parameters without value,
+			 * e.g. "path?name1&name2=value2"
+			 */
+			na = strstr(ps, "&");
+			pv = strstr(ps, "=");
+			if (pv && (na?(na > pv):true)) {
+				*pv++ = '\0';
+				pvalue = pv;
+				ps = pv;
+			}
+			else {
+				pvalue = NULL;
+			}
+
+			if (na) {
+				*na++ = '\0';
+			}
+
+			/* URLDecode parameter name */
+			urldecodestr(pb, pname, strlen(pname));
+			uctx->c.parameters[pi].name = pb;
+			pb += strlen(uctx->c.parameters[pi].name)+1;
+
+			/* URLDecode parameter value */
+			if (pvalue) {
+				urldecodestr(pb, pvalue, strlen(pvalue));
+				uctx->c.parameters[pi].value = pb;
+				pb += strlen(uctx->c.parameters[pi].value)+1;
+			}
+			else {
+				uctx->c.parameters[pi].value = NULL;
+			}
+
+			/* Next '&' ? */
+			if (!na)
+				break;
+
+			ps = na;
+		}
+
+		uctx->c.num_parameters = pi+1;
+	}
 
 	s = strstr(urlstr, "/");
 	if (s) {
 		/* URL has hostport */
 		slen = s-urlstr;
-		urldecodestr(uctx->hostport.hostname, urlstr, slen);
+		urldecodestr(uctx->c.hostport.hostname, urlstr, slen);
 		urlstr += slen + 1;
 
 		/*
 		 * check for addresses within '[' and ']', like
 		 * IPv6 addresses
 		 */
-		s = uctx->hostport.hostname;
+		s = uctx->c.hostport.hostname;
 		if (s[0] == '[')
 			s = strstr(s, "]");
 
@@ -232,29 +307,41 @@ int url_parser_parse(url_parser_context *uctx)
 		s = strstr(s, ":");
 		if (s) {
 			/* found port number */
-			uctx->hostport.port = atoi(s+1);
+			uctx->c.hostport.port = atoi(s+1);
 			*s = '\0';
 		}
 	}
 	else
 	{
-		(void)strcpy(uctx->hostport.hostname, urlstr);
-		uctx->path = NULL;
+		(void)strcpy(uctx->c.hostport.hostname, urlstr);
+		uctx->c.path = NULL;
 		urlstr = NULL;
 	}
 
-	D((void)fprintf(stdout, "hostport='%s', port=%d, rest='%s'\n",
-		DBGNULLSTR(uctx->hostport.hostname),
-		uctx->hostport.port,
-		DBGNULLSTR(urlstr)));
+	D((void)fprintf(stdout, "hostport='%s', port=%d, rest='%s', num_parameters=%d\n",
+		DBGNULLSTR(uctx->c.hostport.hostname),
+		uctx->c.hostport.port,
+		DBGNULLSTR(urlstr),
+		(int)uctx->c.num_parameters));
+
+	D(
+		ssize_t dpi;
+		for (dpi = 0 ; dpi < uctx->c.num_parameters ; dpi++) {
+			(void)fprintf(stdout, "param[%d]: name='%s'/value='%s'\n",
+				(int)dpi,
+				uctx->c.parameters[dpi].name,
+				DBGNULLSTR(uctx->c.parameters[dpi].value));
+		}
+	);
 
 	if (!urlstr) {
-		return 0;
+		goto done;
 	}
 
-	urldecodestr(uctx->path, urlstr, strlen(urlstr));
-	D((void)fprintf(stdout, "path='%s'\n", uctx->path));
+	urldecodestr(uctx->c.path, urlstr, strlen(urlstr));
+	D((void)fprintf(stdout, "path='%s'\n", uctx->c.path));
 
+done:
 	return 0;
 }
 
@@ -301,7 +388,16 @@ int main(int ac, char *av[])
 	(void)test_url_parser("nfs://hostbar:93//absolutepath/a");
 	(void)test_url_parser("nfs://hostbar:93//absolutepath/blank%20path/a");
 	(void)test_url_parser("nfs://hostbar:93//absolutepath/blank+path/a");
-
+	(void)test_url_parser("foo://hostbar:93?param1");
+	(void)test_url_parser("foo://hostbar:93?pname1=pvalue1");
+	(void)test_url_parser("foo://hostbar:93?pname1=pvalue1&pname2=pvalue2");
+	(void)test_url_parser("foo://hostbar:93?pname1=pvalue1&pvalue2=v2&n3=v3");
+	(void)test_url_parser("foo://hostbar:93?pname1&param2=p2");
+	(void)test_url_parser("foo://hostbar:93?pname1=&param2=p2");
+	(void)test_url_parser("foo://hostbar:93//path/path2?param1=p1");
+	(void)test_url_parser("foo://hostbar:93//path/path2?param1&param2=p2");
+	(void)test_url_parser("foo://hostbar:93?pname1=pvalue1&%E2%82%AC=u+n2&n3=v3");
+	(void)test_url_parser("foo://hostbar:93?pname1=pvalue1&%E2%82%AC=%E2%82%AC&n3=v3");
 
 	(void)test_url_parser("foo://");
 	(void)test_url_parser("typo:/hostbar");

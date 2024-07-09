@@ -71,6 +71,7 @@ static VOID PrintUsage(LPTSTR pProcess)
 {
     (void)_tprintf(
         TEXT("Usage: %s [options] <drive letter|*> <hostname>:<path>\n")
+
         TEXT("* Options:\n")
         TEXT("\t-h\thelp\n")
         TEXT("\t/?\thelp\n")
@@ -82,6 +83,7 @@ static VOID PrintUsage(LPTSTR pProcess)
 	    " (Linux compat)\n")
         TEXT("\t-p\tmake the mount persist over reboots\n")
         TEXT("\t-o <comma-separated mount options>\n")
+
         TEXT("* Mount options:\n")
         TEXT("\tro\tmount as read-only\n")
         TEXT("\trw\tmount as read-write (default)\n")
@@ -100,23 +102,33 @@ static VOID PrintUsage(LPTSTR pProcess)
             "\t\tif this value is prefixed with 'nfsv3attrmode+'\n"
             "\t\tthe mode value from a \"NfsV3Attributes\" EA will be used\n"
             "\t\t(defaults \"nfsv3attrmode+0o%o\").\n")
+
+        TEXT("* URL parameters:\n")
+        TEXT("\tro=1\tmount as read-only\n")
+        TEXT("\trw=1\tmount as read-write (default)\n")
+
         TEXT("* Hostname:\n")
         TEXT("\tDNS name, or hostname in domain\n")
         TEXT("\tentry in C:\\Windows\\System32\\drivers\\etc\\hosts\n")
         TEXT("\tIPv4 address\n")
         TEXT("\tIPv6 address within '[', ']' "
             "(will be converted to *.ipv6-literal.net)\n")
+
         TEXT("* Examples:\n")
         TEXT("\tnfs_mount.exe -p -o rw 'H' derfwpc5131_ipv4:/export/home2/rmainz\n")
         TEXT("\tnfs_mount.exe -o rw '*' bigramhost:/tmp\n")
+        TEXT("\tnfs_mount.exe -o ro '*' archive1:/tmp\n")
+        TEXT("\tnfs_mount.exe '*' archive1:/tmp?ro=1\n")
         TEXT("\tnfs_mount.exe -o rw,sec=sys,port=30000 T grendel:/net_tmpfs2\n")
         TEXT("\tnfs_mount.exe -o sec=sys,rw S nfs://myhost1//net_tmpfs2/test2\n")
+        TEXT("\tnfs_mount.exe -o sec=sys S nfs://myhost1//net_tmpfs2/test2?rw=1\n")
         TEXT("\tnfs_mount.exe -o sec=sys,rw S nfs://myhost1:1234//net_tmpfs2/test2\n")
         TEXT("\tnfs_mount.exe -o sec=sys,rw,port=1234 S nfs://myhost1//net_tmpfs2/test2\n")
         TEXT("\tnfs_mount.exe -o sec=sys,rw '*' [fe80::21b:1bff:fec3:7713]://net_tmpfs2/test2\n")
         TEXT("\tnfs_mount.exe -o sec=sys,rw '*' nfs://[fe80::21b:1bff:fec3:7713]//net_tmpfs2/test2\n")
         TEXT("\tnfs_mount.exe -o sec=sys,rw S nfs://myhost1//dirwithspace/dir%%20space/test2\n")
-        TEXT("\tnfs_mount.exe -o sec=sys,rw S nfs://myhost1//dirwithspace/dir+space/test2\n"),
+        TEXT("\tnfs_mount.exe -o sec=sys,rw S nfs://myhost1//dirwithspace/dir+space/test2\n")
+        TEXT("\tnfs_mount.exe -o sec=sys S nfs://myhost1//dirwithspace/dir+space/test2?rw=1\n"),
         pProcess, (int)NFS41_DRIVER_DEFAULT_CREATE_MODE);
 }
 
@@ -402,6 +414,65 @@ static DWORD ParseRemoteName(
             result = ERROR_BAD_ARGUMENTS;
             (void)_ftprintf(stderr, TEXT("Username/Password are not defined for nfs://-URL.\n"));
             goto out;
+        }
+
+        if (uctx->num_parameters > 0) {
+            int pi;
+            const char *pname;
+            const char *pvalue;
+
+            /*
+             * FIXME: Values added here based on URL parameters
+             * should be added at the front of the list of options,
+             * so users can override the nfs://-URL given default.
+             * Right now this does not work, e.g.
+             * $ nfs_mount.exe -o rw nfs://foo//bar?ro=1 # will
+             * result in a read-only mount, while the expectation
+             * is that -o overrides URL settings.
+             */
+            for (pi = 0; pi < uctx->num_parameters ; pi++) {
+                pname = uctx->parameters[pi].name;
+                pvalue = uctx->parameters[pi].value;
+
+                if (!strcmp(pname, "rw")) {
+                    if ((pvalue == NULL) || (!strcmp(pvalue, "1"))) {
+                        (void)InsertOption(TEXT("rw"), TEXT("1"), pOptions);
+                    }
+                    else if (!strcmp(pvalue, "0")) {
+                        (void)InsertOption(TEXT("ro"), TEXT("1"), pOptions);
+                    }
+                    else {
+                        result = ERROR_BAD_ARGUMENTS;
+                        (void)_ftprintf(stderr,
+                            TEXT("Unsupported nfs://-URL parameter ")
+                            TEXT("'%S' value '%S'.\n"),
+                            pname, pvalue);
+                        goto out;
+                    }
+                }
+                else if (!strcmp(pname, "ro")) {
+                    if ((pvalue == NULL) || (!strcmp(pvalue, "1"))) {
+                        (void)InsertOption(TEXT("ro"), TEXT("1"), pOptions);
+                    }
+                    else if (!strcmp(pvalue, "0")) {
+                        (void)InsertOption(TEXT("rw"), TEXT("1"), pOptions);
+                    }
+                    else {
+                        result = ERROR_BAD_ARGUMENTS;
+                        (void)_ftprintf(stderr,
+                            TEXT("Unsupported nfs://-URL parameter ")
+                            TEXT("'%S' value '%S'.\n"),
+                            pname, pvalue);
+                        goto out;
+                    }
+                }
+                else {
+                    result = ERROR_BAD_ARGUMENTS;
+                    (void)_ftprintf(stderr,
+                        TEXT("Unsupported nfs://-URL parameter '%S'.\n"), pname);
+                    goto out;
+                }
+            }
         }
 
         if (uctx->hostport.port != -1)

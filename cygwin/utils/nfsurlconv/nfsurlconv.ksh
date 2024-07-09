@@ -38,6 +38,32 @@ function usage
 	return 2
 }
 
+function urldecodestr
+{
+	nameref out=$1
+	typeset s="$2"
+
+	#
+	# build format string for printf(1) ...
+	#
+
+	# quote backslashes
+	s="${s//$'\\'/$'\\\\'}"
+	# urldecode '+' to ' '
+	s="${s//+/ }"
+	# urldecode %<hexdigit><hexdigit>
+	s="${s//~(E)(?:%([[:xdigit:]][[:xdigit:]]))/\\x\1}"
+	# quote any remaining "%" to make it safe for printf(1)
+	s="${s//%/%%}"
+
+	#
+	# ... and then let printf(1) do the formatting
+	#
+	out="${ printf "$s" ; }"
+	return 0
+}
+
+
 #
 # parse_rfc1738_url - parse RFC 1838 URLs
 #
@@ -51,6 +77,7 @@ function parse_rfc1738_url
 	typeset url="$2"
 	typeset leftover
 	nameref data="$1" # output compound variable
+	typeset url_param_str
 
 	# ~(E) is POSIX extended regular expression matching (instead
 	# of shell pattern), "x" means "multiline", "l" means "left
@@ -69,7 +96,9 @@ function parse_rfc1738_url
 				(?::([[:digit:]]+))? # port (optional)
 			)
 		)
-		(?:\/(.*?))?/X}"		# path (optional)
+		(?:\/(.*?))?			# path (optional)
+		(?:\?(.*?))?			# URL parameters (optional)
+		/X}"
 
 	# All parsed data should be captured via eregex in .sh.match - if
 	# there is anything left (except the 'X') then the input string did
@@ -89,8 +118,34 @@ function parse_rfc1738_url
 	[[ "${.sh.match[7]-}" != '' ]] && integer data.port="${.sh.match[7]}"
 	[[ "${.sh.match[8]-}" != '' ]] && data.uripath="${.sh.match[8]}"
 
+	if [[ "${.sh.match[9]-}" != '' ]] ; then
+		compound -a data.parameters
+
+		url_param_str="${.sh.match[9]-}"
+
+		while [[ "$url_param_str" != '' ]] ; do
+			leftover="${url_param_str/~(Elrx)(?:(.+?)(?:=(.+?))?)(?:&(.*))?/X}"
+
+			# save matches because urldecodestr uses .sh.match, too
+			typeset dp_name="${.sh.match[1]-}"
+			typeset dp_value="${.sh.match[2]-}"
+			typeset dp_next="${.sh.match[3]-}"
+
+			urldecodestr dp_name "${dp_name}"
+			urldecodestr dp_value "${dp_value}"
+
+			data.parameters+=(
+				name="${dp_name}"
+				value="${dp_value}"
+				)
+
+			# next parameter
+			url_param_str="${dp_next}"
+		done
+	fi
+
 	if [[ -v data.uripath ]] ; then
-		data.path="${ printf "${data.uripath//~(E)(?:%([[:xdigit:]][[:xdigit:]]))/\\x\1}" ; }"
+		urldecodestr data.path "${data.uripath}"
 	fi
 
 	return 0
@@ -207,7 +262,7 @@ function main
 
 	# fixme: Need better text layout for $ nfsurlconv --man #
 	typeset -r nfsurlconv_usage=$'+
-	[-?\n@(#)\$Id: nfsurlconv (Roland Mainz) 2024-01-31 \$\n]
+	[-?\n@(#)\$Id: nfsurlconv (Roland Mainz) 2024-07-08 \$\n]
 	[-author?Roland Mainz <roland.mainz@nrubsig.org>]
 	[+NAME?nfsurlconv - convert hostname,port,path from/to a nfs://-URL]
 	[+DESCRIPTION?\bnfsurlconv\b convert { hostname, port, path } from/to a nfs://-URL.]
@@ -237,6 +292,14 @@ path=/a/b/c
 [+\n$ nfsurlconv.ksh url2hostportpath nfs:://bbb//a/b/c
 hostport=bbb
 path=/a/b/c
+]
+}
+		[+?Example 4:][+?Convert URL nfs://bbb:12049//a/b/c?param1=pvalue1&param2=pvalue2 to ( hostport=, path=, urlparameter= )]{
+[+\n$ nfsurlconv.ksh url2hostportpath "nfs:://bbb::12049//a/b/c??param1=pvalue1&param2=pvalue2"
+hostport=bbb::12049
+path=/a/b/c
+urlparameter=( name=param1 value=pvalue1 )
+urlparameter=( name=param2 value=pvalue2 )
 ]
 }
 	}
@@ -299,6 +362,13 @@ path=/a/b/c
 			printf 'hostname=%s\n' "${urldata.host}"
 			printf 'port=%s\n' "${urldata.port-2049}"
 			printf 'path=%s\n' "${urldata.path-}"
+			if [[ -v urldata.parameters ]] ; then
+				for (( i=0 ; i < ${#urldata.parameters[@]} ; i++ )) ; do
+					printf 'urlparameter=( name=%q value=%q )\n' \
+						"${urldata.parameters[i].name}" \
+						"${urldata.parameters[i].value}"
+				done
+			fi
 			return 0
 			;;
 		'url2hostportpath')
@@ -307,6 +377,13 @@ path=/a/b/c
 			parse_sshnfs_url urldata "${@:2:1}" || return 1
 			printf 'hostport=%s\n' "${urldata.hostport}"
 			printf 'path=%s\n' "${urldata.path-}"
+			if [[ -v urldata.parameters ]] ; then
+				for (( i=0 ; i < ${#urldata.parameters[@]} ; i++ )) ; do
+					printf 'urlparameter=( name=%q value=%q )\n' \
+						"${urldata.parameters[i].name}" \
+						"${urldata.parameters[i].value}"
+				done
+			fi
 			return 0
 			;;
 		'url2compound')
