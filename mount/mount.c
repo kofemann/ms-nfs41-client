@@ -87,6 +87,8 @@ static VOID PrintUsage(LPTSTR pProcess)
 	    " (Linux compat)\n")
         TEXT("\t-p\tmake the mount persist over reboots\n")
         TEXT("\t-o <comma-separated mount options>\n")
+        TEXT("\t-r\tAlias for -o ro (read-only mount)\n")
+        TEXT("\t-w\tAlias for -o rw (read-write mount)\n")
 
         TEXT("* Mount options:\n")
         TEXT("\tro\tmount as read-only\n")
@@ -216,6 +218,26 @@ DWORD __cdecl _tmain(DWORD argc, LPTSTR argv[])
                 }
 
                 mntopts[num_mntopts++] = argv[i];
+            }
+            else if (_tcscmp(argv[i], TEXT("-r")) == 0) /* mount option */
+            {
+                if (num_mntopts >= (MAX_MNTOPTS-1)) {
+                    result = ERROR_BAD_ARGUMENTS;
+                    (void)_ftprintf(stderr, TEXT("Too many options.\n\n"));
+                    goto out_free;
+                }
+
+                mntopts[num_mntopts++] = TEXT("ro");
+            }
+            else if (_tcscmp(argv[i], TEXT("-w")) == 0) /* mount option */
+            {
+                if (num_mntopts >= (MAX_MNTOPTS-1)) {
+                    result = ERROR_BAD_ARGUMENTS;
+                    (void)_ftprintf(stderr, TEXT("Too many options.\n\n"));
+                    goto out_free;
+                }
+
+                mntopts[num_mntopts++] = TEXT("rw");
             }
 	    /*
 	     * Filesystem type, we use this for Solaris
