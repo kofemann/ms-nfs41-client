@@ -50,17 +50,21 @@
 DWORD EnumMounts(
     IN LPNETRESOURCE pContainer);
 
+static DWORD ParseRemoteName(
+    IN LPTSTR pRemoteName,
+    IN OUT PMOUNT_OPTION_LIST pOptions,
+    OUT LPTSTR pParsedRemoteName,
+    OUT LPTSTR pConnectionName,
+    IN size_t cchConnectionLen);
 static DWORD DoMount(
     IN LPTSTR pLocalName,
     IN LPTSTR pRemoteName,
+    IN LPTSTR pParsedRemoteName,
     IN BOOL bPersistent,
     IN PMOUNT_OPTION_LIST pOptions);
 static DWORD DoUnmount(
     IN LPTSTR pLocalName,
     IN BOOL bForce);
-
-static void RecursivePrintEaInformation(
-    IN PFILE_FULL_EA_INFORMATION EA);
 static BOOL ParseDriveLetter(
     IN LPTSTR pArg,
     OUT PTCH pDriveLetter);
@@ -142,6 +146,9 @@ DWORD __cdecl _tmain(DWORD argc, LPTSTR argv[])
     BOOL    bForceUnmount = FALSE;
     BOOL    bPersistent = FALSE;
     MOUNT_OPTION_LIST Options;
+#define MAX_MNTOPTS 128
+    TCHAR   *mntopts[MAX_MNTOPTS] = { 0 };
+    size_t  num_mntopts = 0;
 
     int crtsetdbgflags = 0;
     crtsetdbgflags |= _CRTDBG_ALLOC_MEM_DF;  /* use debug heap */
@@ -201,11 +208,14 @@ DWORD __cdecl _tmain(DWORD argc, LPTSTR argv[])
                     goto out_free;
                 }
 
-                if (!ParseMountOptions(argv[i], &Options))
-                {
+                if (num_mntopts >= (MAX_MNTOPTS-1)) {
                     result = ERROR_BAD_ARGUMENTS;
+                    _ftprintf(stderr, TEXT("Too many -o ")
+                        TEXT("options.\n\n"));
                     goto out_free;
                 }
+
+                mntopts[num_mntopts++] = argv[i];
             }
 	    /*
 	     * Filesystem type, we use this for Solaris
@@ -282,6 +292,11 @@ DWORD __cdecl _tmain(DWORD argc, LPTSTR argv[])
     }
     else /* mount */
     {
+        TCHAR szRemoteName[NFS41_SYS_MAX_PATH_LEN];
+        TCHAR szParsedRemoteName[NFS41_SYS_MAX_PATH_LEN];
+
+        *szRemoteName = TEXT('\0');
+
         if (pRemoteName == NULL)
         {
             result = ERROR_BAD_NET_NAME;
@@ -290,7 +305,29 @@ DWORD __cdecl _tmain(DWORD argc, LPTSTR argv[])
             goto out_free;
         }
 
-        result = DoMount(szLocalName, pRemoteName, bPersistent, &Options);
+        /*
+         * First we need to parse the remote name, which might be a
+         * nfs://-URL with URL parameters, which provide default
+         * options for a NFS mount point, which can be overridden via
+         * -o below.
+         */
+        result = ParseRemoteName(pRemoteName, &Options,
+            szParsedRemoteName, szRemoteName, NFS41_SYS_MAX_PATH_LEN);
+        if (result)
+            goto out;
+
+        /*
+         * Parse saved -o options (possibly overriding defaults
+         * provided via (nfs://-)URL parameters above.
+         */
+        for (i = 0 ; i < num_mntopts ; i++) {
+            if (!ParseMountOptions(mntopts[i], &Options)) {
+                result = ERROR_BAD_ARGUMENTS;
+                goto out_free;
+            }
+        }
+
+        result = DoMount(szLocalName, szRemoteName, szParsedRemoteName, bPersistent, &Options);
         if (result)
             PrintErrorMessage(result);
     }
@@ -682,19 +719,25 @@ out:
 static DWORD DoMount(
     IN LPTSTR pLocalName,
     IN LPTSTR pRemoteName,
+    IN LPTSTR pParsedRemoteName,
     IN BOOL bPersistent,
     IN PMOUNT_OPTION_LIST pOptions)
 {
     DWORD result = NO_ERROR;
     TCHAR szExisting[NFS41_SYS_MAX_PATH_LEN];
-    TCHAR szParsedRemoteName[NFS41_SYS_MAX_PATH_LEN];
-    TCHAR szRemoteName[NFS41_SYS_MAX_PATH_LEN];
     DWORD dwLength;
+    NETRESOURCE NetResource;
 
-    *szRemoteName = TEXT('\0');
-    result = ParseRemoteName(pRemoteName, pOptions, szParsedRemoteName, szRemoteName, NFS41_SYS_MAX_PATH_LEN);
-    if (result)
-        goto out;
+
+    if (pOptions->Buffer->Length) {
+        if (pOptions->Current)
+            pOptions->Current->NextEntryOffset = 0;
+        NetResource.lpComment = (LPTSTR)&pOptions->Buffer[0];
+    }
+
+#if 0
+    RecursivePrintEaInformation((PFILE_FULL_EA_INFORMATION)pOptions->Buffer->Buffer);
+#endif
 
     /* fail if the connection already exists */
     dwLength = NFS41_SYS_MAX_PATH_LEN;
@@ -708,7 +751,6 @@ static DWORD DoMount(
     }
     else
     {
-        NETRESOURCE NetResource;
         TCHAR szConnection[NFS41_SYS_MAX_PATH_LEN];
         DWORD ConnectSize = NFS41_SYS_MAX_PATH_LEN, ConnectResult, Flags = 0;
 
@@ -716,14 +758,11 @@ static DWORD DoMount(
         NetResource.dwType = RESOURCETYPE_DISK;
         /* drive letter is chosen automatically if lpLocalName == NULL */
         NetResource.lpLocalName = *pLocalName == TEXT('*') ? NULL : pLocalName;
-        NetResource.lpRemoteName = szRemoteName;
+        NetResource.lpRemoteName = pRemoteName;
         /* ignore other network providers */
         NetResource.lpProvider = TEXT(NFS41_PROVIDER_NAME_A);
         /* pass mount options via lpComment */
-        if (pOptions->Buffer->Length)
-        {
-            if (pOptions->Current)
-                pOptions->Current->NextEntryOffset = 0;
+        if (pOptions->Buffer->Length) {
             NetResource.lpComment = (LPTSTR)pOptions->Buffer;
         }
 
@@ -736,14 +775,13 @@ static DWORD DoMount(
 
         if (result == NO_ERROR)
             _tprintf(TEXT("Successfully mounted '%s' to drive '%s'\n"),
-                szParsedRemoteName, szConnection);
+                pParsedRemoteName, szConnection);
         else
             _ftprintf(stderr, TEXT("WNetUseConnection(%s, %s) ")
                 TEXT("failed with error code %u.\n"),
-                pLocalName, szRemoteName, result);
+                pLocalName, pRemoteName, result);
     }
 
-out:
     return result;
 }
 

@@ -108,6 +108,11 @@ BOOL InsertOption(
     USHORT ValueLen = (USHORT)_tcslen(Value) * sizeof(TCHAR);
     ULONG SpaceRequired = EaBufferSize(NameLen, ValueLen);
 
+    /*
+     * FIXME: Some duplicates are wanted, e.g. "rw" overriding "ro" etc
+     * So better just let the kernel do the work
+     */
+#if 0
     /* don't allow duplicate options */
     if (FindOptionByName(Name, Options, &Current)) {
         _ftprintf(stderr, TEXT("Found a duplicate option ")
@@ -118,6 +123,7 @@ BOOL InsertOption(
             Name, ValueLen ? TEXT("=") : Value, Value);
         return FALSE;
     }
+#endif
 
     /* fail if we're out of space */
     if (SpaceRequired > Options->Remaining) {
