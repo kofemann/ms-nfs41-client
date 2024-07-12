@@ -1154,7 +1154,11 @@ int nfs41_getattr(
         putfh_args.file = file;
         putfh_args.in_recovery = 0;
     } else {
+#ifdef USE_PUBFH
+        compound_add_op(&compound, OP_PUTPUBFH, NULL, &putfh_res);
+#else
         compound_add_op(&compound, OP_PUTROOTFH, NULL, &putfh_res);
+#endif
     }
 
     compound_add_op(&compound, OP_GETATTR, &getattr_args, &getattr_res);
@@ -1896,8 +1900,13 @@ int nfs41_secinfo(
     compound_add_op(&compound, OP_SEQUENCE, &sequence_args, &sequence_res);
     nfs41_session_sequence(&sequence_args, session, 0);
 
-    if (file == NULL) 
+    if (file == NULL) {
+#ifdef USE_PUBFH
+        compound_add_op(&compound, OP_PUTPUBFH, NULL, &putfh_res);
+#else
         compound_add_op(&compound, OP_PUTROOTFH, NULL, &putfh_res);
+#endif
+    }
     else {
         compound_add_op(&compound, OP_PUTFH, &putfh_args, &putfh_res);
         putfh_args.file = file;
@@ -1938,8 +1947,13 @@ int nfs41_secinfo_noname(
     compound_add_op(&compound, OP_SEQUENCE, &sequence_args, &sequence_res);
     nfs41_session_sequence(&sequence_args, session, 0);
 
-    if (file == NULL) 
+    if (file == NULL) {
+#ifdef USE_PUBFH
+        compound_add_op(&compound, OP_PUTPUBFH, NULL, &putfh_res);
+#else
         compound_add_op(&compound, OP_PUTROOTFH, NULL, &putfh_res);
+#endif
+    }
     else {
         compound_add_op(&compound, OP_PUTFH, &putfh_args, &putfh_res);
         putfh_args.file = file;

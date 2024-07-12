@@ -141,9 +141,13 @@ static int lookup_rpc(
     nfs41_session_sequence(&args->sequence, session, 0);
 
     if (dir == &res->root) {
+#ifdef USE_PUBFH
+        compound_add_op(&compound, OP_PUTPUBFH, NULL, &res->putfh);
+#else
         compound_add_op(&compound, OP_PUTROOTFH, NULL, &res->putfh);
+#endif
         compound_add_op(&compound, OP_GETFH, NULL, &res->getrootfh);
-        compound_add_op(&compound, OP_GETATTR, &args->getrootattr, 
+        compound_add_op(&compound, OP_GETATTR, &args->getrootattr,
             &res->getrootattr);
     } else {
         args->putfh.file = dir;

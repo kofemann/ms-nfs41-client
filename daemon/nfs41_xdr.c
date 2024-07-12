@@ -3,6 +3,7 @@
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
+ * Roland Mainz <roland.mainz@nrubsig.org>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -1096,6 +1097,32 @@ static bool_t decode_op_putfh(
     nfs41_putfh_res *res = (nfs41_putfh_res*)resop->res;
 
     if (unexpected_op(resop->op, OP_PUTFH))
+        return FALSE;
+
+    return xdr_u_int32_t(xdr, &res->status);
+}
+
+
+/*
+ * OP_PUTPUBFH
+ */
+static bool_t encode_op_putpubfh(
+    XDR *xdr,
+    nfs_argop4* argop)
+{
+    if (unexpected_op(argop->op, OP_PUTPUBFH))
+        return FALSE;
+    /* void */
+    return TRUE;
+}
+
+static bool_t decode_op_putpubfh(
+    XDR *xdr,
+    nfs_resop4 *resop)
+{
+    nfs41_putpubfh_res *res = (nfs41_putpubfh_res*)resop->res;
+
+    if (unexpected_op(resop->op, OP_PUTPUBFH))
         return FALSE;
 
     return xdr_u_int32_t(xdr, &res->status);
@@ -3553,7 +3580,7 @@ static const op_table_entry g_op_table[] = {
     { NULL, NULL }, /* OP_OPEN_CONFIRM = 20 */
     { NULL, NULL }, /* OP_OPEN_DOWNGRADE = 21 */
     { encode_op_putfh, decode_op_putfh }, /* OP_PUTFH = 22 */
-    { NULL, NULL }, /* OP_PUTPUBFH = 23 */
+    { encode_op_putpubfh, decode_op_putpubfh }, /* OP_PUTPUBFH = 23 */
     { encode_op_putrootfh, decode_op_putrootfh }, /* OP_PUTROOTFH = 24 */
     { encode_op_read, decode_op_read }, /* OP_READ = 25 */
     { encode_op_readdir, decode_op_readdir }, /* OP_READDIR = 26 */

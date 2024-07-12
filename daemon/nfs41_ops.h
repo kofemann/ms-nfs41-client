@@ -516,6 +516,12 @@ typedef struct __nfs41_putfh_res {
 } nfs41_putfh_res;
 
 
+/* OP_PUTPUBFH */
+typedef struct __nfs41_putpubfh_res {
+    uint32_t                status;
+} nfs41_putpubfh_res;
+
+
 /* OP_PUTROOTFH */
 typedef struct __nfs41_putrootfh_res {
     uint32_t                status;

@@ -335,6 +335,7 @@ retry:
             case OP_RESTOREFH:
             case OP_LINK:
             case OP_RENAME:
+            case OP_PUTPUBFH:
             case OP_PUTROOTFH:
             case OP_LOOKUP:
             case OP_OPEN:
@@ -349,11 +350,12 @@ retry:
                  * from SECINFO or SECINFO_NO_NAME.
                  */
                 if (op1 == OP_SEQUENCE &&
-                        (argarray[1].op == OP_PUTFH || 
-                        argarray[1].op == OP_PUTROOTFH) &&
-                        (argarray[2].op == OP_SECINFO_NO_NAME ||
-                        argarray[2].op == OP_SECINFO)) {
-                    DPRINTF(1, ("SECINFO: BROKEN SERVER\n"));
+                        ((argarray[1].op == OP_PUTFH) ||
+                        (argarray[1].op == OP_PUTPUBFH) ||
+                        (argarray[1].op == OP_PUTROOTFH)) &&
+                        ((argarray[2].op == OP_SECINFO_NO_NAME) ||
+                        (argarray[2].op == OP_SECINFO))) {
+                    eprintf("SECINFO: BROKEN SERVER\n");
                     goto out;
                 }
                 if (!try_recovery)
