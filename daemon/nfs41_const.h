@@ -227,9 +227,9 @@ enum nfsstat4 {
     NFS4ERR_XATTR2BIG           = 10096
 };
 
-#define MAKE_WORD0(XXX) (1 << XXX)
-#define MAKE_WORD1(XXX) (1 << (XXX-32))
-#define MAKE_WORD2(XXX) (1 << (XXX-64))
+#define MAKE_WORD0(XXX) (1 << (XXX))
+#define MAKE_WORD1(XXX) (1 << ((XXX)-32))
+#define MAKE_WORD2(XXX) (1 << ((XXX)-64))
 
 enum {
 /*

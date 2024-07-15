@@ -70,8 +70,8 @@
 #define getpid _getpid
 
 #define bcmp memcmp
-#define bcopy(d,s,l) memcpy(d,s,l)
-#define bzero(d,s) memset(d,0,s)
+#define bcopy(d,s,l) memcpy((d),(s),(l))
+#define bzero(d,s) memset((d),0,(s))
 #define strtok_r strtok_s
 
 #define poll WSAPoll

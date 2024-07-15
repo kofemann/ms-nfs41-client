@@ -317,7 +317,8 @@ out_free:
     goto out;
 }
 
-#define ALIGNED_EASIZE(len) (align4(sizeof(FILE_GET_EA_INFORMATION) + len))
+#define ALIGNED_EASIZE(len) \
+    (align4(sizeof(FILE_GET_EA_INFORMATION) + (len)))
 
 static uint32_t calculate_ea_list_length(
     IN const unsigned char *position,

@@ -178,7 +178,7 @@ struct  vax_double {
 
 #define VAX_DBL_BIAS	0x81
 #define IEEE_DBL_BIAS	0x3ff
-#define MASK(nbits)	((1 << nbits) - 1)
+#define MASK(nbits)	((1 << (nbits)) - 1)
 
 static struct dbl_limits {
 	struct	vax_double d;
