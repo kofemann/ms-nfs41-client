@@ -299,6 +299,7 @@ typedef struct __nfs41_root {
     client_owner4 client_owner;
     CRITICAL_SECTION lock;
     struct list_entry clients;
+    bool use_nfspubfh;
     uint32_t wsize;
     uint32_t rsize;
 #pragma warning( push )
@@ -316,6 +317,7 @@ typedef struct __nfs41_root {
 int nfs41_root_create(
     IN const char *name,
     IN uint32_t port,
+    IN bool use_nfspubfh,
     IN uint32_t sec_flavor,
     IN uint32_t wsize,
     IN uint32_t rsize,
@@ -434,6 +436,7 @@ void nfs41_server_addrs(
 int nfs41_client_owner(
     IN const char *name,
     IN uint32_t port,
+    IN bool use_nfspubfh,
     IN uint32_t sec_flavor,
     OUT client_owner4 *owner);
 

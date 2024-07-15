@@ -50,11 +50,13 @@ static int parse_mount(unsigned char *buffer, uint32_t length, nfs41_upcall *upc
     if (status) goto out;
     status = safe_read(&buffer, &length, &args->wsize, sizeof(DWORD));
     if (status) goto out;
+    status = safe_read(&buffer, &length, &args->use_nfspubfh, sizeof(DWORD));
+    if (status) goto out;
 
     DPRINTF(1, ("parsing NFS41_MOUNT: hostport='%s' root='%s' "
-        "sec_flavor='%s' rsize=%d wsize=%d\n",
+        "sec_flavor='%s' rsize=%d wsize=%d use_nfspubfh=%d\n",
         args->hostport, args->path, secflavorop2name(args->sec_flavor),
-        args->rsize, args->wsize));
+        args->rsize, args->wsize, args->use_nfspubfh));
     return status;
 out:
     DPRINTF(1, ("parsing NFS41_MOUNT: failed %d\n", status));
@@ -83,9 +85,11 @@ static int handle_mount(void *daemon_context, nfs41_upcall *upcall)
     (void)get_token_authenticationid(upcall->currentthread_token,
         &authenticationid);
 
-    logprintf("mount(hostport='%s', path='%s', "
+    logprintf("mount(hostport='%s', "
+        "use_nfspubfh=%d, path='%s', "
         "authid=(0x%lx.0x%lx)) request\n",
         args->hostport?args->hostport:"<NULL>",
+        (int)args->use_nfspubfh,
         args->path?args->path:"<NULL>",
         (long)authenticationid.HighPart,
         (long)authenticationid.LowPart);
@@ -143,7 +147,8 @@ static int handle_mount(void *daemon_context, nfs41_upcall *upcall)
         root = upcall->root_ref;
     } else {
         // create root
-        status = nfs41_root_create(hostname, port, args->sec_flavor,
+        status = nfs41_root_create(hostname, port,
+            args->use_nfspubfh?true:false, args->sec_flavor,
             args->wsize + WRITE_OVERHEAD, args->rsize + READ_OVERHEAD, &root);
         if (status) {
             eprintf("nfs41_root_create(hostname='%s', port=%d) failed %d\n",
@@ -187,32 +192,38 @@ static int handle_mount(void *daemon_context, nfs41_upcall *upcall)
 out:
     if (status == 0) {
 #ifdef NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE
-        logprintf("mount(hostport='%s', path='%s', "
+        logprintf("mount(hostport='%s', use_nfspubfh=%d, path='%s', "
             "authid=(0x%lx.0x%lx)) success, root=0x%p\n",
             args->hostport?args->hostport:"<NULL>",
+            (int)args->use_nfspubfh,
             args->path?args->path:"<NULL>",
             (long)authenticationid.HighPart,
             (long)authenticationid.LowPart,
             root);
 #else
-        logprintf("mount(hostport='%s', path='%s') success, root=0x%p\n",
+        logprintf("mount(hostport='%s', use_nfspubfh=%d, path='%s') success, "
+            "root=0x%p\n",
             args->hostport?args->hostport:"<NULL>",
+            (int)args->use_nfspubfh,
             args->path?args->path:"<NULL>",
             root);
 #endif /* NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE */
     }
     else {
 #ifdef NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE
-        logprintf("mount(hostport='%s', path='%s', "
+        logprintf("mount(hostport='%s', use_nfspubfh=%d, path='%s', "
             "authid=(0x%lx.0x%lx))) failed, status=%d\n",
             args->hostport?args->hostport:"<NULL>",
+            (int)args->use_nfspubfh,
             args->path?args->path:"<NULL>",
             (long)authenticationid.HighPart,
             (long)authenticationid.LowPart,
             (int)status);
 #else
-        logprintf("mount(hostport='%s', path='%s') failed, status=%d\n",
+        logprintf("mount(hostport='%s', use_nfspubfh=%d, path='%s') "
+            "failed, status=%d\n",
             args->hostport?args->hostport:"<NULL>",
+            (int)args->use_nfspubfh,
             args->path?args->path:"<NULL>",
             (int)status);
 #endif /* NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE */

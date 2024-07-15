@@ -3,6 +3,7 @@
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
+ * Roland Mainz <roland.mainz@nrubsig.org>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -37,6 +38,7 @@
 int nfs41_root_create(
     IN const char *name,
     IN uint32_t port,
+    IN bool use_nfspubfh,
     IN uint32_t sec_flavor,
     IN uint32_t wsize,
     IN uint32_t rsize,
@@ -54,6 +56,7 @@ int nfs41_root_create(
     }
 
     list_init(&root->clients);
+    root->use_nfspubfh = use_nfspubfh;
     root->wsize = wsize;
     root->rsize = rsize;
     InitializeCriticalSection(&root->lock);
@@ -61,7 +64,7 @@ int nfs41_root_create(
     root->sec_flavor = sec_flavor;
 
     /* generate a unique client_owner */
-    status = nfs41_client_owner(name, port, sec_flavor, &root->client_owner);
+    status = nfs41_client_owner(name, port, use_nfspubfh, sec_flavor, &root->client_owner);
     if (status) {
         eprintf("nfs41_client_owner() failed with %d\n", status);
         free(root);

@@ -189,8 +189,9 @@ typedef struct _updowncall_entry {
             DWORD rsize;
             DWORD wsize;
             DWORD lease_time;
+            DWORD use_nfspubfh;
         } Mount;
-        struct {                       
+        struct {
             PMDL MdlAddress;
             ULONGLONG offset;
             PRX_CONTEXT rxcontext;
@@ -276,9 +277,13 @@ nfs41_updowncall_list upcall, downcall;
 
 
 
-/* In order to cooperate with other network providers,
- * we only claim paths of the format '\\server\nfs4\path' */
+/*
+ * In order to cooperate with other network providers,
+ * we only claim paths of the format '\\server\nfs4\path' or
+ * '\\server\pubnfs4\path'
+ */
 DECLARE_CONST_UNICODE_STRING(NfsPrefix, L"\\nfs4");
+DECLARE_CONST_UNICODE_STRING(PubNfsPrefix, L"\\pubnfs4");
 DECLARE_CONST_UNICODE_STRING(AUTH_SYS_NAME, L"sys");
 DECLARE_CONST_UNICODE_STRING(AUTHGSS_KRB5_NAME, L"krb5");
 DECLARE_CONST_UNICODE_STRING(AUTHGSS_KRB5I_NAME, L"krb5i");
@@ -294,6 +299,7 @@ DECLARE_CONST_UNICODE_STRING(EMPTY_STRING, L"");
 #define UPCALL_TIMEOUT_DEFAULT          50  /* in seconds */
 
 typedef struct _NFS41_MOUNT_CONFIG {
+    BOOLEAN use_nfspubfh;
     DWORD ReadSize;
     DWORD WriteSize;
     BOOLEAN ReadOnly;
@@ -682,7 +688,7 @@ NTSTATUS marshal_nfs41_mount(
         goto out;
     }
     header_len = *len + length_as_utf8(entry->u.Mount.srv_name) +
-        length_as_utf8(entry->u.Mount.root) + 3 * sizeof(DWORD);
+        length_as_utf8(entry->u.Mount.root) + 4 * sizeof(DWORD);
     if (header_len > buf_len) {
         status = STATUS_INSUFFICIENT_RESOURCES;
         goto out;
@@ -696,15 +702,18 @@ NTSTATUS marshal_nfs41_mount(
     RtlCopyMemory(tmp, &entry->u.Mount.rsize, sizeof(DWORD));
     tmp += sizeof(DWORD);
     RtlCopyMemory(tmp, &entry->u.Mount.wsize, sizeof(DWORD));
+    tmp += sizeof(DWORD);
+    RtlCopyMemory(tmp, &entry->u.Mount.use_nfspubfh, sizeof(DWORD));
 
     *len = header_len;
 
 #ifdef DEBUG_MARSHAL_DETAIL
     DbgP("marshal_nfs41_mount: server name='%wZ' mount point='%wZ' "
-         "sec_flavor='%s' rsize=%d wsize=%d\n",
+         "sec_flavor='%s' rsize=%d wsize=%d use_nfspubfh=%d\n",
 	 entry->u.Mount.srv_name, entry->u.Mount.root,
-         secflavorop2name(entry->u.Mount.sec_flavor), entry->u.Mount.rsize,
-         entry->u.Mount.wsize);
+         secflavorop2name(entry->u.Mount.sec_flavor),
+         (int)entry->u.Mount.rsize, (int)entry->u.Mount.wsize,
+         (int)entry->u.Mount.use_nfspubfh);
 #endif
 out:
     return status;
@@ -2812,6 +2821,7 @@ NTSTATUS nfs41_mount(
     entry->u.Mount.root = &config->MntPt;
     entry->u.Mount.rsize = config->ReadSize;
     entry->u.Mount.wsize = config->WriteSize;
+    entry->u.Mount.use_nfspubfh = config->use_nfspubfh;
     entry->u.Mount.sec_flavor = sec_flavor;
     entry->u.Mount.FsAttrs = FsAttrs;
 
@@ -2846,6 +2856,7 @@ void nfs41_MountConfig_InitDefaults(
 
     Config->ReadSize = MOUNT_CONFIG_RW_SIZE_DEFAULT;
     Config->WriteSize = MOUNT_CONFIG_RW_SIZE_DEFAULT;
+    Config->use_nfspubfh = FALSE;
     Config->ReadOnly = FALSE;
     Config->write_thru = FALSE;
     Config->nocache = FALSE;
@@ -2992,6 +3003,15 @@ NTSTATUS nfs41_MountConfig_ParseOptions(
                 &Config->WriteSize, MOUNT_CONFIG_RW_SIZE_MIN,
                 MOUNT_CONFIG_RW_SIZE_MAX);
         }
+        else if (wcsncmp(L"public", Name, NameLen) == 0) {
+            /*
+             + We ignore this value here, and instead rely on the
+             * /pubnfs4 prefix
+             */
+            BOOLEAN dummy;
+            status = nfs41_MountConfig_ParseBoolean(Option, &usValue,
+                FALSE, &dummy);
+        }
         else if (wcsncmp(L"srvname", Name, NameLen) == 0) {
             if (usValue.Length > Config->SrvName.MaximumLength)
                 status = STATUS_NAME_TOO_LONG;
@@ -3107,7 +3127,8 @@ out:
 
 NTSTATUS has_nfs_prefix(
     IN PUNICODE_STRING SrvCallName,
-    IN PUNICODE_STRING NetRootName)
+    IN PUNICODE_STRING NetRootName,
+    OUT BOOLEAN *pubfh_prefix)
 {
     NTSTATUS status = STATUS_BAD_NETWORK_NAME;
 
@@ -3140,20 +3161,42 @@ NTSTATUS has_nfs_prefix(
             }
         }
 
-        if ((state == 3) &&
-            (!memcmp(&NetRootName->Buffer[i], L"\\nfs4",
+        if (state == 3) {
+            if (!memcmp(&NetRootName->Buffer[i], L"\\nfs4",
                 (4*sizeof(wchar_t))))) {
-            status = STATUS_SUCCESS;
+                *pubfh_prefix = FALSE;
+                status = STATUS_SUCCESS;
+            }
+            if ((NetRootName->Length >=
+                (SrvCallName->Length + PubNfsPrefix.Length)) &&
+                (!memcmp(&NetRootName->Buffer[i], L"\\pubnfs4",
+                    (4*sizeof(wchar_t))))) {
+                *pubfh_prefix = TRUE;
+                status = STATUS_SUCCESS;
+            }
         }
     }
 #else
-    if (NetRootName->Length == SrvCallName->Length + NfsPrefix.Length) {
+    if (NetRootName->Length ==
+        (SrvCallName->Length + NfsPrefix.Length)) {
         const UNICODE_STRING NetRootPrefix = {
             NfsPrefix.Length,
             NetRootName->MaximumLength - SrvCallName->Length,
             &NetRootName->Buffer[SrvCallName->Length/2]
         };
-        if (RtlCompareUnicodeString(&NetRootPrefix, &NfsPrefix, FALSE) == 0)
+        if (!RtlCompareUnicodeString(&NetRootPrefix, &NfsPrefix, FALSE))
+            *pubfh_prefix = FALSE;
+            status = STATUS_SUCCESS;
+    }
+    else if (NetRootName->Length ==
+        (SrvCallName->Length + PubNfsPrefix.Length)) {
+        const UNICODE_STRING PubNetRootPrefix = {
+            PubNfsPrefix.Length,
+            NetRootName->MaximumLength - SrvCallName->Length,
+            &NetRootName->Buffer[SrvCallName->Length/2]
+        };
+        if (!RtlCompareUnicodeString(&PubNetRootPrefix, &PubNfsPrefix, FALSE))
+            *pubfh_prefix = TRUE;
             status = STATUS_SUCCESS;
     }
 #endif
@@ -3296,12 +3339,16 @@ NTSTATUS nfs41_CreateVNetRoot(
 
     pVNetRootContext->session = INVALID_HANDLE_VALUE;
 
-    /* In order to cooperate with other network providers, we must
-     * only claim paths of the form '\\server\nfs4\path' */
-    status = has_nfs_prefix(pSrvCall->pSrvCallName, pNetRoot->pNetRootName);
+    /*
+     * In order to cooperate with other network providers, we
+     * must only claim paths of the form '\\server\nfs4\path'
+     * or '\\server\pubnfs4\path'
+     */
+    BOOLEAN pubfh_prefix = FALSE;
+    status = has_nfs_prefix(pSrvCall->pSrvCallName, pNetRoot->pNetRootName, &pubfh_prefix);
     if (status) {
         print_error("nfs41_CreateVNetRoot: NetRootName '%wZ' doesn't match "
-            "'\\nfs4'!\n", pNetRoot->pNetRootName);
+            "'\\nfs4' or '\\pubnfs4'!\n", pNetRoot->pNetRootName);
         goto out;
     }
     pNetRoot->MRxNetRootState = MRX_NET_ROOT_STATE_GOOD;
@@ -3335,8 +3382,11 @@ NTSTATUS nfs41_CreateVNetRoot(
         pVNetRootContext->write_thru = Config->write_thru;
         pVNetRootContext->nocache = Config->nocache;
     } else {
-        /* Codepath for \\server@port\nfs4\path */
-        DbgP("Codepath for \\\\server@port\\nfs4\\path\n");
+        /*
+         * Codepath for \\server@port\nfs4\path or
+         * \\server@port\pubnfs4\path
+         */
+        DbgP("Codepath for \\\\server@port\\@(pubnfs4|nfs4)\\path\n");
 
         /*
          * STATUS_NFS_SHARE_NOT_MOUNTED - status code for the case
@@ -3427,9 +3477,12 @@ NTSTATUS nfs41_CreateVNetRoot(
         pVNetRootContext->nocache = Config->nocache;
     }
 
+    Config->use_nfspubfh = pubfh_prefix;
+
     DbgP("Config->{ "
         "MntPt='%wZ', "
         "SrvName='%wZ', "
+        "use_nfspubfh=%d, "
         "ReadOnly=%d, "
         "write_thru=%d, "
         "nocache=%d "
@@ -3439,6 +3492,7 @@ NTSTATUS nfs41_CreateVNetRoot(
         "}\n",
         &Config->MntPt,
         &Config->SrvName,
+        Config->use_nfspubfh?1:0,
         Config->ReadOnly?1:0,
         Config->write_thru?1:0,
         Config->nocache?1:0,
@@ -3564,7 +3618,7 @@ NTSTATUS nfs41_CreateVNetRoot(
         RtlCopyLuid(&entry->login_id, &luid);
         /*
          * Save mount config so we can use it for
-         * \\server@port\nfs4\path mounts later
+         * \\server@port\@(pubnfs4|nfs4)\path mounts later
          */
         copy_nfs41_mount_config(&entry->Config, Config);
         nfs41_AddEntry(pNetRootContext->mountLock,

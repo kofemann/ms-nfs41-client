@@ -35,6 +35,9 @@ NFSv4.1 client and filesystem driver for Windows 10/11
     tunnel
 - Support for long paths (up to 4096 bytes), no Windows MAXPATH limit
 
+- Support for NFSv4 public mounts (i.e. use the NFSv4 public file handle
+    lookup protocol via $ nfs_mount -o public ... #)
+
 - Unicode support
 
 - UNC paths

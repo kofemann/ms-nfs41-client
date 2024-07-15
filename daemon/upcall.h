@@ -3,6 +3,7 @@
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
+ * Roland Mainz <roland.mainz@nrubsig.org>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -35,6 +36,7 @@ typedef struct __mount_upcall_args {
     DWORD       sec_flavor;
     DWORD       rsize;
     DWORD       wsize;
+    DWORD       use_nfspubfh;
     DWORD       lease_time;
     FILE_FS_ATTRIBUTE_INFORMATION FsAttrs;
 } mount_upcall_args;

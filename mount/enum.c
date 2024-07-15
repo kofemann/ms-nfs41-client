@@ -21,6 +21,7 @@
 
 #include <Windows.h>
 #include <tchar.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <malloc.h>
 
@@ -38,13 +39,17 @@ void PrintMountLine(
     LPCTSTR remote)
 {
     TCHAR *cygwin_unc_buffer = alloca((_tcslen(remote)+32)*sizeof(TCHAR));
-    char *cygwin_nfsurl_buffer = alloca(((_tcslen(remote)+32)*3)+8);
+    char *cygwin_nfsurl_buffer = alloca(
+        ((_tcslen(remote)+32)*3)+8 +
+        9 /* "?public=1" */
+        );
     TCHAR *b;
     LPCTSTR s;
     TCHAR sc;
 #ifndef NFS41_DRIVER_MOUNT_DOES_NFS4_PREFIX
     unsigned int backslash_counter;
 #endif
+    bool is_pubfh = false;
 
     for(b = cygwin_unc_buffer, s = remote
 #ifndef NFS41_DRIVER_MOUNT_DOES_NFS4_PREFIX
@@ -127,7 +132,22 @@ void PrintMountLine(
          */
         if (slash_counter == 1) {
             *us++ = uc;
-            utf8unc_p+=4;
+            if (*utf8unc_p == 'p') {
+                /* Skip "pubnfs4" */
+                utf8unc_p += 7;
+                is_pubfh = true;
+            }
+            else if (*utf8unc_p == 'n') {
+                /* Skip "nfs4" */
+                utf8unc_p += 4;
+            }
+            else {
+                (void)fwprintf(stderr,
+                    L"PrintMountLine: ## Internal error, "
+                    "unknown provider prefix\n");
+                return;
+            }
+
             continue;
         }
 
@@ -150,6 +170,17 @@ void PrintMountLine(
         }
     }
     *us = '\0';
+
+    if (is_pubfh) {
+#pragma warning( push )
+    /*
+     * Disable "'strcat': This function or variable may be unsafe",
+     * in this context it is safe to use
+     */
+#pragma warning (disable : 4996)
+        (void)strcat(cygwin_nfsurl_buffer, "?public=1");
+#pragma warning( pop )
+    }
 
     (void)_tprintf(TEXT("%-8s\t%-50s\t%-50s\t%-50S\n"),
         local, remote, cygwin_unc_buffer, cygwin_nfsurl_buffer);

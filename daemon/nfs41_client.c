@@ -362,6 +362,7 @@ out:
 int nfs41_client_owner(
     IN const char *name,
     IN uint32_t port,
+    IN bool use_nfspubfh,
     IN uint32_t sec_flavor,
     OUT client_owner4 *owner)
 {
@@ -418,6 +419,13 @@ int nfs41_client_owner(
         status = GetLastError();
         eprintf("CryptCreateHash() failed with %d\n", status);
         goto out_context;
+    }
+
+    if (!CryptHashData(hash,
+        (const BYTE*)&use_nfspubfh, (DWORD)sizeof(bool), 0)) {
+        status = GetLastError();
+        eprintf("CryptHashData() failed with %d\n", status);
+        goto out_hash;
     }
 
     if (!CryptHashData(hash, (const BYTE*)&sec_flavor, (DWORD)sizeof(sec_flavor), 0)) {

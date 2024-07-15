@@ -638,8 +638,10 @@ NPAddConnection3(
 #endif
 
 #ifdef NFS41_DRIVER_MOUNT_DOES_NFS4_PREFIX
-    if (wcsncmp(&p[i], L"\\nfs4", 5) != 0) {
-        DbgP((L"Connection name '%s' not prefixed with '\\nfs41'\n",
+    if (wcsncmp(&p[i], L"\\nfs4", 5) &&
+        wcsncmp(&p[i], L"\\pubnfs4", 8)) {
+        DbgP((L"Connection name '%s' not prefixed with "
+            "'\\nfs41' or '\\pubnfs41'\n",
             &p[i]));
         Status = WN_BAD_NETNAME;
         goto out;

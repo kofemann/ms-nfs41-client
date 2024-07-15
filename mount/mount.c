@@ -30,6 +30,7 @@
 #include <strsafe.h>
 #include <Winnetwk.h> /* for WNet*Connection */
 #include <stdlib.h>
+#include <stdbool.h>
 #include <stdio.h>
 
 #include "nfs41_build_features.h"
@@ -51,6 +52,7 @@ DWORD EnumMounts(
     IN LPNETRESOURCE pContainer);
 
 static DWORD ParseRemoteName(
+    IN bool use_nfspubfh,
     IN LPTSTR pRemoteName,
     IN OUT PMOUNT_OPTION_LIST pOptions,
     OUT LPTSTR pParsedRemoteName,
@@ -91,6 +93,8 @@ static VOID PrintUsage(LPTSTR pProcess)
         TEXT("\t-w\tAlias for -o rw (read-write mount)\n")
 
         TEXT("* Mount options:\n")
+        TEXT("\tpublic\tconnect to the server using the public file handle lookup protocol.\n")
+        TEXT("\t\t(See WebNFS Client Specification, RFC 2054).\n")
         TEXT("\tro\tmount as read-only\n")
         TEXT("\trw\tmount as read-write (default)\n")
         TEXT("\tport=#\tTCP port to use (defaults to 2049)\n")
@@ -176,6 +180,8 @@ DWORD __cdecl _tmain(DWORD argc, LPTSTR argv[])
         goto out;
     }
 
+    bool use_nfspubfh = false;
+
     /* parse command line */
     for (i = 1; i < argc; i++)
     {
@@ -218,6 +224,20 @@ DWORD __cdecl _tmain(DWORD argc, LPTSTR argv[])
                 }
 
                 mntopts[num_mntopts++] = argv[i];
+
+                /*
+                 * Extract "public" option here, as we need this for
+                 * |ParseRemoteName()|. General parsing of -o options
+                 * happens *AFTER* |ParseRemoteName()|, so any
+                 * settings from a nfs://-URL can be overridden
+                 * via -o options.
+                 */
+                if (wcsstr(argv[i], L"public=0")) {
+                    use_nfspubfh = false;
+                }
+                else if (wcsstr(argv[i], L"public")) {
+                    use_nfspubfh = true;
+                }
             }
             else if (_tcscmp(argv[i], TEXT("-r")) == 0) /* mount option */
             {
@@ -333,7 +353,7 @@ DWORD __cdecl _tmain(DWORD argc, LPTSTR argv[])
          * options for a NFS mount point, which can be overridden via
          * -o below.
          */
-        result = ParseRemoteName(pRemoteName, &Options,
+        result = ParseRemoteName(use_nfspubfh, pRemoteName, &Options,
             szParsedRemoteName, szRemoteName, NFS41_SYS_MAX_PATH_LEN);
         if (result)
             goto out;
@@ -411,6 +431,7 @@ wchar_t *utf8str2wcs(const char *utf8str)
 }
 
 static DWORD ParseRemoteName(
+    IN bool use_nfspubfh,
     IN LPTSTR pRemoteName,
     IN OUT PMOUNT_OPTION_LIST pOptions,
     OUT LPTSTR pParsedRemoteName,
@@ -712,7 +733,8 @@ static DWORD ParseRemoteName(
     if (FAILED(result))
         goto out;
 #ifdef NFS41_DRIVER_MOUNT_DOES_NFS4_PREFIX
-    result = StringCbCat(pConnectionName, cchConnectionLen, TEXT("\\nfs4"));
+    result = StringCbCat(pConnectionName, cchConnectionLen,
+        (use_nfspubfh?(TEXT("\\pubnfs4")):(TEXT("\\nfs4"))));
     if (FAILED(result))
         goto out;
 #endif /* NFS41_DRIVER_MOUNT_DOES_NFS4_PREFIX */
@@ -723,9 +745,10 @@ static DWORD ParseRemoteName(
 
 #ifdef DEBUG_MOUNT
     (void)_ftprintf(stderr,
-        TEXT("pConnectionName='%s', pParsedRemoteName='%s'\n"),
+        TEXT("pConnectionName='%s', pParsedRemoteName='%s', use_nfspubfh='%d'\n"),
         pConnectionName,
-        pParsedRemoteName);
+        pParsedRemoteName,
+        (int)use_nfspubfh);
 #endif
 
 out:
