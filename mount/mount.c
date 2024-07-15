@@ -836,7 +836,7 @@ static DWORD DoMount(
     if (result == NO_ERROR)
     {
         result = ERROR_ALREADY_ASSIGNED;
-        (void)fwprintf(stderr, L"Mount failed, drive %s is "
+        (void)fwprintf(stderr, L"Mount failed, drive '%s' is "
             L"already assigned to '%s'.\n",
             pLocalName, szExisting);
     }
@@ -868,7 +868,7 @@ static DWORD DoMount(
             (void)wprintf(L"Successfully mounted '%s' to drive '%s'\n",
                 pParsedRemoteName, szConnection);
         else
-            (void)fwprintf(stderr, L"WNetUseConnection(%s, %s) "
+            (void)fwprintf(stderr, L"WNetUseConnection('%s', '%s') "
                 L"failed with error code %u.\n",
                 pLocalName, pRemoteName, result);
     }
@@ -888,15 +888,15 @@ static DWORD DoUnmount(
     switch (result)
     {
     case NO_ERROR:
-        (void)wprintf(L"Drive %s unmounted successfully.\n",
+        (void)wprintf(L"Drive '%s' unmounted successfully.\n",
             pLocalName);
         break;
     case ERROR_NOT_CONNECTED:
-        (void)fwprintf(stderr, L"Drive %s is not currently "
+        (void)fwprintf(stderr, L"Drive '%s' is not currently "
             L"connected.\n", pLocalName);
         break;
     default:
-        (void)fwprintf(stderr, L"WNetCancelConnection2(%s) failed "
+        (void)fwprintf(stderr, L"WNetCancelConnection2('%s') failed "
             L"with error code %u.\n", pLocalName, result);
         break;
     }
