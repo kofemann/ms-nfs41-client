@@ -2789,6 +2789,7 @@ NTSTATUS map_mount_errors(
     case ERROR_BAD_NET_RESP:    return STATUS_UNEXPECTED_NETWORK_ERROR;
     case ERROR_BAD_NET_NAME:    return STATUS_BAD_NETWORK_NAME;
     case ERROR_BAD_NETPATH:     return STATUS_BAD_NETWORK_PATH;
+    case ERROR_NOT_SUPPORTED:   return STATUS_NOT_SUPPORTED;
     case ERROR_INTERNAL_ERROR:  return STATUS_INTERNAL_ERROR;
     default:
         print_error("map_mount_errors: "

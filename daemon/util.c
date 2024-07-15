@@ -345,6 +345,7 @@ int nfs_to_windows_error(int status, int default_error)
     case NFS4ERR_STALE:         return ERROR_NETNAME_DELETED;
     case NFS4ERR_NOTEMPTY:      return ERROR_NOT_EMPTY;
     case NFS4ERR_DENIED:        return ERROR_LOCK_FAILED;
+    case NFS4ERR_NOTSUPP:       return ERROR_NOT_SUPPORTED;
     case NFS4ERR_TOOSMALL:      return ERROR_BUFFER_OVERFLOW;
     case NFS4ERR_LOCKED:        return ERROR_LOCK_VIOLATION;
     case NFS4ERR_SHARE_DENIED:  return ERROR_SHARING_VIOLATION;
