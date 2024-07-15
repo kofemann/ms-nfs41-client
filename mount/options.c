@@ -109,6 +109,14 @@ BOOL InsertOption(
     ULONG SpaceRequired = EaBufferSize(NameLen, ValueLen);
 
     /*
+     * Filter "port" option, as it's value has already been encoded
+     *  in the hostname as hostport
+     */
+    if (!_tcscmp(Name, L"port")) {
+        return TRUE;
+    }
+
+    /*
      * FIXME: Some duplicates are wanted, e.g. "rw" overriding "ro" etc
      * So better just let the kernel do the work
      */

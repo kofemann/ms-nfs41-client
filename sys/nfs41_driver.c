@@ -3019,17 +3019,6 @@ NTSTATUS nfs41_MountConfig_ParseOptions(
             else
                 RtlCopyUnicodeString(&Config->SrvName, &usValue);
         }
-	/*
-	 * gisburn: fixme: for now we accept "port=" as dummy here
-	 * Technically nfs_mount.exe should filter this out. We leave
-	 * this in for backwards-compatibilty with our internal test
-	 * suite
-	 */
-        else if (wcsncmp(L"port", Name, NameLen) == 0) {
-	    DWORD dummy;
-            status = nfs41_MountConfig_ParseDword(Option, &usValue,
-                &dummy, 1, 65535);
-        }
         else if (wcsncmp(L"mntpt", Name, NameLen) == 0) {
             if (usValue.Length > Config->MntPt.MaximumLength)
                 status = STATUS_NAME_TOO_LONG;
