@@ -3,6 +3,7 @@
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
+ * Roland Mainz <roland.mainz@nrubsig.org>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -20,13 +21,12 @@
  */
 
 #include <Windows.h>
-#include <tchar.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <malloc.h>
 
 #include "nfs41_build_features.h"
-#include "nfs41_driver.h" /* NFS41_PROVIDER_NAME_A */
+#include "nfs41_driver.h" /* |NFS41_PROVIDER_NAME_U| */
 
 /* prototypes */
 char *wcs2utf8str(const wchar_t *wstr);
@@ -35,17 +35,19 @@ void PrintErrorMessage(IN DWORD dwError);
 /* fixme: this function needs a cleanup */
 static __inline
 void PrintMountLine(
-    LPCTSTR local,
-    LPCTSTR remote)
+    LPCWSTR local,
+    LPCWSTR remote)
 {
-    TCHAR *cygwin_unc_buffer = alloca((_tcslen(remote)+32)*sizeof(TCHAR));
-    char *cygwin_nfsurl_buffer = alloca(
-        ((_tcslen(remote)+32)*3)+8 +
+    size_t remote_len = wcslen(remote);
+    wchar_t *cygwin_unc_buffer =
+        alloca((remote_len+32)*sizeof(wchar_t));
+    char *cygwin_nfsurl_buffer =
+        alloca(((remote_len+32)*3)+8 +
         9 /* "?public=1" */
         );
-    TCHAR *b;
-    LPCTSTR s;
-    TCHAR sc;
+    wchar_t *b;
+    LPCWSTR s;
+    wchar_t sc;
 #ifndef NFS41_DRIVER_MOUNT_DOES_NFS4_PREFIX
     unsigned int backslash_counter;
 #endif
@@ -56,13 +58,13 @@ void PrintMountLine(
      , backslash_counter = 0
 #endif
      ;
-        (sc = *s++) != TEXT('\0') ; ) {
+        (sc = *s++) != L'\0' ; ) {
         switch(sc) {
-            case TEXT('\\'):
-                *b++ = TEXT('/');
+            case L'\\':
+                *b++ = L'/';
 #ifndef NFS41_DRIVER_MOUNT_DOES_NFS4_PREFIX
                 if (backslash_counter++ == 2) {
-                    (void)wcscpy_s(b, 6, TEXT("nfs4/"));
+                    (void)wcscpy_s(b, 6, L"nfs4/");
                     b+=5;
                 }
 #endif
@@ -72,7 +74,7 @@ void PrintMountLine(
                 break;
         }
     }
-    *b = TEXT('\0');
+    *b = L'\0';
 
 
     /*
@@ -182,7 +184,7 @@ void PrintMountLine(
 #pragma warning( pop )
     }
 
-    (void)_tprintf(TEXT("%-8s\t%-50s\t%-50s\t%-50S\n"),
+    (void)wprintf(L"%-8s\t%-50s\t%-50s\t%-50S\n",
         local, remote, cygwin_unc_buffer, cygwin_nfsurl_buffer);
 
     free(utf8unc);
@@ -217,10 +219,10 @@ DWORD EnumMounts(
     if (result)
         goto out_free;
 
-    (void)_tprintf(TEXT("Listing '%s' mounts:\n\n"),
-        TEXT(NFS41_PROVIDER_NAME_A));
-    (void)_tprintf(TEXT("%-8s\t%-50s\t%-50s\t%-50S\n"),
-        TEXT("Volume"), TEXT("Remote path"), TEXT("Cygwin UNC path"), "URL");
+    (void)wprintf(L"Listing '%s' mounts:\n\n",
+        NFS41_PROVIDER_NAME_U);
+    (void)wprintf(L"%-8s\t%-50s\t%-50s\t%-50s\n",
+        L"Volume", L"Remote path", L"Cygwin UNC path", L"URL");
 
     do
     {
@@ -232,8 +234,8 @@ DWORD EnumMounts(
         {
             for (i = 0; i < dwCount; i++)
             {
-                if (_tcscmp(pResources[i].lpProvider,
-                    TEXT(NFS41_PROVIDER_NAME_A)) == 0)
+                if (!wcscmp(pResources[i].lpProvider,
+                    NFS41_PROVIDER_NAME_U))
                 {
                     PrintMountLine(pResources[i].lpLocalName,
                         pResources[i].lpRemoteName);
@@ -248,8 +250,8 @@ DWORD EnumMounts(
 
     result = WNetCloseEnum(hEnum);
 
-    _tprintf(TEXT("\nFound %d share%s.\n"), dwTotal,
-        dwTotal == 1 ? TEXT("") : TEXT("s"));
+    (void)wprintf(L"\nFound %d share%s.\n", dwTotal,
+        (dwTotal == 1) ? L"" : L"s");
 
 out_free:
     GlobalFree((HGLOBAL)pResources);

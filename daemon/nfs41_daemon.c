@@ -26,7 +26,6 @@
 
 #include <Windows.h>
 #include <process.h>
-#include <tchar.h>
 #include <stdio.h>
 
 #include <devioctl.h>
@@ -273,7 +272,9 @@ static void PrintUsage()
 #endif /* _DEBUG */
         "\n", MAX_NUM_THREADS);
 }
-static bool_t parse_cmdlineargs(int argc, TCHAR *argv[], nfsd_args *out)
+
+static
+bool_t parse_cmdlineargs(int argc, wchar_t *argv[], nfsd_args *out)
 {
     int i;
 
@@ -283,24 +284,24 @@ static bool_t parse_cmdlineargs(int argc, TCHAR *argv[], nfsd_args *out)
 
     /* parse command line */
     for (i = 1; i < argc; i++) {
-        if (argv[i][0] == TEXT('-')) {
-            if (_tcscmp(argv[i], TEXT("-h")) == 0) { /* help */
+        if (argv[i][0] == L'-') {
+            if (!wcscmp(argv[i], L"-h")) { /* help */
                 PrintUsage();
                 return FALSE;
             }
-            else if (_tcscmp(argv[i], TEXT("-d")) == 0) { /* debug level */
+            else if (!wcscmp(argv[i], L"-d")) { /* debug level */
                 ++i;
                 if (i >= argc) {
                     fprintf(stderr, "Missing debug level value\n");
                     PrintUsage();
                     return FALSE;
                 }
-                out->debug_level = _ttoi(argv[i]);
+                out->debug_level = wcstol(argv[i], NULL, 0);
             }
 #ifdef _DEBUG
-            else if (_tcscmp(argv[i], TEXT("--crtdbgmem")) == 0) {
+            else if (!wcscmp(argv[i], L"--crtdbgmem")) {
                 ++i;
-                const TCHAR *memdbgoptions = argv[i];
+                const wchar_t *memdbgoptions = argv[i];
                 if (i >= argc) {
                     fprintf(stderr, "Missing options\n");
                     PrintUsage();
@@ -312,62 +313,62 @@ static bool_t parse_cmdlineargs(int argc, TCHAR *argv[], nfsd_args *out)
                     nfs41_dg.crtdbgmem_flags = 0;
 
                 nfs41_dg.crtdbgmem_flags |=
-                    (_tcsstr(memdbgoptions, TEXT("allocmem")) != NULL)?
+                    (wcsstr(memdbgoptions, L"allocmem") != NULL)?
                     _CRTDBG_ALLOC_MEM_DF:0;
                 nfs41_dg.crtdbgmem_flags |=
-                    (_tcsstr(memdbgoptions, TEXT("leakcheck")) != NULL)?
+                    (wcsstr(memdbgoptions, L"leakcheck") != NULL)?
                     _CRTDBG_LEAK_CHECK_DF:0;
                 nfs41_dg.crtdbgmem_flags |=
-                    (_tcsstr(memdbgoptions, TEXT("delayfree")) != NULL)?
+                    (wcsstr(memdbgoptions, L"delayfree") != NULL)?
                     _CRTDBG_DELAY_FREE_MEM_DF:0;
                 nfs41_dg.crtdbgmem_flags |=
-                    (_tcsstr(memdbgoptions, TEXT("all")) != NULL)?
+                    (wcsstr(memdbgoptions, L"all") != NULL)?
                     (_CRTDBG_ALLOC_MEM_DF|_CRTDBG_LEAK_CHECK_DF|_CRTDBG_DELAY_FREE_MEM_DF):0;
 
-                if (_tcsstr(memdbgoptions, TEXT("none")) != NULL) {
+                if (wcsstr(memdbgoptions, L"none") != NULL) {
                     nfs41_dg.crtdbgmem_flags = 0;
                 }
 
-                if (_tcsstr(memdbgoptions, TEXT("default")) != NULL) {
+                if (wcsstr(memdbgoptions, L"default") != NULL) {
                     nfs41_dg.crtdbgmem_flags =
                         NFS41D_GLOBALS_CRTDBGMEM_FLAGS_NOT_SET;
                 }
             }
 #endif /* _DEBUG */
-            else if (_tcscmp(argv[i], TEXT("--noldap")) == 0) { /* no LDAP */
+            else if (!wcscmp(argv[i], L"--noldap")) { /* no LDAP */
                 out->ldap_enable = FALSE;
             }
-            else if (_tcscmp(argv[i], TEXT("--uid")) == 0) { /* no LDAP, setting default uid */
+            else if (!wcscmp(argv[i], L"--uid")) { /* no LDAP, setting default uid */
                 ++i;
                 if (i >= argc) {
                     fprintf(stderr, "Missing uid value\n");
                     PrintUsage();
                     return FALSE;
                 }
-                nfs41_dg.default_uid = _ttoi(argv[i]);
+                nfs41_dg.default_uid = wcstol(argv[i], NULL, 0);
                 if (!nfs41_dg.default_uid) {
                     fprintf(stderr, "Invalid (or missing) anonymous uid value of %d\n",
                         nfs41_dg.default_uid);
                     return FALSE;
                 }
             }
-            else if (_tcscmp(argv[i], TEXT("--gid")) == 0) { /* no LDAP, setting default gid */
+            else if (!wcscmp(argv[i], L"--gid")) { /* no LDAP, setting default gid */
                 ++i;
                 if (i >= argc) {
                     fprintf(stderr, "Missing gid value\n");
                     PrintUsage();
                     return FALSE;
                 }
-                nfs41_dg.default_gid = _ttoi(argv[i]);
+                nfs41_dg.default_gid = wcstol(argv[i], NULL, 0);
             }
-            else if (_tcscmp(argv[i], TEXT("--numworkerthreads")) == 0) {
+            else if (!wcscmp(argv[i], L"--numworkerthreads")) {
                 ++i;
                 if (i >= argc) {
                     fprintf(stderr, "Missing value for num_worker_threads\n");
                     PrintUsage();
                     return FALSE;
                 }
-                nfs41_dg.num_worker_threads = _ttoi(argv[i]);
+                nfs41_dg.num_worker_threads = wcstol(argv[i], NULL, 0);
                 if (nfs41_dg.num_worker_threads < 16) {
                     fprintf(stderr, "--numworkerthreads requires at least 16 worker threads\n");
                     PrintUsage();
@@ -705,7 +706,7 @@ void set_nfs_daemon_privileges(void)
 
 
 #ifdef STANDALONE_NFSD
-void __cdecl _tmain(int argc, TCHAR *argv[])
+void __cdecl wmain(int argc, wchar_t *argv[])
 #else
 VOID ServiceStart(DWORD argc, LPTSTR *argv)
 #endif

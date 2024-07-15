@@ -26,7 +26,6 @@
 #define NFS41_SHADOW_DEVICE_NAME L"\\??\\nfs41_driver"
 #define NFS41_USER_DEVICE_NAME L"\\\\.\\nfs41_driver"
 #define NFS41_USER_DEVICE_NAME_A "\\\\.\\nfs41_driver"
-#define NFS41_PROVIDER_NAME_A "NFS41 Network"
 #define NFS41_PROVIDER_NAME_U L"NFS41 Network"
 
 #define NFS41_PIPE_NAME L"\\Device\\nfs41_pipe"

@@ -26,7 +26,6 @@
 
 #include <crtdbg.h>
 #include <Windows.h>
-#include <tchar.h>
 #include <strsafe.h>
 #include <Winnetwk.h> /* for WNet*Connection */
 #include <stdlib.h>
@@ -34,7 +33,7 @@
 #include <stdio.h>
 
 #include "nfs41_build_features.h"
-#include "nfs41_driver.h" /* NFS41_PROVIDER_NAME_A */
+#include "nfs41_driver.h" /* |NFS41_PROVIDER_NAME_U| */
 #include "options.h"
 #include "urlparser1.h"
 
@@ -54,109 +53,110 @@ DWORD EnumMounts(
 static DWORD ParseRemoteName(
     IN bool use_nfspubfh,
     IN int override_portnum,
-    IN LPTSTR pRemoteName,
+    IN LPWSTR pRemoteName,
     IN OUT PMOUNT_OPTION_LIST pOptions,
-    OUT LPTSTR pParsedRemoteName,
-    OUT LPTSTR pConnectionName,
+    OUT LPWSTR pParsedRemoteName,
+    OUT LPWSTR pConnectionName,
     IN size_t cchConnectionLen);
 static DWORD DoMount(
-    IN LPTSTR pLocalName,
-    IN LPTSTR pRemoteName,
-    IN LPTSTR pParsedRemoteName,
+    IN LPWSTR pLocalName,
+    IN LPWSTR pRemoteName,
+    IN LPWSTR pParsedRemoteName,
     IN BOOL bPersistent,
     IN PMOUNT_OPTION_LIST pOptions);
 static DWORD DoUnmount(
-    IN LPTSTR pLocalName,
+    IN LPWSTR pLocalName,
     IN BOOL bForce);
 static BOOL ParseDriveLetter(
-    IN LPTSTR pArg,
+    IN LPWSTR pArg,
     OUT PTCH pDriveLetter);
 void PrintErrorMessage(
     IN DWORD dwError);
 
-static VOID PrintUsage(LPTSTR pProcess)
+static VOID PrintUsage(LPWSTR pProcess)
 {
-    (void)_tprintf(
-        TEXT("Usage: %s [options] <drive letter|*> <hostname>:<path>\n")
+    (void)fprintf(stderr,
+        "Usage: %S [options] <drive letter|*> <hostname>:<path>\n"
 
-        TEXT("* Options:\n")
-        TEXT("\t-h\thelp\n")
-        TEXT("\t/?\thelp\n")
-        TEXT("\t-d\tunmount\n")
-        TEXT("\t-f\tforce unmount if the drive is in use\n")
-        TEXT("\t-F <type>\tFilesystem type to use (only 'nfs' supported)"
-	    " (Solaris/Illumos compat)\n")
-        TEXT("\t-t <type>\tFilesystem type to use (only 'nfs' supported)"
-	    " (Linux compat)\n")
-        TEXT("\t-p\tmake the mount persist over reboots\n")
-        TEXT("\t-o <comma-separated mount options>\n")
-        TEXT("\t-r\tAlias for -o ro (read-only mount)\n")
-        TEXT("\t-w\tAlias for -o rw (read-write mount)\n")
+        "* Options:\n"
+        "\t-h\thelp\n"
+        "\t/?\thelp\n"
+        "\t-d\tunmount\n"
+        "\t-f\tforce unmount if the drive is in use\n"
+            "\t-F <type>\tFilesystem type to use (only 'nfs' supported)"
+	    " (Solaris/Illumos compat)\n"
+        "\t-t <type>\tFilesystem type to use (only 'nfs' supported)"
+	    " (Linux compat)\n"
+        "\t-p\tmake the mount persist over reboots\n"
+        "\t-o <comma-separated mount options>\n"
+        "\t-r\tAlias for -o ro (read-only mount)\n"
+        "\t-w\tAlias for -o rw (read-write mount)\n"
 
-        TEXT("* Mount options:\n")
-        TEXT("\tpublic\tconnect to the server using the public file handle lookup protocol.\n")
-        TEXT("\t\t(See WebNFS Client Specification, RFC 2054).\n")
-        TEXT("\tro\tmount as read-only\n")
-        TEXT("\trw\tmount as read-write (default)\n")
-        TEXT("\tport=#\tTCP port to use (defaults to 2049)\n")
-        TEXT("\trsize=#\tread buffer size in bytes\n")
-        TEXT("\twsize=#\twrite buffer size in bytes\n")
-        TEXT("\tsec=sys:krb5:krb5i:krb5p\tspecify (gss) security flavor\n")
-        TEXT("\twritethru\tturns off rdbss caching for writes\n")
-        TEXT("\tnowritethru\tturns on rdbss caching for writes (default)\n")
-        TEXT("\tcache\tturns on rdbss caching (default)\n")
-        TEXT("\tnocache\tturns off rdbss caching\n")
-        TEXT("\twsize=#\twrite buffer size in bytes\n")
-        TEXT("\tcreatemode=\tspecify default POSIX permission mode\n"
+        "* Mount options:\n"
+        "\tpublic\tconnect to the server using the public file handle lookup protocol.\n"
+        "\t\t(See WebNFS Client Specification, RFC 2054).\n"
+        "\tro\tmount as read-only\n"
+        "\trw\tmount as read-write (default)\n"
+        "\tport=#\tTCP port to use (defaults to 2049)\n"
+        "\trsize=#\tread buffer size in bytes\n"
+        "\twsize=#\twrite buffer size in bytes\n"
+        "\tsec=sys:krb5:krb5i:krb5p\tspecify (gss) security flavor\n"
+        "\twritethru\tturns off rdbss caching for writes\n"
+        "\tnowritethru\tturns on rdbss caching for writes (default)\n"
+        "\tcache\tturns on rdbss caching (default)\n"
+        "\tnocache\tturns off rdbss caching\n"
+        "\twsize=#\twrite buffer size in bytes\n"
+        "\tcreatemode=\tspecify default POSIX permission mode\n"
             "\t\tfor new files created on the NFS share.\n"
             "\t\tArgument is an octal value prefixed with '0o',\n"
             "\t\tif this value is prefixed with 'nfsv3attrmode+'\n"
             "\t\tthe mode value from a \"NfsV3Attributes\" EA will be used\n"
-            "\t\t(defaults \"nfsv3attrmode+0o%o\").\n")
+            "\t\t(defaults \"nfsv3attrmode+0o%o\").\n"
 
-        TEXT("* URL parameters:\n")
-        TEXT("\tro=1\tmount as read-only\n")
-        TEXT("\trw=1\tmount as read-write (default)\n")
+        "* URL parameters:\n"
+        "\tro=1\tmount as read-only\n"
+        "\trw=1\tmount as read-write (default)\n"
 
-        TEXT("* Hostname:\n")
-        TEXT("\tDNS name, or hostname in domain\n")
-        TEXT("\tentry in C:\\Windows\\System32\\drivers\\etc\\hosts\n")
-        TEXT("\tIPv4 address\n")
-        TEXT("\tIPv6 address within '[', ']' "
-            "(will be converted to *.ipv6-literal.net)\n")
+        "* Hostname:\n"
+        "\tDNS name, or hostname in domain\n"
+        "\tentry in C:\\Windows\\System32\\drivers\\etc\\hosts\n"
+        "\tIPv4 address\n"
+        "\tIPv6 address within '[', ']' "
+            "(will be converted to *.ipv6-literal.net)\n"
 
-        TEXT("* Examples:\n")
-        TEXT("\tnfs_mount.exe -p -o rw 'H' derfwpc5131_ipv4:/export/home2/rmainz\n")
-        TEXT("\tnfs_mount.exe -o rw '*' bigramhost:/tmp\n")
-        TEXT("\tnfs_mount.exe -o ro '*' archive1:/tmp\n")
-        TEXT("\tnfs_mount.exe '*' archive1:/tmp?ro=1\n")
-        TEXT("\tnfs_mount.exe -o rw,sec=sys,port=30000 T grendel:/net_tmpfs2\n")
-        TEXT("\tnfs_mount.exe -o sec=sys,rw S nfs://myhost1//net_tmpfs2/test2\n")
-        TEXT("\tnfs_mount.exe -o sec=sys S nfs://myhost1//net_tmpfs2/test2?rw=1\n")
-        TEXT("\tnfs_mount.exe -o sec=sys,rw S nfs://myhost1:1234//net_tmpfs2/test2\n")
-        TEXT("\tnfs_mount.exe -o sec=sys,rw,port=1234 S nfs://myhost1//net_tmpfs2/test2\n")
-        TEXT("\tnfs_mount.exe -o sec=sys,rw '*' [fe80::21b:1bff:fec3:7713]://net_tmpfs2/test2\n")
-        TEXT("\tnfs_mount.exe -o sec=sys,rw '*' nfs://[fe80::21b:1bff:fec3:7713]//net_tmpfs2/test2\n")
-        TEXT("\tnfs_mount.exe -o sec=sys,rw S nfs://myhost1//dirwithspace/dir%%20space/test2\n")
-        TEXT("\tnfs_mount.exe -o sec=sys,rw S nfs://myhost1//dirwithspace/dir+space/test2\n")
-        TEXT("\tnfs_mount.exe -o sec=sys S nfs://myhost1//dirwithspace/dir+space/test2?rw=1\n"),
+        "* Examples:\n"
+        "\tnfs_mount.exe -p -o rw 'H' derfwpc5131_ipv4:/export/home2/rmainz\n"
+        "\tnfs_mount.exe -o rw '*' bigramhost:/tmp\n"
+        "\tnfs_mount.exe -o ro '*' archive1:/tmp\n"
+        "\tnfs_mount.exe '*' archive1:/tmp?ro=1\n"
+        "\tnfs_mount.exe -o rw,sec=sys,port=30000 T grendel:/net_tmpfs2\n"
+        "\tnfs_mount.exe -o sec=sys,rw S nfs://myhost1//net_tmpfs2/test2\n"
+        "\tnfs_mount.exe -o sec=sys S nfs://myhost1//net_tmpfs2/test2?rw=1\n"
+        "\tnfs_mount.exe -o sec=sys,rw S nfs://myhost1:1234//net_tmpfs2/test2\n"
+        "\tnfs_mount.exe -o sec=sys,rw,port=1234 S nfs://myhost1//net_tmpfs2/test2\n"
+        "\tnfs_mount.exe -o sec=sys,rw '*' [fe80::21b:1bff:fec3:7713]://net_tmpfs2/test2\n"
+        "\tnfs_mount.exe -o sec=sys,rw '*' nfs://[fe80::21b:1bff:fec3:7713]//net_tmpfs2/test2\n"
+        "\tnfs_mount.exe -o sec=sys,rw S nfs://myhost1//dirwithspace/dir%%20space/test2\n"
+        "\tnfs_mount.exe -o sec=sys,rw S nfs://myhost1//dirwithspace/dir+space/test2\n"
+        "\tnfs_mount.exe -o sec=sys S nfs://myhost1//dirwithspace/dir+space/test2?rw=1\n",
         pProcess, (int)NFS41_DRIVER_DEFAULT_CREATE_MODE);
 }
 
-DWORD __cdecl _tmain(DWORD argc, LPTSTR argv[])
+int __cdecl wmain(int argc, wchar_t *argv[])
 {
-    DWORD   i, result = NO_ERROR;
-    TCHAR   szLocalName[] = TEXT("C:\0");
-    LPTSTR  pLocalName = NULL;
-    LPTSTR  pRemoteName = NULL;
+    int     i;
+    DWORD   result = NO_ERROR;
+    wchar_t szLocalName[] = L"C:\0";
+    LPWSTR  pLocalName = NULL;
+    LPWSTR  pRemoteName = NULL;
     BOOL    bUnmount = FALSE;
     BOOL    bForceUnmount = FALSE;
     BOOL    bPersistent = FALSE;
     int     port_num = -1;
     MOUNT_OPTION_LIST Options;
 #define MAX_MNTOPTS 128
-    TCHAR   *mntopts[MAX_MNTOPTS] = { 0 };
-    size_t  num_mntopts = 0;
+    wchar_t *mntopts[MAX_MNTOPTS] = { 0 };
+    int     num_mntopts = 0;
 
     int crtsetdbgflags = 0;
     crtsetdbgflags |= _CRTDBG_ALLOC_MEM_DF;  /* use debug heap */
@@ -187,41 +187,36 @@ DWORD __cdecl _tmain(DWORD argc, LPTSTR argv[])
     /* parse command line */
     for (i = 1; i < argc; i++)
     {
-        if (argv[i][0] == TEXT('-'))
+        if (argv[i][0] == L'-')
         {
-            if (_tcscmp(argv[i], TEXT("-h")) == 0) /* help */
-            {
+            if (!wcscmp(argv[i], L"-h")) { /* help */
                 PrintUsage(argv[0]);
                 goto out;
             }
-            else if (_tcscmp(argv[i], TEXT("-d")) == 0) /* unmount */
-            {
+            else if (!wcscmp(argv[i], L"-d")) { /* unmount */
                 bUnmount = TRUE;
             }
-            else if (_tcscmp(argv[i], TEXT("-f")) == 0) /* force unmount */
-            {
+            else if (!wcscmp(argv[i], L"-f")) { /* force unmount */
                 bForceUnmount = TRUE;
             }
-            else if (_tcscmp(argv[i], TEXT("-p")) == 0) /* persistent */
-            {
+            else if (!wcscmp(argv[i], L"-p")) { /* persistent */
                 bPersistent = TRUE;
             }
-            else if (_tcscmp(argv[i], TEXT("-o")) == 0) /* mount option */
-            {
+            else if (!wcscmp(argv[i], L"-o")) { /* mount option */
                 ++i;
                 if (i >= argc)
                 {
                     result = ERROR_BAD_ARGUMENTS;
-                    _ftprintf(stderr, TEXT("Mount options missing ")
-                        TEXT("after '-o'.\n\n"));
+                    (void)fwprintf(stderr,
+                        L"Mount options missing after '-o'.\n\n");
                     PrintUsage(argv[0]);
                     goto out_free;
                 }
 
                 if (num_mntopts >= (MAX_MNTOPTS-1)) {
                     result = ERROR_BAD_ARGUMENTS;
-                    _ftprintf(stderr, TEXT("Too many -o ")
-                        TEXT("options.\n\n"));
+                    (void)fwprintf(stderr,
+                        L"Too many -o options.\n\n");
                     goto out_free;
                 }
 
@@ -275,7 +270,8 @@ opt_o_argv_i_again:
                     /* ... and convert them to a port number */
                     port_num = wcstol(digit_buff, NULL, 0);
                     if ((port_num < 1) || (port_num > 65535)) {
-                        (void)_ftprintf(stderr, TEXT("NFSv4 TCP port number out of range.\n"));
+                        (void)fwprintf(stderr,
+                            L"NFSv4 TCP port number out of range.\n");
                         result = ERROR_BAD_ARGUMENTS;
                         goto out;
                     }
@@ -293,59 +289,56 @@ opt_o_argv_i_again:
                     goto opt_o_argv_i_again;
                 }
             }
-            else if (_tcscmp(argv[i], TEXT("-r")) == 0) /* mount option */
-            {
+            else if (!wcscmp(argv[i], L"-r")) { /* mount option */
                 if (num_mntopts >= (MAX_MNTOPTS-1)) {
                     result = ERROR_BAD_ARGUMENTS;
-                    (void)_ftprintf(stderr, TEXT("Too many options.\n\n"));
+                    (void)fwprintf(stderr, L"Too many options.\n\n");
                     goto out_free;
                 }
 
-                mntopts[num_mntopts++] = TEXT("ro");
+                mntopts[num_mntopts++] = L"ro";
             }
-            else if (_tcscmp(argv[i], TEXT("-w")) == 0) /* mount option */
-            {
+            else if (!wcscmp(argv[i], L"-w")) { /* mount option */
                 if (num_mntopts >= (MAX_MNTOPTS-1)) {
                     result = ERROR_BAD_ARGUMENTS;
-                    (void)_ftprintf(stderr, TEXT("Too many options.\n\n"));
+                    (void)fwprintf(stderr, L"Too many options.\n\n");
                     goto out_free;
                 }
 
-                mntopts[num_mntopts++] = TEXT("rw");
+                mntopts[num_mntopts++] = L"rw";
             }
 	    /*
 	     * Filesystem type, we use this for Solaris
 	     * $ mount(1M) -F nfs ... # and Linux
 	     * $ mount.nfs4 -t nfs ... # compatiblity
 	     */
-            else if ((_tcscmp(argv[i], TEXT("-F")) == 0) ||
-	             (_tcscmp(argv[i], TEXT("-t")) == 0))
+            else if ((!wcscmp(argv[i], L"-F")) ||
+	             (!wcscmp(argv[i], L"-t")))
             {
                 ++i;
                 if (i >= argc)
                 {
                     result = ERROR_BAD_ARGUMENTS;
-                    _ftprintf(stderr, TEXT("Filesystem type missing ")
-                        TEXT("after '-t'/'-F'.\n\n"));
+                    (void)fwprintf(stderr, L"Filesystem type missing "
+                        L"after '-t'/'-F'.\n\n");
                     PrintUsage(argv[0]);
                     goto out_free;
                 }
 
-                if (_tcscmp(argv[i], TEXT("nfs")) != 0)
-                {
+                if (!wcscmp(argv[i], L"nfs")) {
                     result = ERROR_BAD_ARGUMENTS;
-                    _ftprintf(stderr, TEXT("Filesystem type '%s' ")
-                        TEXT("not supported.\n\n"), argv[i]);
+                    (void)fwprintf(stderr, L"Filesystem type '%s' "
+                        L"not supported.\n\n", argv[i]);
                     PrintUsage(argv[0]);
                     goto out_free;
                 }
             }
             else
-                _ftprintf(stderr, TEXT("Unrecognized option ")
-                    TEXT("'%s', disregarding.\n"), argv[i]);
+                (void)fwprintf(stderr, L"Unrecognized option "
+                    L"'%s', disregarding.\n",
+                    argv[i]);
         }
-        else if (_tcscmp(argv[i], TEXT("/?")) == 0)
-	{
+        else if (!wcscmp(argv[i], L"/?")) {
 	    /* Windows-style "nfs_mount /?" help */
             PrintUsage(argv[0]);
             goto out;
@@ -359,23 +352,25 @@ opt_o_argv_i_again:
             pRemoteName = argv[i];
         }
         else
-            _ftprintf(stderr, TEXT("Unrecognized argument ")
-                TEXT("'%s', disregarding.\n"), argv[i]);
+            (void)fwprintf(stderr, L"Unrecognized argument "
+                L"'%s', disregarding.\n",
+                argv[i]);
     }
 
     /* validate local drive letter */
     if (pLocalName == NULL)
     {
         result = ERROR_BAD_ARGUMENTS;
-        _ftprintf(stderr, TEXT("Missing argument for drive letter.\n\n"));
+        (void)fwprintf(stderr, L"Missing argument for drive letter.\n\n");
         PrintUsage(argv[0]);
         goto out_free;
     }
     if (FALSE == ParseDriveLetter(pLocalName, szLocalName))
     {
         result = ERROR_BAD_ARGUMENTS;
-        _ftprintf(stderr, TEXT("Invalid drive letter '%s'. ")
-            TEXT("Expected 'C' or 'C:'.\n\n"), pLocalName);
+        (void)fwprintf(stderr, L"Invalid drive letter '%s'. "
+            L"Expected 'C' or 'C:'.\n\n",
+            pLocalName);
         PrintUsage(argv[0]);
         goto out_free;
     }
@@ -388,15 +383,15 @@ opt_o_argv_i_again:
     }
     else /* mount */
     {
-        TCHAR szRemoteName[NFS41_SYS_MAX_PATH_LEN];
-        TCHAR szParsedRemoteName[NFS41_SYS_MAX_PATH_LEN];
+        wchar_t szRemoteName[NFS41_SYS_MAX_PATH_LEN];
+        wchar_t szParsedRemoteName[NFS41_SYS_MAX_PATH_LEN];
 
-        *szRemoteName = TEXT('\0');
+        *szRemoteName = L'\0';
 
         if (pRemoteName == NULL)
         {
             result = ERROR_BAD_NET_NAME;
-            _ftprintf(stderr, TEXT("Missing argument for remote path.\n\n"));
+            (void)fwprintf(stderr, L"Missing argument for remote path.\n\n");
             PrintUsage(argv[0]);
             goto out_free;
         }
@@ -437,12 +432,12 @@ out:
 }
 
 static void ConvertUnixSlashes(
-    IN OUT LPTSTR pRemoteName)
+    IN OUT LPWSTR pRemoteName)
 {
-    LPTSTR pos = pRemoteName;
+    LPWSTR pos = pRemoteName;
     for (pos = pRemoteName; *pos; pos++)
-        if (*pos == TEXT('/'))
-            *pos = TEXT('\\');
+        if (*pos == L'/')
+            *pos = L'\\';
 }
 
 
@@ -489,14 +484,14 @@ wchar_t *utf8str2wcs(const char *utf8str)
 static DWORD ParseRemoteName(
     IN bool use_nfspubfh,
     IN int override_portnum,
-    IN LPTSTR pRemoteName,
+    IN LPWSTR pRemoteName,
     IN OUT PMOUNT_OPTION_LIST pOptions,
-    OUT LPTSTR pParsedRemoteName,
-    OUT LPTSTR pConnectionName,
+    OUT LPWSTR pParsedRemoteName,
+    OUT LPWSTR pConnectionName,
     IN size_t cchConnectionLen)
 {
     DWORD result = NO_ERROR;
-    LPTSTR pEnd;
+    LPWSTR pEnd;
     wchar_t *mountstrmem = NULL;
     int port = MOUNT_CONFIG_NFS_PORT_DEFAULT;
     wchar_t remotename[NFS41_SYS_MAX_PATH_LEN];
@@ -513,7 +508,7 @@ static DWORD ParseRemoteName(
      * SCHEME", see https://www.rfc-editor.org/rfc/rfc2224.html),
      * including port support (nfs://hostname@port/path/...)
      */
-    if (!wcsncmp(premotename, TEXT("nfs://"), 6)) {
+    if (!wcsncmp(premotename, L"nfs://", 6)) {
         char *premotename_utf8;
         wchar_t *hostname_wstr;
 
@@ -542,13 +537,14 @@ static DWORD ParseRemoteName(
 
         if (url_parser_parse(uctx) < 0) {
             result = ERROR_BAD_ARGUMENTS;
-            (void)_ftprintf(stderr, TEXT("Error parsing nfs://-URL.\n"));
+            (void)fwprintf(stderr, L"Error parsing nfs://-URL.\n");
             goto out;
         }
 
         if (uctx->login.username || uctx->login.passwd) {
             result = ERROR_BAD_ARGUMENTS;
-            (void)_ftprintf(stderr, TEXT("Username/Password are not defined for nfs://-URL.\n"));
+            (void)fwprintf(stderr,
+                L"Username/Password are not defined for nfs://-URL.\n");
             goto out;
         }
 
@@ -572,40 +568,41 @@ static DWORD ParseRemoteName(
 
                 if (!strcmp(pname, "rw")) {
                     if ((pvalue == NULL) || (!strcmp(pvalue, "1"))) {
-                        (void)InsertOption(TEXT("rw"), TEXT("1"), pOptions);
+                        (void)InsertOption(L"rw", L"1", pOptions);
                     }
                     else if (!strcmp(pvalue, "0")) {
-                        (void)InsertOption(TEXT("ro"), TEXT("1"), pOptions);
+                        (void)InsertOption(L"ro", L"1", pOptions);
                     }
                     else {
                         result = ERROR_BAD_ARGUMENTS;
-                        (void)_ftprintf(stderr,
-                            TEXT("Unsupported nfs://-URL parameter ")
-                            TEXT("'%S' value '%S'.\n"),
+                        (void)fwprintf(stderr,
+                            L"Unsupported nfs://-URL parameter "
+                            L"'%S' value '%S'.\n",
                             pname, pvalue);
                         goto out;
                     }
                 }
                 else if (!strcmp(pname, "ro")) {
                     if ((pvalue == NULL) || (!strcmp(pvalue, "1"))) {
-                        (void)InsertOption(TEXT("ro"), TEXT("1"), pOptions);
+                        (void)InsertOption(L"ro", L"1", pOptions);
                     }
                     else if (!strcmp(pvalue, "0")) {
-                        (void)InsertOption(TEXT("rw"), TEXT("1"), pOptions);
+                        (void)InsertOption(L"rw", L"1", pOptions);
                     }
                     else {
                         result = ERROR_BAD_ARGUMENTS;
-                        (void)_ftprintf(stderr,
-                            TEXT("Unsupported nfs://-URL parameter ")
-                            TEXT("'%S' value '%S'.\n"),
+                        (void)fwprintf(stderr,
+                            L"Unsupported nfs://-URL parameter "
+                            L"'%S' value '%S'.\n",
                             pname, pvalue);
                         goto out;
                     }
                 }
                 else {
                     result = ERROR_BAD_ARGUMENTS;
-                    (void)_ftprintf(stderr,
-                        TEXT("Unsupported nfs://-URL parameter '%S'.\n"), pname);
+                    (void)fwprintf(stderr,
+                        L"Unsupported nfs://-URL parameter '%S'.\n",
+                        pname);
                     goto out;
                 }
             }
@@ -625,13 +622,13 @@ static DWORD ParseRemoteName(
 
         if (!uctx->path) {
             result = ERROR_BAD_ARGUMENTS;
-            (void)_ftprintf(stderr, TEXT("Path missing in nfs://-URL\n"));
+            (void)fwprintf(stderr, L"Path missing in nfs://-URL\n");
             goto out;
         }
 
         if (uctx->path[0] != '/') {
             result = ERROR_BAD_ARGUMENTS;
-            (void)_ftprintf(stderr, TEXT("Relative nfs://-URLs are not supported\n"));
+            (void)fwprintf(stderr, L"Relative nfs://-URLs are not supported\n");
             goto out;
         }
 
@@ -651,23 +648,23 @@ static DWORD ParseRemoteName(
          * users, but we explicitly allow the nfs://-URLs to have a
          * port number, and -o port=<num> to override that.
          */
-        if (_tcsrchr(premotename, TEXT('@'))) {
-            (void)_ftprintf(stderr,
-                TEXT("Remote path should not contain '@', ")
-                TEXT("use -o port=tcpportnum.\n"));
+        if (wcsrchr(premotename, L'@')) {
+            (void)fwprintf(stderr,
+                L"Remote path should not contain '@', "
+                L"use -o port=tcpportnum.\n");
             result = ERROR_BAD_ARGUMENTS;
             goto out;
         }
 
         /* fail if the server name doesn't end with :\ */
-        pEnd = _tcsrchr(premotename, TEXT(':'));
-        if (pEnd == NULL || pEnd[1] != TEXT('\\')) {
-            (void)_ftprintf(stderr, TEXT("Failed to parse the remote path. ")
-                TEXT("Expected 'hostname:\\path'.\n"));
+        pEnd = wcsrchr(premotename, L':');
+        if (pEnd == NULL || pEnd[1] != L'\\') {
+            (void)fwprintf(stderr, L"Failed to parse the remote path. "
+                L"Expected 'hostname:\\path'.\n");
             result = ERROR_BAD_ARGUMENTS;
             goto out;
         }
-        *pEnd++ = TEXT('\0');
+        *pEnd++ = L'\0';
     }
 
     /*
@@ -693,31 +690,31 @@ static DWORD ParseRemoteName(
      * See https://en.wikipedia.org/wiki/IPv6_address#Literal_IPv6_addresses_in_UNC_path_names
      * for details
      */
-    if (premotename[0] == TEXT('[')) {
+    if (premotename[0] == L'[') {
         size_t len = wcslen(premotename);
         size_t i;
         wchar_t c;
 
         /* Check for minimum length and trailing ']' */
-        if ((len < 4) || (premotename[len-1] != TEXT(']'))) {
-            _ftprintf(stderr, TEXT("Failed to parse raw IPv6 address,")
-	        TEXT(" trailing ']' is missing, ")
-		TEXT("or address string too short.\n"));
+        if ((len < 4) || (premotename[len-1] != L']')) {
+            fwprintf(stderr, L"Failed to parse raw IPv6 address,"
+	        L" trailing ']' is missing, "
+		L"or address string too short.\n");
             result = ERROR_BAD_ARGUMENTS;
             goto out;
 	}
 
         /* Skip '[', stomp ']' */
-        premotename[len-1] = TEXT('\0');
+        premotename[len-1] = L'\0';
         premotename++;
         len -= 2;
 
         /* Check whether this is a valid IPv6 address */
         for (i=0 ; i < len ; i++) {
             c = premotename[i];
-            if (!(iswxdigit(c) || (c == TEXT(':')))) {
-                _ftprintf(stderr, TEXT("Failed to parse raw IPv6 ")
-		    TEXT("address, illegal character '%c' found.\n"),
+            if (!(iswxdigit(c) || (c == L':'))) {
+                fwprintf(stderr, L"Failed to parse raw IPv6 "
+		    L"address, illegal character '%c' found.\n",
 		    c);
                 result = ERROR_BAD_ARGUMENTS;
                 goto out;
@@ -726,11 +723,11 @@ static DWORD ParseRemoteName(
 
 	for (i = 0 ; i < len ; i++) {
 	    /* IPv6 separator */
-            if (premotename[i] == TEXT(':'))
-                premotename[i] = TEXT('-');
+            if (premotename[i] == L':')
+                premotename[i] = L'-';
 	    /* zone index */
-	    else if (premotename[i] == TEXT('%'))
-                premotename[i] = TEXT('s');
+	    else if (premotename[i] == L'%')
+                premotename[i] = L's';
         }
 
         /*
@@ -739,11 +736,11 @@ static DWORD ParseRemoteName(
 	 *   too
 	 */
         (void)swprintf(srvname, SRVNAME_LEN,
-	    TEXT("%s.ipv6-literal.net@%d"), premotename, port);
+	    L"%s.ipv6-literal.net@%d", premotename, port);
     }
     else {
         /* ALWAYS add port number to hostname, so UNC paths use it too */
-        (void)swprintf(srvname, SRVNAME_LEN, TEXT("%s@%d"),
+        (void)swprintf(srvname, SRVNAME_LEN, L"%s@%d",
 	    premotename, port);
     }
 
@@ -751,27 +748,27 @@ static DWORD ParseRemoteName(
      * Safeguard against ':' in UNC paths, e.g if we pass raw IPv6
      * address without ':', or just random garbage
      */
-    if (wcschr(srvname, TEXT(':'))) {
-        _ftprintf(stderr,
-	    TEXT("Illegal ':' character hostname '%s'.\n"), srvname);
+    if (wcschr(srvname, L':')) {
+        fwprintf(stderr,
+	    L"Illegal ':' character hostname '%s'.\n", srvname);
         result = ERROR_BAD_ARGUMENTS;
         goto out;
     }
 
 #ifdef DEBUG_MOUNT
-    (void)_ftprintf(stderr,
-        TEXT("srvname='%s', mntpt='%s'\n"),
+    (void)fwprintf(stderr,
+        L"srvname='%s', mntpt='%s'\n",
         srvname,
         pEnd);
 #endif
 
-    if (!InsertOption(TEXT("srvname"), srvname, pOptions) ||
-        !InsertOption(TEXT("mntpt"), *pEnd ? pEnd : TEXT("\\"), pOptions)) {
+    if (!InsertOption(L"srvname", srvname, pOptions) ||
+        !InsertOption(L"mntpt", (*pEnd ? pEnd : L"\\"), pOptions)) {
         result = ERROR_BAD_ARGUMENTS;
         goto out;
     }
 
-    result = StringCchCopy(pConnectionName, cchConnectionLen, TEXT("\\\\"));
+    result = StringCchCopy(pConnectionName, cchConnectionLen, L"\\\\");
     if (FAILED(result))
         goto out;
     result = StringCbCat(pConnectionName, cchConnectionLen, srvname);
@@ -779,7 +776,7 @@ static DWORD ParseRemoteName(
         goto out;
 #ifdef NFS41_DRIVER_MOUNT_DOES_NFS4_PREFIX
     result = StringCbCat(pConnectionName, cchConnectionLen,
-        (use_nfspubfh?(TEXT("\\pubnfs4")):(TEXT("\\nfs4"))));
+        (use_nfspubfh?(L"\\pubnfs4"):(L"\\nfs4")));
     if (FAILED(result))
         goto out;
 #endif /* NFS41_DRIVER_MOUNT_DOES_NFS4_PREFIX */
@@ -789,8 +786,8 @@ static DWORD ParseRemoteName(
     result = StringCchCopy(pParsedRemoteName, cchConnectionLen, srvname);
 
 #ifdef DEBUG_MOUNT
-    (void)_ftprintf(stderr,
-        TEXT("pConnectionName='%s', pParsedRemoteName='%s', use_nfspubfh='%d'\n"),
+    (void)fwprintf(stderr,
+        L"pConnectionName='%s', pParsedRemoteName='%s', use_nfspubfh='%d'\n",
         pConnectionName,
         pParsedRemoteName,
         (int)use_nfspubfh);
@@ -807,26 +804,26 @@ out:
 }
 
 static DWORD DoMount(
-    IN LPTSTR pLocalName,
-    IN LPTSTR pRemoteName,
-    IN LPTSTR pParsedRemoteName,
+    IN LPWSTR pLocalName,
+    IN LPWSTR pRemoteName,
+    IN LPWSTR pParsedRemoteName,
     IN BOOL bPersistent,
     IN PMOUNT_OPTION_LIST pOptions)
 {
     DWORD result = NO_ERROR;
-    TCHAR szExisting[NFS41_SYS_MAX_PATH_LEN];
+    wchar_t szExisting[NFS41_SYS_MAX_PATH_LEN];
     DWORD dwLength;
     NETRESOURCE NetResource;
 
     if (pOptions->Buffer->Length) {
         if (pOptions->Current)
             pOptions->Current->NextEntryOffset = 0;
-        NetResource.lpComment = (LPTSTR)&pOptions->Buffer[0];
+        NetResource.lpComment = (LPWSTR)&pOptions->Buffer[0];
     }
 
 #ifdef DEBUG_MOUNT
-    (void)_ftprintf(stderr,
-        TEXT("DoMount(pLocalName='%s', pRemoteName='%s', pParsedRemoteName='%s')\n"),
+    (void)fwprintf(stderr,
+        L"DoMount(pLocalName='%s', pRemoteName='%s', pParsedRemoteName='%s')\n",
         pLocalName,
         pRemoteName,
         pParsedRemoteName);
@@ -835,29 +832,29 @@ static DWORD DoMount(
 
     /* fail if the connection already exists */
     dwLength = NFS41_SYS_MAX_PATH_LEN;
-    result = WNetGetConnection(pLocalName, (LPTSTR)szExisting, &dwLength);
+    result = WNetGetConnection(pLocalName, (LPWSTR)szExisting, &dwLength);
     if (result == NO_ERROR)
     {
         result = ERROR_ALREADY_ASSIGNED;
-        _ftprintf(stderr, TEXT("Mount failed, drive %s is ")
-            TEXT("already assigned to '%s'.\n"),
+        (void)fwprintf(stderr, L"Mount failed, drive %s is "
+            L"already assigned to '%s'.\n",
             pLocalName, szExisting);
     }
     else
     {
-        TCHAR szConnection[NFS41_SYS_MAX_PATH_LEN];
+        wchar_t szConnection[NFS41_SYS_MAX_PATH_LEN];
         DWORD ConnectSize = NFS41_SYS_MAX_PATH_LEN, ConnectResult, Flags = 0;
 
         ZeroMemory(&NetResource, sizeof(NETRESOURCE));
         NetResource.dwType = RESOURCETYPE_DISK;
         /* drive letter is chosen automatically if lpLocalName == NULL */
-        NetResource.lpLocalName = *pLocalName == TEXT('*') ? NULL : pLocalName;
+        NetResource.lpLocalName = *pLocalName == L'*' ? NULL : pLocalName;
         NetResource.lpRemoteName = pRemoteName;
         /* ignore other network providers */
-        NetResource.lpProvider = TEXT(NFS41_PROVIDER_NAME_A);
+        NetResource.lpProvider = NFS41_PROVIDER_NAME_U;
         /* pass mount options via lpComment */
         if (pOptions->Buffer->Length) {
-            NetResource.lpComment = (LPTSTR)pOptions->Buffer;
+            NetResource.lpComment = (LPWSTR)pOptions->Buffer;
         }
 
         if (bPersistent)
@@ -868,11 +865,11 @@ static DWORD DoMount(
             szConnection, &ConnectSize, &ConnectResult);
 
         if (result == NO_ERROR)
-            _tprintf(TEXT("Successfully mounted '%s' to drive '%s'\n"),
+            (void)wprintf(L"Successfully mounted '%s' to drive '%s'\n",
                 pParsedRemoteName, szConnection);
         else
-            _ftprintf(stderr, TEXT("WNetUseConnection(%s, %s) ")
-                TEXT("failed with error code %u.\n"),
+            (void)fwprintf(stderr, L"WNetUseConnection(%s, %s) "
+                L"failed with error code %u.\n",
                 pLocalName, pRemoteName, result);
     }
 
@@ -880,7 +877,7 @@ static DWORD DoMount(
 }
 
 static DWORD DoUnmount(
-    IN LPTSTR pLocalName,
+    IN LPWSTR pLocalName,
     IN BOOL bForce)
 {
     DWORD result;
@@ -891,35 +888,36 @@ static DWORD DoUnmount(
     switch (result)
     {
     case NO_ERROR:
-        _tprintf(TEXT("Drive %s unmounted successfully.\n"), pLocalName);
+        (void)wprintf(L"Drive %s unmounted successfully.\n",
+            pLocalName);
         break;
     case ERROR_NOT_CONNECTED:
-        _ftprintf(stderr, TEXT("Drive %s is not currently ")
-            TEXT("connected.\n"), pLocalName);
+        (void)fwprintf(stderr, L"Drive %s is not currently "
+            L"connected.\n", pLocalName);
         break;
     default:
-        _ftprintf(stderr, TEXT("WNetCancelConnection2(%s) failed ")
-            TEXT("with error code %u.\n"), pLocalName, result);
+        (void)fwprintf(stderr, L"WNetCancelConnection2(%s) failed "
+            L"with error code %u.\n", pLocalName, result);
         break;
     }
     return result;
 }
 
 static BOOL ParseDriveLetter(
-    IN LPTSTR pArg,
+    IN LPWSTR pArg,
     OUT PTCH pDriveLetter)
 {
     /* accept 'C' or 'C:' */
-    switch (_tcslen(pArg))
+    switch (wcslen(pArg))
     {
     case 2:
-        if (pArg[1] != TEXT(':'))
+        if (pArg[1] != L':')
             return FALSE;
         /* break intentionally missing */
     case 1:
-        if (_istlower(*pArg))
-            *pArg = (TCHAR)_totupper(*pArg);
-        else if (!_istupper(*pArg) && *pArg != TEXT('*'))
+        if (iswlower(*pArg))
+            *pArg = (wchar_t)towupper(*pArg);
+        else if (!iswupper(*pArg) && *pArg != L'*')
             return FALSE;
 
         *pDriveLetter = *pArg;
@@ -931,10 +929,10 @@ static BOOL ParseDriveLetter(
 void PrintErrorMessage(
     IN DWORD dwError)
 {
-    LPTSTR lpMsgBuf = NULL;
+    LPWSTR lpMsgBuf = NULL;
     FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
         NULL, dwError, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-        (LPTSTR)&lpMsgBuf, 0, NULL);
-    _fputts(lpMsgBuf, stderr);
+        (LPWSTR)&lpMsgBuf, 0, NULL);
+    (void)fputws(lpMsgBuf, stderr);
     LocalFree(lpMsgBuf);
 }
