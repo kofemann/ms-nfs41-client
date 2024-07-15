@@ -53,6 +53,7 @@ DWORD EnumMounts(
 
 static DWORD ParseRemoteName(
     IN bool use_nfspubfh,
+    IN int override_portnum,
     IN LPTSTR pRemoteName,
     IN OUT PMOUNT_OPTION_LIST pOptions,
     OUT LPTSTR pParsedRemoteName,
@@ -151,6 +152,7 @@ DWORD __cdecl _tmain(DWORD argc, LPTSTR argv[])
     BOOL    bUnmount = FALSE;
     BOOL    bForceUnmount = FALSE;
     BOOL    bPersistent = FALSE;
+    int     port_num = -1;
     MOUNT_OPTION_LIST Options;
 #define MAX_MNTOPTS 128
     TCHAR   *mntopts[MAX_MNTOPTS] = { 0 };
@@ -225,18 +227,70 @@ DWORD __cdecl _tmain(DWORD argc, LPTSTR argv[])
 
                 mntopts[num_mntopts++] = argv[i];
 
+                wchar_t *argv_i = argv[i];
+                bool found_opt;
+
+opt_o_argv_i_again:
                 /*
-                 * Extract "public" option here, as we need this for
+                 * Extract options here, which are needed by
                  * |ParseRemoteName()|. General parsing of -o options
                  * happens *AFTER* |ParseRemoteName()|, so any
                  * settings from a nfs://-URL can be overridden
                  * via -o options.
                  */
-                if (wcsstr(argv[i], L"public=0")) {
+                found_opt = false;
+
+                /*
+                 * Extract "public" option
+                 */
+                if (wcsstr(argv_i, L"public=0")) {
                     use_nfspubfh = false;
+                    argv_i += 8;
+                    found_opt = true;
                 }
-                else if (wcsstr(argv[i], L"public")) {
+                else if (wcsstr(argv_i, L"public")) {
                     use_nfspubfh = true;
+                    argv_i += 6;
+                    found_opt = true;
+                }
+
+                /*
+                 * Extract port number
+                 */
+                wchar_t *pns; /* port number string */
+                pns = wcsstr(argv_i, L"port=");
+                if (pns) {
+                    wchar_t *db;
+                    wchar_t digit_buff[20];
+
+                    pns += 5; /* skip "port=" */
+
+                    /* Copy digits... */
+                    for(db = digit_buff ;
+                        iswdigit(*pns) &&
+                        ((db-digit_buff) < sizeof(digit_buff)) ; )
+                        *db++ = *pns++;
+                    *db = L'\0';
+
+                    /* ... and convert them to a port number */
+                    port_num = wcstol(digit_buff, NULL, 0);
+                    if ((port_num < 1) || (port_num > 65535)) {
+                        (void)_ftprintf(stderr, TEXT("NFSv4 TCP port number out of range.\n"));
+                        result = ERROR_BAD_ARGUMENTS;
+                        goto out;
+                    }
+
+                    argv_i = pns-1;
+                    found_opt = true;
+                }
+
+                /*
+                 * Try again with the remainder of the |argv[i]| string,
+                 * so "port=666,port=888" will result in the port number
+                 * "888"
+                 */
+                if (found_opt) {
+                    goto opt_o_argv_i_again;
                 }
             }
             else if (_tcscmp(argv[i], TEXT("-r")) == 0) /* mount option */
@@ -353,8 +407,10 @@ DWORD __cdecl _tmain(DWORD argc, LPTSTR argv[])
          * options for a NFS mount point, which can be overridden via
          * -o below.
          */
-        result = ParseRemoteName(use_nfspubfh, pRemoteName, &Options,
-            szParsedRemoteName, szRemoteName, NFS41_SYS_MAX_PATH_LEN);
+        result = ParseRemoteName(use_nfspubfh, port_num,
+            pRemoteName, &Options,
+            szParsedRemoteName, szRemoteName,
+            NFS41_SYS_MAX_PATH_LEN);
         if (result)
             goto out;
 
@@ -432,6 +488,7 @@ wchar_t *utf8str2wcs(const char *utf8str)
 
 static DWORD ParseRemoteName(
     IN bool use_nfspubfh,
+    IN int override_portnum,
     IN LPTSTR pRemoteName,
     IN OUT PMOUNT_OPTION_LIST pOptions,
     OUT LPTSTR pParsedRemoteName,
@@ -442,7 +499,6 @@ static DWORD ParseRemoteName(
     LPTSTR pEnd;
     wchar_t *mountstrmem = NULL;
     int port = MOUNT_CONFIG_NFS_PORT_DEFAULT;
-    PFILE_FULL_EA_INFORMATION port_option_val;
     wchar_t remotename[NFS41_SYS_MAX_PATH_LEN];
     wchar_t *premotename = remotename;
 /* sizeof(hostname+'@'+integer) */
@@ -618,19 +674,8 @@ static DWORD ParseRemoteName(
      * Override the NFSv4 TCP port with the -o port=<num> option,
      * inclding for nfs://-URLs with port numbers
      */
-    if (FindOptionByName(TEXT("port"), pOptions,
-        &port_option_val)) {
-        wchar_t *port_value_wstr =
-            (PTCH)(port_option_val->EaName +
-                port_option_val->EaNameLength + sizeof(TCHAR));
-
-        port = _wtoi(port_value_wstr);
-    }
-
-    if ((port < 1) || (port > 65535)) {
-        (void)_ftprintf(stderr, TEXT("NFSv4 TCP port number out of range.\n"));
-        result = ERROR_BAD_ARGUMENTS;
-        goto out;
+    if (override_portnum != -1) {
+        port = override_portnum;
     }
 
     /*
