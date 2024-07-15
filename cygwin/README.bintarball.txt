@@ -24,7 +24,7 @@ NFSv4.1 client and filesystem driver for Windows 10/11
 - Support for custom ports (NFSv4 defaults to TCP port 2049, this
     client can use different ports per mount)
 
-- Support for nfs://-URL
+- Support for nfs://-URLs
     * Why ? nfs://-URLs are crossplatform, portable and Character-Encoding
       independent descriptions of NFSv4 server resources (exports).
     - including custom ports and raw IPv6 addresses
@@ -33,12 +33,14 @@ NFSv4.1 client and filesystem driver for Windows 10/11
 
 - Support ssh forwarding, e.g. mounting NFSv4 filesystems via ssh
     tunnel
+
 - Support for long paths (up to 4096 bytes), no Windows MAXPATH limit
 
-- Support for NFSv4 public mounts (i.e. use the NFSv4 public file handle
-    lookup protocol via $ nfs_mount -o public ... #)
-
 - Unicode support
+    - File names can use any Unicode character supported by
+      the NFS server's filesystem.
+    - nfs://-URLs can be used to mount filesystems with non-ASCII
+      characters in the mount path, independent of current locale.
 
 - UNC paths
     - IPv6 support in UNC paths
@@ -50,10 +52,13 @@ NFSv4.1 client and filesystem driver for Windows 10/11
     - IPv6 address within '[', ']'
       (will be converted to *.ipv6-literal.net)
 
-- Windows ACLs
+- Windows ACLs <---> NFSv4 ACL translation
     - Win32 C:\Windows\system32\icacls.exe
     - Cygwin /usr/bin/setfacl+/usr/bin/getfacl
     - Windows Explorer ACL dialog
+
+- Support for NFSv4 public mounts (i.e. use the NFSv4 public file handle
+    lookup protocol via $ nfs_mount -o public ... #)
 
 - SFU/Cygwin support, including:
     - uid/gid
@@ -137,24 +142,25 @@ echo %PROCESSOR_ARCHITECTURE%
 # If you get any other value then this is a (documentation) bug.
 
 - Cygwin 64bit can be installed like this:
----- snip ----
+# ---- snip ----
 # Install Cygwin 64bit on Windows 64bit with packages required by "ms-nfs41-client"
 # (Windows NFSv4.1 client):
 # 1. Get installer from https://cygwin.com/setup-x86_64.exe
 curl --remote-name "https://www.cygwin.com/setup-x86_64.exe"
 # 2. Run installer with these arguments:
 setup-x86_64.exe -q --site "https://mirrors.kernel.org/sourceware/cygwin" -P cygwin,cygwin-devel,cygrunsrv,cygutils,cygutils-extra,bash,bzip2,coreutils,getent,gdb,grep,hostname,less,libiconv,libiconv2,pax,pbzip2,procps-ng,sed,tar,time,util-linux,wget,libnfs-utils,make,git,dos2unix,unzip
+# ---- snip ----
 
 
 - Cygwin 32bit can be installed like this:
----- snip ----
+# ---- snip ----
 # Install Cygwin 32bit on Windows 32bit with packages required by "ms-nfs41-client"
 # (Windows NFSv4.1 client):
 # 1. Get installer from https://www.cygwin.com/setup-x86.exe
 curl --remote-name "https://www.cygwin.com/setup-x86.exe"
 # 2. Run installer with these arguments:
 setup-x86.exe --allow-unsupported-windows -q --no-verify --site "http://ctm.crouchingtigerhiddenfruitbat.org/pub/cygwin/circa/2022/11/23/063457" -P cygwin,cygwin-devel,cygrunsrv,cygutils,cygutils-extra,bash,bzip2,coreutils,getent,gdb,grep,hostname,less,libiconv,libiconv2,pax,pbzip2,procps-ng,sed,tar,time,util-linux,wget,libnfs-utils,make,git,dos2unix,unzip
----- snip ----
+# ---- snip ----
 
 
 #
@@ -307,26 +313,26 @@ $ /sbin/nfs_mount
   - On Windows on a NFSv4 filesystem:
   $ icacls myhorribledata.txt /grant "siegfried_wulsch:WD" #
   - On Linux NFSv4 clients you will then see this:
-  ---- snip ----
+  # ---- snip ----
   $ nfs4_getfacl myhorribledata.txt
   A::OWNER@:rwatTcCy
   A::siegfried_wulsch@global.loc:rwatcy
   A::GROUP@:rtcy
   A::EVERYONE@:rtcy
-  ---- snip ----
+  # ---- snip ----
 
   * Example 2 (assuming that Windows, Linux NFSv4 client and NFSv4
   server have a group "cygwingrp2"):
   - On Windows on a NFSv4 filesystem:
   $ icacls myhorribledata.txt /grant "cygwingrp2:(WDAC)" /t /c #
   - On Linux NFSv4 clients you will then see this:
-  ---- snip ----
+  # ---- snip ----
   $ nfs4_getfacl myhorribledata.txt
   A::OWNER@:rwatTcCy
   A::GROUP@:rtcy
   A:g:cygwingrp2@global.loc:rtcy
   A::EVERYONE@:rtcy
-  ---- snip ----
+  # ---- snip ----
 
 - nfs_mount.exe vs. reserved ports:
   By default the NFSv4 server on Solaris, Illumos, Linux
@@ -396,7 +402,7 @@ $ /sbin/nfs_mount
 
 - Bug: Subversion checkout can fail with
   "sqlite[S11]: database disk image is malformed" like this:
-  ---- snip ----
+  # ---- snip ----
   $ svn checkout https://svn.FreeBSD.org/base/head/share/man
   A    man/man4
   A    man/man4/tcp.4
@@ -419,7 +425,7 @@ $ /sbin/nfs_mount
   svn: E200030: sqlite[S11]: database disk image is malformed
   svn: E200030: sqlite[S11]: database disk image is malformed
   svn: E200030: sqlite[S11]: database disk image is malformed
-  ---- snip ----
+  # ---- snip ----
   Workaround is to mount the NFS filesystem with the "writethru"
   option, e.g.
   $ /sbin/nfs_mount -o rw,writethru 'j' derfwpc5131:/export/home/rmainz #
@@ -450,10 +456,10 @@ $ /sbin/nfs_mount
   (for NFSv4 default TCP port "2049", replace "2049" with the
   desired port if you use a custom port ; use "ipconfig" to find the
   correct interface name, in this case "Ethernet0"):
-  ---- snip ----
+  # ---- snip ----
   $ nfsv4port=2049 ; /cygdrive/c/Program\ Files/Wireshark/tshark \
     -f "port $nfsv4port" -d "tcp.port==${nfsv4port},rpc" -i Ethernet0
-  ---- snip ----
+  # ---- snip ----
 
   If you are running inside a VMware VM on a Linux host it
   might require $ chmod a+rw /dev/vmnet0 # on VMware host, so that
