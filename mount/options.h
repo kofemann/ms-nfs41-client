@@ -89,4 +89,7 @@ BOOL InsertOption(
     IN LPCTSTR Value,
     IN OUT PMOUNT_OPTION_LIST Options);
 
+void RecursivePrintEaInformation(
+    IN PFILE_FULL_EA_INFORMATION EA);
+
 #endif /* !__NFS41_MOUNT_OPTIONS_H__ */

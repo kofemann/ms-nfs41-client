@@ -773,16 +773,20 @@ static DWORD DoMount(
     DWORD dwLength;
     NETRESOURCE NetResource;
 
-
     if (pOptions->Buffer->Length) {
         if (pOptions->Current)
             pOptions->Current->NextEntryOffset = 0;
         NetResource.lpComment = (LPTSTR)&pOptions->Buffer[0];
     }
 
-#if 0
+#ifdef DEBUG_MOUNT
+    (void)_ftprintf(stderr,
+        TEXT("DoMount(pLocalName='%s', pRemoteName='%s', pParsedRemoteName='%s')\n"),
+        pLocalName,
+        pRemoteName,
+        pParsedRemoteName);
     RecursivePrintEaInformation((PFILE_FULL_EA_INFORMATION)pOptions->Buffer->Buffer);
-#endif
+#endif /* DEBUG_MOUNT */
 
     /* fail if the connection already exists */
     dwLength = NFS41_SYS_MAX_PATH_LEN;

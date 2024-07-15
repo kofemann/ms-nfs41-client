@@ -158,7 +158,7 @@ BOOL InsertOption(
     return TRUE;
 }
 
-static void RecursivePrintEaInformation(
+void RecursivePrintEaInformation(
     IN PFILE_FULL_EA_INFORMATION EA)
 {
     _tprintf(
