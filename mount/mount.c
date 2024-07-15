@@ -554,13 +554,9 @@ static DWORD ParseRemoteName(
             const char *pvalue;
 
             /*
-             * FIXME: Values added here based on URL parameters
-             * should be added at the front of the list of options,
+             * Values added here based on URL parameters
+             * are added at the front of the list of options,
              * so users can override the nfs://-URL given default.
-             * Right now this does not work, e.g.
-             * $ nfs_mount.exe -o rw nfs://foo//bar?ro=1 # will
-             * result in a read-only mount, while the expectation
-             * is that -o overrides URL settings.
              */
             for (pi = 0; pi < uctx->num_parameters ; pi++) {
                 pname = uctx->parameters[pi].name;
