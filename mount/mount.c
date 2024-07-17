@@ -79,18 +79,17 @@ static VOID PrintUsage(LPWSTR pProcess)
         "Usage: %S [options] <drive letter|*> <hostname>:<path>\n"
 
         "* Options:\n"
-        "\t-h\thelp\n"
-        "\t/?\thelp\n"
-        "\t-d\tunmount\n"
-        "\t-f\tforce unmount if the drive is in use\n"
+        "\t-h, --help, /?\thelp\n"
+        "\t-d, --unmount\tunmount\n"
+        "\t-f, --force\tforce unmount if the drive is in use\n"
             "\t-F <type>\tFilesystem type to use (only 'nfs' supported)"
 	    " (Solaris/Illumos compat)\n"
-        "\t-t <type>\tFilesystem type to use (only 'nfs' supported)"
+        "\t-t, --types <type>\tFilesystem type to use (only 'nfs' supported)"
 	    " (Linux compat)\n"
-        "\t-p\tmake the mount persist over reboots\n"
-        "\t-o <comma-separated mount options>\n"
-        "\t-r\tAlias for -o ro (read-only mount)\n"
-        "\t-w\tAlias for -o rw (read-write mount)\n"
+        "\t-p, --persistent\tmake the mount persist over reboots\n"
+        "\t-o. --options <comma-separated mount options>\n"
+        "\t-r, --read-only\tAlias for -o ro (read-only mount)\n"
+        "\t-w, --rw, --read-write\tAlias for -o rw (read-write mount)\n"
 
         "* Mount options:\n"
         "\tpublic\tconnect to the server using the public file handle lookup protocol.\n"
@@ -189,20 +188,30 @@ int __cdecl wmain(int argc, wchar_t *argv[])
     {
         if (argv[i][0] == L'-')
         {
-            if (!wcscmp(argv[i], L"-h")) { /* help */
+            /* help */
+            if ((!wcscmp(argv[i], L"-h")) ||
+                (!wcscmp(argv[i], L"--help"))) {
                 PrintUsage(argv[0]);
                 goto out;
             }
-            else if (!wcscmp(argv[i], L"-d")) { /* unmount */
+            /* unmount */
+            else if ((!wcscmp(argv[i], L"-d")) ||
+                    (!wcscmp(argv[i], L"--unmount"))) {
                 bUnmount = TRUE;
             }
-            else if (!wcscmp(argv[i], L"-f")) { /* force unmount */
+            /* force unmount */
+            else if ((!wcscmp(argv[i], L"-f")) ||
+                (!wcscmp(argv[i], L"--force"))) {
                 bForceUnmount = TRUE;
             }
-            else if (!wcscmp(argv[i], L"-p")) { /* persistent */
+            /* persistent */
+            else if ((!wcscmp(argv[i], L"-p")) ||
+                    (!wcscmp(argv[i], L"--persistent"))) {
                 bPersistent = TRUE;
             }
-            else if (!wcscmp(argv[i], L"-o")) { /* mount option */
+            /* mount option */
+            else if ((!wcscmp(argv[i], L"-o")) ||
+                    (!wcscmp(argv[i], L"--options"))) {
                 ++i;
                 if (i >= argc)
                 {
@@ -289,7 +298,9 @@ opt_o_argv_i_again:
                     goto opt_o_argv_i_again;
                 }
             }
-            else if (!wcscmp(argv[i], L"-r")) { /* mount option */
+            /* mount option */
+            else if ((!wcscmp(argv[i], L"-r")) ||
+                    (!wcscmp(argv[i], L"--read-only"))) {
                 if (num_mntopts >= (MAX_MNTOPTS-1)) {
                     result = ERROR_BAD_ARGUMENTS;
                     (void)fwprintf(stderr, L"Too many options.\n\n");
@@ -298,7 +309,10 @@ opt_o_argv_i_again:
 
                 mntopts[num_mntopts++] = L"ro";
             }
-            else if (!wcscmp(argv[i], L"-w")) { /* mount option */
+            /* mount option */
+            else if ((!wcscmp(argv[i], L"-w")) ||
+                    (!wcscmp(argv[i], L"--rw")) ||
+                    (!wcscmp(argv[i], L"--read-write"))) {
                 if (num_mntopts >= (MAX_MNTOPTS-1)) {
                     result = ERROR_BAD_ARGUMENTS;
                     (void)fwprintf(stderr, L"Too many options.\n\n");
@@ -313,8 +327,8 @@ opt_o_argv_i_again:
 	     * $ mount.nfs4 -t nfs ... # compatiblity
 	     */
             else if ((!wcscmp(argv[i], L"-F")) ||
-	             (!wcscmp(argv[i], L"-t")))
-            {
+                    (!wcscmp(argv[i], L"-t")) ||
+                    (!wcscmp(argv[i], L"--types"))) {
                 ++i;
                 if (i >= argc)
                 {
@@ -338,23 +352,24 @@ opt_o_argv_i_again:
                     L"'%s', disregarding.\n",
                     argv[i]);
         }
+        /* Windows-style "nfs_mount /?" help */
         else if (!wcscmp(argv[i], L"/?")) {
-	    /* Windows-style "nfs_mount /?" help */
             PrintUsage(argv[0]);
             goto out;
 	}
-	else if (pLocalName == NULL) /* drive letter */
-        {
+        /* drive letter */
+	else if (pLocalName == NULL) {
             pLocalName = argv[i];
         }
-        else if (pRemoteName == NULL) /* remote path */
-        {
+        /* remote path */
+        else if (pRemoteName == NULL) {
             pRemoteName = argv[i];
         }
-        else
+        else {
             (void)fwprintf(stderr, L"Unrecognized argument "
                 L"'%s', disregarding.\n",
                 argv[i]);
+        }
     }
 
     /* validate local drive letter */
