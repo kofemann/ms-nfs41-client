@@ -2896,30 +2896,59 @@ NTSTATUS nfs41_MountConfig_ParseBoolean(
     return status;
 }
 
+
+/* Parse |signed| integer value */
+static
+NTSTATUS nfs41_MountConfig_ParseINT64(
+    IN PFILE_FULL_EA_INFORMATION Option,
+    IN PUNICODE_STRING usValue,
+    OUT INT64 *outValue,
+    IN INT64 Minimum,
+    IN INT64 Maximum)
+{
+    NTSTATUS status;
+    LONG64 Value = 0;
+    LPWSTR Name = (LPWSTR)Option->EaName;
+
+    if (!Option->EaValueLength)
+        return STATUS_INVALID_PARAMETER;
+
+    status = RtlUnicodeStringToInt64(usValue, 0, &Value, NULL);
+    if (status == STATUS_SUCCESS) {
+        if ((Value < Minimum) || (Value > Maximum))
+            status = STATUS_INVALID_PARAMETER;
+
+        if (status == STATUS_SUCCESS) {
+            *outValue = Value;
+        }
+    }
+    else {
+        print_error("nfs41_MountConfig_ParseINT64: "
+            "Failed to convert '%s'='%wZ' to unsigned long.\n",
+            Name, usValue);
+    }
+
+    return status;
+}
+
+/* Parse |unsigned| integer value */
+static
 NTSTATUS nfs41_MountConfig_ParseDword(
     IN PFILE_FULL_EA_INFORMATION Option,
     IN PUNICODE_STRING usValue,
-    OUT PDWORD Value,
+    OUT PDWORD outValue,
     IN DWORD Minimum,
     IN DWORD Maximum)
 {
-    NTSTATUS status = STATUS_INVALID_PARAMETER;
-    LPWSTR Name = (LPWSTR)Option->EaName;
+    INT64 tmpValue;
+    NTSTATUS status;
 
-    if (Option->EaValueLength) {
-        status = RtlUnicodeStringToInteger(usValue, 0, Value);
-        if (status == STATUS_SUCCESS) {
-#ifdef IMPOSE_MINMAX_RWSIZES
-            if (*Value < Minimum)
-                *Value = Minimum;
-            if (*Value > Maximum)
-                *Value = Maximum;
-            DbgP("    '%ls' -> '%wZ' -> %lu\n", Name, usValue, *Value);
-#endif
-        }
-        else
-            print_error("Failed to convert '%s'='%wZ' to unsigned long.\n",
-                Name, usValue);
+    status = nfs41_MountConfig_ParseINT64(
+        Option, usValue,
+        &tmpValue, Minimum, Maximum);
+
+    if (status == STATUS_SUCCESS) {
+        *outValue = (DWORD)tmpValue;
     }
 
     return status;
