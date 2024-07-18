@@ -254,7 +254,7 @@ struct mac_entry {
     ULONG                   length;
 };
 
-int mac_cmp(struct mac_entry *lhs, struct mac_entry *rhs)
+static int mac_cmp(struct mac_entry *lhs, struct mac_entry *rhs)
 {
     const int diff = rhs->length - lhs->length;
     return diff ? diff : strncmp((const char*)lhs->address,

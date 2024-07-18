@@ -111,7 +111,7 @@ struct attr_cache {
     struct list_entry       free_entries;
 };
 
-int attr_cmp(struct attr_cache_entry *lhs, struct attr_cache_entry *rhs)
+static int attr_cmp(struct attr_cache_entry *lhs, struct attr_cache_entry *rhs)
 {
     return lhs->fileid < rhs->fileid ? -1 : lhs->fileid > rhs->fileid;
 }
@@ -412,7 +412,7 @@ struct name_cache_entry {
 };
 #define NAME_ENTRY_SIZE sizeof(struct name_cache_entry)
 
-int name_cmp(struct name_cache_entry *lhs, struct name_cache_entry *rhs)
+static int name_cmp(struct name_cache_entry *lhs, struct name_cache_entry *rhs)
 {
     const int diff = rhs->component_len - lhs->component_len;
     return diff ? diff : strncmp(lhs->component, rhs->component, lhs->component_len);
