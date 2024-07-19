@@ -1464,7 +1464,7 @@ NTSTATUS handle_upcall(
 #else
     status = SeImpersonateClientEx(entry->psec_ctx, NULL);
 #endif /* NFS41_DRIVER_STABILITY_HACKS */
-    if (!NT_SUCCESS(status)) {
+    if (status != STATUS_SUCCESS) {
         print_error("handle_upcall: "
             "SeImpersonateClientEx() failed 0x%x\n", status);
         goto out;
@@ -1532,10 +1532,8 @@ NTSTATUS handle_upcall(
         print_error("Unknown nfs41 ops %d\n", entry->opcode);
     }
 
-#if 0
-    if (NT_SUCCESS(status))
+    if (status == STATUS_SUCCESS)
         print_hexbuf(0, (unsigned char *)"upcall buffer", pbOut, *len);
-#endif
 
 out:
     return status;
@@ -1593,7 +1591,7 @@ NTSTATUS nfs41_UpcallCreate(
          */
         status = SeCreateClientSecurityFromSubjectContext(&sec_ctx, &sec_qos,
                     FALSE, entry->psec_ctx);
-        if (!NT_SUCCESS(status)) {
+        if (status != STATUS_SUCCESS) {
             print_error("nfs41_UpcallCreate: "
                 "SeCreateClientSecurityFromSubjectContext() "
                 "failed with 0x%x\n",
@@ -1713,8 +1711,8 @@ process_upcall:
         ExAcquireFastMutex(&entry->lock);
         nfs41_AddEntry(downcallLock, downcall, entry);
         status = handle_upcall(RxContext, entry, &len);
-        if (NT_SUCCESS(status) &&
-            (entry->state == NFS41_WAITING_FOR_UPCALL))
+        if (status == STATUS_SUCCESS &&
+                entry->state == NFS41_WAITING_FOR_UPCALL)
             entry->state = NFS41_WAITING_FOR_DOWNCALL;
         ExReleaseFastMutex(&entry->lock);
         if (status) {
@@ -2144,7 +2142,7 @@ NTSTATUS nfs41_downcall(
     }
     ExReleaseFastMutex(&cur->lock);
     if (cur->async_op) {
-        if (NT_SUCCESS(cur->status)) {
+        if (cur->status == STATUS_SUCCESS) {
             cur->u.ReadWrite.rxcontext->StoredStatus = STATUS_SUCCESS;
             cur->u.ReadWrite.rxcontext->InformationToReturn =
                 cur->buf_len;
@@ -2397,7 +2395,7 @@ NTSTATUS nfs41_CreateConnection(
 
     status = nfs41_GetConnectionInfoFromBuffer(Buffer, BufferLen,
         &FileName, &EaBuffer, &EaLength);
-    if (!NT_SUCCESS(status))
+    if (status != STATUS_SUCCESS)
         goto out;
 
     status = GetConnectionHandle(&FileName, EaBuffer, EaLength, &Handle);
@@ -2502,7 +2500,7 @@ NTSTATUS nfs41_DeleteConnection (
     FileName.MaximumLength = (USHORT) ConnectNameLen;
 
     status = GetConnectionHandle(&FileName, NULL, 0, &Handle);
-    if (!NT_SUCCESS(status))
+    if (status != STATUS_SUCCESS)
         goto out;
 
     status = ObReferenceObjectByHandle(Handle, 0L, NULL, KernelMode,
