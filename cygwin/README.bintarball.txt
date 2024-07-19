@@ -117,6 +117,7 @@ NFSv4.1 client and filesystem driver for Windows 10/11
     - Packages (recommended):
         libnfs-utils (for /usr/bin/nfs-ls)
         make
+        bmake
         git
         gcc-core
         gcc-g++
@@ -148,7 +149,7 @@ echo %PROCESSOR_ARCHITECTURE%
 # 1. Get installer from https://cygwin.com/setup-x86_64.exe
 curl --remote-name "https://www.cygwin.com/setup-x86_64.exe"
 # 2. Run installer with these arguments:
-setup-x86_64.exe -q --site "https://mirrors.kernel.org/sourceware/cygwin" -P cygwin,cygwin-devel,cygrunsrv,cygutils,cygutils-extra,bash,bzip2,coreutils,getent,gdb,grep,hostname,less,libiconv,libiconv2,pax,pbzip2,procps-ng,sed,tar,time,util-linux,wget,libnfs-utils,make,git,dos2unix,unzip
+setup-x86_64.exe -q --site "https://mirrors.kernel.org/sourceware/cygwin" -P cygwin,cygwin-devel,cygrunsrv,cygutils,cygutils-extra,bash,bzip2,coreutils,getent,gdb,grep,hostname,less,libiconv,libiconv2,pax,pbzip2,procps-ng,sed,tar,time,util-linux,wget,libnfs-utils,make,bmake,git,dos2unix,unzip
 # ---- snip ----
 
 
@@ -159,7 +160,7 @@ setup-x86_64.exe -q --site "https://mirrors.kernel.org/sourceware/cygwin" -P cyg
 # 1. Get installer from https://www.cygwin.com/setup-x86.exe
 curl --remote-name "https://www.cygwin.com/setup-x86.exe"
 # 2. Run installer with these arguments:
-setup-x86.exe --allow-unsupported-windows -q --no-verify --site "http://ctm.crouchingtigerhiddenfruitbat.org/pub/cygwin/circa/2022/11/23/063457" -P cygwin,cygwin-devel,cygrunsrv,cygutils,cygutils-extra,bash,bzip2,coreutils,getent,gdb,grep,hostname,less,libiconv,libiconv2,pax,pbzip2,procps-ng,sed,tar,time,util-linux,wget,libnfs-utils,make,git,dos2unix,unzip
+setup-x86.exe --allow-unsupported-windows -q --no-verify --site "http://ctm.crouchingtigerhiddenfruitbat.org/pub/cygwin/circa/2022/11/23/063457" -P cygwin,cygwin-devel,cygrunsrv,cygutils,cygutils-extra,bash,bzip2,coreutils,getent,gdb,grep,hostname,less,libiconv,libiconv2,pax,pbzip2,procps-ng,sed,tar,time,util-linux,wget,libnfs-utils,make,bmake,git,dos2unix,unzip
 # ---- snip ----
 
 

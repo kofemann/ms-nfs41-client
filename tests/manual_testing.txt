@@ -16,6 +16,7 @@
 #   mingw64-x86_64-clang
 #   gdb
 #   make
+#   bmake
 #   netpbm
 #   git
 #   subversion
@@ -333,5 +334,11 @@ chmod a+rx setup-x86_64.exe
 # Test:
 svn checkout https://svn.FreeBSD.org/base/head/share/man
 
+
+#
+# Run parallel make job on NFSv4.1 filesystem (/cygdrive/n/xxx/)
+#
+cd /cygdrive/n/xxx/
+time ksh93 $msnfs41clientgitroot/tests/fstest_make_numtree1/fstest_make_numtree1.ksh93 all
 
 # EOF.

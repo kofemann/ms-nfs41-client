@@ -1,0 +1,165 @@
+#!/bin/ksh93
+
+#
+# fstest_make_numtree1.ksh93 - filesystem stress test using parallel makefile
+#
+# The script builds a makefile to generate number sequence
+# The resulting Makefile is intended to be used with
+# $ bmake -j128 all # as filesystem test
+#
+# Written by Roland Mainz <roland.mainz@nrubsig.org>
+#
+
+function genmakefile_make_number_seq
+{
+	set -o nounset
+	nameref out_maketarget=$1
+	integer start_i=$2
+	integer stop_i=$3
+	typeset payload=$4
+	integer i
+	typeset -a make_targets
+
+	if (( (stop_i - start_i) > 10 )) ; then
+		(( i=(stop_i - start_i)/2 ))
+		genmakefile_make_number_seq make_targets[0] $start_i $(( start_i+i )) "$payload"
+		genmakefile_make_number_seq make_targets[1] $(( start_i+i )) $stop_i  "$payload"
+	else
+		for ((i=start_i ; i < stop_i ; i++ )) ; do
+			printf 'i_%d:\n' i
+			printf '\t@printf "%d\\t%s\\n" >"i_%d"\n' i "$payload" i
+			make_targets+=( "i_$i" )
+		done
+	fi
+
+	out_maketarget="i_${start_i}_${stop_i}"
+	printf 'i_%d_%d: %s\n' start_i stop_i "${make_targets[*]}"
+
+	printf '\tcat '
+	printf '%q ' "${make_targets[@]}"
+	printf ' >"%s"\n' "$out_maketarget"
+
+	return 0
+}
+
+function genmakefile
+{
+	set -o nounset
+	typeset make_target
+	integer max_num=$1
+	typeset string_payload=$2
+
+	genmakefile_make_number_seq make_target 0 ${max_num} "${string_payload}"
+
+	printf 'all: %s\n' "$make_target"
+
+	return 0
+}
+
+function parallal_make
+{
+	if true ; then
+		# BSD make
+		bmake -j 128 "$@"
+	else
+		# GNU make
+		make --load-average 128 -j 128 "$@"
+	fi
+}
+
+function main
+{
+	set -o nounset
+	typeset subcmd="$1"
+
+	compound config=(
+		# workdir
+		typeset workdir="$PWD/fstest_make_numtree1_workdir"
+		# max number of iterations
+		integer max_num=4000
+		# 8192 bytes of payload
+		typeset string_payload="$(
+			integer p ;
+			for ((p=0 ; p < 8192 ; p++ )) ; do
+				printf '%x' $((p%0x10)) ;
+			done)"
+	)
+
+	#
+	# We need BSD make, as GNU make -j128 somehow does not
+	# yield parallism
+	#
+	if [[ "$(which 'bmake' 2>'/dev/null')" == '' ]] ; then
+		print -u2 -f $"%s: bmake (BSD make) required\n" "${.sh.file}"
+		return 1
+	fi
+	if [[ "$(which 'seq' 2>'/dev/null')" == '' ]] ; then
+		print -u2 -f $"%s: seq required\n" "${.sh.file}"
+		return 1
+	fi
+
+	#
+	# subcmd dispatch
+	#
+	case "$subcmd" in
+		'generate')
+			set -o xtrace
+			mkdir -p -- "${config.workdir}"
+			cd -- "${config.workdir}" || return $?
+
+			genmakefile ${config.max_num} "${config.string_payload}" >"make_numtree1.Makefile"
+			set +o xtrace
+			;;
+		'run')
+			set -o xtrace
+			cd -- "${config.workdir}" || return $?
+
+			time parallal_make -f "make_numtree1.Makefile" all
+			set +o xtrace
+			;;
+		'clean')
+			set -o xtrace
+			rm -rf -- "${config.workdir}"
+			set +o xtrace
+			;;
+		# all-in-one
+		'all')
+			set -o xtrace
+			(
+				set -o errexit
+				rm -rf -- "${config.workdir}"
+				mkdir -p -- "${config.workdir}"
+				cd -- "${config.workdir}" || return $?
+
+				genmakefile ${config.max_num} "${config.string_payload}" >"make_numtree1.Makefile"
+
+				time parallal_make -f "make_numtree1.Makefile" all
+				ls -l "i_0_${config.max_num}"
+
+				# compare results (minus payload) with output of /usr/bin/seq
+				diff -u <(awk '{ print $1 }' "i_0_${config.max_num}") <(seq 0 $(( config.max_num-1 )))
+				set +o xtrace
+
+				# we only reach this if we did not leave the
+				# subshell via errexit
+				printf $"#### Run OK ####\n"
+			)
+			return $?
+			;;
+
+		*)
+			print -u2 -f \
+				$"%s: Unknown subcmd, supported are 'generate', 'run', 'clean', 'all'\n" \
+				"${.sh.file}"
+			return 1
+			;;
+	esac
+
+	return 0
+}
+
+builtin mkdir
+builtin printf
+
+main "$@"
+# EOF.
