@@ -428,7 +428,10 @@ int main(int ac, char *av[])
         "# shelltype=%d, cmd_arg_index=%d, "
         "av[cmd_arg_index]='%s', "
         "new group name '%s'\n",
-        (int)st, cmd_arg_index, av[cmd_arg_index], newgrpname));
+        (int)st,
+        cmd_arg_index,
+        ((cmd_arg_index >= 0)?av[cmd_arg_index]:"<negative-av-idx>"),
+        newgrpname));
 
     if (!OpenProcessToken(GetCurrentProcess(),
         TOKEN_QUERY|TOKEN_ADJUST_DEFAULT|TOKEN_DUPLICATE,
