@@ -93,10 +93,10 @@ bool equal_luid(LUID *l1, LUID *l2)
  * |ERROR_INSUFFICIENT_BUFFER| if you just pass the |sizeof(TOKEN_*)|
  * value.
  * Instead of calling |GetTokenInformation()| with |NULL| arg to
- * obtain the size to allocate we just provide 2048 bytes of extra
+ * obtain the size to allocate we just provide 8192 bytes of extra
  * space after the |TOKEN_*| size, and pray it is enough.
  */
-#define GETTOKINFO_EXTRA_BUFFER (2048)
+#define GETTOKINFO_EXTRA_BUFFER (8192)
 
 static
 bool get_token_authenticationid(HANDLE tok, LUID *out_authenticationid)
