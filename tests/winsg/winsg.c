@@ -163,9 +163,9 @@ int print_groups_in_token(HANDLE tok)
     DWORD tokdatalen;
     PTOKEN_GROUPS ptgroups;
     char namebuffer[GNLEN+1];
-    DWORD namesize = GNLEN+1;
+    DWORD namesize;
     char domainbuffer[UNLEN+1];
-    DWORD domainbuffer_size = sizeof(domainbuffer);
+    DWORD domainbuffer_size;
     SID_NAME_USE name_use;
 
     tokdatalen = sizeof(TOKEN_GROUPS)+GETTOKINFO_EXTRA_BUFFER;
@@ -188,6 +188,9 @@ int print_groups_in_token(HANDLE tok)
         if (!(ptgroups->Groups[i].Attributes & SE_GROUP_ENABLED)) {
             continue;
         }
+
+        namesize = sizeof(namebuffer)-1;
+        domainbuffer_size = sizeof(domainbuffer)-1;
 
         if (!LookupAccountSidA(NULL, ptgroups->Groups[i].Sid,
             namebuffer, &namesize, domainbuffer, &domainbuffer_size, &name_use)) {
