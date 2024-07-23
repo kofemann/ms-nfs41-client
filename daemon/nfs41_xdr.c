@@ -311,7 +311,7 @@ static bool_t xdr_nfsace4(
     if (xdr->x_op == XDR_FREE)
         return TRUE;
 
-    return xdr_string(xdr, &who, NFS4_OPAQUE_LIMIT);
+    return xdr_string(xdr, &who, NFS4_FATTR4_OWNER_LIMIT);
 }
 
 static bool_t xdr_nfsdacl41(
@@ -1835,7 +1835,7 @@ static bool_t decode_file_attrs(
             char *ptr = info->owner;
             uint32_t owner_len;
             if (!xdr_bytes(xdr, &ptr, &owner_len,
-                            NFS4_OPAQUE_LIMIT)) {
+                            NFS4_FATTR4_OWNER_LIMIT)) {
                 info->owner = NULL;
                 return FALSE;
             }
@@ -1851,7 +1851,7 @@ static bool_t decode_file_attrs(
             char *ptr = info->owner_group;
             uint32_t owner_group_len;
             if (!xdr_bytes(xdr, &ptr, &owner_group_len,
-                            NFS4_OPAQUE_LIMIT)) {
+                            NFS4_FATTR4_OWNER_LIMIT)) {
                 info->owner_group = NULL;
                 return FALSE;
             }
@@ -2671,16 +2671,16 @@ static bool_t encode_file_attrs(
         if (info->attrmask.arr[1] & FATTR4_WORD1_OWNER) {
             char *ptr = &info->owner[0];
             uint32_t owner_len = (uint32_t)strlen(info->owner);
-            if (!xdr_bytes(&localxdr, &ptr, &owner_len, 
-                            NFS4_OPAQUE_LIMIT))
+            if (!xdr_bytes(&localxdr, &ptr, &owner_len,
+                            NFS4_FATTR4_OWNER_LIMIT))
                 return FALSE;
             attrs->attrmask.arr[1] |= FATTR4_WORD1_OWNER;
         }
         if (info->attrmask.arr[1] & FATTR4_WORD1_OWNER_GROUP) {
             char *ptr = &info->owner_group[0];
             uint32_t owner_group_len = (uint32_t)strlen(info->owner_group);
-            if (!xdr_bytes(&localxdr, &ptr, &owner_group_len, 
-                            NFS4_OPAQUE_LIMIT))
+            if (!xdr_bytes(&localxdr, &ptr, &owner_group_len,
+                            NFS4_FATTR4_OWNER_LIMIT))
                 return FALSE;
             attrs->attrmask.arr[1] |= FATTR4_WORD1_OWNER_GROUP;
         }

@@ -775,7 +775,8 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
         args->changeattr = info.change;
 
 #ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES
-        char owner[NFS4_OPAQUE_LIMIT], owner_group[NFS4_OPAQUE_LIMIT];
+        char owner[NFS4_FATTR4_OWNER_LIMIT+1];
+        char owner_group[NFS4_FATTR4_OWNER_LIMIT+1];
         uid_t map_uid = ~0UL;
         gid_t map_gid = ~0UL;
         char *at_ch; /* pointer to '@' */

@@ -98,8 +98,8 @@ struct attr_cache_entry {
     unsigned                type : 4;
     unsigned                invalidated : 1;
     unsigned                delegated : 1;
-    char                    owner[NFS4_OPAQUE_LIMIT+1];
-    char                    owner_group[NFS4_OPAQUE_LIMIT+1];
+    char                    owner[NFS4_FATTR4_OWNER_LIMIT+1];
+    char                    owner_group[NFS4_FATTR4_OWNER_LIMIT+1];
 };
 #define ATTR_ENTRY_SIZE sizeof(struct attr_cache_entry)
 

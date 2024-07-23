@@ -296,7 +296,7 @@ static int handle_getacl(void *daemon_context, nfs41_upcall *upcall)
     PSID *sids = NULL;
     PSID osid = NULL, gsid = NULL;
     DWORD sid_len;
-    char owner[NFS4_OPAQUE_LIMIT+1], group[NFS4_OPAQUE_LIMIT+1];
+    char owner[NFS4_FATTR4_OWNER_LIMIT+1], group[NFS4_FATTR4_OWNER_LIMIT+1];
     nfsacl41 acl = { 0 };
 
     DPRINTF(ACLLVL1, ("--> handle_getacl(state->path.path='%s')\n",
@@ -1323,8 +1323,8 @@ static int handle_setacl(void *daemon_context, nfs41_upcall *upcall)
     nfsacl41 nfs4_acl = { 0 };
     PSID sid = NULL, gsid = NULL;
     BOOL sid_default, gsid_default;
-    char ownerbuf[NFS4_OPAQUE_LIMIT+1];
-    char groupbuf[NFS4_OPAQUE_LIMIT+1];
+    char ownerbuf[NFS4_FATTR4_OWNER_LIMIT+1];
+    char groupbuf[NFS4_FATTR4_OWNER_LIMIT+1];
 
     DPRINTF(ACLLVL1, ("--> handle_setacl(state->path.path='%s')\n",
         state->path.path));

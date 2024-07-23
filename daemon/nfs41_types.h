@@ -127,7 +127,7 @@ typedef struct __nfsace4 {
     uint32_t        acetype;
     uint32_t        aceflag;
     uint32_t        acemask;
-    char            who[NFS4_OPAQUE_LIMIT];
+    char            who[NFS4_FATTR4_OWNER_LIMIT];
 } nfsace4;
 
 typedef struct __nfsacl41 {
@@ -238,8 +238,8 @@ typedef struct __nfs41_file_info {
     uint32_t                aclsupport;
 
     /* Buffers */
-    char owner_buf[NFS4_OPAQUE_LIMIT+1];
-    char owner_group_buf[NFS4_OPAQUE_LIMIT+1];
+    char owner_buf[NFS4_FATTR4_OWNER_LIMIT+1];
+    char owner_group_buf[NFS4_FATTR4_OWNER_LIMIT+1];
 } nfs41_file_info;
 
 #endif /* !__NFS41_DAEMON_TYPES_H__ */

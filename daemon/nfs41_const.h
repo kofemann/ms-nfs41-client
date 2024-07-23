@@ -35,6 +35,14 @@
 #define NFS4_EASIZE             256
 #define NFS4_EANAME_SIZE        128
 
+/*
+ * |NFS4_FATTR4_OWNER_LIMIT| - limits for
+ * |fattr4_owner|+|fattr4_owner_group|
+ * While the Linux implementation uses |NFS4_OPAQUE_LIMIT|(=1024)
+ * the *practical* limit on Windows is 256.
+ * This also affects memory usage, so a lower limit is better.
+ */
+#define NFS4_FATTR4_OWNER_LIMIT (256)
 
 #define NFS41_MAX_FILEIO_SIZE   (1024 * 1024)
 #define NFS41_MAX_SERVER_CACHE  1024
