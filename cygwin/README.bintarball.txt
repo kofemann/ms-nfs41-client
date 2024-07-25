@@ -431,6 +431,17 @@ $ /sbin/nfs_mount
   option, e.g.
   $ /sbin/nfs_mount -o rw,writethru 'j' derfwpc5131:/export/home/rmainz #
 
+- Windows event log can list errors like "MUP 0xc0000222"
+  (|STATUS_LOST_WRITEBEHIND_DATA|) in case the disk on the NFSv4 server
+  is full and outstanding writes from a memory-mapped file fail.
+  Example:
+  ---- snip ----
+  {Fehler beim verzoegerten Schreibvorgang} Nicht alle Daten fuer die
+  Datei "\\34.159.25.153@2049\nfs4\export\nfs4export\gcc\lto-dump.exe"
+  konnten gespeichert werden. Daten gingen verloren.
+  Dieser Fehler wurde von dem Server zurueckgegeben, auf dem sich die
+  Datei befindet. Versuchen Sie, die Datei woanders zu speichern.
+  ---- snip ----
 
 #
 # 11. Notes for troubleshooting && finding bugs/debugging:

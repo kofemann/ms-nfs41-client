@@ -3963,6 +3963,9 @@ NTSTATUS map_open_errors(
     case ERROR_TOO_MANY_LINKS:          return STATUS_TOO_MANY_LINKS;
     case ERROR_DIRECTORY:               return STATUS_FILE_IS_A_DIRECTORY;
     case ERROR_BAD_FILE_TYPE:           return STATUS_NOT_A_DIRECTORY;
+    case ERROR_DISK_FULL:               return STATUS_DISK_FULL;
+    case ERROR_DISK_QUOTA_EXCEEDED:     return STATUS_DISK_QUOTA_EXCEEDED;
+    case ERROR_FILE_TOO_LARGE:          return STATUS_FILE_TOO_LARGE;
     case ERROR_INTERNAL_ERROR:          return STATUS_INTERNAL_ERROR;
     default:
         print_error("[ERROR] nfs41_Create: upcall returned ERROR_0x%x "
@@ -4587,6 +4590,9 @@ NTSTATUS map_close_errors(
     case ERROR_NETNAME_DELETED: return STATUS_NETWORK_NAME_DELETED;
     case ERROR_NOT_EMPTY:       return STATUS_DIRECTORY_NOT_EMPTY;
     case ERROR_FILE_INVALID:    return STATUS_FILE_INVALID;
+    case ERROR_DISK_FULL:       return STATUS_DISK_FULL;
+    case ERROR_DISK_QUOTA_EXCEEDED: return STATUS_DISK_QUOTA_EXCEEDED;
+    case ERROR_FILE_TOO_LARGE:  return STATUS_FILE_TOO_LARGE;
     default:
         print_error("map_close_errors: "
             "failed to map windows ERROR_0x%x to NTSTATUS; "
@@ -5155,6 +5161,8 @@ NTSTATUS map_setea_error(
     case ERROR_INVALID_EA_HANDLE:       return STATUS_NONEXISTENT_EA_ENTRY;
     case ERROR_NO_MORE_FILES:           return STATUS_NO_MORE_EAS;
     case ERROR_EA_FILE_CORRUPT:         return STATUS_EA_CORRUPT_ERROR;
+    case ERROR_DISK_FULL:               return STATUS_DISK_FULL;
+    case ERROR_DISK_QUOTA_EXCEEDED:     return STATUS_DISK_QUOTA_EXCEEDED;
     case ERROR_INTERNAL_ERROR:          return STATUS_INTERNAL_ERROR;
     default:
         print_error("map_setea_error: "
@@ -6031,6 +6039,9 @@ NTSTATUS map_setfile_error(
     case ERROR_NETWORK_ACCESS_DENIED:   return STATUS_NETWORK_ACCESS_DENIED;
     case ERROR_NETNAME_DELETED:         return STATUS_NETWORK_NAME_DELETED;
     case ERROR_BUFFER_OVERFLOW:         return STATUS_INSUFFICIENT_RESOURCES;
+    case ERROR_DISK_FULL:               return STATUS_DISK_FULL;
+    case ERROR_DISK_QUOTA_EXCEEDED:     return STATUS_DISK_QUOTA_EXCEEDED;
+    case ERROR_FILE_TOO_LARGE:          return STATUS_FILE_TOO_LARGE;
     case ERROR_INTERNAL_ERROR:          return STATUS_INTERNAL_ERROR;
     default:
         print_error("map_setfile_error: "
@@ -6438,6 +6449,9 @@ NTSTATUS map_readwrite_errors(
     case ERROR_LOCK_VIOLATION:          return STATUS_FILE_LOCK_CONFLICT;
     case ERROR_NETWORK_ACCESS_DENIED:   return STATUS_NETWORK_ACCESS_DENIED;
     case ERROR_NETNAME_DELETED:         return STATUS_NETWORK_NAME_DELETED;
+    case ERROR_DISK_FULL:               return STATUS_DISK_FULL;
+    case ERROR_DISK_QUOTA_EXCEEDED:     return STATUS_DISK_QUOTA_EXCEEDED;
+    case ERROR_FILE_TOO_LARGE:          return STATUS_FILE_TOO_LARGE;
     case ERROR_INTERNAL_ERROR:          return STATUS_INTERNAL_ERROR;
     default:
         print_error("map_readwrite_errors: "
@@ -6939,6 +6953,9 @@ NTSTATUS map_symlink_errors(
     case ERROR_INSUFFICIENT_BUFFER: return STATUS_BUFFER_TOO_SMALL;
     case STATUS_BUFFER_TOO_SMALL:
     case ERROR_BUFFER_OVERFLOW:     return STATUS_BUFFER_OVERFLOW;
+    case ERROR_DISK_FULL:           return STATUS_DISK_FULL;
+    case ERROR_DISK_QUOTA_EXCEEDED: return STATUS_DISK_QUOTA_EXCEEDED;
+    case ERROR_FILE_TOO_LARGE:      return STATUS_FILE_TOO_LARGE;
     case ERROR_INTERNAL_ERROR:      return STATUS_INTERNAL_ERROR;
     default:
         print_error("map_symlink_errors: "

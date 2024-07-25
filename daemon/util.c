@@ -339,6 +339,7 @@ int nfs_to_windows_error(int status, int default_error)
     case NFS4ERR_INVAL:         return ERROR_INVALID_PARAMETER;
     case NFS4ERR_FBIG:          return ERROR_FILE_TOO_LARGE;
     case NFS4ERR_NOSPC:         return ERROR_DISK_FULL;
+    case NFS4ERR_DQUOT:         return ERROR_DISK_QUOTA_EXCEEDED;
     case NFS4ERR_ROFS:          return ERROR_NETWORK_ACCESS_DENIED;
     case NFS4ERR_MLINK:         return ERROR_TOO_MANY_LINKS;
     case NFS4ERR_NAMETOOLONG:   return ERROR_FILENAME_EXCED_RANGE;
