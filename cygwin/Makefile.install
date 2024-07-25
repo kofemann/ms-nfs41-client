@@ -55,6 +55,10 @@ installdest:
 	git diff -w	>"$(DESTDIR)/$(CYGWIN_BASEPATH)/usr/src/msnfs41client/msnfs41client_diff_w.diff"
 	git diff	>"$(DESTDIR)/$(CYGWIN_BASEPATH)/usr/src/msnfs41client/msnfs41client_diff.diff"
 	@ printf "# Package utilties\n"
+	cp $(CYGWIN_MAKEFILE_DIR)/utils/cygwinaccount2nfs4account/cygwinaccount2nfs4account.ksh $(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/cygwinaccount2nfs4account
+	chmod a+x $(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/cygwinaccount2nfs4account
+	PATH+=":$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/" \
+		/usr/bin/ksh93 $(CYGWIN_MAKEFILE_DIR)/utils/cygwinaccount2nfs4account/cygwinaccount2nfs4account.ksh --nroff 2>"$(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/man/man1/cygwinaccount2nfs4account.1" || true
 	cp $(CYGWIN_MAKEFILE_DIR)/utils/mount_sshnfs/mount_sshnfs.ksh $(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/mount_sshnfs
 	chmod a+x $(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/mount_sshnfs
 	PATH+=":$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/" \

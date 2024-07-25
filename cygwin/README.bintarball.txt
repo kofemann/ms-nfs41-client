@@ -350,6 +350,12 @@ $ /sbin/nfs_mount
   Solaris/Illumos using export option "resvport" (see nfs(5)), as the
   NFSv4 client source TCP port will be >= 1024.
 
+- Install: Adding Windows accounts+groups to the NFSv4 server:
+  ms-nfs41-client comes with /sbin/cygwinaccount2nfs4account to
+  convert the Win32/Cygwin account information of the (current)
+  user+groups to a small script for the NFSv4 server to set-up
+  these accounts on the server side.
+
 #
 # 10. Known issues:
 #
