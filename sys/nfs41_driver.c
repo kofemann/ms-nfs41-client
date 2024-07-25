@@ -6956,6 +6956,7 @@ NTSTATUS map_symlink_errors(
     case ERROR_DISK_FULL:           return STATUS_DISK_FULL;
     case ERROR_DISK_QUOTA_EXCEEDED: return STATUS_DISK_QUOTA_EXCEEDED;
     case ERROR_FILE_TOO_LARGE:      return STATUS_FILE_TOO_LARGE;
+    case ERROR_TOO_MANY_LINKS:      return STATUS_TOO_MANY_LINKS;
     case ERROR_INTERNAL_ERROR:      return STATUS_INTERNAL_ERROR;
     default:
         print_error("map_symlink_errors: "
