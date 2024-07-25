@@ -73,10 +73,13 @@ static BOOL ParseDriveLetter(
 void PrintErrorMessage(
     IN DWORD dwError);
 
-static VOID PrintUsage(LPWSTR pProcess)
+static
+void PrintMountUsage(LPWSTR pProcess)
 {
     (void)fprintf(stderr,
         "Usage: %S [options] <drive letter|*> <hostname>:<path>\n"
+        "Usage: %S -d [options] <drive letter>\n"
+        "Usage: %S\n"
 
         "* Options:\n"
         "\t-h, --help, /?\thelp\n"
@@ -138,10 +141,26 @@ static VOID PrintUsage(LPWSTR pProcess)
         "\tnfs_mount.exe -o sec=sys,rw S nfs://myhost1//dirwithspace/dir%%20space/test2\n"
         "\tnfs_mount.exe -o sec=sys,rw S nfs://myhost1//dirwithspace/dir+space/test2\n"
         "\tnfs_mount.exe -o sec=sys S nfs://myhost1//dirwithspace/dir+space/test2?rw=1\n",
-        pProcess, (int)NFS41_DRIVER_DEFAULT_CREATE_MODE);
+        pProcess, pProcess, pProcess,
+        (int)NFS41_DRIVER_DEFAULT_CREATE_MODE);
 }
 
-int __cdecl wmain(int argc, wchar_t *argv[])
+
+static
+void PrintUmountUsage(LPWSTR pProcess)
+{
+    (void)fprintf(stderr,
+        "Usage: %S [options] <drive letter>\n"
+
+        "* Options:\n"
+        "\t-h, --help, /?\thelp\n"
+        "\t-f, --force\tforce unmount if the drive is in use\n",
+        pProcess);
+}
+
+
+static
+int mount_main(int argc, wchar_t *argv[])
 {
     int     i;
     DWORD   result = NO_ERROR;
@@ -156,16 +175,6 @@ int __cdecl wmain(int argc, wchar_t *argv[])
 #define MAX_MNTOPTS 128
     wchar_t *mntopts[MAX_MNTOPTS] = { 0 };
     int     num_mntopts = 0;
-
-    int crtsetdbgflags = 0;
-    crtsetdbgflags |= _CRTDBG_ALLOC_MEM_DF;  /* use debug heap */
-    crtsetdbgflags |= _CRTDBG_LEAK_CHECK_DF; /* report leaks on exit */
-    crtsetdbgflags |= _CRTDBG_DELAY_FREE_MEM_DF;
-    (void)_CrtSetDbgFlag(crtsetdbgflags);
-    (void)_CrtSetReportMode(_CRT_WARN, _CRTDBG_MODE_FILE);
-    (void)_CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_FILE);
-    (void)_CrtSetReportMode(_CRT_ASSERT, _CRTDBG_MODE_FILE);
-
 
     if (argc == 1) {
         /* list open nfs shares */
@@ -191,7 +200,7 @@ int __cdecl wmain(int argc, wchar_t *argv[])
             /* help */
             if ((!wcscmp(argv[i], L"-h")) ||
                 (!wcscmp(argv[i], L"--help"))) {
-                PrintUsage(argv[0]);
+                PrintMountUsage(argv[0]);
                 goto out;
             }
             /* unmount */
@@ -218,7 +227,7 @@ int __cdecl wmain(int argc, wchar_t *argv[])
                     result = ERROR_BAD_ARGUMENTS;
                     (void)fwprintf(stderr,
                         L"Mount options missing after '-o'.\n\n");
-                    PrintUsage(argv[0]);
+                    PrintMountUsage(argv[0]);
                     goto out_free;
                 }
 
@@ -335,15 +344,15 @@ opt_o_argv_i_again:
                     result = ERROR_BAD_ARGUMENTS;
                     (void)fwprintf(stderr, L"Filesystem type missing "
                         L"after '-t'/'-F'.\n\n");
-                    PrintUsage(argv[0]);
+                    PrintMountUsage(argv[0]);
                     goto out_free;
                 }
 
                 if (!wcscmp(argv[i], L"nfs")) {
                     result = ERROR_BAD_ARGUMENTS;
                     (void)fwprintf(stderr, L"Filesystem type '%s' "
-                        L"not supported.\n\n", argv[i]);
-                    PrintUsage(argv[0]);
+                        L"not supported.\n\n./build.vc19/x64/Debug/nfs_mount.exe", argv[i]);
+                    PrintMountUsage(argv[0]);
                     goto out_free;
                 }
             }
@@ -354,7 +363,7 @@ opt_o_argv_i_again:
         }
         /* Windows-style "nfs_mount /?" help */
         else if (!wcscmp(argv[i], L"/?")) {
-            PrintUsage(argv[0]);
+            PrintMountUsage(argv[0]);
             goto out;
 	}
         /* drive letter */
@@ -377,7 +386,7 @@ opt_o_argv_i_again:
     {
         result = ERROR_BAD_ARGUMENTS;
         (void)fwprintf(stderr, L"Missing argument for drive letter.\n\n");
-        PrintUsage(argv[0]);
+        PrintMountUsage(argv[0]);
         goto out_free;
     }
     if (FALSE == ParseDriveLetter(pLocalName, szLocalName))
@@ -386,7 +395,7 @@ opt_o_argv_i_again:
         (void)fwprintf(stderr, L"Invalid drive letter '%s'. "
             L"Expected 'C' or 'C:'.\n\n",
             pLocalName);
-        PrintUsage(argv[0]);
+        PrintMountUsage(argv[0]);
         goto out_free;
     }
 
@@ -407,7 +416,7 @@ opt_o_argv_i_again:
         {
             result = ERROR_BAD_NET_NAME;
             (void)fwprintf(stderr, L"Missing argument for remote path.\n\n");
-            PrintUsage(argv[0]);
+            PrintMountUsage(argv[0]);
             goto out_free;
         }
 
@@ -445,6 +454,108 @@ out_free:
 out:
     return result;
 }
+
+
+static
+int umount_main(int argc, wchar_t *argv[])
+{
+    int     i;
+    DWORD   result = NO_ERROR;
+    LPWSTR  pLocalName = NULL;
+    wchar_t szLocalName[] = L"C:\0";
+    BOOL    bForceUnmount = FALSE;
+
+    /* parse command line */
+    for (i = 1; i < argc; i++) {
+        if (argv[i][0] == L'-') {
+            /* help */
+            if ((!wcscmp(argv[i], L"-h")) ||
+                (!wcscmp(argv[i], L"--help"))) {
+                PrintUmountUsage(argv[0]);
+                goto out;
+            }
+            /* force unmount */
+            else if ((!wcscmp(argv[i], L"-f")) ||
+                (!wcscmp(argv[i], L"--force"))) {
+                bForceUnmount = TRUE;
+            }
+            else {
+                (void)fwprintf(stderr, L"Unrecognized option "
+                    L"'%s', disregarding.\n",
+                    argv[i]);
+                result = ERROR_BAD_ARGUMENTS;
+            }
+        }
+        /* Windows-style "nfs_umount /?" help */
+        else if (!wcscmp(argv[i], L"/?")) {
+            PrintUmountUsage(argv[0]);
+            goto out;
+	}
+        /* drive letter */
+	else if (pLocalName == NULL) {
+            pLocalName = argv[i];
+        }
+        else {
+            (void)fwprintf(stderr, L"Unrecognized argument "
+                L"'%s', disregarding.\n",
+                argv[i]);
+        }
+    }
+
+    if (pLocalName == NULL) {
+        result = ERROR_BAD_ARGUMENTS;
+        (void)fwprintf(stderr, L"Drive letter expected.\n");
+        PrintUmountUsage(argv[0]);
+        goto out;
+    }
+
+    if (!ParseDriveLetter(pLocalName, szLocalName)) {
+        result = ERROR_BAD_ARGUMENTS;
+        (void)fwprintf(stderr, L"Invalid drive letter '%s'. "
+            L"Expected 'C' or 'C:'.\n\n",
+            pLocalName);
+        PrintUmountUsage(argv[0]);
+        goto out;
+    }
+
+    result = DoUnmount(szLocalName, bForceUnmount);
+    if (result)
+        PrintErrorMessage(result);
+out:
+    return result;
+}
+
+
+int __cdecl wmain(int argc, wchar_t *argv[])
+{
+    DWORD result = NO_ERROR;
+
+    int crtsetdbgflags = 0;
+    crtsetdbgflags |= _CRTDBG_ALLOC_MEM_DF;  /* use debug heap */
+    crtsetdbgflags |= _CRTDBG_LEAK_CHECK_DF; /* report leaks on exit */
+    crtsetdbgflags |= _CRTDBG_DELAY_FREE_MEM_DF;
+    (void)_CrtSetDbgFlag(crtsetdbgflags);
+    (void)_CrtSetReportMode(_CRT_WARN, _CRTDBG_MODE_FILE);
+    (void)_CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_FILE);
+    (void)_CrtSetReportMode(_CRT_ASSERT, _CRTDBG_MODE_FILE);
+
+    if (wcsstr(argv[0], L"nfs_mount")) {
+        result = mount_main(argc, argv);
+        goto out;
+    }
+    else if (wcsstr(argv[0], L"nfs_umount")) {
+        result = umount_main(argc, argv);
+        goto out;
+    }
+    else {
+        (void)fwprintf(stderr, L"%s: Unknown mode\n", argv[0]);
+        result = 1;
+        goto out;
+    }
+out:
+    return result;
+}
+
 
 static void ConvertUnixSlashes(
     IN OUT LPWSTR pRemoteName)

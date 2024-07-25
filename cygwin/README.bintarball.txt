@@ -249,7 +249,7 @@ drwxr-xr-x 3 Unix_User+197608 Unix_Group+197121  60 Dec 13 17:58 directory_t
 drwxr-xr-x 3 Unix_User+197608 Unix_Group+197121  60 Dec  7 11:01 test2
 
 # Unmount filesystem:
-$ cd ~ && /sbin/nfs_mount -d N:
+$ cd ~ && /sbin/nfs_umount N:
 # OR
 $ cd ~
 $ net use N: /delete
@@ -399,7 +399,7 @@ $ /sbin/nfs_mount
   FileBothDirInformation, FileFullDirInfo, or FileIdFullDirInfo.
 
 - Win10/32bit-only: $ net use H: /delete # does not work,
-  use $ nfs_mount -d 'H' instead #
+  use $ nfs_umount 'H' instead #
 
 - Bug: Subversion checkout can fail with
   "sqlite[S11]: database disk image is malformed" like this:

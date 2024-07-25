@@ -36,6 +36,8 @@ installdest:
 	cp -r $(VS_BUILD_DIR)/nfsd.exe		$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/nfsd_debug.exe
 	cp -r $(VS_BUILD_DIR)/nfsd.pdb		$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/nfsd_debug.pdb
 	cp -r $(VS_BUILD_DIR)/nfs_mount.*	$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/.
+	# we need a hardlink for nfs_umount.exe, softlinks do not work
+	ln -f $(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/nfs_mount.exe	$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/nfs_umount.exe
 	cp -r $(VS_BUILD_DIR)/nfsd.*		$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/.
 	cp -r $(VS_BUILD_DIR)/nfs_install.*	$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/.
 	cp -r $(VS_BUILD_DIR)/libtirpc.*	$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/.
