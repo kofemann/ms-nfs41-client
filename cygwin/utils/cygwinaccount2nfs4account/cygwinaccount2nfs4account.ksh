@@ -203,7 +203,12 @@ function convert_curruser2linuxscript
 	accountdata2linuxscript account_data
 
 	# fixme: we need to figure out the real NFSv4 idmapping domain of the client
-	printf 'printf "Domain = GLOBAL.LOC\\n" >>"/etc/idmapd.conf"\n'
+
+	printf '# turn idmapper on, even for AUTH_SYS\n'
+	printf '{\n'
+	printf '\tprintf "[General]\\n"\n'
+	printf '\tprintf "Domain = %s\\n"\n' "GLOBAL.LOC"
+	printf '} >>"/etc/idmapd.conf"\n'
 
 	printf 'printf "options nfsd nfs4_disable_idmapping=N\\noptions nfs nfs4_disable_idmapping=N\\n" >>"/etc/modprobe.d/nfs.conf"\n'
 	printf 'printf "NEED_IDMAPD=yes\\n" >>"/etc/default/nfs-common"\n'
