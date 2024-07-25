@@ -201,6 +201,7 @@ int mount_main(int argc, wchar_t *argv[])
             if ((!wcscmp(argv[i], L"-h")) ||
                 (!wcscmp(argv[i], L"--help"))) {
                 PrintMountUsage(argv[0]);
+                result = 1;
                 goto out;
             }
             /* unmount */
@@ -364,6 +365,7 @@ opt_o_argv_i_again:
         /* Windows-style "nfs_mount /?" help */
         else if (!wcscmp(argv[i], L"/?")) {
             PrintMountUsage(argv[0]);
+            result = 1;
             goto out;
 	}
         /* drive letter */
@@ -472,6 +474,7 @@ int umount_main(int argc, wchar_t *argv[])
             if ((!wcscmp(argv[i], L"-h")) ||
                 (!wcscmp(argv[i], L"--help"))) {
                 PrintUmountUsage(argv[0]);
+                result = 1;
                 goto out;
             }
             /* force unmount */
@@ -489,6 +492,7 @@ int umount_main(int argc, wchar_t *argv[])
         /* Windows-style "nfs_umount /?" help */
         else if (!wcscmp(argv[i], L"/?")) {
             PrintUmountUsage(argv[0]);
+            result = 1;
             goto out;
 	}
         /* drive letter */
@@ -552,8 +556,13 @@ int __cdecl wmain(int argc, wchar_t *argv[])
         result = 1;
         goto out;
     }
+
 out:
-    return result;
+    /*
+     * POSIX return value of a command can only in the range from
+     * |0|...|SCHAR_MAX|, so map the |ERROR_*| to |1|,|0|.
+     */
+    return (result != NO_ERROR)?1:0;
 }
 
 
