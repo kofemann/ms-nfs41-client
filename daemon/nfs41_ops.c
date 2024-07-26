@@ -374,7 +374,7 @@ static void open_delegation_return(
     stateid.open = NULL;
     stateid.delegation = NULL;
     stateid.type = STATEID_DELEG_FILE;
-    memcpy(&stateid.stateid, &delegation->stateid, sizeof(stateid4));
+    stateid4_cpy(&stateid.stateid, &delegation->stateid);
 
     status = nfs41_delegreturn(session, file, &stateid, try_recovery);
 

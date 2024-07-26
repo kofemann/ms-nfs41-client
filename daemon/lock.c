@@ -3,6 +3,7 @@
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
+ * Roland Mainz <roland.mainz@nrubsig.org>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -41,13 +42,13 @@ static void lock_stateid_arg(
 
     AcquireSRWLockShared(&state->lock);
     if (state->locks.stateid.seqid) {
-        memcpy(&arg->stateid, &state->locks.stateid, sizeof(stateid4));
+        stateid4_cpy(&arg->stateid, &state->locks.stateid);
         arg->type = STATEID_LOCK;
     } else if (state->do_close) {
-        memcpy(&arg->stateid, &state->stateid, sizeof(stateid4));
+        stateid4_cpy(&arg->stateid, &state->stateid);
         arg->type = STATEID_OPEN;
     } else {
-        memset(&arg->stateid, 0, sizeof(stateid4));
+        stateid4_clear(&arg->stateid);
         arg->type = STATEID_SPECIAL;
     }
     ReleaseSRWLockShared(&state->lock);
@@ -60,7 +61,7 @@ static void lock_stateid_update(
 {
     if (state->locks.stateid.seqid == 0) {
         /* if it's a new lock stateid, copy it in */
-        memcpy(&state->locks.stateid, stateid, sizeof(stateid4));
+        stateid4_cpy(&state->locks.stateid, stateid);
     } else if (stateid->seqid > state->locks.stateid.seqid) {
         /* update the seqid if it's more recent */
         state->locks.stateid.seqid = stateid->seqid;

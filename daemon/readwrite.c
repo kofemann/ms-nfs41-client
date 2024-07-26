@@ -3,6 +3,7 @@
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
+ * Roland Mainz <roland.mainz@nrubsig.org>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -80,7 +81,7 @@ static int read_from_mds(
                 p, &bytes_read, &eof);
         if (status == NFS4ERR_OPENMODE && !len) {
             stateid->type = STATEID_SPECIAL;
-            memcpy(&stateid->stateid, &special_read_stateid, sizeof(stateid4));
+            stateid4_cpy(&stateid->stateid, &special_read_stateid);
             continue;
         } else if (status && !len) {
             status = nfs_to_windows_error(status, ERROR_NET_WRITE_FAULT);

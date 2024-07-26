@@ -241,7 +241,7 @@ void nfs41_open_stateid_arg(
         AcquireSRWLockShared(&deleg->lock);
         if (deleg->status == DELEGATION_GRANTED) {
             arg->type = STATEID_DELEG_FILE;
-            memcpy(&arg->stateid, &deleg->state.stateid, sizeof(stateid4));
+            stateid4_cpy(&arg->stateid, &deleg->state.stateid);
         }
         ReleaseSRWLockShared(&deleg->lock);
 
@@ -257,13 +257,13 @@ void nfs41_open_stateid_arg(
     }
 
     if (state->locks.stateid.seqid) {
-        memcpy(&arg->stateid, &state->locks.stateid, sizeof(stateid4));
+        stateid4_cpy(&arg->stateid, &state->locks.stateid);
         arg->type = STATEID_LOCK;
     } else if (state->do_close) {
-        memcpy(&arg->stateid, &state->stateid, sizeof(stateid4));
+        stateid4_cpy(&arg->stateid, &state->stateid);
         arg->type = STATEID_OPEN;
     } else {
-        memset(&arg->stateid, 0, sizeof(stateid4));
+        stateid4_clear(&arg->stateid);
         arg->type = STATEID_SPECIAL;
     }
 out:
@@ -1089,7 +1089,7 @@ static void cancel_open(IN nfs41_upcall *upcall)
         stateid.open = state;
         stateid.delegation = NULL;
         stateid.type = STATEID_OPEN;
-        memcpy(&stateid.stateid, &state->stateid, sizeof(stateid4));
+        stateid4_cpy(&stateid.stateid, &state->stateid);
 
         status = nfs41_close(state->session, &state->file, &stateid);
         if (status) {
@@ -1148,7 +1148,7 @@ static int do_nfs41_close(nfs41_open_state *state)
     stateid.open = state;
     stateid.delegation = NULL;
     stateid.type = STATEID_OPEN;
-    memcpy(&stateid.stateid, &state->stateid, sizeof(stateid4));
+    stateid4_cpy(&stateid.stateid, &state->stateid);
 
     status = nfs41_close(state->session, &state->file, &stateid);
     if (status) {

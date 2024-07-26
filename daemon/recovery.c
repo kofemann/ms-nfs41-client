@@ -3,6 +3,7 @@
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
+ * Roland Mainz <roland.mainz@nrubsig.org>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -252,7 +253,7 @@ static int recover_open(
 
     AcquireSRWLockExclusive(&open->lock);
     /* update the open stateid */
-    memcpy(&open->stateid, &stateid, sizeof(stateid4));
+    stateid4_cpy(&open->stateid, &stateid);
     open->do_close = TRUE;
 
     if (open->delegation.state) {
@@ -291,7 +292,7 @@ static int recover_locks(
     AcquireSRWLockExclusive(&open->lock);
 
     /* initialize the open stateid for the first lock request */
-    memcpy(&stateid.stateid, &open->stateid, sizeof(stateid4));
+    stateid4_cpy(&stateid.stateid, &open->stateid);
     stateid.type = STATEID_OPEN;
     stateid.open = open;
     stateid.delegation = NULL;
@@ -325,7 +326,7 @@ static int recover_locks(
     if (status != NFS4ERR_BADSESSION) {
         /* if we got a lock stateid back, save the lock with the open */
         if (stateid.type == STATEID_LOCK)
-            memcpy(&open->locks.stateid, &stateid.stateid, sizeof(stateid4));
+            stateid4_cpy(&open->locks.stateid, &stateid.stateid);
         else
             open->locks.stateid.seqid = 0;
     }
@@ -580,7 +581,7 @@ static uint32_t stateid_array(
         deleg = list_container(entry, nfs41_delegation_state, client_entry);
         AcquireSRWLockShared(&deleg->lock);
         /* delegation stateid */
-        memcpy(&stateids[i].stateid, &deleg->state.stateid, sizeof(stateid4));
+        stateid4_cpy(&stateids[i].stateid, &deleg->state.stateid);
         stateids[i].type = STATEID_DELEG_FILE;
         stateids[i].delegation = deleg;
         i++;
@@ -592,13 +593,13 @@ static uint32_t stateid_array(
 
         AcquireSRWLockShared(&open->lock);
         /* open stateid */
-        memcpy(&stateids[i].stateid, &open->stateid, sizeof(stateid4));
+        stateid4_cpy(&stateids[i].stateid, &open->stateid);
         stateids[i].type = STATEID_OPEN;
         stateids[i].open = open;
         i++;
 
         if (open->locks.stateid.seqid) { /* lock stateid? */
-            memcpy(&stateids[i].stateid, &open->locks.stateid, sizeof(stateid4));
+            stateid4_cpy(&stateids[i].stateid, &open->locks.stateid);
             stateids[i].type = STATEID_LOCK;
             stateids[i].open = open;
             i++;
@@ -607,7 +608,7 @@ static uint32_t stateid_array(
         if (open->layout) { /* layout stateid? */
             AcquireSRWLockShared(&open->layout->lock);
             if (open->layout->stateid.seqid) {
-                memcpy(&stateids[i].stateid, &open->layout->stateid, sizeof(stateid4));
+                stateid4_cpy(&stateids[i].stateid, &open->layout->stateid);
                 stateids[i].type = STATEID_LAYOUT;
                 stateids[i].open = open;
                 i++;
@@ -711,8 +712,8 @@ static bool_t recover_stateid_open(
 
         /* if the source stateid is different, update and retry */
         AcquireSRWLockShared(&stateid->open->lock);
-        if (memcmp(&stateid->stateid, source, sizeof(stateid4))) {
-            memcpy(&stateid->stateid, source, sizeof(stateid4));
+        if (stateid4_cmp(&stateid->stateid, source)) {
+            stateid4_cpy(&stateid->stateid, source);
             retry = TRUE;
         }
         ReleaseSRWLockShared(&stateid->open->lock);
@@ -731,7 +732,7 @@ static bool_t recover_stateid_lock(
 
         /* if the source stateid is different, update and retry */
         AcquireSRWLockShared(&stateid->open->lock);
-        if (memcmp(&stateid->stateid, source, sizeof(stateid4))) {
+        if (stateid4_cmp(&stateid->stateid, source)) {
             if (argop->op == OP_LOCK && source->seqid == 0) {
                 /* resend LOCK with an open stateid */
                 nfs41_lock_args *lock = (nfs41_lock_args*)argop->arg;
@@ -741,7 +742,7 @@ static bool_t recover_stateid_lock(
                 source = &stateid->open->stateid;
             }
 
-            memcpy(&stateid->stateid, source, sizeof(stateid4));
+            stateid4_cpy(&stateid->stateid, source);
             retry = TRUE;
         }
         ReleaseSRWLockShared(&stateid->open->lock);
@@ -765,8 +766,8 @@ static bool_t recover_stateid_delegation(
             nfs41_delegation_state *deleg = stateid->open->delegation.state;
             stateid4 *source = &deleg->state.stateid;
             AcquireSRWLockShared(&deleg->lock);
-            if (memcmp(&stateid->stateid, source, sizeof(stateid4))) {
-                memcpy(&stateid->stateid, source, sizeof(stateid4));
+            if (stateid4_cmp(&stateid->stateid, source)) {
+                stateid4_cpy(&stateid->stateid, source);
                 retry = TRUE;
             }
             ReleaseSRWLockShared(&deleg->lock);
@@ -776,8 +777,8 @@ static bool_t recover_stateid_delegation(
         nfs41_delegation_state *deleg = stateid->delegation;
         stateid4 *source = &deleg->state.stateid;
         AcquireSRWLockShared(&deleg->lock);
-        if (memcmp(&stateid->stateid, source, sizeof(stateid4))) {
-            memcpy(&stateid->stateid, source, sizeof(stateid4));
+        if (stateid4_cmp(&stateid->stateid, source)) {
+            stateid4_cpy(&stateid->stateid, source);
             retry = TRUE;
         }
         ReleaseSRWLockShared(&deleg->lock);

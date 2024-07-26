@@ -144,6 +144,25 @@ static __inline void bitmap4_clear(
     (void)memset(dst, 0, sizeof(bitmap4));
 }
 
+static __inline void stateid4_cpy(
+    OUT stateid4 *restrict dst,
+    IN  const stateid4 *restrict src)
+{
+    (void)memcpy(dst, src, sizeof(stateid4));
+}
+
+static __inline void stateid4_clear(
+    OUT stateid4 *restrict dst)
+{
+    (void)memset(dst, 0, sizeof(stateid4));
+}
+
+static __inline int stateid4_cmp(
+    IN  const stateid4 *restrict s1,
+    IN  const stateid4 *restrict s2)
+{
+    return memcmp(s1, s2, sizeof(stateid4));
+}
 
 ULONG nfs_file_info_to_attributes(
     IN const nfs41_file_info *info);

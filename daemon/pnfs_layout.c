@@ -3,6 +3,7 @@
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
+ * Roland Mainz <roland.mainz@nrubsig.org>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -379,8 +380,8 @@ static enum pnfs_status layout_update_stateid(
 
     if (state->stateid.seqid == 0) {
         /* save a new layout stateid */
-        memcpy(&state->stateid, stateid, sizeof(stateid4));
-    } else if (memcmp(&state->stateid.other, stateid->other, 
+        stateid4_cpy(&state->stateid, stateid);
+    } else if (memcmp(&state->stateid.other, stateid->other,
                         NFS4_STATEID_OTHER) == 0) {
         /* update an existing layout stateid */
         state->stateid.seqid = stateid->seqid;
@@ -527,7 +528,7 @@ static enum pnfs_status layout_fetch(
 
     /* if there's an existing layout stateid, use it */
     if (state->stateid.seqid) {
-        memcpy(&layout_stateid.stateid, &state->stateid, sizeof(stateid4));
+        stateid4_cpy(&layout_stateid.stateid, &state->stateid);
         layout_stateid.type = STATEID_LAYOUT;
         stateid = &layout_stateid;
     }
@@ -813,7 +814,7 @@ static enum pnfs_status file_layout_return(
             /* 12.5.3. Layout Stateid: Once a client has no more
              * layouts on a file, the layout stateid is no longer
              * valid and MUST NOT be used. */
-            ZeroMemory(&state->stateid, sizeof(stateid4));
+            stateid4_clear(&state->stateid);
         }
     }
 

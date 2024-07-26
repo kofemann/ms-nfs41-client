@@ -3,6 +3,7 @@
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
+ * Roland Mainz <roland.mainz@nrubsig.org>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -226,10 +227,10 @@ static int delegation_flush_locks(
     /* get the starting open/lock stateid */
     AcquireSRWLockShared(&open->lock);
     if (open->locks.stateid.seqid) {
-        memcpy(&stateid.stateid, &open->locks.stateid, sizeof(stateid4));
+        stateid4_cpy(&stateid.stateid, &open->locks.stateid);
         stateid.type = STATEID_LOCK;
     } else {
-        memcpy(&stateid.stateid, &open->stateid, sizeof(stateid4));
+        stateid4_cpy(&stateid.stateid, &open->stateid);
         stateid.type = STATEID_OPEN;
     }
     ReleaseSRWLockShared(&open->lock);
@@ -249,7 +250,7 @@ static int delegation_flush_locks(
         AcquireSRWLockExclusive(&open->lock);
         if (open->locks.stateid.seqid == 0) {
             /* if it's a new lock stateid, copy it in */
-            memcpy(&open->locks.stateid, &stateid.stateid, sizeof(stateid4));
+            stateid4_cpy(&open->locks.stateid, &stateid.stateid);
         } else if (stateid.stateid.seqid > open->locks.stateid.seqid) {
             /* update the seqid if it's more recent */
             open->locks.stateid.seqid = stateid.stateid.seqid;
@@ -313,7 +314,7 @@ out_downcall:
     stateid.open = NULL;
     stateid.delegation = deleg;
     AcquireSRWLockShared(&deleg->lock);
-    memcpy(&stateid.stateid, &deleg->state.stateid, sizeof(stateid4));
+    stateid4_cpy(&stateid.stateid, &deleg->state.stateid);
     ReleaseSRWLockShared(&deleg->lock);
 
     status = nfs41_delegreturn(client->session,
@@ -366,7 +367,7 @@ out:
     return status;
 
 out_return: /* return the delegation on failure */
-    memcpy(&stateid.stateid, &delegation->stateid, sizeof(stateid4));
+    stateid4_cpy(&stateid.stateid, &delegation->stateid);
     stateid.type = STATEID_DELEG_FILE;
     stateid.open = NULL;
     stateid.delegation = NULL;
@@ -498,7 +499,7 @@ int nfs41_delegate_open(
         stateid.open = NULL;
         stateid.delegation = deleg;
         stateid.type = STATEID_DELEG_FILE;
-        memcpy(&stateid.stateid, &deleg->state.stateid, sizeof(stateid4));
+        stateid4_cpy(&stateid.stateid, &deleg->state.stateid);
     }
     if (!status) {
         DPRINTF(1, ("nfs41_delegate_open: updating srv_open from %x to %x\n",
@@ -569,8 +570,7 @@ int nfs41_delegation_to_open(
     deleg_stateid.open = open;
     deleg_stateid.delegation = NULL;
     deleg_stateid.type = STATEID_DELEG_FILE;
-    memcpy(&deleg_stateid.stateid, &open->delegation.state->state.stateid,
-        sizeof(stateid4));
+    stateid4_cpy(&deleg_stateid.stateid, &open->delegation.state->state.stateid);
     ReleaseSRWLockShared(&open->delegation.state->lock);
 
     ReleaseSRWLockExclusive(&open->lock);
@@ -587,7 +587,7 @@ int nfs41_delegation_to_open(
     AcquireSRWLockExclusive(&open->lock);
     if (status == NFS4_OK) {
         /* save the new open stateid */
-        memcpy(&open->stateid, &open_stateid, sizeof(stateid4));
+        stateid4_cpy(&open->stateid, &open_stateid);
         open->do_close = 1;
     } else if (open->do_close && (status == NFS4ERR_BAD_STATEID ||
         status == NFS4ERR_STALE_STATEID || status == NFS4ERR_EXPIRED)) {
