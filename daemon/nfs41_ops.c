@@ -1480,7 +1480,7 @@ int nfs41_setattr(
     if (compound_error(status = compound.res.status))
         goto out;
 
-    bitmap4_cpy(&info->attrmask, &attr_request);
+    bitmap4_cpy(&info->attrmask, &getattr_res.obj_attributes.attrmask);
     nfs41_attr_cache_update(session_name_cache(session),
         file->fh.fileid, info);
 
