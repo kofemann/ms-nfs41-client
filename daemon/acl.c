@@ -1428,7 +1428,11 @@ static int handle_setacl(void *daemon_context, nfs41_upcall *upcall)
             print_nfs41_file_info("handle_setacl: nfs41_setattr() success info OUT:", &info);
         }
     }
+
+    EASSERT((info.attrmask.count >= 1) &&
+        (info.attrmask.arr[0] & FATTR4_WORD0_CHANGE));
     args->ctime = info.change;
+
     if (args->query & DACL_SECURITY_INFORMATION)
         free(nfs4_acl.aces);
 out:

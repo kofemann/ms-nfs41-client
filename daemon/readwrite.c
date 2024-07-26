@@ -238,7 +238,11 @@ retry_write:
 		if (status)
 			goto out;
 	}
+
+    EASSERT((info.attrmask.count >= 1) &&
+        (info.attrmask.arr[0] & FATTR4_WORD0_CHANGE));
     args->ctime = info.change;
+
 out:
     args->out_len = len;
     return nfs_to_windows_error(status, ERROR_NET_WRITE_FAULT);
@@ -268,6 +272,8 @@ static int write_to_pnfs(
         status = ERROR_WRITE_FAULT;
         goto out;
     }
+    EASSERT((info.attrmask.count >= 1) &&
+        (info.attrmask.arr[0] & FATTR4_WORD0_CHANGE));
     args->ctime = info.change;
 out:
     return status;

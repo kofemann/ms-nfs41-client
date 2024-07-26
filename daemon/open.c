@@ -760,7 +760,11 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
         }
         nfs_to_basic_info(state->file.name.name, &info, &args->basic_info);
         nfs_to_standard_info(&info, &args->std_info);
+        EASSERT((info.attrmask.count >= 2) &&
+            (info.attrmask.arr[1] & FATTR4_WORD1_MODE));
         args->mode = info.mode;
+        EASSERT((info.attrmask.count >= 1) &&
+            (info.attrmask.arr[0] & FATTR4_WORD0_CHANGE));
         args->changeattr = info.change;
     } else if (open_for_attributes(state->type, args->access_mask,
                 args->disposition, status)) {
@@ -771,7 +775,11 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
 
         nfs_to_basic_info(state->file.name.name, &info, &args->basic_info);
         nfs_to_standard_info(&info, &args->std_info);
+        EASSERT((info.attrmask.count >= 2) &&
+            (info.attrmask.arr[1] & FATTR4_WORD1_MODE));
         args->mode = info.mode;
+        EASSERT((info.attrmask.count >= 1) &&
+            (info.attrmask.arr[0] & FATTR4_WORD0_CHANGE));
         args->changeattr = info.change;
 
 #ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES
@@ -997,7 +1005,11 @@ create_chgrp_out:
 
             nfs_to_basic_info(state->file.name.name, &info, &args->basic_info);
             nfs_to_standard_info(&info, &args->std_info);
+            EASSERT((info.attrmask.count >= 2) &&
+                (info.attrmask.arr[1] & FATTR4_WORD1_MODE));
             args->mode = info.mode;
+            EASSERT((info.attrmask.count >= 1) &&
+                (info.attrmask.arr[0] & FATTR4_WORD0_CHANGE));
             args->changeattr = info.change;
         }
 

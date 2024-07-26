@@ -3,6 +3,7 @@
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
+ * Roland Mainz <roland.mainz@nrubsig.org>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -190,6 +191,8 @@ static int handle_setexattr(void *daemon_context, nfs41_upcall *upcall)
             goto out;
         }
 
+        EASSERT((info.attrmask.count >= 1) &&
+            (info.attrmask.arr[0] & FATTR4_WORD0_CHANGE));
         args->ctime = info.change;
         goto out;
     }
