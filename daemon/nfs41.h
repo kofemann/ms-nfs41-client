@@ -482,7 +482,7 @@ static __inline void nfs41_superblock_getattr_mask(
     IN const nfs41_superblock *superblock,
     OUT bitmap4 *attrs)
 {
-    memcpy(attrs, &superblock->default_getattr, sizeof(bitmap4));
+    bitmap4_cpy(attrs, &superblock->default_getattr);
 }
 static __inline void nfs41_superblock_supported_attrs(
     IN const nfs41_superblock *superblock,

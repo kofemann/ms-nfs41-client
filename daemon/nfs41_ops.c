@@ -397,13 +397,11 @@ static void open_update_cache(
     uint32_t status;
 
     /* update the attributes of the parent directory */
-    memcpy(&dir_attrs->info->attrmask, &dir_attrs->obj_attributes.attrmask,
-        sizeof(bitmap4));
+    bitmap4_cpy(&dir_attrs->info->attrmask, &dir_attrs->obj_attributes.attrmask);
     nfs41_attr_cache_update(cache, parent->fh.fileid, dir_attrs->info);
 
     /* add the file handle and attributes to the name cache */
-    memcpy(&file_attrs->info->attrmask, &file_attrs->obj_attributes.attrmask,
-        sizeof(bitmap4));
+    bitmap4_cpy(&file_attrs->info->attrmask, &file_attrs->obj_attributes.attrmask);
 retry_cache_insert:
     AcquireSRWLockShared(&file->path->lock);
     status = nfs41_name_cache_insert(cache, file->path->path, &file->name,
@@ -672,14 +670,12 @@ int nfs41_create(
     file->fh.superblock = parent->fh.superblock;
 
     /* update the attributes of the parent directory */
-    memcpy(&dir_info.attrmask, &pgetattr_res.obj_attributes.attrmask,
-        sizeof(bitmap4));
+    bitmap4_cpy(&dir_info.attrmask, &pgetattr_res.obj_attributes.attrmask);
     nfs41_attr_cache_update(session_name_cache(session),
         parent->fh.fileid, &dir_info);
 
     /* add the new file handle and attributes to the name cache */
-    memcpy(&info->attrmask, &getattr_res.obj_attributes.attrmask,
-        sizeof(bitmap4));
+    bitmap4_cpy(&info->attrmask, &getattr_res.obj_attributes.attrmask);
     AcquireSRWLockShared(&file->path->lock);
     nfs41_name_cache_insert(session_name_cache(session),
         file->path->path, &file->name, &file->fh,
@@ -741,8 +737,7 @@ int nfs41_close(
         goto out;
 
     /* update the attributes of the parent directory */
-    memcpy(&info.attrmask, &getattr_res.obj_attributes.attrmask,
-        sizeof(bitmap4));
+    bitmap4_cpy(&info.attrmask, &getattr_res.obj_attributes.attrmask);
     nfs41_attr_cache_update(session_name_cache(session),
         file->fh.fileid, &info);
 out:
@@ -817,8 +812,7 @@ int nfs41_write(
 
     if (stable != UNSTABLE4 && pinfo->type != NF4NAMEDATTR) {
         /* update the attribute cache */
-        memcpy(&pinfo->attrmask, &getattr_res.obj_attributes.attrmask,
-            sizeof(bitmap4));
+        bitmap4_cpy(&pinfo->attrmask, &getattr_res.obj_attributes.attrmask);
         nfs41_attr_cache_update(session_name_cache(session),
             file->fh.fileid, pinfo);
     }
@@ -958,8 +952,7 @@ int nfs41_commit(
 
     if (do_getattr) {
         /* update the attribute cache */
-        memcpy(&pinfo->attrmask, &getattr_res.obj_attributes.attrmask,
-            sizeof(bitmap4));
+        bitmap4_cpy(&pinfo->attrmask, &getattr_res.obj_attributes.attrmask);
         nfs41_attr_cache_update(session_name_cache(session),
             file->fh.fileid, pinfo);
     }
@@ -1176,8 +1169,7 @@ int nfs41_getattr(
 
     if (file) {
         /* update the name cache with whatever attributes we got */
-        memcpy(&info->attrmask, &getattr_res.obj_attributes.attrmask,
-            sizeof(bitmap4));
+        bitmap4_cpy(&info->attrmask, &getattr_res.obj_attributes.attrmask);
         nfs41_attr_cache_update(session_name_cache(session),
             file->fh.fileid, info);
     }
@@ -1300,8 +1292,7 @@ int nfs41_remove(
         goto out;
 
     /* update the attributes of the parent directory */
-    memcpy(&info.attrmask, &getattr_res.obj_attributes.attrmask,
-        sizeof(bitmap4));
+    bitmap4_cpy(&info.attrmask, &getattr_res.obj_attributes.attrmask);
     nfs41_attr_cache_update(session_name_cache(session),
         parent->fh.fileid, &info);
 
@@ -1382,14 +1373,12 @@ int nfs41_rename(
         goto out;
 
     /* update the attributes of the source directory */
-    memcpy(&src_info.attrmask, &src_getattr_res.obj_attributes.attrmask,
-        sizeof(bitmap4));
+    bitmap4_cpy(&src_info.attrmask, &src_getattr_res.obj_attributes.attrmask);
     nfs41_attr_cache_update(session_name_cache(session),
         src_dir->fh.fileid, &src_info);
 
     /* update the attributes of the destination directory */
-    memcpy(&dst_info.attrmask, &dst_getattr_res.obj_attributes.attrmask,
-        sizeof(bitmap4));
+    bitmap4_cpy(&dst_info.attrmask, &dst_getattr_res.obj_attributes.attrmask);
     nfs41_attr_cache_update(session_name_cache(session),
         dst_dir->fh.fileid, &dst_info);
 
@@ -1491,7 +1480,7 @@ int nfs41_setattr(
     if (compound_error(status = compound.res.status))
         goto out;
 
-    memcpy(&info->attrmask, &attr_request, sizeof(bitmap4));
+    bitmap4_cpy(&info->attrmask, &attr_request);
     nfs41_attr_cache_update(session_name_cache(session),
         file->fh.fileid, info);
 
@@ -1586,14 +1575,12 @@ int nfs41_link(
         goto out;
 
     /* update the attributes of the destination directory */
-    memcpy(&info.attrmask, &getattr_res[0].obj_attributes.attrmask,
-        sizeof(bitmap4));
+    bitmap4_cpy(&info.attrmask, &getattr_res[0].obj_attributes.attrmask);
     nfs41_attr_cache_update(session_name_cache(session),
         info.fileid, &info);
 
     /* add the new file handle and attributes to the name cache */
-    memcpy(&cinfo->attrmask, &getattr_res[1].obj_attributes.attrmask,
-        sizeof(bitmap4));
+    bitmap4_cpy(&cinfo->attrmask, &getattr_res[1].obj_attributes.attrmask);
     AcquireSRWLockShared(&dst_dir->path->lock);
     nfs41_name_cache_insert(session_name_cache(session),
         dst_dir->path->path, target, &file.fh,
@@ -2160,8 +2147,7 @@ enum nfsstat4 pnfs_rpc_layoutcommit(
         goto out;
 
     /* update the attribute cache */
-    memcpy(&info->attrmask, &getattr_res.obj_attributes.attrmask,
-        sizeof(bitmap4));
+    bitmap4_cpy(&info->attrmask, &getattr_res.obj_attributes.attrmask);
     nfs41_attr_cache_update(session_name_cache(session),
         file->fh.fileid, info);
 out:

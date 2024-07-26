@@ -224,8 +224,8 @@ static int server_lookup(
         last_component(path, count ? args->lookup[0].name->name : path_end, &name);
 
         /* add the file handle and attributes to the name cache */
-        memcpy(&res->getrootattr.info->attrmask,
-            &res->getrootattr.obj_attributes.attrmask, sizeof(bitmap4));
+        bitmap4_cpy(&res->getrootattr.info->attrmask,
+            &res->getrootattr.obj_attributes.attrmask);
         nfs41_name_cache_insert(session_name_cache(session), path, &name,
             &dir->fh, res->getrootattr.info, NULL, OPEN_DELEGATE_NONE);
     }
@@ -274,8 +274,8 @@ static int server_lookup(
             break;
 
         /* add the file handle and attributes to the name cache */
-        memcpy(&res->getattr[i].info->attrmask,
-            &res->getattr[i].obj_attributes.attrmask, sizeof(bitmap4));
+        bitmap4_cpy(&res->getattr[i].info->attrmask,
+            &res->getattr[i].obj_attributes.attrmask);
         nfs41_name_cache_insert(session_name_cache(session),
             path, args->lookup[i].name, &res->file[i].fh,
             res->getattr[i].info, NULL, OPEN_DELEGATE_NONE);

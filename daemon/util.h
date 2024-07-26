@@ -126,6 +126,25 @@ static __inline void bitmap_intersect(
     dst->count = min(dst->count, count);
 }
 
+static __inline void bitmap4_cpy(
+    OUT bitmap4 *restrict dst,
+    IN  const bitmap4 *restrict src)
+{
+    (void)memcpy(dst, src, sizeof(bitmap4));
+}
+
+static __inline void bitmap4_clear(
+    OUT bitmap4 *restrict dst)
+{
+    /*
+     * gisburn: FIXME: Only set the count field to 0, and use
+     * Rational Purify/DrMemory to see if someone does not play
+     * by the rules
+     */
+    (void)memset(dst, 0, sizeof(bitmap4));
+}
+
+
 ULONG nfs_file_info_to_attributes(
     IN const nfs41_file_info *info);
 void nfs_to_basic_info(

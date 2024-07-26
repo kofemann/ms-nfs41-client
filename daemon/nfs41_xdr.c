@@ -2371,7 +2371,7 @@ static bool_t decode_readdir_entry(
         xdrmem_create(&fattr_xdr, (char *)attrs.attr_vals, attrs.attr_vals_len, XDR_DECODE);
         if (!(decode_file_attrs(&fattr_xdr, &attrs, &entry->attr_info)))
             entry->attr_info.rdattr_error = NFS4ERR_BADXDR;
-        (void)memcpy(&entry->attr_info.attrmask, &attrs.attrmask, sizeof(bitmap4));
+        bitmap4_cpy(&entry->attr_info.attrmask, &attrs.attrmask);
         StringCchCopyA(entry->name, name_len, (STRSAFE_LPCSTR)name);
 
         it->buf_pos += (size_t)entry_len + name_len;
@@ -2617,7 +2617,7 @@ static bool_t encode_file_attrs(
     xdrmem_create(&localxdr, (char *)attrs->attr_vals, NFS4_OPAQUE_LIMIT, XDR_ENCODE);
 
     attrs->attr_vals_len = 0;
-    ZeroMemory(&attrs->attrmask, sizeof(bitmap4));
+    bitmap4_clear(&attrs->attrmask);
     attrs->attrmask.count = info->attrmask.count;
 
     if (info->attrmask.count > 0) {
