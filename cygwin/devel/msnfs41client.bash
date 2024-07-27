@@ -561,6 +561,17 @@ function require_cmd
 	return 0
 }
 
+function require_file
+{
+	typeset testfile="$1"
+
+	if [[ ! -f "$testfile" ]] ; then
+		printf $"%s: File %q not found in %q\n" "$0" "$cmd" "$PWD" 1>&2
+		return 1
+	fi
+	return 0
+}
+
 # execute cmd as Windows user "SYSTEM"
 function su_system
 {
@@ -658,6 +669,8 @@ function main
 			require_cmd 'nfsd.exe' || (( numerr++ ))
 			require_cmd 'nfsd_debug.exe' || (( numerr++ ))
 			require_cmd 'nfs_mount.exe' || (( numerr++ ))
+			require_cmd 'ksh93.exe' || (( numerr++ ))
+			require_file '/lib/msnfs41client/cygwin_idmapper.ksh' || (( numerr++ ))
 			(( numerr > 0 )) && return 1
 
 			nfsclient_rundeamon
@@ -670,6 +683,8 @@ function main
 			require_cmd 'nfsd.exe' || (( numerr++ ))
 			require_cmd 'nfsd_debug.exe' || (( numerr++ ))
 			require_cmd 'nfs_mount.exe' || (( numerr++ ))
+			require_cmd 'ksh93.exe' || (( numerr++ ))
+			require_file '/lib/msnfs41client/cygwin_idmapper.ksh' || (( numerr++ ))
 			if ! is_windows_admin_account ; then
 				printf $"%s: %q requires Windows Adminstator permissions.\n" "$0" "$cmd"
 				(( numerr++ ))
