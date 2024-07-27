@@ -30,6 +30,11 @@ $(VS_BUILD_DIR32)/nfsd.exe \
 	$(VS_BUILD_DIR64)/nfs41_driver.sys \
 	$(VS_BUILD_DIR64)/libtirpc.dll: build
 
+# trigger "build_testutils" target when these binaries are needed
+$(PROJECT_BASEDIR_DIR)/tests/ea/nfs_ea.exe \
+	$(PROJECT_BASEDIR_DIR)/tests/winfsinfo1/winfsinfo.exe \
+	$(PROJECT_BASEDIR_DIR)/tests/winsg/winsg.exe: build_testutils
+
 #
 # build the code
 #
@@ -86,6 +91,9 @@ installdest: \
 	$(PROJECT_BASEDIR_DIR)/nfs41rdr.inf \
 	$(PROJECT_BASEDIR_DIR)/etc_netconfig \
 	$(PROJECT_BASEDIR_DIR)/ms-nfs41-idmap.conf \
+	$(PROJECT_BASEDIR_DIR)/tests/ea/nfs_ea.exe \
+	$(PROJECT_BASEDIR_DIR)/tests/winfsinfo1/winfsinfo.exe \
+	$(PROJECT_BASEDIR_DIR)/tests/winsg/winsg.exe \
 	$(CYGWIN_MAKEFILE_DIR)/devel/msnfs41client.bash
 	# installdest 32bit Windows
 	make -f $(CYGWIN_MAKEFILE_DIR)/Makefile.install \
