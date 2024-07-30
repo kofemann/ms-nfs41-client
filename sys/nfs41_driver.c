@@ -46,6 +46,8 @@
 /* debugging printout defines */
 #define DEBUG_MARSHAL_HEADER
 #define DEBUG_MARSHAL_DETAIL
+//#define DEBUG_MARSHAL_DETAIL_RW
+//#define DEBUG_SECURITY_TOKEN
 #define DEBUG_MOUNTCONFIG
 //#define DEBUG_OPEN
 //#define DEBUG_CLOSE
@@ -910,7 +912,7 @@ static NTSTATUS marshal_nfs41_rw(
     RtlCopyMemory(tmp, &entry->buf, sizeof(HANDLE));
     *len = header_len;
 
-#ifdef DEBUG_MARSHAL_DETAIL
+#ifdef DEBUG_MARSHAL_DETAIL_RW
     DbgP("marshal_nfs41_rw: len=%lu offset=%llu "
         "MdlAddress=0x%p Userspace=0x%p\n",
         entry->buf_len, entry->u.ReadWrite.offset,
@@ -1848,8 +1850,8 @@ static NTSTATUS unmarshal_nfs41_rw(
     RtlCopyMemory(&cur->buf_len, *buf, sizeof(cur->buf_len));
     *buf += sizeof(cur->buf_len);
     RtlCopyMemory(&cur->ChangeTime, *buf, sizeof(ULONGLONG));
-#ifdef DEBUG_MARSHAL_DETAIL
-    DbgP("unmarshal_nfs41_rw: returned len %lu ChangeTime %llu\n", 
+#ifdef DEBUG_MARSHAL_DETAIL_RW
+    DbgP("unmarshal_nfs41_rw: returned len %lu ChangeTime %llu\n",
         cur->buf_len, cur->ChangeTime);
 #endif
 #if 1
@@ -3331,7 +3333,7 @@ static NTSTATUS nfs41_get_sec_ctx(
         print_error("SeCreateClientSecurityFromSubjectContext "
             "failed with 0x%x\n", status);
     }
-#ifdef DEBUG_MOUNT
+#ifdef DEBUG_SECURITY_TOKEN
     DbgP("Created client security token 0x%p\n", out_ctx->ClientToken);
 #endif
     SeReleaseSubjectContext(&ctx);
