@@ -39,6 +39,9 @@
     <ClInclude Include="..\..\sys\wmlkm.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\daemon\nfs_ea.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="..\..\sys\nfs41_driver.rc">

@@ -39,6 +39,7 @@
 #include "nfs41_np.h"
 #include "nfs41_debug.h"
 #include "nfs41_build_features.h"
+#include "nfs_ea.h"
 
 // #define USE_ENTIRE_PATH_FOR_NETROOT 1
 
@@ -113,9 +114,9 @@ LONG open_owner_id = 1;
 #define MILLISECONDS(milli) (((signed __int64)(milli)) * MICROSECONDS(1000L))
 #define SECONDS(seconds) (((signed __int64)(seconds)) * MILLISECONDS(1000L))
 
-DECLARE_CONST_ANSI_STRING(NfsV3Attributes, "NfsV3Attributes");
-DECLARE_CONST_ANSI_STRING(NfsSymlinkTargetName, "NfsSymlinkTargetName");
-DECLARE_CONST_ANSI_STRING(NfsActOnLink, "NfsActOnLink");
+DECLARE_CONST_ANSI_STRING(NfsV3Attributes, EA_NFSV3ATTRIBUTES);
+DECLARE_CONST_ANSI_STRING(NfsSymlinkTargetName, EA_NFSSYMLINKTARGETNAME);
+DECLARE_CONST_ANSI_STRING(NfsActOnLink, EA_NFSACTONLINK);
 
 INLINE BOOL AnsiStrEq(
     IN const ANSI_STRING *lhs,

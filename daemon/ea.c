@@ -29,6 +29,7 @@
 #include "delegation.h"
 #include "upcall.h"
 #include "daemon_debug.h"
+#include "nfs_ea.h"
 
 
 #define EALVL 2 /* dprintf level for extended attribute logging */
@@ -101,15 +102,16 @@ out:
     return status;
 }
 
-static int is_cygwin_ea(
+/* Is this a NFS extended attribute (commonly used by Cygwin) ? */
+static bool is_nfs_ea(
     PFILE_FULL_EA_INFORMATION ea)
 {
-    return (strncmp("NfsV3Attributes", ea->EaName, ea->EaNameLength) == 0
-            && sizeof("NfsV3Attributes")-1 == ea->EaNameLength)
-        || (strncmp("NfsActOnLink", ea->EaName, ea->EaNameLength) == 0
-            && sizeof("NfsActOnLink")-1 == ea->EaNameLength)
-        || (strncmp("NfsSymlinkTargetName", ea->EaName, ea->EaNameLength) == 0
-            && sizeof("NfsSymlinkTargetName")-1 == ea->EaNameLength);
+    return (((ea->EaNameLength == EA_NFSV3ATTRIBUTES_LEN) &&
+            (!strncmp(EA_NFSV3ATTRIBUTES, ea->EaName, ea->EaNameLength)))
+        || ((ea->EaNameLength == EA_NFSACTONLINK_LEN) &&
+            (!strncmp(EA_NFSACTONLINK, ea->EaName, ea->EaNameLength)))
+        || ((ea->EaNameLength == EA_NFSSYMLINKTARGETNAME_LEN) &&
+            (!strncmp(EA_NFSSYMLINKTARGETNAME, ea->EaName, ea->EaNameLength))));
 }
 
 #define NEXT_ENTRY(ea) ((PBYTE)(ea) + (ea)->NextEntryOffset)
@@ -129,7 +131,7 @@ int nfs41_ea_set(
     }
 
     while (status == NFS4_OK) {
-        if (!is_cygwin_ea(ea))
+        if (!is_nfs_ea(ea))
             status = set_ea_value(state->session, &attrdir, &state->owner, ea);
 
         if (ea->NextEntryOffset == 0)
@@ -172,8 +174,8 @@ static int handle_setexattr(void *daemon_context, nfs41_upcall *upcall)
     nfs41_delegation_return(state->session, &state->file,
         OPEN_DELEGATE_READ, FALSE);
 
-    if (strncmp("NfsV3Attributes", ea->EaName, ea->EaNameLength) == 0
-            && sizeof("NfsV3Attributes")-1 == ea->EaNameLength) {
+    if ((ea->EaNameLength == EA_NFSV3ATTRIBUTES_LEN) &&
+        (!strncmp(EA_NFSV3ATTRIBUTES, ea->EaName, ea->EaNameLength))) {
         nfs41_file_info info;
         stateid_arg stateid;
 
