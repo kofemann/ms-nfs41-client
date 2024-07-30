@@ -302,14 +302,14 @@ void *handlep;
     list->next = NULL;
     list->ncp->nc_lookups = NULL;
     list->linep = stringp;
-	wintirpc_debug("%s: before parse: &list->linep %p, list->linep %p, stringp %p\n", __FUNCTION__, &list->linep, list->linep, stringp);
+	wintirpc_debug("%s: before parse: &list->linep %p, list->linep %p, stringp %p\n", __func__, &list->linep, list->linep, stringp);
     if (parse_ncp(stringp, list->ncp) == -1) {
 		free(stringp);
 		free(np);
 		free(list);
 		return (NULL);
     } else {
-		wintirpc_debug("%s: after  parse: list->linep %p, stringp %p\n", __FUNCTION__, list->linep, stringp);
+		wintirpc_debug("%s: after  parse: list->linep %p, stringp %p\n", __func__, list->linep, stringp);
 		/*
 		 * If this is the first entry that's been read, it is the head of
 		 * the list.  If not, put the entry at the end of the list.
@@ -526,11 +526,11 @@ struct netconfig *ncp;	/* where to put results */
     char    *lasts;
 
     nc_error = NC_BADFILE;	/* nearly anything that breaks is for this reason */
-	wintirpc_debug("%s: The last character being chopped is '%02x'\n", __FUNCTION__, stringp[strlen(stringp)-1]);
-	wintirpc_debug("%s: The string before chopping is '%s'\n", __FUNCTION__, stringp);
+	wintirpc_debug("%s: The last character being chopped is '%02x'\n", __func__, stringp[strlen(stringp)-1]);
+	wintirpc_debug("%s: The string before chopping is '%s'\n", __func__, stringp);
     stringp[strlen(stringp)-1] = '\0';	/* get rid of newline */
-	wintirpc_debug("%s: The last character after chopping is '%02x'\n", __FUNCTION__, stringp[strlen(stringp)-1]);
-	wintirpc_debug("%s: The string after  chopping is '%s'\n", __FUNCTION__, stringp);
+	wintirpc_debug("%s: The last character after chopping is '%02x'\n", __func__, stringp[strlen(stringp)-1]);
+	wintirpc_debug("%s: The string after  chopping is '%s'\n", __func__, stringp);
     /* netid */
     if ((ncp->nc_netid = strtok_r(stringp, "\t ", &lasts)) == NULL) {
 		return (-1);

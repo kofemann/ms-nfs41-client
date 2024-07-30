@@ -63,17 +63,17 @@ const char *fsctl2string(ULONG fsctl);
 
 #define DbgEn() DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, \
         "--> [%s] [%04x] %s\n", _DRIVER_NAME_, PsGetCurrentProcessShortDebugId(), \
-        __FUNCTION__); try {
+        __func__); try {
 
 #define DbgEx() DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, \
         "<-- [%s] [%04x] %s status = %08lx\n", _DRIVER_NAME_, PsGetCurrentProcessShortDebugId(), \
-        __FUNCTION__, status); \
+        __func__, status); \
         } except (EXCEPTION_EXECUTE_HANDLER) { \
             status = GetExceptionCode() ; \
             DbgP("Exception encountered with value = Ox%x\n", status); \
         }
 #define DbgR() DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, \
-        "<-- [%s] [%04x] %s\n", _DRIVER_NAME_, PsGetCurrentProcessShortDebugId(), __FUNCTION__); \
+        "<-- [%s] [%04x] %s\n", _DRIVER_NAME_, PsGetCurrentProcessShortDebugId(), __func__); \
         } except (EXCEPTION_EXECUTE_HANDLER) { \
             NTSTATUS exc_status; \
             exc_status = GetExceptionCode() ; \
@@ -97,9 +97,9 @@ const char *fsctl2string(ULONG fsctl);
 #define PNFS_FLTR_ID        DPFLTR_IHVDRIVER_ID
 
 #define DbgEnter()      DbgPrintEx(PNFS_FLTR_ID, DPFLTR_MASK | DBG_DISP_IN, "%s*** %s ***\n", \
-                                PNFS_TRACE_TAG, __FUNCTION__);
+                                PNFS_TRACE_TAG, __func__);
 #define DbgExit(status) DbgPrintEx(PNFS_FLTR_ID, DPFLTR_MASK | DBG_DISP_OUT, "%s<-- %s <-- 0x%08lx\n", \
-                                PNFS_TRACE_TAG, __FUNCTION__, status);
+                                PNFS_TRACE_TAG, __func__, status);
 ULONG
 dprintk(
     IN PCHAR func,

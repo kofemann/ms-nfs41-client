@@ -119,7 +119,7 @@ xprt_register (xprt)
     svc_maxfd = max (svc_maxfd, sock);
   }
 #else
-  fprintf(stderr, "%s: Yikes!  Figure out __svc_xports[] issue!!\n", __FUNCTION__);
+  fprintf(stderr, "%s: Yikes!  Figure out __svc_xports[] issue!!\n", __func__);
 #endif
   rwlock_unlock (&svc_fd_lock);
 }
@@ -165,7 +165,7 @@ bool_t dolock;
   if (dolock)
     rwlock_unlock (&svc_fd_lock);
 #else
-  fprintf(stderr, "%s: Yikes!  Figure out __svc_xports[] issue!!\n", __FUNCTION__);
+  fprintf(stderr, "%s: Yikes!  Figure out __svc_xports[] issue!!\n", __func__);
 #endif
 }
 
@@ -633,7 +633,7 @@ svc_getreqset (readfds)
 	}
     }
 #else
-	fprintf(stderr, "%s: Yikes!\n", __FUNCTION__);
+	fprintf(stderr, "%s: Yikes!\n", __func__);
 #endif
 }
 
