@@ -143,6 +143,7 @@ static int handle_nfs41_setattr(void *daemon_context, setattr_upcall_args *args)
         DPRINTF(1, ("nfs41_setattr() failed with error '%s'.\n",
             nfs_error_string(status)));
         status = nfs_to_windows_error(status, ERROR_NOT_SUPPORTED);
+        goto out;
     }
     EASSERT((info.attrmask.count >= 1) &&
         (info.attrmask.arr[0] & FATTR4_WORD0_CHANGE));
@@ -487,6 +488,7 @@ static int handle_nfs41_link(void *daemon_context, setattr_upcall_args *args)
         DPRINTF(1, ("nfs41_link() failed with error '%s'.\n",
             nfs_error_string(status)));
         status = nfs_to_windows_error(status, ERROR_INVALID_PARAMETER);
+        goto out;
     }
     EASSERT((info.attrmask.count >= 1) &&
         (info.attrmask.arr[0] & FATTR4_WORD0_CHANGE));
