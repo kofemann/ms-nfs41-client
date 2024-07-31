@@ -4705,6 +4705,7 @@ static NTSTATUS nfs41_Flush(
 static NTSTATUS nfs41_DeallocateForFcb(
     IN OUT PMRX_FCB pFcb)
 {
+    nfs41_remove_fcb_entry(pFcb);
     return STATUS_SUCCESS;
 }
 
@@ -7508,11 +7509,6 @@ VOID fcbopen_main(PVOID ctx)
 #endif
             if (cur->skip) goto out;
 
-#ifdef NFS41_DRIVER_STABILITY_HACKS
-            /* FIXME: Why ? */
-            if (!cur->nfs41_fobx->sec_ctx.ClientToken)
-                goto out;
-#endif /* NFS41_DRIVER_STABILITY_HACKS */
             pNetRootContext =
                 NFS41GetNetRootExtension(cur->fcb->pNetRoot);
             /* place an upcall for this srv_open */
