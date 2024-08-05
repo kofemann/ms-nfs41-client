@@ -178,14 +178,6 @@ int mount_main(int argc, wchar_t *argv[])
     wchar_t *mntopts[MAX_MNTOPTS] = { 0 };
     int     num_mntopts = 0;
 
-    if (argc == 1) {
-        /* list open nfs shares */
-        result = EnumMounts(NULL);
-        if (result)
-            PrintErrorMessage(GetLastError());
-        goto out;
-    }
-
     result = InitializeMountOptions(&Options, MAX_OPTION_BUFFER_SIZE);
     if (result) {
         PrintErrorMessage(GetLastError());
@@ -532,6 +524,24 @@ out:
 }
 
 
+static
+int list_nfs_mounts_main(int argc, wchar_t *argv[])
+{
+    DWORD result;
+
+    /* Unused for now */
+    (void)argc;
+    (void)argv;
+
+    /* list open nfs shares */
+    result = EnumMounts(NULL);
+    if (result)
+        PrintErrorMessage(GetLastError());
+
+    return result;
+}
+
+
 int __cdecl wmain(int argc, wchar_t *argv[])
 {
     DWORD result = NO_ERROR;
@@ -545,7 +555,11 @@ int __cdecl wmain(int argc, wchar_t *argv[])
     (void)_CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_FILE);
     (void)_CrtSetReportMode(_CRT_ASSERT, _CRTDBG_MODE_FILE);
 
-    if (wcsstr(argv[0], L"nfs_mount")) {
+    if (argc == 1) {
+        result = list_nfs_mounts_main(argc, argv);
+        goto out;
+    }
+    else if (wcsstr(argv[0], L"nfs_mount")) {
         result = mount_main(argc, argv);
         goto out;
     }
