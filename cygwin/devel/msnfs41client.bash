@@ -216,6 +216,16 @@ function nfsclient_adddriver
 
 	rundll32 setupapi.dll,InstallHinfSection DefaultInstall 132 ./nfs41rdr.inf
 
+	#
+	# Hack: Manually Add 32bit provider DLL to a 64bit system, so
+	# 32bit applications can enumerate the ms-nfs41-client shares
+	# (FIXME: technically nfs41rdr.inf should do this)
+	#
+	if [[ -d '/cygdrive/c/Windows/SysWOW64/' ]] ; then
+		# copy from the 32bit install dir
+		cp '../../../../../cygdrive/c/cygwin/lib/msnfs41client/nfs41_np.dll' '/cygdrive/c/Windows/SysWOW64/'
+	fi
+
 	return 0
 }
 
@@ -234,6 +244,9 @@ function nfsclient_removedriver
 	nfs_install.exe 0
 	rundll32.exe setupapi.dll,InstallHinfSection DefaultUninstall 132 ./nfs41rdr.inf
 	rm /cygdrive/c/Windows/System32/nfs41_np.dll || true
+	if [[ -d '/cygdrive/c/Windows/SysWOW64/' ]] ; then
+		rm '/cygdrive/c/Windows/SysWOW64/nfs41_np.dll' || true
+	fi
 	rm /cygdrive/c/Windows/System32/drivers/nfs41_driver.sys || true
 
 	sync
