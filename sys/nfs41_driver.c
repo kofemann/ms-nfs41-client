@@ -4592,7 +4592,7 @@ static VOID nfs41_remove_fcb_entry(
                 nfs41_fcb_list_entry, next);
         if (cur->fcb == fcb) {
 #ifdef DEBUG_CLOSE
-            DbgP("nfs41_remove_srvopen_entry: Found match for fcb=0x%p\n", fcb);
+            DbgP("nfs41_remove_fcb_entry: Found match for fcb=0x%p\n", fcb);
 #endif
             RemoveEntryList(pEntry);
             RxFreePool(cur);
@@ -4600,8 +4600,40 @@ static VOID nfs41_remove_fcb_entry(
         }
         if (pEntry->Flink == &openlist.head) {
 #ifdef DEBUG_CLOSE
-            DbgP("nfs41_remove_srvopen_entry: reached EOL looking "
+            DbgP("nfs41_remove_fcb_entry: reached EOL looking "
                 "for fcb 0x%p\n", fcb);
+#endif
+            break;
+        }
+        pEntry = pEntry->Flink;
+    }
+    ExReleaseFastMutex(&fcblistLock);
+}
+
+static VOID nfs41_invalidate_fobx_entry(
+    IN OUT PMRX_FOBX pFobx)
+{
+    PLIST_ENTRY pEntry;
+    nfs41_fcb_list_entry *cur;
+    __notnull PNFS41_FOBX nfs41_fobx = NFS41GetFobxExtension(pFobx);
+
+    ExAcquireFastMutex(&fcblistLock);
+
+    pEntry = openlist.head.Flink;
+    while (!IsListEmpty(&openlist.head)) {
+        cur = (nfs41_fcb_list_entry *)CONTAINING_RECORD(pEntry,
+                nfs41_fcb_list_entry, next);
+        if (cur->nfs41_fobx == nfs41_fobx) {
+#ifdef DEBUG_CLOSE
+            DbgP("nfs41_invalidate_fobx_entry: Found match for fobx=0x%p\n", fobx);
+#endif
+            cur->nfs41_fobx = NULL;
+            break;
+        }
+        if (pEntry->Flink == &openlist.head) {
+#ifdef DEBUG_CLOSE
+            DbgP("nfs41_invalidate_fobx_entry: reached EOL looking "
+                "for fobx 0x%p\n", fobx);
 #endif
             break;
         }
@@ -4713,6 +4745,9 @@ static NTSTATUS nfs41_DeallocateForFobx(
     IN OUT PMRX_FOBX pFobx)
 {
     __notnull PNFS41_FOBX nfs41_fobx = NFS41GetFobxExtension(pFobx);
+
+    nfs41_invalidate_fobx_entry(pFobx);
+
     if (nfs41_fobx->acl) {
         RxFreePool(nfs41_fobx->acl);
         nfs41_fobx->acl = NULL;
@@ -7508,6 +7543,13 @@ VOID fcbopen_main(PVOID ctx)
                 cur->ChangeTime, cur->skip);
 #endif
             if (cur->skip) goto out;
+
+            /*
+             * This can only happen if |nfs41_DeallocateForFobx()|
+             * was called
+             */
+            if ((!cur->nfs41_fobx) || (!cur->nfs41_fobx->sec_ctx.ClientToken))
+                goto out;
 
             pNetRootContext =
                 NFS41GetNetRootExtension(cur->fcb->pNetRoot);
