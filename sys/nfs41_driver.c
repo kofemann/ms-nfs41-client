@@ -7538,7 +7538,7 @@ VOID fcbopen_main(PVOID ctx)
     NTSTATUS status;
     LARGE_INTEGER timeout;
 
-    DbgEn();
+//    DbgEn();
     timeout.QuadPart = RELATIVE(SECONDS(30));
     while(1) {
         PLIST_ENTRY pEntry;
@@ -7643,7 +7643,7 @@ out:
         }
         ExReleaseFastMutex(&fcblistLock);
     }
-    DbgEx();
+//    DbgEx();
 }
 
 
