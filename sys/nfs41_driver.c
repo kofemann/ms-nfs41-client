@@ -308,6 +308,7 @@ typedef struct _NFS41_MOUNT_CONFIG {
     BOOLEAN ReadOnly;
     BOOLEAN write_thru;
     BOOLEAN nocache;
+    BOOLEAN timebasedcoherency;
     WCHAR srv_buffer[SERVER_NAME_BUFFER_SIZE];
     UNICODE_STRING SrvName; /* hostname, or hostname@port */
     WCHAR mntpt_buffer[NFS41_SYS_MAX_PATH_LEN];
@@ -416,6 +417,7 @@ typedef struct _NFS41_V_NET_ROOT_EXTENSION {
     BOOLEAN                 read_only;
     BOOLEAN                 write_thru;
     BOOLEAN                 nocache;
+    BOOLEAN                 timebasedcoherency;
 } NFS41_V_NET_ROOT_EXTENSION, *PNFS41_V_NET_ROOT_EXTENSION;
 #define NFS41GetVNetRootExtension(pVNetRoot)      \
         (((pVNetRoot) == NULL) ? NULL :           \
@@ -450,6 +452,7 @@ typedef struct _NFS41_FOBX {
     DWORD deleg_type;
     BOOLEAN write_thru;
     BOOLEAN nocache;
+    BOOLEAN timebasedcoherency;
 } NFS41_FOBX, *PNFS41_FOBX;
 #define NFS41GetFobxExtension(pFobx)  \
         (((pFobx) == NULL) ? NULL : (PNFS41_FOBX)((pFobx)->Context))
@@ -2891,6 +2894,7 @@ static void nfs41_MountConfig_InitDefaults(
     Config->ReadOnly = FALSE;
     Config->write_thru = FALSE;
     Config->nocache = FALSE;
+    Config->timebasedcoherency = FALSE; /* disabled by default because of bugs */
     Config->SrvName.Length = 0;
     Config->SrvName.MaximumLength = SERVER_NAME_BUFFER_SIZE;
     Config->SrvName.Buffer = Config->srv_buffer;
@@ -3045,6 +3049,14 @@ static NTSTATUS nfs41_MountConfig_ParseOptions(
         else if (wcsncmp(L"nocache", Name, NameLen) == 0) {
             status = nfs41_MountConfig_ParseBoolean(Option, &usValue,
                 FALSE, &Config->nocache);
+        }
+        else if (wcsncmp(L"timebasedcoherency", Name, NameLen) == 0) {
+            status = nfs41_MountConfig_ParseBoolean(Option, &usValue,
+                FALSE, &Config->timebasedcoherency);
+        }
+        else if (wcsncmp(L"notimebasedcoherency", Name, NameLen) == 0) {
+            status = nfs41_MountConfig_ParseBoolean(Option, &usValue,
+                TRUE, &Config->timebasedcoherency);
         }
         else if (wcsncmp(L"timeout", Name, NameLen) == 0) {
             status = nfs41_MountConfig_ParseDword(Option, &usValue,
@@ -3428,6 +3440,7 @@ static NTSTATUS nfs41_CreateVNetRoot(
         pVNetRootContext->read_only = Config->ReadOnly;
         pVNetRootContext->write_thru = Config->write_thru;
         pVNetRootContext->nocache = Config->nocache;
+        pVNetRootContext->timebasedcoherency = Config->timebasedcoherency;
     } else {
         /*
          * Codepath for \\server@port\nfs4\path or
@@ -3522,6 +3535,7 @@ static NTSTATUS nfs41_CreateVNetRoot(
         pVNetRootContext->read_only = Config->ReadOnly;
         pVNetRootContext->write_thru = Config->write_thru;
         pVNetRootContext->nocache = Config->nocache;
+        pVNetRootContext->timebasedcoherency = Config->timebasedcoherency;
     }
 
     Config->use_nfspubfh = pubfh_prefix;
@@ -3533,6 +3547,7 @@ static NTSTATUS nfs41_CreateVNetRoot(
         "ReadOnly=%d, "
         "write_thru=%d, "
         "nocache=%d "
+        "timebasedcoherency=%d "
         "timeout=%d "
         "createmode.use_nfsv3attrsea_mode=%d "
         "Config->createmode.mode=0o%o "
@@ -3543,6 +3558,7 @@ static NTSTATUS nfs41_CreateVNetRoot(
         Config->ReadOnly?1:0,
         Config->write_thru?1:0,
         Config->nocache?1:0,
+        Config->timebasedcoherency?1:0,
         Config->timeout,
         Config->createmode.use_nfsv3attrsea_mode?1:0,
         Config->createmode.mode);
@@ -4459,10 +4475,11 @@ retry_on_link:
             DbgP("nfs41_Create: enabling read buffering\n");
 #endif
             SrvOpen->BufferingFlags |= 
-                (FCB_STATE_READBUFFERING_ENABLED | 
+                (FCB_STATE_READBUFFERING_ENABLED |
                 FCB_STATE_READCACHING_ENABLED);
         }
-        if (pVNetRootContext->nocache || 
+        nfs41_fobx->timebasedcoherency = pVNetRootContext->timebasedcoherency;
+        if (pVNetRootContext->nocache ||
                 (params->CreateOptions & FILE_NO_INTERMEDIATE_BUFFERING)) {
 #ifdef DEBUG_OPEN
             DbgP("nfs41_Create: disabling buffering\n");
@@ -7550,6 +7567,14 @@ VOID fcbopen_main(PVOID ctx)
              */
             if ((!cur->nfs41_fobx) || (!cur->nfs41_fobx->sec_ctx.ClientToken))
                 goto out;
+
+            if (!cur->nfs41_fobx->timebasedcoherency) {
+#ifdef DEBUG_TIME_BASED_COHERENCY
+                DbgP("fcbopen_main: timebasedcoherency disabled for "
+                    "fcb=0x%p, nfs41_fobx=0x%p\n", cur->fcb, cur->nfs41_fobx);
+#endif
+                goto out;
+            }
 
             pNetRootContext =
                 NFS41GetNetRootExtension(cur->fcb->pNetRoot);

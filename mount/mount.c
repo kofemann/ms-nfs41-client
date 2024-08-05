@@ -107,6 +107,8 @@ void PrintMountUsage(LPWSTR pProcess)
         "\tnowritethru\tturns on rdbss caching for writes (default)\n"
         "\tcache\tturns on rdbss caching (default)\n"
         "\tnocache\tturns off rdbss caching\n"
+        "\ttimebasedcoherency\tturns on time-based coherency\n"
+        "\tnotimebasedcoherency\tturns off time-based coherency (default, due to bugs)\n"
         "\twsize=#\twrite buffer size in bytes\n"
         "\tcreatemode=\tspecify default POSIX permission mode\n"
             "\t\tfor new files created on the NFS share.\n"
