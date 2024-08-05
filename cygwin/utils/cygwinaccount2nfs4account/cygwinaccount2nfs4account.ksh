@@ -25,13 +25,20 @@
 #
 
 #
-# cygwinaccount2nfs4account.ksh93 - transfer Cygwin user/group account
+# cygwinaccount2nfs4account.ksh93 - convert Cygwin user/group account
 # info to Linux/UNIX NFSv4 server account data
 #
 
 #
 # Written by Roland Mainz <roland.mainz@nrubsig.org>
 #
+
+function usage
+{
+	(( OPTIND=0 ))
+	getopts -a "${1}" "${2}" OPT '-?'
+	return 2
+}
 
 function getent_passwd2compound
 {
@@ -143,6 +150,10 @@ function accountdata2linuxscript
 	#
 	integer i
 
+	printf '\n\n#\n'
+	printf '# Group data:\n'
+	printf '#\n'
+
 	for ((i=0 ; i < ${#accountdata.group_list[@]} ; i++ )) ; do
 		nameref currgrp=accountdata.group_list[$i]
 
@@ -169,6 +180,10 @@ function accountdata2linuxscript
 	#
 	nameref curruser=accountdata.user
 
+	printf '\n\n#\n'
+	printf '# User data:\n'
+	printf '#\n'
+
 	printf 'mkdir -p %q\n' "${curruser.homedir}"
 	printf 'useradd -u %s -g %s -G %q -s %q %q\n' \
 		"${curruser.uid}" \
@@ -183,26 +198,14 @@ function accountdata2linuxscript
 	return 0
 }
 
-
-function convert_curruser2linuxscript
+function print_nfs4_server_config
 {
-	compound account_data
-	compound account_data.user
-	compound -a account_data.group_list
-	integer i=0
-	typeset currgroup
-
-	getent_passwd2compound account_data.user "$(id -u)"
-
-	for currgroup in $(id -G) ; do
-		getent_group2compound account_data.group_list[$((i++))] "$currgroup"
-	done
-
-	print -v account_data
-
-	accountdata2linuxscript account_data
+	nameref cfg=$1
 
 	# fixme: we need to figure out the real NFSv4 idmapping domain of the client
+	printf '\n\n#\n'
+	printf '# NFSv4 server config:\n'
+	printf '#\n'
 
 	printf '# turn idmapper on, even for AUTH_SYS\n'
 	printf '{\n'
@@ -216,25 +219,207 @@ function convert_curruser2linuxscript
 	return 0
 }
 
-
-#
-# ToDo:
-# - Command-line options
-# - Convert current user+groups to Linux bash script [done]
-# - Convert current user+groups to /etc/passwd+/etc/group lines
-# - Convert given user+groups to Linux bash script
-# - Convert given user+groups to /etc/passwd+/etc/group lines
-#
-function main
+function convert_curruser2linuxscript
 {
-	convert_curruser2linuxscript "$@"
-	return $?
+	nameref cfg=$1
+	shift
+
+	compound account_data
+	compound account_data.user
+	compound -a account_data.group_list
+	integer i=0
+	typeset -a group_list
+
+	getent_passwd2compound account_data.user "$(id -u)"
+
+	group_list=( $(id -G) )
+
+	#
+	# Collect group information into "account_data" CPV
+	#
+	for ((i=0 ; i < ${#group_list[@]} ; i++ )) ; do
+		getent_group2compound account_data.group_list[$i] "${group_list[$i]}"
+	done
+
+	${cfg.debug} && print -u2 -v account_data
+
+	#
+	# Generate Linux script from collected "account_data"
+	#
+	accountdata2linuxscript account_data
+
+	#
+	# Print NFSv4 server config
+	#
+	print_nfs4_server_config cfg
+
+	#
+	# Done
+	#
+	printf '\n# Done.\n'
+
+	return 0
 }
 
+function convert_givenuser2linuxscript
+{
+	nameref cfg=$1
+	shift
+
+	typeset username="$1"
+
+	compound account_data
+	compound account_data.user
+	compound -a account_data.group_list
+	integer i=0
+	typeset -a group_list
+
+	getent_passwd2compound account_data.user "$username"
+
+	compound out
+
+	#
+	# Get group data from Directory Server
+	#
+
+	#
+	# query DS via powershell
+	#
+	out.stderr="${ { out.stdout="${
+		queryuser="$username" powershell -Command '(New-Object System.DirectoryServices.DirectorySearcher("(&(objectCategory=User)(samAccountName=$("$env:queryuser")))")).FindOne().GetDirectoryEntry().memberOf'
+		(( out.res=$? )) ; }" ; } 2>&1 ; }"
+
+	if [[ "${out.stderr}" != '' ]] || (( out.res != 0 )) ; then
+		print -u2 $"%s: powershell querying groups from DS failed, msg=%q, res=%d\n" \
+			"$0" "${out.stderr}" out.res
+		return 1
+	fi
+
+	#
+	# Parse LDAP-style output
+	#
+	dummy="${out.stdout//~(E)CN=(.+?),/dummy}"
+	${cfg.debug} && printf 'dummy=%q\n' "$dummy"
+
+	for ((i=0 ; i < ${#.sh.match[1][@]} ; i++)) ; do
+		group_list+=( "${.sh.match[1][$i]}" )
+	done
+
+	#
+	# Collect group information into "account_data" CPV
+	#
+	for ((i=0 ; i < ${#group_list[@]} ; i++ )) ; do
+		getent_group2compound account_data.group_list[$i] "${group_list[$i]}"
+	done
+
+	${cfg.debug} && print -u2 -v account_data
+
+	#
+	# Generate Linux script from collected "account_data"
+	#
+	accountdata2linuxscript account_data
+
+	#
+	# Print NFSv4 server config
+	#
+	print_nfs4_server_config cfg
+
+	#
+	# Done
+	#
+	printf '\n# Done.\n'
+
+	return 0
+}
+
+function main
+{
+	set -o nounset
+
+	# fixme: Need better text layout for $ nfsurlconv --man #
+	typeset -r cygwinaccount2nfs4account_usage=$'+
+	[-?\n@(#)\$Id: cygwinaccount2nfs4account (Roland Mainz) 2024-08-01 \$\n]
+	[-author?Roland Mainz <roland.mainz@nrubsig.org>]
+	[+NAME?cygwinaccount2nfs4account - convert Cygwin user/group account
+		info to Linux/UNIX NFSv4 server account data]
+	[+DESCRIPTION?\bcygwinaccount2nfs4account\b convert Cygwin user/group account
+		info to Linux/UNIX NFSv4 server account data.]
+	[D:debug?Enable debugging.]
+
+	--man
+
+	[+SEE ALSO?\bksh93\b(1),\bms-nfs41-client\b(1),\bnfs\b(5)]
+	'
+
+	compound c
+	typeset -a c.args
+	integer saved_optind_m1	# saved OPTIND-1
+
+	c.args=( "$@" )
+
+	typeset c.debug=false
+
+	#
+	# Argument parsing
+	#
+	while getopts -a "${progname}" "${cygwinaccount2nfs4account_usage}" OPT "${c.args[@]}" ; do
+		case "${OPT}" in
+			'D')
+				c.debug=true
+				;;
+			*)
+				usage "${progname}" "${cygwinaccount2nfs4account_usage}"
+				return $?
+				;;
+		esac
+	done
+
+	(( saved_optind_m1=OPTIND-1 ))
+
+	# remove options we just parsed from c.args
+	for ((i=0 ; i < saved_optind_m1 ; i++)) ; do
+		unset c.args[$i]
+	done
+
+	#
+	# c.args mighth be a sparse array (e.g. "([1]=aaa [2]=bbb [4]=ccc)")
+	# right now after we removed processed options/arguments.
+	# For easier processing below we "reflow" the array back to a
+	# normal linear layout (e.g. ([0]=aaa [1]=bbb [2]=ccc)
+	#
+	c.args=( "${c.args[@]}" )
+
+	#
+	# ToDo:
+	# - Command-line options
+	# - Convert current user+groups to Linux bash script [done]
+	# - Convert current user+groups to /etc/passwd+/etc/group lines
+	# - Convert given user+groups to Linux bash script
+	# - Convert given user+groups to /etc/passwd+/etc/group lines
+	#
+
+	if (( ${#c.args[@]} == 0 )) ; then
+		print -u2 -f $"# Converting current user\n"
+		convert_curruser2linuxscript c "$@"
+	else
+		print -u2 -f $"# Converting given user\n"
+		convert_givenuser2linuxscript c "$@"
+	fi
+
+	return 2
+}
+
+#
+# main
+#
+builtin cat
 builtin id
+builtin mkdir
+builtin basename
+
+typeset progname="${ basename "${0}" ; }"
 
 main "$@"
-return $?
-
+exit $?
 
 # EOF.
