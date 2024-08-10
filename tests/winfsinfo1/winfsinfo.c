@@ -35,7 +35,9 @@
 #include <stdio.h>
 #include <windows.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <stdbool.h>
+
 
 static
 bool getvolumeinfo(const char *progname, const char *filename)
@@ -221,6 +223,106 @@ done:
 }
 
 
+/*
+ * Win10 uses |FileNetworkOpenInformation| to get the information
+ * for |GetFileExInfoStandard|
+ */
+static
+bool get_fileexinfostandard(const char *progname, const char *filename)
+{
+    int res = EXIT_FAILURE;
+    bool ok;
+    WIN32_FILE_ATTRIBUTE_DATA finfo;
+    (void)memset(&finfo, 0, sizeof(finfo));
+
+    ok = GetFileAttributesExA(filename, GetFileExInfoStandard, &finfo);
+
+    if (!ok) {
+        (void)fprintf(stderr, "%s: GetFileAttributesExA(filename='%s') "
+            "error. GetLastError()==%d.\n",
+            progname,
+            filename,
+            (int)GetLastError());
+        res = EXIT_FAILURE;
+        goto done;
+    }
+
+    (void)printf("(\n");
+    (void)printf("\tfilename='%s'\n", filename);
+
+    SYSTEMTIME st;
+
+    /*
+     * Note that SYSTEMTIME is in UTC, so
+     * use $ (TZ=UTC ls -lad "$filename") to compare
+     */
+    (void)FileTimeToSystemTime(&finfo.ftCreationTime, &st);
+    (void)printf("\tftCreationTime='%04d-%02d-%02d %02d:%02d:%02d.%d'\n",
+        st.wYear, st.wMonth, st.wDay, st.wHour,
+        st.wMinute, st.wSecond, st.wMilliseconds);
+
+    (void)FileTimeToSystemTime(&finfo.ftLastAccessTime, &st);
+    (void)printf("\tftLastAccessTime='%04d-%02d-%02d %02d:%02d:%02d.%d'\n",
+        st.wYear, st.wMonth, st.wDay, st.wHour,
+        st.wMinute, st.wSecond, st.wMilliseconds);
+
+    (void)FileTimeToSystemTime(&finfo.ftLastWriteTime, &st);
+    (void)printf("\tftLastWriteTime='%04d-%02d-%02d %02d:%02d:%02d.%d'\n",
+        st.wYear, st.wMonth, st.wDay, st.wHour,
+        st.wMinute, st.wSecond, st.wMilliseconds);
+
+    (void)printf("\tnFileSize=%lld\n",
+        ((long long)finfo.nFileSizeHigh << 32) | finfo.nFileSizeLow);
+
+    DWORD fattr = finfo.dwFileAttributes;
+
+    (void)printf("\ttypeset -a dwFileAttributes=(\n");
+
+#define TESTFEIS(s) \
+    if (fattr & (s)) { \
+        (void)puts("\t\t"#s); \
+        fattr &= ~(s); \
+    }
+    TESTFEIS(FILE_ATTRIBUTE_READONLY);
+    TESTFEIS(FILE_ATTRIBUTE_HIDDEN);
+    TESTFEIS(FILE_ATTRIBUTE_SYSTEM);
+    TESTFEIS(FILE_ATTRIBUTE_DIRECTORY);
+    TESTFEIS(FILE_ATTRIBUTE_ARCHIVE);
+    TESTFEIS(FILE_ATTRIBUTE_DEVICE);
+    TESTFEIS(FILE_ATTRIBUTE_NORMAL);
+    TESTFEIS(FILE_ATTRIBUTE_TEMPORARY);
+    TESTFEIS(FILE_ATTRIBUTE_SPARSE_FILE);
+    TESTFEIS(FILE_ATTRIBUTE_REPARSE_POINT);
+    TESTFEIS(FILE_ATTRIBUTE_COMPRESSED);
+    TESTFEIS(FILE_ATTRIBUTE_OFFLINE);
+    TESTFEIS(FILE_ATTRIBUTE_NOT_CONTENT_INDEXED);
+    TESTFEIS(FILE_ATTRIBUTE_ENCRYPTED);
+    TESTFEIS(FILE_ATTRIBUTE_INTEGRITY_STREAM);
+    TESTFEIS(FILE_ATTRIBUTE_VIRTUAL);
+    TESTFEIS(FILE_ATTRIBUTE_NO_SCRUB_DATA);
+    TESTFEIS(FILE_ATTRIBUTE_EA);
+    TESTFEIS(FILE_ATTRIBUTE_PINNED);
+    TESTFEIS(FILE_ATTRIBUTE_UNPINNED);
+    TESTFEIS(FILE_ATTRIBUTE_RECALL_ON_OPEN);
+    TESTFEIS(FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS);
+
+    (void)printf("\t)\n");
+
+    /*
+     * print any leftover flags not covered by |TESTFNOI(FILE_*)|
+     * above
+     */
+    if (fattr) {
+        (void)printf("\tfattr=0x%lx\n", (long)fattr);
+    }
+    (void)printf(")\n");
+    res = EXIT_SUCCESS;
+
+done:
+    return res;
+}
+
+
 static
 bool get_file_standard_info(const char *progname, const char *filename)
 {
@@ -343,6 +445,7 @@ void usage(void)
     (void)fprintf(stderr, "winfsinfo <"
         "getvolumeinfo|"
         "filebasicinfo|"
+        "fileexinfostandard|"
         "filestandardinfo|"
         "filenormalizednameinfo"
         "> path\n");
@@ -364,6 +467,9 @@ int main(int ac, char *av[])
     }
     else if (!strcmp(subcmd, "filebasicinfo")) {
         return get_file_basic_info(av[0], av[2]);
+    }
+    else if (!strcmp(subcmd, "fileexinfostandard")) {
+        return get_fileexinfostandard(av[0], av[2]);
     }
     else if (!strcmp(subcmd, "filestandardinfo")) {
         return get_file_standard_info(av[0], av[2]);
