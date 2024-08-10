@@ -526,7 +526,8 @@ function nfsclient_mount_homedir
 	#nfs_mount -p -o sec=sys H '[fe80::219:99ff:feae:73ce]:/export/home2/rmainz'
 	nfs_mount -p -o sec=sys H 'derfwpc5131_ipv6linklocal:/export/home2/rmainz'
 	mkdir -p '/home/rmainz'
-	mount -o bind,posix=1 '/cygdrive/h' '/home/rmainz'
+	# FIXME: is "notexec" correct in this case =
+	mount -o posix=1,sparse,notexec 'H:' '/home/rmainz'
 	return $?
 }
 
