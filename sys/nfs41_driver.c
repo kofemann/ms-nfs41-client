@@ -834,7 +834,7 @@ static NTSTATUS marshal_nfs41_open(
         print_error("marshal_nfs41_open: Call to "
             "MmMapLockedPagesSpecifyCache() failed "
             "due to exception 0x%x\n", (int)GetExceptionCode());
-        status = STATUS_ACCESS_DENIED;
+        status = STATUS_ACCESS_VIOLATION;
         goto out;
     }
     RtlCopyMemory(tmp, &entry->u.Open.EaBuffer, sizeof(HANDLE));
@@ -909,7 +909,7 @@ static NTSTATUS marshal_nfs41_rw(
         print_error("marshal_nfs41_rw: Call to "
             "MmMapLockedPagesSpecifyCache() failed due to "
             "exception 0x%x\n", (int)code);
-        status = STATUS_ACCESS_DENIED;
+        status = STATUS_ACCESS_VIOLATION;
         goto out;
     }
     RtlCopyMemory(tmp, &entry->buf, sizeof(HANDLE));
@@ -1096,7 +1096,7 @@ static NTSTATUS marshal_nfs41_dirquery(
         print_error("marshal_nfs41_dirquery: Call to "
             "MmMapLockedPagesSpecifyCache() failed "
             "due to exception 0x%x\n", (int)code);
-        status = STATUS_ACCESS_DENIED;
+        status = STATUS_ACCESS_VIOLATION;
         goto out;
     }
     RtlCopyMemory(tmp, &entry->u.QueryFile.mdl_buf, sizeof(HANDLE));
@@ -1870,7 +1870,7 @@ static NTSTATUS unmarshal_nfs41_rw(
         code = GetExceptionCode();
         print_error("unmarshal_nfs41_rw: Call to MmUnmapLockedPages() "
             "failed due to exception 0x%0x\n", (int)code);
-        status = STATUS_ACCESS_DENIED;
+        status = STATUS_ACCESS_VIOLATION;
     }
 #endif
     return status;
@@ -1887,7 +1887,7 @@ static NTSTATUS unmarshal_nfs41_open(
             MmUnmapLockedPages(cur->u.Open.EaBuffer, cur->u.Open.EaMdl);
     } __except(EXCEPTION_EXECUTE_HANDLER) {
         print_error("MmUnmapLockedPages thrown exception=0x%0x\n", GetExceptionCode());
-        status = cur->status = STATUS_ACCESS_DENIED;
+        status = cur->status = STATUS_ACCESS_VIOLATION;
         goto out;
     }
 
@@ -1961,10 +1961,10 @@ static NTSTATUS unmarshal_nfs41_dirquery(
     __try {
         MmUnmapLockedPages(cur->u.QueryFile.mdl_buf, cur->u.QueryFile.mdl);
     } __except(EXCEPTION_EXECUTE_HANDLER) { 
-        NTSTATUS code; 
-        code = GetExceptionCode(); 
+        NTSTATUS code;
+        code = GetExceptionCode();
         print_error("MmUnmapLockedPages thrown exception=0x%0x\n", code);
-        status = STATUS_ACCESS_DENIED;
+        status = STATUS_ACCESS_VIOLATION;
     }
     if (buf_len > cur->buf_len)
         cur->status = STATUS_BUFFER_TOO_SMALL;
@@ -4917,6 +4917,11 @@ static NTSTATUS nfs41_QueryDirectory(
 #endif
         RxContext->Info.LengthRemaining -= entry->buf_len;
         status = STATUS_SUCCESS;
+    } else if ((entry->status == STATUS_ACCESS_VIOLATION) ||
+        (entry->status == STATUS_INSUFFICIENT_RESOURCES)) {
+        DbgP("nfs41_QueryDirectory: internal error: entry->status=0x%x\n",
+            (int)entry->status);
+        status = STATUS_INSUFFICIENT_RESOURCES;
     } else {
         /* map windows ERRORs to NTSTATUS */
         status = map_querydir_errors(entry->status);
