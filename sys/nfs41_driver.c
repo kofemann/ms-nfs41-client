@@ -5990,9 +5990,32 @@ static NTSTATUS nfs41_QueryFileInformation(
         status = STATUS_SUCCESS;
         goto out;
     }
+    case FileRemoteProtocolInformation:
+    {
+        PFILE_REMOTE_PROTOCOL_INFORMATION info =
+            (PFILE_REMOTE_PROTOCOL_INFORMATION)RxContext->Info.Buffer;
+
+        (void)RtlZeroMemory(info,
+            sizeof(FILE_REMOTE_PROTOCOL_INFORMATION));
+        info->StructureVersion = 1;
+        info->StructureSize = sizeof(FILE_REMOTE_PROTOCOL_INFORMATION);
+        info->Protocol = WNNC_NET_RDR2SAMPLE; /* FIXME! */
+        /*
+         * ToDo: If we add NFSv4.1/NFSv4.2 protocol negotiation, then
+         * we need to call the userland daemon to return the correct
+         * protocol minor version
+         */
+        info->ProtocolMajorVersion = 4;
+        info->ProtocolMinorVersion = 1;
+        info->ProtocolRevision = 0;
+        RxContext->Info.LengthRemaining -=
+            sizeof(FILE_REMOTE_PROTOCOL_INFORMATION);
+        status = STATUS_SUCCESS;
+        goto out;
+    }
     case FileBasicInformation:
     case FileStandardInformation:
-    case FileInternalInformation: 
+    case FileInternalInformation:
     case FileAttributeTagInformation:
     case FileNetworkOpenInformation:
         break;
