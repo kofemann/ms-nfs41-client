@@ -6084,6 +6084,7 @@ static NTSTATUS nfs41_QueryFileInformation(
 #endif
             break;
         case FileNetworkOpenInformation:
+        case FileInternalInformation:
             break;
         default:
             print_error("Unhandled/unsupported InfoClass(%d)\n", (int)InfoClass);
