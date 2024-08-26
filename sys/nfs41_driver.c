@@ -5983,6 +5983,14 @@ static NTSTATUS nfs41_QueryFileInformation(
     switch (InfoClass) {
     case FileEaInformation:
     {
+        if (RxContext->Info.LengthRemaining <
+            sizeof(FILE_EA_INFORMATION)) {
+            print_error("nfs41_QueryFileInformation: "
+                "FILE_EA_INFORMATION buffer too small\n");
+            status = STATUS_BUFFER_TOO_SMALL;
+            goto out;
+        }
+
         PFILE_EA_INFORMATION info =
             (PFILE_EA_INFORMATION)RxContext->Info.Buffer;
         info->EaSize = 0;
@@ -5992,6 +6000,14 @@ static NTSTATUS nfs41_QueryFileInformation(
     }
     case FileRemoteProtocolInformation:
     {
+        if (RxContext->Info.LengthRemaining <
+            sizeof(FILE_REMOTE_PROTOCOL_INFORMATION)) {
+            print_error("nfs41_QueryFileInformation: "
+                "FILE_REMOTE_PROTOCOL_INFORMATION buffer too small\n");
+            status = STATUS_BUFFER_TOO_SMALL;
+            goto out;
+        }
+
         PFILE_REMOTE_PROTOCOL_INFORMATION info =
             (PFILE_REMOTE_PROTOCOL_INFORMATION)RxContext->Info.Buffer;
 
