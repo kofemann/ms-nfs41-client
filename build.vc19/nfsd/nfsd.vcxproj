@@ -218,7 +218,6 @@
     <ClInclude Include="..\..\daemon\cpvparser1.h" />
     <ClInclude Include="..\..\daemon\daemon_debug.h" />
     <ClInclude Include="..\..\daemon\delegation.h" />
-    <ClInclude Include="..\..\daemon\from_kernel.h" />
     <ClInclude Include="..\..\daemon\idmap.h" />
     <ClInclude Include="..\..\daemon\list.h" />
     <ClInclude Include="..\..\daemon\name_cache.h" />
@@ -236,6 +235,7 @@
     <ClInclude Include="..\..\daemon\tree.h" />
     <ClInclude Include="..\..\daemon\upcall.h" />
     <ClInclude Include="..\..\daemon\util.h" />
+    <ClInclude Include="..\..\include\from_kernel.h" />
     <ClInclude Include="..\..\include\nfs_ea.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
