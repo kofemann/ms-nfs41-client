@@ -449,6 +449,26 @@ $ /sbin/nfs_mount
   Datei befindet. Versuchen Sie, die Datei woanders zu speichern.
   ---- snip ----
 
+- Bug: Native Windows git (NOT cygwin /usr/bin/git) clone fails
+  like this:
+  # ---- snip ----
+  $ '/cygdrive/c/Program Files/Git/cmd/git' --version
+  git version 2.45.2.windows.1
+  $ '/cygdrive/c/Program Files/Git/cmd/git' clone https://github.com/kofemann/ms-nfs41-client.git
+  Cloning into 'ms-nfs41-client'...
+  remote: Enumerating objects: 6558, done.
+  remote: Counting objects: 100% (318/318), done.
+  remote: Compressing objects: 100% (172/172), done.
+  remote: Total 6558 (delta 191), reused 233 (delta 141), pack-reused 6240 (from 1)
+  Receiving objects: 100% (6558/6558), 2.43 MiB | 4.66 MiB/s, done.
+  fatal: premature end of pack file, 655 bytes missing
+  warning: die() called many times. Recursion error or racy threaded death!
+  fatal: fetch-pack: invalid index-pack output
+  # ---- snip ----
+  Workaround is to mount the NFS filesystem with the "writethru"
+  OR "nocache" option, e.g.
+  $ /sbin/nfs_mount -o rw,writethru 'j' derfwpc5131:/export/home/rmainz #
+
 #
 # 11. Notes for troubleshooting && finding bugs/debugging:
 #
