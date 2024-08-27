@@ -7441,6 +7441,8 @@ static NTSTATUS nfs41_AreFilesAliased(
     PFCB a,
     PFCB b)
 {
+    DbgP("nfs41_AreFilesAliased: a=0x%p b=%0x%p\n",
+        (void *)a, (void *)b);
     return STATUS_NOT_IMPLEMENTED;
 }
 
