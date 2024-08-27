@@ -410,6 +410,9 @@ $ /sbin/nfs_mount
 - Bug: Subversion checkout can fail with
   "sqlite[S11]: database disk image is malformed" like this:
   # ---- snip ----
+  $ svn --version
+  svn, version 1.14.2 (r1899510)
+    compiled May 20 2023, 11:51:30 on x86_64-pc-cygwin
   $ svn checkout https://svn.FreeBSD.org/base/head/share/man
   A    man/man4
   A    man/man4/tcp.4
