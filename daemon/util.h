@@ -164,6 +164,13 @@ static __inline int stateid4_cmp(
     return memcmp(s1, s2, sizeof(stateid4));
 }
 
+static __inline void open_delegation4_cpy(
+    OUT open_delegation4 *restrict dst,
+    IN  const open_delegation4 *restrict src)
+{
+    (void)memcpy(dst, src, sizeof(open_delegation4));
+}
+
 ULONG nfs_file_info_to_attributes(
     IN const nfs41_file_info *info);
 void nfs_to_basic_info(

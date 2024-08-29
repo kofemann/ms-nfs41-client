@@ -49,7 +49,7 @@ static int delegation_create(
         goto out;
     }
 
-    memcpy(&state->state, delegation, sizeof(open_delegation4));
+    open_delegation4_cpy(&state->state, delegation);
 
     abs_path_copy(&state->path, file->path);
     path_fh_init(&state->file, &state->path);

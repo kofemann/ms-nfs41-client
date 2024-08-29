@@ -266,7 +266,7 @@ static int recover_open(
                 eprintf("recover_open() got delegation type %u, "
                     "expected %u\n", delegation.type, deleg->state.type);
             } else {
-                memcpy(&deleg->state, &delegation, sizeof(open_delegation4));
+                open_delegation4_cpy(&deleg->state, &delegation);
                 deleg->revoked = FALSE;
             }
             ReleaseSRWLockExclusive(&deleg->lock);
@@ -385,7 +385,7 @@ static int recover_delegation_want(
         eprintf("recover_delegation_want() got delegation type %u, "
             "expected %u\n", delegation.type, deleg->state.type);
     } else {
-        memcpy(&deleg->state, &delegation, sizeof(open_delegation4));
+        open_delegation4_cpy(&deleg->state, &delegation);
         deleg->revoked = FALSE;
     }
     ReleaseSRWLockExclusive(&deleg->lock);
@@ -444,7 +444,7 @@ static int recover_delegation_open(
         eprintf("recover_delegation_open() got delegation type %u, "
             "expected %u\n", delegation.type, deleg->state.type);
     } else {
-        memcpy(&deleg->state, &delegation, sizeof(open_delegation4));
+        open_delegation4_cpy(&deleg->state, &delegation);
         deleg->revoked = FALSE;
     }
     ReleaseSRWLockExclusive(&deleg->lock);
