@@ -326,7 +326,7 @@ static int do_open(
 
     AcquireSRWLockExclusive(&state->lock);
     /* update the stateid */
-    memcpy(&state->stateid, &open_stateid, sizeof(open_stateid));
+    stateid4_cpy(&state->stateid, &open_stateid);
     state->do_close = 1;
     state->delegation.state = deleg_state;
     ReleaseSRWLockExclusive(&state->lock);
