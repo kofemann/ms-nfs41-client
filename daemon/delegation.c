@@ -514,7 +514,8 @@ int nfs41_delegate_open(
         goto out_deleg;
 
     if (create == OPEN4_CREATE) {
-        memcpy(info, createattrs, sizeof(nfs41_file_info));
+        EASSERT(createattrs != NULL);
+        nfs41_file_info_cpy(info, createattrs);
 
         /* write delegations allow us to simulate OPEN4_CREATE with SETATTR */
         status = delegation_truncate(deleg, client, &stateid, info);
