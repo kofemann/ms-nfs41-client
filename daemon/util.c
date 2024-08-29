@@ -43,7 +43,7 @@ int safe_read(unsigned char **pos, uint32_t *remaining, void *dest, uint32_t des
     if (*remaining < dest_len)
         return ERROR_BUFFER_OVERFLOW;
 
-    CopyMemory(dest, *pos, dest_len);
+    (void)memcpy(dest, *pos, dest_len);
     *pos += dest_len;
     *remaining -= dest_len;
     return 0;
@@ -54,7 +54,7 @@ int safe_write(unsigned char **pos, uint32_t *remaining, void *src, uint32_t src
     if (*remaining < src_len)
         return ERROR_BUFFER_OVERFLOW;
 
-    CopyMemory(*pos, src, src_len);
+    (void)memcpy(*pos, src, src_len);
     *pos += src_len;
     *remaining -= src_len;
     return 0;
