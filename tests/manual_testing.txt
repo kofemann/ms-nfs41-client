@@ -70,6 +70,22 @@
 #   sc query cygserver
 #   ---- snip ----
 #
+# - Windows Kernel debugger setup:
+#   1. Install "winsdksetup.exe" from
+#     https://go.microsoft.com/fwlink/?linkid=2164145 on all machines
+#     involved
+#   2. Machine "A" runs ms-nfs41-client, and has the IPv4 address
+#     10.49.202.87
+#   3. Machine "B" runs the "kd" kernel debugger frontend, and has the
+#     IPv4 address 10.49.202.231
+#   4. Setup on machine "A":
+#     $ PATH+=':/cygdrive/c/Program Files (x86)/Windows Kits/10/Debuggers/x64/'
+#     $ bcdedit /dbgsettings net hostip:10.49.202.87 port:50000 key:1.1.1.1
+#     $ kdnet 10.49.202.231 50000
+#   5. Run kernel debugger frontend on machine "B":
+#     $ PATH+=':/cygdrive/c/Program Files (x86)/Windows Kits/10/Debuggers/x64/'
+#     $ kd -loga kdlog.log -k net:port=50000,key=1.1.1.1,target=10.49.202.87 #
+#
 
 #
 # Tests for cp -p/mv/chmod/chgrp
