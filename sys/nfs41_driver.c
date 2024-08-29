@@ -1419,23 +1419,34 @@ static NTSTATUS marshal_nfs41_shutdown(
     return marshal_nfs41_header(entry, buf, buf_len, len);
 }
 
-static void nfs41_invalidate_cache(
+static NTSTATUS nfs41_invalidate_cache(
     IN PRX_CONTEXT RxContext)
 {
     PLOWIO_CONTEXT LowIoContext = &RxContext->LowIoContext;
     unsigned char *buf = LowIoContext->ParamsFor.IoCtl.pInputBuffer;
     ULONG flag = DISABLE_CACHING;
     PMRX_SRV_OPEN srv_open;
+    NTSTATUS status;
 
     RtlCopyMemory(&srv_open, buf, sizeof(HANDLE));
 #ifdef DEBUG_INVALIDATE_CACHE
     DbgP("nfs41_invalidate_cache: received srv_open=0x%p '%wZ'\n",
         srv_open, srv_open->pAlreadyPrefixedName);
 #endif
-    if (MmIsAddressValid(srv_open))
+    if (MmIsAddressValid(srv_open)) {
         RxIndicateChangeOfBufferingStateForSrvOpen(
             srv_open->pFcb->pNetRoot->pSrvCall, srv_open,
             srv_open->Key, ULongToPtr(flag));
+        status = STATUS_SUCCESS;
+    }
+    else {
+        print_error("nfs41_invalidate_cache: "
+            "invalid ptr srv_open=0x%p file='%wZ'\n",
+            srv_open, srv_open->pAlreadyPrefixedName);
+        status = STATUS_INVALID_HANDLE;
+    }
+
+    return status;
 }
 
 static NTSTATUS handle_upcall(
@@ -2590,8 +2601,7 @@ static NTSTATUS nfs41_DevFcbXXXControlFile(
         print_fs_ioctl(0, fsop);
         switch (fsop) {
         case IOCTL_NFS41_INVALCACHE:
-            nfs41_invalidate_cache(RxContext);
-            status = STATUS_SUCCESS;
+            status = nfs41_invalidate_cache(RxContext);
             break;
         case IOCTL_NFS41_READ:
             status = nfs41_upcall(RxContext);
