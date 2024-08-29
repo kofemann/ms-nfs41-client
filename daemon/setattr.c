@@ -145,7 +145,7 @@ static int handle_nfs41_setattr(void *daemon_context, setattr_upcall_args *args)
         status = nfs_to_windows_error(status, ERROR_NOT_SUPPORTED);
         goto out;
     }
-    EASSERT((info.attrmask.count >= 1) &&
+    EASSERT((info.attrmask.count > 0) &&
         (info.attrmask.arr[0] & FATTR4_WORD0_CHANGE));
     args->ctime = info.change;
 out:
@@ -385,7 +385,7 @@ static int handle_nfs41_set_size(void *daemon_context, setattr_upcall_args *args
     AcquireSRWLockExclusive(&state->lock);
     state->pnfs_last_offset = info.size ? info.size - 1 : 0;
     ReleaseSRWLockExclusive(&state->lock);
-    EASSERT((info.attrmask.count >= 1) &&
+    EASSERT((info.attrmask.count > 0) &&
         (info.attrmask.arr[0] & FATTR4_WORD0_CHANGE));
     args->ctime = info.change;
 out:
@@ -490,7 +490,7 @@ static int handle_nfs41_link(void *daemon_context, setattr_upcall_args *args)
         status = nfs_to_windows_error(status, ERROR_INVALID_PARAMETER);
         goto out;
     }
-    EASSERT((info.attrmask.count >= 1) &&
+    EASSERT((info.attrmask.count > 0) &&
         (info.attrmask.arr[0] & FATTR4_WORD0_CHANGE));
     args->ctime = info.change;
 out:

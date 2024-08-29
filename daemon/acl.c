@@ -332,7 +332,7 @@ use_nfs41_getattr:
             goto out;
         }
 
-        EASSERT(info.attrmask.count >= 2);
+        EASSERT(info.attrmask.count > 1);
 
         /*
          * In rare cases owner/owner_group are not in the cache
@@ -346,7 +346,7 @@ use_nfs41_getattr:
         }
     }
 
-    EASSERT(info.attrmask.count >= 2);
+    EASSERT(info.attrmask.count > 1);
     EASSERT((info.attrmask.arr[1] & (FATTR4_WORD1_OWNER|FATTR4_WORD1_OWNER_GROUP)) == (FATTR4_WORD1_OWNER|FATTR4_WORD1_OWNER_GROUP));
     if (args->query & DACL_SECURITY_INFORMATION) {
         EASSERT((info.attrmask.arr[0] & (FATTR4_WORD0_ACL)) == (FATTR4_WORD0_ACL));
@@ -1426,7 +1426,7 @@ static int handle_setacl(void *daemon_context, nfs41_upcall *upcall)
     else {
         args->ctime = info.change;
 
-        EASSERT((info.attrmask.count >= 1) &&
+        EASSERT((info.attrmask.count > 0) &&
             (info.attrmask.arr[0] & FATTR4_WORD0_CHANGE));
 
         if (DPRINTF_LEVEL_ENABLED(ACLLVL1)) {

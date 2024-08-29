@@ -240,7 +240,7 @@ retry_write:
 			goto out;
 	}
 
-    EASSERT((info.attrmask.count >= 1) &&
+    EASSERT((info.attrmask.count > 0) &&
         (info.attrmask.arr[0] & FATTR4_WORD0_CHANGE));
     args->ctime = info.change;
 
@@ -273,7 +273,7 @@ static int write_to_pnfs(
         status = ERROR_WRITE_FAULT;
         goto out;
     }
-    EASSERT((info.attrmask.count >= 1) &&
+    EASSERT((info.attrmask.count > 0) &&
         (info.attrmask.arr[0] & FATTR4_WORD0_CHANGE));
     args->ctime = info.change;
 out:

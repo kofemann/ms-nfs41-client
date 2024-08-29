@@ -286,7 +286,7 @@ static void attr_cache_update(
     IN enum open_delegation_type4 delegation)
 {
     /* update the attributes present in mask */
-    if (info->attrmask.count >= 1) {
+    if (info->attrmask.count > 0) {
         if (info->attrmask.arr[0] & FATTR4_WORD0_TYPE)
             entry->type = (unsigned char)(info->type & NFS_FTYPE_MASK);
         if (info->attrmask.arr[0] & FATTR4_WORD0_CHANGE) {
@@ -302,7 +302,7 @@ static void attr_cache_update(
         if (info->attrmask.arr[0] & FATTR4_WORD0_ARCHIVE)
             entry->archive = info->archive;
     }
-    if (info->attrmask.count >= 2) {
+    if (info->attrmask.count > 1) {
         if (info->attrmask.arr[1] & FATTR4_WORD1_MODE)
             entry->mode = info->mode;
         if (info->attrmask.arr[1] & FATTR4_WORD1_OWNER) {

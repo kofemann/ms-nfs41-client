@@ -1735,7 +1735,7 @@ static bool_t decode_file_attrs(
     fattr4 *attrs,
     nfs41_file_info *info)
 {
-    if (attrs->attrmask.count >= 1) {
+    if (attrs->attrmask.count > 0) {
         if (attrs->attrmask.arr[0] & FATTR4_WORD0_SUPPORTED_ATTRS) {
             if (!xdr_bitmap4(xdr, info->supported_attrs))
                 return FALSE;
@@ -1819,7 +1819,7 @@ static bool_t decode_file_attrs(
                 return FALSE;
         }
     }
-    if (attrs->attrmask.count >= 2) {
+    if (attrs->attrmask.count > 1) {
         if (attrs->attrmask.arr[1] & FATTR4_WORD1_MODE) {
             if (!xdr_u_int32_t(xdr, &info->mode))
                 return FALSE;
@@ -1901,7 +1901,7 @@ static bool_t decode_file_attrs(
                 return FALSE;
         }
     }
-    if (attrs->attrmask.count >= 3) {
+    if (attrs->attrmask.count > 2) {
         if (attrs->attrmask.arr[2] & FATTR4_WORD2_MDSTHRESHOLD) {
             if (!xdr_mdsthreshold(xdr, &info->mdsthreshold))
                 return FALSE;
