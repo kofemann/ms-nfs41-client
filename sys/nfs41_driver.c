@@ -64,6 +64,7 @@
 //#define DEBUG_EA_SET
 //#define DEBUG_LOCK
 #define DEBUG_FSCTL
+#define DEBUG_IOCTL
 #define DEBUG_TIME_BASED_COHERENCY
 #define DEBUG_MOUNT
 //#define DEBUG_VOLUME_QUERY
@@ -7383,6 +7384,26 @@ static NTSTATUS nfs41_FsCtl(
     return status;
 }
 
+static NTSTATUS nfs41_IoCtl(
+    IN OUT PRX_CONTEXT RxContext)
+{
+    NTSTATUS status = STATUS_INVALID_DEVICE_REQUEST;
+#ifdef DEBUG_IOCTL
+    DbgEn();
+    print_debug_header(RxContext);
+#endif /* DEBUG_IOCTL */
+    const ULONG iocontrolcode =
+        RxContext->LowIoContext.ParamsFor.IoCtl.IoControlCode;
+
+    DbgP("nfs41_IoCtl: IoControlCode=0x%lx, status=0x%lx\n",
+        (unsigned long)iocontrolcode, (long)status);
+
+#ifdef DEBUG_IOCTL
+    DbgEx();
+#endif
+    return status;
+}
+
 static NTSTATUS nfs41_CompleteBufferingStateChangeRequest(
     IN OUT PRX_CONTEXT RxContext,
     IN OUT PMRX_SRV_OPEN SrvOpen,
@@ -7562,6 +7583,7 @@ static NTSTATUS nfs41_init_ops()
     nfs41_ops.MRxLowIOSubmit[LOWIO_OP_UNLOCK]          = nfs41_Unlock;
     nfs41_ops.MRxLowIOSubmit[LOWIO_OP_UNLOCK_MULTIPLE] = nfs41_Unlock;
     nfs41_ops.MRxLowIOSubmit[LOWIO_OP_FSCTL]           = nfs41_FsCtl;
+    nfs41_ops.MRxLowIOSubmit[LOWIO_OP_IOCTL]           = nfs41_IoCtl;
 
     //
     // Miscellanous
