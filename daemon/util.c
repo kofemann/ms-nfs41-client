@@ -158,6 +158,8 @@ ULONG nfs_file_info_to_attributes(
             info->type));
     }
 
+    EASSERT((info->attrmask.count > 1) &&
+        (info->attrmask.arr[1] & FATTR4_WORD1_MODE));
     if (info->mode == 0444) /* XXX: 0444 for READONLY */
         attrs |= FILE_ATTRIBUTE_READONLY;
 
@@ -175,6 +177,8 @@ void nfs_to_basic_info(
     IN const nfs41_file_info *info,
     OUT PFILE_BASIC_INFO basic_out)
 {
+    EASSERT(info->attrmask.count > 1);
+
     if (info->attrmask.arr[1] & FATTR4_WORD1_TIME_CREATE) {
         nfs_time_to_file_time(&info->time_create, &basic_out->CreationTime);
     }
@@ -221,6 +225,10 @@ void nfs_to_standard_info(
 {
     const ULONG FileAttributes = nfs_file_info_to_attributes(info);
 
+    EASSERT(info->attrmask.arr[0] & FATTR4_WORD0_SIZE);
+    EASSERT((info->attrmask.count > 1) &&
+        (info->attrmask.arr[1] & FATTR4_WORD1_NUMLINKS));
+
     std_out->AllocationSize.QuadPart =
         std_out->EndOfFile.QuadPart = (LONGLONG)info->size;
     std_out->NumberOfLinks = info->numlinks;
@@ -234,6 +242,8 @@ void nfs_to_network_openinfo(
     IN const nfs41_file_info *info,
     OUT PFILE_NETWORK_OPEN_INFORMATION net_out)
 {
+    EASSERT(info->attrmask.count > 1);
+
     if (info->attrmask.arr[1] & FATTR4_WORD1_TIME_CREATE) {
         nfs_time_to_file_time(&info->time_create, &net_out->CreationTime);
     }
