@@ -271,7 +271,8 @@ function nfsclient_rundeamon
 	set -o xtrace
 
 	typeset -a nfsd_args=(
-		'nfsd_debug.exe'
+		'nfsd.exe'
+		'-debug'
 		'-d' '0'
 		'--noldap'
 		#'--numworkerthreads' '512'
@@ -310,7 +311,7 @@ function nfsclient_rundeamon
 		"${nfsd_args[@]}"
 	elif false ; then
 		#
-		# test nfsd_debug.exe with Dr. Memory (version 2.6.0 -- build 0)
+		# test nfsd.exe with Dr. Memory (version 2.6.0 -- build 0)
 		#
 		export _NT_ALT_SYMBOL_PATH="$(cygpath -w "$PWD")"
 		nfsd_args=(
@@ -336,19 +337,19 @@ function nfsclient_rundeamon
 
 		# Killing DrMemory with <CTRL-C> does not terminate nfsd,
 		# so we have to do it ourselves
-		trap 'taskkill /F /IM nfsd_debug.exe' SIGINT SIGTERM
+		trap 'taskkill /F /IM nfsd.exe' SIGINT SIGTERM
 
 		"${nfsd_args[@]}"
 	elif false ; then
 		typeset -i vsdiagnostics_id=50
 		VSDiagnostics \
 			start ${vsdiagnostics_id} \
-			"/launch:$(cygpath -w "$PWD/nfsd_debug.exe")" \
+			"/launch:$(cygpath -w "$PWD/nfsd.exe")" \
 			"/launchArgs:${nfsd_args[*]:1}" \
 			"/loadConfig:$(cygpath -w "${vsdiagnostics_path}/AgentConfigs/CpuUsageHigh.json")"
 		printf '#\n'
 		printf '# use\n'
-		printf '# $ "%s" stop %d /output:nfsd_debug%d # to collect profiling data\n#\n' \
+		printf '# $ "%s" stop %d /output:nfsd%d # to collect profiling data\n#\n' \
 			"$(which -a 'VSDiagnostics.exe')" \
 			"${vsdiagnostics_id}" "$$"
 	else
@@ -374,7 +375,8 @@ function nfsclient_system_rundeamon
 	set -o xtrace
 
 	typeset -a nfsd_args=(
-		'nfsd_debug.exe'
+		'nfsd.exe'
+		'-debug'
 		'-d' '0'
 		'--noldap'
 		#'--numworkerthreads' '512'
@@ -427,7 +429,7 @@ function nfsclient_system_rundeamon
 		"${nfsd_args[@]}"
 	elif false ; then
 		#
-		# test nfsd_debug.exe with Dr. Memory (version 2.6.0 -- build 0)
+		# test nfsd.exe with Dr. Memory (version 2.6.0 -- build 0)
 		#
 		export _NT_ALT_SYMBOL_PATH="$(cygpath -w "$PWD")"
 		nfsd_args=(
@@ -459,7 +461,7 @@ function nfsclient_system_rundeamon
 
 		# Killing DrMemory with <CTRL-C> does not terminate nfsd,
 		# so we have to do it ourselves
-		trap 'taskkill /F /IM nfsd_debug.exe' SIGINT SIGTERM
+		trap 'taskkill /F /IM nfsd.exe' SIGINT SIGTERM
 
 		"${nfsd_args[@]}"
 	elif false ; then
@@ -467,12 +469,12 @@ function nfsclient_system_rundeamon
 		# run everything as su_system
 		su_system VSDiagnostics \
 			start ${vsdiagnostics_id} \
-			"/launch:$(cygpath -w "$PWD/nfsd_debug.exe")" \
+			"/launch:$(cygpath -w "$PWD/nfsd.exe")" \
 			"/launchArgs:${nfsd_args[*]:1}" \
 			"/loadConfig:$(cygpath -w "${vsdiagnostics_path}/AgentConfigs/CpuUsageHigh.json")"
 		printf '#\n'
 		printf '# use\n'
-		printf '# $ "%s" stop %d /output:nfsd_debug%d # to collect profiling data\n#\n' \
+		printf '# $ "%s" stop %d /output:nfsd%d # to collect profiling data\n#\n' \
 			"$(which -a 'VSDiagnostics.exe')" \
 			"${vsdiagnostics_id}" "$$"
 	else

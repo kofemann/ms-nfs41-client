@@ -15,6 +15,8 @@ DESTDIR:=$(PROJECT_BASEDIR_DIR)/destdir
 
 VS_BUILD_DIR32:=$(PROJECT_BASEDIR_DIR)/build.vc19/Debug/
 VS_BUILD_DIR64:=$(PROJECT_BASEDIR_DIR)/build.vc19/x64/Debug/
+#VS_BUILD_DIR32:=$(PROJECT_BASEDIR_DIR)/build.vc19/Release/
+#VS_BUILD_DIR64:=$(PROJECT_BASEDIR_DIR)/build.vc19/x64/Release/
 
 # trigger "build" target when these binaries are needed
 $(VS_BUILD_DIR32)/nfsd.exe \
@@ -98,12 +100,12 @@ installdest: \
 	# installdest 32bit Windows
 	make -f $(CYGWIN_MAKEFILE_DIR)/Makefile.install \
 		installdest \
-		VS_BUILD_DIR="$(PROJECT_BASEDIR_DIR)/build.vc19/Debug/" \
+		VS_BUILD_DIR="$(VS_BUILD_DIR32)" \
 		CYGWIN_BASEPATH=/cygdrive/c/cygwin/
 	# installdest 64bit Windows
 	make -f $(CYGWIN_MAKEFILE_DIR)/Makefile.install \
 		installdest \
-		VS_BUILD_DIR="$(PROJECT_BASEDIR_DIR)/build.vc19/x64/Debug/" \
+		VS_BUILD_DIR="$(VS_BUILD_DIR64)" \
 		CYGWIN_BASEPATH=/cygdrive/c/cygwin64/
 
 bintarball: installdest

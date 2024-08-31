@@ -752,7 +752,11 @@ VOID ServiceStart(DWORD argc, LPTSTR *argv)
     DPRINTF(0, ("SID cache disabled\n"));
 #endif /* NFS41_DRIVER_SID_CACHE */
 
-    logprintf("NFS client daemon starting...\n");
+#ifdef _DEBUG
+    logprintf("NFS client daemon (DEBUG build) starting...\n");
+#else
+    logprintf("NFS client daemon (Release build) starting...\n");
+#endif
 
     /* Enable Win32 privileges */
     set_nfs_daemon_privileges();
