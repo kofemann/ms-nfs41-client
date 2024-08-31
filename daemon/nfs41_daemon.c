@@ -259,18 +259,20 @@ static bool_t check_for_files()
     return TRUE;
 }
 
-static void PrintUsage()
+static void PrintUsage(const wchar_t *argv0)
 {
-    (void)fprintf(stderr, "Usage: nfsd.exe -d <debug_level> "
-        "--noldap "
-        "--uid <non-zero value> "
-        "--gid <non-zero value> "
-        "--numworkerthreads <value-between 16 and %d> "
+    (void)fprintf(stderr, "Usage: %S [options]\n"
+        "\t-h, --help, /?  help\n"
+        "\t-d <debug_level>\n"
+        "\t--noldap\n"
+        "\t--uid <non-zero value>\n"
+        "\t--gid <non-zero value>\n"
+        "\t--numworkerthreads <value-between 16 and %d>\n"
 #ifdef _DEBUG
-        "--crtdbgmem <'allocmem'|'leakcheck'|'delayfree', "
-            "'all', 'none' or 'default'> "
+        "\t--crtdbgmem <'allocmem'|'leakcheck'|'delayfree',\n"
+            "\t\t'all', 'none' or 'default'>\n"
 #endif /* _DEBUG */
-        "\n", MAX_NUM_THREADS);
+        , argv0, MAX_NUM_THREADS);
 }
 
 static
@@ -285,15 +287,16 @@ bool_t parse_cmdlineargs(int argc, wchar_t *argv[], nfsd_args *out)
     /* parse command line */
     for (i = 1; i < argc; i++) {
         if (argv[i][0] == L'-') {
-            if (!wcscmp(argv[i], L"-h")) { /* help */
-                PrintUsage();
+            if ((!wcscmp(argv[i], L"-h")) ||
+                (!wcscmp(argv[i], L"--help"))) { /* help */
+                PrintUsage(argv[0]);
                 return FALSE;
             }
             else if (!wcscmp(argv[i], L"-d")) { /* debug level */
                 ++i;
                 if (i >= argc) {
-                    fprintf(stderr, "Missing debug level value\n");
-                    PrintUsage();
+                    (void)fprintf(stderr,
+                        "%S: Missing debug level value\n", argv[0]);
                     return FALSE;
                 }
                 out->debug_level = wcstol(argv[i], NULL, 0);
@@ -303,8 +306,9 @@ bool_t parse_cmdlineargs(int argc, wchar_t *argv[], nfsd_args *out)
                 ++i;
                 const wchar_t *memdbgoptions = argv[i];
                 if (i >= argc) {
-                    fprintf(stderr, "Missing options\n");
-                    PrintUsage();
+                    (void)fprintf(stderr,
+                        "%S: Missing options for --crtdbgmem\n",
+                        argv[0]);
                     return FALSE;
                 }
 
@@ -341,22 +345,15 @@ bool_t parse_cmdlineargs(int argc, wchar_t *argv[], nfsd_args *out)
             else if (!wcscmp(argv[i], L"--uid")) { /* no LDAP, setting default uid */
                 ++i;
                 if (i >= argc) {
-                    fprintf(stderr, "Missing uid value\n");
-                    PrintUsage();
+                    (void)fprintf(stderr, "%S: Missing uid value\n", argv[0]);
                     return FALSE;
                 }
                 nfs41_dg.default_uid = wcstol(argv[i], NULL, 0);
-                if (!nfs41_dg.default_uid) {
-                    fprintf(stderr, "Invalid (or missing) anonymous uid value of %d\n",
-                        nfs41_dg.default_uid);
-                    return FALSE;
-                }
             }
             else if (!wcscmp(argv[i], L"--gid")) { /* no LDAP, setting default gid */
                 ++i;
                 if (i >= argc) {
-                    fprintf(stderr, "Missing gid value\n");
-                    PrintUsage();
+                    (void)fprintf(stderr, "%S: Missing gid value\n", argv[0]);
                     return FALSE;
                 }
                 nfs41_dg.default_gid = wcstol(argv[i], NULL, 0);
@@ -364,27 +361,38 @@ bool_t parse_cmdlineargs(int argc, wchar_t *argv[], nfsd_args *out)
             else if (!wcscmp(argv[i], L"--numworkerthreads")) {
                 ++i;
                 if (i >= argc) {
-                    fprintf(stderr, "Missing value for num_worker_threads\n");
-                    PrintUsage();
+                    (void)fprintf(stderr,
+                        "%S: Missing value for num_worker_threads\n",
+                        argv[0]);
                     return FALSE;
                 }
                 nfs41_dg.num_worker_threads = wcstol(argv[i], NULL, 0);
                 if (nfs41_dg.num_worker_threads < 16) {
-                    fprintf(stderr, "--numworkerthreads requires at least 16 worker threads\n");
-                    PrintUsage();
+                    (void)fprintf(stderr,
+                        "%S: --numworkerthreads requires at least "
+                        "16 worker threads\n", argv[0]);
                     return FALSE;
                 }
                 if (nfs41_dg.num_worker_threads >= MAX_NUM_THREADS) {
-                    fprintf(stderr,
+                    (void)fprintf(stderr, "%S: "
                         "--numworkerthreads supports a maximum of "
                         "%d worker threads\n",
-                        MAX_NUM_THREADS);
-                    PrintUsage();
+                        argv[0], MAX_NUM_THREADS);
                     return FALSE;
                 }
             }
-            else
-                fprintf(stderr, "Unrecognized option '%S', disregarding.\n", argv[i]);
+            else {
+                (void)fprintf(stderr,
+                    "%S: Unrecognized option '%S'\n",
+                    argv[0], argv[i]);
+                return FALSE;
+            }
+        }
+        else {
+            if (!wcscmp(argv[i], L"/?")) { /* help */
+                PrintUsage(argv[0]);
+                return FALSE;
+            }
         }
     }
 
