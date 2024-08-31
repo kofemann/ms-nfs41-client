@@ -86,6 +86,21 @@
 #     $ PATH+=':/cygdrive/c/Program Files (x86)/Windows Kits/10/Debuggers/x64/'
 #     $ kd -loga kdlog.log -k net:port=50000,key=1.1.1.1,target=10.49.202.87 #
 #
+# - Windows local crash dumps setup (for non-Cygwin apps)
+#   (see https://learn.microsoft.com/en-us/windows/win32/wer/collecting-user-mode-dumps):
+#   ---- snip -----
+#   # enable crash dumps globally
+#   regtool add '/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows/Windows Error Reporting/LocalDumps'
+#   regtool -i set '/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows/Windows Error Reporting/LocalDumps/DumpType' 2
+#   mkdir -p "$(cygpath -u "$(echo $LOCALAPPDATA)")/CrashDumps"
+#   # list generated crash dumps
+#   ls -la "$(cygpath -u "$(echo $LOCALAPPDATA)")/CrashDumps"
+#   # get stack trace for crash dump "link.exe.1640.dmp"
+#   PATH+=':/cygdrive/c/Program Files (x86)/Windows Kits/10/Debuggers/x64/'
+#   cdb -z "${LOCALAPPDATA}\CrashDumps\link.exe.1640.dmp" -c '!analyze -v ; q'
+#   ---- snip -----
+#
+
 
 #
 # Tests for cp -p/mv/chmod/chgrp
