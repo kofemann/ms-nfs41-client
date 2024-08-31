@@ -47,15 +47,18 @@ void open_log_files()
     const char dfile[] = "nfsddbg.log";
     const char efile[] = "nfsderr.log";
     const char mode[] = "w";
-    if (g_debug_level > 0) {
-        dlog_file = fopen(dfile, mode);
-        if (dlog_file == NULL) {
-            ReportStatusToSCMgr(SERVICE_STOPPED, GetLastError(), 0);
-            exit (GetLastError());
-        }
-    }
+
+    (void)remove(efile);
+    (void)remove(dfile);
+
     elog_file = fopen(efile, mode);
     if (elog_file == NULL) {
+        ReportStatusToSCMgr(SERVICE_STOPPED, GetLastError(), 0);
+        exit (GetLastError());
+    }
+
+    dlog_file = fopen(dfile, mode);
+    if (dlog_file == NULL) {
         ReportStatusToSCMgr(SERVICE_STOPPED, GetLastError(), 0);
         exit (GetLastError());
     }
