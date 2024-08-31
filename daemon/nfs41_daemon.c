@@ -285,7 +285,12 @@ bool_t parse_cmdlineargs(int argc, wchar_t *argv[], nfsd_args *out)
     out->ldap_enable = TRUE;
 
     /* parse command line */
+#ifdef STANDALONE_NFSD
+    /* Options from |CmdDebugService()| start at index 0 ... */
+    for (i = 0; i < argc; i++) {
+#else
     for (i = 1; i < argc; i++) {
+#endif
         if (argv[i][0] == L'-') {
             if ((!wcscmp(argv[i], L"-h")) ||
                 (!wcscmp(argv[i], L"--help"))) { /* help */
@@ -380,6 +385,13 @@ bool_t parse_cmdlineargs(int argc, wchar_t *argv[], nfsd_args *out)
                         argv[0], MAX_NUM_THREADS);
                     return FALSE;
                 }
+            }
+            /*
+             * -Debug/-debug might be passed as first option in a
+             * Release build to switch nfsd to debug mode
+             */
+            else if (!_wcsicmp(argv[i], L"-debug")) {
+                /* ignored, nothing to do here */
             }
             else {
                 (void)fprintf(stderr,
