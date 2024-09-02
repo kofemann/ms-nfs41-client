@@ -44,6 +44,8 @@
 // #define USE_ENTIRE_PATH_FOR_NETROOT 1
 
 /* debugging printout defines */
+#if defined(_DEBUG)
+/* Debug build defines follow... */
 #define DEBUG_MARSHAL_HEADER
 #define DEBUG_MARSHAL_DETAIL
 //#define DEBUG_MARSHAL_DETAIL_RW
@@ -71,6 +73,12 @@
 
 //#define ENABLE_TIMINGS
 //#define ENABLE_INDV_TIMINGS
+#elif defined(NDEBUG)
+/* Release build defines follow... */
+#else
+#error Neither _DEBUG NOR _NDEBUG defined
+#endif
+
 #ifdef ENABLE_TIMINGS
 typedef struct __nfs41_timings {
     LONG tops, sops;
@@ -673,13 +681,14 @@ static NTSTATUS marshal_nfs41_header(
      */
     if (MmIsAddressValid(entry->filename) &&
         (entry->filename != NULL) &&
-        MmIsAddressValid(entry->filename->Buffer))
+        MmIsAddressValid(entry->filename->Buffer)) {
 #ifdef DEBUG_MARSHAL_HEADER
         DbgP("[upcall header] xid=%lld opcode='%s' filename='%wZ' version=%d "
             "session=0x%x open_state=0x%x\n", entry->xid,
             ENTRY_OPCODE2STRING(entry), entry->filename,
             entry->version, entry->session, entry->open_state);
 #endif /* DEBUG_MARSHAL_HEADER */
+    }
     else {
         DbgP("[upcall header] Invalid filename 0x%p\n", entry);
         status = STATUS_INTERNAL_ERROR;
@@ -5976,9 +5985,9 @@ static NTSTATUS nfs41_QueryFileInformation(
 #ifdef DEBUG_FILE_QUERY
     DbgEn();
     print_debug_filedirquery_header(RxContext);
-#endif
     DbgP("--> nfs41_QueryFileInformation, RxContext->Info.LengthRemaining=%ld\n",
         (long)RxContext->Info.LengthRemaining);
+#endif
 
     status = check_nfs41_dirquery_args(RxContext);
     if (status) {
@@ -5988,8 +5997,10 @@ static NTSTATUS nfs41_QueryFileInformation(
 
     RtlZeroMemory(RxContext->Info.Buffer, RxContext->Info.LengthRemaining);
 
+#ifdef DEBUG_FILE_QUERY
     DbgP("nfs41_QueryFileInformation, RxContext->Info.LengthRemaining=%ld\n",
         (long)RxContext->Info.LengthRemaining);
+#endif
 
     switch (InfoClass) {
     case FileEaInformation:
@@ -6077,7 +6088,9 @@ static NTSTATUS nfs41_QueryFileInformation(
         print_error("entry->status == STATUS_BUFFER_TOO_SMALL\n");
         status = STATUS_BUFFER_TOO_SMALL;
     } else if (entry->status == STATUS_SUCCESS) {
+#ifdef DEBUG_FILE_QUERY
         print_error("entry->status == STATUS_SUCCESS\n");
+#endif
         BOOLEAN DeletePending = FALSE;
 #ifdef ENABLE_TIMINGS
         InterlockedIncrement(&getattr.sops);
@@ -6158,8 +6171,8 @@ out:
 #endif
 #ifdef DEBUG_FILE_QUERY
     DbgEx();
-#endif
     DbgP("<-- nfs41_QueryFileInformation, status=0x%lx\n", (long)status);
+#endif
     return status;
 }
 
@@ -6455,7 +6468,10 @@ static NTSTATUS nfs41_ComputeNewBufferingState(
     OUT ULONG *pNewBufferingState)
 {
     NTSTATUS status = STATUS_SUCCESS;
-    ULONG flag = PtrToUlong(pMRxContext), oldFlags = pSrvOpen->BufferingFlags;
+    ULONG flag = PtrToUlong(pMRxContext);
+#ifdef DEBUG_TIME_BASED_COHERENCY
+    ULONG oldFlags = pSrvOpen->BufferingFlags;
+#endif
 
     switch(flag) {
     case DISABLE_CACHING:
