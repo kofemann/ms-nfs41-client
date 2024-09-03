@@ -422,7 +422,7 @@ function cmd_mount
 
 	# fixme: Need better text layout for $ mount_sshnfs mount --man #
 	typeset -r mount_sshnfs_cmdmount_usage=$'+
-	[-?\n@(#)\$Id: mount_sshnfs mount (Roland Mainz) 2024-07-08 \$\n]
+	[-?\n@(#)\$Id: mount_sshnfs mount (Roland Mainz) 2024-09-03 \$\n]
 	[-author?Roland Mainz <roland.mainz@nrubsig.org>]
 	[+NAME?mount_sshnfs mount - mount NFSv4 filesystem through ssh
 		tunnel]
@@ -701,8 +701,8 @@ function cmd_mount
 					print -u2 -f $"%s: NFS filesystem mounted to drive %q.\n" \
 						"$0" "${c.windows_drive_letter}"
 
-					# Cygwin bind mount
-					mount -o bind "/cygdrive/${c.windows_drive_letter}" "${c.mountpoint}"
+					# Cygwin mount
+					mount -o posix=1,notexec,sparse "${c.windows_drive_letter}:" "${c.mountpoint}"
 				fi
 			else
 				#
@@ -788,7 +788,7 @@ function cmd_umount
 	typeset mydebug=false # fixme: should be "bool" for ksh93v
 	# fixme: Need better text layout for $ mount_sshnfs mount --man #
 	typeset -r mount_sshnfs_cmdumount_usage=$'+
-	[-?\n@(#)\$Id: mount_sshnfs umount (Roland Mainz) 2024-07-08 \$\n]
+	[-?\n@(#)\$Id: mount_sshnfs umount (Roland Mainz) 2024-09-03 \$\n]
 	[-author?Roland Mainz <roland.mainz@nrubsig.org>]
 	[+NAME?mount_sshnfs umount - unmount NFSv4 filesystem mounted
 		via mount_sshnfs mount]
@@ -862,7 +862,7 @@ function cmd_umount
 		"${c.msnfsv41_nfsmountcmd}" -d "${mnt_config.windows_drive_letter}"
 		(( retval=$? ))
 
-		# remove the Cygwin bind mount
+		# remove the Cygwin mount
 		(( retval == 0 )) && umount "${c.mountpoint}"
 	else
 		umount "${c.mountpoint}"
@@ -892,7 +892,7 @@ function main
 
 	# fixme: Need better text layout for $ mount_sshnfs --man #
 	typeset -r mount_sshnfs_usage=$'+
-	[-?\n@(#)\$Id: mount_sshnfs (Roland Mainz) 2024-07-08 \$\n]
+	[-?\n@(#)\$Id: mount_sshnfs (Roland Mainz) 2024-09-03 \$\n]
 	[-author?Roland Mainz <roland.mainz@nrubsig.org>]
 	[+NAME?mount_sshnfs - mount/umount NFSv4 filesystem via ssh
 		tunnel]
