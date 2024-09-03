@@ -118,6 +118,13 @@
 #define NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE 1
 
 /*
+ * NFS41_DRIVER_SYSTEM_LUID_MOUNTS_ARE_GLOBAL - mounts created
+ * with user "SYSTEM" should be available for ALL users on
+ * a machine.
+ */
+#define NFS41_DRIVER_SYSTEM_LUID_MOUNTS_ARE_GLOBAL 1
+
+/*
  * Default POSIX permission mode bits for new files
  * Can be ovrriden with a "NfsV3Attributes" EA
  */

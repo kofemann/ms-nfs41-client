@@ -129,6 +129,10 @@ DECLARE_CONST_ANSI_STRING(NfsV3Attributes, EA_NFSV3ATTRIBUTES);
 DECLARE_CONST_ANSI_STRING(NfsSymlinkTargetName, EA_NFSSYMLINKTARGETNAME);
 DECLARE_CONST_ANSI_STRING(NfsActOnLink, EA_NFSACTONLINK);
 
+#ifdef NFS41_DRIVER_SYSTEM_LUID_MOUNTS_ARE_GLOBAL
+const LUID SystemLuid = SYSTEM_LUID;
+#endif /* NFS41_DRIVER_SYSTEM_LUID_MOUNTS_ARE_GLOBAL */
+
 INLINE BOOL AnsiStrEq(
     IN const ANSI_STRING *lhs,
     IN const CHAR *rhs,
@@ -3511,6 +3515,10 @@ static NTSTATUS nfs41_CreateVNetRoot(
 #endif
 
         PLIST_ENTRY pEntry;
+        nfs41_mount_entry *found_mount_entry = NULL;
+#ifdef NFS41_DRIVER_SYSTEM_LUID_MOUNTS_ARE_GLOBAL
+        nfs41_mount_entry *found_system_mount_entry = NULL;
+#endif /* NFS41_DRIVER_SYSTEM_LUID_MOUNTS_ARE_GLOBAL */
 
         status = STATUS_NFS_SHARE_NOT_MOUNTED;
 
@@ -3531,19 +3539,42 @@ static NTSTATUS nfs41_CreateVNetRoot(
 #endif
 
             if (RtlEqualLuid(&luid, &existing_mount->login_id)) {
-                /* found existing mount */
-                copy_nfs41_mount_config(Config, &existing_mount->Config);
-                DbgP("Found existing mount: LUID=(0x%lx.0x%lx) Entry Config->MntPt='%wZ'\n",
-                    (long)existing_mount->login_id.HighPart,
-                    (long)existing_mount->login_id.LowPart,
-                    &Config->MntPt);
-                status = STATUS_SUCCESS;
+                /* found existing mount with exact LUID match */
+                found_mount_entry = existing_mount;
                 break;
             }
+#ifdef NFS41_DRIVER_SYSTEM_LUID_MOUNTS_ARE_GLOBAL
+            else if (RtlEqualLuid(&SystemLuid,
+                &existing_mount->login_id)) {
+                /*
+                 * found existing mount for user "SYSTEM"
+                 * We continue searching the |pNetRootContext->mounts|
+                 * list for an exact match ...
+                 */
+                found_system_mount_entry = existing_mount;
+            }
+#endif /* NFS41_DRIVER_SYSTEM_LUID_MOUNTS_ARE_GLOBAL */
             if (pEntry->Flink == &pNetRootContext->mounts.head)
                 break;
             pEntry = pEntry->Flink;
         }
+
+        if (found_mount_entry) {
+            copy_nfs41_mount_config(Config, &found_mount_entry->Config);
+            DbgP("Found existing mount: LUID=(0x%lx.0x%lx) Entry Config->MntPt='%wZ'\n",
+                (long)found_mount_entry->login_id.HighPart,
+                (long)found_mount_entry->login_id.LowPart,
+                &Config->MntPt);
+            status = STATUS_SUCCESS;
+        }
+#ifdef NFS41_DRIVER_SYSTEM_LUID_MOUNTS_ARE_GLOBAL
+        else if (found_system_mount_entry) {
+            copy_nfs41_mount_config(Config, &found_system_mount_entry->Config);
+            DbgP("Found existing SYSTEM mount: Entry Config->MntPt='%wZ'\n",
+                &Config->MntPt);
+            status = STATUS_SUCCESS;
+        }
+#endif /* NFS41_DRIVER_SYSTEM_LUID_MOUNTS_ARE_GLOBAL */
         ExReleaseFastMutex(&pNetRootContext->mountLock);
 
         if (status != STATUS_SUCCESS) {

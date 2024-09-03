@@ -48,6 +48,10 @@
 #define PTR2PTRDIFF_T(p) (((char *)(p))-((char *)0))
 #define HANDLE2INT(h) ((int)PTR2PTRDIFF_T(h))
 
+#ifdef NFS41_DRIVER_SYSTEM_LUID_MOUNTS_ARE_GLOBAL
+const LUID SystemLuid = SYSTEM_LUID;
+#endif /* NFS41_DRIVER_SYSTEM_LUID_MOUNTS_ARE_GLOBAL */
+
 ULONG _cdecl NFS41DbgPrint(__in LPTSTR fmt, ...)
 {
     ULONG rc = 0;
@@ -79,7 +83,7 @@ ULONG _cdecl NFS41DbgPrint(__in LPTSTR fmt, ...)
  * we cannot use |memcpy()|!
  */
 static
-bool equal_luid(LUID *l1, LUID *l2)
+bool equal_luid(const LUID *restrict l1, const LUID *restrict l2)
 {
     return((l1->LowPart == l2->LowPart) &&
         (l1->HighPart == l2->HighPart));
@@ -757,6 +761,7 @@ NPCancelConnection(
         if (pNetResource->InUse) {
             if (
 #ifdef NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE
+                /* Need exact match here, not |SYSTEM_LUID|! */
                 equal_luid(&authenticationid,
                     &pNetResource->MountAuthId) &&
 #endif /* NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE */
@@ -844,6 +849,10 @@ NPGetConnection(
 
     INT  Index;
     PNFS41NP_NETRESOURCE pNetResource;
+    PNFS41NP_NETRESOURCE foundNetResource = NULL;
+#ifdef NFS41_DRIVER_SYSTEM_LUID_MOUNTS_ARE_GLOBAL
+    PNFS41NP_NETRESOURCE foundSystemLuidNetResource = NULL;
+#endif /* NFS41_DRIVER_SYSTEM_LUID_MOUNTS_ARE_GLOBAL */
     Status = WN_NOT_CONNECTED;
 
     for (Index = 0; Index < pSharedMemory->NextAvailableIndex; Index++)
@@ -851,28 +860,54 @@ NPGetConnection(
         pNetResource = &pSharedMemory->NetResources[Index];
 
         if (pNetResource->InUse) {
-            if (
-#ifdef NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE
-                equal_luid(&authenticationid,
-                    &pNetResource->MountAuthId) &&
-#endif /* NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE */
-                (((wcslen(lpLocalName)+1)*sizeof(WCHAR)) ==
-
+            if ((((wcslen(lpLocalName)+1)*sizeof(WCHAR)) ==
                     pNetResource->LocalNameLength) &&
                     (!wcscmp(lpLocalName, pNetResource->LocalName))) {
-                if (*lpBufferSize < pNetResource->RemoteNameLength) {
-                    *lpBufferSize = pNetResource->RemoteNameLength;
-                    Status = WN_MORE_DATA;
+#ifdef NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE
+                if (equal_luid(&authenticationid,
+                    &pNetResource->MountAuthId)) {
+                    foundNetResource = pNetResource;
+                    break;
                 }
-                else {
-                    *lpBufferSize = pNetResource->RemoteNameLength;
-                    CopyMemory(lpRemoteName,
-                        pNetResource->RemoteName,
-                        pNetResource->RemoteNameLength);
-                    Status = WN_SUCCESS;
+#ifdef NFS41_DRIVER_SYSTEM_LUID_MOUNTS_ARE_GLOBAL
+                else if (equal_luid(&SystemLuid,
+                    &pNetResource->MountAuthId)) {
+                    /*
+                     * Found netresource for user "SYSTEM", but
+                     * continue searching |pSharedMemory->NetResources|
+                     * for an exact match...
+                     */
+                    foundSystemLuidNetResource = pNetResource;
                 }
-                break;
+#endif /* NFS41_DRIVER_SYSTEM_LUID_MOUNTS_ARE_GLOBAL */
+#else /* NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE */
+                foundNetResource = pNetResource;
+#endif /* NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE */
             }
+        }
+    }
+
+#ifdef NFS41_DRIVER_SYSTEM_LUID_MOUNTS_ARE_GLOBAL
+    /*
+     * No exact match found ? Then fall-back to any match we found for
+     * user "SYSTEM"
+     */
+    if (foundNetResource == NULL) {
+        foundNetResource = foundSystemLuidNetResource;
+    }
+#endif /* NFS41_DRIVER_SYSTEM_LUID_MOUNTS_ARE_GLOBAL */
+
+    if (foundNetResource) {
+        if (*lpBufferSize < foundNetResource->RemoteNameLength) {
+            *lpBufferSize = foundNetResource->RemoteNameLength;
+            Status = WN_MORE_DATA;
+        }
+        else {
+            *lpBufferSize = foundNetResource->RemoteNameLength;
+            (void)memcpy(lpRemoteName,
+                foundNetResource->RemoteName,
+                foundNetResource->RemoteNameLength);
+            Status = WN_SUCCESS;
         }
     }
 
@@ -976,8 +1011,16 @@ NPEnumResource(
 
         if (pNfsNetResource->InUse
 #ifdef NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE
+#ifdef NFS41_DRIVER_SYSTEM_LUID_MOUNTS_ARE_GLOBAL
+            && (equal_luid(&authenticationid,
+                &pNfsNetResource->MountAuthId) ||
+                equal_luid(&SystemLuid,
+                &pNfsNetResource->MountAuthId)
+            )
+#else /* NFS41_DRIVER_SYSTEM_LUID_MOUNTS_ARE_GLOBAL */
             && equal_luid(&authenticationid,
                 &pNfsNetResource->MountAuthId)
+#endif /* NFS41_DRIVER_SYSTEM_LUID_MOUNTS_ARE_GLOBAL */
 #endif /* NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE */
                 ) {
             SpaceNeeded  = sizeof(NETRESOURCE);

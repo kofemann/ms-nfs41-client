@@ -25,7 +25,7 @@
 # - PsExec from https://download.sysinternals.com/files/PSTools.zip in /home/roland_mainz/work/win_pstools/)
 # * Usage:
 # Shell1: cd /cygdrive/c/Users/roland_mainz/Downloads/ms-nfs41-client-x64/ms-nfs41-client-x64 && bash ../msnfs41client.bash sys_run_deamon
-# Shell2: cd /cygdrive/c/Users/roland_mainz/Downloads/ms-nfs41-client-x64/ms-nfs41-client-x64 && bash ../msnfs41client.bash sys_mount_homedir
+# Shell2: cd /cygdrive/c/Users/roland_mainz/Downloads/ms-nfs41-client-x64/ms-nfs41-client-x64 && bash ../msnfs41client.bash sys_mount_globaldirs
 #
 
 function is_windows_admin_account
@@ -518,6 +518,43 @@ function watch_kernel_debuglog
 	return 0
 }
 
+function nfsclient_system_mount_globaldirs
+{
+	set -o xtrace
+	set -o nounset
+	set -o errexit
+
+	#
+	# ToDo: Add a /etc/fstab.msnfs41client file
+	# which is parsed for NFSv4.1 mounts like Linux/etc/fstab
+	# or SysV/Solaris/Illumos /etc/vfstab
+	#
+
+	# purge any leftover persistent mappings to device P:
+	su_system net use 'P:' /delete || true
+	su_system nfs_mount -o sec=sys,rw 'P' 'nfs://derfwnb4966_ipv6linklocal//bigdisk'
+
+	return $?
+}
+
+function nfsclient_system_umount_globaldirs
+{
+	set -o xtrace
+	set -o nounset
+	set -o errexit
+
+	#
+	# ToDo: Add a /etc/fstab.msnfs41client file
+	# which is parsed for NFSv4.1 mounts like Linux/etc/fstab
+	# or SysV/Solaris/Illumos /etc/vfstab
+	#
+
+	# purge any leftover persistent mappings to device P:
+	su_system net use 'P:' /delete || true
+
+	return $?
+}
+
 function nfsclient_mount_homedir
 {
 	set -o xtrace
@@ -528,24 +565,8 @@ function nfsclient_mount_homedir
 	#nfs_mount -p -o sec=sys H '[fe80::219:99ff:feae:73ce]:/export/home2/rmainz'
 	nfs_mount -p -o sec=sys H 'derfwpc5131_ipv6linklocal:/export/home2/rmainz'
 	mkdir -p '/home/rmainz'
-	# FIXME: is "notexec" correct in this case =
+	# FIXME: is "notexec" correct in this case ?
 	mount -o posix=1,sparse,notexec 'H:' '/home/rmainz'
-	return $?
-}
-
-function nfsclient_system_mount_homedir
-{
-	set -o xtrace
-	set -o nounset
-	set -o errexit
-
-	# purge any leftover persistent mappings to device H:
-	su_system net use H: /delete || true
-
-	#su_system nfs_mount -p -o sec=sys H 'derfwpc5131:/export/home2/rmainz'
-	#su_system nfs_mount -p -o sec=sys H '[fe80::219:99ff:feae:73ce]:/export/home2/rmainz'
-	su_system nfs_mount -p -o sec=sys H 'derfwpc5131_ipv6linklocal:/export/home2/rmainz'
-
 	return $?
 }
 
@@ -710,16 +731,30 @@ function main
 			nfsclient_system_rundeamon
 			return $?
 			;;
-		'sys_mount_homedir')
+		'sys_mount_globaldirs')
 			check_machine_arch || (( numerr++ ))
 			require_cmd 'nfs_mount.exe' || (( numerr++ ))
+			require_cmd 'PsExec.exe' || (( numerr++ ))
 			if ! is_windows_admin_account ; then
 				printf $"%s: %q requires Windows Adminstator permissions.\n" "$0" "$cmd"
 				(( numerr++ ))
 			fi
 			(( numerr > 0 )) && return 1
 
-			nfsclient_system_mount_homedir
+			nfsclient_system_mount_globaldirs
+			return $?
+			;;
+		'sys_umount_globaldirs')
+			check_machine_arch || (( numerr++ ))
+			require_cmd 'nfs_mount.exe' || (( numerr++ ))
+			require_cmd 'PsExec.exe' || (( numerr++ ))
+			if ! is_windows_admin_account ; then
+				printf $"%s: %q requires Windows Adminstator permissions.\n" "$0" "$cmd"
+				(( numerr++ ))
+			fi
+			(( numerr > 0 )) && return 1
+
+			nfsclient_system_umount_globaldirs
 			return $?
 			;;
 		'mount_homedir')

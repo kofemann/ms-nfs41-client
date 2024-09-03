@@ -207,7 +207,11 @@ $ sc start ms-nfs41-client-service
 #   "disabled" and therefore always requires a "manual" start (e.g.
 #   $ sc start ms-nfs41-client-service #)
 # - note that DOS devices are virtualised per LSA Logon, so each Logon
-#   needs to do a separare nfs_mount.exe to mount a NFSv4 share
+#   needs to do a separare nfs_mount.exe to mount a NFSv4 share.
+#   The exception are mounts created by user "SYSTEM", such mounts
+#   are available to all users/logons.
+#   (see PsExec or function "su_system" in msnfs41client.bash how
+#   to run a process as user "SYSTEM")
 # - nfsd_debug.exe will run as user "SYSTEM", but will do user
 #   impersonation for each request
 # - stopping the service will NOT unmount filesystems, and due to a
