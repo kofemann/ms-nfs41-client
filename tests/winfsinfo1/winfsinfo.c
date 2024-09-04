@@ -439,6 +439,71 @@ done:
     return res;
 }
 
+
+static
+bool get_getfiletime(const char *progname, const char *filename)
+{
+    int res = EXIT_FAILURE;
+    bool ok;
+    FILETIME creationTime;
+    FILETIME lastAccessTime;
+    FILETIME lastWriteTime;
+
+    HANDLE fileHandle = CreateFileA(filename,
+        GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING,
+        FILE_FLAG_BACKUP_SEMANTICS, NULL);
+    if (fileHandle == INVALID_HANDLE_VALUE) {
+        (void)fprintf(stderr,
+            "%s: Error opening file '%s'. Last error was %d.\n",
+            progname,
+            filename,
+            (int)GetLastError());
+        return EXIT_FAILURE;
+    }
+
+    ok = GetFileTime(fileHandle, &creationTime, &lastAccessTime, &lastWriteTime);
+
+    if (!ok) {
+        (void)fprintf(stderr, "%s: GetFileTime() "
+            "error. GetLastError()==%d.\n",
+            progname,
+            (int)GetLastError());
+        res = EXIT_FAILURE;
+        goto done;
+    }
+
+    (void)printf("(\n");
+    (void)printf("\tfilename='%s'\n", filename);
+
+    SYSTEMTIME st;
+
+    /*
+     * Note that SYSTEMTIME is in UTC, so
+     * use $ (TZ=UTC ls -lad "$filename") to compare
+     */
+    (void)FileTimeToSystemTime(&creationTime, &st);
+    (void)printf("\tcreationTime='%04d-%02d-%02d %02d:%02d:%02d.%d'\n",
+        st.wYear, st.wMonth, st.wDay, st.wHour,
+        st.wMinute, st.wSecond, st.wMilliseconds);
+
+    (void)FileTimeToSystemTime(&lastAccessTime, &st);
+    (void)printf("\tlastAccessTime='%04d-%02d-%02d %02d:%02d:%02d.%d'\n",
+        st.wYear, st.wMonth, st.wDay, st.wHour,
+        st.wMinute, st.wSecond, st.wMilliseconds);
+
+    (void)FileTimeToSystemTime(&lastWriteTime, &st);
+    (void)printf("\tlastWriteTime='%04d-%02d-%02d %02d:%02d:%02d.%d'\n",
+        st.wYear, st.wMonth, st.wDay, st.wHour,
+        st.wMinute, st.wSecond, st.wMilliseconds);
+
+    (void)printf(")\n");
+    res = EXIT_SUCCESS;
+
+done:
+    (void)CloseHandle(fileHandle);
+    return res;
+}
+
 static
 void usage(void)
 {
@@ -447,7 +512,8 @@ void usage(void)
         "filebasicinfo|"
         "fileexinfostandard|"
         "filestandardinfo|"
-        "filenormalizednameinfo"
+        "filenormalizednameinfo|"
+        "getfiletime"
         "> path\n");
 }
 
@@ -476,6 +542,9 @@ int main(int ac, char *av[])
     }
     else if (!strcmp(subcmd, "filenormalizednameinfo")) {
         return get_filenormalizednameinfo(av[0], av[2]);
+    }
+    else if (!strcmp(subcmd, "getfiletime")) {
+        return get_getfiletime(av[0], av[2]);
     }
     else {
         (void)fprintf(stderr, "%s: Unknown subcmd '%s'\n", av[0], subcmd);
