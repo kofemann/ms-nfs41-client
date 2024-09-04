@@ -7,9 +7,17 @@
 ######## Building ms-nfs41-client using Cygwin+Makefile:
 ** Required software:
 - Visual Studio 19
+  Start Visual Studio 19 installer and import the installer
+  config file "ms-nfs41-client/build.vc19/ms-nfs41-client.vsconfig",
+  and then install Visual Studio.
+  (Note that due to a bug in the VS installer it is sometimes
+  required to manually add another (random) component to be installed,
+  otherwise the imported config might be ignored)
 - WDK for Windows 10, version 2004, from
   https://go.microsoft.com/fwlink/?linkid=2128854
-- Cygwin >= 3.5.0
+- Cygwin 64bit >= 3.5.0
+  (see "ms-nfs41-clientcygwin/README.bintarball.txt" for Cygwin 32bit
+  and 64bit installation instructions)
 
 ** Build the project using Cygwin command line (bash/ksh93):
 export PATH+=":/cygdrive/c/Program Files (x86)/Microsoft Visual Studio/2019/Community/MSBuild/Current/Bin/"
