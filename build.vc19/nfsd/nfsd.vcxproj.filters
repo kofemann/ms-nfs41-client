@@ -132,6 +132,9 @@
     <ClCompile Include="..\..\daemon\volume.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\daemon\accesstoken.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\daemon\cpvparser1.h">
@@ -198,6 +201,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\nfs_ea.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\daemon\accesstoken.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
