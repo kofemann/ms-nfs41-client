@@ -26,6 +26,17 @@ cd ms-nfs41-client
 cd cygwin
 make installdest
 
+# Note that $ make installdest # can fail on SMB/NFSv4.1 filesystems
+# with a "link.exe" crash.
+# Workaround is to disable incremental linking before building, e.g. do
+# ---- snip ----
+cd ms-nfs41-client
+sed -i -E 's/<LinkIncremental>true<\/LinkIncremental>/<LinkIncremental>false<\/LinkIncremental>/g' $(find build.vc19 -name \*.vcxproj)
+# ---- snip ----
+# This Visual Studio bug is tracked as
+# https://developercommunity.visualstudio.com/t/Visual-Studio-linkexe-crashes-on-networ/10735424
+# ("Visual Studio link.exe crashes on network filesystem").
+
 
 #### Install the software (requires mintty.exe running as "Adminstrator"):
 cd ms-nfs41-client/destdir/cygdrive/c/cygwin64/sbin
