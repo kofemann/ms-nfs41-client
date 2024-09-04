@@ -38,6 +38,18 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+static
+bool filetime2localsystemtime(const FILETIME *ft, SYSTEMTIME *st)
+{
+    FILETIME localft;
+
+    if (!FileTimeToLocalFileTime(ft, &localft))
+        return false;
+    if (!FileTimeToSystemTime(&localft, st))
+        return false;
+    return true;
+}
+
 
 static
 bool getvolumeinfo(const char *progname, const char *filename)
@@ -222,7 +234,6 @@ done:
     return res;
 }
 
-
 /*
  * Win10 uses |FileNetworkOpenInformation| to get the information
  * for |GetFileExInfoStandard|
@@ -252,21 +263,17 @@ bool get_fileexinfostandard(const char *progname, const char *filename)
 
     SYSTEMTIME st;
 
-    /*
-     * Note that SYSTEMTIME is in UTC, so
-     * use $ (TZ=UTC ls -lad "$filename") to compare
-     */
-    (void)FileTimeToSystemTime(&finfo.ftCreationTime, &st);
+    (void)filetime2localsystemtime(&finfo.ftCreationTime, &st);
     (void)printf("\tftCreationTime='%04d-%02d-%02d %02d:%02d:%02d.%d'\n",
         st.wYear, st.wMonth, st.wDay, st.wHour,
         st.wMinute, st.wSecond, st.wMilliseconds);
 
-    (void)FileTimeToSystemTime(&finfo.ftLastAccessTime, &st);
+    (void)filetime2localsystemtime(&finfo.ftLastAccessTime, &st);
     (void)printf("\tftLastAccessTime='%04d-%02d-%02d %02d:%02d:%02d.%d'\n",
         st.wYear, st.wMonth, st.wDay, st.wHour,
         st.wMinute, st.wSecond, st.wMilliseconds);
 
-    (void)FileTimeToSystemTime(&finfo.ftLastWriteTime, &st);
+    (void)filetime2localsystemtime(&finfo.ftLastWriteTime, &st);
     (void)printf("\tftLastWriteTime='%04d-%02d-%02d %02d:%02d:%02d.%d'\n",
         st.wYear, st.wMonth, st.wDay, st.wHour,
         st.wMinute, st.wSecond, st.wMilliseconds);
@@ -477,21 +484,17 @@ bool get_getfiletime(const char *progname, const char *filename)
 
     SYSTEMTIME st;
 
-    /*
-     * Note that SYSTEMTIME is in UTC, so
-     * use $ (TZ=UTC ls -lad "$filename") to compare
-     */
-    (void)FileTimeToSystemTime(&creationTime, &st);
+    (void)filetime2localsystemtime(&creationTime, &st);
     (void)printf("\tcreationTime='%04d-%02d-%02d %02d:%02d:%02d.%d'\n",
         st.wYear, st.wMonth, st.wDay, st.wHour,
         st.wMinute, st.wSecond, st.wMilliseconds);
 
-    (void)FileTimeToSystemTime(&lastAccessTime, &st);
+    (void)filetime2localsystemtime(&lastAccessTime, &st);
     (void)printf("\tlastAccessTime='%04d-%02d-%02d %02d:%02d:%02d.%d'\n",
         st.wYear, st.wMonth, st.wDay, st.wHour,
         st.wMinute, st.wSecond, st.wMilliseconds);
 
-    (void)FileTimeToSystemTime(&lastWriteTime, &st);
+    (void)filetime2localsystemtime(&lastWriteTime, &st);
     (void)printf("\tlastWriteTime='%04d-%02d-%02d %02d:%02d:%02d.%d'\n",
         st.wYear, st.wMonth, st.wDay, st.wHour,
         st.wMinute, st.wSecond, st.wMilliseconds);
