@@ -11,7 +11,7 @@
 NAME=astksh
 LICENSE="Eclipse Public License - v 2.0"
 HOMEPAGE="https://github.com/ksh93/ksh"
-VERSION=1.0.9
+VERSION=1.0.10
 RELEASE=0
 
 PKG_NAMES="astksh astksh_devel"
@@ -36,11 +36,11 @@ astksh_devel_CONTENTS="usr/share/ksh \
 	bin/shcomp.exe \
 "
 
-SRC_URI="https://github.com/ksh93/ksh/archive/refs/tags/v1.0.9.zip"
-SRC_DIR='./ksh-1.0.9/'
+SRC_URI="https://github.com/ksh93/ksh/archive/refs/tags/v1.0.10.zip"
+SRC_DIR='./ksh-1.0.10/'
 PATCH_URI=""
 #PATCH_URI+=" ksh_1_0_8_libast_Cygwin_set_PATH_LEADING_SLASHES_for_UNC_paths.patch"
-PATCH_URI+=" ksh_1_0_9_mamake_bootstrap.patch"
+#PATCH_URI+=" ksh_1_0_9_mamake_bootstrap.patch"
 
 BUILD_REQUIRES=" \
 	bash \

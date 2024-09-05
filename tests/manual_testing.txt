@@ -214,11 +214,11 @@ icacls mytestfile1.txt | grep --colour -E 'cygwingrp2.+GR'
 #
 
 #
-# build ast-ksh ksh93 1.0.8 with UNC support enabled
+# build ast-ksh ksh93 1.0.10 with UNC support enabled
 # (see ms-nfs41-client/cygwin/cygwin_ksh93/cygwin_ksh93.readme for
 # instructions how to build a Cygwin package)
 #
-git clone -b 'v1.0.8' https://github.com/ksh93/ksh.git
+git clone -b 'v1.0.10' https://github.com/ksh93/ksh.git
 cd ksh
 git config --global --add safe.directory "$PWD"
 # add patch so UNC path support is enabled (e.g. "cd cd //derfwnb4966_ipv6linklocal@2049/nfs4/net_tmpfs")
