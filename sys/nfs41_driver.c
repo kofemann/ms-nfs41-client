@@ -180,6 +180,7 @@ typedef struct _updowncall_entry {
     FAST_MUTEX lock;
     LIST_ENTRY next;
     KEVENT cond;
+#undef errno
     DWORD errno;
     BOOLEAN async_op;
     SECURITY_CLIENT_CONTEXT sec_ctx;

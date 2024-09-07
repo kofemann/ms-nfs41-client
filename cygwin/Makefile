@@ -60,6 +60,11 @@ build_32bit_debug:
 	which MSBuild.exe
 	MSBuild.exe '$(shell cygpath -w "$(PROJECT_BASEDIR_DIR)/build.vc19/nfs41-client.sln")' -t:Build  -p:Configuration=Debug -p:Platform=x86
 
+build_arm_64bit_debug:
+	@printf '#\n# PATH is %q\n#\n' '$(PATH)'
+	which MSBuild.exe
+	MSBuild.exe '$(shell cygpath -w "$(PROJECT_BASEDIR_DIR)/build.vc19/nfs41-client.sln")' -t:Build  -p:Configuration=Debug -p:Platform=ARM64
+
 build_testutils:
 	(cd "$(PROJECT_BASEDIR_DIR)/tests/ea" && make all)
 	(cd "$(PROJECT_BASEDIR_DIR)/tests/winfsinfo1" && make all)
