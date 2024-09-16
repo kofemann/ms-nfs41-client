@@ -70,7 +70,7 @@ build_testutils:
 	(cd "$(PROJECT_BASEDIR_DIR)/tests/winfsinfo1" && make all)
 	(cd "$(PROJECT_BASEDIR_DIR)/tests/winsg" && make all)
 
-build: build_32bit_release build_32bit_debug build_64bit_release build_64bit_debug build_testutils
+build: build_32bit_release build_32bit_debug build_64bit_release build_64bit_debug build_arm_64bit_debug build_testutils
 	sync
 
 #
