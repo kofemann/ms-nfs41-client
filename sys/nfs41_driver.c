@@ -992,9 +992,9 @@ static NTSTATUS marshal_nfs41_unlock(
     if (status) goto out;
     else tmp += *len;
 
-    header_len = *len + sizeof(ULONG) + 
-        entry->u.Unlock.count * 2 * sizeof(LONGLONG);
-    if (header_len > buf_len) { 
+    header_len = *len + sizeof(ULONG) +
+        (size_t)entry->u.Unlock.count * 2 * sizeof(LONGLONG);
+    if (header_len > buf_len) {
         status = STATUS_INSUFFICIENT_RESOURCES;
         goto out;
     }
@@ -5528,7 +5528,7 @@ static NTSTATUS QueryCygwinSymlink(
         RtlCopyMemory(info->EaName, query->EaName, query->EaNameLength);
         RxContext->Info.LengthRemaining = HeaderLen + info->EaValueLength;
     } else if (status == STATUS_BUFFER_TOO_SMALL) {
-        RxContext->InformationToReturn = HeaderLen +
+        RxContext->InformationToReturn = (ULONG_PTR)HeaderLen +
             entry->u.Symlink.target->Length;
     }
     nfs41_UpcallDestroy(entry);
@@ -7389,9 +7389,11 @@ static NTSTATUS nfs41_GetReparsePoint(
         Reparse->SymbolicLinkReparseBuffer.PrintNameLength = TargetName.Length;
         print_reparse_buffer(Reparse);
 
-        RxContext->IoStatusBlock.Information = HeaderLen + TargetName.Length;
+        RxContext->IoStatusBlock.Information =
+            (ULONG_PTR)HeaderLen + TargetName.Length;
     } else if (status == STATUS_BUFFER_TOO_SMALL) {
-        RxContext->InformationToReturn = HeaderLen + TargetName.Length;
+        RxContext->InformationToReturn =
+            (ULONG_PTR)HeaderLen + TargetName.Length;
     }
     nfs41_UpcallDestroy(entry);
 out:
