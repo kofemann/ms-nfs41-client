@@ -1,5 +1,5 @@
 /* NFSv4.1 client for Windows
- * Copyright © 2023 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2023-2024 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Roland Mainz <roland.mainz@nrubsig.org>
  *
@@ -65,7 +65,9 @@ int cygwin_getent_passwd(const char *name, char *res_loginname, uid_t *res_uid, 
     cpv_name_val *cnv_cur = NULL;
     const char *localaccoutname = NULL;
 
-    DPRINTF(CYGWINIDLVL, ("--> cygwin_getent_passwd('%s')\n", name));
+    DPRINTF(CYGWINIDLVL,
+        ("--> cygwin_getent_passwd(name='%s')\n",
+        name));
 
     /* fixme: better quoting for |name| needed */
     (void)snprintf(cmdbuff, sizeof(cmdbuff),
@@ -74,7 +76,10 @@ int cygwin_getent_passwd(const char *name, char *res_loginname, uid_t *res_uid, 
         name);
     if ((script_pipe = subcmd_popen(cmdbuff)) == NULL) {
         int last_error = GetLastError();
-        DPRINTF(0, ("cygwin_getent_passwd: '%s' failed, GetLastError()='%d'\n",
+        DPRINTF(0,
+            ("cygwin_getent_passwd(name='%s'): "
+            "'%s' failed, GetLastError()='%d'\n",
+            name,
             cmdbuff,
             last_error));
         goto fail;
@@ -82,25 +87,37 @@ int cygwin_getent_passwd(const char *name, char *res_loginname, uid_t *res_uid, 
 
     if (!subcmd_readcmdoutput(script_pipe,
         buff, sizeof(buff), &num_buff_read)) {
-        DPRINTF(0, ("cygwin_getent_passwd: subcmd_readcmdoutput() failed\n"));
+        DPRINTF(0,
+            ("cygwin_getent_passwd(name='%s'): "
+            "subcmd_readcmdoutput() failed\n",
+            name));
         goto fail;
     }
 
     buff[num_buff_read] = '\0';
 
     if (num_buff_read < 10) {
-        DPRINTF(0, ("cygwin_getent_passwd: Could not read enough data, returned %d\n", (int)num_buff_read));
+        DPRINTF(0,
+            ("cygwin_getent_passwd(name='%s'): "
+            "Could not read enough data, returned %d\n",
+            name, (int)num_buff_read));
         goto fail;
     }
 
     cpvp = cpv_create_parser(buff, 0/*CPVFLAG_DEBUG_OUTPUT*/);
     if (!cpvp) {
-        DPRINTF(0, ("cygwin_getent_passwd: Could not create parser\n"));
+        DPRINTF(0,
+            ("cygwin_getent_passwd(name='%s'): "
+            "Could not create parser\n",
+            name));
         goto fail;
     }
 
     if (cpv_read_cpv_header(cpvp)) {
-        DPRINTF(0, ("cygwin_getent_passwd: cpv_read_cpv_header failed\n"));
+        DPRINTF(0,
+            ("cygwin_getent_passwd(name='%s'): "
+            "cpv_read_cpv_header failed\n",
+            name));
         goto fail;
     }
 
@@ -149,7 +166,8 @@ fail:
     cpv_free_parser(cpvp);
 
     if (res == 0) {
-        DPRINTF(CYGWINIDLVL, ("<-- cygwin_getent_passwd('%s'): "
+        DPRINTF(CYGWINIDLVL,
+            ("<-- cygwin_getent_passwd(name='%s'): "
             "returning res_uid=%u, res_gid=%u, res_loginname='%s'\n",
             name,
             (unsigned int)(*res_uid),
@@ -157,7 +175,8 @@ fail:
             res_loginname?res_loginname:"<NULL>"));
     }
     else {
-        DPRINTF(CYGWINIDLVL, ("<-- cygwin_getent_passwd('%s'): no match found\n",
+        DPRINTF(CYGWINIDLVL,
+            ("<-- cygwin_getent_passwd(name='%s'): no match found\n",
             name));
     }
 
@@ -180,7 +199,9 @@ int cygwin_getent_group(const char* name, char* res_group_name, gid_t* res_gid)
 
     const char *localgroupname = NULL;
 
-    DPRINTF(CYGWINIDLVL, ("--> cygwin_getent_group('%s')\n", name));
+    DPRINTF(CYGWINIDLVL,
+        ("--> cygwin_getent_group(name='%s')\n",
+        name));
 
     /* fixme: better quoting for |name| needed */
     (void)snprintf(cmdbuff, sizeof(cmdbuff),
@@ -189,7 +210,10 @@ int cygwin_getent_group(const char* name, char* res_group_name, gid_t* res_gid)
         name);
     if ((script_pipe = subcmd_popen(cmdbuff)) == NULL) {
         int last_error = GetLastError();
-        DPRINTF(0, ("cygwin_getent_group: '%s' failed, GetLastError()='%d'\n",
+        DPRINTF(0,
+            ("cygwin_getent_group(name='%s'): "
+            "'%s' failed, GetLastError()='%d'\n",
+            name,
             cmdbuff,
             last_error));
         goto fail;
@@ -197,25 +221,37 @@ int cygwin_getent_group(const char* name, char* res_group_name, gid_t* res_gid)
 
     if (!subcmd_readcmdoutput(script_pipe,
         buff, sizeof(buff), &num_buff_read)) {
-        DPRINTF(0, ("cygwin_getent_group: subcmd_readcmdoutput() failed\n"));
+        DPRINTF(0,
+            ("cygwin_getent_group(name='%s'): "
+            "subcmd_readcmdoutput() failed\n",
+            name));
         goto fail;
     }
 
     buff[num_buff_read] = '\0';
 
     if (num_buff_read < 10) {
-        DPRINTF(0, ("cygwin_getent_group: Could not read enough data, returned %d\n", (int)num_buff_read));
+        DPRINTF(0,
+            ("cygwin_getent_group(name='%s'): "
+            "Could not read enough data, returned %d\n",
+            name, (int)num_buff_read));
         goto fail;
     }
 
     cpvp = cpv_create_parser(buff, 0/*CPVFLAG_DEBUG_OUTPUT*/);
     if (!cpvp) {
-        DPRINTF(0, ("cygwin_getent_group: Could not create parser\n"));
+        DPRINTF(0,
+            ("cygwin_getent_group(name='%s'): "
+            "Could not create parser\n",
+            name));
         goto fail;
     }
 
     if (cpv_read_cpv_header(cpvp)) {
-        DPRINTF(0, ("cygwin_getent_group: cpv_read_cpv_header failed\n"));
+        DPRINTF(0,
+            ("cygwin_getent_group(name='%s'): "
+            "cpv_read_cpv_header failed\n",
+            name));
         goto fail;
     }
 
@@ -257,14 +293,16 @@ fail:
     cpv_free_parser(cpvp);
 
     if (res == 0) {
-        DPRINTF(CYGWINIDLVL, ("<-- cygwin_getent_group('%s'): "
+        DPRINTF(CYGWINIDLVL,
+            ("<-- cygwin_getent_group(name='%s'): "
             "returning res_gid=%u, res_group_name='%s'\n",
             name,
             (unsigned int)(*res_gid),
             res_group_name?res_group_name:"<NULL>"));
     }
     else {
-        DPRINTF(CYGWINIDLVL, ("<-- cygwin_getent_group('%s'): no match found\n",
+        DPRINTF(CYGWINIDLVL,
+            ("<-- cygwin_getent_group(name='%s'): no match found\n",
             name));
     }
 
