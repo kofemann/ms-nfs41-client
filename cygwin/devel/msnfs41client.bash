@@ -185,6 +185,30 @@ function nfsclient_install
 	# query new 'ms-nfs41-client-service'
 	sc query 'ms-nfs41-client-service'
 
+	#
+	# check whether ksh93 works
+	# (The ms-nfs41-client cygwin idmapper uses ksh93 scripts for
+	# idmapping, and if ksh93 does not work properly nfsd*.exe
+	# will not work)
+	#
+	set +o xtrace
+	typeset cmdout
+	cmdout="$( \
+		{ \
+			/usr/bin/ksh93 -c \
+				'compound c=(typeset -a ar); c.ar=("hello"); c.ar+=("world"); printf "%s" "${c.ar[*]}"' ; \
+			echo $? ; } 2>&1 \
+		)"
+
+	if [[ "${cmdout}" != $'hello world0' ]] ; then
+		printf $"ERROR: /usr/bin/ksh93 does not work, expected test output |%q|, got |%q|\n" \
+			$'hello world0' \
+			"$cmdout"
+		return 1
+	fi
+	printf '/usr/bin/ksh93 is working\n'
+	set -o xtrace
+
 	# check whether the driver really has been installed
 	md5sum \
 		"$PWD/nfs41_driver.sys" \
