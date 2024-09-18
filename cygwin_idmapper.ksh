@@ -15,6 +15,34 @@ compound c=(
 	name="$2"
 )
 
+#
+# Windows uses localised user and group names,
+# e.g. on a German Windows the group "None" is called "Kein" etc.
+#
+# Cygwin allows to lookup users&&groups by their SID with
+# /usr/bin/getent, so we use that to get the localised user/group
+# name.
+# Alternatively powershell can be used like this:
+# ---- snip ----
+# (New-Object System.Security.Principal.SecurityIdentifier \
+#   "S-1-5-21-3286904461-661230000-4220857270-513").Translate( [System.Security.Principal.NTAccount]).Value
+# ---- snip ----
+#
+# FIXME: This still means we send a localised group name
+# to the NFSv4 server, and it needs /etc/group entries for all
+# localised variations of group "None". In the future the idmapper
+# should do the mapping in both directions to avoid this.
+#
+typeset stdout
+
+# Group "SYSTEM": de_DE: "SYSTEM" ...
+stdout="$(getent passwd 'S-1-5-18')"
+typeset -r -A localised_usernames=(['SYSTEM']="${stdout%%:*}")
+
+# Group "None": de_DE: "Kein" ...
+stdout="$(getent group 'S-1-5-21-3286904461-661230000-4220857270-513')"
+typeset -r -A localised_groupnames=(['None']="${stdout%%:*}")
+
 compound -A localusers=(
 	["roland_mainz"]=(
 		localaccoutname='roland_mainz'
@@ -26,8 +54,13 @@ compound -A localusers=(
 		localuid=197609
 		localgid=197121
 	)
+	["${localised_usernames['SYSTEM']}"]=(
+		localaccoutname="${localised_usernames['SYSTEM']}"
+		localuid=18
+		localgid=18
+	)
 	["SYSTEM"]=(
-		localaccoutname='SYSTEM'
+		localaccoutname="${localised_usernames['SYSTEM']}"
 		localuid=18
 		localgid=18
 	)
@@ -54,8 +87,12 @@ compound -A localusers=(
 )
 
 compound -A localgroups=(
-	["Kein"]=(
-		localgroupname='Kein'
+	["${localised_groupnames['None']}"]=(
+		localgroupname="${localised_groupnames['None']}"
+		localgid=197121
+	)
+	["None"]=(
+		localgroupname="${localised_groupnames['None']}"
 		localgid=197121
 	)
 	["rmainz"]=(
