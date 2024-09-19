@@ -269,7 +269,7 @@ static DWORD StoreConnectionInfo(
 #endif /* NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE */
 
     status = OpenSharedMemory(&hMutex, &hMemory,
-        &(PVOID)pSharedMemory);
+        (PVOID *)&pSharedMemory);
     if (status)
         goto out;
 
@@ -327,7 +327,7 @@ static DWORD StoreConnectionInfo(
     // TODO: copy mount options -cbodley
 
 out_close:
-    CloseSharedMemory(&hMutex, &hMemory, &(PVOID)pSharedMemory);
+    CloseSharedMemory(&hMutex, &hMemory, (PVOID *)&pSharedMemory);
 out:
     DbgP((L"<-- StoreConnectionInfo returns %d\n", (int)status));
 

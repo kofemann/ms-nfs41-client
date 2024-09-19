@@ -17,9 +17,13 @@
  */
 
 //extern int vsnprintf();
+#ifdef _WIN32
 #include <wintirpc.h>
-#include <stdio.h>
+#include <stdarg.h>
+#else
 #include <varargs.h>
+#endif /* _WIN32 */
+#include <stdio.h>
 
 /* Include vasprintf() if not on your OS. */
 #ifndef HAVE_VASPRINTF

@@ -653,9 +653,10 @@ authsspi_unwrap(AUTH *auth, XDR *xdrs, xdrproc_t xdr_func, caddr_t xdr_ptr, u_in
 				 gd->sec->svc, seq));
 }
 
-uint32_t sspi_get_mic(PCtxtHandle ctx, u_int qop, u_int seq, 
+uint32_t sspi_get_mic(void *arg_ctx, u_int qop, u_int seq,
                         sspi_buffer_desc *bufin, sspi_buffer_desc *bufout)
 {
+    PCtxtHandle ctx = arg_ctx;
     uint32_t maj_stat;
     SecPkgContext_Sizes ContextSizes;
     SecBufferDesc desc;
@@ -691,9 +692,10 @@ uint32_t sspi_get_mic(PCtxtHandle ctx, u_int qop, u_int seq,
     return maj_stat;
 }
 
-uint32_t sspi_verify_mic(PCtxtHandle ctx, u_int seq, sspi_buffer_desc *bufin,
+uint32_t sspi_verify_mic(void *arg_ctx, u_int seq, sspi_buffer_desc *bufin,
                             sspi_buffer_desc *bufout, unsigned long *qop_state)
 {
+    PCtxtHandle ctx = arg_ctx;
     SecBufferDesc desc;
     SecBuffer sec_tkn[2];
 
@@ -735,9 +737,10 @@ uint32_t sspi_import_name(sspi_buffer_desc *name_in, sspi_name_t *name_out)
     return SEC_E_OK;
 }
 
-uint32_t sspi_wrap(PCtxtHandle ctx, u_int seq, sspi_buffer_desc *bufin, 
+uint32_t sspi_wrap(void *arg_ctx, u_int seq, sspi_buffer_desc *bufin,
                    sspi_buffer_desc *bufout, u_int *conf_state)
 {
+    PCtxtHandle ctx = arg_ctx;
     uint32_t maj_stat;
     SecBufferDesc BuffDesc;
     SecBuffer SecBuff[3];
@@ -788,10 +791,11 @@ out:
     return maj_stat;
 }
 
-uint32_t sspi_unwrap(PCtxtHandle ctx, u_int seq, sspi_buffer_desc *bufin,
+uint32_t sspi_unwrap(void *arg_ctx, u_int seq, sspi_buffer_desc *bufin,
                      sspi_buffer_desc *bufout, u_int *conf_state,
                      unsigned long *qop_state)
 {
+    PCtxtHandle ctx = arg_ctx;
     uint32_t maj_stat;
     SecBufferDesc BuffDesc;
     SecBuffer SecBuff[2];

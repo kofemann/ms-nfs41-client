@@ -48,7 +48,7 @@ enum nfs41_callback_op {
     OP_CB_ILLEGAL           = 10044
 };
 
-int nfs41_handle_callback(void *, void *, void *);
+int nfs41_handle_callback(void *rpc_clnt, void *cb, void **arg_reply);
 
 /* OP_CB_LAYOUTRECALL */
 struct cb_recall_file {

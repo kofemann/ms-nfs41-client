@@ -24,7 +24,8 @@
 
 #include "nfs41_driver.h"
 
-#define MOUNT_OPTION_BUFFER_SECRET ('n4')
+/* Secret is ASCII "n4" */
+#define MOUNT_OPTION_BUFFER_SECRET (('n' << 8) | '4')
 
 /* MOUNT_OPTION_BUFFER
  *   The mount options buffer received by NPAddConnection3
