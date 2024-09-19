@@ -45,42 +45,42 @@ typeset -r -A localised_groupnames=(['None']="${stdout%%:*}")
 
 compound -A localusers=(
 	["roland_mainz"]=(
-		localaccoutname='roland_mainz'
+		localaccountname='roland_mainz'
 		localuid=197608
 		localgid=197121
 	)
 	["siegfried_wulsch"]=(
-		localaccoutname='siegfried_wulsch'
+		localaccountname='siegfried_wulsch'
 		localuid=197609
 		localgid=197121
 	)
 	["${localised_usernames['SYSTEM']}"]=(
-		localaccoutname="${localised_usernames['SYSTEM']}"
+		localaccountname="${localised_usernames['SYSTEM']}"
 		localuid=18
 		localgid=18
 	)
 	["SYSTEM"]=(
-		localaccoutname="${localised_usernames['SYSTEM']}"
+		localaccountname="${localised_usernames['SYSTEM']}"
 		localuid=18
 		localgid=18
 	)
 	["rmainz"]=(
-		localaccoutname='rmainz'
+		localaccountname='rmainz'
 		localuid=1616
 		localgid=1616
 	)
 	["swulsch"]=(
-		localaccoutname='swulsch'
+		localaccountname='swulsch'
 		localuid=1818
 		localgid=1818
 	)
 	["root"]=(
-		localaccoutname='root'
+		localaccountname='root'
 		localuid=0
 		localgid=0
 	)
 	["nobody"]=(
-		localaccoutname='nobody'
+		localaccountname='nobody'
 		localuid=65534
 		localgid=65534
 	)

@@ -63,7 +63,7 @@ int cygwin_getent_passwd(const char *name, char *res_loginname, uid_t *res_uid, 
     int i = 0;
     cpv_name_val cnv[64] = { 0 };
     cpv_name_val *cnv_cur = NULL;
-    const char *localaccoutname = NULL;
+    const char *localaccountname = NULL;
 
     DPRINTF(CYGWINIDLVL,
         ("--> cygwin_getent_passwd(name='%s')\n",
@@ -129,8 +129,8 @@ int cygwin_getent_passwd(const char *name, char *res_loginname, uid_t *res_uid, 
 
     for (i=0 ; i < numcnv ; i++) {
         cnv_cur = &cnv[i];
-        if (!strcmp("localaccoutname", cnv_cur->cpv_name)) {
-            localaccoutname = cnv_cur->cpv_value;
+        if (!strcmp("localaccountname", cnv_cur->cpv_name)) {
+            localaccountname = cnv_cur->cpv_value;
         }
         else if (!strcmp("localuid", cnv_cur->cpv_name)) {
             errno = 0;
@@ -146,11 +146,11 @@ int cygwin_getent_passwd(const char *name, char *res_loginname, uid_t *res_uid, 
         }
     }
 
-    if (!localaccoutname)
+    if (!localaccountname)
         goto fail;
 
     if (res_loginname)
-        (void)strcpy_s(res_loginname, VAL_LEN, localaccoutname);
+        (void)strcpy_s(res_loginname, VAL_LEN, localaccountname);
     *res_uid = uid;
     *res_gid = gid;
     res = 0;
