@@ -95,6 +95,11 @@ compound -A localgroups=(
 		localgroupname="${localised_groupnames['None']}"
 		localgid=197121
 	)
+	# German Windows localised group name for "None"
+	["Kein"]=(
+		localgroupname="${localised_groupnames['None']}"
+		localgid=197121
+	)
 	["rmainz"]=(
 		localgroupname='rmainz'
 		localgid=1616
