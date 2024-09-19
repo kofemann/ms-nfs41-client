@@ -10,7 +10,7 @@
 #
 # 1. What is this ?
 #
-NFSv4.1 client and filesystem driver for Windows 10/11
+NFSv4.1 filesystem driver for Windows 10/11&Windows Server 2019
 
 
 #
@@ -85,7 +85,7 @@ NFSv4.1 client and filesystem driver for Windows 10/11
 #
 # 3. Requirements:
 #
-- Windows 10 (32bit or 64bit) or Windows 11
+- Windows 10 (32bit or 64bit), Windows 11 or Windows Server 2019
 - Cygwin:
     - Cygwin versions:
         - 64bit: >= 3.5.3 (or 3.6.x-devel)
