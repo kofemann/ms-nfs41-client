@@ -125,7 +125,7 @@ void dprintf_out(LPCSTR format, ...)
         in_dprintf_out = false;
     }
 
-    (void)fprintf(dlog_file, "%04x/%s='%s'/%s' ",
+    (void)fprintf(dlog_file, "%04x/%s='%s'/'%s' ",
         (int)GetCurrentThreadId(),
         tok_src, username, groupname);
 
