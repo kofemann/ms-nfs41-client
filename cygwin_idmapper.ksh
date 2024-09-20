@@ -37,48 +37,48 @@ compound c=(
 #
 typeset stdout
 
-typeset -A localised_usernames
-typeset -A localised_groupnames
+typeset -A c.localised_usernames
+typeset -A c.localised_groupnames
 
 # User "SYSTEM": de_DE: "SYSTEM" ...
 stdout="$(getent passwd 'S-1-5-18')"
-localised_usernames['SYSTEM']="${stdout%%:*}"
+c.localised_usernames['SYSTEM']="${stdout%%:*}"
 
 # User "Adminstrator": fr_FR: "Administrateur" ...
 stdout="$(getent passwd 'S-1-5-21-3286904461-661230000-4220857270-500')"
-localised_usernames['Administrator']="${stdout%%:*}"
+c.localised_usernames['Administrator']="${stdout%%:*}"
 
 # Group "None": de_DE: "Kein", fr_FR: "Aucun" ...
 stdout="$(getent group 'S-1-5-21-3286904461-661230000-4220857270-513')"
-localised_groupnames['None']="${stdout%%:*}"
+c.localised_groupnames['None']="${stdout%%:*}"
 
 compound -A localusers=(
 	#
 	# System accounts
 	#
-	["${localised_usernames['Administrator']}"]=(
-		localaccountname="${localised_usernames['Administrator']}"
+	["${c.localised_usernames['Administrator']}"]=(
+		localaccountname="${c.localised_usernames['Administrator']}"
 		localuid=197108
 		localgid=197121
 	)
 	['Administrator']=(
-		localaccountname="${localised_usernames['Administrator']}"
+		localaccountname="${c.localised_usernames['Administrator']}"
 		localuid=197108
 		localgid=197121
 	)
 	# French user "Administrator"
 	['Administrateur']=(
-		localaccountname="${localised_usernames['Administrator']}"
+		localaccountname="${c.localised_usernames['Administrator']}"
 		localuid=197108
 		localgid=197121
 	)
-	["${localised_usernames['SYSTEM']}"]=(
-		localaccountname="${localised_usernames['SYSTEM']}"
+	["${c.localised_usernames['SYSTEM']}"]=(
+		localaccountname="${c.localised_usernames['SYSTEM']}"
 		localuid=18
 		localgid=18
 	)
 	["SYSTEM"]=(
-		localaccountname="${localised_usernames['SYSTEM']}"
+		localaccountname="${c.localised_usernames['SYSTEM']}"
 		localuid=18
 		localgid=18
 	)
@@ -86,7 +86,7 @@ compound -A localusers=(
 	# FIXME: This should be $'Syst\u[e8]me', but ksh93 1.0.10
 	# doesn't work
 	[$'Syst\xc3\xa8me']=(
-		localaccountname="${localised_usernames['SYSTEM']}"
+		localaccountname="${c.localised_usernames['SYSTEM']}"
 		localuid=18
 		localgid=18
 	)
@@ -129,22 +129,22 @@ compound -A localgroups=(
 	#
 	# System accounts
 	#
-	["${localised_groupnames['None']}"]=(
-		localgroupname="${localised_groupnames['None']}"
+	["${c.localised_groupnames['None']}"]=(
+		localgroupname="${c.localised_groupnames['None']}"
 		localgid=197121
 	)
 	["None"]=(
-		localgroupname="${localised_groupnames['None']}"
+		localgroupname="${c.localised_groupnames['None']}"
 		localgid=197121
 	)
 	# French Windows localised group name for "None"
 	['Aucun']=(
-		localgroupname="${localised_groupnames['None']}"
+		localgroupname="${c.localised_groupnames['None']}"
 		localgid=197121
 	)
 	# German Windows localised group name for "None"
 	["Kein"]=(
-		localgroupname="${localised_groupnames['None']}"
+		localgroupname="${c.localised_groupnames['None']}"
 		localgid=197121
 	)
 	#
