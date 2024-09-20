@@ -5,6 +5,8 @@ typeset IFS=''
 
 export PATH='/bin:/usr/bin'
 
+export LC_ALL='en_US.UTF-8'
+
 #
 # global variables for this script
 # (stored in compound variable so we
@@ -35,23 +37,39 @@ compound c=(
 #
 typeset stdout
 
-# Group "SYSTEM": de_DE: "SYSTEM" ...
-stdout="$(getent passwd 'S-1-5-18')"
-typeset -r -A localised_usernames=(['SYSTEM']="${stdout%%:*}")
+typeset -A localised_usernames
+typeset -A localised_groupnames
 
-# Group "None": de_DE: "Kein" ...
+# User "SYSTEM": de_DE: "SYSTEM" ...
+stdout="$(getent passwd 'S-1-5-18')"
+localised_usernames['SYSTEM']="${stdout%%:*}"
+
+# User "Adminstrator": fr_FR: "Administrateur" ...
+stdout="$(getent passwd 'S-1-5-21-3286904461-661230000-4220857270-500')"
+localised_usernames['Administrator']="${stdout%%:*}"
+
+# Group "None": de_DE: "Kein", fr_FR: "Aucun" ...
 stdout="$(getent group 'S-1-5-21-3286904461-661230000-4220857270-513')"
-typeset -r -A localised_groupnames=(['None']="${stdout%%:*}")
+localised_groupnames['None']="${stdout%%:*}"
 
 compound -A localusers=(
-	["roland_mainz"]=(
-		localaccountname='roland_mainz'
-		localuid=197608
+	#
+	# System accounts
+	#
+	["${localised_usernames['Administrator']}"]=(
+		localaccountname="${localised_usernames['Administrator']}"
+		localuid=197108
 		localgid=197121
 	)
-	["siegfried_wulsch"]=(
-		localaccountname='siegfried_wulsch'
-		localuid=197609
+	['Administrator']=(
+		localaccountname="${localised_usernames['Administrator']}"
+		localuid=197108
+		localgid=197121
+	)
+	# French user "Administrator"
+	['Administrateur']=(
+		localaccountname="${localised_usernames['Administrator']}"
+		localuid=197108
 		localgid=197121
 	)
 	["${localised_usernames['SYSTEM']}"]=(
@@ -63,6 +81,27 @@ compound -A localusers=(
 		localaccountname="${localised_usernames['SYSTEM']}"
 		localuid=18
 		localgid=18
+	)
+	# French user "SYSTEM"
+	# FIXME: This should be $'Syst\u[e8]me', but ksh93 1.0.10
+	# doesn't work
+	[$'Syst\xc3\xa8me']=(
+		localaccountname="${localised_usernames['SYSTEM']}"
+		localuid=18
+		localgid=18
+	)
+	#
+	# Site-specific users
+	#
+	["roland_mainz"]=(
+		localaccountname='roland_mainz'
+		localuid=197608
+		localgid=197121
+	)
+	["siegfried_wulsch"]=(
+		localaccountname='siegfried_wulsch'
+		localuid=197609
+		localgid=197121
 	)
 	["rmainz"]=(
 		localaccountname='rmainz'
@@ -87,6 +126,9 @@ compound -A localusers=(
 )
 
 compound -A localgroups=(
+	#
+	# System accounts
+	#
 	["${localised_groupnames['None']}"]=(
 		localgroupname="${localised_groupnames['None']}"
 		localgid=197121
@@ -95,11 +137,19 @@ compound -A localgroups=(
 		localgroupname="${localised_groupnames['None']}"
 		localgid=197121
 	)
+	# French Windows localised group name for "None"
+	['Aucun']=(
+		localgroupname="${localised_groupnames['None']}"
+		localgid=197121
+	)
 	# German Windows localised group name for "None"
 	["Kein"]=(
 		localgroupname="${localised_groupnames['None']}"
 		localgid=197121
 	)
+	#
+	# Site-specific users
+	#
 	["rmainz"]=(
 		localgroupname='rmainz'
 		localgid=1616
