@@ -14,7 +14,7 @@ export LC_ALL='en_US.UTF-8'
 #
 compound c=(
 	mode="$1"
-	name="$2"
+	name="${2-}"
 )
 
 #
@@ -248,7 +248,7 @@ case "${c.mode}" in
 		exit 1
 		;;
 	*)
-		print -u2 "cygwin_idmapper.ksh: Unknown mode %q." "${c.mode}"
+		print -u2 -f "cygwin_idmapper.ksh: Unknown mode %q.\n" "${c.mode}"
 		exit 1
 		;;
 esac
