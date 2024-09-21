@@ -685,6 +685,9 @@ function main
 	vsdiagnostics_path='/cygdrive/c/Program Files (x86)/Microsoft Visual Studio/2019/Community/Team Tools/DiagnosticsHub/Collector/'
 	PATH+=":${vsdiagnostics_path}"
 
+	# PATH to DrMemory
+	PATH+=':/cygdrive/c/Program Files (x86)/Dr. Memory/bin/'
+
 	# my own path to pstools
 	PATH+=':/home/roland_mainz/work/win_pstools/'
 
