@@ -44,7 +44,7 @@
 
 /* nfs41_dg.num_worker_threads sets the actual number of worker threads */
 #define MAX_NUM_THREADS 1024
-#define DEFAULT_NUM_THREADS 32
+#define DEFAULT_NUM_THREADS 128
 DWORD NFS41D_VERSION = 0;
 
 static const char FILE_NETCONFIG[] = "C:\\etc\\netconfig";
