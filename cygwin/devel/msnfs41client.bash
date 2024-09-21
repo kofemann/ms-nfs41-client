@@ -354,6 +354,8 @@ function nfsclient_rundeamon
 				'-strict_bitops'
 				'-gen_suppress_syms'
 				'-preload_symbols'
+				# no symbol cache, user "SYSTEM" cannot write data to cache
+				'-no_use_symcache'
 				'--'
 				"${nfsd_args[@]}"
 				'--crtdbgmem' 'none'
@@ -472,6 +474,8 @@ function nfsclient_system_rundeamon
 				'-strict_bitops'
 				'-gen_suppress_syms'
 				'-preload_symbols'
+				# no symbol cache, user "SYSTEM" cannot write data to cache
+				'-no_use_symcache'
 				'--'
 				"${nfsd_args[@]}"
 				'--crtdbgmem' 'none'
