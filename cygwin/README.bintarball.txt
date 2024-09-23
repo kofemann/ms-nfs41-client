@@ -262,6 +262,24 @@ $ net use N: /delete
 $ /sbin/nfs_mount
 
 
+# Global/System-wide mounts:
+Mounts created by user "SYSTEM" are useable by all users in a system.
+Example usage:
+---- snip ----
+# Create a file /etc/fstab.msnfs41client, which list the mounts
+# which should be available system-wide
+$ cat /etc/fstab.msnfs41client
+nfs://[fe80::21b:1bff:fec3:7713]//bigdisk       V       nfs     rw      0       0
+# run "ms-nfs41-client-globalmountall-service", which runs
+# /sbin/mountall_msnfs41client as user "SYSTEM" to read
+# /etc/fstab.msnfs41client and mount the matching filesystems
+sc start ms-nfs41-client-globalmountall-service
+---- snip ----
+
+BUG: Note that "ms-nfs41-client-globalmountall-service" currently
+does not wait until nfsd*.exe is available for accepting mounts.
+
+
 #
 # 9. Notes:
 #

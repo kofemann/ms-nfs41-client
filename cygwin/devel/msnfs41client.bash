@@ -186,6 +186,52 @@ function nfsclient_install
 	sc query 'ms-nfs41-client-service'
 
 	#
+	# install "mountall_msnfs41client" as system service
+	# 'ms-nfs41-client-globalmountall-service'
+	# "off" by default, requires manual starting
+	#
+
+	# remove 'ms-nfs41-client-globalmountall-service'
+	sc stop 'ms-nfs41-client-globalmountall-service' || true
+	cygrunsrv --remove 'ms-nfs41-client-globalmountall-service' || true
+	if [[ -f '/var/log/ms-nfs41-client-globalmountall-service.log' ]] ; then
+		mv \
+			'/var/log/ms-nfs41-client-globalmountall-service.log' \
+			"/var/log/ms-nfs41-client-globalmountall-service.log.old$(date +%Y%m%d_%Hh%Mm)"
+	fi
+
+	#
+	# create new '/var/log/ms-nfs41-client-globalmountall-service.log'
+	# so users can do a $ tail -f
+	# '/var/log/ms-nfs41-client-globalmountall-service.log' at any time
+	#
+	touch '/var/log/ms-nfs41-client-globalmountall-service.log'
+	chown SYSTEM:SYSTEM '/var/log/ms-nfs41-client-globalmountall-service.log'
+	chmod u+w,go-w '/var/log/ms-nfs41-client-globalmountall-service.log'
+
+	# install new 'ms-nfs41-client-globalmountall-service'
+	cygrunsrv --install \
+		'ms-nfs41-client-globalmountall-service' \
+		--path "$PWD/msnfs41client" \
+		--args 'sys_mount_globaldirs' \
+		--type 'manual' \
+		--chdir "$PWD"
+
+	# install dummy /etc/fstab.msnfs41client if system does not have one
+	if [[ ! -f '/etc/fstab.msnfs41client' ]] ; then
+		{
+			printf '#\n'
+			printf '# /etc/fstab.msnfs41client - used by /sbin/mountall_msnfs41client\n'
+			printf '#\n\n'
+			printf '# nfs://[fe80::21b:1bff:fec3:7713]//bigdisk\tV\tnfs\trw\t0\t0\n\n'
+			printf '# EOF.\n'
+		} >'/etc/fstab.msnfs41client'
+	fi
+
+	# query new 'ms-nfs41-client-globalmountall-service'
+	sc query 'ms-nfs41-client-globalmountall-service'
+
+	#
 	# check whether ksh93 works
 	# (The ms-nfs41-client cygwin idmapper uses ksh93 scripts for
 	# idmapping, and if ksh93 does not work properly nfsd*.exe
@@ -552,35 +598,15 @@ function nfsclient_system_mount_globaldirs
 	set -o nounset
 	set -o errexit
 
-	#
-	# ToDo: Add a /etc/fstab.msnfs41client file
-	# which is parsed for NFSv4.1 mounts like Linux/etc/fstab
-	# or SysV/Solaris/Illumos /etc/vfstab
-	#
-
-	# purge any leftover persistent mappings to device P:
-	su_system net use 'P:' /delete || true
-	su_system nfs_mount -o sec=sys,rw 'P' 'nfs://derfwnb4966_ipv6linklocal//bigdisk'
+	mountall_msnfs41client
 
 	return $?
 }
 
 function nfsclient_system_umount_globaldirs
 {
-	set -o xtrace
-	set -o nounset
-	set -o errexit
-
-	#
-	# ToDo: Add a /etc/fstab.msnfs41client file
-	# which is parsed for NFSv4.1 mounts like Linux/etc/fstab
-	# or SysV/Solaris/Illumos /etc/vfstab
-	#
-
-	# purge any leftover persistent mappings to device P:
-	su_system net use 'P:' /delete || true
-
-	return $?
+	# fixme: needs to be implemented
+	return 1
 }
 
 function nfsclient_mount_homedir
@@ -765,6 +791,7 @@ function main
 		'sys_mount_globaldirs')
 			check_machine_arch || (( numerr++ ))
 			require_cmd 'nfs_mount.exe' || (( numerr++ ))
+			require_cmd 'mountall_msnfs41client' || (( numerr++ ))
 			require_cmd 'PsExec.exe' || (( numerr++ ))
 			if ! is_windows_admin_account ; then
 				printf $"%s: %q requires Windows Adminstator permissions.\n" "$0" "$cmd"
