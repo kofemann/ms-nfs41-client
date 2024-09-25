@@ -165,12 +165,13 @@ static int handle_getattr(void *daemon_context, nfs41_upcall *upcall)
             info.symlink_dir = TRUE;
     }
 
+    EASSERT((info.attrmask.count > 0) &&
+        (info.attrmask.arr[0] & FATTR4_WORD0_CHANGE));
+    args->ctime = info.change;
+
     switch (args->query_class) {
     case FileBasicInformation:
         nfs_to_basic_info(state->file.name.name, &info, &args->basic_info);
-        EASSERT((info.attrmask.count > 0) &&
-            (info.attrmask.arr[0] & FATTR4_WORD0_CHANGE));
-        args->ctime = info.change;
         break;
     case FileStandardInformation:
         nfs_to_standard_info(&info, &args->std_info);
