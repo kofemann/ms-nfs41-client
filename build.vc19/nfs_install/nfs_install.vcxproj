@@ -124,6 +124,7 @@
       <AdditionalIncludeDirectories>..\..\sys;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <SupportJustMyCode>false</SupportJustMyCode>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -140,6 +141,7 @@
       <AdditionalIncludeDirectories>..\..\sys;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <SupportJustMyCode>false</SupportJustMyCode>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -156,13 +158,13 @@
       <AdditionalIncludeDirectories>..\..\sys;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <SupportJustMyCode>false</SupportJustMyCode>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
-
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>

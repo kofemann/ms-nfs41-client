@@ -124,6 +124,7 @@
       <AdditionalIncludeDirectories>..\..\sys;..\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <SupportJustMyCode>false</SupportJustMyCode>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -141,6 +142,7 @@
       <AdditionalIncludeDirectories>..\..\sys;..\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <SupportJustMyCode>false</SupportJustMyCode>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -158,6 +160,7 @@
       <AdditionalIncludeDirectories>..\..\sys;..\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <SupportJustMyCode>false</SupportJustMyCode>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
