@@ -324,6 +324,42 @@ function nfsclient_removedriver
 	return 0
 }
 
+function nfsclient_waitfor_clientdaemon
+{
+	typeset -i i
+
+	#
+	# wait for two minutes, and poll in 0.25 second intervals
+	# (four times per second)
+	#
+	for (( i=0 ; i < 120*4 ; i++ )) ; do
+		#
+		# '/proc/sys/BaseNamedObjects/nfs41_shared_memory' is created
+		# when nfsd*.exe starts
+		# Note that this file is not removed if nfsd*.exe exits,
+		# so we explicitly query tasklist too
+		#
+		if [[ -e '/proc/sys/BaseNamedObjects/nfs41_shared_memory' ]] ; then
+			if [[ "$(tasklist | grep -E 'nfsd(|_debug).exe')" != '' ]] ; then
+				break
+			fi
+		fi
+
+		# print message every 5 seconds
+		if (( i%(5*4) == 0 )) ; then
+			printf '%s: Waiting for nfsd*.exe to start\n' "$0"
+		fi
+		sleep 0.25
+	done
+
+	if [[ -e '/proc/sys/BaseNamedObjects/nfs41_shared_memory' ]] ; then
+		if [[ "$(tasklist | grep -E 'nfsd(|_debug).exe')" != '' ]] ; then
+			return 0
+		fi
+	fi
+	return 1
+}
+
 function nfsclient_rundeamon
 {
 	set -o nounset
@@ -598,6 +634,11 @@ function nfsclient_system_mount_globaldirs
 	set -o nounset
 	set -o errexit
 
+	if ! nfsclient_waitfor_clientdaemon ; then
+		print -u2 -f $"%s: nfsd*.exe not running.\n" "$0"
+		return 1
+	fi
+
 	mountall_msnfs41client
 
 	return $?
@@ -614,6 +655,11 @@ function nfsclient_mount_homedir
 	set -o xtrace
 	set -o nounset
 	set -o errexit
+
+	if ! nfsclient_waitfor_clientdaemon ; then
+		print -u2 -f $"%s: nfsd*.exe not running.\n" "$0"
+		return 1
+	fi
 
 	#nfs_mount -p -o sec=sys H 'derfwpc5131:/export/home2/rmainz'
 	#nfs_mount -p -o sec=sys H '[fe80::219:99ff:feae:73ce]:/export/home2/rmainz'
@@ -704,6 +750,9 @@ function main
 	# add defauft system path for POSIX utilities
 	PATH+=':/sbin:/usr/sbin:/bin:/usr/bin'
 
+	# add Windows tools path (tasklist, taskkill etc.)
+	PATH+=':/cygdrive/c/Windows/system32/'
+
 	# path to WinDBG cdb (fixme: 64bit x86-specific)
 	PATH+=':/cygdrive/c/Program Files (x86)/Windows Kits/10/Debuggers/x64/'
 
@@ -792,7 +841,7 @@ function main
 			check_machine_arch || (( numerr++ ))
 			require_cmd 'nfs_mount.exe' || (( numerr++ ))
 			require_cmd 'mountall_msnfs41client' || (( numerr++ ))
-			require_cmd 'PsExec.exe' || (( numerr++ ))
+			require_cmd 'tasklist.exe' || (( numerr++ ))
 			if ! is_windows_admin_account ; then
 				printf $"%s: %q requires Windows Adminstator permissions.\n" "$0" "$cmd"
 				(( numerr++ ))
@@ -818,6 +867,7 @@ function main
 		'mount_homedir')
 			check_machine_arch || (( numerr++ ))
 			require_cmd 'nfs_mount.exe' || (( numerr++ ))
+			require_cmd 'tasklist.exe' || (( numerr++ ))
 			(( numerr > 0 )) && return 1
 
 			nfsclient_mount_homedir
