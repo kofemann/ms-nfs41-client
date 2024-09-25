@@ -35,6 +35,8 @@
 #include "nfs41_debug.h"
 #include "nfs41_build_features.h"
 
+#if defined(_ARM_) || defined(_ARM64_)
+
 #define COPYSUP_MAX_HOLE_SIZE (2*4096LL)
 
 BOOLEAN FsRtlCopyRead2(
@@ -570,6 +572,8 @@ done_exit_filesystem:
 done:
     return retval;
 }
+#endif /* defined(_ARM_) || defined(_ARM64_) */
+
 
 #if defined(_ARM_) || defined(_ARM64_)
 

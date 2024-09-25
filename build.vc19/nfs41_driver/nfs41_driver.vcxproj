@@ -172,7 +172,7 @@
       <AdditionalOptions>/std:c17 /Zc:preprocessor- /kernel /wd4100 /wd4201 /wd5104</AdditionalOptions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ntoskrnl.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\hal.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\BufferOverflowfastfailK.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ksecdd.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rxce.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rdbsslib.lib</AdditionalDependencies>
+      <AdditionalDependencies>$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ntoskrnl.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\hal.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\BufferOverflowfastfailK.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ksecdd.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rxce.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rdbsslib.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\copysup.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -186,7 +186,7 @@
       <AdditionalOptions>/std:c17 /Zc:preprocessor- /kernel /wd4100 /wd4201 /wd5104</AdditionalOptions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ntoskrnl.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\hal.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\BufferOverflowfastfailK.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ksecdd.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rxce.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rdbsslib.lib</AdditionalDependencies>
+      <AdditionalDependencies>$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ntoskrnl.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\hal.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\BufferOverflowfastfailK.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ksecdd.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rxce.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rdbsslib.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\copysup.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
@@ -228,7 +228,7 @@
       <AdditionalOptions>/std:c17 /Zc:preprocessor- /kernel /wd4100 /wd4201 /wd5104</AdditionalOptions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ntoskrnl.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\hal.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\BufferOverflowfastfailK.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ksecdd.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rxce.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rdbsslib.lib</AdditionalDependencies>
+      <AdditionalDependencies>$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ntoskrnl.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\hal.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\BufferOverflowfastfailK.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ksecdd.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rxce.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rdbsslib.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\copysup.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -242,7 +242,7 @@
       <AdditionalOptions>/std:c17 /Zc:preprocessor- /kernel /wd4100 /wd4201 /wd5104</AdditionalOptions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ntoskrnl.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\hal.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\BufferOverflowfastfailK.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ksecdd.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rxce.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rdbsslib.lib</AdditionalDependencies>
+      <AdditionalDependencies>$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ntoskrnl.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\hal.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\BufferOverflowfastfailK.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ksecdd.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rxce.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rdbsslib.lib;$(WindowsSdkDir)lib\win7\km\$(DDKPlatform)\copysup.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
