@@ -53,7 +53,11 @@ function check_machine_arch
 	# because on Cygwin the script will be installed
 	# in /cygdrive/c/cygwin/lib/msnfs41client/ (32bit) or
 	# in /cygdrive/c/cygwin64/lib/msnfs41client/ (64bit).
-	winpwd="$(cygpath -w "$(dirname -- "$(realpath "${BASH_SOURCE[0]}")")")"
+	if [[ -v KSH_VERSION ]] ; then
+		winpwd="$(cygpath -w "$(dirname -- "$(realpath "${.sh.file}")")")"
+	else
+		winpwd="$(cygpath -w "$(dirname -- "$(realpath "${BASH_SOURCE[0]}")")")"
+	fi
 
 	uname_m="$(uname -m)"
 
@@ -90,7 +94,11 @@ function nfsclient_install
 	# because on Cygwin the script will be installed
 	# in /cygdrive/c/cygwin/lib/msnfs41client/ (32bit) or
 	# in /cygdrive/c/cygwin64/lib/msnfs41client/ (64bit).
-	cd -P "$(dirname -- "$(realpath "${BASH_SOURCE[0]}")")"
+	if [[ -v KSH_VERSION ]] ; then
+		cd -P "$(dirname -- "$(realpath "${.sh.file}")")"
+	else
+		cd -P "$(dirname -- "$(realpath "${BASH_SOURCE[0]}")")"
+	fi
 
 	# make sure all binaries are executable, Windows cmd does
 	# not care, but Cygwin&bash do.
@@ -275,7 +283,11 @@ function nfsclient_adddriver
 	# because on Cygwin the script will be installed
 	# in /cygdrive/c/cygwin/lib/msnfs41client/ (32bit) or
 	# in /cygdrive/c/cygwin64/lib/msnfs41client/ (64bit).
-	cd -P "$(dirname -- "$(realpath "${BASH_SOURCE[0]}")")"
+	if [[ -v KSH_VERSION ]] ; then
+		cd -P "$(dirname -- "$(realpath "${.sh.file}")")"
+	else
+		cd -P "$(dirname -- "$(realpath "${BASH_SOURCE[0]}")")"
+	fi
 
 	# devel: set default in case "nfs_install" ruined it:
 	#regtool -s set '/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Control/NetworkProvider/Order/ProviderOrder' 'RDPNP,LanmanWorkstation,webclient'
@@ -309,7 +321,11 @@ function nfsclient_removedriver
 	# because on Cygwin the script will be installed
 	# in /cygdrive/c/cygwin/lib/msnfs41client/ (32bit) or
 	# in /cygdrive/c/cygwin64/lib/msnfs41client/ (64bit).
-	cd -P "$(dirname -- "$(realpath "${BASH_SOURCE[0]}")")"
+	if [[ -v KSH_VERSION ]] ; then
+		cd -P "$(dirname -- "$(realpath "${.sh.file}")")"
+	else
+		cd -P "$(dirname -- "$(realpath "${BASH_SOURCE[0]}")")"
+	fi
 
 	nfs_install.exe 0
 	rundll32.exe setupapi.dll,InstallHinfSection DefaultUninstall 132 ./nfs41rdr.inf
@@ -743,7 +759,11 @@ function main
 	typeset -i numerr=0
 
 	# path where this script is installed
-	typeset scriptpath="$(dirname -- "$(realpath "${BASH_SOURCE[0]}")")"
+	if [[ -v KSH_VERSION ]] ; then
+		typeset scriptpath="$(dirname -- "$(realpath "${.sh.file}")")"
+	else
+		typeset scriptpath="$(dirname -- "$(realpath "${BASH_SOURCE[0]}")")"
+	fi
 
 	# "$PATH:/usr/bin:/bin" is used for PsExec where $PATH might be empty
 	PATH="$PWD:$PATH:${scriptpath}../../usr/bin:${scriptpath}/../../bin:${scriptpath}/../../sbin:${scriptpath}/../../usr/sbin"
@@ -926,6 +946,31 @@ function main
 #
 # main
 #
+if [[ -v KSH_VERSION ]] ; then
+	#
+	# use ksh93 builtins
+	# (and make it fatal if they are missing)
+	#
+	set -o errexit
+	builtin cat
+	builtin chmod
+	builtin chown
+	builtin cp
+	builtin dirname
+	builtin id
+	builtin ln
+	builtin md5sum
+	builtin mkdir
+	builtin mv
+	builtin rm
+	builtin rmdir
+	builtin sync
+	builtin tail
+	builtin uname
+	PATH="/usr/ast/bin:/opt/ast/bin:$PATH"
+	set +o errexit
+fi
+
 main "$@"
 exit $?
 
