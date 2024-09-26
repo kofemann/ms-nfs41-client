@@ -6083,6 +6083,39 @@ static NTSTATUS nfs41_QueryFileInformation(
         status = STATUS_SUCCESS;
         goto out;
     }
+    case FileCaseSensitiveInformation:
+    {
+        if (RxContext->Info.LengthRemaining <
+            sizeof(FILE_CASE_SENSITIVE_INFORMATION)) {
+            print_error("nfs41_QueryFileInformation: "
+                "FILE_CASE_SENSITIVE_INFORMATION buffer too small\n");
+            status = STATUS_BUFFER_TOO_SMALL;
+            goto out;
+        }
+
+        PFILE_CASE_SENSITIVE_INFORMATION info =
+            (PFILE_CASE_SENSITIVE_INFORMATION)RxContext->Info.Buffer;
+
+        ULONG fsattrs = pVNetRootContext->FsAttrs.FileSystemAttributes;
+
+        /*
+         * For NFSv4.1 |FATTR4_WORD0_CASE_INSENSITIVE| used
+         * to fill |FsAttrs.FileSystemAttributes| is per
+         * filesystem.
+         * FIXME: Future NFSv4.x standards should make this a
+         * per-filesystem, per-directory and
+         * per-extended-attribute-dir attribute to support
+         * Win32
+         */
+        if (fsattrs & FILE_CASE_SENSITIVE_SEARCH) {
+            info->Flags = FILE_CS_FLAG_CASE_SENSITIVE_DIR;
+        }
+
+        RxContext->Info.LengthRemaining -=
+            sizeof(FILE_CASE_SENSITIVE_INFORMATION);
+        status = STATUS_SUCCESS;
+        goto out;
+    }
     case FileBasicInformation:
     case FileStandardInformation:
     case FileInternalInformation:

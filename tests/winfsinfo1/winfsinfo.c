@@ -448,6 +448,69 @@ done:
 
 
 static
+bool get_filecasesensitiveinfo(const char *progname, const char *filename)
+{
+    int res = EXIT_FAILURE;
+    bool ok;
+    FILE_CASE_SENSITIVE_INFO finfo;
+    (void)memset(&finfo, 0, sizeof(finfo));
+
+    HANDLE fileHandle = CreateFileA(filename,
+        GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING,
+        FILE_FLAG_BACKUP_SEMANTICS, NULL);
+    if (fileHandle == INVALID_HANDLE_VALUE) {
+        (void)fprintf(stderr,
+            "%s: Error opening file '%s'. Last error was %d.\n",
+            progname,
+            filename,
+            (int)GetLastError());
+        return EXIT_FAILURE;
+    }
+
+    ok = GetFileInformationByHandleEx(fileHandle,
+        23/*FileCaseSensitiveInfo*/,
+        &finfo, sizeof(finfo));
+
+    if (!ok) {
+        (void)fprintf(stderr, "%s: GetFileInformationByHandleEx() "
+            "error. GetLastError()==%d.\n",
+            progname,
+            (int)GetLastError());
+        res = EXIT_FAILURE;
+        goto done;
+    }
+
+    (void)printf("(\n");
+    (void)printf("\tfilename='%s'\n", filename);
+
+    (void)printf("\ttypeset -a Flags=(\n");
+
+    ULONG fcsi_flags = finfo.Flags;
+#define TESTFCSI(s) \
+    if (fcsi_flags & (s)) { \
+        (void)puts("\t\t"#s); \
+        fcsi_flags &= ~(s); \
+    }
+    TESTFCSI(FILE_CS_FLAG_CASE_SENSITIVE_DIR);
+
+    (void)printf("\t)\n");
+
+    /*
+     * print any leftover flags not covered by |TESTFCSI(FILE_*)|
+     * above
+     */
+    if (fcsi_flags) {
+        (void)printf("\ffcsi_flags=0x%lx\n", (long)fcsi_flags);
+    }
+    (void)printf(")\n");
+    res = EXIT_SUCCESS;
+
+done:
+    (void)CloseHandle(fileHandle);
+    return res;
+}
+
+static
 bool get_getfiletime(const char *progname, const char *filename)
 {
     int res = EXIT_FAILURE;
@@ -516,6 +579,7 @@ void usage(void)
         "fileexinfostandard|"
         "filestandardinfo|"
         "filenormalizednameinfo|"
+        "filecasesensitiveinfo|"
         "getfiletime"
         "> path\n");
 }
@@ -548,6 +612,9 @@ int main(int ac, char *av[])
     }
     else if (!strcmp(subcmd, "getfiletime")) {
         return get_getfiletime(av[0], av[2]);
+    }
+    else if (!strcmp(subcmd, "filecasesensitiveinfo")) {
+        return get_filecasesensitiveinfo(av[0], av[2]);
     }
     else {
         (void)fprintf(stderr, "%s: Unknown subcmd '%s'\n", av[0], subcmd);
