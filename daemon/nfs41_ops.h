@@ -892,16 +892,16 @@ enum secinfo_no_name_type {
     SECINFO_STYLE4_PARENT = 1
 };
 
-typedef struct __nfs41_secinfo_noname_args {
-    enum secinfo_noname_type type;
-} nfs41_secinfo_noname_args;
+typedef struct __nfs41_secinfo_no_name_args {
+    enum secinfo_no_name_type type;
+} nfs41_secinfo_no_name_args;
 
-typedef struct __nfs41_secinfo_noname_res {
+typedef struct __nfs41_secinfo_no_name_res {
     uint32_t                status;
     /* case NFS4_OK: */
     nfs41_secinfo_info      *secinfo;
     uint32_t                count;
-} nfs41_secinfo_noname_res;
+} nfs41_secinfo_no_name_res;
 
 /* LAYOUTGET */
 typedef struct __pnfs_layoutget_args {

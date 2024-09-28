@@ -2956,7 +2956,7 @@ static bool_t encode_op_secinfo_noname(
     XDR *xdr,
     nfs_argop4 *argop)
 {
-    nfs41_secinfo_noname_args *args = (nfs41_secinfo_noname_args *)argop->arg;
+    nfs41_secinfo_no_name_args *args = (nfs41_secinfo_no_name_args *)argop->arg;
 
     if (unexpected_op(argop->op, OP_SECINFO_NO_NAME))
         return FALSE;
@@ -2971,7 +2971,7 @@ static bool_t decode_op_secinfo_noname(
     XDR *xdr,
     nfs_resop4 *resop)
 {
-    nfs41_secinfo_noname_res *res = (nfs41_secinfo_noname_res *)resop->res;
+    nfs41_secinfo_no_name_res *res = (nfs41_secinfo_no_name_res *)resop->res;
     nfs41_secinfo_info *secinfo = res->secinfo;
     if (unexpected_op(resop->op, OP_SECINFO_NO_NAME))
         return FALSE;
@@ -3008,7 +3008,7 @@ static bool_t decode_op_secinfo(
     XDR *xdr,
     nfs_resop4 *resop)
 {
-    nfs41_secinfo_noname_res *res = (nfs41_secinfo_noname_res *)resop->res;
+    nfs41_secinfo_no_name_res *res = (nfs41_secinfo_no_name_res *)resop->res;
     nfs41_secinfo_info *secinfo = res->secinfo;
 
     if (unexpected_op(resop->op, OP_SECINFO))

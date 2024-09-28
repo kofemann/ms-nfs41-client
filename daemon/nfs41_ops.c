@@ -1881,7 +1881,7 @@ int nfs41_secinfo(
     nfs41_putfh_args putfh_args;
     nfs41_putfh_res putfh_res;
     nfs41_secinfo_args secinfo_args;
-    nfs41_secinfo_noname_res secinfo_res;
+    nfs41_secinfo_no_name_res secinfo_res;
 
     compound_init(&compound, argops, resops, "secinfo");
 
@@ -1928,8 +1928,8 @@ int nfs41_secinfo_noname(
     nfs41_sequence_res sequence_res;
     nfs41_putfh_args putfh_args;
     nfs41_putfh_res putfh_res;
-    nfs41_secinfo_noname_args noname_args;
-    nfs41_secinfo_noname_res noname_res;
+    nfs41_secinfo_no_name_args noname_args;
+    nfs41_secinfo_no_name_res noname_res;
 
     compound_init(&compound, argops, resops, "secinfo_no_name");
 
