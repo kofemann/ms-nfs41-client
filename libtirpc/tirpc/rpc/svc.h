@@ -324,7 +324,7 @@ __END_DECLS
 /*
  * Socket to use on svcxxx_create call to get default socket
  */
-#define	RPC_ANYSOCK	INVALID_SOCKET	/* -1 */
+#define	RPC_ANYSOCK	-1
 #define RPC_ANYFD	RPC_ANYSOCK
 
 /*

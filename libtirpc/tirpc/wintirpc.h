@@ -166,7 +166,8 @@ void wintirpc_warnx(const char *format, ...);
 void wintirpc_register_osfhandle_fd(SOCKET handle, int fd);
 void wintirpc_unregister_osfhandle(SOCKET handle);
 void wintirpc_unregister_osf_fd(int fd);
-int wintirpc_handle2fd(SOCKET handle);
+int wintirpc_sockethandle2fd(SOCKET handle);
+SOCKET wintirpc_fd2sockethandle(int fd);
 
 /* Debugging function */
 void wintirpc_debug(char *fmt, ...);

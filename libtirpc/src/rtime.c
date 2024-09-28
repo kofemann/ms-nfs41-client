@@ -104,7 +104,7 @@ rtime(addrp, timep, timeout)
 		}
 		do {
 			FD_ZERO(&readfds);
-			FD_SET(_get_osfhandle(s), &readfds);
+			FD_SET(wintirpc_fd2sockethandle(s), &readfds);
 			res = select(_rpc_dtablesize(), &readfds,
 				     (fd_set *)NULL, (fd_set *)NULL, timeout);
 		} while (res == SOCKET_ERROR && WSAGetLastError() == WSAEINTR);

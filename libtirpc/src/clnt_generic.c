@@ -368,7 +368,7 @@ clnt_tli_create(const int fd_in, const struct netconfig *nconf,
 
 		fd = __rpc_nconf2fd(nconf);
 
-		if (fd == INVALID_SOCKET)
+		if (fd == -1)
 			goto err;
 #if 0
 		if (fd < __rpc_minfd)

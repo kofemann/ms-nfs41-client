@@ -355,13 +355,13 @@ rpc_broadcast_exp(prog, vers, proc, xargs, argsp, xresults, resultsp,
 			continue;
 
 		fd = wintirpc_socket(si.si_af, si.si_socktype, si.si_proto);
-		if (fd == INVALID_SOCKET) {
+		if (fd < 0) {
 			stat = RPC_CANTSEND;
 			continue;
 		}
 		fdlist[fdlistno].af = si.si_af;
 		fdlist[fdlistno].proto = si.si_proto;
-		fdlist[fdlistno].fd_sock = _get_osfhandle(fd);
+		fdlist[fdlistno].fd_sock = wintirpc_fd2sockethandle(fd);
 		fdlist[fdlistno].fd = fd;
 		fdlist[fdlistno].nconf = nconf;
 		fdlist[fdlistno].asize = __rpc_get_a_size(si.si_af);

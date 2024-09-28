@@ -459,7 +459,7 @@ clnt_vc_create(fd, raddr, prog, vers, sendsz, recvsz, cb_xdr, cb_fn, cb_args)
 	 * XXX - fvdl connecting while holding a mutex?
 	 */
 	slen = sizeof ss;
-	if (getpeername(_get_osfhandle(fd), (struct sockaddr *)&ss, &slen) == SOCKET_ERROR) {
+	if (getpeername(wintirpc_fd2sockethandle(fd), (struct sockaddr *)&ss, &slen) == SOCKET_ERROR) {
 		errno = WSAGetLastError();
 		if (errno != WSAENOTCONN) {
 			rpc_createerr.cf_stat = RPC_SYSTEMERROR;
@@ -1036,7 +1036,7 @@ read_vc(ctp, buf, len)
 
 	if (len == 0)
 		return (0);
-	fd.fd = _get_osfhandle(ct->ct_fd);
+	fd.fd = wintirpc_fd2sockethandle(ct->ct_fd);
 	fd.events = POLLIN;
 	for (;;) {
 		switch (poll(&fd, 1, milliseconds)) {

@@ -141,7 +141,7 @@ struct map_osfhandle_fd handle_fd_map[WINTIRPC_MAX_OSFHANDLE_FD_NHANDLE_VALUE];
 void wintirpc_register_osfhandle_fd(SOCKET handle, int fd)
 {
 	assert(handle != 0);
-	assert(handle != SOCKET_ERROR);
+	assert(handle != (SOCKET)SOCKET_ERROR);
 	assert(fd < WINTIRPC_MAX_OSFHANDLE_FD_NHANDLE_VALUE);
 
 	handle_fd_map[fd].m_fd = fd;
@@ -153,9 +153,9 @@ void wintirpc_unregister_osfhandle(SOCKET handle)
 	int i;
 
 	assert(handle != 0);
-	assert(handle != SOCKET_ERROR);
+	assert(handle != (SOCKET)SOCKET_ERROR);
 
-	if ((handle == 0) || (handle != SOCKET_ERROR))
+	if ((handle == 0) || (handle != (SOCKET)SOCKET_ERROR))
 		return;
 
 	for (i=0 ; i < WINTIRPC_MAX_OSFHANDLE_FD_NHANDLE_VALUE ; i++) {
@@ -186,12 +186,12 @@ void wintirpc_unregister_osf_fd(int fd)
 	(void)fprintf(stderr, "wintirpc_unregister_osf_fd: failed\n");
 }
 
-int wintirpc_handle2fd(SOCKET handle)
+int wintirpc_sockethandle2fd(SOCKET handle)
 {
 	int i;
 
 	assert(handle != 0);
-	assert(handle != SOCKET_ERROR);
+	assert(handle != (SOCKET)SOCKET_ERROR);
 
 	for (i=0 ; i < WINTIRPC_MAX_OSFHANDLE_FD_NHANDLE_VALUE ; i++) {
 		if ((handle_fd_map[i].m_s == handle) &&
@@ -200,8 +200,13 @@ int wintirpc_handle2fd(SOCKET handle)
 		}
 	}
 
-	(void)fprintf(stderr, "wintirpc_handle2fd: failed\n");
+	(void)fprintf(stderr, "wintirpc_sockethandle2fd: failed\n");
 	return -1;
+}
+
+SOCKET wintirpc_fd2sockethandle(int fd)
+{
+	return _get_osfhandle(fd);
 }
 
 int wintirpc_socket(int af, int type, int protocol)

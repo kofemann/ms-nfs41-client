@@ -284,7 +284,7 @@ clnt_dg_create(fd, svcaddr, program, version, sendsz, recvsz)
 	wintirpc_setsockopt(fd, SOL_IP, IP_RECVERR, &on, sizeof(on));
 	}
 #endif
-	ioctlsocket(_get_osfhandle(fd), FIONBIO, &one);
+	ioctlsocket(wintirpc_fd2sockethandle(fd), FIONBIO, &one);
 	/*
 	 * By default, closeit is always FALSE. It is users responsibility
 	 * to do a close on it, else the user may use clnt_control

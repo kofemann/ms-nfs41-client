@@ -185,7 +185,7 @@ bindresvport_sa(int sd, struct sockaddr *sa)
 		"bindresvport_sa_last_n=%d\n",
 		sd, sa, bindresvport_sa_last_n));
 
-	sd_sock = _get_osfhandle(sd);
+	sd_sock = wintirpc_fd2sockethandle(sd);
 
 	for (n = 0 ; n < NPORTS ; n++) {
 		currport = ((n+bindresvport_sa_last_n)%NPORTS)+STARTPORT;

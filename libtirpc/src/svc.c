@@ -115,7 +115,7 @@ xprt_register (xprt)
 #ifndef _WIN32
   if (sock < FD_SETSIZE) {
     __svc_xports[sock] = xprt;
-    FD_SET(_get_osfhandle(sock), &svc_fdset);
+    FD_SET(wintirpc_fd2sockethandle(sock), &svc_fdset);
     svc_maxfd = max (svc_maxfd, sock);
   }
 #else
@@ -156,7 +156,7 @@ bool_t dolock;
     rwlock_wrlock (&svc_fd_lock);
   if ((sock < FD_SETSIZE) && (__svc_xports[sock] == xprt)) {
     __svc_xports[sock] = NULL;
-    FD_CLR (_get_osfhandle(sock), &svc_fdset);
+    FD_CLR (wintirpc_fd2sockethandle(sock), &svc_fdset);
     if (sock >= svc_maxfd) {
       for (svc_maxfd--; svc_maxfd >= 0; svc_maxfd--)
         if (__svc_xports[svc_maxfd])
@@ -776,7 +776,7 @@ svc_getreq_poll (pfdp, pollretval)
 	      rwlock_wrunlock (&svc_fd_lock);
 	    }
 	  else
-	    svc_getreq_common (wintirpc_handle2fd(p->fd));
+	    svc_getreq_common (wintirpc_sockethandle2fd(p->fd));
 	}
     }
 }

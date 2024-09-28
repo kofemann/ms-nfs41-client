@@ -403,7 +403,7 @@ __rpc_get_time_offset(td, srv, thost, uaddr, netid)
 			}
 			do {
 				FD_ZERO(&readfds);
-				FD_SET(_get_osfhandle(s), &readfds);
+				FD_SET(wintirpc_fd2sockethandle(s), &readfds);
 				res = select(_rpc_dtablesize(), &readfds,
 					(fd_set *)NULL, (fd_set *)NULL, &timeout);
 			} while (res == (int)SOCKET_ERROR && WSAGetLastError() == WSAEINTR);

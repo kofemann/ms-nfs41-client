@@ -529,7 +529,7 @@ read_vc(xprtp, buf, len)
 
 	do {
 #ifdef _WIN32
-		pollfd.fd = _get_osfhandle(sock);
+		pollfd.fd = wintirpc_fd2sockethandle(sock);
 #else
 		pollfd.fd = sock;
 #endif
