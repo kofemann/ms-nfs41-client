@@ -136,6 +136,19 @@ static unsigned int nfsd_worker_thread_main(void *args)
     DWORD inbuf_len = UPCALL_BUF_SIZE, outbuf_len;
     nfs41_upcall upcall;
 
+    /*
+     * Set |THREAD_PRIORITY_TIME_CRITICAL| to avoid that the daemon
+     * gets stomped by other processes, which might lead to some
+     * kind of priority inversion.
+     */
+    if (SetThreadPriority(GetCurrentThread(),
+        THREAD_PRIORITY_TIME_CRITICAL)) {
+        DPRINTF(1, ("Running as THREAD_PRIORITY_TIME_CRITICAL\n"));
+    }
+    else {
+        eprintf("Failed set THREAD_PRIORITY_TIME_CRITICAL\n");
+    }
+
     pipe = CreateFileA(NFS41_USER_DEVICE_NAME_A, GENERIC_READ | GENERIC_WRITE,
         FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING,
         0, NULL);
