@@ -847,6 +847,6 @@ __svc_clean_idle(fd_set *fds, int timeout, bool_t cleanblock)
 		__svc_vc_dodestroy(least_active);
 		ncleaned++;
 	}
-	rwlock_unlock(&svc_fd_lock);
+	rwlock_wrunlock(&svc_fd_lock);
 	return ncleaned > 0 ? TRUE : FALSE;
 }

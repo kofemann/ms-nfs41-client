@@ -264,7 +264,7 @@ add_cache(host, netid, taddr, uaddr)
 		}
 		free(cptr);
 	}
-	rwlock_unlock(&rpcbaddr_cache_lock);
+	rwlock_wrunlock(&rpcbaddr_cache_lock);
 }
 
 /*
@@ -304,7 +304,7 @@ getclnthandle(host, nconf, targaddr)
 		if (client != NULL) {
 			if (targaddr)
 				*targaddr = strdup(ad_cache->ac_uaddr);
-			rwlock_unlock(&rpcbaddr_cache_lock);
+			rwlock_rdunlock(&rpcbaddr_cache_lock);
 			return (client);
 		}
 		addr_to_delete.len = addr->len;
@@ -315,7 +315,7 @@ getclnthandle(host, nconf, targaddr)
 			memcpy(addr_to_delete.buf, addr->buf, addr->len);
 		}
 	}
-	rwlock_unlock(&rpcbaddr_cache_lock);
+	rwlock_rdunlock(&rpcbaddr_cache_lock);
 	if (addr_to_delete.len != 0) {
 		/*
 		 * Assume this may be due to cache data being
@@ -323,7 +323,7 @@ getclnthandle(host, nconf, targaddr)
 		 */
 		rwlock_wrlock(&rpcbaddr_cache_lock);
 		delete_cache(&addr_to_delete);
-		rwlock_unlock(&rpcbaddr_cache_lock);
+		rwlock_rdunlock(&rpcbaddr_cache_lock);
 		free(addr_to_delete.buf);
 	}
 	if (!__rpc_nconf2sockinfo(nconf, &si)) {

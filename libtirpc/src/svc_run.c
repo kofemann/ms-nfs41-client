@@ -56,7 +56,7 @@ svc_run()
 		rwlock_rdlock(&svc_fd_lock);
 		readfds = svc_fdset;
 		cleanfds = svc_fdset;
-		rwlock_unlock(&svc_fd_lock);
+		rwlock_rdunlock(&svc_fd_lock);
 		timeout.tv_sec = 30;
 		timeout.tv_usec = 0;
 		switch (select(svc_maxfd+1, &readfds, NULL, NULL, &timeout)) {
@@ -87,5 +87,5 @@ svc_exit()
 
 	rwlock_wrlock(&svc_fd_lock);
 	FD_ZERO(&svc_fdset);
-	rwlock_unlock(&svc_fd_lock);
+	rwlock_wrunlock(&svc_fd_lock);
 }

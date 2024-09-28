@@ -169,8 +169,8 @@
 #define rwlock_init(l, a)		InitializeSRWLock(l)
 #define rwlock_rdlock(l)		AcquireSRWLockShared(l)
 #define rwlock_wrlock(l)		AcquireSRWLockExclusive(l)
-/* XXX Code will have to be changed to release the right kind!!! XXX */
-#define rwlock_unlock(l)		ReleaseSRWLockExclusive(l)
+#define rwlock_rdunlock(l)		ReleaseSRWLockShared(l)
+#define rwlock_wrunlock(l)		ReleaseSRWLockExclusive(l)
 
 #define thr_keycreate(k, d)		((*k) = TlsAlloc())
 #define thr_keydelete(k)		TlsFree(k)
@@ -202,7 +202,8 @@
 #define rwlock_init(l, a)        pthread_rwlock_init(l, a)
 #define rwlock_rdlock(l)	 pthread_rwlock_rdlock(l)
 #define rwlock_wrlock(l)	 pthread_rwlock_wrlock(l)
-#define rwlock_unlock(l)	 pthread_rwlock_unlock(l)
+#define rwlock_rdunlock(l)	 pthread_rwlock_unlock(l)
+#define rwlock_wrunlock(l)	 pthread_rwlock_unlock(l)
 
 #define thr_keycreate(k, d)	 pthread_key_create(k, d)
 #define thr_keydelete(k)	 pthread_key_delete(k)

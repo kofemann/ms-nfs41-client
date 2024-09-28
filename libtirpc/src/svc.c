@@ -108,7 +108,7 @@ xprt_register (xprt)
       __svc_xports = (SVCXPRT **) mem_alloc (FD_SETSIZE * sizeof (SVCXPRT *));
 	  if (__svc_xports == NULL) {
         // XXX Give an error indication?
-        return;
+        goto out;
       }
       memset (__svc_xports, 0, FD_SETSIZE * sizeof (SVCXPRT *));
   }
@@ -121,7 +121,8 @@ xprt_register (xprt)
 #else
   fprintf(stderr, "%s: Yikes!  Figure out __svc_xports[] issue!!\n", __func__);
 #endif
-  rwlock_unlock (&svc_fd_lock);
+out:
+  rwlock_wrunlock (&svc_fd_lock);
 }
 
 void
@@ -163,7 +164,7 @@ bool_t dolock;
     }
   }
   if (dolock)
-    rwlock_unlock (&svc_fd_lock);
+    rwlock_wrunlock (&svc_fd_lock);
 #else
   fprintf(stderr, "%s: Yikes!  Figure out __svc_xports[] issue!!\n", __func__);
 #endif
@@ -218,7 +219,7 @@ svc_reg (xprt, prog, vers, dispatch, nconf)
 	free (netid);
       if (s->sc_dispatch == dispatch)
 	goto rpcb_it;		/* he is registering another xptr */
-      rwlock_unlock (&svc_lock);
+      rwlock_wrunlock (&svc_lock);
       return (FALSE);
     }
   s = mem_alloc (sizeof (struct svc_callout));
@@ -226,7 +227,7 @@ svc_reg (xprt, prog, vers, dispatch, nconf)
     {
       if (netid)
 	free (netid);
-      rwlock_unlock (&svc_lock);
+      rwlock_wrunlock (&svc_lock);
       return (FALSE);
     }
 
@@ -241,7 +242,7 @@ svc_reg (xprt, prog, vers, dispatch, nconf)
     ((SVCXPRT *) xprt)->xp_netid = strdup (netid);
 
 rpcb_it:
-  rwlock_unlock (&svc_lock);
+  rwlock_wrunlock (&svc_lock);
   /* now register the information with the local binder service */
   if (nconf)
     {
@@ -282,7 +283,7 @@ svc_unreg (prog, vers)
 	mem_free (s->sc_netid, sizeof (s->sc_netid) + 1);
       mem_free (s, sizeof (struct svc_callout));
     }
-  rwlock_unlock (&svc_lock);
+  rwlock_wrunlock (&svc_lock);
 }
 
 /* ********************** CALLOUT list related stuff ************* */
@@ -655,7 +656,7 @@ svc_getreq_common (int fd)
 
   rwlock_rdlock (&svc_fd_lock);
   xprt = __svc_xports[fd];
-  rwlock_unlock (&svc_fd_lock);
+  rwlock_rdunlock (&svc_fd_lock);
   if (xprt == NULL)
     /* But do we control sock? */
     return;
@@ -719,10 +720,10 @@ svc_getreq_common (int fd)
       
       if (xprt != __svc_xports[fd])
 	{
-	  rwlock_unlock (&svc_fd_lock);
+	  rwlock_rdunlock (&svc_fd_lock);
 	  break;
 	}
-      rwlock_unlock (&svc_fd_lock);
+      rwlock_rdunlock (&svc_fd_lock);
     call_done:
       if ((stat = SVC_STAT (xprt)) == XPRT_DIED)
 	{
@@ -772,7 +773,7 @@ svc_getreq_poll (pfdp, pollretval)
 	    {
 	      rwlock_wrlock (&svc_fd_lock);
 	      FD_CLR (p->fd, &svc_fdset);
-	      rwlock_unlock (&svc_fd_lock);
+	      rwlock_wrunlock (&svc_fd_lock);
 	    }
 	  else
 	    svc_getreq_common (wintirpc_handle2fd(p->fd));
