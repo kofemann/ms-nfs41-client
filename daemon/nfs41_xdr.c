@@ -3214,6 +3214,10 @@ static bool_t decode_op_getdeviceinfo(
             return xdr_u_int32_t(xdr, &ignored);
         }
         break;
+    default:
+        eprintf("decode_op_getdeviceinfo: Unexpected res->status=%d\n",
+            (int)res->status);
+        break;
     }
     return TRUE;
 }
@@ -3474,6 +3478,10 @@ static bool_t decode_op_layoutget(
         return decode_layout_res_ok(xdr, res->u.res_ok);
     case NFS4ERR_LAYOUTTRYLATER:
         return xdr_bool(xdr, &res->u.will_signal_layout_avail);
+    default:
+        eprintf("decode_op_layoutget: Unexpected res->status=%d\n",
+            (int)res->status);
+        break;
     }
     return TRUE;
 }

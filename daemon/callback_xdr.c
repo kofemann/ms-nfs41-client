@@ -501,6 +501,10 @@ static bool_t op_cb_notify_deviceid_args(XDR *xdr, struct cb_notify_deviceid_arg
         free(args->change_list);
     case XDR_ENCODE:
         return TRUE;
+    default:
+        eprintf("op_cb_notify_deviceid_args: Unexpected xdr->x_op=%d\n",
+            (int)xdr->x_op);
+        break;
     }
 
     /* count the number of device changes */

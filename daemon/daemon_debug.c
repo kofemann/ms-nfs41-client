@@ -438,6 +438,7 @@ const char* opcode2string(nfs41_opcodes opcode)
         NFSOPCODE_TO_STRLITERAL(NFS41_VOLUME_QUERY)
         NFSOPCODE_TO_STRLITERAL(NFS41_ACL_QUERY)
         NFSOPCODE_TO_STRLITERAL(NFS41_ACL_SET)
+        default: break;
     }
     return "<unknown NFS41 opcode>";
 }
