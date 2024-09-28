@@ -335,7 +335,7 @@ static bool_t xdr_nfsacl41(
 
 void nfsacl41_free(nfsacl41 *acl)
 {
-    XDR xdr = { XDR_FREE };
+    XDR xdr = { .x_op = XDR_FREE };
     xdr_nfsacl41(&xdr, acl);
 }
 
