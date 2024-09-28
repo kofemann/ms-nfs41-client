@@ -119,6 +119,10 @@
 /*
  * |USE_SRWLOCK_FOR_MUTEX| - Use SRWLOCK for |mutex_t| instead of a
  * |CRITICAL_SECTION|
+ * We prefer SRWLOCKs here because in our use case the performace is
+ * simiar to CRITICAL_SECTIONs, initalisation can be done with
+ * SRWLOCK_INIT and SRWLOCK does not require an explicit cleanup
+ * (i.e. it can be "forgotten" without being explicitly destroyed).
  */
 #define USE_SRWLOCK_FOR_MUTEX 1
 
