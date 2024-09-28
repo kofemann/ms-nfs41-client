@@ -1036,8 +1036,13 @@ int nfs41_idmap_name_to_uid(
     const char *username,
     uid_t *uid_out)
 {
-    struct idmap_lookup lookup = { ATTR_USER_NAME,
-        CLASS_USER, TYPE_STR, username_cmp };
+    struct idmap_lookup lookup = {
+        .attr = ATTR_USER_NAME,
+        .klass = CLASS_USER,
+        .type = TYPE_STR,
+        .compare = username_cmp,
+        .value = NULL
+    };
     struct idmap_user user;
     int status;
 
@@ -1066,8 +1071,13 @@ int nfs41_idmap_name_to_ids(
     uid_t *uid_out,
     gid_t *gid_out)
 {
-    struct idmap_lookup lookup = { ATTR_USER_NAME,
-        CLASS_USER, TYPE_STR, username_cmp };
+    struct idmap_lookup lookup = {
+        .attr = ATTR_USER_NAME,
+        .klass = CLASS_USER,
+        .type = TYPE_STR,
+        .compare = username_cmp,
+        .value = NULL
+    };
     struct idmap_user user;
     int status;
 
@@ -1109,7 +1119,13 @@ int nfs41_idmap_uid_to_name(
     char *name,
     size_t len)
 {
-    struct idmap_lookup lookup = { ATTR_UID, CLASS_USER, TYPE_INT, uid_cmp };
+    struct idmap_lookup lookup = {
+        .attr = ATTR_UID,
+        .klass = CLASS_USER,
+        .type = TYPE_INT,
+        .compare = uid_cmp,
+        .value = NULL
+    };
     struct idmap_user user;
     int status;
 
@@ -1153,8 +1169,13 @@ int nfs41_idmap_principal_to_ids(
     uid_t *uid_out,
     gid_t *gid_out)
 {
-    struct idmap_lookup lookup = { ATTR_PRINCIPAL,
-        CLASS_USER, TYPE_STR, principal_cmp };
+    struct idmap_lookup lookup = {
+        .attr = ATTR_PRINCIPAL,
+        .klass = CLASS_USER,
+        .type = TYPE_STR,
+        .compare = principal_cmp,
+        .value = NULL
+    };
     struct idmap_user user;
     int status;
 
@@ -1192,8 +1213,13 @@ int nfs41_idmap_group_to_gid(
     const char *name,
     gid_t *gid_out)
 {
-    struct idmap_lookup lookup = { ATTR_GROUP_NAME,
-        CLASS_GROUP, TYPE_STR, group_cmp };
+    struct idmap_lookup lookup = {
+        .attr = ATTR_GROUP_NAME,
+        .klass = CLASS_GROUP,
+        .type = TYPE_STR,
+        .compare = group_cmp,
+        .value = NULL
+    };
     struct idmap_group group;
     int status;
 
@@ -1231,7 +1257,13 @@ int nfs41_idmap_gid_to_group(
     char *name,
     size_t len)
 {
-    struct idmap_lookup lookup = { ATTR_GID, CLASS_GROUP, TYPE_INT, gid_cmp };
+    struct idmap_lookup lookup = {
+        .attr = ATTR_GID,
+        .klass = CLASS_GROUP,
+        .type = TYPE_INT,
+        .compare = gid_cmp,
+        .value = NULL
+    };
     struct idmap_group group;
     int status;
 
