@@ -105,7 +105,8 @@ static const struct  xdr_ops xdrrec_ops = {
 	xdrrec_getpos,
 	xdrrec_setpos,
 	xdrrec_inline,
-	xdrrec_destroy
+	xdrrec_destroy,
+	NULL
 };
 
 /*
