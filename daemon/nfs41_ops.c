@@ -44,10 +44,8 @@
  * uninitalised memory issues with DrMemory
  */
 #define NDSH(x) x
-#define NDSH2(x,y) x,y
 #else
 #define NDSH(x)
-#define NDSH2(x,y)
 #endif /* NFS41_DRIVER_STABILITY_HACKS */
 
 int nfs41_exchange_id(
@@ -1512,9 +1510,14 @@ int nfs41_link(
     nfs41_lookup_res lookup_res;
     nfs41_getfh_res getfh_res;
     nfs41_getattr_args getattr_args[2];
-    nfs41_getattr_res getattr_res[2] NDSH2(= { 0, 0 });
+    nfs41_getattr_res getattr_res[2];
     nfs41_file_info info = { 0 };
     nfs41_path_fh file;
+
+#ifdef NFS41_DRIVER_STABILITY_HACKS
+    /* gisburn: fixme, see comment about |NDSH| above */
+    (void)memset(getattr_res, 0, sizeof(getattr_res));
+#endif /* NFS41_DRIVER_STABILITY_HACKS */
 
     nfs41_superblock_getattr_mask(src->fh.superblock, &info.attrmask);
     nfs41_superblock_getattr_mask(dst_dir->fh.superblock, &cinfo->attrmask);
