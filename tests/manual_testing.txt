@@ -402,4 +402,12 @@ svn checkout https://svn.FreeBSD.org/base/head/share/man
 cd /cygdrive/n/xxx/
 time ksh93 $msnfs41clientgitroot/tests/fstest_make_numtree1/fstest_make_numtree1.ksh93 all
 
+
+#
+# Run DrMemory with log dir on NFSv4.1 filesystem
+#
+cd /cygdrive/n/xxx/
+drmemory -batch -check_uninit_all -strict_bitops -logdir "$(cygpath -w "$PWD")" -- "$(cygpath -w /sbin/nfs_mount)"
+
+
 # EOF.
