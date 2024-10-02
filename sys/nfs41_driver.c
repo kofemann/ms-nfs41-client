@@ -109,7 +109,6 @@ PRDBSS_DEVICE_OBJECT nfs41_dev;
 
 KEVENT upcallEvent;
 FAST_MUTEX upcallLock, downcallLock, fcblistLock;
-FAST_MUTEX xidLock;
 FAST_MUTEX openOwnerLock;
 
 LONGLONG xid = 0;
@@ -1591,8 +1590,8 @@ static NTSTATUS handle_upcall(
         print_error("Unknown nfs41 ops %d\n", entry->opcode);
     }
 
-    if (status == STATUS_SUCCESS)
-        print_hexbuf(0, (unsigned char *)"upcall buffer", pbOut, *len);
+    // if (status == STATUS_SUCCESS)
+    //     print_hexbuf("upcall buffer", pbOut, *len);
 
 out:
     return status;
@@ -2090,13 +2089,17 @@ static NTSTATUS nfs41_downcall(
 {
     NTSTATUS status = STATUS_SUCCESS;
     PLOWIO_CONTEXT LowIoContext = &RxContext->LowIoContext;
+#ifdef DEBUG_PRINT_DOWNCALL_HEXBUF
     ULONG in_len = LowIoContext->ParamsFor.IoCtl.InputBufferLength;
+#endif /* DEBUG_PRINT_DOWNCALL_HEXBUF */
     unsigned char *buf = LowIoContext->ParamsFor.IoCtl.pInputBuffer;
     PLIST_ENTRY pEntry;
     nfs41_updowncall_entry *tmp, *cur= NULL;
     BOOLEAN found = 0;
 
-    print_hexbuf(0, (unsigned char *)"downcall buffer", buf, in_len);
+#ifdef DEBUG_PRINT_DOWNCALL_HEXBUF
+    print_hexbuf("downcall buffer", buf, in_len);
+#endif /* DEBUG_PRINT_DOWNCALL_HEXBUF */
 
     tmp = RxAllocatePoolWithTag(NonPagedPoolNx, sizeof(nfs41_updowncall_entry),
             NFS41_MM_POOLTAG_DOWN);
@@ -2605,14 +2608,14 @@ static NTSTATUS nfs41_DevFcbXXXControlFile(
 
     //DbgEn();
 
-    print_ioctl(0, op);
+    //print_ioctl(op);
     switch(op) {
     case IRP_MJ_FILE_SYSTEM_CONTROL:
         status = STATUS_INVALID_DEVICE_REQUEST;
         break;
     case IRP_MJ_DEVICE_CONTROL:
     case IRP_MJ_INTERNAL_DEVICE_CONTROL:
-        print_fs_ioctl(0, fsop);
+        //print_fs_ioctl(fsop);
         switch (fsop) {
         case IOCTL_NFS41_INVALCACHE:
             status = nfs41_invalidate_cache(RxContext);
@@ -2744,7 +2747,7 @@ static NTSTATUS _nfs41_CreateSrvCall(
 
     ASSERT( pSrvCall );
     ASSERT( NodeType(pSrvCall) == RDBSS_NTC_SRVCALL );
-    print_srv_call(0, pSrvCall);
+    // print_srv_call(pSrvCall);
 
     // validate the server name with the test name of 'pnfs'
 #ifdef DEBUG_MOUNT
@@ -3402,9 +3405,9 @@ static NTSTATUS nfs41_CreateVNetRoot(
 
 #ifdef DEBUG_MOUNT
     DbgEn();
-    print_srv_call(0, pSrvCall);
-    print_net_root(0, pNetRoot);
-    print_v_net_root(0, pVNetRoot);
+    // print_srv_call(pSrvCall);
+    // print_net_root(pNetRoot);
+    // print_v_net_root(pVNetRoot);
 
     DbgP("pVNetRoot=0x%p pNetRoot=0x%p pSrvCall=0x%p\n", pVNetRoot, pNetRoot, pSrvCall);
     DbgP("pNetRoot='%wZ' Type=%d pSrvCallName='%wZ' VirtualNetRootStatus=0x%x "
@@ -3825,7 +3828,7 @@ static NTSTATUS nfs41_FinalizeSrvCall(
 #ifdef DEBUG_MOUNT
     DbgEn();
 #endif
-    print_srv_call(0, pSrvCall);
+    // print_srv_call(pSrvCall);
 
     if (pSrvCall->Context == NULL)
         goto out;
@@ -3851,10 +3854,10 @@ static NTSTATUS nfs41_FinalizeNetRoot(
         NFS41GetNetRootExtension((PMRX_NET_ROOT)pNetRoot);
     nfs41_updowncall_entry *tmp;
     nfs41_mount_entry *mount_tmp;
-    
+
 #ifdef DEBUG_MOUNT
     DbgEn();
-    print_net_root(1, pNetRoot);
+    print_net_root(pNetRoot);
 #endif
 
     if (pNetRoot->Type != NET_ROOT_DISK && pNetRoot->Type != NET_ROOT_WILD) {
@@ -3954,7 +3957,7 @@ static NTSTATUS nfs41_FinalizeVNetRoot(
     NTSTATUS status = STATUS_SUCCESS;
 #ifdef DEBUG_MOUNT
     DbgEn();
-    print_v_net_root(1, pVNetRoot);
+    print_v_net_root(pVNetRoot);
 #endif
     if (pVNetRoot->pNetRoot->Type != NET_ROOT_DISK &&
             pVNetRoot->pNetRoot->Type != NET_ROOT_WILD)
@@ -4251,7 +4254,7 @@ static NTSTATUS nfs41_Create(
     DbgEn();
     print_debug_header(RxContext);
     print_nt_create_params(1, RxContext->Create.NtCreateParameters);
-    if (ea) print_ea_info(0, ea);
+    // if (ea) print_ea_info(ea);
 #endif
 
     status = check_nfs41_create_args(RxContext);
@@ -5376,7 +5379,7 @@ static NTSTATUS nfs41_SetEaInformation(
 #ifdef DEBUG_EA_SET
     DbgEn();
     print_debug_header(RxContext);
-    print_ea_info(1, eainfo);
+    print_ea_info(eainfo);
 #endif
 
     status = check_nfs41_setea_args(RxContext);
@@ -7871,7 +7874,6 @@ NTSTATUS DriverEntry(
     KeInitializeEvent(&upcallEvent, SynchronizationEvent, FALSE );
     ExInitializeFastMutex(&upcallLock);
     ExInitializeFastMutex(&downcallLock);
-    ExInitializeFastMutex(&xidLock);
     ExInitializeFastMutex(&openOwnerLock);
     ExInitializeFastMutex(&fcblistLock);
     InitializeListHead(&upcall.head);

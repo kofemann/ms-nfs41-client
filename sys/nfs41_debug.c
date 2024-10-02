@@ -95,13 +95,11 @@ ULONG __cdecl print_error(IN PCCH fmt, ...)
     return 0;
 }
 
-void print_hexbuf(int on, unsigned char *title, unsigned char *buf, int len) 
+void print_hexbuf(const char *title, unsigned char *buf, int len)
 {
     int j, k;
     LARGE_INTEGER timestamp, local_time;
     TIME_FIELDS time_fields;
-
-    if (!on) return;
 
     KeQuerySystemTime(&timestamp);
     ExSystemTimeToLocalTime(&timestamp,&local_time);
@@ -120,9 +118,8 @@ void print_hexbuf(int on, unsigned char *title, unsigned char *buf, int len)
     DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "\n");
 }
 
-void print_ioctl(int on, int op)
+void print_ioctl(int op)
 {
-    if(!on) return;
     switch(op) {
         case IRP_MJ_FILE_SYSTEM_CONTROL:
             DbgP("IRP_MJ_FILE_SYSTEM_CONTROL\n");
@@ -138,9 +135,8 @@ void print_ioctl(int on, int op)
     };
 }
 
-void print_fs_ioctl(int on, int op)
+void print_fs_ioctl(int op)
 {
-    if(!on) return;
     switch(op) {
         case IOCTL_NFS41_INVALCACHE:
             DbgP("IOCTL_NFS41_INVALCACHE\n");
@@ -209,16 +205,17 @@ void print_std_info(int on, PFILE_STANDARD_INFORMATION info)
         info->DeletePending);
 }
 
-void print_ea_info(int on, PFILE_FULL_EA_INFORMATION info)
+void print_ea_info(PFILE_FULL_EA_INFORMATION info)
 {
-    if (!on) return;
     DbgP("FULL_EA_INFO: NextOffset=%d Flags=%x EaNameLength=%d "
         "ExValueLength=%x EaName=%s\n", info->NextEntryOffset, info->Flags,
         info->EaNameLength, info->EaValueLength, info->EaName);
-    if (info->EaValueLength) 
-        print_hexbuf(0, (unsigned char *)"eavalue", 
-            (unsigned char *)info->EaName + info->EaNameLength + 1, 
+#if DEBUG_EAINFO_DETAILS
+    if (info->EaValueLength)
+        print_hexbuf("eavalue",
+            (unsigned char *)info->EaName + info->EaNameLength + 1,
             info->EaValueLength);
+#endif /* DEBUG_EAINFO_DETAILS */
 }
 
 void print_get_ea(int on, PFILE_GET_EA_INFORMATION info)
@@ -228,9 +225,8 @@ void print_get_ea(int on, PFILE_GET_EA_INFORMATION info)
         info->NextEntryOffset, info->EaNameLength, info->EaName);
 }
 
-VOID print_srv_call(int on, IN PMRX_SRV_CALL p)
+VOID print_srv_call(IN PMRX_SRV_CALL p)
 {
-    if (!on) return;
     DbgP("PMRX_SRV_CALL %p\n", p);
 #if 0
     DbgP("\tNodeReferenceCount %ld\n", p->NodeReferenceCount);
@@ -246,9 +242,8 @@ VOID print_srv_call(int on, IN PMRX_SRV_CALL p)
 #endif
 }
 
-VOID print_net_root(int on, IN PMRX_NET_ROOT p)
+VOID print_net_root(IN PMRX_NET_ROOT p)
 {
-    if (!on) return;
     DbgP("PMRX_NET_ROOT %p\n", p);
 #if 0
     DbgP("\tNodeReferenceCount %ld\n", p->NodeReferenceCount);
@@ -267,9 +262,8 @@ VOID print_net_root(int on, IN PMRX_NET_ROOT p)
 #endif
 }
 
-VOID print_v_net_root(int on, IN PMRX_V_NET_ROOT p)
+VOID print_v_net_root(IN PMRX_V_NET_ROOT p)
 {
-    if (!on) return;
     DbgP("PMRX_V_NET_ROOT %p\n", p);
 #if 0
     DbgP("\tNodeReferenceCount %ld\n", p->NodeReferenceCount);
