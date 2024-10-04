@@ -256,7 +256,7 @@ static DWORD StoreConnectionInfo(
     IN LPCWSTR LocalName,
     IN LPCWSTR ConnectionName,
     IN USHORT ConnectionNameLength,
-    IN LPNETRESOURCE lpNetResource)
+    IN LPNETRESOURCEW lpNetResource)
 {
     DWORD status;
     HANDLE hMutex, hMemory;
@@ -499,7 +499,7 @@ NPPasswordChangeNotify (
 
 DWORD APIENTRY
 NPAddConnection(
-    __in LPNETRESOURCE   lpNetResource,
+    __in LPNETRESOURCEW  lpNetResource,
     __in_opt LPWSTR      lpPassword,
     __in_opt LPWSTR      lpUserName )
 {
@@ -510,7 +510,7 @@ NPAddConnection(
 DWORD APIENTRY
 NPAddConnection3(
     __in HWND           hwndOwner,
-    __in LPNETRESOURCE  lpNetResource,
+    __in LPNETRESOURCEW lpNetResource,
     __in_opt LPWSTR     lpPassword,
     __in_opt LPWSTR     lpUserName,
     __in DWORD          dwFlags)
@@ -1042,35 +1042,35 @@ NPGetConnection(
 #endif /* NFS41_DRIVER_SYSTEM_LUID_MOUNTS_ARE_GLOBAL */
     Status = WN_NOT_CONNECTED;
 
-    for (Index = 0; Index < pSharedMemory->NextAvailableIndex; Index++)
-    {
+    for (Index = 0; Index < pSharedMemory->NextAvailableIndex; Index++) {
         pNetResource = &pSharedMemory->NetResources[Index];
 
-        if (pNetResource->InUse) {
-            if ((((wcslen(lpLocalName)+1)*sizeof(WCHAR)) ==
-                    pNetResource->LocalNameLength) &&
-                    (!wcscmp(lpLocalName, pNetResource->LocalName))) {
+        if (!pNetResource->InUse)
+            break;
+
+        if ((((wcslen(lpLocalName)+1)*sizeof(WCHAR)) ==
+                pNetResource->LocalNameLength) &&
+                (!wcscmp(lpLocalName, pNetResource->LocalName))) {
 #ifdef NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE
-                if (equal_luid(&authenticationid,
-                    &pNetResource->MountAuthId)) {
-                    foundNetResource = pNetResource;
-                    break;
-                }
+            if (equal_luid(&authenticationid,
+                &pNetResource->MountAuthId)) {
+                foundNetResource = pNetResource;
+                break;
+            }
 #ifdef NFS41_DRIVER_SYSTEM_LUID_MOUNTS_ARE_GLOBAL
-                else if (equal_luid(&SystemLuid,
-                    &pNetResource->MountAuthId)) {
-                    /*
-                     * Found netresource for user "SYSTEM", but
-                     * continue searching |pSharedMemory->NetResources|
-                     * for an exact match...
-                     */
-                    foundSystemLuidNetResource = pNetResource;
-                }
+            else if (equal_luid(&SystemLuid,
+                &pNetResource->MountAuthId)) {
+                /*
+                 * Found netresource for user "SYSTEM", but
+                 * continue searching |pSharedMemory->NetResources|
+                 * for an exact match...
+                 */
+                foundSystemLuidNetResource = pNetResource;
+            }
 #endif /* NFS41_DRIVER_SYSTEM_LUID_MOUNTS_ARE_GLOBAL */
 #else /* NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE */
-                foundNetResource = pNetResource;
+            foundNetResource = pNetResource;
 #endif /* NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE */
-            }
         }
     }
 
@@ -1110,7 +1110,7 @@ NPOpenEnum(
     DWORD           dwScope,
     DWORD           dwType,
     DWORD           dwUsage,
-    LPNETRESOURCE   lpNetResource,
+    LPNETRESOURCEW  lpNetResource,
     LPHANDLE        lphEnum)
 {
     DWORD Status;
@@ -1158,7 +1158,7 @@ NPEnumResource(
 {
     DWORD           Status = WN_SUCCESS;
     ULONG           EntriesCopied;
-    LPNETRESOURCE   pNetResource;
+    LPNETRESOURCEW  pNetResource;
     ULONG           SpaceNeeded = 0;
     ULONG           SpaceAvailable;
     PWCHAR          StringZone;
@@ -1179,7 +1179,7 @@ NPEnumResource(
         &authenticationid);
 #endif /* NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE */
 
-    pNetResource = (LPNETRESOURCE) lpBuffer;
+    pNetResource = (LPNETRESOURCEW)lpBuffer;
     SpaceAvailable = *lpBufferSize;
     EntriesCopied = 0;
     StringZone = (PWCHAR) ((PBYTE)lpBuffer + *lpBufferSize);
@@ -1289,9 +1289,9 @@ NPCloseEnum(
 
 DWORD APIENTRY
 NPGetResourceParent(
-    LPNETRESOURCE   lpNetResource,
-    LPVOID  lpBuffer,
-    LPDWORD lpBufferSize )
+    LPNETRESOURCEW  lpNetResource,
+    LPVOID          lpBuffer,
+    LPDWORD         lpBufferSize )
 {
     DbgP((L"NPGetResourceParent: WN_NOT_SUPPORTED\n"));
     return WN_NOT_SUPPORTED;
@@ -1299,7 +1299,7 @@ NPGetResourceParent(
 
 DWORD APIENTRY
 NPGetResourceInformation(
-    __in LPNETRESOURCE   lpNetResource,
+    __in LPNETRESOURCEW   lpNetResource,
     __out_bcount(*lpBufferSize) LPVOID  lpBuffer,
     __inout LPDWORD lpBufferSize,
     __deref_out LPWSTR *lplpSystem )
