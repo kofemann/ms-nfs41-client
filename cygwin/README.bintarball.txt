@@ -43,6 +43,7 @@ NFSv4.1 filesystem driver for Windows 10/11&Windows Server 2019
       characters in the mount path, independent of current locale.
 
 - UNC paths
+    - Mounting UNC paths without DOS driver letter
     - IPv6 support in UNC paths
     - /sbin/nfs_mount prints UNC paths in Win32+Cygwin formats
     - Cygwin bash+ksh93 support UNC paths, e.g.
@@ -246,9 +247,9 @@ $ sc config ms-nfs41-client-service start=disabled
 # - requires separate terminal
 $ /sbin/msnfs41client run_daemon
 
-# Mount a filesystem and use it
-$ /sbin/nfs_mount -o rw N 10.49.20.110:/net_tmpfs2
-Successfully mounted '10.49.20.110@2049' to drive 'N:'
+# Mount a filesystem to drive N: and use it
+$ /sbin/nfs_mount -o rw N 10.49.202.230:/net_tmpfs2
+Successfully mounted '10.49.202.230@2049' to drive 'N:'
 $ cd /cygdrive/n/
 $ ls -la
 total 4
@@ -263,6 +264,26 @@ $ cd ~ && /sbin/nfs_umount N:
 # OR
 $ cd ~
 $ net use N: /delete
+
+# Mount a filesystem WITHOUT a dos drive assigned and use it via UNC path
+$ /sbin/nfs_mount -o rw 10.49.202.230:/net_tmpfs2
+Successfully mounted '10.49.202.230@2049' to drive '\\10.49.202.230@2049\nfs4\net_tmpfs2'
+$ cygpath -u '\\10.49.202.230@2049\nfs4\net_tmpfs2'
+//10.49.202.230@2049/nfs4/net_tmpfs2
+$ cd '//10.49.202.230@2049/nfs4/net_tmpfs2'
+$ ls -la
+total 4
+drwxrwxrwt 5 Unix_User+0      Unix_Group+0      100 Dec  7 14:17 .
+dr-xr-xr-x 1 roland_mainz     Kein                0 Dec 14 13:48 ..
+drwxr-xr-x 3 Unix_User+197608 Unix_Group+197121  80 Dec 12 16:24 10492030
+drwxr-xr-x 3 Unix_User+197608 Unix_Group+197121  60 Dec 13 17:58 directory_t
+drwxr-xr-x 3 Unix_User+197608 Unix_Group+197121  60 Dec  7 11:01 test2
+
+# Unmount filesystem:
+$ cd ~ && /sbin/nfs_umount '\\10.49.202.230@2049\nfs4\net_tmpfs2'
+# OR
+$ cd ~
+$ net use '\\10.49.202.230@2049\nfs4\net_tmpfs2' /delete
 
 # List mounted NFSv4.1 filesystems:
 $ /sbin/nfs_mount

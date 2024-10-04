@@ -52,6 +52,13 @@
 const LUID SystemLuid = SYSTEM_LUID;
 #endif /* NFS41_DRIVER_SYSTEM_LUID_MOUNTS_ARE_GLOBAL */
 
+/* Internal marker for UNC entries in NFS41_USER_SHARED_MEMORY_NAME */
+#define NFS41NP_LOCALNAME_UNC_MARKER L"_:"
+
+/* Local prototypes */
+static DWORD is_unc_path_mounted(__in LPWSTR lpRemoteName);
+
+
 ULONG _cdecl NFS41DbgPrint(__in LPTSTR fmt, ...)
 {
     ULONG rc = 0;
@@ -517,13 +524,20 @@ NPAddConnection3(
     WCHAR ServerName[NFS41_SYS_MAX_PATH_LEN];
     PWCHAR p;
     DWORD i;
+    LPWSTR  lpLocalName = lpNetResource->lpLocalName;
 
     DbgP((L"-->  NPAddConnection3(lpNetResource->lpLocalName='%s', "
         L"lpNetResource->lpRemoteName='%s', "
         L"username='%s', passwd='%s')\n",
-        lpNetResource->lpLocalName,
+        lpLocalName,
         lpNetResource->lpRemoteName,lpUserName,
         lpPassword));
+
+    if (lpLocalName == NULL) {
+        lpLocalName = NFS41NP_LOCALNAME_UNC_MARKER;
+        DbgP((L"lpLocalName==NULL, "
+            "changed to " NFS41NP_LOCALNAME_UNC_MARKER L"\n"));
+    }
 
     Status = InitializeConnectionInfo(&Connection,
         (PMOUNT_OPTION_BUFFER)lpNetResource->lpComment,
@@ -536,16 +550,16 @@ NPAddConnection3(
     //  \device\miniredirector\;<DriveLetter>:\Server\Share
 
     // local name, must start with "X:"
-    if (lstrlen(lpNetResource->lpLocalName) < 2 ||
-        lpNetResource->lpLocalName[1] != L':') {
-        DbgP((L"lpNetResource->lpLocalName(='%s') "
+    if (lstrlen(lpLocalName) < 2 ||
+        lpLocalName[1] != L':') {
+        DbgP((L"lpLocalName(='%s') "
             "is not a device letter\n",
-            lpNetResource->lpLocalName));
+            lpLocalName));
         Status = WN_BAD_LOCALNAME;
         goto out;
     }
 
-    LocalName[0] = towupper(lpNetResource->lpLocalName[0]);
+    LocalName[0] = towupper(lpLocalName[0]);
     LocalName[1] = L':';
     LocalName[2] = L'\0';
     (void)StringCchCopyW(ConnectionName,
@@ -659,15 +673,38 @@ NPAddConnection3(
         (wcslen(ConnectionName) + 1) * sizeof(WCHAR),
         (lstrlen(ConnectionName) + 1) * sizeof(WCHAR)));
 
-    wszScratch[0] = L'\0';
-    Status = QueryDosDevice(LocalName, wszScratch, 1024);
-    DbgP((L"QueryDosDevice(lpDeviceName='%s',lpTargetPath='%s') "
-        L"returned %d/GetLastError()=%d\n",
-        LocalName, wszScratch, Status, (int)GetLastError()));
+    if (lpNetResource->lpLocalName == NULL) {
+        DWORD gc_status;
 
-    if (Status || (GetLastError() != ERROR_FILE_NOT_FOUND)) {
-        Status = WN_ALREADY_CONNECTED;
-        goto out;
+        gc_status = is_unc_path_mounted(lpNetResource->lpRemoteName);
+        DbgP((L"lpNetResource->lpLocalName == NULL, "
+            "is_unc_path_mounted(lpNetResource->lpRemoteName='%s') "
+            "returned gc_status=%d\n",
+            lpNetResource->lpRemoteName,
+            (int)gc_status));
+
+        if (gc_status == WN_SUCCESS) {
+            /*
+             * Do not return |WN_ALREADY_CONNECTED| here, as UNC
+             * paths are reused
+             * We explicitly use this to skip |StoreConnectionInfo()|
+             * below, so we only have one stored UNC connection
+             */
+            Status = WN_SUCCESS;
+            goto out;
+        }
+    }
+    else {
+        wszScratch[0] = L'\0';
+        Status = QueryDosDevice(LocalName, wszScratch, 1024);
+        DbgP((L"QueryDosDevice(lpDeviceName='%s',lpTargetPath='%s') "
+            L"returned %d/GetLastError()=%d\n",
+            LocalName, wszScratch, Status, (int)GetLastError()));
+
+        if (Status || (GetLastError() != ERROR_FILE_NOT_FOUND)) {
+            Status = WN_ALREADY_CONNECTED;
+            goto out;
+        }
     }
 
     MarshalConnectionInfo(&Connection);
@@ -680,18 +717,20 @@ NPAddConnection3(
         goto out;
     }
 
-    DbgP((L"DefineDosDevice(lpNetResource->lpLocalName='%s', "
-        L"ConnectionName='%s')\n",
-        lpNetResource->lpLocalName, ConnectionName));
-    if (!DefineDosDevice(DDD_RAW_TARGET_PATH |
-        DDD_NO_BROADCAST_SYSTEM,
-        lpNetResource->lpLocalName,
-        ConnectionName)) {
-        Status = GetLastError();
-        DbgP((L"DefineDosDevice(lpNetResource->lpLocalName='%s',"
-            L"ConnectionName='%s') failed with %d\n",
-            lpNetResource->lpLocalName, ConnectionName, Status));
-        goto out_delconn;
+    if (lpNetResource->lpLocalName != NULL) {
+        DbgP((L"DefineDosDevice(lpLocalName='%s', "
+            L"ConnectionName='%s')\n",
+            lpLocalName, ConnectionName));
+        if (!DefineDosDevice(DDD_RAW_TARGET_PATH |
+            DDD_NO_BROADCAST_SYSTEM,
+            lpLocalName,
+            ConnectionName)) {
+            Status = GetLastError();
+            DbgP((L"DefineDosDevice(lpLocalName='%s',"
+                L"ConnectionName='%s') failed with %d\n",
+                lpLocalName, ConnectionName, Status));
+            goto out_delconn;
+        }
     }
 
     // The connection was established and the local device mapping
@@ -708,10 +747,12 @@ out:
     DbgP((L"<-- NPAddConnection3 returns %d\n", (int)Status));
     return Status;
 out_undefine:
-    (void)DefineDosDevice(DDD_REMOVE_DEFINITION |
-        DDD_RAW_TARGET_PATH |
-        DDD_EXACT_MATCH_ON_REMOVE,
-        LocalName, ConnectionName);
+    if (lpNetResource->lpLocalName != NULL) {
+        (void)DefineDosDevice(DDD_REMOVE_DEFINITION |
+            DDD_RAW_TARGET_PATH |
+            DDD_EXACT_MATCH_ON_REMOVE,
+            LocalName, ConnectionName);
+    }
 out_delconn:
     SendTo_NFS41Driver(IOCTL_NFS41_DELCONN, ConnectionName,
         Connection.Buffer->NameLength, NULL, &CopyBytes);
@@ -730,9 +771,19 @@ NPCancelConnection(
 #ifdef NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE
     LUID authenticationid = { .LowPart = 0, .HighPart = 0L };
 #endif /* NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE */
+    bool is_unc_path;
 
     DbgP((L"--> NPCancelConnection(lpName='%s', fForce=%d)\n",
         lpName, (int)fForce));
+
+    if (lpName && (lpName[0] == L'\\') && (lpName[1] == L'\\')) {
+        is_unc_path = true;
+    }
+    else {
+        is_unc_path = false;
+    }
+
+    DbgP((L"is_unc_path=%d\n", (int)is_unc_path));
 
 #ifdef NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE
     (void)get_token_authenticationid(GetCurrentThreadEffectiveToken(),
@@ -754,11 +805,57 @@ NPCancelConnection(
                 pSharedMemory->NextAvailableIndex,
                 pSharedMemory->NumberOfResourcesInUse));
 
-    for (Index = 0; Index < pSharedMemory->NextAvailableIndex; Index++)
-    {
+    for (Index = 0; Index < pSharedMemory->NextAvailableIndex; Index++) {
         pNetResource = &pSharedMemory->NetResources[Index];
 
-        if (pNetResource->InUse) {
+        if (!pNetResource->InUse)
+            continue;
+
+        DbgP((L"Name '%s' EntryName '%s'\n",
+            lpName, pNetResource->LocalName));
+
+        if (is_unc_path) {
+            LPWSTR unc_devname = NFS41NP_LOCALNAME_UNC_MARKER;
+
+            if (
+#ifdef NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE
+                /* Need exact match here, not |SYSTEM_LUID|! */
+                equal_luid(&authenticationid,
+                    &pNetResource->MountAuthId) &&
+#endif /* NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE */
+                (((wcslen(unc_devname)+1) * sizeof(WCHAR)) ==
+                pNetResource->LocalNameLength) &&
+                (!wcscmp(unc_devname, pNetResource->LocalName)) &&
+                (((wcslen(lpName)+1) * sizeof(WCHAR)) ==
+                pNetResource->RemoteNameLength) &&
+                (!wcscmp(lpName, pNetResource->RemoteName))) {
+                ULONG CopyBytes;
+
+                DbgP((L"NPCancelConnection: UNC Connection Found:\n"));
+
+                CopyBytes = 0;
+
+                Status = SendTo_NFS41Driver(IOCTL_NFS41_DELCONN,
+                            pNetResource->ConnectionName,
+                            pNetResource->ConnectionNameLength,
+                            NULL,
+                            &CopyBytes);
+
+                if (Status != WN_SUCCESS) {
+                    DbgP((L"SendToMiniRdr returned Status %lx\n",
+                        Status));
+                    break;
+                }
+
+                pNetResource->InUse = FALSE;
+                pSharedMemory->NumberOfResourcesInUse--;
+
+                if (Index+1 == pSharedMemory->NextAvailableIndex)
+                    pSharedMemory->NextAvailableIndex--;
+                break;
+            }
+        }
+        else {
             if (
 #ifdef NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE
                 /* Need exact match here, not |SYSTEM_LUID|! */
@@ -774,7 +871,7 @@ NPCancelConnection(
 
                 CopyBytes = 0;
 
-                Status = SendTo_NFS41Driver( IOCTL_NFS41_DELCONN,
+                Status = SendTo_NFS41Driver(IOCTL_NFS41_DELCONN,
                             pNetResource->ConnectionName,
                             pNetResource->ConnectionNameLength,
                             NULL,
@@ -787,7 +884,7 @@ NPCancelConnection(
                 }
 
                 if (DefineDosDevice(DDD_REMOVE_DEFINITION |
-                    DDD_RAW_TARGET_PATH | DDD_EXACT_MATCH_ON_REMOVE,
+                        DDD_RAW_TARGET_PATH | DDD_EXACT_MATCH_ON_REMOVE,
                     lpName,
                     pNetResource->ConnectionName) == FALSE) {
                     DbgP((L"DefineDosDevice error: %d\n",
@@ -803,12 +900,6 @@ NPCancelConnection(
                 }
                 break;
             }
-
-            DbgP((L"Name '%s' EntryName '%s'\n",
-                lpName,pNetResource->LocalName));
-            DbgP((L"Name Length %d Entry Name Length %d\n",
-                pNetResource->LocalNameLength,
-                pNetResource->LocalName));
         }
     }
 
@@ -817,6 +908,96 @@ NPCancelConnection(
         (PVOID)&pSharedMemory);
 out:
     DbgP((L"<-- NPCancelConnection returns %d\n", (int)Status));
+    return Status;
+}
+
+static
+DWORD is_unc_path_mounted(
+    __in LPWSTR lpRemoteName)
+{
+    DWORD   Status = 0;
+
+    HANDLE  hMutex, hMemory;
+    PNFS41NP_SHARED_MEMORY  pSharedMemory;
+#ifdef NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE
+    LUID authenticationid = { .LowPart = 0, .HighPart = 0L };
+#endif /* NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE */
+    LPWSTR lpLocalName = NFS41NP_LOCALNAME_UNC_MARKER;
+
+    DbgP((L"--> is_unc_path_mounted(lpRemoteName='%s')\n", lpRemoteName));
+
+#ifdef NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE
+    (void)get_token_authenticationid(GetCurrentThreadEffectiveToken(),
+        &authenticationid);
+#endif /* NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE */
+
+    Status = OpenSharedMemory(&hMutex,
+        &hMemory,
+        (PVOID)&pSharedMemory);
+    if (Status != WN_SUCCESS)
+        goto out;
+
+    INT  Index;
+    PNFS41NP_NETRESOURCE pNetResource;
+    PNFS41NP_NETRESOURCE foundNetResource = NULL;
+#ifdef NFS41_DRIVER_SYSTEM_LUID_MOUNTS_ARE_GLOBAL
+    PNFS41NP_NETRESOURCE foundSystemLuidNetResource = NULL;
+#endif /* NFS41_DRIVER_SYSTEM_LUID_MOUNTS_ARE_GLOBAL */
+    Status = WN_NOT_CONNECTED;
+
+    for (Index = 0; Index < pSharedMemory->NextAvailableIndex; Index++) {
+        pNetResource = &pSharedMemory->NetResources[Index];
+
+        if (!pNetResource->InUse)
+            continue;
+
+        if ((((wcslen(lpLocalName)+1)*sizeof(WCHAR)) ==
+                pNetResource->LocalNameLength) &&
+                (!wcscmp(lpLocalName, pNetResource->LocalName)) &&
+                (((wcslen(lpRemoteName)+1)*sizeof(WCHAR)) ==
+                pNetResource->RemoteNameLength) &&
+                (!wcscmp(lpRemoteName, pNetResource->RemoteName))) {
+#ifdef NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE
+                if (equal_luid(&authenticationid,
+                    &pNetResource->MountAuthId)) {
+                    foundNetResource = pNetResource;
+                    break;
+                }
+#ifdef NFS41_DRIVER_SYSTEM_LUID_MOUNTS_ARE_GLOBAL
+            else if (equal_luid(&SystemLuid,
+                &pNetResource->MountAuthId)) {
+                /*
+                 * Found netresource for user "SYSTEM", but
+                 * continue searching |pSharedMemory->NetResources|
+                 * for an exact match...
+                 */
+                foundSystemLuidNetResource = pNetResource;
+            }
+#endif /* NFS41_DRIVER_SYSTEM_LUID_MOUNTS_ARE_GLOBAL */
+#else /* NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE */
+            foundNetResource = pNetResource;
+#endif /* NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE */
+        }
+    }
+
+#ifdef NFS41_DRIVER_SYSTEM_LUID_MOUNTS_ARE_GLOBAL
+    /*
+     * No exact match found ? Then fall-back to any match we found for
+     * user "SYSTEM"
+     */
+    if (foundNetResource == NULL) {
+        foundNetResource = foundSystemLuidNetResource;
+    }
+#endif /* NFS41_DRIVER_SYSTEM_LUID_MOUNTS_ARE_GLOBAL */
+
+    if (foundNetResource) {
+        Status = WN_SUCCESS;
+    }
+
+    CloseSharedMemory( &hMutex, &hMemory, (PVOID)&pSharedMemory);
+out:
+    DbgP((L"<-- is_unc_path_mounted returns %d\n", (int)Status));
+
     return Status;
 }
 
@@ -835,6 +1016,12 @@ NPGetConnection(
 #endif /* NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE */
 
     DbgP((L"--> NPGetConnection(lpLocalName='%s')\n", lpLocalName));
+
+    if (lpLocalName == NULL) {
+        lpLocalName = NFS41NP_LOCALNAME_UNC_MARKER;
+        DbgP((L"lpLocalName==NULL, "
+            "changed to " NFS41NP_LOCALNAME_UNC_MARKER L"\n"));
+    }
 
 #ifdef NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE
     (void)get_token_authenticationid(GetCurrentThreadEffectiveToken(),

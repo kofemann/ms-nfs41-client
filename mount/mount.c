@@ -78,6 +78,7 @@ void PrintMountUsage(LPWSTR pProcess)
 {
     (void)fprintf(stderr,
         "Usage: %S [options] <drive letter|*> <hostname>:<path>\n"
+        "Usage: %S [options] <hostname>:<path>\n"
         "Usage: %S -d [options] <drive letter>\n"
         "Usage: %S\n"
 
@@ -141,9 +142,11 @@ void PrintMountUsage(LPWSTR pProcess)
         "\tnfs_mount.exe -o sec=sys,rw '*' [fe80::21b:1bff:fec3:7713]://net_tmpfs2/test2\n"
         "\tnfs_mount.exe -o sec=sys,rw '*' nfs://[fe80::21b:1bff:fec3:7713]//net_tmpfs2/test2\n"
         "\tnfs_mount.exe -o sec=sys,rw S nfs://myhost1//dirwithspace/dir%%20space/test2\n"
+        "\tnfs_mount.exe -o sec=sys,rw nfs://myhost1//dirwithspace/dir%%20space/test2\n"
         "\tnfs_mount.exe -o sec=sys,rw S nfs://myhost1//dirwithspace/dir+space/test2\n"
-        "\tnfs_mount.exe -o sec=sys S nfs://myhost1//dirwithspace/dir+space/test2?rw=1\n",
-        pProcess, pProcess, pProcess,
+        "\tnfs_mount.exe -o sec=sys S nfs://myhost1//dirwithspace/dir+space/test2?rw=1\n"
+        "\tnfs_mount.exe -o sec=sys nfs://myhost1//dirwithspace/dir+space/test2?rw=1\n",
+        pProcess, pProcess, pProcess, pProcess,
         (int)NFS41_DRIVER_DEFAULT_CREATE_MODE);
 }
 
@@ -166,7 +169,7 @@ int mount_main(int argc, wchar_t *argv[])
 {
     int     i;
     DWORD   result = NO_ERROR;
-    wchar_t szLocalName[] = L"C:\0";
+    wchar_t szLocalName[NFS41_SYS_MAX_PATH_LEN];
     LPWSTR  pLocalName = NULL;
     LPWSTR  pRemoteName = NULL;
     BOOL    bUnmount = FALSE;
@@ -363,11 +366,12 @@ opt_o_argv_i_again:
             goto out;
 	}
         /* drive letter */
-	else if (pLocalName == NULL) {
+	else if ((!bUnmount) && (pLocalName == NULL) &&
+            (i == (argc-2)) && (wcslen(argv[i]) <= 2)) {
             pLocalName = argv[i];
         }
         /* remote path */
-        else if (pRemoteName == NULL) {
+        else if ((pRemoteName == NULL) && (i == (argc-1))) {
             pRemoteName = argv[i];
         }
         else {
@@ -378,26 +382,21 @@ opt_o_argv_i_again:
     }
 
     /* validate local drive letter */
-    if (pLocalName == NULL)
-    {
-        result = ERROR_BAD_ARGUMENTS;
-        (void)fwprintf(stderr, L"Missing argument for drive letter.\n\n");
-        PrintMountUsage(argv[0]);
-        goto out_free;
-    }
-    if (FALSE == ParseDriveLetter(pLocalName, szLocalName))
-    {
-        result = ERROR_BAD_ARGUMENTS;
-        (void)fwprintf(stderr, L"Invalid drive letter '%s'. "
-            L"Expected 'C' or 'C:'.\n\n",
-            pLocalName);
-        PrintMountUsage(argv[0]);
-        goto out_free;
+    if (pLocalName) {
+        if (!ParseDriveLetter(pLocalName, szLocalName)) {
+            result = ERROR_BAD_ARGUMENTS;
+            (void)fwprintf(stderr, L"Invalid drive letter '%s'. "
+                L"Expected 'C' or 'C:'.\n\n",
+                pLocalName);
+            PrintMountUsage(argv[0]);
+            goto out_free;
+        }
     }
 
     if (bUnmount == TRUE) /* unmount */
     {
-        result = DoUnmount(szLocalName, bForceUnmount);
+        result = DoUnmount(pLocalName?szLocalName:pRemoteName,
+            bForceUnmount);
         if (result)
             PrintErrorMessage(result);
     }
@@ -440,7 +439,9 @@ opt_o_argv_i_again:
             }
         }
 
-        result = DoMount(szLocalName, szRemoteName, szParsedRemoteName, bPersistent, &Options);
+        result = DoMount(pLocalName?szLocalName:NULL,
+            szRemoteName, szParsedRemoteName, bPersistent,
+            &Options);
         if (result)
             PrintErrorMessage(result);
     }
@@ -977,47 +978,56 @@ static DWORD DoMount(
     RecursivePrintEaInformation((PFILE_FULL_EA_INFORMATION)pOptions->Buffer->Buffer);
 #endif /* DEBUG_MOUNT */
 
-    /* fail if the connection already exists */
-    dwLength = NFS41_SYS_MAX_PATH_LEN;
-    result = WNetGetConnection(pLocalName, (LPWSTR)szExisting, &dwLength);
-    if (result == NO_ERROR)
-    {
-        result = ERROR_ALREADY_ASSIGNED;
-        (void)fwprintf(stderr, L"Mount failed, drive '%s' is "
-            L"already assigned to '%s'.\n",
-            pLocalName, szExisting);
-    }
-    else
-    {
-        wchar_t szConnection[NFS41_SYS_MAX_PATH_LEN];
-        DWORD ConnectSize = NFS41_SYS_MAX_PATH_LEN, ConnectResult, Flags = 0;
-
-        ZeroMemory(&NetResource, sizeof(NETRESOURCE));
-        NetResource.dwType = RESOURCETYPE_DISK;
-        /* drive letter is chosen automatically if lpLocalName == NULL */
-        NetResource.lpLocalName = *pLocalName == L'*' ? NULL : pLocalName;
-        NetResource.lpRemoteName = pRemoteName;
-        /* ignore other network providers */
-        NetResource.lpProvider = NFS41_PROVIDER_NAME_U;
-        /* pass mount options via lpComment */
-        if (pOptions->Buffer->Length) {
-            NetResource.lpComment = (LPWSTR)pOptions->Buffer;
+    if (pLocalName) {
+        /* fail if the connection already exists */
+        dwLength = NFS41_SYS_MAX_PATH_LEN;
+        result = WNetGetConnection(pLocalName, (LPWSTR)szExisting, &dwLength);
+        if (result == NO_ERROR) {
+            result = ERROR_ALREADY_ASSIGNED;
+            (void)fwprintf(stderr, L"Mount failed, drive '%s' is "
+                L"already assigned to '%s'.\n",
+                pLocalName, szExisting);
+            return result;
         }
+    }
 
-        if (bPersistent)
-            Flags |= CONNECT_UPDATE_PROFILE;
+    wchar_t szConnection[NFS41_SYS_MAX_PATH_LEN];
+    DWORD ConnectSize = NFS41_SYS_MAX_PATH_LEN;
+    DWORD ConnectResult;
+    DWORD Flags = 0;
 
-        result = WNetUseConnection(NULL,
-            &NetResource, NULL, NULL, Flags,
-            szConnection, &ConnectSize, &ConnectResult);
+    (void)memset(&NetResource, 0, sizeof(NETRESOURCE));
+    NetResource.dwType = RESOURCETYPE_DISK;
+    if (pLocalName) {
+        /* drive letter is chosen automatically if lpLocalName == "*" */
+        NetResource.lpLocalName = *pLocalName == L'*' ? NULL : pLocalName;
+    }
+    else {
+        NetResource.lpLocalName = NULL;
+    }
+    NetResource.lpRemoteName = pRemoteName;
+    /* ignore other network providers */
+    NetResource.lpProvider = NFS41_PROVIDER_NAME_U;
+    /* pass mount options via lpComment */
+    if (pOptions->Buffer->Length) {
+        NetResource.lpComment = (LPWSTR)pOptions->Buffer;
+    }
 
-        if (result == NO_ERROR)
-            (void)wprintf(L"Successfully mounted '%s' to drive '%s'\n",
-                pParsedRemoteName, szConnection);
-        else
-            (void)fwprintf(stderr, L"WNetUseConnection('%s', '%s') "
-                L"failed with error code %u.\n",
-                pLocalName, pRemoteName, result);
+    if (bPersistent)
+        Flags |= CONNECT_UPDATE_PROFILE;
+
+    result = WNetUseConnection(NULL,
+        &NetResource, NULL, NULL, Flags,
+        szConnection, &ConnectSize, &ConnectResult);
+
+    if (result == NO_ERROR) {
+        (void)wprintf(L"Successfully mounted '%s' to drive '%s'\n",
+            pParsedRemoteName, szConnection);
+    }
+    else {
+        (void)fwprintf(stderr, L"WNetUseConnection('%s', '%s') "
+            L"failed with error code %u.\n",
+            pLocalName, pRemoteName, result);
     }
 
     return result;
@@ -1050,26 +1060,32 @@ static DWORD DoUnmount(
     return result;
 }
 
+#define ISWDOSLETTER(c) \
+    ( \
+        (((c) >= L'a') && ((c) <= L'z')) || \
+        (((c) >= L'A') && ((c) <= L'Z')) \
+    )
+
 static BOOL ParseDriveLetter(
     IN LPWSTR pArg,
-    OUT PTCH pDriveLetter)
+    OUT PWCH pDriveLetter)
 {
     /* accept 'C' or 'C:' */
-    switch (wcslen(pArg))
-    {
-    case 2:
-        if (pArg[1] != L':')
-            return FALSE;
-        /* break intentionally missing */
-    case 1:
-        if (iswlower(*pArg))
-            *pArg = (wchar_t)towupper(*pArg);
-        else if (!iswupper(*pArg) && *pArg != L'*')
-            return FALSE;
+    switch (wcslen(pArg)) {
+        case 2:
+            if (pArg[1] != L':')
+                return FALSE;
+            /* fall-through */
+        case 1:
+            if (!ISWDOSLETTER(*pArg) && (*pArg != L'*'))
+                return FALSE;
 
-        *pDriveLetter = *pArg;
-        return TRUE;
+            pDriveLetter[0] = towupper(*pArg);
+            pDriveLetter[1] = L':';
+            pDriveLetter[2] = L'\0';
+            return TRUE;
     }
+
     return FALSE;
 }
 
