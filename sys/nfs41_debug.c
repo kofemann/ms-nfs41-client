@@ -3,6 +3,7 @@
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
+ * Roland Mainz <roland.mainz@nrubsig.org>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -49,9 +50,9 @@ ULONG __cdecl DbgP(IN PCCH fmt, ...)
         ExSystemTimeToLocalTime(&timestamp,&local_time);
         RtlTimeToTimeFields(&local_time, &time_fields);
 
-        DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, 
-            "[%ld].[%02u:%02u:%02u.%u] %s", IoGetCurrentProcess(), 
-            time_fields.Hour, time_fields.Minute, time_fields.Second, 
+        DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL,
+            "[%ld].[%02u:%02u:%02u.%u] %s", IoGetCurrentProcess(),
+            time_fields.Hour, time_fields.Minute, time_fields.Second,
             time_fields.Milliseconds, msg);
 #else
         DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL,
@@ -191,24 +192,27 @@ void print_driver_state(int state)
 void print_basic_info(int on, PFILE_BASIC_INFORMATION info)
 {
     if (!on) return;
-    DbgP("BASIC_INFO: Create=%lx Access=%lx Write=%lx Change=%lx Attr=%x\n",
+    DbgP("BASIC_INFO: "
+        "Create=0x%lx Access=0x%lx Write=0x%lx Change=0x%lx Attr=0x%x\n",
         info->CreationTime.QuadPart, info->LastAccessTime.QuadPart,
-        info->LastWriteTime.QuadPart, info->ChangeTime.QuadPart, 
+        info->LastWriteTime.QuadPart, info->ChangeTime.QuadPart,
         info->FileAttributes);
 }
 void print_std_info(int on, PFILE_STANDARD_INFORMATION info)
 {
     if (!on) return;
-    DbgP("STD_INFO: Type=%s #Links=%d Alloc=%lx EOF=%lx Delete=%d\n",
-        info->Directory?"DIR":"FILE", info->NumberOfLinks, 
-        info->AllocationSize.QuadPart, info->EndOfFile.QuadPart, 
+    DbgP("STD_INFO: "
+        "Type='%s' #Links=%d Alloc=0x%lx EOF=0x%lx Delete=%d\n",
+        info->Directory?"DIR":"FILE", info->NumberOfLinks,
+        info->AllocationSize.QuadPart, info->EndOfFile.QuadPart,
         info->DeletePending);
 }
 
 void print_ea_info(PFILE_FULL_EA_INFORMATION info)
 {
-    DbgP("FULL_EA_INFO: NextOffset=%d Flags=%x EaNameLength=%d "
-        "ExValueLength=%x EaName=%s\n", info->NextEntryOffset, info->Flags,
+    DbgP("FULL_EA_INFO: NextOffset=%d Flags=0x%x EaNameLength=%d "
+        "ExValueLength=0x%x EaName='%s'\n",
+        info->NextEntryOffset, info->Flags,
         info->EaNameLength, info->EaValueLength, info->EaName);
 #if DEBUG_EAINFO_DETAILS
     if (info->EaValueLength)
@@ -221,22 +225,23 @@ void print_ea_info(PFILE_FULL_EA_INFORMATION info)
 void print_get_ea(int on, PFILE_GET_EA_INFORMATION info)
 {
     if (!on || !info) return;
-    DbgP("GET_EA_INFO: NextOffset=%d EaNameLength=%d EaName=%s\n", 
+    DbgP("GET_EA_INFO: NextOffset=%d EaNameLength=%d EaName='%s'\n",
         info->NextEntryOffset, info->EaNameLength, info->EaName);
 }
 
 VOID print_srv_call(IN PMRX_SRV_CALL p)
 {
-    DbgP("PMRX_SRV_CALL %p\n", p);
+    DbgP("PMRX_SRV_CALL 0x%p\n", p);
 #if 0
     DbgP("\tNodeReferenceCount %ld\n", p->NodeReferenceCount);
-    //DbgP("Context %p\n", p->Context);
-    //DbgP("Context2 %p\n", p->Context2);
-    //DbgP("pSrvCallName %wZ\n", p->pSrvCallName);
-    //DbgP("pPrincipalName %wZ\n", p->pPrincipalName);
-    //DbgP("PDomainName %wZ\n", p->pDomainName);
+    //DbgP("Context 0x%p\n", p->Context);
+    //DbgP("Context2 0x%p\n", p->Context2);
+    //DbgP("pSrvCallName '%wZ'\n", p->pSrvCallName);
+    //DbgP("pPrincipalName '%wZ'\n", p->pPrincipalName);
+    //DbgP("PDomainName '%wZ'\n", p->pDomainName);
     //DbgP("Flags %08lx\n", p->Flags);
-    //DbgP("MaximumNumberOfCloseDelayedFiles %ld\n", p->MaximumNumberOfCloseDelayedFiles);
+    //DbgP("MaximumNumberOfCloseDelayedFiles %ld\n",
+    //    p->MaximumNumberOfCloseDelayedFiles);
     //DbgP("Status %ld\n", p->Status);
     DbgP("*****************\n");
 #endif
@@ -244,41 +249,41 @@ VOID print_srv_call(IN PMRX_SRV_CALL p)
 
 VOID print_net_root(IN PMRX_NET_ROOT p)
 {
-    DbgP("PMRX_NET_ROOT %p\n", p);
+    DbgP("PMRX_NET_ROOT 0x%p\n", p);
 #if 0
     DbgP("\tNodeReferenceCount %ld\n", p->NodeReferenceCount);
-    DbgP("\tpSrvCall %p\n", p->pSrvCall);
-    //DbgP("Context %p\n", p->Context);
-    //DbgP("Context2 %p\n", p->Context2);
-    //DbgP("Flags %08lx\n", p->Flags);
+    DbgP("\tpSrvCall 0x%p\n", p->pSrvCall);
+    //DbgP("Context 0x%p\n", p->Context);
+    //DbgP("Context2 0x%p\n", p->Context2);
+    //DbgP("Flags 0x%08lx\n", p->Flags);
     DbgP("\tNumberOfFcbs %ld\n", p->NumberOfFcbs);
     DbgP("\tNumberofSrvOpens %ld\n", p->NumberOfSrvOpens);
     //DbgP("MRxNetRootState %ld\n", p->MRxNetRootState);
     //DbgP("Type %ld\n", p->Type);
     //DbgP("DeviceType %ld\n", p->DeviceType);
-    //DbgP("pNetRootName %wZ\n", p->pNetRootName);
-    //DbgP("InnerNamePrefix %wZ\n", &p->InnerNamePrefix);
+    //DbgP("pNetRootName '%wZ'\n", p->pNetRootName);
+    //DbgP("InnerNamePrefix '%wZ'\n", &p->InnerNamePrefix);
     DbgP("*****************\n");
 #endif
 }
 
 VOID print_v_net_root(IN PMRX_V_NET_ROOT p)
 {
-    DbgP("PMRX_V_NET_ROOT %p\n", p);
+    DbgP("PMRX_V_NET_ROOT 0x%p\n", p);
 #if 0
     DbgP("\tNodeReferenceCount %ld\n", p->NodeReferenceCount);
-    DbgP("\tpNetRoot %p\n", p->pNetRoot);
-    //DbgP("Context %p\n", p->Context);
-    //DbgP("Context2 %p\n", p->Context2);
-    //DbgP("Flags %08lx\n", p->Flags);
+    DbgP("\tpNetRoot 0x%p\n", p->pNetRoot);
+    //DbgP("Context 0x%p\n", p->Context);
+    //DbgP("Context2 0x%p\n", p->Context2);
+    //DbgP("Flags 0x%08lx\n", p->Flags);
     DbgP("\tNumberofOpens %ld\n", p->NumberOfOpens);
     DbgP("\tNumberofFobxs %ld\n", p->NumberOfFobxs);
     //DbgP("LogonId\n");
-    //DbgP("pUserDomainName %wZ\n", p->pUserDomainName);
-    //DbgP("pUserName %wZ\n", p->pUserName);
-    //DbgP("pPassword %wZ\n", p->pPassword);
+    //DbgP("pUserDomainName '%wZ'\n", p->pUserDomainName);
+    //DbgP("pUserName '%wZ'\n", p->pUserName);
+    //DbgP("pPassword '%wZ'\n", p->pPassword);
     //DbgP("SessionId %ld\n", p->SessionId);
-    //DbgP("ConstructionStatus %08lx\n", p->ConstructionStatus);
+    //DbgP("ConstructionStatus 0x%08lx\n", p->ConstructionStatus);
     //DbgP("IsExplicitConnection %d\n", p->IsExplicitConnection);
     DbgP("*****************\n");
 #endif
@@ -286,19 +291,21 @@ VOID print_v_net_root(IN PMRX_V_NET_ROOT p)
 
 void print_file_object(int on, PFILE_OBJECT file)
 {
-    if (!on) return;   
-    DbgP("FsContext %p FsContext2 %p\n", file->FsContext, file->FsContext2);
+    if (!on) return;
+    DbgP("FsContext 0x%p FsContext2 0x%p\n",
+        file->FsContext, file->FsContext2);
     DbgP("DeletePending %d ReadAccess %d WriteAccess %d DeleteAccess %d\n",
         file->DeletePending, file->WriteAccess, file->DeleteAccess);
-    DbgP("SharedRead %d SharedWrite %d SharedDelete %d Flags %x\n",
-        file->SharedRead, file->SharedWrite, file->SharedDelete, file->Flags);
+    DbgP("SharedRead %d SharedWrite %d SharedDelete %d Flags 0x%x\n",
+        file->SharedRead, file->SharedWrite, file->SharedDelete,
+        file->Flags);
 }
 
 void print_fo_all(int on, PRX_CONTEXT c)
 {
     if (!on) return;
     if (c->pFcb && c->pRelevantSrvOpen)
-        DbgP("OpenCount %d FCB %p SRV %p FOBX %p VNET %p NET %p\n", 
+        DbgP("OpenCount %d FCB 0x%p SRV 0x%p FOBX 0x%p VNET 0x%p NET 0x%p\n",
             c->pFcb->OpenCount, c->pFcb, c->pRelevantSrvOpen, c->pFobx,
             c->pRelevantSrvOpen->pVNetRoot, c->pFcb->pNetRoot);
 }
@@ -306,17 +313,18 @@ void print_fo_all(int on, PRX_CONTEXT c)
 VOID print_fcb(int on, IN PMRX_FCB p)
 {
     if (!on) return;
-    DbgP("PMRX_FCB %p OpenCount %d\n", p, p->OpenCount);
+    DbgP("PMRX_FCB 0x%p OpenCount %d\n", p, p->OpenCount);
 #if 0
     DbgP("\tNodeReferenceCount %ld\n", p->NodeReferenceCount);
-    DbgP("\tpNetRoot %p\n", p->pNetRoot);
-    //DbgP("Context %p\n", p->Context);
-    //DbgP("Context2 %p\n", p->Context2);
+    DbgP("\tpNetRoot 0x%p\n", p->pNetRoot);
+    //DbgP("Context 0x%p\n", p->Context);
+    //DbgP("Context2 0x%p\n", p->Context2);
     //DbgP("FcbState %ld\n", p->FcbState);
     //DbgP("UncleanCount %ld\n", p->UncleanCount);
     //DbgP("UncachedUncleanCount %ld\n", p->UncachedUncleanCount);
     DbgP("\tOpenCount %ld\n", p->OpenCount);
-    //DbgP("OutstandingLockOperationsCount %ld\n", p->OutstandingLockOperationsCount);
+    //DbgP("OutstandingLockOperationsCount %ld\n",
+    //    p->OutstandingLockOperationsCount);
     //DbgP("ActualAllocationLength %ull\n", p->ActualAllocationLength);
     //DbgP("Attributes %ld\n", p->Attributes);
     //DbgP("IsFileWritten %d\n", p->IsFileWritten);
@@ -332,18 +340,18 @@ VOID print_fcb(int on, IN PMRX_FCB p)
 VOID print_srv_open(int on, IN PMRX_SRV_OPEN p)
 {
     if (!on) return;
-    DbgP("PMRX_SRV_OPEN %p\n", p);
+    DbgP("PMRX_SRV_OPEN 0x%p\n", p);
 #if 0
     DbgP("\tNodeReferenceCount %ld\n", p->NodeReferenceCount);
-    DbgP("\tpFcb %p\n", p->pFcb);
-    DbgP("\tpVNetRoot %p\n", p->pVNetRoot);
-    //DbgP("Context %p\n", p->Context);
-    //DbgP("Context2 %p\n", p->Context2);
-    //DbgP("Flags %08lx\n", p->Flags);
-    //DbgP("pAlreadyPrefixedName %wZ\n", p->pAlreadyPrefixedName);
+    DbgP("\tpFcb 0x%p\n", p->pFcb);
+    DbgP("\tpVNetRoot 0x%p\n", p->pVNetRoot);
+    //DbgP("Context 0x%p\n", p->Context);
+    //DbgP("Context2 0x%p\n", p->Context2);
+    //DbgP("Flags 0x%08lx\n", p->Flags);
+    //DbgP("pAlreadyPrefixedName '%wZ'\n", p->pAlreadyPrefixedName);
     //DbgP("UncleanFobxCount %ld\n", p->UncleanFobxCount);
     DbgP("\tOpenCount %ld\n", p->OpenCount);
-    //DbgP("Key %p\n", p->Key);
+    //DbgP("Key 0x%p\n", p->Key);
     //DbgP("DesiredAccess\n");
     //DbgP("ShareAccess %ld\n", p->ShareAccess);
     //DbgP("CreateOptions %ld\n", p->CreateOptions);
@@ -357,14 +365,14 @@ VOID print_srv_open(int on, IN PMRX_SRV_OPEN p)
 VOID print_fobx(int on, IN PMRX_FOBX p)
 {
     if (!on) return;
-    DbgP("PMRX_FOBX %p\n", p);
+    DbgP("PMRX_FOBX 0x%p\n", p);
 #if 0
     DbgP("\tNodeReferenceCount %ld\n", p->NodeReferenceCount);
-    DbgP("\tpSrvOpen %p\n", p->pSrvOpen);
-    DbgP("\tAssociatedFileObject %p\n", p->AssociatedFileObject);
-    //DbgP("Context %p\n", p->Context);
-    //DbgP("Context2 %p\n", p->Context2);
-    //DbgP("Flags %08lx\n", p->Flags);
+    DbgP("\tpSrvOpen 0x%p\n", p->pSrvOpen);
+    DbgP("\tAssociatedFileObject 0x%p\n", p->AssociatedFileObject);
+    //DbgP("Context 0x%p\n", p->Context);
+    //DbgP("Context2 0x%p\n", p->Context2);
+    //DbgP("Flags 0x%08lx\n", p->Flags);
     DbgP("*****************\n");
 #endif
 }
@@ -373,7 +381,11 @@ VOID print_irp_flags(int on, PIRP irp)
 {
     if (!on) return;
     if (irp->Flags)
-        DbgP("IRP FLAGS: 0x%x %s %s %s %s %s %s %s %s %s %s %s %s %s %s\n", 
+        DbgP("IRP FLAGS: "
+            "0x%x "
+            "'%s' '%s' '%s' '%s' "
+            "'%s' '%s' '%s' '%s' "
+            "'%s' '%s' '%s' '%s' '%s' '%s'\n",
             irp->Flags,
             (irp->Flags & IRP_NOCACHE)?"NOCACHE":"",
             (irp->Flags & IRP_PAGING_IO)?"PAGING_IO":"",
@@ -395,7 +407,7 @@ void print_irps_flags(int on, PIO_STACK_LOCATION irps)
 {
     if (!on) return;
     if (irps->Flags)
-        DbgP("IRPSP FLAGS 0x%x %s %s %s %s\n", irps->Flags,
+        DbgP("IRPSP FLAGS 0x%x '%s' '%s' '%s' '%s'\n", irps->Flags,
             (irps->Flags & SL_CASE_SENSITIVE)?"CASE_SENSITIVE":"",
             (irps->Flags & SL_OPEN_PAGING_FILE)?"PAGING_FILE":"",
             (irps->Flags & SL_FORCE_ACCESS_CHECK)?"ACCESS_CHECK":"",
@@ -405,7 +417,9 @@ void print_nt_create_params(int on, NT_CREATE_PARAMETERS params)
 {
     if (!on) return;
     if (params.FileAttributes)
-        DbgP("File attributes %x: %s %s %s %s %s %s %s %s %s %s %s %s %s %s\n", 
+        DbgP("File attributes 0x%x: "
+            "'%s' '%s' '%s' '%s' '%s' '%s' '%s' '%s' '%s' "
+            "'%s' '%s' '%s' '%s' '%s'\n",
             params.FileAttributes,
             (params.FileAttributes & FILE_ATTRIBUTE_TEMPORARY)?"TEMPFILE ":"",
             (params.FileAttributes & FILE_ATTRIBUTE_READONLY)?"READONLY ":"",
@@ -435,8 +449,11 @@ void print_nt_create_params(int on, NT_CREATE_PARAMETERS params)
     if (params.Disposition == FILE_OVERWRITE_IF)
         DbgP("Create Dispositions: FILE_OVERWRITE_IF\n");
 
-    DbgP("Create Attributes: 0x%x %s %s %s %s %s %s %s %s %s %s %s %s %s %s "
-        "%s %s\n", params.CreateOptions, 
+    DbgP("Create Attributes: "
+        "0x%x "
+        "'%s' '%s' '%s' '%s' '%s' '%s' '%s' '%s' '%s' "
+        "'%s' '%s' '%s' '%s' '%s' '%s' '%s'\n",
+        params.CreateOptions,
         (params.CreateOptions & FILE_DIRECTORY_FILE)?"DIRFILE":"",
         (params.CreateOptions & FILE_NON_DIRECTORY_FILE)?"FILE":"",
         (params.CreateOptions & FILE_DELETE_ON_CLOSE)?"DELETE_ON_CLOSE":"",
@@ -454,12 +471,13 @@ void print_nt_create_params(int on, NT_CREATE_PARAMETERS params)
         (params.CreateOptions & FILE_OPEN_FOR_BACKUP_INTENT)?"4_BACKUP":"",
         (params.CreateOptions & FILE_RESERVE_OPFILTER)?"OPFILTER":"");
 
-    DbgP("Share Access: %s %s %s\n", 
+    DbgP("Share Access: '%s' '%s' '%s'\n",
         (params.ShareAccess & FILE_SHARE_READ)?"READ":"",
         (params.ShareAccess & FILE_SHARE_WRITE)?"WRITE":"",
         (params.ShareAccess & FILE_SHARE_DELETE)?"DELETE":"");
 
-    DbgP("Desired Access: 0x%x %s %s %s %s %s %s %s %s %s %s %s\n", 
+    DbgP("Desired Access: "
+        "0x%x '%s' '%s' '%s' '%s' '%s' '%s' '%s' '%s' '%s' '%s' '%s'\n",
         params.DesiredAccess,
         (params.DesiredAccess & FILE_READ_DATA)?"READ":"",
         (params.DesiredAccess & STANDARD_RIGHTS_READ)?"READ_ACL":"",
@@ -568,18 +586,18 @@ void print_caching_level(int on, ULONG flag, PUNICODE_STRING name)
 {
     if (!on) return;
     switch(flag) {
-        case 0: 
-            DbgP("enable_caching: DISABLE_CACHING %wZ\n", name);
+        case 0:
+            DbgP("enable_caching: DISABLE_CACHING '%wZ'\n", name);
             break;
         case 1:
-            DbgP("enable_caching: ENABLE_READ_CACHING %wZ\n", name);
+            DbgP("enable_caching: ENABLE_READ_CACHING '%wZ'\n", name);
             break;
         case 2:
-            DbgP("enable_caching: ENABLE_WRITE_CACHING %wZ\n", name);
+            DbgP("enable_caching: ENABLE_WRITE_CACHING '%wZ'\n", name);
             break;
         case 3:
-            DbgP("enable_caching: ENABLE_READWRITE_CACHING %wZ\n", name);
-            break;   
+            DbgP("enable_caching: ENABLE_READWRITE_CACHING '%wZ'\n", name);
+            break;
     }
 }
 
@@ -611,7 +629,7 @@ const char *opcode2string(int opcode)
 void print_acl_args(
     SECURITY_INFORMATION info)
 {
-    DbgP("Security query: %s %s %s\n",
+    DbgP("Security query: '%s' '%s' '%s'\n",
         (info & OWNER_SECURITY_INFORMATION)?"OWNER":"",
         (info & GROUP_SECURITY_INFORMATION)?"GROUP":"",
         (info & DACL_SECURITY_INFORMATION)?"DACL":"",
@@ -670,26 +688,26 @@ void print_open_error(int on, int status)
     }
 }
 
-void print_wait_status(int on, const char *prefix, NTSTATUS status, 
-                       const char *opcode, PVOID entry, LONGLONG xid)
+void print_wait_status(int on, const char *prefix, NTSTATUS status,
+    const char *opcode, PVOID entry, LONGLONG xid)
 {
     if (!on) return;
     switch (status) {
     case STATUS_SUCCESS:
         if (opcode)
-            DbgP("%s Got a wakeup call, finishing %s entry=%p xid=%lld\n", 
+            DbgP("'%s' Got a wakeup call, finishing '%s' entry=0x%p xid=%lld\n",
                 prefix, opcode, entry, xid);
         else
-            DbgP("%s Got a wakeup call\n", prefix);
+            DbgP("'%s' Got a wakeup call\n", prefix);
         break;
     case STATUS_USER_APC:
-        DbgP("%s KeWaitForSingleObject returned STATUS_USER_APC\n", prefix);
+        DbgP("'%s' KeWaitForSingleObject returned STATUS_USER_APC\n", prefix);
         break;
     case STATUS_ALERTED:
-        DbgP("%s KeWaitForSingleObject returned STATUS_ALERTED\n", prefix);
+        DbgP("'%s' KeWaitForSingleObject returned STATUS_ALERTED\n", prefix);
         break;
     default:
-        DbgP("%s KeWaitForSingleObject returned %d\n", prefix, status);
+        DbgP("'%s' KeWaitForSingleObject returned %d\n", prefix, status);
     }
 }
 /* This is taken from toaster/func.  Rumor says this should be replaced
@@ -722,9 +740,9 @@ dprintk(
 
         if (!NT_SUCCESS(status))
             rv = DbgPrintEx(PNFS_FLTR_ID, DPFLTR_MASK | flags,
-                            "RtlStringCbVPrintfA failed %x \n", status);
+                            "RtlStringCbVPrintfA failed 0x%x \n", status);
         else
-            rv = DbgPrintEx(PNFS_FLTR_ID, DPFLTR_MASK | flags, "%s    %s: %s\n",
+            rv = DbgPrintEx(PNFS_FLTR_ID, DPFLTR_MASK | flags, "'%s'    '%s': '%s'\n",
                     PNFS_TRACE_TAG, func, debugMessageBuffer);
     }
     va_end(list);

@@ -968,9 +968,10 @@ static NTSTATUS marshal_nfs41_lock(
     *len = header_len;
 
 #ifdef DEBUG_MARSHAL_DETAIL
-    DbgP("marshal_nfs41_lock: offset=%llx length=%llx exclusive=%u "
-         "blocking=%u\n", entry->u.Lock.offset, entry->u.Lock.length,
-         entry->u.Lock.exclusive, entry->u.Lock.blocking);
+    DbgP("marshal_nfs41_lock: "
+        "offset=0x%llx length=0x%llx exclusive=%u "
+        "blocking=%u\n", entry->u.Lock.offset, entry->u.Lock.length,
+        entry->u.Lock.exclusive, entry->u.Lock.blocking);
 #endif
 out:
     return status;
@@ -2684,11 +2685,11 @@ static NTSTATUS nfs41_DevFcbXXXControlFile(
                 if (status == STATUS_REDIRECTOR_STARTED) {
                     DbgP("redirector started\n");
                     status = STATUS_SUCCESS;
-                } else if (status == STATUS_PENDING && 
+                } else if (status == STATUS_PENDING &&
                             RxContext->PostRequest == TRUE) {
-                    DbgP("RxStartMinirdr pending %08lx\n", status);
+                    DbgP("RxStartMinirdr pending 0x%08lx\n", status);
                     status = STATUS_MORE_PROCESSING_REQUIRED;
-                } 
+                }
                 break;
             case NFS41_START_DRIVER_STARTED:
                 status = STATUS_SUCCESS;
@@ -2713,7 +2714,7 @@ static NTSTATUS nfs41_DevFcbXXXControlFile(
                         NFS41_START_DRIVER_STARTED);
 
             status = RxStopMinirdr(RxContext, &RxContext->PostRequest);
-            DbgP("RxStopMinirdr status %08lx\n", status);
+            DbgP("RxStopMinirdr status 0x%08lx\n", status);
             if (status == STATUS_PENDING && RxContext->PostRequest == TRUE )
                 status = STATUS_MORE_PROCESSING_REQUIRED;
             break;
@@ -2803,10 +2804,10 @@ static NTSTATUS nfs41_CreateSrvCall(
         DbgP("executing with RDBSS context\n");
         status = _nfs41_CreateSrvCall(pCallbackContext);
     } else {
-        status = RxDispatchToWorkerThread(nfs41_dev, DelayedWorkQueue, 
+        status = RxDispatchToWorkerThread(nfs41_dev, DelayedWorkQueue,
             _nfs41_CreateSrvCall, pCallbackContext);
         if (status != STATUS_SUCCESS) {
-            print_error("RxDispatchToWorkerThread returned status %08lx\n", 
+            print_error("RxDispatchToWorkerThread returned status 0x%08lx\n",
                 status);
             pCallbackContext->Status = status;
             pCallbackContext->SrvCalldownStructure->CallBack(pCallbackContext);
@@ -3175,7 +3176,7 @@ static NTSTATUS nfs41_MountConfig_ParseOptions(
                 if (status == STATUS_SUCCESS) {
                     if (Config->createmode.mode > 0777) {
                         status = STATUS_INVALID_PARAMETER;
-                        print_error("mode 0o%o out of bounds\n",
+                        print_error("mode 0%o out of bounds\n",
                             (int)Config->createmode.mode);
                     }
                 }
@@ -3188,7 +3189,7 @@ static NTSTATUS nfs41_MountConfig_ParseOptions(
 
             DbgP("nfs41_MountConfig_ParseOptions: createmode: "
                 "status=0x%lx, "
-                "createmode=(use_nfsv3attrsea_mode=%d, mode=0o%o\n",
+                "createmode=(use_nfsv3attrsea_mode=%d, mode=0%o\n",
                 (long)status,
                 (int)Config->createmode.use_nfsv3attrsea_mode,
                 (int)Config->createmode.mode);
@@ -3605,7 +3606,7 @@ static NTSTATUS nfs41_CreateVNetRoot(
         "timebasedcoherency=%d "
         "timeout=%d "
         "createmode.use_nfsv3attrsea_mode=%d "
-        "Config->createmode.mode=0o%o "
+        "Config->createmode.mode=0%o "
         "}\n",
         &Config->MntPt,
         &Config->SrvName,
@@ -4394,7 +4395,7 @@ retry_on_link:
         status = RxPrepareToReparseSymbolicLink(RxContext,
             entry->u.Open.symlink_embedded, &AbsPath, TRUE, &ReparseRequired);
 #ifdef DEBUG_OPEN
-        DbgP("RxPrepareToReparseSymbolicLink(%u, '%wZ') returned %08lX, "
+        DbgP("RxPrepareToReparseSymbolicLink(%u, '%wZ') returned 0x%08lX, "
             "FileName is '%wZ'\n", entry->u.Open.symlink_embedded,
             &AbsPath, status, &RxContext->CurrentIrpSp->FileObject->FileName);
 #endif
@@ -5784,10 +5785,10 @@ static NTSTATUS nfs41_QuerySecurityInformation(
         LARGE_INTEGER current_time;
         KeQuerySystemTime(&current_time);
 #ifdef DEBUG_ACL_QUERY
-        DbgP("CurrentTime %lx Saved Acl time %lx\n", 
+        DbgP("CurrentTime 0x%lx Saved Acl time 0x%lx\n",
             current_time.QuadPart, nfs41_fobx->time.QuadPart);
 #endif
-        if (current_time.QuadPart - nfs41_fobx->time.QuadPart <= 20*1000) {         
+        if (current_time.QuadPart - nfs41_fobx->time.QuadPart <= 20*1000) {
             PSECURITY_DESCRIPTOR sec_desc = (PSECURITY_DESCRIPTOR)
                 RxContext->CurrentIrp->UserBuffer;
             RtlCopyMemory(sec_desc, nfs41_fobx->acl, nfs41_fobx->acl_len); 
@@ -7832,7 +7833,7 @@ NTSTATUS DriverEntry(
 
     status = RxDriverEntry(drv, path);
     if (status != STATUS_SUCCESS) {
-        print_error("RxDriverEntry failed: %08lx\n", status);
+        print_error("RxDriverEntry failed: 0x%08lx\n", status);
         goto out;
     }
 
@@ -7847,10 +7848,10 @@ NTSTATUS DriverEntry(
 
     DbgP("calling RxRegisterMinirdr\n");
     status = RxRegisterMinirdr(&nfs41_dev, drv, &nfs41_ops, flags, &dev_name,
-                sizeof(NFS41_DEVICE_EXTENSION), 
+                sizeof(NFS41_DEVICE_EXTENSION),
                 FILE_DEVICE_NETWORK_FILE_SYSTEM, FILE_REMOTE_DEVICE);
     if (status != STATUS_SUCCESS) {
-        print_error("RxRegisterMinirdr failed: %08lx\n", status);
+        print_error("RxRegisterMinirdr failed: 0x%08lx\n", status);
         goto out;
     }
     nfs41_dev->Flags |= DO_BUFFERED_IO;
@@ -7867,7 +7868,7 @@ NTSTATUS DriverEntry(
     DbgP("calling IoCreateSymbolicLink '%wZ' '%wZ'\n", &user_dev_name, &dev_name);
     status = IoCreateSymbolicLink(&user_dev_name, &dev_name);
     if (status != STATUS_SUCCESS) {
-        print_error("Device name IoCreateSymbolicLink failed: %08lx\n", status);
+        print_error("Device name IoCreateSymbolicLink failed: 0x%08lx\n", status);
         goto out_unregister;
     }
 
