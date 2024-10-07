@@ -613,6 +613,27 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
     nfs41_open_state *state;
     nfs41_file_info info = { 0 };
 
+    EASSERT_MSG(!(args->create_opts & FILE_COMPLETE_IF_OPLOCKED),
+        ("handle_open: file='%s': "
+        "FILE_COMPLETE_IF_OPLOCKED not supported\n", args->path));
+    EASSERT_MSG(!(args->create_opts & FILE_OPEN_BY_FILE_ID),
+        ("handle_open: file='%s': "
+        "FILE_OPEN_BY_FILE_ID not supported\n", args->path));
+    EASSERT_MSG(!(args->create_opts & FILE_OPEN_REQUIRING_OPLOCK),
+        ("handle_open: file='%s': "
+        "FILE_OPEN_REQUIRING_OPLOCK not supported\n", args->path));
+    EASSERT_MSG(!(args->create_opts & FILE_DISALLOW_EXCLUSIVE),
+        ("handle_open: file='%s': "
+        "FILE_DISALLOW_EXCLUSIVE not supported\n", args->path));
+    EASSERT_MSG(!(args->create_opts & FILE_RESERVE_OPFILTER),
+        ("handle_open: file='%s': "
+        "FILE_RESERVE_OPFILTER not supported\n", args->path));
+
+    if (args->create_opts & FILE_OPEN_REQUIRING_OPLOCK) {
+        status = STATUS_INVALID_PARAMETER;
+        goto out;
+    }
+
     status = create_open_state(args->path, args->open_owner_id, &state);
     if (status) {
         eprintf("create_open_state(%d) failed with %d\n",
