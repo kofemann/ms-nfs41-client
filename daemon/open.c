@@ -619,6 +619,10 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
     EASSERT_MSG(!(args->create_opts & FILE_OPEN_BY_FILE_ID),
         ("handle_open: file='%s': "
         "FILE_OPEN_BY_FILE_ID not supported\n", args->path));
+    /*
+     * Kernel rejects |FILE_OPEN_REQUIRING_OPLOCK|, we just use
+     * this here as safeguard
+     */
     EASSERT_MSG(!(args->create_opts & FILE_OPEN_REQUIRING_OPLOCK),
         ("handle_open: file='%s': "
         "FILE_OPEN_REQUIRING_OPLOCK not supported\n", args->path));
@@ -628,11 +632,6 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
     EASSERT_MSG(!(args->create_opts & FILE_RESERVE_OPFILTER),
         ("handle_open: file='%s': "
         "FILE_RESERVE_OPFILTER not supported\n", args->path));
-
-    if (args->create_opts & FILE_OPEN_REQUIRING_OPLOCK) {
-        status = STATUS_INVALID_PARAMETER;
-        goto out;
-    }
 
     status = create_open_state(args->path, args->open_owner_id, &state);
     if (status) {

@@ -4196,6 +4196,12 @@ static NTSTATUS check_nfs41_create_args(
         goto out;
     }
 
+    /* We do not support oplocks (yet) */
+    if (params->CreateOptions & FILE_OPEN_REQUIRING_OPLOCK) {
+        status = STATUS_INVALID_PARAMETER;
+        goto out;
+    }
+
     if (!areOpenParamsValid(params)) {
         status = STATUS_INVALID_PARAMETER;
         goto out;
