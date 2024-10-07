@@ -317,6 +317,103 @@ function bash_clean
 	return 0
 }
 
+function msnfs41client_createcache
+{
+	set -o xtrace
+	set -o errexit
+	set -o nounset
+
+	mkdir -p 'gitbundles'
+	rm -f 'gitbundles/ms-nfs41-client.bundle'
+
+	git -c checkout.workers=16 clone 'https://github.com/kofemann/ms-nfs41-client.git'
+	cd 'ms-nfs41-client'
+	git config --global --add safe.directory "$PWD"
+	git bundle create '../gitbundles/ms-nfs41-client.bundle' --all
+	git config --global --unset safe.directory "$PWD"
+	cd ..
+	rm -Rf 'ms-nfs41-client'
+
+	return 0
+}
+
+
+function msnfs41client_build
+{
+	set -o xtrace
+	set -o errexit
+	set -o nounset
+
+	#
+	# build config
+	#
+	typeset config_cp_p_function_not_implemented_workaround=false
+
+	compound gitdata=(
+		typeset url='https://github.com/kofemann/ms-nfs41-client.git'
+		# use fixed git tag, so build times are compareable
+		typeset tag='master'
+	)
+
+	#
+	# temp dir setup
+	#
+
+	# fixme: Does not work with NFSv4.1 filesystem from exported Linux tmpfs - why ?
+	#tmpdir='/cygdrive/m/tmpdir'
+	#mkdir -p "$tmpdir"
+	#chmod a=rwxt "$tmpdir"
+	#if [[ -d "$tmpdir" && -w "$tmpdir" ]] ; then
+	#	export TMPDIR="$tmpdir"
+	#fi
+
+	#
+	# print user info
+	#
+	id -a
+	pwd
+
+	#
+	# source checkout
+	#
+
+	if [[ -f '../gitbundles/ms-nfs41-client.bundle' ]] ; then
+		# Use local bundle as cache,
+		# so build times only depend on local filesystem performance
+		# and not HTTPS speed
+		time git -c checkout.workers=16 clone -b "${gitdata.tag}" --single-branch '../gitbundles/ms-nfs41-client.bundle'
+	else
+		time git -c checkout.workers=16 clone -b "${gitdata.tag}" --single-branch "${gitdata.url}"
+	fi
+
+	cd "$PWD/ms-nfs41-client/"
+
+	#
+	# patch sources and configure build
+	#
+
+	#
+	# build ms-nfs41-client
+	#
+	export PATH+=":/cygdrive/c/Program Files (x86)/Microsoft Visual Studio/2019/Community/MSBuild/Current/Bin/"
+	time make -j1 -f cygwin/Makefile bintarball
+	echo $?
+
+	echo "#Done."
+	return 0
+}
+
+
+function msnfs41client_clean
+{
+	set -o xtrace
+	set -o errexit
+	set -o nounset
+
+	rm -Rf 'ms-nfs41-client'
+	return 0
+}
+
 builtin id
 builtin mkdir
 
@@ -348,6 +445,18 @@ function main
 			;;
 		'bash_clean')
 			bash_clean
+			return $?
+			;;
+		'msnfs41client_createcache')
+			msnfs41client_createcache
+			return $?
+			;;
+		'msnfs41client_build')
+			msnfs41client_build
+			return $?
+			;;
+		'msnfs41client_clean')
+			msnfs41client_clean
 			return $?
 			;;
 		*)
