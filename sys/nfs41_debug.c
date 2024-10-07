@@ -452,7 +452,7 @@ void print_nt_create_params(int on, NT_CREATE_PARAMETERS params)
     DbgP("Create Attributes: "
         "0x%x "
         "'%s' '%s' '%s' '%s' '%s' '%s' '%s' '%s' '%s' "
-        "'%s' '%s' '%s' '%s' '%s' '%s' '%s'\n",
+        "'%s' '%s' '%s' '%s' '%s' '%s' '%s' '%s' '%s'\n",
         params.CreateOptions,
         (params.CreateOptions & FILE_DIRECTORY_FILE)?"DIRFILE":"",
         (params.CreateOptions & FILE_NON_DIRECTORY_FILE)?"FILE":"",
@@ -469,6 +469,8 @@ void print_nt_create_params(int on, NT_CREATE_PARAMETERS params)
         (params.CreateOptions & FILE_OPEN_REPARSE_POINT)?"OPEN_REPARSE":"",
         (params.CreateOptions & FILE_OPEN_BY_FILE_ID)?"BY_ID":"",
         (params.CreateOptions & FILE_OPEN_FOR_BACKUP_INTENT)?"4_BACKUP":"",
+        (params.CreateOptions & FILE_OPEN_REQUIRING_OPLOCK)?"REQUIRING_OPLOCK":"",
+        (params.CreateOptions & FILE_DISALLOW_EXCLUSIVE)?"DISALLOW_EXCLUSIVE":"",
         (params.CreateOptions & FILE_RESERVE_OPFILTER)?"OPFILTER":"");
 
     DbgP("Share Access: '%s' '%s' '%s'\n",

@@ -273,6 +273,14 @@ void print_create_attributes(int level, DWORD create_opts) {
         fprintf(dlog_file, "OPEN_BY_FILE_ID ");
     if (create_opts & FILE_OPEN_FOR_BACKUP_INTENT)
         fprintf(dlog_file, "OPEN_FOR_BACKUP_INTENT ");
+    if (create_opts & FILE_NO_COMPRESSION)
+        fprintf(dlog_file, "NO_COMPRESSION ");
+    if (create_opts & FILE_OPEN_REQUIRING_OPLOCK)
+        fprintf(dlog_file, "OPEN_REQUIRING_OPLOCK ");
+    if (create_opts & FILE_DISALLOW_EXCLUSIVE)
+        fprintf(dlog_file, "DISALLOW_EXCLUSIVE ");
+    if (create_opts & FILE_SESSION_AWARE)
+        fprintf(dlog_file, "SESSION_AWARE ");
     if (create_opts & FILE_RESERVE_OPFILTER)
         fprintf(dlog_file, "RESERVE_OPFILTER");
     fprintf(dlog_file, "\n");

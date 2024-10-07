@@ -42,6 +42,10 @@
 #define FILE_OPEN_FOR_BACKUP_INTENT             0x00004000
 #define FILE_NO_COMPRESSION                     0x00008000
 
+#define FILE_OPEN_REQUIRING_OPLOCK              0x00010000
+#define FILE_DISALLOW_EXCLUSIVE                 0x00020000
+#define FILE_SESSION_AWARE                      0x00040000
+
 #define FILE_RESERVE_OPFILTER                   0x00100000
 #define FILE_OPEN_REPARSE_POINT                 0x00200000
 #define FILE_OPEN_NO_RECALL                     0x00400000
