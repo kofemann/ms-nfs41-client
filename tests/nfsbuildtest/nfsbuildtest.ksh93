@@ -26,8 +26,8 @@ function gcc_createcache
 	set -o errexit
 	set -o nounset
 
-	mkdir -p 'gitbundles'
-	rm -f 'gitbundles/gcc.bundle'
+	mkdir -p '../gitbundles'
+	rm -f '../gitbundles/gcc.bundle'
 
 	git -c checkout.workers=16 clone git://repo.or.cz/gcc.git
 	cd gcc
@@ -180,8 +180,8 @@ function bash_createcache
 	set -o errexit
 	set -o nounset
 
-	mkdir -p 'gitbundles'
-	rm -f 'gitbundles/bash.bundle'
+	mkdir -p '../gitbundles'
+	rm -f '../gitbundles/bash.bundle'
 
 	git -c checkout.workers=16 clone 'https://github.com/bminor/bash.git'
 	cd bash
@@ -323,8 +323,8 @@ function msnfs41client_createcache
 	set -o errexit
 	set -o nounset
 
-	mkdir -p 'gitbundles'
-	rm -f 'gitbundles/ms-nfs41-client.bundle'
+	mkdir -p '../gitbundles'
+	rm -f '../gitbundles/ms-nfs41-client.bundle'
 
 	git -c checkout.workers=16 clone 'https://github.com/kofemann/ms-nfs41-client.git'
 	cd 'ms-nfs41-client'
