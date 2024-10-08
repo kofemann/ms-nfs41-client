@@ -414,20 +414,68 @@ function msnfs41client_clean
 	return 0
 }
 
-builtin id
-builtin mkdir
+
+#
+# Enumerate installed Cygwin packages and fill
+# an associative array with the package names
+#
+function enumerate_cygwin_packages
+{
+	nameref package_arr=$1
+	typeset i
+
+	/usr/bin/cygcheck -n | while read i ; do
+		package_arr["$i"]='true'
+	done
+	return 0
+}
+
+
+#
+# test if a Cygwin package is installed, based on
+# the array of package names passed as $1
+#
+function is_cygwin_pkg_installed
+{
+	nameref package_arr=$1
+	typeset package_name="$2"
+	if [[ ! -v package_arr["$package_name"] ]] ; then
+		print -u2 -f $"Cygwin package '%s' not installed.\n" "$package_name"
+		return 1
+	fi
+
+	return 0
+}
+
 
 function main
 {
+	typeset -A icp # installed cygwin packages
+	integer errc=0 # error counter
 	typeset target="$1"
 	typeset subcmd="$2"
 
+	enumerate_cygwin_packages icp
+
 	case "${target}_${subcmd}" in
 		'gcc_createcache')
+			is_cygwin_pkg_installed icp 'git' || (( errc++ ))
 			gcc_createcache
 			return $?
 			;;
 		'gcc_build')
+			is_cygwin_pkg_installed icp 'git' || (( errc++ ))
+			is_cygwin_pkg_installed icp 'gcc-core' || (( errc++ ))
+			is_cygwin_pkg_installed icp 'gcc-g++' || (( errc++ ))
+			is_cygwin_pkg_installed icp 'make' || (( errc++ ))
+			is_cygwin_pkg_installed icp 'flex' || (( errc++ ))
+			is_cygwin_pkg_installed icp 'bison' || (( errc++ ))
+			is_cygwin_pkg_installed icp 'libgmp-devel' || (( errc++ ))
+			is_cygwin_pkg_installed icp 'libmpfr-devel' || (( errc++ ))
+			is_cygwin_pkg_installed icp 'libmpc-devel' || (( errc++ ))
+			is_cygwin_pkg_installed icp 'libintl-devel' || (( errc++ ))
+			is_cygwin_pkg_installed icp 'libisl-devel' || (( errc++ ))
+			(( errc > 0 )) && return 1
 			gcc_build
 			return $?
 			;;
@@ -436,10 +484,17 @@ function main
 			return $?
 			;;
 		'bash_createcache')
+			is_cygwin_pkg_installed icp 'git' || (( errc++ ))
 			bash_createcache
 			return $?
 			;;
 		'bash_build')
+			is_cygwin_pkg_installed icp 'git' || (( errc++ ))
+			is_cygwin_pkg_installed icp 'gcc-core' || (( errc++ ))
+			is_cygwin_pkg_installed icp 'gcc-g++' || (( errc++ ))
+			is_cygwin_pkg_installed icp 'bmake' || (( errc++ ))
+			is_cygwin_pkg_installed icp 'libncurses-devel' || (( errc++ ))
+			(( errc > 0 )) && return 1
 			bash_build
 			return $?
 			;;
@@ -448,10 +503,21 @@ function main
 			return $?
 			;;
 		'msnfs41client_createcache')
+			is_cygwin_pkg_installed icp 'git' || (( errc++ ))
 			msnfs41client_createcache
 			return $?
 			;;
 		'msnfs41client_build')
+			is_cygwin_pkg_installed icp 'git' || (( errc++ ))
+			is_cygwin_pkg_installed icp 'gcc-core' || (( errc++ ))
+			is_cygwin_pkg_installed icp 'gcc-g++' || (( errc++ ))
+			is_cygwin_pkg_installed icp 'mingw64-i686-clang' || (( errc++ ))
+			is_cygwin_pkg_installed icp 'mingw64-x86_64-clang' || (( errc++ ))
+			is_cygwin_pkg_installed icp 'make' || (( errc++ ))
+			is_cygwin_pkg_installed icp 'tar' || (( errc++ ))
+			is_cygwin_pkg_installed icp 'bzip2' || (( errc++ ))
+			is_cygwin_pkg_installed icp 'openssl' || (( errc++ ))
+			(( errc > 0 )) && return 1
 			msnfs41client_build
 			return $?
 			;;
@@ -470,9 +536,13 @@ function main
 	return 1
 }
 
+
 #
 # main
 #
+builtin id
+builtin mkdir
+
 main "$@"
 return $?
 
