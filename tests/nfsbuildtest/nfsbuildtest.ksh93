@@ -347,7 +347,7 @@ function msnfs41client_build
 	#
 	# build config
 	#
-	typeset config_cp_p_function_not_implemented_workaround=false
+	typeset config_vs_disable_incremental_linker=true
 
 	compound gitdata=(
 		typeset url='https://github.com/kofemann/ms-nfs41-client.git'
@@ -391,6 +391,15 @@ function msnfs41client_build
 	#
 	# patch sources and configure build
 	#
+
+	#
+	# disable incremental linking, which causes VC19 link.exe to
+	# crash, resulting in a
+	# "LINK : fatal error LNK1000: Internal error during IMAGE::Pass1"
+	#
+	if $config_vs_disable_incremental_linker ; then
+		sed -i -E 's/<LinkIncremental>true<\/LinkIncremental>/<LinkIncremental>false<\/LinkIncremental>/g' $(find 'build.vc19' -name \*.vcxproj)
+	fi
 
 	#
 	# build ms-nfs41-client
