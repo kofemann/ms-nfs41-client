@@ -2205,18 +2205,29 @@ static NTSTATUS nfs41_downcall(
     }
     ExReleaseFastMutex(&cur->lock);
     if (cur->async_op) {
-        if (cur->status == STATUS_SUCCESS) {
-            cur->u.ReadWrite.rxcontext->StoredStatus = STATUS_SUCCESS;
-            cur->u.ReadWrite.rxcontext->InformationToReturn =
-                cur->buf_len;
-        } else {
-            cur->u.ReadWrite.rxcontext->StoredStatus = 
-                map_readwrite_errors(cur->status);
-            cur->u.ReadWrite.rxcontext->InformationToReturn = 0;
+        switch (cur->opcode) {
+            case NFS41_WRITE:
+            case NFS41_READ:
+                if (cur->status == STATUS_SUCCESS) {
+                    cur->u.ReadWrite.rxcontext->StoredStatus =
+                        STATUS_SUCCESS;
+                    cur->u.ReadWrite.rxcontext->InformationToReturn =
+                        cur->buf_len;
+                } else {
+                    cur->u.ReadWrite.rxcontext->StoredStatus =
+                        map_readwrite_errors(cur->status);
+                    cur->u.ReadWrite.rxcontext->InformationToReturn = 0;
+                }
+                nfs41_RemoveEntry(downcallLock, cur);
+                RxLowIoCompletion(cur->u.ReadWrite.rxcontext);
+                nfs41_UpcallDestroy(cur);
+                break;
+            default:
+                print_error("##### nfs41_downcall: "
+                    "unknown async opcode=%d ####\n",
+                    (int)cur->opcode);
+                break;
         }
-        nfs41_RemoveEntry(downcallLock, cur);
-        RxLowIoCompletion(cur->u.ReadWrite.rxcontext);
-        nfs41_UpcallDestroy(cur);
     } else
         KeSetEvent(&cur->cond, 0, FALSE);
 
