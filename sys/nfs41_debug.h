@@ -63,18 +63,18 @@ const char *fsctl2string(ULONG fsctl);
 
 #define DbgEn() DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, \
         "--> [%s] [%04x] %s\n", _DRIVER_NAME_, PsGetCurrentProcessShortDebugId(), \
-        __func__); try {
+        __func__); __try {
 
 #define DbgEx() DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, \
         "<-- [%s] [%04x] %s status = %08lx\n", _DRIVER_NAME_, PsGetCurrentProcessShortDebugId(), \
         __func__, status); \
-        } except (EXCEPTION_EXECUTE_HANDLER) { \
+        } __except (EXCEPTION_EXECUTE_HANDLER) { \
             status = GetExceptionCode() ; \
             DbgP("Exception encountered with value = Ox%x\n", status); \
         }
 #define DbgR() DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, \
         "<-- [%s] [%04x] %s\n", _DRIVER_NAME_, PsGetCurrentProcessShortDebugId(), __func__); \
-        } except (EXCEPTION_EXECUTE_HANDLER) { \
+        } __except (EXCEPTION_EXECUTE_HANDLER) { \
             NTSTATUS exc_status; \
             exc_status = GetExceptionCode() ; \
             DbgP("Exception encountered with value = Ox%x\n", (int)exc_status); \

@@ -28,6 +28,30 @@
 #error Code requires ISO C17
 #endif
 
+/* FIXME: Why does VS22 need this, but not VC19 ? */
+#if _MSC_VER >= 1900
+#if defined(_WIN64) && defined(_M_X64)
+#ifndef _AMD64_
+#define _AMD64_
+#endif
+#elif defined(_WIN32) && defined(_M_IX86)
+#ifndef _X86_
+#define _X86_
+#endif
+#elif defined(_WIN64) && defined(_M_ARM64)
+#ifndef _ARM64_
+#define _ARM64_
+#endif
+#elif defined(_WIN32) && defined(_M_ARM)
+#ifndef _ARM_
+#define _ARM_
+#endif
+#else
+#error Unsupported arch
+#endif
+#endif /* _MSC_VER >= 1900 */
+
+
 #define MINIRDR__NAME "Value is ignored, only fact of definition"
 #include <rx.h>
 #include <windef.h>
@@ -291,6 +315,18 @@ typedef struct _updowncall_list {
 } nfs41_updowncall_list;
 nfs41_updowncall_list upcall, downcall;
 
+
+#if _MSC_VER >= 1900
+/*
+ * gisburn: VS22 chokes on the original define for
+ * |DECLARE_CONST_UNICODE_STRING|, so we use one
+ * without the offending stuff
+ */
+#undef DECLARE_CONST_UNICODE_STRING
+#define DECLARE_CONST_UNICODE_STRING(_var, _string) \
+	const WCHAR _var ## _buffer[] = _string; \
+	const UNICODE_STRING _var = { sizeof(_string) - sizeof(WCHAR), sizeof(_string), (PWCH) _var ## _buffer }
+#endif /* _MSC_VER >= 1900 */
 
 
 /*
@@ -2816,7 +2852,7 @@ static NTSTATUS nfs41_CreateSrvCall(
         status = _nfs41_CreateSrvCall(pCallbackContext);
     } else {
         status = RxDispatchToWorkerThread(nfs41_dev, DelayedWorkQueue,
-            _nfs41_CreateSrvCall, pCallbackContext);
+           (PRX_WORKERTHREAD_ROUTINE)_nfs41_CreateSrvCall, pCallbackContext);
         if (status != STATUS_SUCCESS) {
             print_error("RxDispatchToWorkerThread returned status 0x%08lx\n",
                 status);
@@ -7636,83 +7672,125 @@ static NTSTATUS nfs41_init_ops()
     // while the others continue to operate.
     //
 
-    nfs41_ops.MRxStart                = nfs41_Start;
-    nfs41_ops.MRxStop                 = nfs41_Stop;
-    nfs41_ops.MRxDevFcbXXXControlFile = nfs41_DevFcbXXXControlFile;
+    nfs41_ops.MRxStart                = (PMRX_CALLDOWN_CTX)nfs41_Start;
+    nfs41_ops.MRxStop                 = (PMRX_CALLDOWN_CTX)nfs41_Stop;
+    nfs41_ops.MRxDevFcbXXXControlFile =
+        (PMRX_CALLDOWN)nfs41_DevFcbXXXControlFile;
 
     //
     // Mini redirector name resolution.
     //
 
-    nfs41_ops.MRxCreateSrvCall       = nfs41_CreateSrvCall;
-    nfs41_ops.MRxSrvCallWinnerNotify = nfs41_SrvCallWinnerNotify;
-    nfs41_ops.MRxCreateVNetRoot      = nfs41_CreateVNetRoot;
-    nfs41_ops.MRxExtractNetRootName  = nfs41_ExtractNetRootName;
-    nfs41_ops.MRxFinalizeSrvCall     = nfs41_FinalizeSrvCall;
-    nfs41_ops.MRxFinalizeNetRoot     = nfs41_FinalizeNetRoot;
-    nfs41_ops.MRxFinalizeVNetRoot    = nfs41_FinalizeVNetRoot;
+    nfs41_ops.MRxCreateSrvCall       =
+        (PMRX_CREATE_SRVCALL)nfs41_CreateSrvCall;
+    nfs41_ops.MRxSrvCallWinnerNotify =
+        (PMRX_SRVCALL_WINNER_NOTIFY)nfs41_SrvCallWinnerNotify;
+    nfs41_ops.MRxCreateVNetRoot      =
+        (PMRX_CREATE_V_NET_ROOT)nfs41_CreateVNetRoot;
+    nfs41_ops.MRxExtractNetRootName  =
+        (PMRX_EXTRACT_NETROOT_NAME)nfs41_ExtractNetRootName;
+    nfs41_ops.MRxFinalizeSrvCall     =
+        (PMRX_FINALIZE_SRVCALL_CALLDOWN)nfs41_FinalizeSrvCall;
+    nfs41_ops.MRxFinalizeNetRoot     =
+        (PMRX_FINALIZE_NET_ROOT_CALLDOWN)nfs41_FinalizeNetRoot;
+    nfs41_ops.MRxFinalizeVNetRoot    =
+        (PMRX_FINALIZE_V_NET_ROOT_CALLDOWN)nfs41_FinalizeVNetRoot;
 
     //
     // File System Object Creation/Deletion.
     //
 
-    nfs41_ops.MRxCreate            = nfs41_Create;
-    nfs41_ops.MRxCollapseOpen      = nfs41_CollapseOpen;
-    nfs41_ops.MRxShouldTryToCollapseThisOpen = nfs41_ShouldTryToCollapseThisOpen;
-    nfs41_ops.MRxExtendForCache    = nfs41_ExtendForCache;
-    nfs41_ops.MRxExtendForNonCache = nfs41_ExtendForCache;
-    nfs41_ops.MRxCloseSrvOpen      = nfs41_CloseSrvOpen;
-    nfs41_ops.MRxFlush             = nfs41_Flush;
-    nfs41_ops.MRxDeallocateForFcb  = nfs41_DeallocateForFcb;
-    nfs41_ops.MRxDeallocateForFobx = nfs41_DeallocateForFobx;
-    nfs41_ops.MRxIsLockRealizable    = nfs41_IsLockRealizable;
+    nfs41_ops.MRxCreate            =
+        (PMRX_CALLDOWN)nfs41_Create;
+    nfs41_ops.MRxCollapseOpen      =
+        (PMRX_CALLDOWN)nfs41_CollapseOpen;
+    nfs41_ops.MRxShouldTryToCollapseThisOpen =
+        (PMRX_CALLDOWN)nfs41_ShouldTryToCollapseThisOpen;
+    nfs41_ops.MRxExtendForCache    =
+        (PMRX_EXTENDFILE_CALLDOWN)nfs41_ExtendForCache;
+    nfs41_ops.MRxExtendForNonCache =
+        (PMRX_EXTENDFILE_CALLDOWN)nfs41_ExtendForCache;
+    nfs41_ops.MRxCloseSrvOpen      =
+        (PMRX_CALLDOWN)nfs41_CloseSrvOpen;
+    nfs41_ops.MRxFlush             =
+        (PMRX_CALLDOWN)nfs41_Flush;
+    nfs41_ops.MRxDeallocateForFcb  =
+        (PMRX_DEALLOCATE_FOR_FCB)nfs41_DeallocateForFcb;
+    nfs41_ops.MRxDeallocateForFobx =
+        (PMRX_DEALLOCATE_FOR_FOBX)nfs41_DeallocateForFobx;
+    nfs41_ops.MRxIsLockRealizable  =
+        (PMRX_IS_LOCK_REALIZABLE)nfs41_IsLockRealizable;
 
     //
     // File System Objects query/Set
     //
 
-    nfs41_ops.MRxQueryDirectory       = nfs41_QueryDirectory;
-    nfs41_ops.MRxQueryVolumeInfo      = nfs41_QueryVolumeInformation;
-    nfs41_ops.MRxQueryEaInfo          = nfs41_QueryEaInformation;
-    nfs41_ops.MRxSetEaInfo            = nfs41_SetEaInformation;
-    nfs41_ops.MRxQuerySdInfo          = nfs41_QuerySecurityInformation;
-    nfs41_ops.MRxSetSdInfo            = nfs41_SetSecurityInformation;
-    nfs41_ops.MRxQueryFileInfo        = nfs41_QueryFileInformation;
-    nfs41_ops.MRxSetFileInfo          = nfs41_SetFileInformation;
+    nfs41_ops.MRxQueryDirectory       =
+        (PMRX_CALLDOWN)nfs41_QueryDirectory;
+    nfs41_ops.MRxQueryVolumeInfo      =
+        (PMRX_CALLDOWN)nfs41_QueryVolumeInformation;
+    nfs41_ops.MRxSetVolumeInfo        =
+        (PMRX_CALLDOWN)nfs41_Unimplemented;
+    nfs41_ops.MRxQueryEaInfo          =
+        (PMRX_CALLDOWN)nfs41_QueryEaInformation;
+    nfs41_ops.MRxSetEaInfo            =
+        (PMRX_CALLDOWN)nfs41_SetEaInformation;
+    nfs41_ops.MRxQuerySdInfo          =
+        (PMRX_CALLDOWN)nfs41_QuerySecurityInformation;
+    nfs41_ops.MRxSetSdInfo            =
+        (PMRX_CALLDOWN)nfs41_SetSecurityInformation;
+    nfs41_ops.MRxQueryFileInfo        =
+        (PMRX_CALLDOWN)nfs41_QueryFileInformation;
+    nfs41_ops.MRxSetFileInfo          =
+        (PMRX_CALLDOWN)nfs41_SetFileInformation;
+    nfs41_ops.MRxQueryQuotaInfo       =
+        (PMRX_CALLDOWN)nfs41_Unimplemented;
+    nfs41_ops.MRxSetQuotaInfo         =
+        (PMRX_CALLDOWN)nfs41_Unimplemented;
 
     //
     // Buffering state change
     //
 
-    nfs41_ops.MRxComputeNewBufferingState = nfs41_ComputeNewBufferingState;
+    nfs41_ops.MRxComputeNewBufferingState =
+        (PMRX_COMPUTE_NEW_BUFFERING_STATE)nfs41_ComputeNewBufferingState;
 
     //
     // File System Object I/O
     //
 
-    nfs41_ops.MRxLowIOSubmit[LOWIO_OP_READ]            = nfs41_Read;
-    nfs41_ops.MRxLowIOSubmit[LOWIO_OP_WRITE]           = nfs41_Write;
-    nfs41_ops.MRxLowIOSubmit[LOWIO_OP_SHAREDLOCK]      = nfs41_Lock;
-    nfs41_ops.MRxLowIOSubmit[LOWIO_OP_EXCLUSIVELOCK]   = nfs41_Lock;
-    nfs41_ops.MRxLowIOSubmit[LOWIO_OP_UNLOCK]          = nfs41_Unlock;
-    nfs41_ops.MRxLowIOSubmit[LOWIO_OP_UNLOCK_MULTIPLE] = nfs41_Unlock;
-    nfs41_ops.MRxLowIOSubmit[LOWIO_OP_FSCTL]           = nfs41_FsCtl;
-    nfs41_ops.MRxLowIOSubmit[LOWIO_OP_IOCTL]           = nfs41_IoCtl;
+    nfs41_ops.MRxLowIOSubmit[LOWIO_OP_READ]            =
+        (PMRX_CALLDOWN)nfs41_Read;
+    nfs41_ops.MRxLowIOSubmit[LOWIO_OP_WRITE]           =
+        (PMRX_CALLDOWN)nfs41_Write;
+    nfs41_ops.MRxLowIOSubmit[LOWIO_OP_SHAREDLOCK]      =
+        (PMRX_CALLDOWN)nfs41_Lock;
+    nfs41_ops.MRxLowIOSubmit[LOWIO_OP_EXCLUSIVELOCK]   =
+        (PMRX_CALLDOWN)nfs41_Lock;
+    nfs41_ops.MRxLowIOSubmit[LOWIO_OP_UNLOCK]          =
+        (PMRX_CALLDOWN)nfs41_Unlock;
+    nfs41_ops.MRxLowIOSubmit[LOWIO_OP_UNLOCK_MULTIPLE] =
+        (PMRX_CALLDOWN)nfs41_Unlock;
+    nfs41_ops.MRxLowIOSubmit[LOWIO_OP_FSCTL]           =
+        (PMRX_CALLDOWN)nfs41_FsCtl;
+    nfs41_ops.MRxLowIOSubmit[LOWIO_OP_IOCTL]           =
+        (PMRX_CALLDOWN)nfs41_IoCtl;
 
     //
     // Miscellanous
     //
 
-    nfs41_ops.MRxCompleteBufferingStateChangeRequest = 
-        nfs41_CompleteBufferingStateChangeRequest;
-    nfs41_ops.MRxIsValidDirectory     = nfs41_IsValidDirectory;
+    nfs41_ops.MRxCompleteBufferingStateChangeRequest =
+        (PMRX_CHANGE_BUFFERING_STATE_CALLDOWN)nfs41_CompleteBufferingStateChangeRequest;
+    nfs41_ops.MRxIsValidDirectory =
+        (PMRX_CHKDIR_CALLDOWN)nfs41_IsValidDirectory;
 
-    nfs41_ops.MRxTruncate = nfs41_Unimplemented;
-    nfs41_ops.MRxZeroExtend = nfs41_Unimplemented;
-    nfs41_ops.MRxAreFilesAliased = nfs41_AreFilesAliased;
-    nfs41_ops.MRxQueryQuotaInfo = nfs41_Unimplemented;
-    nfs41_ops.MRxSetQuotaInfo = nfs41_Unimplemented;
-    nfs41_ops.MRxSetVolumeInfo = nfs41_Unimplemented;
+    nfs41_ops.MRxTruncate =
+        (PMRX_CALLDOWN)nfs41_Unimplemented;
+    nfs41_ops.MRxZeroExtend =
+        (PMRX_CALLDOWN)nfs41_Unimplemented;
+    nfs41_ops.MRxAreFilesAliased =
+        (PMRX_CHKFCB_CALLDOWN)nfs41_AreFilesAliased;
 
     DbgR();
     return(STATUS_SUCCESS);

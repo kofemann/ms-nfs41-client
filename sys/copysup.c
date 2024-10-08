@@ -26,6 +26,30 @@
 #error Code requires ISO C17
 #endif
 
+/* FIXME: Why does VS22 need this, but not VC19 ? */
+#if _MSC_VER >= 1900
+#if defined(_WIN64) && defined(_M_X64)
+#ifndef _AMD64_
+#define _AMD64_
+#endif
+#elif defined(_WIN32) && defined(_M_IX86)
+#ifndef _X86_
+#define _X86_
+#endif
+#elif defined(_WIN64) && defined(_M_ARM64)
+#ifndef _ARM64_
+#define _ARM64_
+#endif
+#elif defined(_WIN32) && defined(_M_ARM)
+#ifndef _ARM_
+#define _ARM_
+#endif
+#else
+#error Unsupported arch
+#endif
+#endif /* _MSC_VER >= 1900 */
+
+
 #include <rx.h>
 #include <windef.h>
 #include <winerror.h>

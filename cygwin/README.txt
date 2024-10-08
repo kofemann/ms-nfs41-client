@@ -19,8 +19,9 @@
   (see "ms-nfs41-clientcygwin/README.bintarball.txt" for Cygwin 32bit
   and 64bit installation instructions)
 
-** Build the project using Cygwin command line (bash/ksh93):
-export PATH+=":/cygdrive/c/Program Files (x86)/Microsoft Visual Studio/2019/Community/MSBuild/Current/Bin/"
+** Build the project using VS19/VS22+Cygwin command line (bash/ksh93):
+export PATH="/cygdrive/c/Program Files (x86)/Microsoft Visual Studio/2019/Community/MSBuild/Current/Bin/:$PATH"
+# VS22 use: $ export PATH="/cygdrive/c/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/:$PATH"
 git clone https://github.com/kofemann/ms-nfs41-client.git
 cd ms-nfs41-client
 cd cygwin
