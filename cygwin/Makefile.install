@@ -33,6 +33,9 @@ installdest:
 	mkdir -p $(DESTDIR)/$(CYGWIN_BASEPATH)/etc
 	mkdir -p $(DESTDIR)/$(CYGWIN_BASEPATH)/usr/src/msnfs41client
 	mkdir -p $(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/man/man1
+	mkdir -p $(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/msnfs41client
+	mkdir -p $(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/msnfs41client/tests
+	mkdir -p $(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/msnfs41client/tests/misc
 	cp -r $(VS_BUILD_DIR)/nfsd.exe		$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/nfsd_debug.exe
 	cp -r $(VS_BUILD_DIR)/nfsd.pdb		$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/nfsd_debug.pdb
 	cp -r $(VS_BUILD_DIR)/nfs_mount.*	$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/.
@@ -90,6 +93,8 @@ installdest:
 	else \
 		cp "$(PROJECT_BASEDIR_DIR)/tests/ea/nfs_ea.i686.exe" $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/nfs_ea.exe ; \
 	fi
+	cp $(PROJECT_BASEDIR_DIR)/tests/nfsbuildtest/nfsbuildtest.ksh93 $(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/msnfs41client/tests/misc/nfsbuildtest.ksh93
+	cp $(PROJECT_BASEDIR_DIR)/tests/fstest_make_numtree1/fstest_make_numtree1.ksh93 $(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/msnfs41client/tests/misc/fstest_make_numtree1.ksh93
 	@ printf "# Package ksh93&co (if available) since Cygwin does not ship with it yet\n"
 	[[ -x $(CYGWIN_BASEPATH)/bin/ksh93.exe ]] && cp -f $(CYGWIN_BASEPATH)/bin/ksh93.exe $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/ksh93.exe || true
 	[[ -x $(CYGWIN_BASEPATH)/bin/shcomp.exe ]] && cp -f $(CYGWIN_BASEPATH)/bin/shcomp.exe $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/shcomp.exe || true
