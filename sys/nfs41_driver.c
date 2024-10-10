@@ -114,7 +114,9 @@ nfs41_timings lookup, readdir, open, close, getattr, setattr, getacl, setacl, vo
 #endif
 DRIVER_INITIALIZE DriverEntry;
 DRIVER_UNLOAD nfs41_driver_unload;
-DRIVER_DISPATCH ( nfs41_FsdDispatch );
+_Dispatch_type_(IRP_MJ_CREATE) \
+    _Dispatch_type_(IRP_MJ_CREATE_NAMED_PIPE) \
+    DRIVER_DISPATCH(nfs41_FsdDispatch);
 
 struct _MINIRDR_DISPATCH nfs41_ops;
 PRDBSS_DEVICE_OBJECT nfs41_dev;
