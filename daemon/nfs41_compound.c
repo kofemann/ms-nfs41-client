@@ -226,7 +226,7 @@ retry:
             AcquireSRWLockShared(&session->client->exid_lock);
             csa->csa_clientid = session->client->clnt_id;
             csa->csa_sequence = session->client->seq_id;
-            AcquireSRWLockShared(&session->client->exid_lock);
+            ReleaseSRWLockShared(&session->client->exid_lock);
         }
         goto do_retry;
 
