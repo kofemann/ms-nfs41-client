@@ -149,6 +149,11 @@ int compound_encode_send_decode(
 retry:
     /* send compound */
     retry_count++;
+    if ((retry_count % 10) == 0) {
+        /* Print a warning every 10 retries */
+        eprintf("compound_encode_send_decode: retry_count=%d\n",
+            (int)retry_count);
+    }
     set_expected_res(compound);
     status = nfs41_send_compound(session->client->rpc,
         (char *)&compound->args, (char *)&compound->res);
@@ -278,8 +283,13 @@ retry:
                 delayby = 5000;
             else
                 delayby = 500*retry_count;
-            DPRINTF(1, ("Compound returned '%s': sleeping for %ums..\n",
-                (compound->res.status==NFS4ERR_GRACE)?"NFS4ERR_GRACE":"NFS4ERR_DELAY",
+            DPRINTF(1,
+                ("compound_encode_send_decode: "
+                "Compound returned '%s': "
+                "retry_count=%d, sleeping for %ums..\n",
+                ((compound->res.status==NFS4ERR_GRACE)?
+                    "NFS4ERR_GRACE":"NFS4ERR_DELAY"),
+                (int)retry_count,
                 delayby));
             Sleep(delayby);
             DPRINTF(1, ("Attempting to resend compound.\n"));
