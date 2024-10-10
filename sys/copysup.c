@@ -59,9 +59,8 @@
 #include "nfs41_debug.h"
 #include "nfs41_build_features.h"
 
-#if defined(_ARM_) || defined(_ARM64_)
-
 #define COPYSUP_MAX_HOLE_SIZE (2*4096LL)
+
 
 BOOLEAN FsRtlCopyRead2(
     IN PFILE_OBJECT FObj,
@@ -72,29 +71,27 @@ BOOLEAN FsRtlCopyRead2(
     OUT PVOID Buffer,
     OUT PIO_STATUS_BLOCK IoStatus,
     IN PDEVICE_OBJECT DeviceObject,
-    IN PVOID TopLevelContext)
+    IN ULONG_PTR TopLevelContext
+)
 {
     BOOLEAN retval = TRUE;
     ULONG pagecount;
     LARGE_INTEGER readpos_end;
+    PDEVICE_OBJECT RelatedDeviceObject;
     PFSRTL_COMMON_FCB_HEADER fo_fcb;
 
-    pagecount = ADDRESS_AND_SIZE_TO_SPAN_PAGES(FileOffset, Length);
+    pagecount = ADDRESS_AND_SIZE_TO_SPAN_PAGES((ULongToPtr(FileOffset->LowPart)), Length);
 
     if (Length == 0) {
-        IoStatus->Information = 0;
         IoStatus->Status = STATUS_SUCCESS;
+        IoStatus->Information = 0;
+
         retval = TRUE;
         goto done;
     }
 
-    readpos_end.QuadPart = FileOffset->QuadPart + Length;
-    if (readpos_end.QuadPart <= 0) {
-        retval = FALSE;
-        goto done;
-    }
-
-    fo_fcb = FObj->FsContext;
+    readpos_end.QuadPart = FileOffset->QuadPart + (LONGLONG)Length;
+    fo_fcb = (PFSRTL_COMMON_FCB_HEADER)FObj->FsContext;
 
     FsRtlEnterFileSystem();
 
@@ -115,7 +112,6 @@ BOOLEAN FsRtlCopyRead2(
     }
 
     if (fo_fcb->IsFastIoPossible == FastIoIsQuestionable) {
-        PDEVICE_OBJECT RelatedDeviceObject;
         PFAST_IO_DISPATCH FastIoDispatch;
 
         RelatedDeviceObject = IoGetRelatedDeviceObject(FObj);
@@ -129,9 +125,14 @@ BOOLEAN FsRtlCopyRead2(
             goto done_release_resource;
         }
 
-        if (!FastIoDispatch->FastIoCheckIfPossible(
-            FObj, FileOffset, Length,
-            Wait, LockKey, TRUE, IoStatus, RelatedDeviceObject)) {
+        if (!FastIoDispatch->FastIoCheckIfPossible(FObj,
+            FileOffset,
+            Length,
+            Wait,
+            LockKey,
+            TRUE,
+            IoStatus,
+            RelatedDeviceObject)) {
             retval = FALSE;
             goto done_release_resource;
         }
@@ -139,8 +140,10 @@ BOOLEAN FsRtlCopyRead2(
 
     if (readpos_end.QuadPart > fo_fcb->FileSize.QuadPart) {
         if (FileOffset->QuadPart >= fo_fcb->FileSize.QuadPart) {
-            IoStatus->Information = 0;
             IoStatus->Status = STATUS_END_OF_FILE;
+            IoStatus->Information = 0;
+
+            retval = TRUE;
             goto done_release_resource;
         }
 
@@ -148,34 +151,32 @@ BOOLEAN FsRtlCopyRead2(
             (ULONG)(fo_fcb->FileSize.QuadPart - FileOffset->QuadPart);
     }
 
-    IoSetTopLevelIrp(TopLevelContext);
+    IoSetTopLevelIrp((PIRP)TopLevelContext);
 
     retval = FALSE;
-
     __try {
-        if ((!Wait) ||
-            (readpos_end.HighPart != 0) ||
-            (fo_fcb->FileSize.HighPart != 0)) {
-            retval = CcCopyRead(FObj, FileOffset, Length, Wait,
-                Buffer, IoStatus);
-            SetFlag(FObj->Flags, FO_FILE_FAST_IO_READ);
+        if (!(Wait && (readpos_end.HighPart == 0) && (fo_fcb->FileSize.HighPart == 0))) {
+            retval = CcCopyRead(FObj,
+                FileOffset,
+                Length,
+                Wait,
+                Buffer,
+                IoStatus);
 
-            ASSERT(
-                ((ULONGLONG)FileOffset->QuadPart +
-                    IoStatus->Information) <=
-                (ULONGLONG)fo_fcb->FileSize.QuadPart);
+            FObj->Flags |= FO_FILE_FAST_IO_READ;
         }
         else {
-            CcFastCopyRead(FObj, FileOffset->LowPart, Length,
-                pagecount, Buffer, IoStatus);
-            retval = TRUE;
-            SetFlag(FObj->Flags, FO_FILE_FAST_IO_READ);
+            CcFastCopyRead(FObj,
+                FileOffset->LowPart,
+                Length,
+                pagecount,
+                Buffer,
+                IoStatus);
 
-            ASSERT((FileOffset->LowPart + IoStatus->Information) <=
-                fo_fcb->FileSize.LowPart);
+            FObj->Flags |= FO_FILE_FAST_IO_READ;
+
+            ASSERT(IoStatus->Status == STATUS_END_OF_FILE);
         }
-
-        ASSERT(IoStatus->Status == STATUS_END_OF_FILE);
 
         if (retval) {
             FObj->CurrentByteOffset.QuadPart =
@@ -195,6 +196,7 @@ done:
     return retval;
 }
 
+
 BOOLEAN
 FsRtlCopyWrite2(
     IN PFILE_OBJECT FObj,
@@ -205,34 +207,24 @@ FsRtlCopyWrite2(
     IN PVOID Buffer,
     OUT PIO_STATUS_BLOCK IoStatus,
     IN PDEVICE_OBJECT DeviceObject,
-    IN PVOID TopLevelContext)
+    IN ULONG_PTR TopLevelContext
+)
 {
     BOOLEAN retval; /* fixme: |volatile| ? */
-    IO_STATUS_BLOCK ios;
-    PFSRTL_ADVANCED_FCB_HEADER fo_fcb = FObj->FsContext;
-    bool append_file;
-    bool fcb_resource_acquired_shared;
+    PFSRTL_COMMON_FCB_HEADER fo_fcb;
+    bool fcb_resource_acquired_shared = false;
     bool filesize_changed = false;
-    LARGE_INTEGER filesize_orig = { .QuadPart = 0LL };
-    LARGE_INTEGER validdatalength_orig = { .QuadPart = 0LL };
-    LARGE_INTEGER writepos_start;
-    LARGE_INTEGER writepos_end;
+    bool append_file;
 
-    append_file =
+    append_file = (bool)
         ((FileOffset->LowPart == FILE_WRITE_TO_END_OF_FILE) &&
         (FileOffset->HighPart == -1));
 
-    if (!CcCanIWrite(FObj, Length, Wait, FALSE)) {
-        retval = FALSE;
-        goto done;
-    }
+    fo_fcb = (PFSRTL_COMMON_FCB_HEADER)FObj->FsContext;
 
-    if (BooleanFlagOn(FObj->Flags, FO_WRITE_THROUGH)) {
-        retval = FALSE;
-        goto done;
-    }
-
-    if (!CcCopyWriteWontFlush(FObj, FileOffset, Length)) {
+    if (!(CcCanIWrite(FObj, Length, Wait, FALSE) &&
+        !FlagOn(FObj->Flags, FO_WRITE_THROUGH) &&
+        CcCopyWriteWontFlush(FObj, FileOffset, Length))) {
         retval = FALSE;
         goto done;
     }
@@ -250,18 +242,21 @@ FsRtlCopyWrite2(
 #ifdef COPYSUP_FORCE4GBWRITE
     if (true) {
 #else
-    if (!Wait || (fo_fcb->AllocationSize.HighPart != 0)) {
+    if ((!Wait) || (fo_fcb->AllocationSize.HighPart != 0)) {
 #endif /* COPYSUP_FORCE4GBWRITE */
-        if (append_file ||
-            ((FileOffset->QuadPart + Length) >
-                fo_fcb->ValidDataLength.QuadPart)) {
-            if (!ExAcquireResourceExclusiveLite(fo_fcb->Resource,
-                Wait)) {
+        LARGE_INTEGER writepos_start = { .QuadPart = 0 };
+        LARGE_INTEGER writepos_end;
+        LARGE_INTEGER filesize_orig = { .QuadPart = 0 };
+        LARGE_INTEGER validdatalen_orig = { .QuadPart = 0 };
+
+        writepos_end.QuadPart = FileOffset->QuadPart + (LONGLONG)Length;
+
+        if (append_file || (writepos_end.QuadPart > fo_fcb->ValidDataLength.QuadPart)) {
+
+            if (!ExAcquireResourceExclusiveLite(fo_fcb->Resource, Wait)) {
                 retval = FALSE;
                 goto done_exit_filesystem;
             }
-
-            fcb_resource_acquired_shared = false;
         }
         else {
             if (!ExAcquireResourceSharedLite(fo_fcb->Resource, Wait)) {
@@ -273,12 +268,12 @@ FsRtlCopyWrite2(
         }
 
         if (append_file) {
-            writepos_start.QuadPart = fo_fcb->FileSize.QuadPart;
-            writepos_end.QuadPart = writepos_start.QuadPart + Length;
+            writepos_start = fo_fcb->FileSize;
+            writepos_end.QuadPart = fo_fcb->FileSize.QuadPart + (LONGLONG)Length;
         }
         else {
-            writepos_start.QuadPart = FileOffset->QuadPart;
-            writepos_end.QuadPart = writepos_start.QuadPart + Length;
+            writepos_start = *FileOffset;
+            writepos_end.QuadPart = FileOffset->QuadPart + (LONGLONG)Length;
         }
 
         if ((FObj->PrivateCacheMap == NULL) ||
@@ -288,16 +283,14 @@ FsRtlCopyWrite2(
         }
 
 #ifdef COPYSUP_MAX_HOLE_SIZE
-        if ((fo_fcb->ValidDataLength.QuadPart +
-            COPYSUP_MAX_HOLE_SIZE) <=
-                writepos_start.QuadPart) {
+        if ((writepos_start.QuadPart >=
+                (fo_fcb->ValidDataLength.QuadPart + COPYSUP_MAX_HOLE_SIZE))) {
             retval = FALSE;
             goto done_release_resource;
         }
 #endif /* COPYSUP_MAX_HOLE_SIZE */
 
-        if ((Length > (MAXLONGLONG - writepos_start.QuadPart)) ||
-            (fo_fcb->AllocationSize.QuadPart < writepos_end.QuadPart)) {
+        if (writepos_end.QuadPart > fo_fcb->AllocationSize.QuadPart) {
             retval = FALSE;
             goto done_release_resource;
         }
@@ -305,37 +298,30 @@ FsRtlCopyWrite2(
         if (fcb_resource_acquired_shared &&
             (writepos_end.QuadPart > fo_fcb->ValidDataLength.QuadPart)) {
             ExReleaseResourceLite(fo_fcb->Resource);
-            if (!ExAcquireResourceExclusiveLite(fo_fcb->Resource,
-                Wait)) {
+
+            if (!ExAcquireResourceExclusiveLite(fo_fcb->Resource, Wait)) {
                 retval = FALSE;
                 goto done_exit_filesystem;
             }
-            fcb_resource_acquired_shared = false;
 
             if (append_file) {
-                writepos_start.QuadPart = fo_fcb->FileSize.QuadPart;
-                writepos_end.QuadPart = writepos_start.QuadPart + Length;
+                writepos_start = fo_fcb->FileSize;
+                writepos_end.QuadPart = fo_fcb->FileSize.QuadPart + (LONGLONG)Length;
             }
 
             if ((FObj->PrivateCacheMap == NULL) ||
-                (fo_fcb->IsFastIoPossible == FastIoIsNotPossible)) {
-                retval = FALSE;
-                goto done_release_resource;
-            }
-
-            if (fo_fcb->AllocationSize.QuadPart < writepos_end.QuadPart) {
+                (fo_fcb->IsFastIoPossible == FastIoIsNotPossible) ||
+                (writepos_end.QuadPart > fo_fcb->AllocationSize.QuadPart)) {
                 retval = FALSE;
                 goto done_release_resource;
             }
         }
 
         if (fo_fcb->IsFastIoPossible == FastIoIsQuestionable) {
-            PDEVICE_OBJECT RelatedDeviceObject;
-            PFAST_IO_DISPATCH FastIoDispatch;
-
-            RelatedDeviceObject = IoGetRelatedDeviceObject(FObj);
-            FastIoDispatch =
+            PDEVICE_OBJECT RelatedDeviceObject = IoGetRelatedDeviceObject(FObj);
+            PFAST_IO_DISPATCH FastIoDispatch =
                 RelatedDeviceObject->DriverObject->FastIoDispatch;
+            IO_STATUS_BLOCK ios;
 
             /* This should not happen... */
             if (!((FastIoDispatch != NULL) &&
@@ -345,8 +331,13 @@ FsRtlCopyWrite2(
             }
 
             if (!FastIoDispatch->FastIoCheckIfPossible(FObj,
-                    &writepos_start, Length, Wait, LockKey,
-                    FALSE, &ios,
+                ((FileOffset->QuadPart != (LONGLONG)-1)?
+                    FileOffset:&fo_fcb->FileSize),
+                Length,
+                Wait,
+                LockKey,
+                FALSE,
+                &ios,
                 RelatedDeviceObject)) {
                 retval = FALSE;
                 goto done_release_resource;
@@ -354,30 +345,39 @@ FsRtlCopyWrite2(
         }
 
         if (writepos_end.QuadPart > fo_fcb->FileSize.QuadPart) {
-            filesize_changed = TRUE;
-            filesize_orig.QuadPart = fo_fcb->FileSize.QuadPart;
-            validdatalength_orig.QuadPart =
-                fo_fcb->ValidDataLength.QuadPart;
+            filesize_changed = true;
+            filesize_orig = fo_fcb->FileSize;
+            validdatalen_orig = fo_fcb->ValidDataLength;
 
-            if ((writepos_end.HighPart != fo_fcb->FileSize.HighPart) &&
-                (fo_fcb->PagingIoResource != NULL)) {
-                (void)ExAcquireResourceExclusiveLite(
-                    fo_fcb->PagingIoResource, TRUE);
-                fo_fcb->FileSize.QuadPart = writepos_end.QuadPart;
+            if ((fo_fcb->FileSize.HighPart != writepos_end.HighPart) &&
+                 (fo_fcb->PagingIoResource != NULL)) {
+                (void)ExAcquireResourceExclusiveLite(fo_fcb->PagingIoResource, TRUE);
+                fo_fcb->FileSize = writepos_end;
                 ExReleaseResourceLite(fo_fcb->PagingIoResource);
             }
             else {
-                fo_fcb->FileSize.QuadPart = writepos_end.QuadPart;
+                fo_fcb->FileSize = writepos_end;
             }
         }
 
-        IoSetTopLevelIrp(TopLevelContext);
+        IoSetTopLevelIrp((PIRP)TopLevelContext);
 
         retval = FALSE;
-
         __try {
-            retval = CcCopyWrite(FObj, &writepos_start,
-                Length, Wait, Buffer);
+            if (writepos_start.QuadPart > fo_fcb->ValidDataLength.QuadPart) {
+                retval = CcZeroData(FObj,
+                    &fo_fcb->ValidDataLength,
+                    &writepos_start,
+                    Wait);
+            }
+
+            if (retval) {
+                retval = CcCopyWrite(FObj,
+                    &writepos_start,
+                    Length,
+                    Wait,
+                    Buffer);
+            }
         }
         __except(EXCEPTION_EXECUTE_HANDLER) {
         }
@@ -385,29 +385,24 @@ FsRtlCopyWrite2(
         IoSetTopLevelIrp(NULL);
 
         if (retval) {
-            if (writepos_end.QuadPart >
-                fo_fcb->ValidDataLength.QuadPart) {
-                if ((writepos_end.HighPart !=
-                    fo_fcb->ValidDataLength.HighPart) &&
-                    (fo_fcb->PagingIoResource != NULL)) {
-                    (void)ExAcquireResourceExclusiveLite(
-                        fo_fcb->PagingIoResource, TRUE);
-                    fo_fcb->ValidDataLength.QuadPart =
-                        writepos_end.QuadPart;
+            if (writepos_end.QuadPart > fo_fcb->ValidDataLength.QuadPart) {
+                if ((fo_fcb->ValidDataLength.HighPart != writepos_end.HighPart) &&
+                     (fo_fcb->PagingIoResource != NULL)) {
+                    (void)ExAcquireResourceExclusiveLite(fo_fcb->PagingIoResource, TRUE);
+                    fo_fcb->ValidDataLength = writepos_end;
                     ExReleaseResourceLite(fo_fcb->PagingIoResource);
                 }
                 else {
-                    fo_fcb->ValidDataLength.QuadPart =
-                        writepos_end.QuadPart;
+                    fo_fcb->ValidDataLength = writepos_end;
                 }
             }
 
-            SetFlag(FObj->Flags, FO_FILE_MODIFIED);
+            FObj->Flags |= FO_FILE_MODIFIED;
 
             if (filesize_changed) {
                 (*CcGetFileSizePointer(FObj)).QuadPart =
                     writepos_end.QuadPart;
-                SetFlag(FObj->Flags, FO_FILE_SIZE_CHANGED);
+                FObj->Flags |= FO_FILE_SIZE_CHANGED;
             }
 
             FObj->CurrentByteOffset.QuadPart =
@@ -419,11 +414,8 @@ FsRtlCopyWrite2(
                     (void)ExAcquireResourceExclusiveLite(
                         fo_fcb->PagingIoResource, TRUE);
                 }
-
-                fo_fcb->FileSize.QuadPart = filesize_orig.QuadPart;
-                fo_fcb->ValidDataLength.QuadPart =
-                    validdatalength_orig.QuadPart;
-
+                fo_fcb->FileSize = filesize_orig;
+                fo_fcb->ValidDataLength = validdatalen_orig;
                 if (fo_fcb->PagingIoResource != NULL) {
                     ExReleaseResourceLite(fo_fcb->PagingIoResource);
                 }
@@ -431,17 +423,16 @@ FsRtlCopyWrite2(
         }
     }
     else {
+        ULONG writepos_start = 0L;
+        ULONG writepos_end = 0L;
+        ULONG filesize_orig = 0L;
+        ULONG validdatalen_orig = 0L;
         bool write_beyond4gb;
 
-        writepos_start.HighPart = 0;
-        writepos_end.HighPart = 0;
+        writepos_end = FileOffset->LowPart + Length;
 
-        if (append_file ||
-            ((FileOffset->QuadPart + Length) >
-                fo_fcb->ValidDataLength.QuadPart)) {
-            (void)ExAcquireResourceExclusiveLite(fo_fcb->Resource,
-                TRUE);
-            fcb_resource_acquired_shared = false;
+        if (append_file || (writepos_end > fo_fcb->ValidDataLength.LowPart)) {
+            (void)ExAcquireResourceExclusiveLite(fo_fcb->Resource, TRUE);
         }
         else {
             (void)ExAcquireResourceSharedLite(fo_fcb->Resource, TRUE);
@@ -449,74 +440,63 @@ FsRtlCopyWrite2(
         }
 
         if (append_file) {
-            writepos_start.LowPart = fo_fcb->FileSize.LowPart;
-            writepos_end.LowPart = writepos_start.LowPart + Length;
+            writepos_start = fo_fcb->FileSize.LowPart;
+            writepos_end = fo_fcb->FileSize.LowPart + Length;
             write_beyond4gb =
-                (writepos_end.LowPart < fo_fcb->FileSize.LowPart);
+                writepos_end < fo_fcb->FileSize.LowPart;
         }
         else {
-            writepos_start.LowPart = FileOffset->LowPart;
-            writepos_end.LowPart = writepos_start.LowPart + Length;
+            writepos_start = FileOffset->LowPart;
+            writepos_end = FileOffset->LowPart + Length;
             write_beyond4gb =
-                (writepos_end.LowPart < FileOffset->LowPart) ||
+                (writepos_end < FileOffset->LowPart) ||
                 (FileOffset->HighPart != 0);
         }
 
         if ((FObj->PrivateCacheMap == NULL) ||
-            (fo_fcb->IsFastIoPossible == FastIoIsNotPossible)) {
+            (fo_fcb->IsFastIoPossible == FastIoIsNotPossible) ||
+            (writepos_end > fo_fcb->AllocationSize.LowPart)) {
             retval = FALSE;
             goto done_release_resource;
         }
 
 #ifdef COPYSUP_MAX_HOLE_SIZE
-        if (writepos_start.LowPart >=
-                (fo_fcb->ValidDataLength.LowPart +
-                    COPYSUP_MAX_HOLE_SIZE)) {
+        if (writepos_start >=
+            (fo_fcb->ValidDataLength.LowPart + COPYSUP_MAX_HOLE_SIZE)) {
             retval = FALSE;
             goto done_release_resource;
         }
 #endif /* COPYSUP_MAX_HOLE_SIZE */
 
-        if ((fo_fcb->AllocationSize.LowPart < writepos_end.LowPart) ||
-            write_beyond4gb) {
+        if ((fo_fcb->AllocationSize.HighPart != 0) || write_beyond4gb) {
             retval = FALSE;
             goto done_release_resource;
         }
 
-        if (fcb_resource_acquired_shared &&
-            (writepos_end.LowPart > fo_fcb->ValidDataLength.LowPart)) {
+        if (fcb_resource_acquired_shared && (writepos_end > fo_fcb->ValidDataLength.LowPart)) {
             ExReleaseResourceLite(fo_fcb->Resource);
-            (void)ExAcquireResourceExclusiveLite(fo_fcb->Resource,
-                TRUE);
+            (void)ExAcquireResourceExclusiveLite(fo_fcb->Resource, TRUE);
 
             if (append_file) {
-                writepos_start.LowPart = fo_fcb->FileSize.LowPart;
-                writepos_end.LowPart = writepos_start.LowPart + Length;
-                write_beyond4gb =
-                    (writepos_end.LowPart < fo_fcb->FileSize.LowPart);
+                writepos_start = fo_fcb->FileSize.LowPart;
+                writepos_end = fo_fcb->FileSize.LowPart + Length;
+                write_beyond4gb = writepos_end < fo_fcb->FileSize.LowPart;
             }
 
             if ((FObj->PrivateCacheMap == NULL) ||
-                (fo_fcb->IsFastIoPossible == FastIoIsNotPossible)) {
-                retval = FALSE;
-                goto done_release_resource;
-            }
-
-            if (write_beyond4gb ||
-                (fo_fcb->AllocationSize.LowPart < writepos_end.LowPart) ||
-                (fo_fcb->AllocationSize.HighPart != 0)) {
+                (fo_fcb->IsFastIoPossible == FastIoIsNotPossible) ||
+                (writepos_end > fo_fcb->AllocationSize.LowPart) ||
+                (fo_fcb->AllocationSize.HighPart != 0) || write_beyond4gb) {
                 retval = FALSE;
                 goto done_release_resource;
             }
         }
 
         if (fo_fcb->IsFastIoPossible == FastIoIsQuestionable) {
-            PFAST_IO_DISPATCH FastIoDispatch;
-            PDEVICE_OBJECT RelatedDeviceObject;
-
-            RelatedDeviceObject = IoGetRelatedDeviceObject(FObj);
-            FastIoDispatch =
+            PDEVICE_OBJECT RelatedDeviceObject = IoGetRelatedDeviceObject(FObj);
+            PFAST_IO_DISPATCH FastIoDispatch =
                 RelatedDeviceObject->DriverObject->FastIoDispatch;
+            IO_STATUS_BLOCK ios;
 
             /* This should not happen... */
             if (!((FastIoDispatch != NULL) &&
@@ -526,29 +506,46 @@ FsRtlCopyWrite2(
             }
 
             if (!FastIoDispatch->FastIoCheckIfPossible(FObj,
-                &writepos_start, Length, Wait, LockKey,
-                FALSE, &ios, RelatedDeviceObject)) {
+                    ((FileOffset->QuadPart != (LONGLONG)-1)?
+                        FileOffset:&fo_fcb->FileSize),
+                    Length,
+                    TRUE,
+                    LockKey,
+                    FALSE,
+                    &ios,
+                    RelatedDeviceObject)) {
                 retval = FALSE;
                 goto done_release_resource;
             }
         }
 
-        if (writepos_end.LowPart > fo_fcb->FileSize.LowPart) {
+        if (writepos_end > fo_fcb->FileSize.LowPart) {
             filesize_changed = true;
-            filesize_orig.LowPart = fo_fcb->FileSize.LowPart;
-            validdatalength_orig.LowPart =
-                fo_fcb->ValidDataLength.LowPart;
-            fo_fcb->FileSize.LowPart = writepos_end.LowPart;
+            filesize_orig = fo_fcb->FileSize.LowPart;
+            validdatalen_orig = fo_fcb->ValidDataLength.LowPart;
+            fo_fcb->FileSize.LowPart = writepos_end;
         }
 
-        IoSetTopLevelIrp(TopLevelContext);
+        IoSetTopLevelIrp((PIRP)TopLevelContext);
 
         retval = FALSE;
-
         __try {
-            CcFastCopyWrite(FObj, writepos_start.LowPart,
-                Length, Buffer);
-            retval = TRUE;
+            if (writepos_start > fo_fcb->ValidDataLength.LowPart) {
+                LARGE_INTEGER ZeroEnd = {
+                    .LowPart = writepos_start,
+                    .HighPart = 0L
+                };
+
+                CcZeroData(FObj,
+                    &fo_fcb->ValidDataLength,
+                    &ZeroEnd,
+                    TRUE);
+            }
+
+            CcFastCopyWrite(FObj,
+                writepos_start,
+                Length,
+                Buffer);
         }
         __except(EXCEPTION_EXECUTE_HANDLER) {
         }
@@ -556,20 +553,19 @@ FsRtlCopyWrite2(
         IoSetTopLevelIrp(NULL);
 
         if (retval) {
-            if (writepos_end.LowPart > fo_fcb->ValidDataLength.LowPart) {
-                fo_fcb->ValidDataLength.LowPart = writepos_end.LowPart;
+            if (writepos_end > fo_fcb->ValidDataLength.LowPart) {
+                fo_fcb->ValidDataLength.LowPart = writepos_end;
             }
 
-            SetFlag(FObj->Flags, FO_FILE_MODIFIED);
+            FObj->Flags |= FO_FILE_MODIFIED;
 
             if (filesize_changed) {
-                (*CcGetFileSizePointer(FObj)).LowPart =
-                    writepos_end.LowPart;
-                SetFlag(FObj->Flags, FO_FILE_SIZE_CHANGED);
+                CcGetFileSizePointer(FObj)->LowPart = writepos_end;
+                FObj->Flags |= FO_FILE_SIZE_CHANGED;
             }
 
             FObj->CurrentByteOffset.LowPart =
-                writepos_start.LowPart + Length;
+                writepos_start + Length;
             FObj->CurrentByteOffset.HighPart = 0;
         }
         else {
@@ -578,10 +574,8 @@ FsRtlCopyWrite2(
                     (void)ExAcquireResourceExclusiveLite(
                         fo_fcb->PagingIoResource, TRUE);
                 }
-
-                fo_fcb->FileSize.LowPart = filesize_orig.LowPart;
-                fo_fcb->ValidDataLength.LowPart = validdatalength_orig.LowPart;
-
+                fo_fcb->FileSize.LowPart = filesize_orig;
+                fo_fcb->ValidDataLength.LowPart = validdatalen_orig;
                 if (fo_fcb->PagingIoResource != NULL) {
                     ExReleaseResourceLite(fo_fcb->PagingIoResource);
                 }
@@ -596,7 +590,6 @@ done_exit_filesystem:
 done:
     return retval;
 }
-#endif /* defined(_ARM_) || defined(_ARM64_) */
 
 
 #if defined(_ARM_) || defined(_ARM64_)
