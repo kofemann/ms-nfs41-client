@@ -51,6 +51,9 @@
 #endif
 #endif /* _MSC_VER >= 1900 */
 
+/* Driver build config */
+#define USE_LOOKASIDELISTS_FOR_UPDOWNCALLENTRY_MEM 1
+// #define LOOKASIDELISTS_STATS 1
 
 #define MINIRDR__NAME "Value is ignored, only fact of definition"
 #include <rx.h>
@@ -573,6 +576,80 @@ typedef enum _NULMRX_STORAGE_TYPE_CODES {
 
 nfs41_init_driver_state nfs41_init_state = NFS41_INIT_DRIVER_STARTABLE;
 nfs41_start_driver_state nfs41_start_state = NFS41_START_DRIVER_STARTABLE;
+
+#ifdef USE_LOOKASIDELISTS_FOR_UPDOWNCALLENTRY_MEM
+NPAGED_LOOKASIDE_LIST updowncall_entry_upcall_lookasidelist;
+NPAGED_LOOKASIDE_LIST updowncall_entry_downcall_lookasidelist;
+#endif /* USE_LOOKASIDELISTS_FOR_UPDOWNCALLENTRY_MEM */
+
+static
+nfs41_updowncall_entry *nfs41_upcall_allocate_updowncall_entry(void)
+{
+    nfs41_updowncall_entry *e;
+#ifdef USE_LOOKASIDELISTS_FOR_UPDOWNCALLENTRY_MEM
+    e = ExAllocateFromNPagedLookasideList(
+        &updowncall_entry_upcall_lookasidelist);
+
+#ifdef LOOKASIDELISTS_STATS
+    volatile static long cnt = 0;
+    if ((cnt++ % 100) == 0) {
+        print_lookasidelist_stat("updowncall_entry_upcall",
+            &updowncall_entry_upcall_lookasidelist);
+    }
+#endif /* LOOKASIDELISTS_STATS */
+#else
+    e = RxAllocatePoolWithTag(NonPagedPoolNx,
+        sizeof(nfs41_updowncall_entry),
+        NFS41_MM_POOLTAG_UP);
+#endif /* USE_LOOKASIDELISTS_FOR_UPDOWNCALLENTRY_MEM */
+
+    return e;
+}
+
+static
+void nfs41_upcall_free_updowncall_entry(nfs41_updowncall_entry *entry)
+{
+#ifdef USE_LOOKASIDELISTS_FOR_UPDOWNCALLENTRY_MEM
+    ExFreeToNPagedLookasideList(&updowncall_entry_upcall_lookasidelist,
+        entry);
+#else
+    RxFreePool(entry);
+#endif /* USE_LOOKASIDELISTS_FOR_UPDOWNCALLENTRY_MEM */
+}
+
+static
+nfs41_updowncall_entry *nfs41_downcall_allocate_updowncall_entry(void)
+{
+    nfs41_updowncall_entry *e;
+#ifdef USE_LOOKASIDELISTS_FOR_UPDOWNCALLENTRY_MEM
+    e = ExAllocateFromNPagedLookasideList(
+        &updowncall_entry_downcall_lookasidelist);
+
+#ifdef LOOKASIDELISTS_STATS
+    volatile static long cnt = 0;
+    if ((cnt++ % 100) == 0) {
+        print_lookasidelist_stat("updowncall_entry_downcall",
+            &updowncall_entry_downcall_lookasidelist);
+    }
+#endif /* LOOKASIDELISTS_STATS */
+#else
+    e = RxAllocatePoolWithTag(NonPagedPoolNx,
+        sizeof(nfs41_updowncall_entry),
+        NFS41_MM_POOLTAG_DOWN);
+#endif /* USE_LOOKASIDELISTS_FOR_UPDOWNCALLENTRY_MEM */
+    return e;
+}
+
+static
+void nfs41_downcall_free_updowncall_entry(nfs41_updowncall_entry *entry)
+{
+#ifdef USE_LOOKASIDELISTS_FOR_UPDOWNCALLENTRY_MEM
+    ExFreeToNPagedLookasideList(&updowncall_entry_downcall_lookasidelist,
+        entry);
+#else
+    RxFreePool(entry);
+#endif /* USE_LOOKASIDELISTS_FOR_UPDOWNCALLENTRY_MEM */
+}
 
 /* Local prototypes */
 static NTSTATUS map_mount_errors(
@@ -1650,8 +1727,7 @@ static NTSTATUS nfs41_UpcallCreate(
     SECURITY_SUBJECT_CONTEXT sec_ctx;
     SECURITY_QUALITY_OF_SERVICE sec_qos;
 
-    entry = RxAllocatePoolWithTag(NonPagedPoolNx, sizeof(nfs41_updowncall_entry),
-                NFS41_MM_POOLTAG_UP);
+    entry = nfs41_upcall_allocate_updowncall_entry();
     if (entry == NULL) {
         status = STATUS_INSUFFICIENT_RESOURCES;
         goto out;
@@ -1693,8 +1769,8 @@ static NTSTATUS nfs41_UpcallCreate(
                 "SeCreateClientSecurityFromSubjectContext() "
                 "failed with 0x%x\n",
                 status);
-            RxFreePool(entry);
-	    entry = NULL;
+            nfs41_upcall_free_updowncall_entry(entry);
+            entry = NULL;
         }
 
         SeReleaseSubjectContext(&sec_ctx);
@@ -1727,7 +1803,7 @@ static void nfs41_UpcallDestroy(nfs41_updowncall_entry *entry)
         ObDereferenceObject(entry->psec_ctx_clienttoken);
     }
 
-    RxFreePool(entry);
+    nfs41_upcall_free_updowncall_entry(entry);
 }
 
 
@@ -2140,8 +2216,7 @@ static NTSTATUS nfs41_downcall(
     print_hexbuf("downcall buffer", buf, in_len);
 #endif /* DEBUG_PRINT_DOWNCALL_HEXBUF */
 
-    tmp = RxAllocatePoolWithTag(NonPagedPoolNx, sizeof(nfs41_updowncall_entry),
-            NFS41_MM_POOLTAG_DOWN);
+    tmp = nfs41_downcall_allocate_updowncall_entry();
     if (tmp == NULL) goto out;
 
     unmarshal_nfs41_header(tmp, &buf);
@@ -2270,7 +2345,7 @@ static NTSTATUS nfs41_downcall(
         KeSetEvent(&cur->cond, 0, FALSE);
 
 out_free:
-    RxFreePool(tmp);
+    nfs41_downcall_free_updowncall_entry(tmp);
 out:
     return status;
 }
@@ -7977,8 +8052,23 @@ NTSTATUS DriverEntry(
     InitializeListHead(&upcall.head);
     InitializeListHead(&downcall.head);
     InitializeListHead(&openlist.head);
+#ifdef USE_LOOKASIDELISTS_FOR_UPDOWNCALLENTRY_MEM
+    /*
+     * The |Depth| parameter is unfortunately ignored in Win10,
+     * otherwise we could use |MmQuerySystemSize()| to scale the
+     * lookasidelists
+     */
+    ExInitializeNPagedLookasideList(
+        &updowncall_entry_upcall_lookasidelist, NULL, NULL,
+        POOL_NX_ALLOCATION, sizeof(nfs41_updowncall_entry),
+        NFS41_MM_POOLTAG_UP, 0);
+    ExInitializeNPagedLookasideList(
+        &updowncall_entry_downcall_lookasidelist, NULL, NULL,
+        POOL_NX_ALLOCATION, sizeof(nfs41_updowncall_entry),
+        NFS41_MM_POOLTAG_DOWN, 0);
+#endif /* USE_LOOKASIDELISTS_FOR_UPDOWNCALLENTRY_MEM */
     InitializeObjectAttributes(&oattrs, NULL, OBJ_KERNEL_HANDLE, NULL, NULL);
-    status = PsCreateSystemThread(&dev_exts->openlistHandle, mask, 
+    status = PsCreateSystemThread(&dev_exts->openlistHandle, mask,
         &oattrs, NULL, NULL, &fcbopen_main, NULL);
     if (status != STATUS_SUCCESS)
         goto out_unregister;

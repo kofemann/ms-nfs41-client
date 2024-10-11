@@ -1002,3 +1002,17 @@ const char *fsctl2string(ULONG fscontrolcode)
 
     /* not reached */
 }
+
+#ifdef USE_LOOKASIDELISTS_FOR_UPDOWNCALLENTRY_MEM
+void print_lookasidelist_stat(const char *label, PNPAGED_LOOKASIDE_LIST ll)
+{
+    DbgP("#### lookasidelist stat '%s': "
+        "{ TotalAllocates=%ld, AllocateMisses=%ld, FreeMisses=%ld, Depth=%ld, MaximumDepth=%ld\n",
+        label,
+        (long)ll->L.TotalAllocates,
+        (long)ll->L.AllocateMisses,
+        (long)ll->L.FreeMisses,
+        (long)ll->L.Depth,
+        (long)ll->L.MaximumDepth);
+}
+#endif /* USE_LOOKASIDELISTS_FOR_UPDOWNCALLENTRY_MEM */

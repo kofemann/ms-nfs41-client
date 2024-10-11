@@ -56,6 +56,9 @@ void print_wait_status(int on, const char *str, NTSTATUS status,
                        const char *opcode, PVOID entry, LONGLONG xid);
 void print_acl_args(SECURITY_INFORMATION info);
 const char *fsctl2string(ULONG fsctl);
+#ifdef USE_LOOKASIDELISTS_FOR_UPDOWNCALLENTRY_MEM
+void print_lookasidelist_stat(const char *label, PNPAGED_LOOKASIDE_LIST ll);
+#endif /* USE_LOOKASIDELISTS_FOR_UPDOWNCALLENTRY_MEM */
 
 #define PTR2PTRDIFF_T(p) (((char *)(p))-((char *)0))
 #define PsGetCurrentProcessShortDebugId() ((int)PTR2PTRDIFF_T(PsGetCurrentProcessId()))
