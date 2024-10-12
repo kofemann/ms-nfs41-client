@@ -250,8 +250,22 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\sys\copysup.c" />
-    <ClCompile Include="..\..\sys\nfs41_debug.c" />
-    <ClCompile Include="..\..\sys\nfs41_driver.c" />
+    <ClCompile Include="..\..\sys\nfs41sys_acl.c" />
+    <ClCompile Include="..\..\sys\nfs41sys_debug.c" />
+    <ClCompile Include="..\..\sys\nfs41sys_dir.c" />
+    <ClCompile Include="..\..\sys\nfs41sys_driver.c" />
+    <ClCompile Include="..\..\sys\nfs41sys_ea.c" />
+    <ClCompile Include="..\..\sys\nfs41sys_fileinfo.c" />
+    <ClCompile Include="..\..\sys\nfs41sys_fsctl.c" />
+    <ClCompile Include="..\..\sys\nfs41sys_ioctl.c" />
+    <ClCompile Include="..\..\sys\nfs41sys_lock.c" />
+    <ClCompile Include="..\..\sys\nfs41sys_mount.c" />
+    <ClCompile Include="..\..\sys\nfs41sys_openclose.c" />
+    <ClCompile Include="..\..\sys\nfs41sys_readwrite.c" />
+    <ClCompile Include="..\..\sys\nfs41sys_symlink.c" />
+    <ClCompile Include="..\..\sys\nfs41sys_util.c" />
+    <ClCompile Include="..\..\sys\nfs41sys_updowncall.c" />
+    <ClCompile Include="..\..\sys\nfs41sys_volinfo.c" />
     <ClCompile Include="..\..\sys\wmlkm.c" />
   </ItemGroup>
   <ItemGroup>

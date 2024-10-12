@@ -1,8 +1,10 @@
 /* NFSv4.1 client for Windows
- * Copyright © 2012 The Regents of the University of Michigan
+ * Copyright (C) 2012 The Regents of the University of Michigan
+ * Copyright (C) 2023-2024 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
+ * Roland Mainz <roland.mainz@nrubsig.org>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -18,9 +20,8 @@
  * along with this library; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  */
-
 #ifndef _NFS41_DRIVER_
-#define _NFS41_DRIVER_
+#define _NFS41_DRIVER_ 1
 
 #define NFS41_DEVICE_NAME L"\\Device\\nfs41_driver"
 #define NFS41_SHADOW_DEVICE_NAME L"\\??\\nfs41_driver"

@@ -20,8 +20,8 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  */
 
-#ifndef _NFS41_DEBUG_
-#define _NFS41_DEBUG_
+#ifndef NFS41SYS_DEBUG_H
+#define NFS41SYS_DEBUG_H 1
 
 #define _DRIVER_NAME_ "NFS4.1 Driver"
 
@@ -37,8 +37,8 @@ VOID print_fobx(int on, IN PMRX_FOBX p);
 VOID print_irp_flags(int on, PIRP irp);
 VOID print_irps_flags(int on, PIO_STACK_LOCATION irps);
 void print_nt_create_params(int on, NT_CREATE_PARAMETERS params);
-unsigned char *print_file_information_class(int InfoClass);
-unsigned char *print_fs_information_class(int InfoClass);
+const char *print_file_information_class(int InfoClass);
+const char *print_fs_information_class(int InfoClass);
 void print_hexbuf(const char *title, unsigned char *buf, int len);
 void print_ioctl(int op);
 void print_fs_ioctl(int op);
@@ -59,6 +59,7 @@ const char *fsctl2string(ULONG fsctl);
 #ifdef USE_LOOKASIDELISTS_FOR_UPDOWNCALLENTRY_MEM
 void print_lookasidelist_stat(const char *label, PNPAGED_LOOKASIDE_LIST ll);
 #endif /* USE_LOOKASIDELISTS_FOR_UPDOWNCALLENTRY_MEM */
+void print_debug_header(PRX_CONTEXT RxContext);
 
 #define PTR2PTRDIFF_T(p) (((char *)(p))-((char *)0))
 #define PsGetCurrentProcessShortDebugId() ((int)PTR2PTRDIFF_T(PsGetCurrentProcessId()))
@@ -69,7 +70,7 @@ void print_lookasidelist_stat(const char *label, PNPAGED_LOOKASIDE_LIST ll);
         __func__); __try {
 
 #define DbgEx() DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, \
-        "<-- [%s] [%04x] %s status = %08lx\n", _DRIVER_NAME_, PsGetCurrentProcessShortDebugId(), \
+        "<-- [%s] [%04x] %s status = 0x%08lx\n", _DRIVER_NAME_, PsGetCurrentProcessShortDebugId(), \
         __func__, status); \
         } __except (EXCEPTION_EXECUTE_HANDLER) { \
             status = GetExceptionCode() ; \
@@ -80,17 +81,17 @@ void print_lookasidelist_stat(const char *label, PNPAGED_LOOKASIDE_LIST ll);
         } __except (EXCEPTION_EXECUTE_HANDLER) { \
             NTSTATUS exc_status; \
             exc_status = GetExceptionCode() ; \
-            DbgP("Exception encountered with value = Ox%x\n", (int)exc_status); \
+            DbgP("Exception encountered with value = 0x%x\n", (int)exc_status); \
         }
 
 /* These are for ToasterDebugPrint */
 
-#define     DBG_ERROR       0x00000001
-#define     DBG_WARN        0x00000002
-#define     DBG_TRACE       0x00000004
-#define     DBG_INFO        0x00000008
-#define     DBG_DISP_IN     0x00000010 /* Marks entry into dispatch functions */
-#define     DBG_DISP_OUT    0x00000020 /* Marks exit from dispatch functions */
+#define DBG_ERROR    0x00000001
+#define DBG_WARN     0x00000002
+#define DBG_TRACE    0x00000004
+#define DBG_INFO     0x00000008
+#define DBG_DISP_IN  0x00000010 /* Marks entry into dispatch functions */
+#define DBG_DISP_OUT 0x00000020 /* Marks exit from dispatch functions */
 
 /* I want to do:
  * #define dprintk(flags, args...) DbgPrintEx(DPFLTR_IHVDRIVER_ID, DPFLTR_MASK | flags, ## args)
@@ -99,14 +100,18 @@ void print_lookasidelist_stat(const char *label, PNPAGED_LOOKASIDE_LIST ll);
 #define PNFS_TRACE_TAG      "PNFSMRX: "
 #define PNFS_FLTR_ID        DPFLTR_IHVDRIVER_ID
 
-#define DbgEnter()      DbgPrintEx(PNFS_FLTR_ID, DPFLTR_MASK | DBG_DISP_IN, "%s*** %s ***\n", \
-                                PNFS_TRACE_TAG, __func__);
-#define DbgExit(status) DbgPrintEx(PNFS_FLTR_ID, DPFLTR_MASK | DBG_DISP_OUT, "%s<-- %s <-- 0x%08lx\n", \
-                                PNFS_TRACE_TAG, __func__, status);
+#define DbgEnter() \
+    DbgPrintEx(PNFS_FLTR_ID, DPFLTR_MASK | DBG_DISP_IN, "%s*** %s ***\n", \
+        PNFS_TRACE_TAG, __func__);
+#define DbgExit(status) \
+    DbgPrintEx(PNFS_FLTR_ID, DPFLTR_MASK | DBG_DISP_OUT, "%s<-- %s <-- 0x%08lx\n", \
+        PNFS_TRACE_TAG, __func__, (status));
+
 ULONG
 dprintk(
     IN PCHAR func,
     IN ULONG flags,
     IN PCHAR format,
     ...);
-#endif
+
+#endif /* !NFS41SYS_DEBUG_H */

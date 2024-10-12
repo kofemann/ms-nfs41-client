@@ -56,7 +56,7 @@
 #include <Ntstrsafe.h>
 #include <stdbool.h>
 
-#include "nfs41_debug.h"
+#include "nfs41sys_debug.h"
 #include "nfs41_build_features.h"
 
 #define COPYSUP_MAX_HOLE_SIZE (2*4096LL)

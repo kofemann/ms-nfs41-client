@@ -49,7 +49,7 @@
 #include <rx.h>
 
 #include "nfs41_driver.h"
-#include "nfs41_debug.h"
+#include "nfs41sys_debug.h"
 #include <stdio.h>
 #include <stdarg.h>
 #include <ntstrsafe.h>
@@ -107,14 +107,14 @@ ULONG __cdecl print_error(IN PCCH fmt, ...)
         ExSystemTimeToLocalTime(&timestamp,&local_time);
         RtlTimeToTimeFields(&local_time, &time_fields);
 
-        DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, 
-            "[%ld].[%02u:%02u:%02u.%u] %s", IoGetCurrentProcess(), 
-            time_fields.Hour, time_fields.Minute, time_fields.Second, 
+        DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL,
+            "[%ld].[%02u:%02u:%02u.%u] %s", IoGetCurrentProcess(),
+            time_fields.Hour, time_fields.Minute, time_fields.Second,
             time_fields.Milliseconds, msg);
 #else
         DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL,
             "[%04x] %s", PsGetCurrentProcessShortDebugId(), msg);
-#endif
+#endif /* INCLUDE_TIMESTAMPS */
     }
     va_end(args);
 
@@ -131,9 +131,9 @@ void print_hexbuf(const char *title, unsigned char *buf, int len)
     ExSystemTimeToLocalTime(&timestamp,&local_time);
     RtlTimeToTimeFields(&local_time, &time_fields);
 
-    DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, 
-        "[%ld].[%02u:%02u:%02u.%u] %s\n", IoGetCurrentProcess(), 
-        time_fields.Hour, time_fields.Minute, time_fields.Second, 
+    DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL,
+        "[%ld].[%02u:%02u:%02u.%u] %s\n", IoGetCurrentProcess(),
+        time_fields.Hour, time_fields.Minute, time_fields.Second,
         time_fields.Milliseconds, title);
     for(j = 0, k = 0; j < len; j++, k++) {
         DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL,
@@ -402,7 +402,7 @@ VOID print_fobx(int on, IN PMRX_FOBX p)
 #endif
 }
 
-VOID print_irp_flags(int on, PIRP irp) 
+VOID print_irp_flags(int on, PIRP irp)
 {
     if (!on) return;
     if (irp->Flags)
@@ -460,7 +460,7 @@ void print_nt_create_params(int on, NT_CREATE_PARAMETERS params)
             (params.FileAttributes & FILE_ATTRIBUTE_NOT_CONTENT_INDEXED)?"NOT INDEXED ":"",
             (params.FileAttributes & FILE_ATTRIBUTE_ENCRYPTED)?"ENCRYPTED ":"",
             (params.FileAttributes & FILE_ATTRIBUTE_VIRTUAL)?"VIRTUAL":"");
- 
+
     if (params.Disposition  == FILE_SUPERSEDE)
         DbgP("Create Dispositions: FILE_SUPERSEDE\n");
     if (params.Disposition == FILE_CREATE)
@@ -525,87 +525,87 @@ void print_nt_create_params(int on, NT_CREATE_PARAMETERS params)
         (params.DesiredAccess & SYNCHRONIZE)?"SYNCHRONIZE":"");
 }
 
-unsigned char * print_file_information_class(int InfoClass) 
+const char *print_file_information_class(int InfoClass)
 {
     switch(InfoClass) {
         case FileBothDirectoryInformation:
-            return (unsigned char *)"FileBothDirectoryInformation";
+            return "FileBothDirectoryInformation";
         case FileDirectoryInformation:
-            return (unsigned char *)"FileDirectoryInformation";
+            return "FileDirectoryInformation";
         case FileFullDirectoryInformation:
-            return (unsigned char *)"FileFullDirectoryInformation";
+            return "FileFullDirectoryInformation";
         case FileIdBothDirectoryInformation:
-            return (unsigned char *)"FileIdBothDirectoryInformation";
+            return "FileIdBothDirectoryInformation";
         case FileIdFullDirectoryInformation:
-            return (unsigned char *)"FileIdFullDirectoryInformation";
+            return "FileIdFullDirectoryInformation";
         case FileNamesInformation:
-            return (unsigned char *)"FileNamesInformation";
+            return "FileNamesInformation";
         case FileObjectIdInformation:
-            return (unsigned char *)"FileObjectIdInformation";
+            return "FileObjectIdInformation";
         case FileQuotaInformation:
-            return (unsigned char *)"FileQuotaInformation";
+            return "FileQuotaInformation";
         case FileReparsePointInformation:
-            return (unsigned char *)"FileReparsePointInformation";
+            return "FileReparsePointInformation";
         case FileAllInformation:
-            return (unsigned char *)"FileAllInformation";
+            return "FileAllInformation";
         case FileAttributeTagInformation:
-            return (unsigned char *)"FileAttributeTagInformation";
+            return "FileAttributeTagInformation";
         case FileBasicInformation:
-            return (unsigned char *)"FileBasicInformation";
+            return "FileBasicInformation";
         case FileCompressionInformation:
-            return (unsigned char *)"FileCompressionInformation";
+            return "FileCompressionInformation";
         case FileEaInformation:
-            return (unsigned char *)"FileEaInformation";
+            return "FileEaInformation";
         case FileInternalInformation:
-            return (unsigned char *)"FileInternalInformation";
+            return "FileInternalInformation";
         case FileNameInformation:
-            return (unsigned char *)"FileNameInformation";
+            return "FileNameInformation";
         case FileNetworkOpenInformation:
-            return (unsigned char *)"FileNetworkOpenInformation";
+            return "FileNetworkOpenInformation";
         case FilePositionInformation:
-            return (unsigned char *)"FilePositionInformation";
+            return "FilePositionInformation";
         case FileStandardInformation:
-            return (unsigned char *)"FileStandardInformation";
+            return "FileStandardInformation";
         case FileStreamInformation:
-            return (unsigned char *)"FileStreamInformation";
+            return "FileStreamInformation";
         case FileAllocationInformation:
-            return (unsigned char *)"FileAllocationInformation";
+            return "FileAllocationInformation";
         case FileDispositionInformation:
-            return (unsigned char *)"FileDispositionInformation";
+            return "FileDispositionInformation";
         case FileEndOfFileInformation:
-            return (unsigned char *)"FileEndOfFileInformation";
+            return "FileEndOfFileInformation";
         case FileLinkInformation:
-            return (unsigned char *)"FileLinkInformation";
+            return "FileLinkInformation";
         case FileRenameInformation:
-            return (unsigned char *)"FileRenameInformation";
+            return "FileRenameInformation";
         case FileValidDataLengthInformation:
-            return (unsigned char *)"FileValidDataLengthInformation";
+            return "FileValidDataLengthInformation";
         default:
-            return (unsigned char *)"UNKNOWN";
+            return "UNKNOWN_InfoClass";
     }
 }
 
-unsigned char *print_fs_information_class(int InfoClass)
+const char *print_fs_information_class(int InfoClass)
 {
     switch (InfoClass) {
         case FileFsAttributeInformation:
-            return (unsigned char *)"FileFsAttributeInformation";
+            return "FileFsAttributeInformation";
         case FileFsControlInformation:
-            return (unsigned char *)"FileFsControlInformation";
+            return "FileFsControlInformation";
         case FileFsDeviceInformation:
-            return (unsigned char *)"FileFsDeviceInformation";
+            return "FileFsDeviceInformation";
         case FileFsDriverPathInformation:
-            return (unsigned char *)"FileFsDriverPathInformation";
+            return "FileFsDriverPathInformation";
         case FileFsFullSizeInformation:
-            return (unsigned char *)"FileFsFullSizeInformation";
+            return "FileFsFullSizeInformation";
         case FileFsObjectIdInformation:
-            return (unsigned char *)"FileFsObjectIdInformation";
+            return "FileFsObjectIdInformation";
         case FileFsSizeInformation:
-            return (unsigned char *)"FileFsSizeInformation";
+            return "FileFsSizeInformation";
         case FileFsVolumeInformation:
-            return (unsigned char *)"FileFsVolumeInformation";
+            return "FileFsVolumeInformation";
         default:
-            return (unsigned char *)"UNKNOWN";
+            return "UNKNOWN_FsInfoClass";
     }
 }
 
@@ -1016,3 +1016,24 @@ void print_lookasidelist_stat(const char *label, PNPAGED_LOOKASIDE_LIST ll)
         (long)ll->L.MaximumDepth);
 }
 #endif /* USE_LOOKASIDELISTS_FOR_UPDOWNCALLENTRY_MEM */
+
+void print_debug_header(
+    PRX_CONTEXT RxContext)
+{
+    PIO_STACK_LOCATION IrpSp = RxContext->CurrentIrpSp;
+
+    if (IrpSp) {
+        DbgP("FileOject=0x%p name='%wZ' access r=%d,w=%d,d=%d share r=%d,w=%d,d=%d\n",
+            IrpSp->FileObject, &IrpSp->FileObject->FileName,
+            IrpSp->FileObject->ReadAccess, IrpSp->FileObject->WriteAccess,
+            IrpSp->FileObject->DeleteAccess, IrpSp->FileObject->SharedRead,
+            IrpSp->FileObject->SharedWrite, IrpSp->FileObject->SharedDelete);
+        print_file_object(0, IrpSp->FileObject);
+        print_irps_flags(0, RxContext->CurrentIrpSp);
+    } else
+        DbgP("Couldn't print FileObject IrpSp is NULL\n");
+
+    print_fo_all(1, RxContext);
+    if (RxContext->CurrentIrp)
+        print_irp_flags(0, RxContext->CurrentIrp);
+}
