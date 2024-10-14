@@ -941,7 +941,8 @@ void enable_caching(
 #endif
         oentry = RxAllocatePoolWithTag(NonPagedPoolNx,
             sizeof(nfs41_fcb_list_entry), NFS41_MM_POOLTAG_OPEN);
-        if (oentry == NULL) return;
+        if (oentry == NULL)
+            goto out_release_fcblistlock;
         oentry->fcb = SrvOpen->pFcb;
         oentry->session = session;
         oentry->nfs41_fobx = nfs41_fobx;
@@ -950,6 +951,7 @@ void enable_caching(
         InsertTailList(&openlist.head, &oentry->next);
         nfs41_fobx->deleg_type = 0;
     }
+out_release_fcblistlock:
     ExReleaseFastMutex(&fcblistLock);
 }
 
