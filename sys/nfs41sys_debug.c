@@ -218,18 +218,21 @@ void print_basic_info(int on, PFILE_BASIC_INFORMATION info)
 {
     if (!on) return;
     DbgP("BASIC_INFO: "
-        "Create=0x%lx Access=0x%lx Write=0x%lx Change=0x%lx Attr=0x%x\n",
-        info->CreationTime.QuadPart, info->LastAccessTime.QuadPart,
-        info->LastWriteTime.QuadPart, info->ChangeTime.QuadPart,
-        info->FileAttributes);
+        "Create=0x%llx Access=0x%llx Write=0x%llx Change=0x%llx Attr=0x%x\n",
+        (long long)info->CreationTime.QuadPart,
+        (long long)info->LastAccessTime.QuadPart,
+        (long long)info->LastWriteTime.QuadPart,
+        (long long)info->ChangeTime.QuadPart,
+        (int)info->FileAttributes);
 }
 void print_std_info(int on, PFILE_STANDARD_INFORMATION info)
 {
     if (!on) return;
     DbgP("STD_INFO: "
-        "Type='%s' #Links=%d Alloc=0x%lx EOF=0x%lx Delete=%d\n",
+        "Type='%s' #Links=%d Alloc=0x%llx EOF=0x%llx Delete=%d\n",
         info->Directory?"DIR":"FILE", info->NumberOfLinks,
-        info->AllocationSize.QuadPart, info->EndOfFile.QuadPart,
+        (long long)info->AllocationSize.QuadPart,
+        (long long)info->EndOfFile.QuadPart,
         info->DeletePending);
 }
 
@@ -767,7 +770,8 @@ dprintk(
 
         if (!NT_SUCCESS(status))
             rv = DbgPrintEx(PNFS_FLTR_ID, DPFLTR_MASK | flags,
-                            "RtlStringCbVPrintfA failed 0x%x \n", status);
+                            "RtlStringCbVPrintfA failed 0x%lx \n",
+                            (long)status);
         else
             rv = DbgPrintEx(PNFS_FLTR_ID, DPFLTR_MASK | flags, "'%s'    '%s': '%s'\n",
                     PNFS_TRACE_TAG, func, debugMessageBuffer);

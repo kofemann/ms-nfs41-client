@@ -163,8 +163,9 @@ void unmarshal_nfs41_mount(
     *buf += sizeof(DWORD);
     RtlCopyMemory(cur->u.Mount.FsAttrs, *buf, sizeof(FILE_FS_ATTRIBUTE_INFORMATION));
 #ifdef DEBUG_MARSHAL_DETAIL
-    DbgP("unmarshal_nfs41_mount: session pointer 0x%x version %d lease_time "
-         "%d\n", cur->session, cur->version, cur->u.Mount.lease_time);
+    DbgP("unmarshal_nfs41_mount: session=0x%p version=%d lease_time "
+         "%d\n",
+         cur->session, cur->version, cur->u.Mount.lease_time);
 #endif
 }
 
@@ -228,8 +229,9 @@ NTSTATUS map_mount_errors(
     case ERROR_INTERNAL_ERROR:  return STATUS_INTERNAL_ERROR;
     default:
         print_error("map_mount_errors: "
-            "failed to map windows ERROR_0x%x to NTSTATUS; "
-            "defaulting to STATUS_INSUFFICIENT_RESOURCES\n", status);
+            "failed to map windows ERROR_0x%lx to NTSTATUS; "
+            "defaulting to STATUS_INSUFFICIENT_RESOURCES\n",
+            (long)status);
         return STATUS_INSUFFICIENT_RESOURCES;
     }
 }
@@ -629,13 +631,14 @@ NTSTATUS nfs41_GetLUID(
         FALSE, &clnt_sec_ctx);
     if (status) {
         print_error("nfs41_GetLUID: SeCreateClientSecurityFromSubjectContext "
-             "failed 0x%x\n", status);
+             "failed status=0x%lx\n", (long)status);
         goto release_sec_ctx;
     }
     status = SeQueryAuthenticationIdToken(clnt_sec_ctx.ClientToken, id);
     if (status) {
         print_error("nfs41_GetLUID: "
-            "SeQueryAuthenticationIdToken() failed 0x%x\n", status);
+            "SeQueryAuthenticationIdToken() failed 0x%lx\n",
+            (long)status);
         goto release_clnt_sec_ctx;
     }
 release_clnt_sec_ctx:
@@ -754,11 +757,11 @@ NTSTATUS nfs41_CreateVNetRoot(
     // print_v_net_root(pVNetRoot);
 
     DbgP("pVNetRoot=0x%p pNetRoot=0x%p pSrvCall=0x%p\n", pVNetRoot, pNetRoot, pSrvCall);
-    DbgP("pNetRoot='%wZ' Type=%d pSrvCallName='%wZ' VirtualNetRootStatus=0x%x "
+    DbgP("pNetRoot='%wZ' Type=%d pSrvCallName='%wZ' VirtualNetRootStatus=0x%lx "
         "NetRootStatus=0x%x\n", pNetRoot->pNetRootName,
         pNetRoot->Type, pSrvCall->pSrvCallName,
         pCreateNetRootContext->VirtualNetRootStatus,
-        pCreateNetRootContext->NetRootStatus);
+        (long)pCreateNetRootContext->NetRootStatus);
 #endif
 
     if (pNetRoot->Type != NET_ROOT_DISK && pNetRoot->Type != NET_ROOT_WILD) {
@@ -1090,7 +1093,7 @@ NTSTATUS nfs41_CreateVNetRoot(
         /* modify existing mount entry */
 #ifdef DEBUG_MOUNT
         DbgP("Using existing %d flavor session 0x%x\n",
-            pVNetRootContext->sec_flavor);
+            (int)pVNetRootContext->sec_flavor);
 #endif
         switch (pVNetRootContext->sec_flavor) {
         case RPCSEC_AUTH_SYS:
@@ -1105,7 +1108,7 @@ NTSTATUS nfs41_CreateVNetRoot(
     }
     pNetRootContext->nfs41d_version = nfs41d_version;
 #ifdef DEBUG_MOUNT
-    DbgP("Saving new session 0x%x\n", pVNetRootContext->session);
+    DbgP("Saving new session 0x%p\n", pVNetRootContext->session);
 #endif
 
 out_free:

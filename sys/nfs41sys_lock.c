@@ -100,7 +100,9 @@ NTSTATUS marshal_nfs41_lock(
 #ifdef DEBUG_MARSHAL_DETAIL
     DbgP("marshal_nfs41_lock: "
         "offset=0x%llx length=0x%llx exclusive=%u "
-        "blocking=%u\n", entry->u.Lock.offset, entry->u.Lock.length,
+        "blocking=%u\n",
+        (long long)entry->u.Lock.offset,
+        (long long)entry->u.Lock.length,
         entry->u.Lock.exclusive, entry->u.Lock.blocking);
 #endif
 out:
@@ -158,7 +160,8 @@ NTSTATUS nfs41_IsLockRealizable(
 #ifdef DEBUG_LOCK
     DbgEn();
     DbgP("offset 0x%llx, length 0x%llx, exclusive=%u, blocking=%u\n",
-        ByteOffset->QuadPart,Length->QuadPart,
+        (long long)ByteOffset->QuadPart,
+        (long long)Length->QuadPart,
         BooleanFlagOn(LowIoLockFlags, SL_EXCLUSIVE_LOCK),
         !BooleanFlagOn(LowIoLockFlags, SL_FAIL_IMMEDIATELY));
 #endif
@@ -191,8 +194,9 @@ NTSTATUS map_lock_errors(
     case ERROR_INTERNAL_ERROR:      return STATUS_INTERNAL_ERROR;
     default:
         print_error("map_lock_errors: "
-            "failed to map windows ERROR_0x%x to NTSTATUS; "
-            "defaulting to STATUS_INVALID_NETWORK_RESPONSE\n", status);
+            "failed to map windows ERROR_0x%lx to NTSTATUS; "
+            "defaulting to STATUS_INVALID_NETWORK_RESPONSE\n",
+            (long)status);
     case ERROR_BAD_NET_RESP:        return STATUS_INVALID_NETWORK_RESPONSE;
     }
 }
@@ -204,8 +208,8 @@ static void print_lock_args(
     const ULONG flags = LowIoContext->ParamsFor.Locks.Flags;
     print_debug_header(RxContext);
     DbgP("offset 0x%llx, length 0x%llx, exclusive=%u, blocking=%u\n",
-        LowIoContext->ParamsFor.Locks.ByteOffset,
-        LowIoContext->ParamsFor.Locks.Length,
+        (long long)LowIoContext->ParamsFor.Locks.ByteOffset,
+        (long long)LowIoContext->ParamsFor.Locks.Length,
         BooleanFlagOn(flags, SL_EXCLUSIVE_LOCK),
         !BooleanFlagOn(flags, SL_FAIL_IMMEDIATELY));
 }

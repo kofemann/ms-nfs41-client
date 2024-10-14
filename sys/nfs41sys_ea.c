@@ -100,7 +100,9 @@ NTSTATUS marshal_nfs41_easet(
 
 #ifdef DEBUG_MARSHAL_DETAIL
     DbgP("marshal_nfs41_easet: filename='%wZ', buflen=%d mode=0x%x\n",
-        entry->filename, entry->buf_len, entry->u.SetEa.mode);
+        entry->filename,
+        (int)entry->buf_len,
+        (int)entry->u.SetEa.mode);
 #endif
 out:
     return status;
@@ -172,10 +174,13 @@ void unmarshal_nfs41_eaget(
 static void print_nfs3_attrs(
     nfs3_attrs *attrs)
 {
-    DbgP("type=%d mode=0%o nlink=%d size=%d "
-        "atime=0x%x mtime=0x%x ctime=0x%x\n",
-        attrs->type, attrs->mode, attrs->nlink, attrs->size, attrs->atime,
-        attrs->mtime, attrs->ctime);
+    DbgP("type=%d mode=0%o nlink=%d size=%lld "
+        "atime=0x%llx mtime=0x%llx ctime=0x%llx\n",
+        attrs->type, attrs->mode, attrs->nlink,
+        (long long)attrs->size.QuadPart,
+        (long long)attrs->atime,
+        (long long)attrs->mtime,
+        (long long)attrs->ctime);
 }
 
 static void file_time_to_nfs_time(
@@ -233,8 +238,9 @@ NTSTATUS map_setea_error(
     case ERROR_INTERNAL_ERROR:          return STATUS_INTERNAL_ERROR;
     default:
         print_error("map_setea_error: "
-            "failed to map windows ERROR_0x%x to NTSTATUS; "
-            "defaulting to STATUS_INVALID_PARAMETER\n", error);
+            "failed to map windows ERROR_0x%lx to NTSTATUS; "
+            "defaulting to STATUS_INVALID_PARAMETER\n",
+            (long)error);
     case ERROR_INVALID_PARAMETER:       return STATUS_INVALID_PARAMETER;
     }
 }

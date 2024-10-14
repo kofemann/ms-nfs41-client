@@ -70,18 +70,18 @@ void print_debug_header(PRX_CONTEXT RxContext);
         __func__); __try {
 
 #define DbgEx() DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, \
-        "<-- [%s] [%04x] %s status = 0x%08lx\n", _DRIVER_NAME_, PsGetCurrentProcessShortDebugId(), \
-        __func__, status); \
+        "<-- [%s] [%04x] %s status=0x%lx\n", _DRIVER_NAME_, PsGetCurrentProcessShortDebugId(), \
+        __func__, (long)status); \
         } __except (EXCEPTION_EXECUTE_HANDLER) { \
             status = GetExceptionCode() ; \
-            DbgP("Exception encountered with value = Ox%x\n", status); \
+            DbgP("Exception encountered with value = 0x%lx\n", (long)status); \
         }
 #define DbgR() DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, \
         "<-- [%s] [%04x] %s\n", _DRIVER_NAME_, PsGetCurrentProcessShortDebugId(), __func__); \
         } __except (EXCEPTION_EXECUTE_HANDLER) { \
             NTSTATUS exc_status; \
             exc_status = GetExceptionCode() ; \
-            DbgP("Exception encountered with value = 0x%x\n", (int)exc_status); \
+            DbgP("Exception encountered with value = 0x%lx\n", (long)exc_status); \
         }
 
 /* These are for ToasterDebugPrint */

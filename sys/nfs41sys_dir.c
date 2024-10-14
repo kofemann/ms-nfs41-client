@@ -117,7 +117,7 @@ NTSTATUS marshal_nfs41_dirquery(
         code = GetExceptionCode();
         print_error("marshal_nfs41_dirquery: Call to "
             "MmMapLockedPagesSpecifyCache() failed "
-            "due to exception 0x%x\n", (int)code);
+            "due to exception 0x%lx\n", (long)code);
         status = STATUS_ACCESS_VIOLATION;
         goto out;
     }
@@ -152,7 +152,8 @@ NTSTATUS unmarshal_nfs41_dirquery(
     } __except(EXCEPTION_EXECUTE_HANDLER) {
         NTSTATUS code;
         code = GetExceptionCode();
-        print_error("MmUnmapLockedPages thrown exception=0x%0x\n", code);
+        print_error("MmUnmapLockedPages thrown exception=0x%lx\n",
+            (long)code);
         status = STATUS_ACCESS_VIOLATION;
     }
     if (buf_len > cur->buf_len)
@@ -199,8 +200,9 @@ NTSTATUS map_querydir_errors(
     case ERROR_INTERNAL_ERROR:      return STATUS_INTERNAL_ERROR;
     default:
         print_error("map_querydir_errors: "
-            "failed to map windows ERROR_0x%x to NTSTATUS; "
-            "defaulting to STATUS_INVALID_NETWORK_RESPONSE\n", status);
+            "failed to map windows ERROR_0x%lx to NTSTATUS; "
+            "defaulting to STATUS_INVALID_NETWORK_RESPONSE\n",
+            (long)status);
     case ERROR_BAD_NET_RESP:        return STATUS_INVALID_NETWORK_RESPONSE;
     }
 }
@@ -303,8 +305,8 @@ NTSTATUS nfs41_QueryDirectory(
         status = STATUS_SUCCESS;
     } else if ((entry->status == STATUS_ACCESS_VIOLATION) ||
         (entry->status == STATUS_INSUFFICIENT_RESOURCES)) {
-        DbgP("nfs41_QueryDirectory: internal error: entry->status=0x%x\n",
-            (int)entry->status);
+        DbgP("nfs41_QueryDirectory: internal error: entry->status=0x%lx\n",
+            (long)entry->status);
         status = STATUS_INSUFFICIENT_RESOURCES;
     } else {
         /* map windows ERRORs to NTSTATUS */

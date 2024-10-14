@@ -174,8 +174,9 @@ NTSTATUS map_queryfile_error(
     case ERROR_INTERNAL_ERROR:      return STATUS_INTERNAL_ERROR;
     default:
         print_error("map_queryfile_error: "
-            "failed to map windows ERROR_0x%x to NTSTATUS; "
-            "defaulting to STATUS_INVALID_NETWORK_RESPONSE\n", error);
+            "failed to map windows ERROR_0x%lx to NTSTATUS; "
+            "defaulting to STATUS_INVALID_NETWORK_RESPONSE\n",
+            (long)error);
     case ERROR_BAD_NET_RESP:        return STATUS_INVALID_NETWORK_RESPONSE;
     }
 }
@@ -369,8 +370,8 @@ NTSTATUS nfs41_QueryFileInformation(
             if (nfs41_fcb->StandardInfo.AllocationSize.QuadPart >
                     std_info->AllocationSize.QuadPart) {
 #ifdef DEBUG_FILE_QUERY
-                DbgP("Old AllocationSize is bigger: saving 0x%x\n",
-                    nfs41_fcb->StandardInfo.AllocationSize.QuadPart);
+                DbgP("Old AllocationSize is bigger: saving 0x%llx\n",
+                    (long long)nfs41_fcb->StandardInfo.AllocationSize.QuadPart);
 #endif
                 std_info->AllocationSize.QuadPart =
                     nfs41_fcb->StandardInfo.AllocationSize.QuadPart;
@@ -378,8 +379,8 @@ NTSTATUS nfs41_QueryFileInformation(
             if (nfs41_fcb->StandardInfo.EndOfFile.QuadPart >
                     std_info->EndOfFile.QuadPart) {
 #ifdef DEBUG_FILE_QUERY
-                DbgP("Old EndOfFile is bigger: saving 0x%x\n",
-                    nfs41_fcb->StandardInfo.EndOfFile);
+                DbgP("Old EndOfFile is bigger: saving 0x%llx\n",
+                    (long long)nfs41_fcb->StandardInfo.EndOfFile.QuadPart);
 #endif
                 std_info->EndOfFile.QuadPart =
                     nfs41_fcb->StandardInfo.EndOfFile.QuadPart;
@@ -420,7 +421,8 @@ out:
 #endif
 #ifdef DEBUG_FILE_QUERY
     DbgEx();
-    DbgP("<-- nfs41_QueryFileInformation, status=0x%lx\n", (long)status);
+    DbgP("<-- nfs41_QueryFileInformation, status=0x%lx\n",
+        (long)status);
 #endif
     return status;
 }
@@ -447,8 +449,9 @@ NTSTATUS map_setfile_error(
     case ERROR_INTERNAL_ERROR:          return STATUS_INTERNAL_ERROR;
     default:
         print_error("map_setfile_error: "
-            "failed to map windows ERROR_0x%x to NTSTATUS; "
-            "defaulting to STATUS_INVALID_PARAMETER\n", error);
+            "failed to map windows ERROR_0x%lx to NTSTATUS; "
+            "defaulting to STATUS_INVALID_PARAMETER\n",
+            (long)error);
     case ERROR_INVALID_PARAMETER:       return STATUS_INVALID_PARAMETER;
     }
 }

@@ -93,7 +93,7 @@ NTSTATUS nfs41_get_sec_ctx(
         FALSE, out_ctx);
     if (status != STATUS_SUCCESS) {
         print_error("SeCreateClientSecurityFromSubjectContext "
-            "failed with 0x%x\n", status);
+            "failed with 0x%lx\n", (long)status);
     }
 #ifdef DEBUG_SECURITY_TOKEN
     DbgP("Created client security token 0x%p\n", out_ctx->ClientToken);
@@ -175,7 +175,7 @@ NTSTATUS marshal_nfs41_open(
     } __except(EXCEPTION_EXECUTE_HANDLER) {
         print_error("marshal_nfs41_open: Call to "
             "MmMapLockedPagesSpecifyCache() failed "
-            "due to exception 0x%x\n", (int)GetExceptionCode());
+            "due to exception 0x%lx\n", (long)GetExceptionCode());
         status = STATUS_ACCESS_VIOLATION;
         goto out;
     }
@@ -254,7 +254,8 @@ NTSTATUS unmarshal_nfs41_open(
         if (cur->u.Open.EaBuffer)
             MmUnmapLockedPages(cur->u.Open.EaBuffer, cur->u.Open.EaMdl);
     } __except(EXCEPTION_EXECUTE_HANDLER) {
-        print_error("MmUnmapLockedPages thrown exception=0x%0x\n", GetExceptionCode());
+        print_error("MmUnmapLockedPages thrown exception=0x%lx\n",
+            (long)GetExceptionCode());
         status = cur->status = STATUS_ACCESS_VIOLATION;
         goto out;
     }
@@ -381,8 +382,9 @@ NTSTATUS map_open_errors(
     case ERROR_FILE_TOO_LARGE:          return STATUS_FILE_TOO_LARGE;
     case ERROR_INTERNAL_ERROR:          return STATUS_INTERNAL_ERROR;
     default:
-        print_error("[ERROR] nfs41_Create: upcall returned ERROR_0x%x "
-            "returning STATUS_INSUFFICIENT_RESOURCES\n", status);
+        print_error("[ERROR] nfs41_Create: upcall returned ERROR_0x%lx "
+            "returning STATUS_INSUFFICIENT_RESOURCES\n",
+            (long)status);
     case ERROR_OUTOFMEMORY:             return STATUS_INSUFFICIENT_RESOURCES;
     }
 }
@@ -955,8 +957,9 @@ NTSTATUS map_close_errors(
     case ERROR_FILE_TOO_LARGE:  return STATUS_FILE_TOO_LARGE;
     default:
         print_error("map_close_errors: "
-            "failed to map windows ERROR_0x%x to NTSTATUS; "
-            "defaulting to STATUS_INTERNAL_ERROR\n", status);
+            "failed to map windows ERROR_0x%lx to NTSTATUS; "
+            "defaulting to STATUS_INTERNAL_ERROR\n",
+            (long)status);
     case ERROR_INTERNAL_ERROR:  return STATUS_INTERNAL_ERROR;
     }
 }

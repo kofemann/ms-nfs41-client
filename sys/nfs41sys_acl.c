@@ -93,7 +93,7 @@ NTSTATUS marshal_nfs41_getacl(
     *len = header_len;
 
 #ifdef DEBUG_MARSHAL_DETAIL
-    DbgP("marshal_nfs41_getacl: class=0x%x\n", entry->u.Acl.query);
+    DbgP("marshal_nfs41_getacl: class=0x%x\n", (int)entry->u.Acl.query);
 #endif
 out:
     return status;
@@ -129,7 +129,7 @@ NTSTATUS marshal_nfs41_setacl(
 
 #ifdef DEBUG_MARSHAL_DETAIL
     DbgP("marshal_nfs41_setacl: class=0x%x sec_desc_len=%lu\n",
-         entry->u.Acl.query, entry->buf_len);
+         (int)entry->u.Acl.query, (long)entry->buf_len);
 #endif
 out:
     return status;
@@ -172,8 +172,9 @@ NTSTATUS map_query_acl_error(
     case ERROR_INTERNAL_ERROR:      return STATUS_INTERNAL_ERROR;
     default:
         print_error("map_query_acl_error: "
-            "failed to map windows ERROR_0x%x to NTSTATUS; "
-            "defaulting to STATUS_INVALID_NETWORK_RESPONSE\n", error);
+            "failed to map windows ERROR_0x%lx to NTSTATUS; "
+            "defaulting to STATUS_INVALID_NETWORK_RESPONSE\n",
+            (long long)error);
     case ERROR_BAD_NET_RESP:        return STATUS_INVALID_NETWORK_RESPONSE;
     }
 }
@@ -230,8 +231,9 @@ NTSTATUS nfs41_QuerySecurityInformation(
         LARGE_INTEGER current_time;
         KeQuerySystemTime(&current_time);
 #ifdef DEBUG_ACL_QUERY
-        DbgP("CurrentTime 0x%lx Saved Acl time 0x%lx\n",
-            current_time.QuadPart, nfs41_fobx->time.QuadPart);
+        DbgP("CurrentTime 0x%llx Saved Acl time 0x%llx\n",
+            (long long)current_time.QuadPart,
+            (long long)nfs41_fobx->time.QuadPart);
 #endif
         if (current_time.QuadPart - nfs41_fobx->time.QuadPart <= 20*1000) {
             PSECURITY_DESCRIPTOR sec_desc = (PSECURITY_DESCRIPTOR)
@@ -380,7 +382,8 @@ NTSTATUS nfs41_SetSecurityInformation(
         status = RtlGetDaclSecurityDescriptor(sec_desc, &present, &acl,
                     &dacl_default);
         if (status) {
-            DbgP("RtlGetDaclSecurityDescriptor failed 0x%x\n", status);
+            DbgP("RtlGetDaclSecurityDescriptor failed status=0x%lx\n",
+                (long)status);
             goto out;
         }
         if (present == FALSE) {

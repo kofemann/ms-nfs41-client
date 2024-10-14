@@ -224,7 +224,7 @@ NTSTATUS marshal_nfs41_header(
         MmIsAddressValid(entry->filename->Buffer)) {
 #ifdef DEBUG_MARSHAL_HEADER
         DbgP("[upcall header] xid=%lld opcode='%s' filename='%wZ' version=%d "
-            "session=0x%x open_state=0x%x\n", entry->xid,
+            "session=0x%p open_state=0x%x\n", entry->xid,
             ENTRY_OPCODE2STRING(entry), entry->filename,
             entry->version, entry->session, entry->open_state);
 #endif /* DEBUG_MARSHAL_HEADER */
@@ -670,17 +670,19 @@ static ULONG nfs41_ExtendForCache(
     PLOWIO_CONTEXT LowIoContext  = &RxContext->LowIoContext;
     DbgEn();
     print_debug_header(RxContext);
-    DbgP("input: byte count 0x%x filesize 0x%x alloc size 0x%x\n",
-        LowIoContext->ParamsFor.ReadWrite.ByteCount, *pNewFileSize,
-        *pNewAllocationSize);
+    DbgP("input: bytecount=0x%lx filesize=0x%llx allocsize=0x%llx\n",
+        (long)LowIoContext->ParamsFor.ReadWrite.ByteCount,
+        (long long)pNewFileSize->QuadPart,
+        (long long)pNewAllocationSize->QuadPart);
 #endif
     pNewAllocationSize->QuadPart = pNewFileSize->QuadPart + 8192;
     nfs41_fcb->StandardInfo.AllocationSize.QuadPart =
         pNewAllocationSize->QuadPart;
     nfs41_fcb->StandardInfo.EndOfFile.QuadPart = pNewFileSize->QuadPart;
 #ifdef DEBUG_CACHE
-    DbgP("new filesize 0x%x new allocation size 0x%x\n",
-        *pNewFileSize, *pNewAllocationSize);
+    DbgP("newfilesize=0x%llx newallocationsize=0x%llx\n",
+        (long long)pNewFileSize->QuadPart,
+        (long long)pNewAllocationSize->QuadPart);
 #endif
 #ifdef DEBUG_CACHE
     DbgEx();
@@ -993,7 +995,7 @@ out:
 #ifdef DEBUG_FSDDISPATCH
     DbgP("IoStatus status = 0x%lx info = 0x%x\n",
         (long)Irp->IoStatus.Status,
-        Irp->IoStatus.Information);
+        (int)Irp->IoStatus.Information);
     DbgEx();
 #endif
     return status;
@@ -1009,7 +1011,7 @@ NTSTATUS nfs41_AreFilesAliased(
     PFCB a,
     PFCB b)
 {
-    DbgP("nfs41_AreFilesAliased: a=0x%p b=%0x%p\n",
+    DbgP("nfs41_AreFilesAliased: a=0x%p b=0x%p\n",
         (void *)a, (void *)b);
     return STATUS_NOT_IMPLEMENTED;
 }

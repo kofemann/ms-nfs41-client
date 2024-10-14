@@ -77,9 +77,9 @@ static void print_readwrite_args(
     PLOWIO_CONTEXT LowIoContext  = &RxContext->LowIoContext;
 
     print_debug_header(RxContext);
-    DbgP("Bytecount 0x%x Byteoffset 0x%x Buffer 0x%p\n",
-        LowIoContext->ParamsFor.ReadWrite.ByteCount,
-        LowIoContext->ParamsFor.ReadWrite.ByteOffset,
+    DbgP("Byteoffset=0x%llx Bytecount=0x%llx Buffer=0x%p\n",
+        (long long)LowIoContext->ParamsFor.ReadWrite.ByteOffset,
+        (long long)LowIoContext->ParamsFor.ReadWrite.ByteCount,
         LowIoContext->ParamsFor.ReadWrite.Buffer);
 }
 
@@ -132,7 +132,7 @@ NTSTATUS marshal_nfs41_rw(
         code = GetExceptionCode();
         print_error("marshal_nfs41_rw: Call to "
             "MmMapLockedPagesSpecifyCache() failed due to "
-            "exception 0x%x\n", (int)code);
+            "exception 0x%lx\n", (long)code);
         status = STATUS_ACCESS_VIOLATION;
         goto out;
     }
@@ -174,7 +174,7 @@ NTSTATUS unmarshal_nfs41_rw(
         NTSTATUS code;
         code = GetExceptionCode();
         print_error("unmarshal_nfs41_rw: Call to MmUnmapLockedPages() "
-            "failed due to exception 0x%0x\n", (int)code);
+            "failed due to exception 0x%0x\n", (long)code);
         status = STATUS_ACCESS_VIOLATION;
     }
 #endif
@@ -198,8 +198,9 @@ NTSTATUS map_readwrite_errors(
     case ERROR_INTERNAL_ERROR:          return STATUS_INTERNAL_ERROR;
     default:
         print_error("map_readwrite_errors: "
-            "failed to map windows ERROR_0x%x to NTSTATUS; "
-            "defaulting to STATUS_NET_WRITE_FAULT\n", status);
+            "failed to map windows ERROR_0x%lx to NTSTATUS; "
+            "defaulting to STATUS_NET_WRITE_FAULT\n",
+            (long)status);
     case ERROR_NET_WRITE_FAULT:         return STATUS_NET_WRITE_FAULT;
     }
 }

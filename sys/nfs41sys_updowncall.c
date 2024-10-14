@@ -214,7 +214,7 @@ NTSTATUS handle_upcall(
         NTSTATUS code;
         code = GetExceptionCode();
         print_error("handle_upcall: Call to SeImpersonateClientEx() "
-            "failed due to exception 0x%0x\n", (int)code);
+            "failed due to exception 0x%lx\n", (long)code);
         status = STATUS_INTERNAL_ERROR;
     }
 #else
@@ -222,7 +222,7 @@ NTSTATUS handle_upcall(
 #endif /* NFS41_DRIVER_STABILITY_HACKS */
     if (status != STATUS_SUCCESS) {
         print_error("handle_upcall: "
-            "SeImpersonateClientEx() failed 0x%x\n", status);
+            "SeImpersonateClientEx() failed 0x%lx\n", (long)status);
         goto out;
     }
 
@@ -349,8 +349,8 @@ NTSTATUS nfs41_UpcallCreate(
         if (status != STATUS_SUCCESS) {
             print_error("nfs41_UpcallCreate: "
                 "SeCreateClientSecurityFromSubjectContext() "
-                "failed with 0x%x\n",
-                status);
+                "failed with 0x%lx\n",
+                (long)status);
             nfs41_upcall_free_updowncall_entry(entry);
             entry = NULL;
         }
