@@ -33,6 +33,27 @@
 
 #include "nfs_ea.h"
 
+#define EXALLOCATEPOOLWITHTAG_DEPRECATED 1
+
+#ifdef EXALLOCATEPOOLWITHTAG_DEPRECATED
+/*
+ * Workaround for WDK11 issue: |ExAllocatePoolWithTag()| is
+ * deprecated ('warning C4996: 'ExAllocatePoolWithTag':"
+ * ExAllocatePoolWithTag is deprecated, use ExAllocatePool2.')
+ * but |RxAllocatePoolWithTag()| is still mapped to
+ * |ExAllocatePoolWithTag()|
+ */
+#undef RxAllocatePoolWithTag
+#define RXALLOCATEPOOL_DEFAULT_ALLOCATEPOOL2FLAGS \
+    (POOL_FLAG_UNINITIALIZED|POOL_FLAG_CACHE_ALIGNED)
+
+#define RxAllocatePoolWithTag(rxallocpool, numbytes, tag) \
+    ExAllocatePool2(((((rxallocpool) == NonPagedPoolNx)? \
+            POOL_FLAG_NON_PAGED:POOL_FLAG_NON_PAGED_EXECUTE) | \
+            RXALLOCATEPOOL_DEFAULT_ALLOCATEPOOL2FLAGS), \
+        (numbytes), (tag))
+#endif /* EXALLOCATEPOOLWITHTAG_DEPRECATED */
+
 #define DECLARE_CONST_ANSI_STRING(_var, _string) \
     const CHAR _var ## _buffer[] = _string; \
     const ANSI_STRING _var = { sizeof(_string) - sizeof(CHAR), \
