@@ -54,6 +54,7 @@ installdest:
 	(cd "$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/" && ln -sf ../lib/msnfs41client/msnfs41client .)
 	cp $(PROJECT_BASEDIR_DIR)/cygwin_idmapper.ksh		$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/.
 	@ printf "# Package sources and diffs\n"
+	git config --global --add safe.directory "$(PROJECT_BASEDIR_DIR)"
 	git bundle create "$(DESTDIR)/$(CYGWIN_BASEPATH)/usr/src/msnfs41client/msnfs41client_git.bundle" HEAD
 	git diff -w	>"$(DESTDIR)/$(CYGWIN_BASEPATH)/usr/src/msnfs41client/msnfs41client_diff_w.diff"
 	git diff	>"$(DESTDIR)/$(CYGWIN_BASEPATH)/usr/src/msnfs41client/msnfs41client_diff.diff"
