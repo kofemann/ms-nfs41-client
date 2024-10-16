@@ -66,7 +66,7 @@ static int get_client_for_netaddr(
     }
     DPRINTF(1, ("callback function 0x%p args 0x%p\n", nfs41_handle_callback, rpc));
     client = clnt_tli_create(RPC_ANYFD, nconf, addr, NFS41_RPC_PROGRAM,
-        NFS41_RPC_VERSION, wsize, rsize, rpc ? proc_cb_compound_res : NULL,
+        NFS41_RPC_VERSION, wsize, rsize, rpc ? (int (*)(void*, void*))proc_cb_compound_res : NULL,
         rpc ? nfs41_handle_callback : NULL, rpc ? rpc : NULL);
     if (client) {
         *client_out = client;
