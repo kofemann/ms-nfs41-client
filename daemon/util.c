@@ -301,7 +301,7 @@ void nfs41_file_info_cpy(
 void get_file_time(
     OUT PLARGE_INTEGER file_time)
 {
-    GetSystemTimeAsFileTime((LPFILETIME)file_time);
+    GetSystemTimePreciseAsFileTime((LPFILETIME)file_time);
 }
 
 void get_nfs_time(
