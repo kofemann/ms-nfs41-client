@@ -201,6 +201,10 @@ function bash_build
 	set -o errexit
 	set -o nounset
 
+	compound cygwin_vers
+
+	get_cpv_cygwin_version cygwin_vers
+
 	#
 	# build config
 	#
@@ -299,7 +303,11 @@ function bash_build
 	#
 	# build bash
 	#
-	time ksh93 -c 'export SHELL=/bin/ksh93 ; bmake -j8'
+	if (( (cygwin_vers.major*1000+cygwin_vers.minor) >= 3005 )) ; then
+		time ksh93 -c 'export SHELL=/bin/ksh93 ; bmake -j8'
+	else
+		time ksh93 -c 'export SHELL=/bin/ksh93 ; make -j8'
+	fi
 	echo $?
 
 	echo "#Done."
@@ -425,15 +433,42 @@ function msnfs41client_clean
 
 
 #
+# get_cpv_cygwin_version - get cygwin version as compound var
+#
+function get_cpv_cygwin_version
+{
+	nameref c_vers=$1
+	typeset uname_r="${ uname -r ; }"
+	typeset leftover
+
+	leftover="${uname_r/~(Elr)([[:digit:]]+)\.([[:digit:]]+)\.([[:digit:]]+)-([[:digit:]]+)\..+/x}"
+
+	if [[ "$leftover" != 'x' ]] ; then
+		print -u2 -f $"%s: error parsing uname -r for Cygwin version number, got %q\n" \
+			"$0" "$leftover"
+		return 1
+	fi
+
+	integer c_vers.major="${.sh.match[1]}"
+	integer c_vers.minor="${.sh.match[2]}"
+	integer c_vers.revision="${.sh.match[3]}"
+	integer c_vers.relcount="${.sh.match[4]}"
+
+	return 0
+}
+
+
+#
 # Enumerate installed Cygwin packages and fill
 # an associative array with the package names
 #
 function enumerate_cygwin_packages
 {
 	nameref package_arr=$1
-	typeset i
+	typeset i j
 
-	/usr/bin/cygcheck -n | while read i ; do
+	# cygcheck in Cygwin 3.3 does not support -n
+	/usr/bin/cygcheck -c -d | while read i j ; do
 		package_arr["$i"]='true'
 	done
 	return 0
@@ -463,6 +498,9 @@ function main
 	integer errc=0 # error counter
 	typeset target="$1"
 	typeset subcmd="$2"
+	compound cygwin_vers
+
+	get_cpv_cygwin_version cygwin_vers
 
 	enumerate_cygwin_packages icp
 
@@ -501,7 +539,14 @@ function main
 			is_cygwin_pkg_installed icp 'git' || (( errc++ ))
 			is_cygwin_pkg_installed icp 'gcc-core' || (( errc++ ))
 			is_cygwin_pkg_installed icp 'gcc-g++' || (( errc++ ))
-			is_cygwin_pkg_installed icp 'bmake' || (( errc++ ))
+			if (( (cygwin_vers.major*1000+cygwin_vers.minor) >= 3005 )) ; then
+				print '# bash_build: Using Cygwin >= 3.5 config'
+				# Only Cygwin >= 3.5 has /usr/bin/bmake
+				is_cygwin_pkg_installed icp 'bmake' || (( errc++ ))
+			else
+				print '# bash_build: Using Cygwin < 3.5 config'
+				is_cygwin_pkg_installed icp 'make' || (( errc++ ))
+			fi
 			is_cygwin_pkg_installed icp 'libncurses-devel' || (( errc++ ))
 			(( errc > 0 )) && return 1
 			bash_build
@@ -551,6 +596,7 @@ function main
 #
 builtin id
 builtin mkdir
+builtin uname
 
 main "$@"
 return $?
