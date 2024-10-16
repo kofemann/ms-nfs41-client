@@ -174,7 +174,7 @@ NTSTATUS map_query_acl_error(
         print_error("map_query_acl_error: "
             "failed to map windows ERROR_0x%lx to NTSTATUS; "
             "defaulting to STATUS_INVALID_NETWORK_RESPONSE\n",
-            (long long)error);
+            (long)error);
     case ERROR_BAD_NET_RESP:        return STATUS_INVALID_NETWORK_RESPONSE;
     }
 }
