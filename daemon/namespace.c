@@ -445,7 +445,7 @@ static int referral_mount_location(
     IN const fs_location4 *loc,
     OUT nfs41_client **client_out)
 {
-    multi_addr4 addrs;
+    multi_addr4 addrs = { 0 };
     int status = ERROR_BAD_NET_NAME;
     uint32_t i;
 

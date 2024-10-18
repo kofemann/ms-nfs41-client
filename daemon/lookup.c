@@ -466,9 +466,9 @@ int nfs41_lookup(
 {
     nfs41_abs_path path;
     struct nfs41_name_cache *cache = session_name_cache(session);
-    nfs41_path_fh parent, target, *server_start;
+    nfs41_path_fh parent = { 0 }, target = { 0 }, *server_start;
     const char *path_pos, *path_end;
-    struct lookup_referral referral;
+    struct lookup_referral referral = { 0 };
     bool_t negative = 0;
     int status;
 
