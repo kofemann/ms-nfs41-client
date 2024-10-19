@@ -164,7 +164,7 @@ bindresvport_sa(sd, sa)
 #endif
 
 /* fixme: not threadsafe, we should use |portnum_lock| */
-static int bindresvport_sa_last_n = 0;
+static unsigned int bindresvport_sa_n = 0;
 
 int
 bindresvport_sa(int sd, struct sockaddr *sa)
@@ -182,13 +182,13 @@ bindresvport_sa(int sd, struct sockaddr *sa)
 
 	BRP_D((void)fprintf(stdout,
 		"--> bindresvport_sa(sd=%d,sa=0x%p): "
-		"bindresvport_sa_last_n=%d\n",
-		sd, sa, bindresvport_sa_last_n));
+		"bindresvport_sa_n=%u\n",
+		sd, sa, bindresvport_sa_n));
 
 	sd_sock = wintirpc_fd2sockethandle(sd);
 
 	for (n = 0 ; n < NPORTS ; n++) {
-		currport = ((n+bindresvport_sa_last_n)%NPORTS)+STARTPORT;
+		currport = ((bindresvport_sa_n++)%NPORTS)+STARTPORT;
 
 		portRange.StartPort = htons((unsigned short)currport);
 		portRange.NumberOfPorts = 1;
@@ -198,8 +198,8 @@ bindresvport_sa(int sd, struct sockaddr *sa)
 
 		BRP_D((void)fprintf(stdout,
 			"bindresvport_sa(sd=%d,sa=0x%p): "
-			"trying n=%d, bindresvport_sa_last_n=%d, port=%d ...\n",
-			sd, sa, n, bindresvport_sa_last_n,
+			"trying n=%d, bindresvport_sa_n=%u, port=%d ...\n",
+			sd, sa, n, bindresvport_sa_n,
 			(int)ntohs(portRange.StartPort)));
 		ioctlres = WSAIoctl(sd_sock,
 			SIO_ACQUIRE_PORT_RESERVATION,
@@ -224,12 +224,10 @@ bindresvport_sa(int sd, struct sockaddr *sa)
 				"with error = %d\n",
 				sd, sa, lasterr);
 			res = 1;
-			bindresvport_sa_last_n = n+1;
 			goto out;
 		}
 
 		/* Success */
-		bindresvport_sa_last_n = n+1;
 		break;
 	}
 
