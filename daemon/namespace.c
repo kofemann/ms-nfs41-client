@@ -449,10 +449,15 @@ static int referral_mount_location(
     int status = ERROR_BAD_NET_NAME;
     uint32_t i;
 
-    DPRINTF(NSLVL, ("--> referral_mount_location()\n"));
+    DPRINTF(1, ("--> referral_mount_location()\n"));
 
     /* create a client and session for the first available server */
     for (i = 0; i < loc->server_count; i++) {
+        DPRINTF(1,
+            ("referral_mount_location: "
+                "trying loc->servers[%d].address='%s'\n",
+                (int)i, loc->servers[i].address));
+
         /* XXX: only deals with 'address' as a hostname with default port */
         status = nfs41_server_resolve(loc->servers[i].address, 2049, &addrs);
         if (status) continue;
@@ -462,7 +467,7 @@ static int referral_mount_location(
             break;
     }
 
-    DPRINTF(NSLVL, ("<-- referral_mount_location() returning %d\n", status));
+    DPRINTF(1, ("<-- referral_mount_location() returning %d\n", status));
 
     return status;
 }
