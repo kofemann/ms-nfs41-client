@@ -61,6 +61,10 @@ NFSv4.1 filesystem driver for Windows 10/11&Windows Server 2019
 - Support for NFSv4 public mounts (i.e. use the NFSv4 public file handle
     lookup protocol via $ nfs_mount -o public ... #)
 
+- Support for NFSv4 referrals
+    - See Linux export(5) refer= option, nfsref(5) or
+        https://docs.oracle.com/cd/E86824_01/html/E54764/nfsref-1m.html
+
 - SFU/Cygwin support, including:
     - uid/gid
     - Cygwin symlinks
