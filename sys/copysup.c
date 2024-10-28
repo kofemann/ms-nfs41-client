@@ -164,6 +164,11 @@ BOOLEAN FsRtlCopyRead2(
                 IoStatus);
 
             FObj->Flags |= FO_FILE_FAST_IO_READ;
+
+            ASSERT((!retval) ||
+                (IoStatus->Status == STATUS_END_OF_FILE) ||
+                (((ULONGLONG)FileOffset->QuadPart + IoStatus->Information) <=
+                    (ULONGLONG)fo_fcb->FileSize.QuadPart));
         }
         else {
             CcFastCopyRead(FObj,
@@ -175,7 +180,9 @@ BOOLEAN FsRtlCopyRead2(
 
             FObj->Flags |= FO_FILE_FAST_IO_READ;
 
-            ASSERT(IoStatus->Status == STATUS_END_OF_FILE);
+            ASSERT((IoStatus->Status == STATUS_END_OF_FILE) ||
+                ((FileOffset->LowPart + IoStatus->Information) <=
+                    fo_fcb->FileSize.LowPart));
         }
 
         if (retval) {
