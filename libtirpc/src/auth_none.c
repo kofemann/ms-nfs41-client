@@ -133,24 +133,19 @@ static bool_t
 authnone_marshal(AUTH *client, XDR *xdrs, u_int *seq)
 {
 	struct authnone_private *ap;
-	bool_t dummy;
+	bool_t rv = FALSE;
 	extern mutex_t authnone_lock;
 
 	assert(xdrs != NULL);
 
+	mutex_lock(&authnone_lock);
 	ap = authnone_private;
-	if (ap == NULL) {
-#if 0 /* gisburn: Disabled, causes mutex over-unlock */
-		mutex_unlock(&authnone_lock);
-#endif
-		return (FALSE);
+	if (ap) {
+		rv = (*xdrs->x_ops->x_putbytes)(xdrs, ap->marshalled_client,
+					        ap->mcnt);
 	}
-	dummy = (*xdrs->x_ops->x_putbytes)(xdrs,
-	    ap->marshalled_client, ap->mcnt);
-#if 0 /* gisburn: Disabled, causes mutex over-unlock */
 	mutex_unlock(&authnone_lock);
-#endif
-	return (dummy);
+	return (rv);
 }
 
 /* All these unused parameters are required to keep ANSI-C from grumbling */
