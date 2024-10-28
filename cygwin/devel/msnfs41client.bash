@@ -455,7 +455,8 @@ function nfsclient_rundeamon
 				# no symbol cache, user "SYSTEM" cannot write data to cache
 				'-no_use_symcache'
 				'--'
-				"${nfsd_args[@]}"
+				"$(cygpath -w "$(which "${nfsd_args[0]}")")"
+				"${nfsd_args[@]:1}"
 				'--crtdbgmem' 'none'
 			)
 
@@ -575,7 +576,8 @@ function nfsclient_system_rundeamon
 				# no symbol cache, user "SYSTEM" cannot write data to cache
 				'-no_use_symcache'
 				'--'
-				"${nfsd_args[@]}"
+				"$(cygpath -w "$(which "${nfsd_args[0]}")")"
+				"${nfsd_args[@]:1}"
 				'--crtdbgmem' 'none'
 			)
 
