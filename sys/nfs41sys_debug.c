@@ -528,88 +528,109 @@ void print_nt_create_params(int on, NT_CREATE_PARAMETERS params)
         (params.DesiredAccess & SYNCHRONIZE)?"SYNCHRONIZE":"");
 }
 
-const char *print_file_information_class(int InfoClass)
+const char *print_file_information_class(int fic)
 {
-    switch(InfoClass) {
-        case FileBothDirectoryInformation:
-            return "FileBothDirectoryInformation";
-        case FileDirectoryInformation:
-            return "FileDirectoryInformation";
-        case FileFullDirectoryInformation:
-            return "FileFullDirectoryInformation";
-        case FileIdBothDirectoryInformation:
-            return "FileIdBothDirectoryInformation";
-        case FileIdFullDirectoryInformation:
-            return "FileIdFullDirectoryInformation";
-        case FileNamesInformation:
-            return "FileNamesInformation";
-        case FileObjectIdInformation:
-            return "FileObjectIdInformation";
-        case FileQuotaInformation:
-            return "FileQuotaInformation";
-        case FileReparsePointInformation:
-            return "FileReparsePointInformation";
-        case FileAllInformation:
-            return "FileAllInformation";
-        case FileAttributeTagInformation:
-            return "FileAttributeTagInformation";
-        case FileBasicInformation:
-            return "FileBasicInformation";
-        case FileCompressionInformation:
-            return "FileCompressionInformation";
-        case FileEaInformation:
-            return "FileEaInformation";
-        case FileInternalInformation:
-            return "FileInternalInformation";
-        case FileNameInformation:
-            return "FileNameInformation";
-        case FileNetworkOpenInformation:
-            return "FileNetworkOpenInformation";
-        case FilePositionInformation:
-            return "FilePositionInformation";
-        case FileStandardInformation:
-            return "FileStandardInformation";
-        case FileStreamInformation:
-            return "FileStreamInformation";
-        case FileAllocationInformation:
-            return "FileAllocationInformation";
-        case FileDispositionInformation:
-            return "FileDispositionInformation";
-        case FileEndOfFileInformation:
-            return "FileEndOfFileInformation";
-        case FileLinkInformation:
-            return "FileLinkInformation";
-        case FileRenameInformation:
-            return "FileRenameInformation";
-        case FileValidDataLengthInformation:
-            return "FileValidDataLengthInformation";
-        default:
-            return "UNKNOWN_InfoClass";
+    switch(fic) {
+#define FIC_TO_STRLITERAL(e) case e: return #e;
+        FIC_TO_STRLITERAL(FileDirectoryInformation)
+        FIC_TO_STRLITERAL(FileFullDirectoryInformation)
+        FIC_TO_STRLITERAL(FileBothDirectoryInformation)
+        FIC_TO_STRLITERAL(FileBasicInformation)
+        FIC_TO_STRLITERAL(FileStandardInformation)
+        FIC_TO_STRLITERAL(FileInternalInformation)
+        FIC_TO_STRLITERAL(FileEaInformation)
+        FIC_TO_STRLITERAL(FileAccessInformation)
+        FIC_TO_STRLITERAL(FileNameInformation)
+        FIC_TO_STRLITERAL(FileRenameInformation)
+        FIC_TO_STRLITERAL(FileLinkInformation)
+        FIC_TO_STRLITERAL(FileNamesInformation)
+        FIC_TO_STRLITERAL(FileDispositionInformation)
+        FIC_TO_STRLITERAL(FilePositionInformation)
+        FIC_TO_STRLITERAL(FileFullEaInformation)
+        FIC_TO_STRLITERAL(FileModeInformation)
+        FIC_TO_STRLITERAL(FileAlignmentInformation)
+        FIC_TO_STRLITERAL(FileAllInformation)
+        FIC_TO_STRLITERAL(FileAllocationInformation)
+        FIC_TO_STRLITERAL(FileEndOfFileInformation)
+        FIC_TO_STRLITERAL(FileAlternateNameInformation)
+        FIC_TO_STRLITERAL(FileStreamInformation)
+        FIC_TO_STRLITERAL(FilePipeInformation)
+        FIC_TO_STRLITERAL(FilePipeLocalInformation)
+        FIC_TO_STRLITERAL(FilePipeRemoteInformation)
+        FIC_TO_STRLITERAL(FileMailslotQueryInformation)
+        FIC_TO_STRLITERAL(FileMailslotSetInformation)
+        FIC_TO_STRLITERAL(FileCompressionInformation)
+        FIC_TO_STRLITERAL(FileObjectIdInformation)
+        FIC_TO_STRLITERAL(FileCompletionInformation)
+        FIC_TO_STRLITERAL(FileMoveClusterInformation)
+        FIC_TO_STRLITERAL(FileQuotaInformation)
+        FIC_TO_STRLITERAL(FileReparsePointInformation)
+        FIC_TO_STRLITERAL(FileNetworkOpenInformation)
+        FIC_TO_STRLITERAL(FileAttributeTagInformation)
+        FIC_TO_STRLITERAL(FileTrackingInformation)
+        FIC_TO_STRLITERAL(FileIdBothDirectoryInformation)
+        FIC_TO_STRLITERAL(FileIdFullDirectoryInformation)
+        FIC_TO_STRLITERAL(FileValidDataLengthInformation)
+        FIC_TO_STRLITERAL(FileShortNameInformation)
+        FIC_TO_STRLITERAL(FileIoCompletionNotificationInformation)
+        FIC_TO_STRLITERAL(FileIoStatusBlockRangeInformation)
+        FIC_TO_STRLITERAL(FileIoPriorityHintInformation)
+        FIC_TO_STRLITERAL(FileSfioReserveInformation)
+        FIC_TO_STRLITERAL(FileSfioVolumeInformation)
+        FIC_TO_STRLITERAL(FileHardLinkInformation)
+        FIC_TO_STRLITERAL(FileProcessIdsUsingFileInformation)
+        FIC_TO_STRLITERAL(FileNormalizedNameInformation)
+        FIC_TO_STRLITERAL(FileNetworkPhysicalNameInformation)
+        FIC_TO_STRLITERAL(FileIdGlobalTxDirectoryInformation)
+        FIC_TO_STRLITERAL(FileIsRemoteDeviceInformation)
+        FIC_TO_STRLITERAL(FileUnusedInformation)
+        FIC_TO_STRLITERAL(FileNumaNodeInformation)
+        FIC_TO_STRLITERAL(FileStandardLinkInformation)
+        FIC_TO_STRLITERAL(FileRemoteProtocolInformation)
+        FIC_TO_STRLITERAL(FileRenameInformationBypassAccessCheck)
+        FIC_TO_STRLITERAL(FileLinkInformationBypassAccessCheck)
+        FIC_TO_STRLITERAL(FileVolumeNameInformation)
+        FIC_TO_STRLITERAL(FileIdInformation)
+        FIC_TO_STRLITERAL(FileIdExtdDirectoryInformation)
+        FIC_TO_STRLITERAL(FileReplaceCompletionInformation)
+        FIC_TO_STRLITERAL(FileHardLinkFullIdInformation)
+        FIC_TO_STRLITERAL(FileIdExtdBothDirectoryInformation)
+        FIC_TO_STRLITERAL(FileDispositionInformationEx)
+        FIC_TO_STRLITERAL(FileRenameInformationEx)
+        FIC_TO_STRLITERAL(FileRenameInformationExBypassAccessCheck)
+        FIC_TO_STRLITERAL(FileDesiredStorageClassInformation)
+        FIC_TO_STRLITERAL(FileStatInformation)
+        FIC_TO_STRLITERAL(FileMemoryPartitionInformation)
+        FIC_TO_STRLITERAL(FileStatLxInformation)
+        FIC_TO_STRLITERAL(FileCaseSensitiveInformation)
+        FIC_TO_STRLITERAL(FileLinkInformationEx)
+        FIC_TO_STRLITERAL(FileLinkInformationExBypassAccessCheck)
+        FIC_TO_STRLITERAL(FileStorageReserveIdInformation)
+        FIC_TO_STRLITERAL(FileCaseSensitiveInformationForceAccessCheck)
     }
+    return "<unknown FILE_INFORMATION_CLASS>";
 }
 
 const char *print_fs_information_class(int InfoClass)
 {
+#define FSIC_TO_STRLITERAL(e) case e: return #e;
     switch (InfoClass) {
-        case FileFsAttributeInformation:
-            return "FileFsAttributeInformation";
-        case FileFsControlInformation:
-            return "FileFsControlInformation";
-        case FileFsDeviceInformation:
-            return "FileFsDeviceInformation";
-        case FileFsDriverPathInformation:
-            return "FileFsDriverPathInformation";
-        case FileFsFullSizeInformation:
-            return "FileFsFullSizeInformation";
-        case FileFsObjectIdInformation:
-            return "FileFsObjectIdInformation";
-        case FileFsSizeInformation:
-            return "FileFsSizeInformation";
-        case FileFsVolumeInformation:
-            return "FileFsVolumeInformation";
-        default:
-            return "UNKNOWN_FsInfoClass";
+        FSIC_TO_STRLITERAL(FileFsVolumeInformation)
+        FSIC_TO_STRLITERAL(FileFsLabelInformation)
+        FSIC_TO_STRLITERAL(FileFsSizeInformation)
+        FSIC_TO_STRLITERAL(FileFsDeviceInformation)
+        FSIC_TO_STRLITERAL(FileFsAttributeInformation)
+        FSIC_TO_STRLITERAL(FileFsControlInformation)
+        FSIC_TO_STRLITERAL(FileFsFullSizeInformation)
+        FSIC_TO_STRLITERAL(FileFsObjectIdInformation)
+        FSIC_TO_STRLITERAL(FileFsDriverPathInformation)
+        FSIC_TO_STRLITERAL(FileFsVolumeFlagsInformation)
+        FSIC_TO_STRLITERAL(FileFsSectorSizeInformation)
+        FSIC_TO_STRLITERAL(FileFsDataCopyInformation)
+        FSIC_TO_STRLITERAL(FileFsMetadataSizeInformation)
+        FSIC_TO_STRLITERAL(FileFsFullSizeInformationEx)
     }
+    return "<unknown FS_INFORMATION_CLASS>";
 }
 
 void print_caching_level(int on, ULONG flag, PUNICODE_STRING name)
