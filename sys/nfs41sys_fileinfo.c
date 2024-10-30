@@ -306,6 +306,10 @@ NTSTATUS nfs41_QueryFileInformation(
     case FileInternalInformation:
     case FileAttributeTagInformation:
     case FileNetworkOpenInformation:
+#ifdef NFS41_DRIVER_WSL_SUPPORT
+    case FileStatInformation:
+    case FileStatLxInformation:
+#endif /* NFS41_DRIVER_WSL_SUPPORT */
         break;
     default:
         print_error("nfs41_QueryFileInformation: unhandled class %d\n", InfoClass);
@@ -399,6 +403,10 @@ NTSTATUS nfs41_QueryFileInformation(
         case FileNetworkOpenInformation:
         case FileInternalInformation:
         case FileAttributeTagInformation:
+#ifdef NFS41_DRIVER_WSL_SUPPORT
+        case FileStatInformation:
+        case FileStatLxInformation:
+#endif /* NFS41_DRIVER_WSL_SUPPORT */
             break;
         default:
             print_error("Unhandled/unsupported InfoClass(%d)\n", (int)InfoClass);

@@ -26,6 +26,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
+#include "nfs41_build_features.h"
 #include "nfs41_types.h"
 #include "from_kernel.h"
 
@@ -184,6 +185,17 @@ void nfs_to_network_openinfo(
     IN const char *name,
     IN const nfs41_file_info *info,
     OUT PFILE_NETWORK_OPEN_INFORMATION std_out);
+#ifdef NFS41_DRIVER_WSL_SUPPORT
+void nfs_to_stat_info(
+    IN const char *name,
+    IN const nfs41_file_info *info,
+    OUT PFILE_STAT_INFORMATION stat_out);
+void nfs_to_stat_lx_info(
+    IN void *daemon_context,
+    IN const char *name,
+    IN const nfs41_file_info *info,
+    OUT PFILE_STAT_LX_INFORMATION stat_lx_out);
+#endif /* NFS41_DRIVER_WSL_SUPPORT */
 void nfs41_file_info_cpy(
     OUT nfs41_file_info *dest,
     IN const nfs41_file_info *src);

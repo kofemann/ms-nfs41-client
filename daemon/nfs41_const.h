@@ -443,4 +443,18 @@ enum nfs_ftype4 {
 #define NFS_USER_NOBODY_UID     65534
 #define NFS_GROUP_NOGROUP_GID   65534
 
+/* Mode bits */
+#define MODE4_SUID 0x800    /* set user id on execution     */
+#define MODE4_SGID 0x400    /* set group id on execution    */
+#define MODE4_SVTX 0x200    /* save text even after use     */
+#define MODE4_RUSR 0x100    /* read permission: owner       */
+#define MODE4_WUSR 0x080    /* write permission: owner      */
+#define MODE4_XUSR 0x040    /* execute permission: owner    */
+#define MODE4_RGRP 0x020    /* read permission: group       */
+#define MODE4_WGRP 0x010    /* write permission: group      */
+#define MODE4_XGRP 0x008    /* execute permission: group    */
+#define MODE4_ROTH 0x004    /* read permission: other       */
+#define MODE4_WOTH 0x002    /* write permission: other      */
+#define MODE4_XOTH 0x001    /* execute permission: other    */
+
 #endif /* !__NFS41_NFS_CONST_H__ */

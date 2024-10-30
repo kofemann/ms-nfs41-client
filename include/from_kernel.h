@@ -246,6 +246,64 @@ typedef struct _FILE_NETWORK_OPEN_INFORMATION {
     ULONG FileAttributes;
 } FILE_NETWORK_OPEN_INFORMATION, *PFILE_NETWORK_OPEN_INFORMATION;
 
+typedef struct _FILE_STAT_INFORMATION {
+    LARGE_INTEGER FileId;
+    LARGE_INTEGER CreationTime;
+    LARGE_INTEGER LastAccessTime;
+    LARGE_INTEGER LastWriteTime;
+    LARGE_INTEGER ChangeTime;
+    LARGE_INTEGER AllocationSize;
+    LARGE_INTEGER EndOfFile;
+    ULONG FileAttributes;
+    ULONG ReparseTag;
+    ULONG NumberOfLinks;
+    ACCESS_MASK EffectiveAccess;
+} FILE_STAT_INFORMATION, *PFILE_STAT_INFORMATION;
+
+typedef struct _FILE_STAT_LX_INFORMATION {
+    LARGE_INTEGER FileId;
+    LARGE_INTEGER CreationTime;
+    LARGE_INTEGER LastAccessTime;
+    LARGE_INTEGER LastWriteTime;
+    LARGE_INTEGER ChangeTime;
+    LARGE_INTEGER AllocationSize;
+    LARGE_INTEGER EndOfFile;
+    ULONG FileAttributes;
+    ULONG ReparseTag;
+    ULONG NumberOfLinks;
+    ACCESS_MASK EffectiveAccess;
+    ULONG LxFlags;
+    ULONG LxUid;
+    ULONG LxGid;
+    ULONG LxMode;
+    ULONG LxDeviceIdMajor;
+    ULONG LxDeviceIdMinor;
+} FILE_STAT_LX_INFORMATION, *PFILE_STAT_LX_INFORMATION;
+
+/* Flags for |LxFlags| field */
+#define LX_FILE_METADATA_HAS_UID        0x1
+#define LX_FILE_METADATA_HAS_GID        0x2
+#define LX_FILE_METADATA_HAS_MODE       0x4
+#define LX_FILE_METADATA_HAS_DEVICE_ID  0x8
+#define LX_FILE_CASE_SENSITIVE_DIR      0x10
+
+/*
+ * Bits for |LxMode| field
+ * Notes:
+ * - |_S_I*| bits are not portable across platforms and protocols
+ * (e.g. Win32, Cygwin, Linux, NFSv4 etc.), and we always need
+ * to translate them.
+ * - NFSv4 has |MODE4_*| flags in "daemon/nfs41_const.h"
+ */
+#define LX_MODE_S_IFMT      0xF000 /* file type mask */
+#define LX_MODE_S_IFREG     0x8000 /* regular */
+#define LX_MODE_S_IFDIR     0x4000 /* directory */
+#define LX_MODE_S_IFCHR     0x2000 /* character special */
+#define LX_MODE_S_IFIFO     0x1000 /* pipe */
+#define LX_MODE_S_IREAD     0x0100 /* read permission, owner */
+#define LX_MODE_S_IWRITE    0x0080 /* write permission, owner */
+#define LX_MODE_S_IEXEC     0x0040 /* execute/search permission, owner */
+
 /* wdm.h */
 typedef enum _FSINFOCLASS {
     FileFsVolumeInformation         = 1,

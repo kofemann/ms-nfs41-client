@@ -23,8 +23,8 @@
 #ifndef __NFS41_DAEMON_UPCALL_H__
 #define __NFS41_DAEMON_UPCALL_H__
 
-#include "nfs41_ops.h"
 #include "nfs41_build_features.h"
+#include "nfs41_ops.h"
 #include "from_kernel.h"
 
 #define NFSD_VERSION_MISMATCH 116
@@ -100,6 +100,10 @@ typedef struct __getattr_upcall_args {
     FILE_ATTRIBUTE_TAG_INFO tag_info;
     FILE_INTERNAL_INFORMATION intr_info;
     FILE_NETWORK_OPEN_INFORMATION network_info;
+#ifdef NFS41_DRIVER_WSL_SUPPORT
+    FILE_STAT_INFORMATION stat_info;
+    FILE_STAT_LX_INFORMATION stat_lx_info;
+#endif /* NFS41_DRIVER_WSL_SUPPORT */
     int query_class;
     int buf_len;
     int query_reply_len;

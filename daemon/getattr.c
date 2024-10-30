@@ -187,6 +187,15 @@ static int handle_getattr(void *daemon_context, nfs41_upcall *upcall)
     case FileNetworkOpenInformation:
         nfs_to_network_openinfo(state->file.name.name, &info, &args->network_info);
         break;
+#ifdef NFS41_DRIVER_WSL_SUPPORT
+    case FileStatInformation:
+        nfs_to_stat_info(state->file.name.name, &info, &args->stat_info);
+        break;
+    case FileStatLxInformation:
+        nfs_to_stat_lx_info(daemon_context,
+            state->file.name.name, &info, &args->stat_lx_info);
+        break;
+#endif /* NFS41_DRIVER_WSL_SUPPORT */
     default:
         eprintf("unhandled file query class %d\n", args->query_class);
         status = ERROR_INVALID_PARAMETER;
@@ -238,6 +247,22 @@ static int marshall_getattr(unsigned char *buffer, uint32_t *length, nfs41_upcal
         status = safe_write(&buffer, length, &args->network_info, info_len);
         if (status) goto out;
         break;
+#ifdef NFS41_DRIVER_WSL_SUPPORT
+    case FileStatInformation:
+        info_len = sizeof(args->stat_info);
+        status = safe_write(&buffer, length, &info_len, sizeof(info_len));
+        if (status) goto out;
+        status = safe_write(&buffer, length, &args->stat_info, info_len);
+        if (status) goto out;
+        break;
+    case FileStatLxInformation:
+        info_len = sizeof(args->stat_lx_info);
+        status = safe_write(&buffer, length, &info_len, sizeof(info_len));
+        if (status) goto out;
+        status = safe_write(&buffer, length, &args->stat_lx_info, info_len);
+        if (status) goto out;
+        break;
+#endif /* NFS41_DRIVER_WSL_SUPPORT */
     default:
         eprintf("unknown file query class %d\n", args->query_class);
         status = 103;

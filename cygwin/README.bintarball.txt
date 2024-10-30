@@ -49,6 +49,11 @@ NFSv4.1 filesystem driver for Windows 10/11&Windows Server 2019
     - Cygwin bash+ksh93 support UNC paths, e.g.
       cd //derfwnb4966@2049/nfs4/bigdisk/mysqldb4/
 
+- WSL support
+    - Mount Windows NFSv4.1 shares via driver letter or UNC path
+      in WSL via mount -t drvfs
+    - Supports NFS owner/group to WSL uid/gid mapping
+
 - IPv6 support
     - IPv6 address within '[', ']'
       (will be converted to *.ipv6-literal.net)
@@ -310,6 +315,41 @@ sc start ms-nfs41-client-globalmountall-service
 BUG: Note that "ms-nfs41-client-globalmountall-service" currently
 does not wait until nfsd*.exe is available for accepting mounts.
 
+
+# WSL usage:
+Example 1: Mount Windows NFSv4.1 share via Windows driver letter
+# Mount NFSv4.1 share in Windows to driver letter 'N':
+---- snip ----
+$ /sbin/nfs_mount -o rw 'N' nfs://10.49.202.230//bigdisk
+Successfully mounted '10.49.202.230@2049' to drive 'N:'
+---- snip ----
+
+# Within WSL mount driver letter 'N' to /mnt/n
+---- snip ----
+$ sudo bash
+$ mkdir /mnt/n
+$ mount -t drvfs N: /mnt/n
+---- snip ----
+
+Example 2: Mount Windows NFSv4.1 share via UNC path:
+# Mount NFSv4.1 share in Windows
+---- snip ----
+$ /sbin/nfs_mount -o rw nfs://10.49.202.230//bigdisk
+Successfully mounted '10.49.202.230@2049' to drive '\\10.49.202.230@2049\nfs4\bigdisk'
+---- snip ----
+
+# Within WSL mount UNC path returned by /sbin/nfs_mount
+---- snip ----
+$ sudo bash
+$ mkdir /mnt/bigdisk
+$ mount -t drvfs '\\10.49.202.230@2049\nfs4\bigdisk' /mnt/bigdisk
+---- snip ----
+
+* Known issues with WSL:
+- Softlinks do not work yet
+- Creating a hard link returns "Invalid Argument", maybe drvfs
+  limitation
+- Not all POSIX file types (e.g. block devices) etc. are supported
 
 #
 # 9. Notes:
