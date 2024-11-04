@@ -604,6 +604,7 @@ $ mount -t drvfs '\\10.49.202.230@2049\nfs4\bigdisk' /mnt/bigdisk
 # 12. Source code:
 #
 - Source code can be obtained from https://github.com/kofemann/ms-nfs41-client
+  or as git bundle from /usr/src/msnfs41client/msnfs41client_git.bundle
 
 - Build instructions can be found at
 https://github.com/kofemann/ms-nfs41-client/tree/master/cygwin
