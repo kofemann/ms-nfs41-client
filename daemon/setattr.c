@@ -56,7 +56,7 @@ out:
     return status;
 }
 
-static int handle_nfs41_setattr(void *daemon_context, setattr_upcall_args *args)
+static int handle_nfs41_setattr_basicinfo(void *daemon_context, setattr_upcall_args *args)
 {
     PFILE_BASIC_INFO basic_info = (PFILE_BASIC_INFO)args->buf;
     nfs41_open_state *state = args->state;
@@ -69,7 +69,7 @@ static int handle_nfs41_setattr(void *daemon_context, setattr_upcall_args *args)
     getattr_status = nfs41_attr_cache_lookup(session_name_cache(state->session),
         state->file.fh.fileid, &old_info);
     if (getattr_status) {
-        DPRINTF(0, ("handle_nfs41_setattr(args->path='%s'): "
+        DPRINTF(0, ("handle_nfs41_setattr_basicinfo(args->path='%s'): "
             "nfs41_attr_cache_lookup() failed with error '%s'.\n",
             args->path,
             nfs_error_string(getattr_status)));
@@ -152,7 +152,7 @@ static int handle_nfs41_setattr(void *daemon_context, setattr_upcall_args *args)
 
     status = nfs41_setattr(state->session, &state->file, &stateid, &info);
     if (status) {
-        DPRINTF(1, ("handle_nfs41_setattr(args->path='%s'): "
+        DPRINTF(1, ("handle_nfs41_setattr_basicinfo(args->path='%s'): "
             "nfs41_setattr() failed with error '%s'.\n",
             args->path,
             nfs_error_string(status)));
@@ -518,7 +518,7 @@ static int handle_setattr(void *daemon_context, nfs41_upcall *upcall)
 
     switch (args->set_class) {
     case FileBasicInformation:
-        status = handle_nfs41_setattr(daemon_context, args);
+        status = handle_nfs41_setattr_basicinfo(daemon_context, args);
         break;
     case FileDispositionInformation:
         status = handle_nfs41_remove(daemon_context, args);
