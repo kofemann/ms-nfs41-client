@@ -3,6 +3,7 @@
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
+ * Roland Mainz <roland.mainz@nrubsig.org>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -62,33 +63,51 @@ static int handle_nfs41_setattr(void *daemon_context, setattr_upcall_args *args)
     nfs41_superblock *superblock = state->file.fh.superblock;
     stateid_arg stateid;
     nfs41_file_info info = { 0 }, old_info = { 0 };
-    int status = NO_ERROR, getattr_status;
-	
-	if (basic_info->FileAttributes) {
-		info.hidden = basic_info->FileAttributes & FILE_ATTRIBUTE_HIDDEN ? 1 : 0;
-		info.system = basic_info->FileAttributes & FILE_ATTRIBUTE_SYSTEM ? 1 : 0;
-		info.archive = basic_info->FileAttributes & FILE_ATTRIBUTE_ARCHIVE ? 1 : 0;
-		getattr_status = nfs41_attr_cache_lookup(session_name_cache(state->session),
-			state->file.fh.fileid, &old_info);
+    int status = NO_ERROR;
+    int getattr_status;
 
-		if (getattr_status || info.hidden != old_info.hidden) {
-			info.attrmask.arr[0] = FATTR4_WORD0_HIDDEN;
-			info.attrmask.count = 1;
-		}
-		if (getattr_status || info.archive != old_info.archive) {
-			info.attrmask.arr[0] |= FATTR4_WORD0_ARCHIVE;
-			info.attrmask.count = 1;
-		}
-		if (getattr_status || info.system != old_info.system) {
-			info.attrmask.arr[1] = FATTR4_WORD1_SYSTEM;
-			info.attrmask.count = 2;
-		}
-	}
-    if (old_info.mode == 0444 && 
-            ((basic_info->FileAttributes & FILE_ATTRIBUTE_READONLY) == 0)) {
-        info.mode = 0644;
+    getattr_status = nfs41_attr_cache_lookup(session_name_cache(state->session),
+        state->file.fh.fileid, &old_info);
+    if (getattr_status) {
+        DPRINTF(0, ("handle_nfs41_setattr(args->path='%s'): "
+            "nfs41_attr_cache_lookup() failed with error '%s'.\n",
+            args->path,
+            nfs_error_string(getattr_status)));
+        status = nfs_to_windows_error(getattr_status, ERROR_NOT_SUPPORTED);
+        goto out;
+    }
+
+    if (basic_info->FileAttributes) {
+        info.hidden = basic_info->FileAttributes & FILE_ATTRIBUTE_HIDDEN ? 1 : 0;
+        info.system = basic_info->FileAttributes & FILE_ATTRIBUTE_SYSTEM ? 1 : 0;
+        info.archive = basic_info->FileAttributes & FILE_ATTRIBUTE_ARCHIVE ? 1 : 0;
+
+        if (info.hidden != old_info.hidden) {
+            info.attrmask.arr[0] = FATTR4_WORD0_HIDDEN;
+            info.attrmask.count = 1;
+        }
+        if (info.archive != old_info.archive) {
+            info.attrmask.arr[0] |= FATTR4_WORD0_ARCHIVE;
+            info.attrmask.count = 1;
+        }
+        if (info.system != old_info.system) {
+            info.attrmask.arr[1] = FATTR4_WORD1_SYSTEM;
+            info.attrmask.count = 2;
+        }
+    }
+
+    /* mode */
+    if (basic_info->FileAttributes & FILE_ATTRIBUTE_READONLY) {
+        info.mode = 0444;
         info.attrmask.arr[1] |= FATTR4_WORD1_MODE;
         info.attrmask.count = 2;
+    }
+    else {
+        if (old_info.mode == 0444) {
+            info.mode = 0644;
+            info.attrmask.arr[1] |= FATTR4_WORD1_MODE;
+            info.attrmask.count = 2;
+        }
     }
 
     if (superblock->cansettime) {
@@ -119,13 +138,6 @@ static int handle_nfs41_setattr(void *daemon_context, setattr_upcall_args *args)
         }
     }
 
-    /* mode */
-    if (basic_info->FileAttributes & FILE_ATTRIBUTE_READONLY) {
-        info.mode = 0444;
-        info.attrmask.arr[1] |= FATTR4_WORD1_MODE;
-        info.attrmask.count = 2;
-    }
-
     /* mask out unsupported attributes */
     nfs41_superblock_supported_attrs(superblock, &info.attrmask);
 
@@ -140,7 +152,9 @@ static int handle_nfs41_setattr(void *daemon_context, setattr_upcall_args *args)
 
     status = nfs41_setattr(state->session, &state->file, &stateid, &info);
     if (status) {
-        DPRINTF(1, ("nfs41_setattr() failed with error '%s'.\n",
+        DPRINTF(1, ("handle_nfs41_setattr(args->path='%s'): "
+            "nfs41_setattr() failed with error '%s'.\n",
+            args->path,
             nfs_error_string(status)));
         status = nfs_to_windows_error(status, ERROR_NOT_SUPPORTED);
         goto out;
