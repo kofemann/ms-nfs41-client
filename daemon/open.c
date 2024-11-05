@@ -761,7 +761,7 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
         status = NO_ERROR;
     } else if (args->symlink.len) {
         /* handle cygwin symlinks */
-        nfs41_file_info createattrs = { 0 };
+        nfs41_file_info createattrs;
         createattrs.attrmask.count = 2;
         createattrs.attrmask.arr[0] = 0;
         createattrs.attrmask.arr[1] = FATTR4_WORD1_MODE;
@@ -813,10 +813,11 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
         /* this should only happen for newly created files/dirs */
         if (((info.attrmask.arr[1] & FATTR4_WORD1_OWNER) == 0) ||
             ((info.attrmask.arr[1] & FATTR4_WORD1_OWNER_GROUP) == 0)) {
-            bitmap4 og_attr_request = { 0 };
+            bitmap4 og_attr_request;
             nfs41_file_info og_info = { 0 };
 
             og_attr_request.count = 2;
+            og_attr_request.arr[0] = 0;
             og_attr_request.arr[1] =
                 FATTR4_WORD1_OWNER | FATTR4_WORD1_OWNER_GROUP;
             og_info.owner = og_info.owner_buf;
@@ -909,7 +910,7 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
             (unsigned int)args->owner_group_local_gid, owner_group));
 #endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
     } else {
-        nfs41_file_info createattrs = { 0 };
+        nfs41_file_info createattrs;
         uint32_t create = 0, createhowmode = 0, lookup_status = status;
 
         if (!lookup_status && (args->disposition == FILE_OVERWRITE ||
@@ -992,10 +993,11 @@ supersede_retry:
                 char *s;
                 int chgrp_status;
                 stateid_arg stateid;
-                nfs41_file_info createchgrpattrs = { 0 };
+                nfs41_file_info createchgrpattrs;
 
                 createchgrpattrs.attrmask.count = 2;
-                createchgrpattrs.attrmask.arr[1] |= FATTR4_WORD1_OWNER_GROUP;
+                createchgrpattrs.attrmask.arr[0] = 0;
+                createchgrpattrs.attrmask.arr[1] = FATTR4_WORD1_OWNER_GROUP;
                 createchgrpattrs.owner_group = createchgrpattrs.owner_group_buf;
                 /* fixme: we should store the |owner_group| name in |upcall| */
                 if (!get_token_primarygroup_name(upcall->currentthread_token,
