@@ -66,14 +66,13 @@ static int handle_nfs41_setattr_basicinfo(void *daemon_context, setattr_upcall_a
     int status = NO_ERROR;
     int getattr_status;
 
-    getattr_status = nfs41_attr_cache_lookup(session_name_cache(state->session),
-        state->file.fh.fileid, &old_info);
+    getattr_status = nfs41_cached_getattr(state->session,
+        &state->file, &old_info);
     if (getattr_status) {
         DPRINTF(0, ("handle_nfs41_setattr_basicinfo(args->path='%s'): "
-            "nfs41_attr_cache_lookup() failed with error '%s'.\n",
-            args->path,
-            nfs_error_string(getattr_status)));
-        status = nfs_to_windows_error(getattr_status, ERROR_NOT_SUPPORTED);
+            "nfs41_cached_getattr() failed with error %d.\n",
+            args->path, getattr_status));
+        status = getattr_status;
         goto out;
     }
 
