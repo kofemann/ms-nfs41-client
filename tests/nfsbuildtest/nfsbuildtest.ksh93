@@ -262,6 +262,9 @@ function bash_build
 	# patch sources and configure build
 	#
 
+	# disable loadable plugins
+	sed -i -E 's/-\( cd \$\(LOADABLES_DIR\) && \$\(MAKE\) \$\(MFLAGS\) DESTDIR=\$\(DESTDIR\) \$@ \)//' Makefile.in
+
 	# Cygwin: workaround for configure using cp -p where ln -s should be used
 	# (this is an automake/autoconf issue, they should trust Cygwin and not use
 	# ancient workarounds for issues which no longer exists)
@@ -304,9 +307,9 @@ function bash_build
 	# build bash
 	#
 	if (( (cygwin_vers.major*1000+cygwin_vers.minor) >= 3005 )) ; then
-		time ksh93 -c 'export SHELL=/bin/ksh93 ; bmake -j8'
+		time ksh93 -c 'export SHELL=/bin/ksh93 ; bmake -j8 install DESTDIR=$PWD/install_root'
 	else
-		time ksh93 -c 'export SHELL=/bin/ksh93 ; make -j8'
+		time ksh93 -c 'export SHELL=/bin/ksh93 ; make -j8 install DESTDIR=$PWD/install_root'
 	fi
 	echo $?
 
@@ -548,6 +551,8 @@ function main
 				is_cygwin_pkg_installed icp 'make' || (( errc++ ))
 			fi
 			is_cygwin_pkg_installed icp 'libncurses-devel' || (( errc++ ))
+			is_cygwin_pkg_installed icp 'gettext' || (( errc++ ))
+			is_cygwin_pkg_installed icp 'gettext-devel' || (( errc++ ))
 			(( errc > 0 )) && return 1
 			bash_build
 			return $?

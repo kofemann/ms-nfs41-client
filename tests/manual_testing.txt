@@ -38,6 +38,8 @@
 #   nedit
 #   emacs
 #   cygport
+#   gettext
+#   gettext-devel
 #   ---- snip ----
 #
 # - Benchmarking/profiling should be done with the realtime virus checker
