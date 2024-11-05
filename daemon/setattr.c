@@ -62,9 +62,12 @@ static int handle_nfs41_setattr_basicinfo(void *daemon_context, setattr_upcall_a
     nfs41_open_state *state = args->state;
     nfs41_superblock *superblock = state->file.fh.superblock;
     stateid_arg stateid;
-    nfs41_file_info info = { 0 }, old_info = { 0 };
+    nfs41_file_info info, old_info;
     int status = NO_ERROR;
     int getattr_status;
+
+    (void)memset(&info, 0, sizeof(info));
+    (void)memset(&old_info, 0, sizeof(old_info));
 
     getattr_status = nfs41_cached_getattr(state->session,
         &state->file, &old_info);
@@ -370,13 +373,15 @@ out:
 
 static int handle_nfs41_set_size(void *daemon_context, setattr_upcall_args *args)
 {
-    nfs41_file_info info = { 0 };
+    nfs41_file_info info;
     stateid_arg stateid;
     /* note: this is called with either FILE_END_OF_FILE_INFO or
      * FILE_ALLOCATION_INFO, both of which contain a single LARGE_INTEGER */
     PLARGE_INTEGER size = (PLARGE_INTEGER)args->buf;
     nfs41_open_state *state = args->state;
     int status;
+
+    (void)memset(&info, 0, sizeof(info));
 
     EASSERT_MSG(args->buf_len == sizeof(size->QuadPart),
         ("args->buf_len=%ld\n", (long)args->buf_len));
@@ -423,8 +428,10 @@ static int handle_nfs41_link(void *daemon_context, setattr_upcall_args *args)
     nfs41_path_fh dst_dir, dst;
     nfs41_component dst_name;
     uint32_t depth = 0;
-    nfs41_file_info info = { 0 };
+    nfs41_file_info info;
     int status;
+
+    (void)memset(&info, 0, sizeof(info));
 
     dst_path.len = (unsigned short)WideCharToMultiByte(CP_UTF8, 0,
         link->FileName, link->FileNameLength/sizeof(WCHAR),

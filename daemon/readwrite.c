@@ -186,7 +186,9 @@ static int write_to_mds(
     int status = 0;
     /* on write verifier mismatch, retry N times before failing */
     uint32_t retries = MAX_WRITE_RETRIES;
-    nfs41_file_info info = { 0 };
+    nfs41_file_info info;
+
+    (void)memset(&info, 0, sizeof(info));
 
 retry_write:
     p = args->buffer;
@@ -261,7 +263,9 @@ static int write_to_pnfs(
     readwrite_upcall_args *args = &upcall->args.rw;
     pnfs_layout_state *layout;
     int status = NO_ERROR;
-    nfs41_file_info info = { 0 };
+    nfs41_file_info info;
+
+    (void)memset(&info, 0, sizeof(info));
 
     if (pnfs_layout_state_open(upcall->state_ref, &layout)) {
         status = ERROR_NOT_SUPPORTED;

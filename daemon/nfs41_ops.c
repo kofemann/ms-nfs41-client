@@ -767,7 +767,7 @@ int nfs41_write(
     nfs41_getattr_args getattr_args;
     nfs41_getattr_res getattr_res = {0};
     bitmap4 attr_request;
-    nfs41_file_info info = { 0 }, *pinfo;
+    nfs41_file_info info, *pinfo;
 
     nfs41_superblock_getattr_mask(file->fh.superblock, &attr_request);
 
@@ -789,8 +789,13 @@ int nfs41_write(
     write_args.data = data;
     write_res.resok4.verf = verf;
 
-    if (cinfo) pinfo = cinfo;
-    else pinfo = &info;
+    if (cinfo) {
+        pinfo = cinfo;
+    }
+    else {
+        (void)memset(&info, 0, sizeof(info));
+        pinfo = &info;
+    }
 
     if (stable != UNSTABLE4) {
         /* if the write is stable, we can't rely on COMMIT to update
@@ -1839,7 +1844,7 @@ enum nfsstat4 nfs41_fs_locations(
     nfs41_lookup_res lookup_res;
     nfs41_getattr_args getattr_args;
     nfs41_getattr_res getattr_res NDSH(= { 0 });
-    bitmap4 attr_request = { 1, { FATTR4_WORD0_FS_LOCATIONS } };
+    bitmap4 attr_request = { .count=1, .arr[0]=FATTR4_WORD0_FS_LOCATIONS };
     nfs41_file_info info;
 
     compound_init(&compound, argops, resops, "fs_locations");

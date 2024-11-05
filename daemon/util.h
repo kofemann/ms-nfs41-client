@@ -253,7 +253,7 @@ static __inline void nfstime_abs(
     OUT nfstime4 *result)
 {
     if (nt->seconds < 0) {
-        const nfstime4 zero = { 0, 0 };
+        const nfstime4 zero = { .seconds=0LL, .nseconds=0UL };
         nfstime_diff(&zero, nt, result); /* result = 0 - nt */
     } else if (result != nt)
         memcpy(result, nt, sizeof(nfstime4));
