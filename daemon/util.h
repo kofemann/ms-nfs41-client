@@ -120,7 +120,7 @@ static __inline void bitmap_intersect(
 {
     uint32_t i, count = 0;
     for (i = 0; i < 3; i++) {
-        dst->arr[i] &= src->arr[i];
+        dst->arr[i] = ((i < dst->count)?dst->arr[i]:0) & ((i < src->count)?src->arr[i]:0);
         if (dst->arr[i])
             count = i+1;
     }
