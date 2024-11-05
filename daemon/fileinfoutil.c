@@ -447,6 +447,11 @@ void nfs41_file_info_cpy(
     OUT nfs41_file_info *dest,
     IN const nfs41_file_info *src)
 {
+    /*
+     * FIXME: Using |memcpy()| here over the whole struct
+     * |nfs41_file_info| will trigger DrMemory uninitialized
+     * variable hits if |*src| was not completely initialized
+     */
     (void)memcpy(dest, src, sizeof(nfs41_file_info));
     if (src->owner != NULL)
         dest->owner = dest->owner_buf;
