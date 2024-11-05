@@ -82,7 +82,7 @@ static int handle_nfs41_setattr_basicinfo(void *daemon_context, setattr_upcall_a
         info.archive = basic_info->FileAttributes & FILE_ATTRIBUTE_ARCHIVE ? 1 : 0;
 
         if (info.hidden != old_info.hidden) {
-            info.attrmask.arr[0] = FATTR4_WORD0_HIDDEN;
+            info.attrmask.arr[0] |= FATTR4_WORD0_HIDDEN;
             info.attrmask.count = 1;
         }
         if (info.archive != old_info.archive) {
@@ -90,7 +90,7 @@ static int handle_nfs41_setattr_basicinfo(void *daemon_context, setattr_upcall_a
             info.attrmask.count = 1;
         }
         if (info.system != old_info.system) {
-            info.attrmask.arr[1] = FATTR4_WORD1_SYSTEM;
+            info.attrmask.arr[1] |= FATTR4_WORD1_SYSTEM;
             info.attrmask.count = 2;
         }
 
