@@ -71,7 +71,9 @@ NFSv4.1 filesystem driver for Windows 10/11&Windows Server 2019
         https://docs.oracle.com/cd/E86824_01/html/E54764/nfsref-1m.html
 
 - SFU/Cygwin support, including:
-    - uid/gid
+    - POSIX uid/gid+mode
+    - Backwards compatibility to Microsoft's NFSv3 driver
+    - Cygwin ACLs, e.g. setfacl/getfacl
     - Cygwin symlinks
 
 - Custom primary group support
