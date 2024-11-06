@@ -299,6 +299,11 @@ nfs41_updowncall_list upcall, downcall;
 #define MAX_SEC_FLAVOR_LEN              12
 #define UPCALL_TIMEOUT_DEFAULT          50  /* in seconds */
 
+typedef struct _NFS41_MOUNT_CREATEMODE {
+    BOOLEAN use_nfsv3attrsea_mode;
+    DWORD mode;
+} NFS41_MOUNT_CREATEMODE;
+
 typedef struct _NFS41_MOUNT_CONFIG {
     BOOLEAN use_nfspubfh;
     DWORD ReadSize;
@@ -314,10 +319,8 @@ typedef struct _NFS41_MOUNT_CONFIG {
     WCHAR sec_flavor_buffer[MAX_SEC_FLAVOR_LEN];
     UNICODE_STRING SecFlavor;
     DWORD timeout;
-    struct {
-        BOOLEAN use_nfsv3attrsea_mode;
-        DWORD mode;
-    } createmode;
+    NFS41_MOUNT_CREATEMODE dir_createmode;
+    NFS41_MOUNT_CREATEMODE file_createmode;
 } NFS41_MOUNT_CONFIG, *PNFS41_MOUNT_CONFIG;
 
 typedef struct _nfs41_mount_entry {
@@ -407,10 +410,8 @@ typedef struct _NFS41_V_NET_ROOT_EXTENSION {
     FILE_FS_ATTRIBUTE_INFORMATION FsAttrs;
     DWORD                   sec_flavor;
     DWORD                   timeout;
-    struct {
-        BOOLEAN use_nfsv3attrsea_mode;
-        DWORD mode;
-    } createmode;
+    NFS41_MOUNT_CREATEMODE  dir_createmode;
+    NFS41_MOUNT_CREATEMODE  file_createmode;
     USHORT                  MountPathLen;
     BOOLEAN                 read_only;
     BOOLEAN                 write_thru;

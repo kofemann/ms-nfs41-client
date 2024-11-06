@@ -126,9 +126,11 @@
 
 /*
  * Default POSIX permission mode bits for new files
+ * and directories.
  * Can be ovrriden with a "NfsV3Attributes" EA
  */
-#define NFS41_DRIVER_DEFAULT_CREATE_MODE (0755)
+#define NFS41_DRIVER_DEFAULT_DIR_CREATE_MODE (0755)
+#define NFS41_DRIVER_DEFAULT_FILE_CREATE_MODE (0644)
 
 /*
  * NFS41_DRIVER_DEBUG_FS_NAME - define which filesystem name should

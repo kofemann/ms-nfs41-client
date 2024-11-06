@@ -58,6 +58,7 @@
 #include <winerror.h>
 
 #include <Ntstrsafe.h>
+#include <stdbool.h>
 
 #include "nfs41sys_buildconfig.h"
 
@@ -309,8 +310,12 @@ void nfs41_MountConfig_InitDefaults(
     Config->SecFlavor.Buffer = Config->sec_flavor_buffer;
     RtlCopyUnicodeString(&Config->SecFlavor, &AUTH_SYS_NAME);
     Config->timeout = UPCALL_TIMEOUT_DEFAULT;
-    Config->createmode.use_nfsv3attrsea_mode = TRUE;
-    Config->createmode.mode = NFS41_DRIVER_DEFAULT_CREATE_MODE;
+    Config->dir_createmode.use_nfsv3attrsea_mode = TRUE;
+    Config->dir_createmode.mode =
+        NFS41_DRIVER_DEFAULT_DIR_CREATE_MODE;
+    Config->file_createmode.use_nfsv3attrsea_mode = TRUE;
+    Config->file_createmode.mode =
+        NFS41_DRIVER_DEFAULT_FILE_CREATE_MODE;
 }
 
 static
@@ -506,10 +511,39 @@ NTSTATUS nfs41_MountConfig_ParseOptions(
             else
                 RtlCopyUnicodeString(&Config->SecFlavor, &usValue);
         }
-        else if (wcsncmp(L"createmode", Name, NameLen) == 0) {
+        else if ((wcsncmp(L"createmode", Name, NameLen) == 0) ||
+            (wcsncmp(L"dircreatemode", Name, NameLen) == 0) ||
+            (wcsncmp(L"filecreatemode", Name, NameLen) == 0)) {
 #define NFSV3ATTRMODE_WSTR L"nfsv3attrmode+"
 #define NFSV3ATTRMODE_WCSLEN (14)
 #define NFSV3ATTRMODE_BYTELEN (NFSV3ATTRMODE_WCSLEN*sizeof(WCHAR))
+            bool set_dirmode = false;
+            bool set_filemode = false;
+
+            switch(Name[0]) {
+                case L'c':
+                    set_dirmode = true;
+                    set_filemode = true;
+                    break;
+                case L'd':
+                    set_dirmode = true;
+                    break;
+                case L'f':
+                    set_filemode = true;
+                    break;
+                default:
+                    print_error("nfs41_MountConfig_ParseOptions: "
+                        "invalid createmode name\n");
+                    status = STATUS_INVALID_PARAMETER;
+                    break;
+            }
+
+#ifdef DEBUG_MOUNTCONFIG
+            DbgP("nfs41_MountConfig_ParseOptions: "
+                "set_dirmode=%d set_filemode=%d\n",
+                (int)set_dirmode, (int)set_filemode);
+#endif /* DEBUG_MOUNTCONFIG */
+
             if ((usValue.Length >= NFSV3ATTRMODE_BYTELEN) &&
                 (!wcsncmp(NFSV3ATTRMODE_WSTR,
                     usValue.Buffer,
@@ -524,8 +558,10 @@ NTSTATUS nfs41_MountConfig_ParseOptions(
                     "leftover option/usValue='%wZ'/%ld\n",
                     &usValue, (long)usValue.Length);
 #endif /* DEBUG_MOUNTCONFIG */
-
-                Config->createmode.use_nfsv3attrsea_mode = TRUE;
+                if (set_dirmode)
+                    Config->dir_createmode.use_nfsv3attrsea_mode = TRUE;
+                if (set_filemode)
+                    Config->file_createmode.use_nfsv3attrsea_mode = TRUE;
             }
             else {
 #ifdef DEBUG_MOUNTCONFIG
@@ -533,28 +569,51 @@ NTSTATUS nfs41_MountConfig_ParseOptions(
                     "leftover option/usValue='%wZ'/%ld\n",
                     &usValue, (long)usValue.Length);
 #endif /* DEBUG_MOUNTCONFIG */
-                Config->createmode.use_nfsv3attrsea_mode = FALSE;
+                if (set_dirmode)
+                    Config->dir_createmode.use_nfsv3attrsea_mode  = FALSE;
+                if (set_filemode)
+                    Config->file_createmode.use_nfsv3attrsea_mode = FALSE;
             }
 
-            /*
-             * Reject mode values not prefixed with "0o", as
-             * |RtlUnicodeStringToInteger()| uses
-             * 0o (e.g. "0o123") as prefix for octal values,
-             * and does not understand the traditional
-             * UNIX/POSIX/ISO C "0" (e.g. "0123") prefix
-             */
-            if ((usValue.Length >= (3*sizeof(WCHAR))) &&
-                (usValue.Buffer[0] == L'0') &&
-                (usValue.Buffer[1] == L'o')) {
-                status = nfs41_MountConfig_ParseDword(Option,
-                    &usValue,
-                    &Config->createmode.mode, 0,
-                    0777);
+            if (usValue.Length >= (2*sizeof(WCHAR))) {
+                ULONG parse_base = 0;
+                ULONG cmode;
+
+                if ((usValue.Buffer[0] == L'0') &&
+                    iswdigit(usValue.Buffer[1])) {
+                    /*
+                     * Parse input as traditional POSIX/C octal number
+                     * |RtlUnicodeStringToInteger()| only supports
+                     * "0o" prefix for |parse_base==0|, so we skip
+                     * the leading '0' and set |parse_base| to octal
+                     * mode.
+                     */
+                    usValue.Buffer++;
+                    usValue.Length-=sizeof(WCHAR);
+                    parse_base = 8;
+#ifdef DEBUG_MOUNTCONFIG
+                    DbgP("nfs41_MountConfig_ParseOptions: "
+                        "parsing POSIX/C octal number\n");
+#endif /* DEBUG_MOUNTCONFIG */
+                }
+
+                status = RtlUnicodeStringToInteger(&usValue,
+                    parse_base, &cmode);
                 if (status == STATUS_SUCCESS) {
-                    if (Config->createmode.mode > 0777) {
+#ifdef DEBUG_MOUNTCONFIG
+                    DbgP("nfs41_MountConfig_ParseOptions: createmode "
+                        "parsed mode=0%o\n", (int)cmode);
+#endif /* DEBUG_MOUNTCONFIG */
+                    if (cmode > 0777) {
                         status = STATUS_INVALID_PARAMETER;
                         print_error("mode 0%o out of bounds\n",
-                            (int)Config->createmode.mode);
+                            (int)cmode);
+                    }
+                    else {
+                        if (set_dirmode)
+                            Config->dir_createmode.mode  = cmode;
+                        if (set_filemode)
+                            Config->file_createmode.mode = cmode;
                     }
                 }
             }
@@ -566,10 +625,13 @@ NTSTATUS nfs41_MountConfig_ParseOptions(
 
             DbgP("nfs41_MountConfig_ParseOptions: createmode: "
                 "status=0x%lx, "
-                "createmode=(use_nfsv3attrsea_mode=%d, mode=0%o\n",
+                "dir_createmode=(use_nfsv3attrsea_mode=%d mode=0%o) "
+                "file_createmode=(use_nfsv3attrsea_mode=%d mode=0%o)\n",
                 (long)status,
-                (int)Config->createmode.use_nfsv3attrsea_mode,
-                (int)Config->createmode.mode);
+                (int)Config->dir_createmode.use_nfsv3attrsea_mode,
+                (int)Config->dir_createmode.mode,
+                (int)Config->file_createmode.use_nfsv3attrsea_mode,
+                (int)Config->file_createmode.mode);
         }
         else {
             status = STATUS_INVALID_PARAMETER;
@@ -945,14 +1007,14 @@ NTSTATUS nfs41_CreateVNetRoot(
     DbgP("Config->{ "
         "MntPt='%wZ', "
         "SrvName='%wZ', "
-        "use_nfspubfh=%d, "
-        "ReadOnly=%d, "
-        "write_thru=%d, "
+        "usenfspubfh=%d, "
+        "ro=%d, "
+        "writethru=%d, "
         "nocache=%d "
         "timebasedcoherency=%d "
         "timeout=%d "
-        "createmode.use_nfsv3attrsea_mode=%d "
-        "Config->createmode.mode=0%o "
+        "dir_cmode=(usenfsv3attrs=%d mode=0%o) "
+        "file_cmode=(usenfsv3attrs=%d mode=0%o) "
         "}\n",
         &Config->MntPt,
         &Config->SrvName,
@@ -962,15 +1024,21 @@ NTSTATUS nfs41_CreateVNetRoot(
         Config->nocache?1:0,
         Config->timebasedcoherency?1:0,
         Config->timeout,
-        Config->createmode.use_nfsv3attrsea_mode?1:0,
-        Config->createmode.mode);
+        Config->dir_createmode.use_nfsv3attrsea_mode?1:0,
+        Config->dir_createmode.mode,
+        Config->file_createmode.use_nfsv3attrsea_mode?1:0,
+        Config->file_createmode.mode);
 
     pVNetRootContext->MountPathLen = Config->MntPt.Length;
     pVNetRootContext->timeout = Config->timeout;
-    pVNetRootContext->createmode.use_nfsv3attrsea_mode =
-        Config->createmode.use_nfsv3attrsea_mode;
-    pVNetRootContext->createmode.mode =
-        Config->createmode.mode;
+    pVNetRootContext->dir_createmode.use_nfsv3attrsea_mode =
+        Config->dir_createmode.use_nfsv3attrsea_mode;
+    pVNetRootContext->dir_createmode.mode =
+        Config->dir_createmode.mode;
+    pVNetRootContext->file_createmode.use_nfsv3attrsea_mode =
+        Config->file_createmode.use_nfsv3attrsea_mode;
+    pVNetRootContext->file_createmode.mode =
+        Config->file_createmode.mode;
 
     status = map_sec_flavor(&Config->SecFlavor, &pVNetRootContext->sec_flavor);
     if (status != STATUS_SUCCESS) {

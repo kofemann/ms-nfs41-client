@@ -112,11 +112,24 @@ void PrintMountUsage(LPWSTR pProcess)
         "\tnotimebasedcoherency\tturns off time-based coherency (default, due to bugs)\n"
         "\twsize=#\twrite buffer size in bytes\n"
         "\tcreatemode=\tspecify default POSIX permission mode\n"
-            "\t\tfor new files created on the NFS share.\n"
-            "\t\tArgument is an octal value prefixed with '0o',\n"
+            "\t\tfor new directories and files created on the NFS share.\n"
+            "\t\tArgument is an octal value prefixed with '0' or '0o',\n"
             "\t\tif this value is prefixed with 'nfsv3attrmode+'\n"
             "\t\tthe mode value from a \"NfsV3Attributes\" EA will be used\n"
-            "\t\t(defaults \"nfsv3attrmode+0o%o\").\n"
+            "\t\t(defaults \"nfsv3attrmode+0%o\" for dirs and \n"
+            "\t\t\"nfsv3attrmode+0%o\" for files).\n"
+        "\tdircreatemode=\tspecify default POSIX permission mode\n"
+            "\t\tfor new directories created on the NFS share.\n"
+            "\t\tArgument is an octal value prefixed with '0' or '0o',\n"
+            "\t\tif this value is prefixed with 'nfsv3attrmode+'\n"
+            "\t\tthe mode value from a \"NfsV3Attributes\" EA will be used\n"
+            "\t\t(defaults \"nfsv3attrmode+0%o\").\n"
+        "\tfilecreatemode=\tspecify default POSIX permission mode\n"
+            "\t\tfor new files created on the NFS share.\n"
+            "\t\tArgument is an octal value prefixed with '0' or '0o',\n"
+            "\t\tif this value is prefixed with 'nfsv3attrmode+'\n"
+            "\t\tthe mode value from a \"NfsV3Attributes\" EA will be used\n"
+            "\t\t(defaults \"nfsv3attrmode+0%o\").\n"
 
         "* URL parameters:\n"
         "\tro=1\tmount as read-only\n"
@@ -147,7 +160,10 @@ void PrintMountUsage(LPWSTR pProcess)
         "\tnfs_mount.exe -o sec=sys S nfs://myhost1//dirwithspace/dir+space/test2?rw=1\n"
         "\tnfs_mount.exe -o sec=sys nfs://myhost1//dirwithspace/dir+space/test2?rw=1\n",
         pProcess, pProcess, pProcess, pProcess,
-        (int)NFS41_DRIVER_DEFAULT_CREATE_MODE);
+        (int)NFS41_DRIVER_DEFAULT_DIR_CREATE_MODE,
+        (int)NFS41_DRIVER_DEFAULT_FILE_CREATE_MODE,
+        (int)NFS41_DRIVER_DEFAULT_DIR_CREATE_MODE,
+        (int)NFS41_DRIVER_DEFAULT_FILE_CREATE_MODE);
 }
 
 

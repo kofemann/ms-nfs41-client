@@ -58,6 +58,7 @@
 #include <winerror.h>
 
 #include <Ntstrsafe.h>
+#include <stdbool.h>
 
 #include "nfs41sys_buildconfig.h"
 
@@ -604,11 +605,26 @@ NTSTATUS nfs41_Create(
         entry->u.Open.open_owner_id = InterlockedIncrement(&open_owner_id);
     // if we are creating a file check if nfsv3attributes were passed in
     if (params->Disposition != FILE_OPEN && params->Disposition != FILE_OVERWRITE) {
+        bool is_dir;
+        bool use_nfsv3attrsea_mode;
+
+        is_dir = (params->CreateOptions & FILE_DIRECTORY_FILE)?true:false;
+
         /* Get default mode */
-        entry->u.Open.mode = pVNetRootContext->createmode.mode;
+        if (is_dir) {
+            entry->u.Open.mode = pVNetRootContext->dir_createmode.mode;
+        }
+        else {
+            entry->u.Open.mode = pVNetRootContext->file_createmode.mode;
+        }
+
+        /* Prefer mode from NfsV3Attributes ? */
+        use_nfsv3attrsea_mode = (is_dir?
+            pVNetRootContext->dir_createmode.use_nfsv3attrsea_mode:
+            pVNetRootContext->file_createmode.use_nfsv3attrsea_mode);
 
         /* Use mode from NfsV3Attributes */
-        if (pVNetRootContext->createmode.use_nfsv3attrsea_mode &&
+        if (use_nfsv3attrsea_mode &&
             ea && AnsiStrEq(&NfsV3Attributes,
             ea->EaName, ea->EaNameLength)) {
             nfs3_attrs *attrs =
@@ -616,13 +632,15 @@ NTSTATUS nfs41_Create(
 
             entry->u.Open.mode = attrs->mode;
 #ifdef DEBUG_OPEN
-            DbgP("creating file with EA mode 0%o\n",
+            DbgP("creating '%s' with EA mode 0%o\n",
+                (is_dir?"dir":"file"),
                 entry->u.Open.mode);
 #endif
         }
         else {
 #ifdef DEBUG_OPEN
-            DbgP("creating file with default mode 0%o\n",
+            DbgP("creating '%s' with default mode 0%o\n",
+                (is_dir?"dir":"file"),
                 entry->u.Open.mode);
 #endif
         }
