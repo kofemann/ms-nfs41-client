@@ -162,7 +162,12 @@ static __inline int stateid4_cmp(
     IN  const stateid4 *restrict s1,
     IN  const stateid4 *restrict s2)
 {
-    return memcmp(s1, s2, sizeof(stateid4));
+    if (s1->seqid > s2->seqid)
+        return 1;
+    else if (s1->seqid < s2->seqid)
+        return -1;
+    else
+        return memcmp(s1->other, s2->other, NFS4_STATEID_OTHER);
 }
 
 static __inline void open_delegation4_cpy(
