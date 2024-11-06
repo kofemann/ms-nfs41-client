@@ -1,0 +1,43 @@
+#
+# NFSv4.1 server setup for testing
+#
+
+#
+# TODO:
+# - Debian Linux NFSv4.1 server setup
+# - Solaris 11.4 NFSv4.1 server setup
+# - Illumos 11.4 NFSv4.1 server setup
+# - FreeBSD NFSv4.1 server setup
+#
+
+#
+# Windows Server 2019 NFSv4.1 server setup
+#
+
+# Install Windows Server 2019, then run these commands in an
+# Adminstrator PowerShell
+Install-WindowsFeature -name Telnet-Client
+
+Import-Module ServerManager
+Add-WindowsFeature FS-NFS-Service
+Import-Module NFS
+
+mkdir C:\shares\nfsfolder
+echo "hello world" >C:\shares\nfsfolder\testfile
+icacls.exe C:\shares\nfsfolder /grant "Everyone:(F)"
+
+New-NfsShare -Name nfs1 -Path C:\shares\nfsfolder
+Set-NfsShare -Name nfs1 -Permission readwrite -Authentication "sys" -EnableUnmappedAccess $True -AllowRootAccess $True
+Set-NfsServerConfiguration -HideFilesBeginningInDot $True
+
+Grant-NfsSharePermission -Name nfs1 -ClientName "192.168.209.129" -ClientType "host" -AllowRootAccess $True -Permission readwrite
+Grant-NfsSharePermission -Name nfs1 -ClientName "127.0.0.1" -ClientType "host" -AllowRootAccess $True -Permission readwrite
+
+nfsadmin server stop
+nfsadmin server start
+
+Start-Service -Name ms-nfs41-client-service
+
+C:\cygwin64\sbin\nfs_mount -o rw N nfs://192.168.209.129//
+
+# EOF.
