@@ -528,6 +528,8 @@ function main
 			is_cygwin_pkg_installed icp 'libmpc-devel' || (( errc++ ))
 			is_cygwin_pkg_installed icp 'libintl-devel' || (( errc++ ))
 			is_cygwin_pkg_installed icp 'libisl-devel' || (( errc++ ))
+			is_cygwin_pkg_installed icp 'gettext' || (( errc++ ))
+			is_cygwin_pkg_installed icp 'gettext-devel' || (( errc++ ))
 			(( errc > 0 )) && return 1
 			gcc_build
 			return $?
