@@ -19,6 +19,11 @@
 #   $ ksh93 nfsbuildtest.ksh93 gcc createcache
 #   $ ksh93 nfsbuildtest.ksh93 gcc build
 #
+# - build ms-nfs41-client:
+#   $ ksh93 nfsbuildtest.ksh93 msnfs41client clean
+#   $ ksh93 nfsbuildtest.ksh93 msnfs41client createcache
+#   $ ksh93 nfsbuildtest.ksh93 msnfs41client build
+#
 
 function gcc_createcache
 {
