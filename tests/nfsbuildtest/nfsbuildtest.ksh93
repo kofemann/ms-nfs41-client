@@ -155,7 +155,7 @@ function gcc_build
 	#
 	# build gcc
 	#
-	time ksh93 -c 'export SHELL=/bin/ksh93 ; (yes | make --load-average 32 -j12 all)'
+	time ksh93 -c 'export SHELL=/bin/ksh93 ; (yes | make --load-average 32 -j12 install)'
 	echo $?
 
 	echo "#Done."
