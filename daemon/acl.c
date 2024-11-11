@@ -1011,7 +1011,7 @@ int map_sid2nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid,
                             "Unix_User+%d SID "
                             "mapped to user '%s'\n",
                             unixuser_uid, who_out));
-                        goto add_domain;
+                        goto no_add_domain;
                     }
 
                     eprintf("map_sid2nfs4ace_who: "
@@ -1032,7 +1032,7 @@ int map_sid2nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid,
                             "Unix_Group+%d SID "
                             "mapped to group '%s'\n",
                             unixgroup_gid, who_out));
-                        goto add_domain;
+                        goto no_add_domain;
                     }
 
                     eprintf("map_sid2nfs4ace_who: "
@@ -1079,6 +1079,8 @@ err_none_mapped:
 add_domain:
     (void)memcpy(who_out+who_size, "@", sizeof(char));
     (void)memcpy(who_out+who_size+1, domain, strlen(domain)+1);
+
+no_add_domain:
     status = ERROR_SUCCESS;
 out:
     if (status) {
