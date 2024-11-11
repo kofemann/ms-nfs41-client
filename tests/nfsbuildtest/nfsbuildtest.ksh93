@@ -158,10 +158,25 @@ function gcc_build
 	fi
 
 	#
-	# build gcc
+	# Create /usr/local/ dir in "$PWD/install_root/" because gcc's
+	# make install will fail if the dir is missing
 	#
-	time ksh93 -c 'export SHELL=/bin/ksh93 ; (yes | make --load-average 32 -j12 install)'
-	echo $?
+	mkdir -p -- "$PWD/install_root/usr/local"
+
+	#
+	# build gcc
+	# Notes:
+	# - targets "all" and "install" must be called in sequence, as
+	# a plain $ make -j32 install # can fail when tools build
+	# during $ make -j32 all # missing
+	#
+	(
+		set -o xtrace
+		time ksh93 -c 'export SHELL=/bin/ksh93 ; (yes | make --load-average 32 -j12 all)'
+		printf "######## gcc build make all returned %d\n" $?
+		time ksh93 -c 'export SHELL=/bin/ksh93 ; (yes | make --load-average 32 -j12 install)'
+		printf "######## gcc build make install returned %d\n" $?
+	)
 
 	echo "#Done."
 	return 0
