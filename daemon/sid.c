@@ -557,7 +557,7 @@ int map_nfs4servername_2_sid(nfs41_daemon_globals *nfs41dg, int query, DWORD *si
                 user_uid = map_uid;
             }
             else {
-                DPRINTF(1,
+                DPRINTF(0,
                     ("map_nfs4servername_2_sid(query=%x,name='%s'): "
                     "nfs41_idmap_name_to_uid() failed\n",
                     query, nfsname));
@@ -575,7 +575,7 @@ int map_nfs4servername_2_sid(nfs41_daemon_globals *nfs41dg, int query, DWORD *si
                 group_gid = map_gid;
             }
             else {
-                DPRINTF(1, ("map_nfs4servername_2_sid(query=%x,nfsname='%s'): nfs41_idmap_group_to_gid() failed\n",
+                DPRINTF(0, ("map_nfs4servername_2_sid(query=%x,nfsname='%s'): nfs41_idmap_group_to_gid() failed\n",
                     query, nfsname));
                 /* fixme: try harder here, "1234" should to to |atol()| */
             }
