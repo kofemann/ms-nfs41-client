@@ -161,6 +161,10 @@ static int convert_nfs4acl_2_dacl(nfs41_daemon_globals *nfs41dg,
         DPRINTF(ACLLVL2, ("convert_nfs4acl_2_dacl: for user='%s' domain='%s'\n",
                 curr_nfsace->who, domain?domain:"<null>"));
 
+        EASSERT_MSG(!isdigit(curr_nfsace->who[0]),
+            ("convert_nfs4acl_2_dacl: aces[%d]->who='%s' uses numeric id",
+            (int)nfs_i, curr_nfsace->who));
+
 #ifdef NFS41_DRIVER_ACLS_SETACL_SKIP_WINNULLSID_ACES
         /*
          * Skip "nobody" ACEs - Cygwin uses |WinNullSid| ACEs (mapped
