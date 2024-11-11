@@ -227,6 +227,7 @@ typedef struct _sidcache_entry
 {
 #define SIDCACHE_ENTRY_NAME_SIZE (UNLEN + 1)
     char    win32name[SIDCACHE_ENTRY_NAME_SIZE]; /* must fit something like "user@domain" */
+    char    aliasname[SIDCACHE_ENTRY_NAME_SIZE];
     PSID    sid;
     DWORD   sid_len;
 #pragma warning( push )
@@ -254,8 +255,13 @@ void sidcache_init(void)
     InitializeCriticalSection(&group_sidcache.lock);
 }
 
-/* copy SID |value| into cache */
 void sidcache_add(sidcache *cache, const char* win32name, PSID value)
+{
+    sidcache_addwithalias(cache, win32name, NULL, value);
+}
+
+/* copy SID |value| into cache */
+void sidcache_addwithalias(sidcache *cache, const char *win32name, const char *aliasname, PSID value)
 {
     int i;
     ssize_t freeEntryIndex;
@@ -274,6 +280,7 @@ void sidcache_add(sidcache *cache, const char* win32name, PSID value)
             ((currentTimestamp - e->timestamp) >= SIDCACHE_TTL)) {
             e->sid = NULL;
             e->win32name[0] = '\0';
+            e->aliasname[0] = '\0';
             e->sid_len = 0;
         }
     }
@@ -281,9 +288,26 @@ void sidcache_add(sidcache *cache, const char* win32name, PSID value)
     /* Find the oldest valid cache entry */
     freeEntryIndex = -1;
     for (i = 0; i < SIDCACHE_SIZE; i++) {
-        if (cache->entries[i].sid) {
+        sidcache_entry *e = &cache->entries[i];
+        if (e->sid) {
             /* Same name ? Then reuse this slot... */
-            if (!strcmp(cache->entries[i].win32name, win32name)) {
+            if (!strcmp(e->win32name, win32name)) {
+                freeEntryIndex = i;
+                break;
+            }
+            if (aliasname) {
+                if (!strcmp(e->win32name, aliasname)) {
+                    freeEntryIndex = i;
+                    break;
+                }
+                if ((e->aliasname[0] != '\0') &&
+                    (!strcmp(e->aliasname, aliasname))) {
+                    freeEntryIndex = i;
+                    break;
+                }
+            }
+            if ((e->aliasname[0] != '\0') &&
+                (!strcmp(e->aliasname, win32name))) {
                 freeEntryIndex = i;
                 break;
             }
@@ -308,12 +332,17 @@ void sidcache_add(sidcache *cache, const char* win32name, PSID value)
     if (!CopySid(sid_len, e->sid, value)) {
         e->sid = NULL;
         e->win32name[0] = '\0';
+        e->aliasname[0] = '\0';
         e->sid_len = 0;
         goto done;
     }
 
     e->sid_len = sid_len;
     (void)strcpy(e->win32name, win32name);
+    if (aliasname)
+        (void)strcpy(e->aliasname, aliasname);
+    else
+        e->aliasname[0] = '\0';
     e->timestamp = currentTimestamp;
 
     cache->cacheIndex = (cache->cacheIndex + 1) % SIDCACHE_SIZE;
@@ -337,7 +366,8 @@ PSID *sidcache_getcached_byname(sidcache *cache, const char *win32name)
         e = &cache->entries[i];
 
         if ((e->sid != NULL) &&
-            (!strcmp(e->win32name, win32name)) &&
+            ((!strcmp(e->win32name, win32name)) ||
+                ((e->aliasname[0] != '\0') && (!strcmp(e->aliasname, win32name)))) &&
             ((currentTimestamp - e->timestamp) < SIDCACHE_TTL)) {
             PSID malloced_sid = malloc(e->sid_len);
             if (!malloced_sid)
@@ -374,7 +404,6 @@ bool sidcache_getcached_bysid(sidcache *cache, PSID sid, char *out_win32name)
         if ((e->sid != NULL) &&
             (EqualSid(sid, e->sid) &&
             ((currentTimestamp - e->timestamp) < SIDCACHE_TTL))) {
-
             (void)strcpy(out_win32name, e->win32name);
 
             ret = true;
@@ -635,10 +664,26 @@ out_cache:
 
         switch (sid_type) {
             case SidTypeUser:
-                sidcache_add(&user_sidcache, orig_nfsname, *sid);
+                if (isdigit(orig_nfsname[0])) {
+                    DPRINTF(1, ("map_nfs4servername_2_sid(query=%x,nfsname='%s'): "
+                        "adding usercache nfsname='%s' orig_nfsname='%s'\n",
+                        query, orig_nfsname, nfsname, orig_nfsname));
+                    sidcache_addwithalias(&user_sidcache, nfsname, orig_nfsname, *sid);
+                }
+                else {
+                    sidcache_add(&user_sidcache, orig_nfsname, *sid);
+                }
                 break;
             case SidTypeGroup:
-                sidcache_add(&group_sidcache, orig_nfsname, *sid);
+                if (isdigit(orig_nfsname[0])) {
+                    DPRINTF(1, ("map_nfs4servername_2_sid(query=%x,nfsname='%s'): "
+                        "adding groupcache nfsname='%s' orig_nfsname='%s'\n",
+                        query, orig_nfsname, nfsname, orig_nfsname));
+                    sidcache_addwithalias(&group_sidcache, nfsname, orig_nfsname, *sid);
+                }
+                else {
+                    sidcache_add(&group_sidcache, orig_nfsname, *sid);
+                }
                 break;
             default:
                 eprintf("map_nfs4servername_2_sid(query=%x,nfsname='%s'): "

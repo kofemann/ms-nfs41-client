@@ -58,6 +58,7 @@ bool unixgroup_sid2gid(PSID psid, gid_t *pgid);
 #endif /* NFS41_DRIVER_FEATURE_MAP_UNMAPPED_USER_TO_UNIXUSER_SID */
 void sidcache_init(void);
 void sidcache_add(sidcache *cache, const char* win32name, PSID value);
+void sidcache_addwithalias(sidcache *cache, const char *win32name, const char *aliasname, PSID value);
 PSID *sidcache_getcached_byname(sidcache *cache, const char *win32name);
 bool sidcache_getcached_bysid(sidcache *cache, PSID sid, char *out_win32name);
 
