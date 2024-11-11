@@ -271,7 +271,7 @@ void sidcache_add(sidcache *cache, const char* win32name, PSID value)
         sidcache_entry *e = &cache->entries[i];
 
         if ((e->sid != NULL) &&
-            (e->timestamp < (currentTimestamp - SIDCACHE_TTL))) {
+            ((currentTimestamp - e->timestamp) >= SIDCACHE_TTL)) {
             e->sid = NULL;
             e->win32name[0] = '\0';
             e->sid_len = 0;
