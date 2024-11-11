@@ -146,6 +146,18 @@ int cygwin_getent_passwd(const char *name, char *res_loginname, uid_t *res_uid, 
         }
     }
 
+    /*
+     * Cygwin /usr/bin/getent passwd can return "Unknown+User"
+     * in cases when an SID is valid but does not match an account.
+     * The idmapper script must never return this!
+     */
+    if (!strcmp(localaccountname, "Unknown+User")) {
+        eprintf("cygwin_getent_passwd(name='%s'): "
+            "idmapper returned illegal value '%s'\n",
+            name, localaccountname);
+        goto fail;
+    }
+
     if (!localaccountname)
         goto fail;
 
@@ -272,6 +284,18 @@ int cygwin_getent_group(const char* name, char* res_group_name, gid_t* res_gid)
             if (errno != 0)
                 goto fail;
         }
+    }
+
+    /*
+     * Cygwin /usr/bin/getent group can return "Unknown+Group"
+     * in cases when an SID is valid but does not match an account.
+     * The idmapper script must never return this!
+     */
+    if (!strcmp(localgroupname, "Unknown+Group")) {
+        eprintf("cygwin_getent_group(name='%s'): "
+            "idmapper returned illegal value '%s'\n",
+            name, localgroupname);
+        goto fail;
     }
 
     if (!localgroupname)

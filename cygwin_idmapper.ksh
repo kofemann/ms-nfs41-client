@@ -40,56 +40,41 @@ typeset stdout
 typeset -A c.localised_usernames
 typeset -A c.localised_groupnames
 
+# fixme: Different Windows versions use different machine SIDs
+# Windows 10+Windows Server 2019 use
+# "S-1-5-21-3286904461-661230000-4220857270", but other Windows
+# versions use different values
+typeset machine_sid="$(mkgroup -l | sed -n 's/[^:]*:\(S-[-0-9]*\)-513:.*$/\1/p')"
+if [[ "$machine_sid" != ~(El)S-1-5-21- ]] ; then
+	print -u2 -f "%s: Unexpected machine SID '%q'\n" \
+		"$0" "$machine_sid"
+	exit 1
+fi
+
 # User "SYSTEM": de_DE: "SYSTEM" ...
 stdout="$(getent passwd 'S-1-5-18')"
-c.localised_usernames['SYSTEM']="${stdout%%:*}"
+if (( $? == 0 )) && [[ "$stdout" != ~(El)Unknown\+User: ]] ; then
+	c.localised_usernames['SYSTEM']="${stdout%%:*}"
+fi
 
 # User "Adminstrator": fr_FR: "Administrateur" ...
-stdout="$(getent passwd 'S-1-5-21-3286904461-661230000-4220857270-500')"
-c.localised_usernames['Administrator']="${stdout%%:*}"
+stdout="$(getent passwd "${machine_sid}-500")"
+if (( $? == 0 )) && [[ "$stdout" != ~(El)Unknown\+User: ]] ; then
+	c.localised_usernames['Administrator']="${stdout%%:*}"
+
+fi
 
 # Group "None": de_DE: "Kein", fr_FR: "Aucun" ...
-stdout="$(getent group 'S-1-5-21-3286904461-661230000-4220857270-513')"
-c.localised_groupnames['None']="${stdout%%:*}"
+stdout="$(getent group "${machine_sid}-513")"
+if (( $? == 0 )) && [[ "$stdout" != ~(El)Unknown\+Group: ]] ; then
+	c.localised_groupnames['None']="${stdout%%:*}"
+fi
 
 compound -A localusers=(
 	#
 	# System accounts
 	#
-	["${c.localised_usernames['Administrator']}"]=(
-		localaccountname="${c.localised_usernames['Administrator']}"
-		localuid=197108
-		localgid=197121
-	)
-	['Administrator']=(
-		localaccountname="${c.localised_usernames['Administrator']}"
-		localuid=197108
-		localgid=197121
-	)
-	# French user "Administrator"
-	['Administrateur']=(
-		localaccountname="${c.localised_usernames['Administrator']}"
-		localuid=197108
-		localgid=197121
-	)
-	["${c.localised_usernames['SYSTEM']}"]=(
-		localaccountname="${c.localised_usernames['SYSTEM']}"
-		localuid=18
-		localgid=18
-	)
-	["SYSTEM"]=(
-		localaccountname="${c.localised_usernames['SYSTEM']}"
-		localuid=18
-		localgid=18
-	)
-	# French user "SYSTEM"
-	# FIXME: This should be $'Syst\u[e8]me', but ksh93 1.0.10
-	# doesn't work
-	[$'Syst\xc3\xa8me']=(
-		localaccountname="${c.localised_usernames['SYSTEM']}"
-		localuid=18
-		localgid=18
-	)
+
 	#
 	# Site-specific users
 	#
@@ -125,28 +110,55 @@ compound -A localusers=(
 	)
 )
 
+if [[ -v c.localised_usernames['Administrator'] ]] ; then
+	localusers+=(
+		["${c.localised_usernames['Administrator']}"]=(
+			localaccountname="${c.localised_usernames['Administrator']}"
+			localuid=197108
+			localgid=197121
+		)
+		['Administrator']=(
+			localaccountname="${c.localised_usernames['Administrator']}"
+			localuid=197108
+			localgid=197121
+		)
+		# French user "Administrator"
+		['Administrateur']=(
+			localaccountname="${c.localised_usernames['Administrator']}"
+			localuid=197108
+			localgid=197121
+		)
+	)
+fi
+if [[ -v c.localised_usernames['SYSTEM'] ]] ; then
+	localusers+=(
+		["${c.localised_usernames['SYSTEM']}"]=(
+			localaccountname="${c.localised_usernames['SYSTEM']}"
+			localuid=18
+			localgid=18
+		)
+		["SYSTEM"]=(
+			localaccountname="${c.localised_usernames['SYSTEM']}"
+			localuid=18
+			localgid=18
+		)
+		# French user "SYSTEM"
+		# FIXME: This should be $'Syst\u[e8]me', but ksh93 1.0.10
+		# doesn't work
+		[$'Syst\xc3\xa8me']=(
+			localaccountname="${c.localised_usernames['SYSTEM']}"
+			localuid=18
+			localgid=18
+		)
+	)
+fi
+
 compound -A localgroups=(
 	#
 	# System accounts
 	#
-	["${c.localised_groupnames['None']}"]=(
-		localgroupname="${c.localised_groupnames['None']}"
-		localgid=197121
-	)
-	["None"]=(
-		localgroupname="${c.localised_groupnames['None']}"
-		localgid=197121
-	)
-	# French Windows localised group name for "None"
-	['Aucun']=(
-		localgroupname="${c.localised_groupnames['None']}"
-		localgid=197121
-	)
-	# German Windows localised group name for "None"
-	["Kein"]=(
-		localgroupname="${c.localised_groupnames['None']}"
-		localgid=197121
-	)
+
+
 	#
 	# Site-specific users
 	#
@@ -167,6 +179,30 @@ compound -A localgroups=(
 		localgid=65534
 	)
 )
+
+if [[ -v c.localised_groupnames['None'] ]] ; then
+	localgroups+=(
+		["${c.localised_groupnames['None']}"]=(
+			localgroupname="${c.localised_groupnames['None']}"
+			localgid=197121
+		)
+		["None"]=(
+			localgroupname="${c.localised_groupnames['None']}"
+			localgid=197121
+		)
+		# French Windows localised group name for "None"
+		['Aucun']=(
+			localgroupname="${c.localised_groupnames['None']}"
+			localgid=197121
+		)
+		# German Windows localised group name for "None"
+		["Kein"]=(
+			localgroupname="${c.localised_groupnames['None']}"
+			localgid=197121
+		)
+	)
+fi
+
 
 case "${c.mode}" in
 	'nfsserver_owner2localaccount')
