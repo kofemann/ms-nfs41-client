@@ -617,7 +617,7 @@ out_cache:
              */
             DPRINTF(1, ("map_nfs4servername_2_sid(query=%x,nfsname='%s'): "
                 "SID_TYPE='SidTypeAlias' mapped to 'SidTypeGroup'\n",
-                query, orig_nfsname, sid_type));
+                query, orig_nfsname));
             sid_type = SidTypeGroup;
         }
 
