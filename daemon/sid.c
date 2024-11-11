@@ -621,6 +621,18 @@ out_cache:
             sid_type = SidTypeGroup;
         }
 
+#ifdef NFS41_DRIVER_WS2022_HACKS
+        if ((query & OWNER_SECURITY_INFORMATION) &&
+            (sid_type == SidTypeWellKnownGroup)) {
+            if (!strcmp(orig_nfsname, "SYSTEM")) {
+                DPRINTF(1, ("map_nfs4servername_2_sid(query=%x,nfsname='%s'): "
+                    "SID_TYPE='SidTypeWellKnownGroup' mapped to 'SidTypeUser' for user\n",
+                    query, orig_nfsname));
+                sid_type = SidTypeUser;
+            }
+        }
+#endif /* NFS41_DRIVER_WS2022_HACKS */
+
         switch (sid_type) {
             case SidTypeUser:
                 sidcache_add(&user_sidcache, orig_nfsname, *sid);

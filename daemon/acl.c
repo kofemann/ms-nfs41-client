@@ -99,15 +99,27 @@ static int check_4_special_identifiers(char *who, PSID *sid, DWORD *sid_len,
     *flag = TRUE;
     if (!strncmp(who, ACE4_OWNER, strlen(ACE4_OWNER)-1))
         type = WinCreatorOwnerSid;
+#ifdef NFS41_DRIVER_WS2022_HACKS
+    else if (!strncmp(who, "CREATOR OWNER@", strlen("CREATOR OWNER@")-1))
+        type = WinCreatorOwnerSid;
+#endif /* NFS41_DRIVER_WS2022_HACKS */
     else if (!strncmp(who, ACE4_GROUP, strlen(ACE4_GROUP)-1))
         type = WinCreatorGroupSid;
     else if (!strncmp(who, ACE4_EVERYONE, strlen(ACE4_EVERYONE)-1))
         type = WinWorldSid;
+#ifdef NFS41_DRIVER_WS2022_HACKS
+    else if (!strncmp(who, "Everyone@", strlen("Everyone@")-1))
+        type = WinWorldSid;
+#endif /* NFS41_DRIVER_WS2022_HACKS */
     else if (!strncmp(who, ACE4_NOBODY, strlen(ACE4_NOBODY)))
         type = WinNullSid;
-    else 
+#ifdef NFS41_DRIVER_WS2022_HACKS
+    else if (!strncmp(who, "NULL SID", strlen("NULL SID")))
+        type = WinNullSid;
+#endif /* NFS41_DRIVER_WS2022_HACKS */
+    else
         *flag = FALSE;
-    if (*flag) 
+    if (*flag)
         status = create_unknownsid(type, sid, sid_len);
     return status;
 }
@@ -174,6 +186,19 @@ static int convert_nfs4acl_2_dacl(nfs41_daemon_globals *nfs41dg,
         if (!flag) {
             bool isgroupacl = (curr_nfsace->aceflag & ACE4_IDENTIFIER_GROUP)?true:false;
 
+
+#ifdef NFS41_DRIVER_WS2022_HACKS
+            if ((isgroupacl == false) && domain &&
+                (!strcmp(domain, "BUILTIN"))) {
+                if ((!strcmp(curr_nfsace->who, "Users")) ||
+                    (!strcmp(curr_nfsace->who, "Administrators"))) {
+                    DPRINTF(1, ("convert_nfs4acl_2_dacl: "
+                        "force isgroupacl=true for for user='%s'\n",
+                        curr_nfsace->who));
+                    isgroupacl = true;
+                }
+            }
+#endif /* NFS41_DRIVER_WS2022_HACKS */
             if (isgroupacl) {
                 DPRINTF(ACLLVL2,
                     ("convert_nfs4acl_2_dacl: aces[%d].who='%s': "
@@ -1078,6 +1103,23 @@ err_none_mapped:
     (void)memcpy(who_out, who_buf, who_size);
 add_domain:
     (void)memcpy(who_out+who_size, "@", sizeof(char));
+
+#ifdef NFS41_DRIVER_WS2022_HACKS
+    /* Fixup |domain| for Windows Sever 2022 NFSv4.1 server */
+    if ((!strncmp(who_out, "Users@", who_size+1)) ||
+        (!strncmp(who_out, "Administrators@", who_size+1))) {
+        domain = "BUILTIN";
+        DPRINTF(1,
+            ("map_sid2nfs4ace_who: Fixup '%*s' domain='%s'\n",
+            (int)who_size+1, who_out, domain));
+    }
+    else if (!strncmp(who_out, "SYSTEM@", who_size+1)) {
+        domain = "NT AUTHORITY";
+        DPRINTF(1,
+            ("map_sid2nfs4ace_who: Fixup '%*s' domain='%s'\n",
+            (int)who_size+1, who_out, domain));
+    }
+#endif /* NFS41_DRIVER_WS2022_HACKS */
     (void)memcpy(who_out+who_size+1, domain, strlen(domain)+1);
 
 no_add_domain:

@@ -167,4 +167,10 @@
  */
 #define NFS41_DRIVER_WSL_SUPPORT 1
 
+/*
+ * NFS41_DRIVER_WS2022_HACKS - Enable hacks for Windows Server 2022
+ * compatibility
+ */
+#define NFS41_DRIVER_WS2022_HACKS 1
+
 #endif /* !_NFS41_DRIVER_BUILDFEATURES_ */
