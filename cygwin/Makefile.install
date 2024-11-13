@@ -96,6 +96,8 @@ installdest:
 	fi
 	cp $(PROJECT_BASEDIR_DIR)/tests/nfsbuildtest/nfsbuildtest.ksh93 $(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/msnfs41client/tests/misc/nfsbuildtest.ksh93
 	cp $(PROJECT_BASEDIR_DIR)/tests/fstest_make_numtree1/fstest_make_numtree1.ksh93 $(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/msnfs41client/tests/misc/fstest_make_numtree1.ksh93
+	cp $(PROJECT_BASEDIR_DIR)/tests/wintartests/wintartest_comparewinvsgnu001.bash $(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/msnfs41client/tests/misc/wintartest_comparewinvsgnu001.bash
+	cp $(PROJECT_BASEDIR_DIR)/tests/wintartests/wintartest_seq001.bash $(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/msnfs41client/tests/misc/wintartest_seq001.bash
 	@ printf "# Package ksh93&co (if available) since Cygwin does not ship with it yet\n"
 	[[ -x $(CYGWIN_BASEPATH)/bin/ksh93.exe ]] && cp -f $(CYGWIN_BASEPATH)/bin/ksh93.exe $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/ksh93.exe || true
 	[[ -x $(CYGWIN_BASEPATH)/bin/shcomp.exe ]] && cp -f $(CYGWIN_BASEPATH)/bin/shcomp.exe $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/shcomp.exe || true

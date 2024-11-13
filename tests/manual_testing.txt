@@ -411,5 +411,15 @@ time ksh93 $msnfs41clientgitroot/tests/fstest_make_numtree1/fstest_make_numtree1
 cd /cygdrive/n/xxx/
 drmemory -batch -check_uninit_all -strict_bitops -logdir "$(cygpath -w "$PWD")" -- "$(cygpath -w /sbin/nfs_mount)"
 
+#
+# Run Windows tar (/cygdrive/c/Windows/system32/tar) tests
+# on NFSv4.1 filesystem
+#
+
+cd /cygdrive/n/xxx/
+bash /usr/share/msnfs41client/tests/misc/wintartests/wintartest_seq001.bash
+
+cd /cygdrive/n/xxx/
+bash /usr/share/msnfs41client/tests/misc/wintartest_comparewinvsgnu001.bash mytarfile.tar.bz2
 
 # EOF.
