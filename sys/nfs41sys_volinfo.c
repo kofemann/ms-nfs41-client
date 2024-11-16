@@ -99,24 +99,6 @@ out:
     return status;
 }
 
-void unmarshal_nfs41_attrget(
-    nfs41_updowncall_entry *cur,
-    PVOID attr_value,
-    ULONG *attr_len,
-    unsigned char **buf)
-{
-    ULONG buf_len;
-    RtlCopyMemory(&buf_len, *buf, sizeof(ULONG));
-    if (buf_len > *attr_len) {
-        cur->status = STATUS_BUFFER_TOO_SMALL;
-        return;
-    }
-    *buf += sizeof(ULONG);
-    *attr_len = buf_len;
-    RtlCopyMemory(attr_value, *buf, buf_len);
-    *buf += buf_len;
-}
-
 static void print_queryvolume_args(
     PRX_CONTEXT RxContext)
 {

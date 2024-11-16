@@ -788,6 +788,11 @@ NTSTATUS marshal_nfs41_header(
     unsigned char *buf,
     ULONG buf_len,
     ULONG *len);
+void unmarshal_nfs41_attrget(
+    nfs41_updowncall_entry *cur,
+    PVOID attr_value,
+    ULONG *attr_len,
+    unsigned char **buf);
 NTSTATUS nfs41_UpcallCreate(
     IN DWORD opcode,
     IN PSECURITY_CLIENT_CONTEXT clnt_sec_ctx,
@@ -834,11 +839,6 @@ NTSTATUS marshal_nfs41_volume(
     unsigned char *buf,
     ULONG buf_len,
     ULONG *len);
-void unmarshal_nfs41_attrget(
-    nfs41_updowncall_entry *cur,
-    PVOID attr_value,
-    ULONG *attr_len,
-    unsigned char **buf);
 NTSTATUS nfs41_QueryVolumeInformation(
     IN OUT PRX_CONTEXT RxContext);
 void nfs41_create_volume_info(
