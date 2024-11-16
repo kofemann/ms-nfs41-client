@@ -11,41 +11,99 @@
 # Written by Roland Mainz <roland.mainz@nrubsig.org>
 #
 
-export PATH='/bin:/usr/bin'
+function test_wintar_seq
+{
+	set -o xtrace
+	set -o errexit
+	set -o nounset
 
-typeset -i i
-typeset out
+	# config
+	typeset use_bzip2=$1
+	typeset use_localdiskfortar=$2
 
-set -o xtrace
-set -o errexit
+	# local vars
+	typeset tarfile_dir
+	typeset tarfilename
+	typeset -i i
+	typeset out
+	typeset -a testfiles
+	typeset currf
 
-# Set umask=0000 to avoid permission trouble with SMB filesystems
-umask 0000
+	# seq 1040 == 4093 bytes
+	# seq 1042 == 4103 bytes
+	for i in 1 100 1040 5000 10000 12000 ; do
+		rm -f -- "${i}seq.txt"
+		seq "$i" >"${i}seq.txt"
+		testfiles+=( "${i}seq.txt" )
+	done
 
-rm -f '10000seq.txt'
-seq 100000 >'10000seq.txt' ; tar -cvf - '10000seq.txt' >'10000seq.tar' #| pbzip2 -1 >'10000seq.tar.bz2'
-
-rm -Rf 'tmp'
-mkdir 'tmp'
-cd 'tmp'
-
-set +o xtrace
-
-for (( i=0 ; i < 2000 ; i++ )) ; do
-	printf '# Cycle %d:\n' "$i"
-	/cygdrive/c/Windows/system32/tar -xvf "$(cygpath -w '../10000seq.tar')"
-	out="$(od -x -v '10000seq.txt' | grep -F ' 0000' | head -n 5)"
-
-	if [[ "$out" != '' ]] ; then
-		printf '# ERROR: Sequence of zero bytes in plain /usr/bin/seq output found:\n'
-		printf -- '---- snip ----\n%s\n---- snip ----\n' "$out"
-		exit 1
+	if "${use_localdiskfortar}" ; then
+		tarfile_dir='/tmp'
+	else
+		tarfile_dir="$PWD"
 	fi
 
-	rm -f '10000seq.txt'
-done
+	if ${use_bzip2} ; then
+		tarfilename="${tarfile_dir}/test_seq.tar.bz2"
+		tar -cvf - "${testfiles[@]}" | pbzip2 -1 >"${tarfilename}"
+	else
+		tarfilename="${tarfile_dir}/test_seq.tar"
+		tar -cvf - "${testfiles[@]}" >"${tarfilename}"
+	fi
 
-printf '# SUCCESS\n'
+	rm -Rf 'tmp'
+	mkdir 'tmp'
+	cd 'tmp'
 
-exit 0
+	set +o xtrace
+
+	for (( i=0 ; i < 2000 ; i++ )) ; do
+		printf '#### Test cycle %d (usingbzip=%s,tarfileonlocaldisk=%s):\n' "$i" "$use_bzip2" "$use_localdiskfortar"
+		/cygdrive/c/Windows/system32/tar -xvf "$(cygpath -w "${tarfilename}")"
+
+		for currf in "${testfiles[@]}" ; do
+			if [[ ! -r "$currf" ]] ; then
+				printf '## ERROR: File %q not found.\n' "$currf"
+				return 1
+			fi
+			if [[ ! -s "$currf" ]] ; then
+				printf '## ERROR: File %q is empty (ls -l == "%s").\n' "$currf" "$(ls -l "$currf")"
+				return 1
+			fi
+
+			out="$(od -A x -t x1 -v "$currf" | grep -F ' 00' | head -n 5)"
+
+			if [[ "$out" != '' ]] ; then
+				printf '## ERROR: Zero byte in plain /usr/bin/seq output %q found:\n' "$currf"
+				printf -- '---- snip ----\n%s\n---- snip ----\n' "$out"
+				return 1
+			fi
+		done
+
+		rm -f -- "${testfiles[@]}"
+	done
+
+	printf '##### SUCCESS\n'
+
+	return 0
+}
+
+
+#
+# main
+#
+
+export PATH='/bin:/usr/bin'
+
+if [[ ! -x '/cygdrive/c/Windows/system32/tar' ]] ; then
+	printf $"%s: %s not found.\n" \
+		"$0" '/cygdrive/c/Windows/system32/tar' 1>&2
+	exit 1
+fi
+
+# Set umask=0000 to avoid permission trouble on SMB filesystems
+umask 0000
+
+test_wintar_seq true true
+exit $?
 # EOF.
