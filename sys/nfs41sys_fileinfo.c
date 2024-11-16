@@ -157,7 +157,7 @@ void unmarshal_nfs41_getattr(
     unsigned char **buf)
 {
     unmarshal_nfs41_attrget(cur, cur->buf, &cur->buf_len, buf);
-    RtlCopyMemory(&cur->ChangeTime, *buf, sizeof(LONGLONG));
+    RtlCopyMemory(&cur->ChangeTime, *buf, sizeof(ULONGLONG));
 #ifdef DEBUG_MARSHAL_DETAIL
     if (cur->u.QueryFile.InfoClass == FileBasicInformation)
         DbgP("[unmarshal_nfs41_getattr] ChangeTime %llu\n", cur->ChangeTime);
