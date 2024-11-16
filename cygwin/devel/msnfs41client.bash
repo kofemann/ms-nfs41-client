@@ -44,6 +44,15 @@ function is_windows_admin_account
 	return 1
 }
 
+function is_windows_64bit
+{
+	if [[ -d '/cygdrive/c/Windows/SysWOW64/' ]] ; then
+		return 0
+	else
+		return 1
+	fi
+}
+
 function check_machine_arch
 {
 	typeset winpwd
@@ -303,7 +312,7 @@ function nfsclient_adddriver
 	# 32bit applications can enumerate the ms-nfs41-client shares
 	# (FIXME: technically nfs41rdr.inf should do this)
 	#
-	if [[ -d '/cygdrive/c/Windows/SysWOW64/' ]] ; then
+	if is_windows_64bit ; then
 		# copy from the 32bit install dir
 		cp '../../../../../cygdrive/c/cygwin/lib/msnfs41client/nfs41_np.dll' '/cygdrive/c/Windows/SysWOW64/'
 	fi
@@ -330,7 +339,7 @@ function nfsclient_removedriver
 	nfs_install.exe 0
 	rundll32.exe setupapi.dll,InstallHinfSection DefaultUninstall 132 ./nfs41rdr.inf
 	rm /cygdrive/c/Windows/System32/nfs41_np.dll || true
-	if [[ -d '/cygdrive/c/Windows/SysWOW64/' ]] ; then
+	if is_windows_64bit ; then
 		rm '/cygdrive/c/Windows/SysWOW64/nfs41_np.dll' || true
 	fi
 	rm /cygdrive/c/Windows/System32/drivers/nfs41_driver.sys || true
@@ -775,15 +784,23 @@ function main
 	# add Windows tools path (tasklist, taskkill etc.)
 	PATH+=':/cygdrive/c/Windows/system32/'
 
-	# path to WinDBG cdb (fixme: 64bit x86-specific)
-	PATH+=':/cygdrive/c/Program Files (x86)/Windows Kits/10/Debuggers/x64/'
+	if is_windows_64bit ; then
+		# path to WinDBG cdb (fixme: 64bit x86-specific)
+		PATH+=':/cygdrive/c/Program Files (x86)/Windows Kits/10/Debuggers/x64/'
+
+		# PATH to DrMemory
+		PATH+=':/cygdrive/c/Program Files (x86)/Dr. Memory/bin/'
+	else
+		# path to WinDBG cdb (fixme: 64bit x86-specific)
+		PATH+=':/cygdrive/c/Program Files/Windows Kits/10/Debuggers/x86/'
+
+		# PATH to DrMemory
+		PATH+=':/cygdrive/c/Program Files/Dr. Memory/bin'
+	fi
 
 	# PATH to VSDiagnostics.exe and AgentConfigs
 	vsdiagnostics_path='/cygdrive/c/Program Files (x86)/Microsoft Visual Studio/2019/Community/Team Tools/DiagnosticsHub/Collector/'
 	PATH+=":${vsdiagnostics_path}"
-
-	# PATH to DrMemory
-	PATH+=':/cygdrive/c/Program Files (x86)/Dr. Memory/bin/'
 
 	# my own path to pstools
 	PATH+=':/home/roland_mainz/work/win_pstools/'
