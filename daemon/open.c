@@ -378,7 +378,7 @@ out:
     return status;
 }
 
-/* NFS41_OPEN */
+/* NFS41_SYSOP_OPEN */
 static int parse_open(unsigned char *buffer, uint32_t length, nfs41_upcall *upcall)
 {
     int status;
@@ -414,7 +414,7 @@ static int parse_open(unsigned char *buffer, uint32_t length, nfs41_upcall *upca
     if (status) goto out;
 
 #ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES
-    DPRINTF(1, ("parsing NFS41_OPEN: filename='%s' access mask=%d "
+    DPRINTF(1, ("parsing NFS41_SYSOP_OPEN: filename='%s' access mask=%d "
         "access mode=%d\n\tfile attrs=0x%x create attrs=0x%x "
         "(kernel) disposition=%d\n\topen_owner_id=%d mode=%o "
         "owner_local_uid=%u owner_group_local_gid=%u "
@@ -425,7 +425,7 @@ static int parse_open(unsigned char *buffer, uint32_t length, nfs41_upcall *upca
         args->srv_open,
         args->symlink.path, args->ea));
 #else
-    DPRINTF(1, ("parsing NFS41_OPEN: filename='%s' access mask=%d "
+    DPRINTF(1, ("parsing NFS41_SYSOP_OPEN: filename='%s' access mask=%d "
         "access mode=%d\n\tfile attrs=0x%x create attrs=0x%x "
         "(kernel) disposition=%d\n\topen_owner_id=%d mode=%o "
         "srv_open=0x%p symlink=%s ea=0x%p\n", args->path, args->access_mask,
@@ -1088,7 +1088,7 @@ static int marshall_open(unsigned char *buffer, uint32_t *length, nfs41_upcall *
             goto out;
         }
     }
-    DPRINTF(2, ("NFS41_OPEN: downcall open_state=0x%p mode %o changeattr 0x%llu\n",
+    DPRINTF(2, ("NFS41_SYSOP_OPEN: downcall open_state=0x%p mode %o changeattr 0x%llu\n",
         upcall->state_ref, args->mode, args->changeattr));
 out:
     return status;
@@ -1139,7 +1139,7 @@ out:
 }
 
 
-/* NFS41_CLOSE */
+/* NFS41_SYSOP_CLOSE */
 static int parse_close(unsigned char *buffer, uint32_t length, nfs41_upcall *upcall)
 {
     int status;
@@ -1156,7 +1156,7 @@ static int parse_close(unsigned char *buffer, uint32_t length, nfs41_upcall *upc
         if (status) goto out;
     }
 
-    DPRINTF(1, ("parsing NFS41_CLOSE: remove=%d srv_open=%x renamed=%d "
+    DPRINTF(1, ("parsing NFS41_SYSOP_CLOSE: remove=%d srv_open=%x renamed=%d "
         "filename='%s'\n", args->remove, args->srv_open, args->renamed,
         args->remove ? args->path : ""));
 out:

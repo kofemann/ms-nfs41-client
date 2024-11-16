@@ -26,7 +26,7 @@
 
 #include "nfs41_build_features.h"
 #include "upcall.h"
-#include "nfs41_driver.h" /* only for |NFS41_UNMOUNT| */
+#include "nfs41_driver.h" /* only for |NFS41_SYSOP_UNMOUNT| */
 #include "daemon_debug.h"
 #include "util.h"
 
@@ -60,8 +60,8 @@ static const nfs41_upcall_op *g_upcall_op_table[] = {
     &nfs41_op_lock,
     &nfs41_op_unlock,
     &nfs41_op_readdir,
-    &nfs41_op_getattr, /* NFS41_FILE_QUERY */
-    &nfs41_op_getattr, /* NFS41_FILE_QUERY_TIME_BASED_COHERENCY */
+    &nfs41_op_getattr, /* NFS41_SYSOP_FILE_QUERY */
+    &nfs41_op_getattr, /* NFS41_SYSOP_FILE_QUERY_TIME_BASED_COHERENCY */
     &nfs41_op_setattr,
     &nfs41_op_getexattr,
     &nfs41_op_setexattr,
@@ -177,8 +177,8 @@ int upcall_parse(
     op = g_upcall_op_table[upcall_upcode];
 
     if (op) {
-        /* |NFS41_UNMOUNT| has 0 payload */
-        if (upcall_upcode != NFS41_UNMOUNT) {
+        /* |NFS41_SYSOP_UNMOUNT| has 0 payload */
+        if (upcall_upcode != NFS41_SYSOP_UNMOUNT) {
             EASSERT_MSG(op->arg_size >= sizeof(void*),
                 ("upcall->opcode=%u\n", (unsigned int)upcall_upcode));
         }
@@ -186,8 +186,8 @@ int upcall_parse(
     }
 
     if (op && op->parse) {
-        /* |NFS41_UNMOUNT| has 0 payload */
-        if (upcall_upcode != NFS41_UNMOUNT) {
+        /* |NFS41_SYSOP_UNMOUNT| has 0 payload */
+        if (upcall_upcode != NFS41_SYSOP_UNMOUNT) {
             EASSERT(length > 0);
         }
 

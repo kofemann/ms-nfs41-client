@@ -227,60 +227,60 @@ NTSTATUS handle_upcall(
     }
 
     switch(entry->opcode) {
-    case NFS41_SHUTDOWN:
+    case NFS41_SYSOP_SHUTDOWN:
         status = marshal_nfs41_shutdown(entry, pbOut, cbOut, len);
         KeSetEvent(&entry->cond, 0, FALSE);
         break;
-    case NFS41_MOUNT:
+    case NFS41_SYSOP_MOUNT:
         status = marshal_nfs41_mount(entry, pbOut, cbOut, len);
         break;
-    case NFS41_UNMOUNT:
+    case NFS41_SYSOP_UNMOUNT:
         status = marshal_nfs41_unmount(entry, pbOut, cbOut, len);
         break;
-    case NFS41_OPEN:
+    case NFS41_SYSOP_OPEN:
         status = marshal_nfs41_open(entry, pbOut, cbOut, len);
         break;
-    case NFS41_READ:
+    case NFS41_SYSOP_READ:
         status = marshal_nfs41_rw(entry, pbOut, cbOut, len);
         break;
-    case NFS41_WRITE:
+    case NFS41_SYSOP_WRITE:
         status = marshal_nfs41_rw(entry, pbOut, cbOut, len);
         break;
-    case NFS41_LOCK:
+    case NFS41_SYSOP_LOCK:
         status = marshal_nfs41_lock(entry, pbOut, cbOut, len);
         break;
-    case NFS41_UNLOCK:
+    case NFS41_SYSOP_UNLOCK:
         status = marshal_nfs41_unlock(entry, pbOut, cbOut, len);
         break;
-    case NFS41_CLOSE:
+    case NFS41_SYSOP_CLOSE:
         status = marshal_nfs41_close(entry, pbOut, cbOut, len);
         break;
-    case NFS41_DIR_QUERY:
+    case NFS41_SYSOP_DIR_QUERY:
         status = marshal_nfs41_dirquery(entry, pbOut, cbOut, len);
         break;
-    case NFS41_FILE_QUERY:
-    case NFS41_FILE_QUERY_TIME_BASED_COHERENCY:
+    case NFS41_SYSOP_FILE_QUERY:
+    case NFS41_SYSOP_FILE_QUERY_TIME_BASED_COHERENCY:
         status = marshal_nfs41_filequery(entry, pbOut, cbOut, len);
         break;
-    case NFS41_FILE_SET:
+    case NFS41_SYSOP_FILE_SET:
         status = marshal_nfs41_fileset(entry, pbOut, cbOut, len);
         break;
-    case NFS41_EA_SET:
+    case NFS41_SYSOP_EA_SET:
         status = marshal_nfs41_easet(entry, pbOut, cbOut, len);
         break;
-    case NFS41_EA_GET:
+    case NFS41_SYSOP_EA_GET:
         status = marshal_nfs41_eaget(entry, pbOut, cbOut, len);
         break;
-    case NFS41_SYMLINK:
+    case NFS41_SYSOP_SYMLINK:
         status = marshal_nfs41_symlink(entry, pbOut, cbOut, len);
         break;
-    case NFS41_VOLUME_QUERY:
+    case NFS41_SYSOP_VOLUME_QUERY:
         status = marshal_nfs41_volume(entry, pbOut, cbOut, len);
         break;
-    case NFS41_ACL_QUERY:
+    case NFS41_SYSOP_ACL_QUERY:
         status = marshal_nfs41_getacl(entry, pbOut, cbOut, len);
         break;
-    case NFS41_ACL_SET:
+    case NFS41_SYSOP_ACL_SET:
         status = marshal_nfs41_setacl(entry, pbOut, cbOut, len);
         break;
     default:
@@ -563,16 +563,16 @@ NTSTATUS nfs41_downcall(
     if (cur->state == NFS41_NOT_WAITING) {
         DbgP("[downcall] Nobody is waiting for this request!!!\n");
         switch(cur->opcode) {
-        case NFS41_WRITE:
-        case NFS41_READ:
+        case NFS41_SYSOP_WRITE:
+        case NFS41_SYSOP_READ:
             MmUnmapLockedPages(cur->buf, cur->u.ReadWrite.MdlAddress);
             break;
-        case NFS41_DIR_QUERY:
+        case NFS41_SYSOP_DIR_QUERY:
             MmUnmapLockedPages(cur->u.QueryFile.mdl_buf,
                     cur->u.QueryFile.mdl);
             IoFreeMdl(cur->u.QueryFile.mdl);
             break;
-        case NFS41_OPEN:
+        case NFS41_SYSOP_OPEN:
             if (cur->u.Open.EaMdl) {
                 MmUnmapLockedPages(cur->u.Open.EaBuffer,
                         cur->u.Open.EaMdl);
@@ -593,42 +593,42 @@ NTSTATUS nfs41_downcall(
 
     if (!tmp->status) {
         switch (tmp->opcode) {
-        case NFS41_MOUNT:
+        case NFS41_SYSOP_MOUNT:
             unmarshal_nfs41_mount(cur, &buf);
             break;
-        case NFS41_WRITE:
-        case NFS41_READ:
+        case NFS41_SYSOP_WRITE:
+        case NFS41_SYSOP_READ:
             status = unmarshal_nfs41_rw(cur, &buf);
             break;
-        case NFS41_OPEN:
+        case NFS41_SYSOP_OPEN:
             status = unmarshal_nfs41_open(cur, &buf);
             break;
-        case NFS41_DIR_QUERY:
+        case NFS41_SYSOP_DIR_QUERY:
             status = unmarshal_nfs41_dirquery(cur, &buf);
             break;
-        case NFS41_FILE_QUERY:
-        case NFS41_FILE_QUERY_TIME_BASED_COHERENCY:
+        case NFS41_SYSOP_FILE_QUERY:
+        case NFS41_SYSOP_FILE_QUERY_TIME_BASED_COHERENCY:
             unmarshal_nfs41_getattr(cur, &buf);
             break;
-        case NFS41_EA_GET:
+        case NFS41_SYSOP_EA_GET:
             unmarshal_nfs41_eaget(cur, &buf);
             break;
-        case NFS41_SYMLINK:
+        case NFS41_SYSOP_SYMLINK:
             unmarshal_nfs41_symlink(cur, &buf);
             break;
-        case NFS41_VOLUME_QUERY:
+        case NFS41_SYSOP_VOLUME_QUERY:
             unmarshal_nfs41_attrget(cur, cur->buf, &cur->buf_len, &buf);
             break;
-        case NFS41_ACL_QUERY:
+        case NFS41_SYSOP_ACL_QUERY:
             status = unmarshal_nfs41_getacl(cur, &buf);
             break;
-        case NFS41_FILE_SET:
+        case NFS41_SYSOP_FILE_SET:
             unmarshal_nfs41_setattr(cur, &cur->ChangeTime, &buf);
             break;
-        case NFS41_EA_SET:
+        case NFS41_SYSOP_EA_SET:
             unmarshal_nfs41_setattr(cur, &cur->ChangeTime, &buf);
             break;
-        case NFS41_ACL_SET:
+        case NFS41_SYSOP_ACL_SET:
             unmarshal_nfs41_setattr(cur, &cur->ChangeTime, &buf);
             break;
         }
@@ -636,8 +636,8 @@ NTSTATUS nfs41_downcall(
     ExReleaseFastMutex(&cur->lock);
     if (cur->async_op) {
         switch (cur->opcode) {
-            case NFS41_WRITE:
-            case NFS41_READ:
+            case NFS41_SYSOP_WRITE:
+            case NFS41_SYSOP_READ:
                 if (cur->status == STATUS_SUCCESS) {
                     cur->u.ReadWrite.rxcontext->StoredStatus =
                         STATUS_SUCCESS;

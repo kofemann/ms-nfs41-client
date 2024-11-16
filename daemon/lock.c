@@ -166,7 +166,7 @@ static void open_unlock_remove(
 }
 
 
-/* NFS41_LOCK */
+/* NFS41_SYSOP_LOCK */
 static int parse_lock(unsigned char *buffer, uint32_t length, nfs41_upcall *upcall)
 {
     int status;
@@ -181,7 +181,7 @@ static int parse_lock(unsigned char *buffer, uint32_t length, nfs41_upcall *upca
     status = safe_read(&buffer, &length, &args->blocking, sizeof(BOOLEAN));
     if (status) goto out;
 
-    DPRINTF(1, ("parsing NFS41_LOCK: offset=0x%llx length=0x%llx exclusive=%u "
+    DPRINTF(1, ("parsing NFS41_SYSOP_LOCK: offset=0x%llx length=0x%llx exclusive=%u "
             "blocking=%u\n", args->offset, args->length, args->exclusive,
             args->blocking));
 out:
@@ -302,7 +302,7 @@ out:
 }
 
 
-/* NFS41_UNLOCK */
+/* NFS41_SYSOP_UNLOCK */
 static int parse_unlock(unsigned char *buffer, uint32_t length, nfs41_upcall *upcall)
 {
     int status;
@@ -314,7 +314,7 @@ static int parse_unlock(unsigned char *buffer, uint32_t length, nfs41_upcall *up
     args->buf = buffer;
     args->buf_len = length;
 
-    DPRINTF(1, ("parsing NFS41_UNLOCK: count=%u\n", args->count));
+    DPRINTF(1, ("parsing NFS41_SYSOP_UNLOCK: count=%u\n", args->count));
 out:
     return status;
 }

@@ -64,7 +64,7 @@ static int parse_getacl(unsigned char *buffer, uint32_t length,
     status = safe_read(&buffer, &length, &args->query, sizeof(args->query));
     if (status) goto out;
 
-    DPRINTF(1, ("parsing NFS41_ACL_QUERY: info_class=%d\n", args->query));
+    DPRINTF(1, ("parsing NFS41_SYSOP_ACL_QUERY: info_class=%d\n", args->query));
 out:
     return status;
 }
@@ -526,7 +526,7 @@ static int parse_setacl(unsigned char *buffer, uint32_t length,
     if (status) goto out;
     args->sec_desc = (PSECURITY_DESCRIPTOR)buffer;
 
-    DPRINTF(1, ("parsing NFS41_ACL_SET: info_class=%d sec_desc_len=%d\n",
+    DPRINTF(1, ("parsing NFS41_SYSOP_ACL_SET: info_class=%d sec_desc_len=%d\n",
             args->query, sec_desc_len));
 out:
     return status;

@@ -317,7 +317,7 @@ NTSTATUS nfs41_QueryFileInformation(
         goto out;
     }
 
-    status = nfs41_UpcallCreate(NFS41_FILE_QUERY, &nfs41_fobx->sec_ctx,
+    status = nfs41_UpcallCreate(NFS41_SYSOP_FILE_QUERY, &nfs41_fobx->sec_ctx,
         pVNetRootContext->session, nfs41_fobx->nfs41_open_state,
         pNetRootContext->nfs41d_version, SrvOpen->pAlreadyPrefixedName, &entry);
     if (status) {
@@ -656,7 +656,7 @@ NTSTATUS nfs41_SetFileInformation(
         }
     }
 
-    status = nfs41_UpcallCreate(NFS41_FILE_SET, &nfs41_fobx->sec_ctx,
+    status = nfs41_UpcallCreate(NFS41_SYSOP_FILE_SET, &nfs41_fobx->sec_ctx,
         pVNetRootContext->session, nfs41_fobx->nfs41_open_state,
         pNetRootContext->nfs41d_version, SrvOpen->pAlreadyPrefixedName, &entry);
     if (status) goto out;

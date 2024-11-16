@@ -655,24 +655,24 @@ void print_caching_level(int on, ULONG flag, PUNICODE_STRING name)
 const char *opcode2string(int opcode)
 {
     switch(opcode) {
-    case NFS41_SHUTDOWN: return "NFS41_SHUTDOWN";
-    case NFS41_MOUNT: return "NFS41_MOUNT";
-    case NFS41_UNMOUNT: return "NFS41_UNMOUNT";
-    case NFS41_OPEN: return "NFS41_OPEN";
-    case NFS41_CLOSE: return "NFS41_CLOSE";
-    case NFS41_READ: return "NFS41_READ";
-    case NFS41_WRITE: return "NFS41_WRITE";
-    case NFS41_LOCK: return "NFS41_LOCK";
-    case NFS41_UNLOCK: return "NFS41_UNLOCK";
-    case NFS41_DIR_QUERY: return "NFS41_DIR_QUERY";
-    case NFS41_FILE_QUERY: return "NFS41_FILE_QUERY";
-    case NFS41_FILE_SET: return "NFS41_FILE_SET";
-    case NFS41_EA_SET: return "NFS41_EA_SET";
-    case NFS41_EA_GET: return "NFS41_EA_GET";
-    case NFS41_SYMLINK: return "NFS41_SYMLINK";
-    case NFS41_VOLUME_QUERY: return "NFS41_VOLUME_QUERY";
-    case NFS41_ACL_QUERY: return "NFS41_ACL_QUERY";
-    case NFS41_ACL_SET: return "NFS41_ACL_SET";
+    case NFS41_SYSOP_SHUTDOWN: return "NFS41_SYSOP_SHUTDOWN";
+    case NFS41_SYSOP_MOUNT: return "NFS41_SYSOP_MOUNT";
+    case NFS41_SYSOP_UNMOUNT: return "NFS41_SYSOP_UNMOUNT";
+    case NFS41_SYSOP_OPEN: return "NFS41_SYSOP_OPEN";
+    case NFS41_SYSOP_CLOSE: return "NFS41_SYSOP_CLOSE";
+    case NFS41_SYSOP_READ: return "NFS41_SYSOP_READ";
+    case NFS41_SYSOP_WRITE: return "NFS41_SYSOP_WRITE";
+    case NFS41_SYSOP_LOCK: return "NFS41_SYSOP_LOCK";
+    case NFS41_SYSOP_UNLOCK: return "NFS41_SYSOP_UNLOCK";
+    case NFS41_SYSOP_DIR_QUERY: return "NFS41_SYSOP_DIR_QUERY";
+    case NFS41_SYSOP_FILE_QUERY: return "NFS41_SYSOP_FILE_QUERY";
+    case NFS41_SYSOP_FILE_SET: return "NFS41_SYSOP_FILE_SET";
+    case NFS41_SYSOP_EA_SET: return "NFS41_SYSOP_EA_SET";
+    case NFS41_SYSOP_EA_GET: return "NFS41_SYSOP_EA_GET";
+    case NFS41_SYSOP_SYMLINK: return "NFS41_SYSOP_SYMLINK";
+    case NFS41_SYSOP_VOLUME_QUERY: return "NFS41_SYSOP_VOLUME_QUERY";
+    case NFS41_SYSOP_ACL_QUERY: return "NFS41_SYSOP_ACL_QUERY";
+    case NFS41_SYSOP_ACL_SET: return "NFS41_SYSOP_ACL_SET";
     default: return "UNKNOWN";
     }
 }

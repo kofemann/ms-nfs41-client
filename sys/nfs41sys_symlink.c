@@ -276,7 +276,7 @@ NTSTATUS nfs41_SetReparsePoint(
     TargetName.Buffer = &Reparse->SymbolicLinkReparseBuffer.PathBuffer[
         Reparse->SymbolicLinkReparseBuffer.PrintNameOffset/sizeof(WCHAR)];
 
-    status = nfs41_UpcallCreate(NFS41_SYMLINK, &Fobx->sec_ctx,
+    status = nfs41_UpcallCreate(NFS41_SYSOP_SYMLINK, &Fobx->sec_ctx,
         VNetRootContext->session, Fobx->nfs41_open_state,
         pNetRootContext->nfs41d_version, SrvOpen->pAlreadyPrefixedName, &entry);
     if (status) goto out;
@@ -363,7 +363,7 @@ NTSTATUS nfs41_GetReparsePoint(
     TargetName.MaximumLength = (USHORT)min(FsCtl->OutputBufferLength -
         HeaderLen, 0xFFFF);
 
-    status = nfs41_UpcallCreate(NFS41_SYMLINK, &Fobx->sec_ctx,
+    status = nfs41_UpcallCreate(NFS41_SYSOP_SYMLINK, &Fobx->sec_ctx,
         VNetRootContext->session, Fobx->nfs41_open_state,
         pNetRootContext->nfs41d_version, SrvOpen->pAlreadyPrefixedName, &entry);
     if (status) goto out;

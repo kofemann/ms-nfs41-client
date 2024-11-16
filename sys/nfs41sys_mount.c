@@ -181,7 +181,7 @@ NTSTATUS nfs41_unmount(
 #ifdef DEBUG_MOUNT
     DbgEn();
 #endif
-    status = nfs41_UpcallCreate(NFS41_UNMOUNT, NULL, session,
+    status = nfs41_UpcallCreate(NFS41_SYSOP_UNMOUNT, NULL, session,
         INVALID_HANDLE_VALUE, version, NULL, &entry);
     if (status) goto out;
 
@@ -252,7 +252,7 @@ NTSTATUS nfs41_mount(
     DbgP("Server Name '%wZ' Mount Point '%wZ' SecFlavor %d\n",
         &config->SrvName, &config->MntPt, sec_flavor);
 #endif
-    status = nfs41_UpcallCreate(NFS41_MOUNT, NULL, *session,
+    status = nfs41_UpcallCreate(NFS41_SYSOP_MOUNT, NULL, *session,
         INVALID_HANDLE_VALUE, *version, &config->MntPt, &entry);
     if (status) goto out;
 

@@ -33,7 +33,7 @@
 #include "daemon_debug.h"
 
 
-/* NFS41_FILE_SET */
+/* NFS41_SYSOP_FILE_SET */
 static int parse_setattr(unsigned char *buffer, uint32_t length, nfs41_upcall *upcall)
 {
     int status;
@@ -50,7 +50,7 @@ static int parse_setattr(unsigned char *buffer, uint32_t length, nfs41_upcall *u
     args->root = upcall->root_ref;
     args->state = upcall->state_ref;
 
-    DPRINTF(1, ("parsing NFS41_FILE_SET: filename='%s' info_class=%d "
+    DPRINTF(1, ("parsing NFS41_SYSOP_FILE_SET: filename='%s' info_class=%d "
         "buf_len=%d\n", args->path, args->set_class, args->buf_len));
 out:
     return status;

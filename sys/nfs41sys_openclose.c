@@ -583,7 +583,7 @@ NTSTATUS nfs41_Create(
     status = check_nfs41_create_args(RxContext);
     if (status) goto out;
 
-    status = nfs41_UpcallCreate(NFS41_OPEN, NULL,
+    status = nfs41_UpcallCreate(NFS41_SYSOP_OPEN, NULL,
         pVNetRootContext->session, INVALID_HANDLE_VALUE,
         pNetRootContext->nfs41d_version,
         SrvOpen->pAlreadyPrefixedName, &entry);
@@ -1009,7 +1009,7 @@ NTSTATUS nfs41_CloseSrvOpen(
         nfs41_remove_fcb_entry(RxContext->pFcb);
     }
 
-    status = nfs41_UpcallCreate(NFS41_CLOSE, &nfs41_fobx->sec_ctx,
+    status = nfs41_UpcallCreate(NFS41_SYSOP_CLOSE, &nfs41_fobx->sec_ctx,
         pVNetRootContext->session, nfs41_fobx->nfs41_open_state,
         pNetRootContext->nfs41d_version, SrvOpen->pAlreadyPrefixedName, &entry);
     if (status) goto out;

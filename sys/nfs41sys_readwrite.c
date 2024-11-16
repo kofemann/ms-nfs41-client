@@ -240,7 +240,7 @@ NTSTATUS nfs41_Read(
     status = check_nfs41_read_args(RxContext);
     if (status) goto out;
 
-    status = nfs41_UpcallCreate(NFS41_READ, &nfs41_fobx->sec_ctx,
+    status = nfs41_UpcallCreate(NFS41_SYSOP_READ, &nfs41_fobx->sec_ctx,
         pVNetRootContext->session, nfs41_fobx->nfs41_open_state,
         pNetRootContext->nfs41d_version, SrvOpen->pAlreadyPrefixedName, &entry);
     if (status) goto out;
@@ -357,7 +357,7 @@ NTSTATUS nfs41_Write(
     status = check_nfs41_write_args(RxContext);
     if (status) goto out;
 
-    status = nfs41_UpcallCreate(NFS41_WRITE, &nfs41_fobx->sec_ctx,
+    status = nfs41_UpcallCreate(NFS41_SYSOP_WRITE, &nfs41_fobx->sec_ctx,
         pVNetRootContext->session, nfs41_fobx->nfs41_open_state,
         pNetRootContext->nfs41d_version, SrvOpen->pAlreadyPrefixedName, &entry);
     if (status) goto out;

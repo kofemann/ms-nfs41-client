@@ -283,7 +283,7 @@ NTSTATUS nfs41_shutdown_daemon(
     nfs41_updowncall_entry *entry = NULL;
 
     DbgEn();
-    status = nfs41_UpcallCreate(NFS41_SHUTDOWN, NULL, INVALID_HANDLE_VALUE,
+    status = nfs41_UpcallCreate(NFS41_SYSOP_SHUTDOWN, NULL, INVALID_HANDLE_VALUE,
         INVALID_HANDLE_VALUE, version, NULL, &entry);
     if (status) goto out;
 
@@ -1247,7 +1247,7 @@ VOID fcbopen_main(PVOID ctx)
                 NFS41GetNetRootExtension(cur->fcb->pNetRoot);
             /* place an upcall for this srv_open */
             status = nfs41_UpcallCreate(
-                NFS41_FILE_QUERY_TIME_BASED_COHERENCY,
+                NFS41_SYSOP_FILE_QUERY_TIME_BASED_COHERENCY,
                 &cur->nfs41_fobx->sec_ctx, cur->session,
                 cur->nfs41_fobx->nfs41_open_state,
                 pNetRootContext->nfs41d_version, NULL, &entry);

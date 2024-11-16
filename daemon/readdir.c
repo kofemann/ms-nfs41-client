@@ -255,7 +255,7 @@ typedef union _FILE_DIR_INFO_UNION {
 } FILE_DIR_INFO_UNION, *PFILE_DIR_INFO_UNION;
 
 
-/* NFS41_DIR_QUERY */
+/* NFS41_SYSOP_DIR_QUERY */
 static int parse_readdir(unsigned char *buffer, uint32_t length, nfs41_upcall *upcall)
 {
     int status;
@@ -278,7 +278,7 @@ static int parse_readdir(unsigned char *buffer, uint32_t length, nfs41_upcall *u
     args->root = upcall->root_ref;
     args->state = upcall->state_ref;
 
-    DPRINTF(1, ("parsing NFS41_DIR_QUERY: info_class=%d buf_len=%d "
+    DPRINTF(1, ("parsing NFS41_SYSOP_DIR_QUERY: info_class=%d buf_len=%d "
         "filter='%s'\n\tInitial\\Restart\\Single %d\\%d\\%d buf=0x%p\n",
         args->query_class, args->buf_len, args->filter,
         args->initial, args->restart, args->single, args->kbuf));

@@ -317,7 +317,7 @@ NTSTATUS nfs41_SetEaInformation(
     status = check_nfs41_setea_args(RxContext);
     if (status) goto out;
 
-    status = nfs41_UpcallCreate(NFS41_EA_SET, &nfs41_fobx->sec_ctx,
+    status = nfs41_UpcallCreate(NFS41_SYSOP_EA_SET, &nfs41_fobx->sec_ctx,
         pVNetRootContext->session, nfs41_fobx->nfs41_open_state,
         pNetRootContext->nfs41d_version, SrvOpen->pAlreadyPrefixedName, &entry);
     if (status) goto out;
@@ -442,7 +442,7 @@ NTSTATUS QueryCygwinSymlink(
     TargetName.MaximumLength = (USHORT)min(RxContext->Info.LengthRemaining -
         HeaderLen, 0xFFFF);
 
-    status = nfs41_UpcallCreate(NFS41_SYMLINK, &Fobx->sec_ctx,
+    status = nfs41_UpcallCreate(NFS41_SYSOP_SYMLINK, &Fobx->sec_ctx,
         VNetRootContext->session, Fobx->nfs41_open_state,
         NetRootContext->nfs41d_version, SrvOpen->pAlreadyPrefixedName, &entry);
     if (status) goto out;
@@ -591,7 +591,7 @@ NTSTATUS nfs41_QueryEaInformation(
     if (status != STATUS_NONEXISTENT_EA_ENTRY)
         goto out;
 
-    status = nfs41_UpcallCreate(NFS41_EA_GET, &nfs41_fobx->sec_ctx,
+    status = nfs41_UpcallCreate(NFS41_SYSOP_EA_GET, &nfs41_fobx->sec_ctx,
         pVNetRootContext->session, nfs41_fobx->nfs41_open_state,
         pNetRootContext->nfs41d_version, SrvOpen->pAlreadyPrefixedName, &entry);
     if (status) goto out;

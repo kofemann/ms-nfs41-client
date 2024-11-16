@@ -27,7 +27,7 @@
 #include "nfs41_build_features.h"
 #include "nfs41_ops.h"
 #include "name_cache.h"
-#include "nfs41_driver.h" /* only for |NFS41_FILE_QUERY*| */
+#include "nfs41_driver.h" /* only for |NFS41_SYSOP_FILE_QUERY*| */
 #include "upcall.h"
 #include "daemon_debug.h"
 
@@ -58,7 +58,7 @@ int nfs41_cached_getattr(
     return status;
 }
 
-/* NFS41_FILE_QUERY, NFS41_FILE_QUERY_TIME_BASED_COHERENCY */
+/* NFS41_SYSOP_FILE_QUERY, NFS41_SYSOP_FILE_QUERY_TIME_BASED_COHERENCY */
 static int parse_getattr(unsigned char *buffer, uint32_t length, nfs41_upcall *upcall)
 {
     int status;
@@ -270,7 +270,7 @@ static int marshall_getattr(unsigned char *buffer, uint32_t *length, nfs41_upcal
     }
     status = safe_write(&buffer, length, &args->ctime, sizeof(args->ctime));
     if (status) goto out;
-    DPRINTF(1, ("NFS41_FILE_QUERY: downcall changattr=%llu\n", args->ctime));
+    DPRINTF(1, ("NFS41_SYSOP_FILE_QUERY: downcall changattr=%llu\n", args->ctime));
 out:
     return status;
 }

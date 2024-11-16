@@ -34,8 +34,8 @@
 #endif /* NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE */
 
 
-/* NFS41_MOUNT */
-static int parse_mount(unsigned char *buffer, uint32_t length, nfs41_upcall *upcall) 
+/* NFS41_SYSOP_MOUNT */
+static int parse_mount(unsigned char *buffer, uint32_t length, nfs41_upcall *upcall)
 {
     int status;
     mount_upcall_args *args = &upcall->args.mount;
@@ -53,13 +53,13 @@ static int parse_mount(unsigned char *buffer, uint32_t length, nfs41_upcall *upc
     status = safe_read(&buffer, &length, &args->use_nfspubfh, sizeof(DWORD));
     if (status) goto out;
 
-    DPRINTF(1, ("parsing NFS41_MOUNT: hostport='%s' root='%s' "
+    DPRINTF(1, ("parsing NFS41_SYSOP_MOUNT: hostport='%s' root='%s' "
         "sec_flavor='%s' rsize=%d wsize=%d use_nfspubfh=%d\n",
         args->hostport, args->path, secflavorop2name(args->sec_flavor),
         args->rsize, args->wsize, args->use_nfspubfh));
     return status;
 out:
-    DPRINTF(1, ("parsing NFS41_MOUNT: failed %d\n", status));
+    DPRINTF(1, ("parsing NFS41_SYSOP_MOUNT: failed %d\n", status));
     return status;
 }
 
@@ -240,7 +240,7 @@ static int marshall_mount(unsigned char *buffer, uint32_t *length, nfs41_upcall 
 {
     mount_upcall_args *args = &upcall->args.mount;
     int status;
-    DPRINTF(2, ("NFS41_MOUNT: writing pointer to nfs41_root 0x%p, version %d, "
+    DPRINTF(2, ("NFS41_SYSOP_MOUNT: writing pointer to nfs41_root 0x%p, version %d, "
         "lease_time %d\n", upcall->root_ref, NFS41D_VERSION, args->lease_time));
     status = safe_write(&buffer, length, &upcall->root_ref, sizeof(HANDLE));
     if (status) goto out;
@@ -268,10 +268,10 @@ const nfs41_upcall_op nfs41_op_mount = {
 };
 
 
-/* NFS41_UNMOUNT */
+/* NFS41_SYSOP_UNMOUNT */
 static int parse_unmount(unsigned char *buffer, uint32_t length, nfs41_upcall *upcall)
 {
-    DPRINTF(1, ("parsing NFS41_UNMOUNT: root=0x%p\n", upcall->root_ref));
+    DPRINTF(1, ("parsing NFS41_SYSOP_UNMOUNT: root=0x%p\n", upcall->root_ref));
     return ERROR_SUCCESS;
 }
 

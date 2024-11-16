@@ -186,7 +186,7 @@ out:
 }
 
 
-/* NFS41_SYMLINK */
+/* NFS41_SYSOP_SYMLINK */
 static int parse_symlink(unsigned char *buffer, uint32_t length, nfs41_upcall *upcall)
 {
     symlink_upcall_args *args = &upcall->args.symlink;
@@ -202,7 +202,7 @@ static int parse_symlink(unsigned char *buffer, uint32_t length, nfs41_upcall *u
     else
         args->target_set = NULL;
 
-    DPRINTF(1, ("parsing NFS41_SYMLINK: path='%s' set=%u target='%s'\n",
+    DPRINTF(1, ("parsing NFS41_SYSOP_SYMLINK: path='%s' set=%u target='%s'\n",
         args->path, args->set, args->target_set));
 out:
     return status;

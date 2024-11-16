@@ -42,7 +42,7 @@
 #define VOLUME_CACHE_EXPIRATION 20
 
 
-/* NFS41_VOLUME_QUERY */
+/* NFS41_SYSOP_VOLUME_QUERY */
 static int parse_volume(unsigned char *buffer, uint32_t length, nfs41_upcall *upcall)
 {
     int status;
@@ -51,7 +51,7 @@ static int parse_volume(unsigned char *buffer, uint32_t length, nfs41_upcall *up
     status = safe_read(&buffer, &length, &args->query, sizeof(FS_INFORMATION_CLASS));
     if (status) goto out;
 
-    DPRINTF(1, ("parsing NFS41_VOLUME_QUERY: query=%d\n", args->query));
+    DPRINTF(1, ("parsing NFS41_SYSOP_VOLUME_QUERY: query=%d\n", args->query));
 out:
     return status;
 }

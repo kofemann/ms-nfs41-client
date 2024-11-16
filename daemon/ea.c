@@ -143,7 +143,7 @@ out:
 }
 
 
-/* NFS41_EA_SET */
+/* NFS41_SYSOP_EA_SET */
 static int parse_setexattr(unsigned char *buffer, uint32_t length, nfs41_upcall *upcall)
 {
     int status;
@@ -157,7 +157,7 @@ static int parse_setexattr(unsigned char *buffer, uint32_t length, nfs41_upcall 
     if (status) goto out;
     args->buf = buffer;
 
-    DPRINTF(1, ("parsing NFS41_EA_SET: mode=%o\n", args->mode));
+    DPRINTF(1, ("parsing NFS41_SYSOP_EA_SET: mode=%o\n", args->mode));
 out:
     return status;
 }
@@ -211,7 +211,7 @@ static int marshall_setexattr(unsigned char *buffer, uint32_t *length, nfs41_upc
 }
 
 
-/* NFS41_EA_GET */
+/* NFS41_SYSOP_EA_GET */
 static int parse_getexattr(unsigned char *buffer, uint32_t length, nfs41_upcall *upcall)
 {
     int status;
@@ -231,7 +231,7 @@ static int parse_getexattr(unsigned char *buffer, uint32_t length, nfs41_upcall 
     if (status) goto out;
     args->ealist = args->ealist_len ? buffer : NULL;
 
-    DPRINTF(1, ("parsing NFS41_EA_GET: buf_len=%d Index %d Restart %d "
+    DPRINTF(1, ("parsing NFS41_SYSOP_EA_GET: buf_len=%d Index %d Restart %d "
         "Single %d\n", args->buf_len,args->eaindex, args->restart, args->single));
 out:
     return status;

@@ -55,7 +55,7 @@ out:
     return status;
 }
 
-/* NFS41_READ */
+/* NFS41_SYSOP_READ */
 static int read_from_mds(
     IN nfs41_upcall *upcall,
     IN stateid_arg *stateid)
@@ -170,7 +170,7 @@ out:
 }
 
 
-/* NFS41_WRITE */
+/* NFS41_SYSOP_WRITE */
 static int write_to_mds(
     IN nfs41_upcall *upcall,
     IN stateid_arg *stateid)
