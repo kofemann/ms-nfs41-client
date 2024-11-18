@@ -135,7 +135,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>..\..\include;..\..\dll;..\..;$(WindowsSdkDir)Include\10.0.19041.0\km;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\include;..\..\dll;..\..;$(DDK_INC_PATH);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WarningLevel>Level4</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>EXPLODE_POOLTAGS;MONOLITHIC_MINIRDR;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -144,12 +144,12 @@
       <AdditionalOptions>/std:c17 /Zc:preprocessor- /kernel /wd4100 /wd4201 /wd5104</AdditionalOptions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ntoskrnl.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\hal.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\BufferOverflowfastfailK.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ksecdd.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rxce.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rdbsslib.lib</AdditionalDependencies>
+      <AdditionalDependencies>$(DDK_LIB_PATH)\ntoskrnl.lib;$(DDK_LIB_PATH)\hal.lib;$(DDK_LIB_PATH)\BufferOverflowfastfailK.lib;$(DDK_LIB_PATH)\ksecdd.lib;$(DDK_LIB_PATH)\rxce.lib;$(DDK_LIB_PATH)\rdbsslib.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>..\..\include;..\..\dll;..\..;$(WindowsSdkDir)Include\10.0.19041.0\km;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\include;..\..\dll;..\..;$(DDK_INC_PATH);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WarningLevel>Level4</WarningLevel>
       <Optimization>MaxSpeed</Optimization>
       <PreprocessorDefinitions>EXPLODE_POOLTAGS;MONOLITHIC_MINIRDR;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -158,12 +158,12 @@
       <AdditionalOptions>/std:c17 /Zc:preprocessor- /kernel /wd4100 /wd4201 /wd5104</AdditionalOptions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ntoskrnl.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\hal.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\BufferOverflowfastfailK.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ksecdd.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rxce.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rdbsslib.lib</AdditionalDependencies>
+      <AdditionalDependencies>$(DDK_LIB_PATH)\ntoskrnl.lib;$(DDK_LIB_PATH)\hal.lib;$(DDK_LIB_PATH)\BufferOverflowfastfailK.lib;$(DDK_LIB_PATH)\ksecdd.lib;$(DDK_LIB_PATH)\rxce.lib;$(DDK_LIB_PATH)\rdbsslib.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>..\..\include;..\..\dll;..\..;$(WindowsSdkDir)Include\10.0.19041.0\km;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\include;..\..\dll;..\..;$(DDK_INC_PATH);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WarningLevel>Level4</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>EXPLODE_POOLTAGS;MONOLITHIC_MINIRDR;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -172,7 +172,7 @@
       <AdditionalOptions>/std:c17 /Zc:preprocessor- /kernel /wd4100 /wd4201 /wd5104</AdditionalOptions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ntoskrnl.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\hal.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\BufferOverflowfastfailK.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ksecdd.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rxce.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rdbsslib.lib</AdditionalDependencies>
+      <AdditionalDependencies>$(DDK_LIB_PATH)\ntoskrnl.lib;$(DDK_LIB_PATH)\hal.lib;$(DDK_LIB_PATH)\BufferOverflowfastfailK.lib;$(DDK_LIB_PATH)\ksecdd.lib;$(DDK_LIB_PATH)\rxce.lib;$(DDK_LIB_PATH)\rdbsslib.lib</AdditionalDependencies>
     </Link>
     <DriverSign>
       <FileDigestAlgorithm>sha256</FileDigestAlgorithm>
@@ -180,7 +180,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>..\..\include;..\..\dll;..\..;$(WindowsSdkDir)Include\10.0.19041.0\km;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\include;..\..\dll;..\..;$(DDK_INC_PATH);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WarningLevel>Level4</WarningLevel>
       <Optimization>MaxSpeed</Optimization>
       <PreprocessorDefinitions>EXPLODE_POOLTAGS;MONOLITHIC_MINIRDR;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -189,7 +189,7 @@
       <AdditionalOptions>/std:c17 /Zc:preprocessor- /kernel /wd4100 /wd4201 /wd5104</AdditionalOptions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ntoskrnl.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\hal.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\BufferOverflowfastfailK.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ksecdd.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rxce.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rdbsslib.lib</AdditionalDependencies>
+      <AdditionalDependencies>$(DDK_LIB_PATH)\ntoskrnl.lib;$(DDK_LIB_PATH)\hal.lib;$(DDK_LIB_PATH)\BufferOverflowfastfailK.lib;$(DDK_LIB_PATH)\ksecdd.lib;$(DDK_LIB_PATH)\rxce.lib;$(DDK_LIB_PATH)\rdbsslib.lib</AdditionalDependencies>
     </Link>
     <DriverSign>
       <FileDigestAlgorithm>sha256</FileDigestAlgorithm>
@@ -197,7 +197,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
     <ClCompile>
-      <AdditionalIncludeDirectories>..\..\include;..\..\dll;..\..;$(WindowsSdkDir)Include\10.0.19041.0\km;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\include;..\..\dll;..\..;$(DDK_INC_PATH);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WarningLevel>Level4</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>EXPLODE_POOLTAGS;MONOLITHIC_MINIRDR;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -206,12 +206,12 @@
       <AdditionalOptions>/std:c17 /Zc:preprocessor- /kernel /wd4100 /wd4201 /wd5104</AdditionalOptions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ntoskrnl.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\hal.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\BufferOverflowfastfailK.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ksecdd.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rxce.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rdbsslib.lib</AdditionalDependencies>
+      <AdditionalDependencies>$(DDK_LIB_PATH)\ntoskrnl.lib;$(DDK_LIB_PATH)\hal.lib;$(DDK_LIB_PATH)\BufferOverflowfastfailK.lib;$(DDK_LIB_PATH)\ksecdd.lib;$(DDK_LIB_PATH)\rxce.lib;$(DDK_LIB_PATH)\rdbsslib.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
     <ClCompile>
-      <AdditionalIncludeDirectories>..\..\include;..\..\dll;..\..;$(WindowsSdkDir)Include\10.0.19041.0\km;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\include;..\..\dll;..\..;$(DDK_INC_PATH);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WarningLevel>Level4</WarningLevel>
       <Optimization>MaxSpeed</Optimization>
       <PreprocessorDefinitions>EXPLODE_POOLTAGS;MONOLITHIC_MINIRDR;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -220,12 +220,12 @@
       <AdditionalOptions>/std:c17 /Zc:preprocessor- /kernel /wd4100 /wd4201 /wd5104</AdditionalOptions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ntoskrnl.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\hal.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\BufferOverflowfastfailK.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ksecdd.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rxce.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rdbsslib.lib</AdditionalDependencies>
+      <AdditionalDependencies>$(DDK_LIB_PATH)\ntoskrnl.lib;$(DDK_LIB_PATH)\hal.lib;$(DDK_LIB_PATH)\BufferOverflowfastfailK.lib;$(DDK_LIB_PATH)\ksecdd.lib;$(DDK_LIB_PATH)\rxce.lib;$(DDK_LIB_PATH)\rdbsslib.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>..\..\include;..\..\dll;..\..;$(WindowsSdkDir)Include\10.0.19041.0\km;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\include;..\..\dll;..\..;$(DDK_INC_PATH);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WarningLevel>Level4</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>EXPLODE_POOLTAGS;MONOLITHIC_MINIRDR;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -234,7 +234,7 @@
       <AdditionalOptions>/std:c17 /Zc:preprocessor- /kernel /wd4100 /wd4201 /wd5104</AdditionalOptions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ntoskrnl.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\hal.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\BufferOverflowfastfailK.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ksecdd.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rxce.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rdbsslib.lib</AdditionalDependencies>
+      <AdditionalDependencies>$(DDK_LIB_PATH)\ntoskrnl.lib;$(DDK_LIB_PATH)\hal.lib;$(DDK_LIB_PATH)\BufferOverflowfastfailK.lib;$(DDK_LIB_PATH)\ksecdd.lib;$(DDK_LIB_PATH)\rxce.lib;$(DDK_LIB_PATH)\rdbsslib.lib</AdditionalDependencies>
     </Link>
     <DriverSign>
       <FileDigestAlgorithm>sha256</FileDigestAlgorithm>
@@ -242,7 +242,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>..\..\include;..\..\dll;..\..;$(WindowsSdkDir)Include\10.0.19041.0\km;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\include;..\..\dll;..\..;$(DDK_INC_PATH);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WarningLevel>Level4</WarningLevel>
       <Optimization>MaxSpeed</Optimization>
       <PreprocessorDefinitions>EXPLODE_POOLTAGS;MONOLITHIC_MINIRDR;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -251,7 +251,7 @@
       <AdditionalOptions>/std:c17 /Zc:preprocessor- /kernel /wd4100 /wd4201 /wd5104</AdditionalOptions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ntoskrnl.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\hal.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\BufferOverflowfastfailK.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\ksecdd.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rxce.lib;$(WindowsSdkDir)lib\10.0.19041.0\km\$(DDKPlatform)\rdbsslib.lib</AdditionalDependencies>
+      <AdditionalDependencies>$(DDK_LIB_PATH)\ntoskrnl.lib;$(DDK_LIB_PATH)\hal.lib;$(DDK_LIB_PATH)\BufferOverflowfastfailK.lib;$(DDK_LIB_PATH)\ksecdd.lib;$(DDK_LIB_PATH)\rxce.lib;$(DDK_LIB_PATH)\rdbsslib.lib</AdditionalDependencies>
     </Link>
     <DriverSign>
       <FileDigestAlgorithm>sha256</FileDigestAlgorithm>
