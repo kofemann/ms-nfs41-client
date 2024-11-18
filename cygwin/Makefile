@@ -22,15 +22,15 @@ VS_BUILD_DIR64:=$(PROJECT_BASEDIR_DIR)/build.vc19/x64/Debug/
 $(VS_BUILD_DIR32)/nfsd.exe \
 	$(VS_BUILD_DIR32)/nfs_mount.exe \
 	$(VS_BUILD_DIR32)/nfs_install.exe \
-	$(VS_BUILD_DIR32)/nfs_mount.exe \
 	$(VS_BUILD_DIR32)/nfs41_driver.sys \
 	$(VS_BUILD_DIR32)/libtirpc.dll \
+	$(VS_BUILD_DIR32)/nfs41_np.dll \
 	$(VS_BUILD_DIR64)/nfsd.exe \
 	$(VS_BUILD_DIR64)/nfs_mount.exe \
 	$(VS_BUILD_DIR64)/nfs_install.exe \
-	$(VS_BUILD_DIR64)/nfs_mount.exe \
 	$(VS_BUILD_DIR64)/nfs41_driver.sys \
-	$(VS_BUILD_DIR64)/libtirpc.dll: build
+	$(VS_BUILD_DIR64)/libtirpc.dll \
+	$(VS_BUILD_DIR64)/nfs41_np.dll: build
 
 # trigger "build_testutils" target when these binaries are needed
 $(PROJECT_BASEDIR_DIR)/tests/ea/nfs_ea.exe \
@@ -95,22 +95,25 @@ installdest32: \
 	$(VS_BUILD_DIR32)/nfsd.exe \
 	$(VS_BUILD_DIR32)/nfs_mount.exe \
 	$(VS_BUILD_DIR32)/nfs_install.exe \
-	$(VS_BUILD_DIR32)/nfs_mount.exe \
 	$(VS_BUILD_DIR32)/nfs41_driver.sys \
 	$(VS_BUILD_DIR32)/libtirpc.dll \
+	$(VS_BUILD_DIR32)/nfs41_np.dll \
 	# installdest 32bit Windows
 	make -f $(CYGWIN_MAKEFILE_DIR)/Makefile.install \
 		installdest \
 		VS_BUILD_DIR="$(VS_BUILD_DIR32)" \
 		CYGWIN_BASEPATH=/cygdrive/c/cygwin/
 
+# installdest64: 32bit nfs41_np.dll is required to support 32bit
+# apps on 64bit Windows
 installdest64: \
 	$(VS_BUILD_DIR64)/nfsd.exe \
 	$(VS_BUILD_DIR64)/nfs_mount.exe \
 	$(VS_BUILD_DIR64)/nfs_install.exe \
-	$(VS_BUILD_DIR64)/nfs_mount.exe \
 	$(VS_BUILD_DIR64)/nfs41_driver.sys \
 	$(VS_BUILD_DIR64)/libtirpc.dll \
+	$(VS_BUILD_DIR32)/nfs41_np.dll \
+	$(VS_BUILD_DIR64)/nfs41_np.dll \
 	# installdest 64bit Windows
 	make -f $(CYGWIN_MAKEFILE_DIR)/Makefile.install \
 		installdest \
