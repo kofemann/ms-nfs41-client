@@ -1,8 +1,10 @@
 /* NFSv4.1 client for Windows
- * Copyright © 2012 The Regents of the University of Michigan
+ * Copyright (C) 2012 The Regents of the University of Michigan
+ * Copyright (C) 2023-2024 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
+ * Roland Mainz <roland.mainz@nrubsig.org>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -246,6 +248,7 @@ typedef struct _FILE_NETWORK_OPEN_INFORMATION {
     ULONG FileAttributes;
 } FILE_NETWORK_OPEN_INFORMATION, *PFILE_NETWORK_OPEN_INFORMATION;
 
+#ifndef LX_FILE_METADATA_HAS_UID
 typedef struct _FILE_STAT_INFORMATION {
     LARGE_INTEGER FileId;
     LARGE_INTEGER CreationTime;
@@ -254,9 +257,9 @@ typedef struct _FILE_STAT_INFORMATION {
     LARGE_INTEGER ChangeTime;
     LARGE_INTEGER AllocationSize;
     LARGE_INTEGER EndOfFile;
-    ULONG FileAttributes;
-    ULONG ReparseTag;
-    ULONG NumberOfLinks;
+    DWORD FileAttributes;
+    DWORD ReparseTag;
+    DWORD NumberOfLinks;
     ACCESS_MASK EffectiveAccess;
 } FILE_STAT_INFORMATION, *PFILE_STAT_INFORMATION;
 
@@ -268,18 +271,18 @@ typedef struct _FILE_STAT_LX_INFORMATION {
     LARGE_INTEGER ChangeTime;
     LARGE_INTEGER AllocationSize;
     LARGE_INTEGER EndOfFile;
-    ULONG FileAttributes;
-    ULONG ReparseTag;
-    ULONG NumberOfLinks;
+    DWORD FileAttributes;
+    DWORD ReparseTag;
+    DWORD NumberOfLinks;
     ACCESS_MASK EffectiveAccess;
-    ULONG LxFlags;
-    ULONG LxUid;
-    ULONG LxGid;
-    ULONG LxMode;
-    ULONG LxDeviceIdMajor;
-    ULONG LxDeviceIdMinor;
+    DWORD LxFlags;
+    DWORD LxUid;
+    DWORD LxGid;
+    DWORD LxMode;
+    DWORD LxDeviceIdMajor;
+    DWORD LxDeviceIdMinor;
 } FILE_STAT_LX_INFORMATION, *PFILE_STAT_LX_INFORMATION;
-
+#endif /* !LX_FILE_METADATA_HAS_UID */
 /* Flags for |LxFlags| field */
 #define LX_FILE_METADATA_HAS_UID        0x1
 #define LX_FILE_METADATA_HAS_GID        0x2
