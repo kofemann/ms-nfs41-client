@@ -82,19 +82,7 @@ clean:
 	(cd "$(PROJECT_BASEDIR_DIR)/tests/winfsinfo1" && make clean)
 	(cd "$(PROJECT_BASEDIR_DIR)/tests/winsg" && make clean)
 
-installdest: \
-	$(VS_BUILD_DIR32)/nfsd.exe \
-	$(VS_BUILD_DIR32)/nfs_mount.exe \
-	$(VS_BUILD_DIR32)/nfs_install.exe \
-	$(VS_BUILD_DIR32)/nfs_mount.exe \
-	$(VS_BUILD_DIR32)/nfs41_driver.sys \
-	$(VS_BUILD_DIR32)/libtirpc.dll \
-	$(VS_BUILD_DIR64)/nfsd.exe \
-	$(VS_BUILD_DIR64)/nfs_mount.exe \
-	$(VS_BUILD_DIR64)/nfs_install.exe \
-	$(VS_BUILD_DIR64)/nfs_mount.exe \
-	$(VS_BUILD_DIR64)/nfs41_driver.sys \
-	$(VS_BUILD_DIR64)/libtirpc.dll \
+installdest_util: \
 	$(PROJECT_BASEDIR_DIR)/nfs41rdr.inf \
 	$(PROJECT_BASEDIR_DIR)/etc_netconfig \
 	$(PROJECT_BASEDIR_DIR)/ms-nfs41-idmap.conf \
@@ -102,16 +90,37 @@ installdest: \
 	$(PROJECT_BASEDIR_DIR)/tests/winfsinfo1/winfsinfo.exe \
 	$(PROJECT_BASEDIR_DIR)/tests/winsg/winsg.exe \
 	$(CYGWIN_MAKEFILE_DIR)/devel/msnfs41client.bash
+
+installdest32: \
+	$(VS_BUILD_DIR32)/nfsd.exe \
+	$(VS_BUILD_DIR32)/nfs_mount.exe \
+	$(VS_BUILD_DIR32)/nfs_install.exe \
+	$(VS_BUILD_DIR32)/nfs_mount.exe \
+	$(VS_BUILD_DIR32)/nfs41_driver.sys \
+	$(VS_BUILD_DIR32)/libtirpc.dll \
 	# installdest 32bit Windows
 	make -f $(CYGWIN_MAKEFILE_DIR)/Makefile.install \
 		installdest \
 		VS_BUILD_DIR="$(VS_BUILD_DIR32)" \
 		CYGWIN_BASEPATH=/cygdrive/c/cygwin/
+
+installdest64: \
+	$(VS_BUILD_DIR64)/nfsd.exe \
+	$(VS_BUILD_DIR64)/nfs_mount.exe \
+	$(VS_BUILD_DIR64)/nfs_install.exe \
+	$(VS_BUILD_DIR64)/nfs_mount.exe \
+	$(VS_BUILD_DIR64)/nfs41_driver.sys \
+	$(VS_BUILD_DIR64)/libtirpc.dll \
 	# installdest 64bit Windows
 	make -f $(CYGWIN_MAKEFILE_DIR)/Makefile.install \
 		installdest \
 		VS_BUILD_DIR="$(VS_BUILD_DIR64)" \
 		CYGWIN_BASEPATH=/cygdrive/c/cygwin64/
+
+# installdest: we need a .WAIT here becase Makefile.install uses git commands
+# to create a git bundle, and the commands do not like to run
+# in parallel
+installdest: installdest_util installdest32 .WAIT installdest64
 
 bintarball: installdest
 	set -o errexit ; set -o xtrace ; \
