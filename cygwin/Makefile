@@ -102,6 +102,8 @@ installdest32: \
 	make -f $(CYGWIN_MAKEFILE_DIR)/Makefile.install \
 		installdest \
 		VS_BUILD_DIR="$(VS_BUILD_DIR32)" \
+		VS_BUILD_DIR32="$(VS_BUILD_DIR32)" \
+		VS_BUILD_DIR64="$(VS_BUILD_DIR64)" \
 		CYGWIN_BASEPATH=/cygdrive/c/cygwin/
 
 # installdest64: 32bit nfs41_np.dll is required to support 32bit
@@ -118,6 +120,8 @@ installdest64: \
 	make -f $(CYGWIN_MAKEFILE_DIR)/Makefile.install \
 		installdest \
 		VS_BUILD_DIR="$(VS_BUILD_DIR64)" \
+		VS_BUILD_DIR32="$(VS_BUILD_DIR32)" \
+		VS_BUILD_DIR64="$(VS_BUILD_DIR64)" \
 		CYGWIN_BASEPATH=/cygdrive/c/cygwin64/
 
 # installdest: we need a .WAIT here becase Makefile.install uses git commands
