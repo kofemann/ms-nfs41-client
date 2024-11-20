@@ -36,9 +36,9 @@ installdest:
 	mkdir -p $(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/msnfs41client
 	mkdir -p $(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/msnfs41client/tests
 	mkdir -p $(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/msnfs41client/tests/misc
-	cp -r $(VS_BUILD_DIR)/nfsd.exe		$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/nfsd_debug.exe
-	cp -r $(VS_BUILD_DIR)/nfsd.pdb		$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/nfsd_debug.pdb
-	cp -r $(VS_BUILD_DIR)/nfs_mount.*	$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/.
+	cp $(VS_BUILD_DIR)/nfsd.exe		$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/nfsd_debug.exe
+	cp $(VS_BUILD_DIR)/nfsd.pdb		$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/nfsd_debug.pdb
+	cp $(VS_BUILD_DIR)/nfs_mount.*	$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/.
 	# we need a hardlink for nfs_umount.exe, softlinks do not work
 	ln -f $(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/nfs_mount.exe	$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/nfs_umount.exe
 	# install 32bit nfs_mount.exe on 64bit Windows to assist with debugging 32bit issues
@@ -47,11 +47,11 @@ installdest:
 		cp $(VS_BUILD_DIR32)/../Release/nfs_mount.exe	$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/nfs_mount.i686.exe ; \
 		ln -f $(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/nfs_mount.i686.exe	$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/nfs_umount.i686.exe ; \
 	fi
-	cp -r $(VS_BUILD_DIR)/nfsd.*		$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/.
-	cp -r $(VS_BUILD_DIR)/nfs_install.*	$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/.
-	cp -r $(VS_BUILD_DIR)/libtirpc.*	$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/.
-	cp -r $(VS_BUILD_DIR)/nfs41_np.*	$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/.
-	cp -r $(VS_BUILD_DIR)/nfs41_driver.*	$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/.
+	cp $(VS_BUILD_DIR)/nfsd.*		$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/.
+	cp $(VS_BUILD_DIR)/nfs_install.*	$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/.
+	cp $(VS_BUILD_DIR)/libtirpc.*	$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/.
+	cp $(VS_BUILD_DIR)/nfs41_np.*	$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/.
+	cp $(VS_BUILD_DIR)/nfs41_driver.*	$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/.
 	cp $(PROJECT_BASEDIR_DIR)/nfs41rdr.inf	$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/.
 	cp $(PROJECT_BASEDIR_DIR)/etc_netconfig	$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/.
 	cp $(PROJECT_BASEDIR_DIR)/ms-nfs41-idmap.conf		$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/.
