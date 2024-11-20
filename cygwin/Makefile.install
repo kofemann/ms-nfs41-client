@@ -103,14 +103,18 @@ installdest:
 	[[ -x $(CYGWIN_BASEPATH)/bin/shcomp.exe ]] && cp -f $(CYGWIN_BASEPATH)/bin/shcomp.exe $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/shcomp.exe || true
 	cp $(PROJECT_BASEDIR_DIR)/cygwin/cygwin_ksh93/ksh.kshrc $(DESTDIR)/$(CYGWIN_BASEPATH)/etc/ksh.kshrc
 	@ printf '# Packaging libs\n'
+	set -o errexit -o pipefail ; \
+	typeset msbuildpath="$$(which MSBuild.exe)" ; \
+	typeset vsbasepath="$${msbuildpath%*/Community/*}" ; \
+	test -d "$${vsbasepath}" || { printf "vsbasepath not found\n" 1>&2 ; exit 1 ; }; \
 	if [[ "$(CYGWIN_BASEPATH)" == *64* ]] ; then \
 		cp \
-			"$$(find '/cygdrive/c/Program Files (x86)/Microsoft Visual Studio/2019/Community' -ipath '*/x64/*/VCRUNTIME140D.dll' | head -n 1)" \
+			"$$(find "$${vsbasepath}/Community" -ipath '*/x64/*/VCRUNTIME140D.dll' | sort -n -r | head -n 1)" \
 			$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/. ; \
 		cp '/cygdrive/c/Program Files (x86)/Windows Kits/10/bin/x64/ucrt/ucrtbased.dll' $(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/. ; \
 	else \
 		cp \
-			"$$(find '/cygdrive/c/Program Files (x86)/Microsoft Visual Studio/2019/Community' -ipath '*/x86/*/VCRUNTIME140D.dll' | head -n 1)" \
+			"$$(find "$${vsbasepath}/Community" -ipath '*/x86/*/VCRUNTIME140D.dll' | sort -n -r | head -n 1)" \
 			$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/. ; \
 		cp '/cygdrive/c/Program Files (x86)/Windows Kits/10/bin/x86/ucrt/ucrtbased.dll' $(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/. ; \
 	fi
