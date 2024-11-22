@@ -282,12 +282,15 @@ static int handle_nfs41_rename(void *daemon_context, setattr_upcall_args *args)
         goto out;
     }
 
-    dst_path.len = (unsigned short)WideCharToMultiByte(CP_UTF8, 0,
+    dst_path.len = (unsigned short)WideCharToMultiByte(CP_UTF8,
+        WC_ERR_INVALID_CHARS|WC_NO_BEST_FIT_CHARS,
         rename->FileName, rename->FileNameLength/sizeof(WCHAR),
         dst_path.path, NFS41_MAX_PATH_LEN, NULL, NULL);
     if (dst_path.len == 0) {
-        eprintf("WideCharToMultiByte failed to convert destination "
-            "filename %S.\n", rename->FileName);
+        eprintf("handle_nfs41_rename(args->path='%s'): "
+            "WideCharToMultiByte() failed to convert destination "
+            "filename '%S', lasterr=%d.\n",
+            args->path, rename->FileName, (int)GetLastError());
         status = ERROR_INVALID_PARAMETER;
         goto out;
     }
@@ -433,12 +436,15 @@ static int handle_nfs41_link(void *daemon_context, setattr_upcall_args *args)
 
     (void)memset(&info, 0, sizeof(info));
 
-    dst_path.len = (unsigned short)WideCharToMultiByte(CP_UTF8, 0,
+    dst_path.len = (unsigned short)WideCharToMultiByte(CP_UTF8,
+        WC_ERR_INVALID_CHARS|WC_NO_BEST_FIT_CHARS,
         link->FileName, link->FileNameLength/sizeof(WCHAR),
         dst_path.path, NFS41_MAX_PATH_LEN, NULL, NULL);
     if (dst_path.len == 0) {
-        eprintf("WideCharToMultiByte failed to convert destination "
-            "filename %S.\n", link->FileName);
+        eprintf("handle_nfs41_link(args->path='%s'): "
+            "WideCharToMultiByte() failed to convert destination "
+            "filename '%S', lasterr=%d.\n",
+            args->path, link->FileName, (int)GetLastError());
         status = ERROR_INVALID_PARAMETER;
         goto out;
     }

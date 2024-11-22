@@ -512,8 +512,9 @@ static int readdir_copy_entry(
     uint32_t wname_len, wname_size, needed;
     PFILE_DIR_INFO_UNION info;
 
-    wname_len = MultiByteToWideChar(CP_UTF8, 0,
+    wname_len = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS,
         entry->name, entry->name_len, wname, NFS4_OPAQUE_LIMIT);
+    EASSERT(wname_len > 0);
     wname_size = (wname_len - 1) * sizeof(WCHAR);
 
     needed = readdir_size_for_entry(args->query_class, wname_size);

@@ -281,9 +281,18 @@ static int marshall_symlink(unsigned char *buffer, uint32_t *length, nfs41_upcal
     status = safe_write(&buffer, length, &len, sizeof(len));
     if (status) goto out;
 
-    if (*length <= len || !MultiByteToWideChar(CP_UTF8, 0,
+    if (*length <= len) {
+        status = ERROR_BUFFER_OVERFLOW;
+        goto out;
+    }
+
+    if (!MultiByteToWideChar(CP_UTF8,
+            MB_ERR_INVALID_CHARS,
             args->target_get.path, args->target_get.len,
             (LPWSTR)buffer, len / sizeof(WCHAR))) {
+        eprintf("marshall_symlink: "
+            "MultiByteToWideChar() failed, lasterr=%d\n",
+            (int)GetLastError());
         status = ERROR_BUFFER_OVERFLOW;
         goto out;
     }

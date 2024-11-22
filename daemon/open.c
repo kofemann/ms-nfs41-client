@@ -1081,7 +1081,8 @@ static int marshall_open(unsigned char *buffer, uint32_t *length, nfs41_upcall *
         status = safe_write(&buffer, length, &len, sizeof(len));
         if (status) goto out;
         /* convert args->symlink to wchar */
-        if (*length <= len || !MultiByteToWideChar(CP_UTF8, 0,
+        if (*length <= len || !MultiByteToWideChar(CP_UTF8,
+            MB_ERR_INVALID_CHARS,
             args->symlink.path, args->symlink.len,
             (LPWSTR)buffer, len / sizeof(WCHAR))) {
             status = ERROR_BUFFER_OVERFLOW;
