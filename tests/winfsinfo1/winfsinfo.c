@@ -388,6 +388,58 @@ typedef struct _FILE_NAME_INFORMATION4096 {
 } FILE_NAME_INFORMATION4096, *PFILE_NAME_INFORMATION4096;
 
 
+/*
+ * |FileNameInfo| will get the absolute path of a file with symbolic
+ * links resolved
+ */
+static
+bool get_filenameinfo(const char *progname, const char *filename)
+{
+    int res = EXIT_FAILURE;
+    bool ok;
+    FILE_NAME_INFORMATION4096 finfo;
+    (void)memset(&finfo, 0, sizeof(finfo));
+
+    HANDLE fileHandle = CreateFileA(filename,
+        GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING,
+        FILE_FLAG_BACKUP_SEMANTICS, NULL);
+    if (fileHandle == INVALID_HANDLE_VALUE) {
+        (void)fprintf(stderr,
+            "%s: Error opening file '%s'. Last error was %d.\n",
+            progname,
+            filename,
+            (int)GetLastError());
+        return EXIT_FAILURE;
+    }
+
+    ok = GetFileInformationByHandleEx(fileHandle,
+        FileNameInfo,
+        &finfo, sizeof(finfo));
+
+    if (!ok) {
+        (void)fprintf(stderr, "%s: GetFileInformationByHandleEx() "
+            "error. GetLastError()==%d.\n",
+            progname,
+            (int)GetLastError());
+        res = EXIT_FAILURE;
+        goto done;
+    }
+
+    (void)printf("(\n");
+    (void)printf("\tfilename='%s'\n", filename);
+
+    (void)printf("\tFileNameLength=%ld\n",
+        (long)finfo.FileNameLength);
+    (void)printf("\tFileName='%S'\n",   finfo.FileName);
+    (void)printf(")\n");
+    res = EXIT_SUCCESS;
+
+done:
+    (void)CloseHandle(fileHandle);
+    return res;
+}
+
+
 static
 bool get_filenormalizednameinfo(const char *progname, const char *filename)
 {
@@ -578,6 +630,7 @@ void usage(void)
         "filebasicinfo|"
         "fileexinfostandard|"
         "filestandardinfo|"
+        "filenameinfo|"
         "filenormalizednameinfo|"
         "filecasesensitiveinfo|"
         "getfiletime"
@@ -606,6 +659,9 @@ int main(int ac, char *av[])
     }
     else if (!strcmp(subcmd, "filestandardinfo")) {
         return get_file_standard_info(av[0], av[2]);
+    }
+    else if (!strcmp(subcmd, "filenameinfo")) {
+        return get_filenameinfo(av[0], av[2]);
     }
     else if (!strcmp(subcmd, "filenormalizednameinfo")) {
         return get_filenormalizednameinfo(av[0], av[2]);
