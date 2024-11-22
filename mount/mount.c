@@ -616,13 +616,20 @@ char *wcs2utf8str(const wchar_t *wstr)
     size_t utf8_len;
 
     wstr_len = wcslen(wstr);
-    utf8_len = WideCharToMultiByte(CP_UTF8, 0,
+    utf8_len = WideCharToMultiByte(CP_UTF8,
+        WC_ERR_INVALID_CHARS|WC_NO_BEST_FIT_CHARS,
         wstr, (int)wstr_len, NULL, 0, NULL, NULL);
+    if (utf8_len == 0)
+        return NULL;
 
     utf8str = malloc(utf8_len+1);
-    if (!utf8str)
+    if (!utf8str) {
+        SetLastError(ERROR_NOT_ENOUGH_MEMORY);
         return NULL;
-    (void)WideCharToMultiByte(CP_UTF8, 0,
+    }
+
+    (void)WideCharToMultiByte(CP_UTF8,
+        WC_ERR_INVALID_CHARS|WC_NO_BEST_FIT_CHARS,
         wstr, (int)wstr_len, utf8str, (int)utf8_len, NULL, NULL);
     utf8str[utf8_len] = '\0';
     return utf8str;
@@ -636,14 +643,18 @@ wchar_t *utf8str2wcs(const char *utf8str)
     size_t wstr_len;
 
     utf8len = strlen(utf8str);
-    wstr_len = MultiByteToWideChar(CP_UTF8, 0,
+    wstr_len = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS,
         utf8str, (int)utf8len, NULL, 0);
-
-    wstr = malloc((wstr_len+1)*sizeof(wchar_t));
-    if (!wstr)
+    if (wstr_len == 0)
         return NULL;
 
-    (void)MultiByteToWideChar(CP_UTF8, 0,
+    wstr = malloc((wstr_len+1)*sizeof(wchar_t));
+    if (!wstr) {
+        SetLastError(ERROR_NOT_ENOUGH_MEMORY);
+        return NULL;
+    }
+
+    (void)MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS,
         utf8str, (int)utf8len, wstr, (int)wstr_len);
     wstr[wstr_len] = L'\0';
     return wstr;
@@ -692,7 +703,10 @@ static DWORD ParseRemoteName(
          */
         premotename_utf8 = wcs2utf8str(premotename);
         if (!premotename_utf8) {
-            result = ERROR_NOT_ENOUGH_MEMORY;
+            (void)fwprintf(stderr,
+                L"wcs2utf8str() failed, lasterr=%d\n.",
+                (int)GetLastError());
+            result = GetLastError();
             goto out;
         }
 
@@ -705,7 +719,7 @@ static DWORD ParseRemoteName(
 
         if (url_parser_parse(uctx) < 0) {
             result = ERROR_BAD_ARGUMENTS;
-            (void)fwprintf(stderr, L"Error parsing nfs://-URL.\n");
+            (void)fwprintf(stderr, L"Error parsing nfs://-URL '%S'.\n", premotename_utf8);
             goto out;
         }
 
@@ -777,9 +791,12 @@ static DWORD ParseRemoteName(
 
         hostname_wstr = utf8str2wcs(uctx->hostport.hostname);
         if (!hostname_wstr) {
-            result = ERROR_NOT_ENOUGH_MEMORY;
+            result = GetLastError();
+            (void)fwprintf(stderr, L"Cannot convert URL host '%S', lasterr=%d\n",
+                uctx->hostport.hostname, result);
             goto out;
         }
+
         (void)wcscpy_s(premotename, NFS41_SYS_MAX_PATH_LEN, hostname_wstr);
         free(hostname_wstr);
         ConvertUnixSlashes(premotename);
@@ -797,6 +814,12 @@ static DWORD ParseRemoteName(
         }
 
         pEnd = mountstrmem = utf8str2wcs(uctx->path);
+        if (!mountstrmem) {
+            result = GetLastError();
+            (void)fwprintf(stderr, L"Cannot convert URL path '%S', lasterr=%d\n",
+                uctx->path, result);
+            goto out;
+        }
         ConvertUnixSlashes(pEnd);
     }
     else
