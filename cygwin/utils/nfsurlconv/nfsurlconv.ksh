@@ -176,6 +176,7 @@ function urlencodestr
 
 	nameref out_encodedstr=$1
 	typeset in_str="$2"
+	integer posix_shell_safe=$3
 	typeset ch ch_hexval dummy
 	integer ch_num
 	typeset url=''
@@ -222,10 +223,20 @@ function urlencodestr
 		# Only alphanumerics, "$-_.+!*'()," and reserved characters
 		# ("/" for nfs://-URLS) are allowed
 		#
-		if (( ch_num > 127 )) || [[ "$ch" != ~(Elr)[/$-_.+!*\'(),[:alnum:]] ]] ; then
-			url+="%$ch_hexval"
+		if (( posix_shell_safe != 0 )) ; then
+			# in POSIX shell safe mode we also encode '!', '*', '$'
+			if (( ch_num > 127 )) || [[ "$ch" != ~(Elr)[/-_.+\'(),[:alnum:]] ]] ; then
+				url+="%$ch_hexval"
+			else
+				url+="$ch"
+			fi
+
 		else
-			url+="$ch"
+			if (( ch_num > 127 )) || [[ "$ch" != ~(Elr)[/$-_.+!*\'(),[:alnum:]] ]] ; then
+				url+="%$ch_hexval"
+			else
+				url+="$ch"
+			fi
 		fi
 	done
 
@@ -238,16 +249,24 @@ function urlencodestr
 function hostname_port_path_to_nfsurl
 {
 	set -o nounset
+	set -o errexit
 
-	typeset hostname="$1"
-	integer port="$2"
-	typeset path="$3"
+	integer encode_posix_shell_safe=$1
+	typeset hostname="$2"
+
+	integer port="$3"
+	typeset path="$4"
 
 	typeset enc_path
 	typeset enc_hostname
 
-	urlencodestr enc_hostname "$hostname"
-	urlencodestr enc_path "$path"
+	if [[ "$path" != /* ]] ; then
+		print -u2 -f $"%s: Path must be absolute.\n" "$0"
+		return 1
+	fi
+
+	urlencodestr enc_hostname "$hostname" $encode_posix_shell_safe
+	urlencodestr enc_path "$path" $encode_posix_shell_safe
 	if (( port == 2049 )) ; then
 		printf 'url=nfs://%s/%s\n' "$enc_hostname" "$enc_path"
 	else
@@ -260,13 +279,16 @@ function main
 {
 	set -o nounset
 
+	integer encode_posix_shell_safe=1
+
 	# fixme: Need better text layout for $ nfsurlconv --man #
 	typeset -r nfsurlconv_usage=$'+
-	[-?\n@(#)\$Id: nfsurlconv (Roland Mainz) 2024-07-08 \$\n]
+	[-?\n@(#)\$Id: nfsurlconv (Roland Mainz) 2024-11-22 \$\n]
 	[-author?Roland Mainz <roland.mainz@nrubsig.org>]
 	[+NAME?nfsurlconv - convert hostname,port,path from/to a nfs://-URL]
 	[+DESCRIPTION?\bnfsurlconv\b convert { hostname, port, path } from/to a nfs://-URL.]
 	[D:debug?Enable debugging.]
+	[S!:posixshellsafe?urlencode shell special characters.]
 
 	hostnameportpath2nfsurl hostname port path
 	hostnamepath2nfsurl hostname path
@@ -294,7 +316,13 @@ hostport=bbb
 path=/a/b/c
 ]
 }
-		[+?Example 4:][+?Convert URL nfs://bbb:12049//a/b/c?param1=pvalue1&param2=pvalue2 to ( hostport=, path=, urlparameter= )]{
+		[+?Example 4:][+?Convert URL url=nfs://10.49.202.230//%e3%81%a0%e3%81%84%e3%81%99%e3%81%8d%21%e3%83%9e%e3%82%a6%e3%82%b9_2/ to ( hostport=, path= )]{
+[+\n$ nfsurlconv.ksh url2hostportpath "nfs:://10.49.202.230//%e3%81%a0%e3%81%84%e3%81%99%e3%81%8d%21%e3%83%9e%e3%82%a6%e3%82%b9_2/"
+hostport=10.49.202.230
+path=/bigdisk/<japanese-characters>_2/
+]
+}
+		[+?Example 5:][+?Convert URL nfs://bbb:12049//a/b/c?param1=pvalue1&param2=pvalue2 to ( hostport=, path=, urlparameter= )]{
 [+\n$ nfsurlconv.ksh url2hostportpath "nfs:://bbb::12049//a/b/c??param1=pvalue1&param2=pvalue2"
 hostport=bbb::12049
 path=/a/b/c
@@ -320,6 +348,9 @@ urlparameter=( name=param2 value=pvalue2 )
 			'D')
 				# fixme: Implement debugging option
 				;;
+			'S')
+				(( encode_posix_shell_safe=0 ))
+				;;
 			*)
 				usage "${progname}" "${nfsurlconv_usage}"
 				return $?
@@ -342,23 +373,25 @@ urlparameter=( name=param2 value=pvalue2 )
 	#
 	c.args=( "${c.args[@]}" )
 
+	#printf 'c.args=%q\n' "${c.args[@]}"
+
 	typeset mode="${c.args[0]-}"
 
 	case "$mode" in
 		# fixme: add "hostportpath2nfsurl"
 		# fixme: add "etcexports2nfsurl"
 		'hostnameportpath2nfsurl')
-			hostname_port_path_to_nfsurl "${@:2}"
+			hostname_port_path_to_nfsurl $encode_posix_shell_safe "${c.args[@]:1}"
 			return $?
 			;;
 		'hostnamepath2nfsurl')
-			hostname_port_path_to_nfsurl "${@:2:1}" 2049 "${@:3:1}"
+			hostname_port_path_to_nfsurl $encode_posix_shell_safe "${c.args[@]:1:1}" 2049 "${c.args[@]:2:1}"
 			return $?
 			;;
 		'url2hostnameportpath')
 			compound urldata
 
-			parse_sshnfs_url urldata "${@:2:1}" || return 1
+			parse_sshnfs_url urldata "${c.args[@]:1:1}" || return 1
 			printf 'hostname=%s\n' "${urldata.host}"
 			printf 'port=%s\n' "${urldata.port-2049}"
 			printf 'path=%s\n' "${urldata.path-}"
@@ -374,7 +407,7 @@ urlparameter=( name=param2 value=pvalue2 )
 		'url2hostportpath')
 			compound urldata
 
-			parse_sshnfs_url urldata "${@:2:1}" || return 1
+			parse_sshnfs_url urldata "${c.args[@]:1:1}" || return 1
 			printf 'hostport=%s\n' "${urldata.hostport}"
 			printf 'path=%s\n' "${urldata.path-}"
 			if [[ -v urldata.parameters ]] ; then
@@ -389,7 +422,7 @@ urlparameter=( name=param2 value=pvalue2 )
 		'url2compound')
 			compound urldata
 
-			parse_sshnfs_url urldata "${@:2:1}" || return 1
+			parse_sshnfs_url urldata "${c.args[@]:1:1}" || return 1
 			print -v urldata
 			return 0
 			;;
