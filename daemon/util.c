@@ -331,11 +331,16 @@ int create_silly_rename(
     PBYTE buffer;
     DWORD length;
     const char *end = path->path + NFS41_MAX_PATH_LEN;
-    const unsigned short extra_len = 2 + 16; //md5 is 16
+#define MD5_HASH_LEN (16L)
+#define SILLY_RENAME_PREPOSTFIX_LEN (2L)
+    const unsigned short extra_len =
+        SILLY_RENAME_PREPOSTFIX_LEN + MD5_HASH_LEN;
     char name[NFS41_MAX_COMPONENT_LEN+1];
-    unsigned char fhmd5[17] = { 0 };
+    unsigned char fhmd5[MD5_HASH_LEN+1];
     char *tmp;
     int status = NO_ERROR, i;
+
+    (void)memset(fhmd5, 0, sizeof(fhmd5));
 
     if (path->len + extra_len >= NFS41_MAX_PATH_LEN) {
         status = ERROR_FILENAME_EXCED_RANGE;
@@ -346,47 +351,52 @@ int create_silly_rename(
     if (!CryptAcquireContext(&context, NULL, NULL,
         PROV_RSA_FULL, CRYPT_VERIFYCONTEXT)) {
         status = GetLastError();
-        eprintf("CryptAcquireContext() failed with %d\n", status);
+        eprintf("create_silly_rename: "
+            "CryptAcquireContext() failed with %d\n", status);
         goto out;
     }
     if (!CryptCreateHash(context, CALG_MD5, 0, 0, &hash)) {
         status = GetLastError();
-        eprintf("CryptCreateHash() failed with %d\n", status);
+        eprintf("create_silly_rename: "
+            "CryptCreateHash() failed with %d\n", status);
         goto out_context;
     }
 
     if (!CryptHashData(hash, (const BYTE*)fh->fh, (DWORD)fh->len, 0)) {
         status = GetLastError();
-        eprintf("CryptHashData() failed with %d\n", status);
+        eprintf("create_silly_rename: "
+            "CryptHashData() failed with %d\n", status);
         goto out_hash;
     }
 
     /* extract the hash buffer */
     buffer = (PBYTE)fhmd5;
-    length = 16;
+    length = MD5_HASH_LEN;
     if (!CryptGetHashParam(hash, HP_HASHVAL, buffer, &length, 0)) {
         status = GetLastError();
-        eprintf("CryptGetHashParam(val) failed with %d\n", status);
+        eprintf("create_silly_rename: "
+            "CryptGetHashParam(val) failed with %d\n", status);
         goto out_hash;
-    }    
+    }
 
     last_component(path->path, path->path + path->len, silly);
-    StringCchCopyNA(name, NFS41_MAX_COMPONENT_LEN+1, silly->name, silly->len);
+    (void)StringCchCopyNA(name, NFS41_MAX_COMPONENT_LEN+1,
+        silly->name, silly->len);
 
     tmp = (char*)silly->name;
-    StringCchPrintfA(tmp, end - tmp, ".%s.", name);
-    tmp += (size_t)silly->len + 2L;
+    (void)StringCchPrintfA(tmp, end - tmp, ".%s.", name);
+    tmp += (size_t)silly->len + SILLY_RENAME_PREPOSTFIX_LEN;
 
-    for (i = 0; i < 16; i++, tmp++)
-        StringCchPrintfA(tmp, end - tmp, "%x", fhmd5[i]);
+    for (i = 0; i < MD5_HASH_LEN; i++, tmp++)
+        (void)StringCchPrintfA(tmp, end - tmp, "%1.1x", fhmd5[i]);
 
     path->len = path->len + extra_len;
     silly->len = silly->len + extra_len;
 
 out_hash:
-    CryptDestroyHash(hash);
+    (void)CryptDestroyHash(hash);
 out_context:
-    CryptReleaseContext(context, 0);
+    (void)CryptReleaseContext(context, 0);
 out:
     return status;
 }
