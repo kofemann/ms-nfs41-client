@@ -401,6 +401,10 @@ function nfsclient_rundeamon
 
 	set -o xtrace
 
+	# switch to UTF-8 codepage so debug output with non-ASCII characters
+	# gets printed correctly on a terminal
+	chcp.com 65001
+
 	typeset -a nfsd_args=(
 		'nfsd.exe'
 		'-debug'
@@ -507,6 +511,10 @@ function nfsclient_system_rundeamon
 	sync
 
 	set -o xtrace
+
+	# switch to UTF-8 codepage so debug output with non-ASCII characters
+	# gets printed correctly on a terminal
+	chcp.com 65001
 
 	typeset -a nfsd_args=(
 		'nfsd.exe'
