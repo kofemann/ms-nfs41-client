@@ -422,4 +422,17 @@ bash /usr/share/msnfs41client/tests/misc/wintartests/wintartest_seq001.bash
 cd /cygdrive/n/xxx/
 bash /usr/share/msnfs41client/tests/misc/wintartest_comparewinvsgnu001.bash mytarfile.tar.bz2
 
+#
+# Test "silly rename"
+#
+# Deleing a file which is still in use (i.e. open fd) causes a NFS client
+# to do a "silly rename", e.g. "foo" gets renamed to ".nfsXXXX" until
+# the client does not use it any more.
+#
+# The NFS server has a weekly cron job removing files called ".nfs*" which
+# are more than a week old to deal with .nfs* files from NFS clients which
+# crashed while having deleted files open.
+bash -c 'set -o errexit ; rm -Rf sillytestdir ; mkdir sillytestdir ; cd sillytestdir ; touch sillytest ; ( command exec {n}<"sillytest" ; printf "fd=%d\n" $n ; sleep 10) & sleep 1 ; ls -la ; cmd /C "del sillytest" ; ls -la ; if [[ "$(ls -1 .nfs*)" != "" ]] ; then echo "# test OK" ; else echo "# test FAILED" ; fi ; wait'
+
+#
 # EOF.

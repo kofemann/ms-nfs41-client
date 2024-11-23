@@ -332,7 +332,8 @@ int create_silly_rename(
     DWORD length;
     const char *end = path->path + NFS41_MAX_PATH_LEN;
 #define MD5_HASH_LEN (16L)
-#define SILLY_RENAME_PREPOSTFIX_LEN (2L)
+/* |SILLY_RENAME_PREPOSTFIX_LEN| == 2*strlen(".")+strlen(".nfs") */
+#define SILLY_RENAME_PREPOSTFIX_LEN (6L)
     const unsigned short extra_len =
         SILLY_RENAME_PREPOSTFIX_LEN + MD5_HASH_LEN;
     char name[NFS41_MAX_COMPONENT_LEN+1];
@@ -384,7 +385,7 @@ int create_silly_rename(
         silly->name, silly->len);
 
     tmp = (char*)silly->name;
-    (void)StringCchPrintfA(tmp, end - tmp, ".%s.", name);
+    (void)StringCchPrintfA(tmp, end - tmp, ".nfs.%s.", name);
     tmp += (size_t)silly->len + SILLY_RENAME_PREPOSTFIX_LEN;
 
     for (i = 0; i < MD5_HASH_LEN; i++, tmp++)
