@@ -254,7 +254,7 @@ function urldecodestr
 	# urldecode '+' to ' '
 	s="${s//+/ }"
 	# urldecode %<hexdigit><hexdigit>
-	s="${s//~(E)(?:%([[:xdigit:]][[:xdigit:]]))/\\x\1}"
+	s="${s//~(E)(?:%([[:xdigit:]][[:xdigit:]]))/\\x[\1]}"
 	# quote any remaining "%" to make it safe for printf(1)
 	s="${s//%/%%}"
 
@@ -422,7 +422,7 @@ function cmd_mount
 
 	# fixme: Need better text layout for $ mount_sshnfs mount --man #
 	typeset -r mount_sshnfs_cmdmount_usage=$'+
-	[-?\n@(#)\$Id: mount_sshnfs mount (Roland Mainz) 2024-09-03 \$\n]
+	[-?\n@(#)\$Id: mount_sshnfs mount (Roland Mainz) 2024-11-25 \$\n]
 	[-author?Roland Mainz <roland.mainz@nrubsig.org>]
 	[+NAME?mount_sshnfs mount - mount NFSv4 filesystem through ssh
 		tunnel]
@@ -788,7 +788,7 @@ function cmd_umount
 	typeset mydebug=false # fixme: should be "bool" for ksh93v
 	# fixme: Need better text layout for $ mount_sshnfs mount --man #
 	typeset -r mount_sshnfs_cmdumount_usage=$'+
-	[-?\n@(#)\$Id: mount_sshnfs umount (Roland Mainz) 2024-09-03 \$\n]
+	[-?\n@(#)\$Id: mount_sshnfs umount (Roland Mainz) 2024-11-25 \$\n]
 	[-author?Roland Mainz <roland.mainz@nrubsig.org>]
 	[+NAME?mount_sshnfs umount - unmount NFSv4 filesystem mounted
 		via mount_sshnfs mount]
@@ -892,7 +892,7 @@ function main
 
 	# fixme: Need better text layout for $ mount_sshnfs --man #
 	typeset -r mount_sshnfs_usage=$'+
-	[-?\n@(#)\$Id: mount_sshnfs (Roland Mainz) 2024-09-03 \$\n]
+	[-?\n@(#)\$Id: mount_sshnfs (Roland Mainz) 2024-11-25 \$\n]
 	[-author?Roland Mainz <roland.mainz@nrubsig.org>]
 	[+NAME?mount_sshnfs - mount/umount NFSv4 filesystem via ssh
 		tunnel]

@@ -52,7 +52,7 @@ function urldecodestr
 	# urldecode '+' to ' '
 	s="${s//+/ }"
 	# urldecode %<hexdigit><hexdigit>
-	s="${s//~(E)(?:%([[:xdigit:]][[:xdigit:]]))/\\x\1}"
+	s="${s//~(E)(?:%([[:xdigit:]][[:xdigit:]]))/\\x[\1]}"
 	# quote any remaining "%" to make it safe for printf(1)
 	s="${s//%/%%}"
 
