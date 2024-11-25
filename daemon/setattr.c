@@ -284,6 +284,48 @@ static int handle_nfs41_rename(void *daemon_context, setattr_upcall_args *args)
 
     EASSERT((rename->FileNameLength%sizeof(WCHAR)) == 0);
 
+#define CYGWIN_STOMP_SILLY_RENAME_INVALID_UTF16_SEQUENCE 1
+
+#ifdef CYGWIN_STOMP_SILLY_RENAME_INVALID_UTF16_SEQUENCE
+    /*
+     * Stomp Cygwin "silly rename" invalid Unicode sequence
+     *
+     * Cygwin has it's own variation of "silly rename" (i.e. if
+     * someone deletes a file while someone else still has
+     * a valid fd to that file it first renames that file with a
+     * special prefix, see
+     * newlib-cygwin/winsup/cygwin/syscalls.cc, function
+     * |try_to_bin()|).
+     *
+     * Unfortunately on filesystems supporting Unicode
+     * (i.e. |FILE_UNICODE_ON_DISK|) Cygwin adds the prefix
+     * L".\xdc63\xdc79\xdc67", which is NOT a valid UTF-16 sequence,
+     * and will be rejected by a filesystem validating the
+     * UTF-16 sequence (e.g. SAMBA, ReFS, OpenZFS, ...; for SAMBA
+     * Cygwin uses the ".cyg" prefix used for
+     * non-|FILE_UNICODE_ON_DISK| filesystems).
+     * In our case the NFSv4.1 protocol requires valid UTF-8
+     * sequences, and the NFS server will reject filenames if either
+     * the server or the exported filesystem will validate the UTF-8
+     * sequence.
+     *
+     * Since Cygwin only does a |rename()| and never a lookup by
+     * that filename we just stomp the prefix with the ".cyg" prefix
+     * used for non-|FILE_UNICODE_ON_DISK| filesystems.
+     * We ignore the side-effects here, e.g. that Win32 will still
+     * "remember" the original filename in the file name cache.
+     */
+    if ((rename->FileNameLength > (4*sizeof(wchar_t))) &&
+        (!memcmp(rename->FileName,
+            L".\xdc63\xdc79\xdc67", (4*sizeof(wchar_t))))) {
+        DPRINTF(1, ("handle_nfs41_rename(args->path='%s'): "
+            "Cygwin sillyrename prefix \".\\xdc63\\xdc79\\xdc67\" "
+            "detected, squishing prefix to \".cyg\"\n",
+            args->path));
+        (void)memcpy(rename->FileName, L".cyg", 4*sizeof(wchar_t));
+    }
+#endif /* CYGWIN_STOMP_SILLY_RENAME_INVALID_UTF16_SEQUENCE */
+
     dst_path.len = (unsigned short)WideCharToMultiByte(CP_UTF8,
         WC_ERR_INVALID_CHARS|WC_NO_BEST_FIT_CHARS,
         rename->FileName, rename->FileNameLength/sizeof(WCHAR),

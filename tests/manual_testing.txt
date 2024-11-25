@@ -432,7 +432,13 @@ bash /usr/share/msnfs41client/tests/misc/wintartest_comparewinvsgnu001.bash myta
 # The NFS server has a weekly cron job removing files called ".nfs*" which
 # are more than a week old to deal with .nfs* files from NFS clients which
 # crashed while having deleted files open.
+#
+# The test here comes in two variations, one using "rm myfile" (which triggers
+# Cygwin "silly rename" (see newlib-cygwin/winsup/cygwin/syscalls.cc,
+# function |try_to_bin()|), and one using $ cmd /C "del myfile" #, which
+# bypasses the Cygwin code
 bash -c 'set -o errexit ; rm -Rf sillytestdir ; mkdir sillytestdir ; cd sillytestdir ; touch sillytest ; ( command exec {n}<"sillytest" ; printf "fd=%d\n" $n ; sleep 10) & sleep 1 ; ls -la ; cmd /C "del sillytest" ; ls -la ; if [[ "$(ls -1 .nfs*)" != "" ]] ; then echo "# test OK" ; else echo "# test FAILED" ; fi ; wait'
+bash -c 'set -o errexit ; rm -Rf sillytestdir ; mkdir sillytestdir ; cd sillytestdir ; touch sillytest ; ( command exec {n}<"sillytest" ; printf "fd=%d\n" $n ; sleep 10) & sleep 1 ; ls -la ; rm -f sillytest ; ls -la ; if [[ "$(ls -1 .nfs*)" != "" ]] ; then echo "# test OK" ; else echo "# test FAILED" ; fi ; wait'
 
 #
 # EOF.
