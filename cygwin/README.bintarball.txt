@@ -43,10 +43,10 @@ NFSv4.1 filesystem driver for Windows 10/11&Windows Server 2019
       characters in the mount path, independent of current locale.
 
 - UNC paths
-    - Mounting UNC paths without DOS driver letter
+    - Mounting UNC paths without DOS driver letterpacman -S --noconfirm
     - IPv6 support in UNC paths
-    - /sbin/nfs_mount prints UNC paths in Win32+Cygwin formats
-    - Cygwin bash+ksh93 support UNC paths, e.g.
+    - /sbin/nfs_mount prints UNC paths in Win32+Cygwin/MSYS2 formats
+    - Cygwin/MSYS2 bash+ksh93 support UNC paths, e.g.
       cd //derfwnb4966@2049/nfs4/bigdisk/mysqldb4/
 
 - WSL support
@@ -70,11 +70,11 @@ NFSv4.1 filesystem driver for Windows 10/11&Windows Server 2019
     - See Linux export(5) refer= option, nfsref(5) or
         https://docs.oracle.com/cd/E86824_01/html/E54764/nfsref-1m.html
 
-- SFU/Cygwin support, including:
+- SFU/Cygwin/MSYS2 support, including:
     - POSIX uid/gid+mode
     - Backwards compatibility to Microsoft's NFSv3 driver
     - Cygwin ACLs, e.g. setfacl/getfacl
-    - Cygwin symlinks
+    - Cygwin/MSYS2 symlinks
 
 - Custom primary group support
     - Supports primary group changes in the calling process/thread
@@ -89,7 +89,7 @@ NFSv4.1 filesystem driver for Windows 10/11&Windows Server 2019
 - Software compatibility:
     - Any NFSv4.1 server (Linux, Solaris, Illumos, FreeBSD, nfs4j,
         ...)
-    - All tools from Cygwin/MinGW
+    - All tools from Cygwin/MSYS2/MinGW
     - Visual Studio
     - VMware Workstation (can use VMs hosted on NFSv4.1 filesystem)
 
@@ -141,6 +141,38 @@ NFSv4.1 filesystem driver for Windows 10/11&Windows Server 2019
         bison
         cygport
         libiconv-devel
+- MSYS2 (64bit, optional):
+    - Packages (recommended):
+        base-devel
+        gcc
+        clang
+        sed
+        time
+        coreutils
+        util-linux
+        grep
+        sed
+        emacs
+        gdb
+        make
+        gettext
+        gettext-devel
+        git
+        subversion
+        flex
+        bison
+        unzip
+        pax
+        tar
+        libiconv-devel
+        ncurses-devel
+        gmp-devel
+        mpfr-devel
+        mpc-devel
+        isl-devel
+        procps-ng
+        libiconv-devel
+
 
 #
 # 4. Download and install Cygwin (if not installed yet):
@@ -183,7 +215,25 @@ setup-x86.exe --allow-unsupported-windows -q --no-verify --site "http://ctm.crou
 
 
 #
-# 5. Download "ms-nfs41-client" installation tarball:
+# 5. Download and install MSYS2/64bit [OPTIONAL]
+#
+# 1. Download&&install from Cygwin
+# ---- snip ----
+mkdir -p download && cd download
+wget 'https://github.com/msys2/msys2-installer/releases/download/2024-11-16/msys2-x86_64-20241116.exe'
+chmod a+x msys2-x86_64-20241116.exe
+./msys2-x86_64-20241116 --default-answer --root 'C:\msys64' install
+# ---- snip ----
+
+# 2. Install extra packages:
+# Start MSYS2 UCRT mintty and execute this:
+# ---- snip ----
+pacman -S --noconfirm base-devel gcc clang sed time coreutils util-linux grep sed emacs gdb make gettext gettext-devel git subversion flex bison unzip pax tar libiconv-devel ncurses-devel gmp-devel mpfr-devel mpc-devel isl-devel procps-ng libiconv-devel
+# ---- snip ----
+
+
+#
+# 6. Download "ms-nfs41-client" installation tarball:
 #
 # (from a Cygwin terminal)
 $ mkdir -p ~/download
@@ -194,7 +244,7 @@ SHA2-256(${bintarball.base_filename}.tar.bz2)= ${bintarball.archive_sha256hash}
 
 
 #
-# 6. Installation (as "Administrator"):
+# 7. Installation (as "Administrator"):
 #
 $ (cd / && tar -xf ~/download/${bintarball.base_filename}.tar.bz2 )
 $ /sbin/msnfs41client install
@@ -202,14 +252,14 @@ $ /sbin/msnfs41client install
 
 
 #
-# 7. Deinstallation:
+# 8. Deinstallation:
 #
 $ (set -o xtrace ; cd / && tar -tf ~/download/${bintarball.base_filename}.tar.bz2 | while read i ; do [[ -f "$i" ]] && rm "$i" ; done)
 <REBOOT>
 
 
 #
-# 8. Usage:
+# 9. Usage:
 #
 
 # Option a)
@@ -353,10 +403,10 @@ $ mount -t drvfs '\\10.49.202.230@2049\nfs4\bigdisk' /mnt/bigdisk
   limitation
 - Not all POSIX file types (e.g. block devices) etc. are supported
 
-#
-# 9. Notes:
-#
 
+#
+# 10. Notes:
+#
 - Idmapping (including uid/gid mapping) between NFSv4 client and
   NFSv4 server works via /lib/msnfs41client/cygwin_idmapper.ksh,
   which either uses builtin static data, or /usr/bin/getent passwd
@@ -368,7 +418,7 @@ $ mount -t drvfs '\\10.49.202.230@2049\nfs4\bigdisk' /mnt/bigdisk
   client and server side.
 
 - UNC paths are supported, after successful mounting /sbin/nfs_mount
-  will list the paths in Cygwin UNC format.
+  will list the paths in Cygwin/MSYS2 UNC format.
 
 - SIDs work, users with valid Windows accounts (see Cygwin idmapping
   above get their SIDs, unknown users with valid uid/gid values get
@@ -380,7 +430,7 @@ $ mount -t drvfs '\\10.49.202.230@2049\nfs4\bigdisk' /mnt/bigdisk
   - pass URL to nfs_mount.exe like this:
     $ nfs_mount -o sec=sys,rw 'L' nfs://derfwnb4966_ipv4//bigdisk #
 
-- Cygwin symlinks are supported, but might require
+- Cygwin/MSYS2 symlinks are supported, but might require
   $ fsutil behavior set SymlinkEvaluation L2L:1 R2R:1 L2R:1 R2L:1 #.
   This includes symlinks to UNC paths, e.g. as Admin
   $ cmd /c 'mklink /d c:\home\rmainz \\derfwpc5131_ipv6@2049\nfs4\export\home2\rmainz' #
@@ -451,8 +501,9 @@ $ mount -t drvfs '\\10.49.202.230@2049\nfs4\bigdisk' /mnt/bigdisk
   user+groups to a small script for the NFSv4 server to set-up
   these accounts on the server side.
 
+
 #
-# 10. Known issues:
+# 11. Known issues:
 #
 - The kernel driver ("nfs41_driver.sys") does not yet have a
   cryptographic signature for SecureBoot - which means it will only
@@ -567,8 +618,9 @@ $ mount -t drvfs '\\10.49.202.230@2049\nfs4\bigdisk' /mnt/bigdisk
   OR "nocache" option, e.g.
   $ /sbin/nfs_mount -o rw,writethru 'j' derfwpc5131:/export/home/rmainz #
 
+
 #
-# 11. Notes for troubleshooting && finding bugs/debugging:
+# 12. Notes for troubleshooting && finding bugs/debugging:
 #
 - nfsd_debug.exe has the -d option to set a level for debug
   output.
@@ -603,7 +655,7 @@ $ mount -t drvfs '\\10.49.202.230@2049\nfs4\bigdisk' /mnt/bigdisk
 
 
 #
-# 12. Source code:
+# 13. Source code:
 #
 - Source code can be obtained from https://github.com/kofemann/ms-nfs41-client
   or as git bundle from /usr/src/msnfs41client/msnfs41client_git.bundle
