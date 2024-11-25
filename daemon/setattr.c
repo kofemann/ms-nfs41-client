@@ -285,6 +285,7 @@ static int handle_nfs41_rename(void *daemon_context, setattr_upcall_args *args)
     EASSERT((rename->FileNameLength%sizeof(WCHAR)) == 0);
 
 #define CYGWIN_STOMP_SILLY_RENAME_INVALID_UTF16_SEQUENCE 1
+#define MSYS2_STOMP_SILLY_RENAME_INVALID_UTF16_SEQUENCE 1
 
 #ifdef CYGWIN_STOMP_SILLY_RENAME_INVALID_UTF16_SEQUENCE
     /*
@@ -325,6 +326,24 @@ static int handle_nfs41_rename(void *daemon_context, setattr_upcall_args *args)
         (void)memcpy(rename->FileName, L".cyg", 4*sizeof(wchar_t));
     }
 #endif /* CYGWIN_STOMP_SILLY_RENAME_INVALID_UTF16_SEQUENCE */
+#ifdef MSYS2_STOMP_SILLY_RENAME_INVALID_UTF16_SEQUENCE
+    /*
+     * Stomp MSYS2 "silly rename" invalid Unicode sequence
+     *
+     * Same procedure as Cygwin "silly rename", just with a different
+     * prefix (L".\xdc6d\xdc73\xdc79\xdc73")
+     */
+    if ((rename->FileNameLength > (5*sizeof(wchar_t))) &&
+        (!memcmp(rename->FileName,
+            L".\xdc6d\xdc73\xdc79\xdc73", (5*sizeof(wchar_t))))) {
+        DPRINTF(1, ("handle_nfs41_rename(args->path='%s'): "
+            "msys2 sillyrename prefix "
+            "\".\\xdc6d\\xdc73\\xdc79\\xdc73\" detected, squishing "
+            "prefix to \".msys\"\n",
+            args->path));
+        (void)memcpy(rename->FileName, L".msys", 5*sizeof(wchar_t));
+    }
+#endif /* MSYS2_STOMP_SILLY_RENAME_INVALID_UTF16_SEQUENCE */
 
     dst_path.len = (unsigned short)WideCharToMultiByte(CP_UTF8,
         WC_ERR_INVALID_CHARS|WC_NO_BEST_FIT_CHARS,
