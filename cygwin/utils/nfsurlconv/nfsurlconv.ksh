@@ -223,6 +223,9 @@ function urlencodestr
 		# Only alphanumerics, "$-_.+!*'()," and reserved characters
 		# ("/" for nfs://-URLS) are allowed
 		#
+		# Note that '+' must always be encoded to make sure
+		# it is not decoded as <space>
+		#
 		if (( posix_shell_safe != 0 )) ; then
 			# in POSIX shell safe mode we also encode
 			# '!', '*', '$', "(", ")", "{", "}", "#"
@@ -233,7 +236,7 @@ function urlencodestr
 			fi
 
 		else
-			if (( ch_num > 127 )) || [[ "$ch" != ~(Elr)[/$-_.+!*\'(),[:alnum:]] ]] ; then
+			if (( ch_num > 127 )) || [[ "$ch" != ~(Elr)[/$-_.!*\'(),[:alnum:]] ]] ; then
 				url+="%$ch_hexval"
 			else
 				url+="$ch"
