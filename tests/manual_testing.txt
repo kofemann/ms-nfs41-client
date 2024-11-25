@@ -7,7 +7,8 @@
 
 #
 # Notes:
-# - The following Cygwin packages must be installed for running the tests:
+# - Cygwin enviroment:
+#   The following Cygwin packages must be installed for running the tests:
 #   ---- snip ----
 #   gcc-core
 #   gcc-g++
@@ -40,6 +41,46 @@
 #   cygport
 #   gettext
 #   gettext-devel
+#   ---- snip ----
+#
+# - MSYS2 environment:
+#   - Install the env with:
+#   $ mkdir -p download && cd download
+#   $ wget 'https://github.com/msys2/msys2-installer/releases/download/2024-11-16/msys2-x86_64-20241116.exe'
+#   $ chmod a+x msys2-x86_64-20241116.exe
+#   $ ./msys2-x86_64-20241116 --default-answer --root 'C:\msys64' install
+#   - The following MSYS2 packages should be installed for running the tests with MSYS2:
+#   (install with $ pacman -S --noconfirm ${name_of_package} # (use space to separate package names)
+#   ---- snip ----
+#   base-devel
+#   gcc
+#   clang
+#   sed
+#   time
+#   coreutils
+#   util-linux
+#   grep
+#   sed
+#   emacs
+#   gdb
+#   make
+#   gettext
+#   gettext-devel
+#   git
+#   subversion
+#   flex
+#   bison
+#   unzip
+#   pax
+#   tar
+#   libiconv-devel
+#   ncurses-devel
+#   gmp-devel
+#   mpfr-devel
+#   mpc-devel
+#   isl-devel
+#   procps-ng
+#   libiconv-devel
 #   ---- snip ----
 #
 # - Benchmarking/profiling should be done with the realtime virus checker
