@@ -224,8 +224,9 @@ function urlencodestr
 		# ("/" for nfs://-URLS) are allowed
 		#
 		if (( posix_shell_safe != 0 )) ; then
-			# in POSIX shell safe mode we also encode '!', '*', '$'
-			if (( ch_num > 127 )) || [[ "$ch" != ~(Elr)[/-_.+\'(),[:alnum:]] ]] ; then
+			# in POSIX shell safe mode we also encode
+			# '!', '*', '$', "(", ")", "{", "}", "#"
+			if (( ch_num > 127 )) || [[ "$ch" != ~(Elr)[/-_.,[:alnum:]] ]] ; then
 				url+="%$ch_hexval"
 			else
 				url+="$ch"
@@ -283,7 +284,7 @@ function main
 
 	# fixme: Need better text layout for $ nfsurlconv --man #
 	typeset -r nfsurlconv_usage=$'+
-	[-?\n@(#)\$Id: nfsurlconv (Roland Mainz) 2024-11-22 \$\n]
+	[-?\n@(#)\$Id: nfsurlconv (Roland Mainz) 2024-11-25 \$\n]
 	[-author?Roland Mainz <roland.mainz@nrubsig.org>]
 	[+NAME?nfsurlconv - convert hostname,port,path from/to a nfs://-URL]
 	[+DESCRIPTION?\bnfsurlconv\b convert { hostname, port, path } from/to a nfs://-URL.]
