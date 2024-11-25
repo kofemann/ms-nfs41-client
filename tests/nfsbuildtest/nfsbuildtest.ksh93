@@ -117,7 +117,7 @@ function gcc_build
 	# patch sources and configure build
 	#
 
-	# Cygwin: workaround for configure using cp -p where ln -s should be used
+	# Cygwin/MSYS2: workaround for configure using cp -p where ln -s should be used
 	# (this is an automake/autoconf issue, they should trust Cygwin and not use
 	# ancient workarounds for issues which no longer exists)
 	(set -o xtrace ; sed -i "s/as_ln_s='cp -pR'/as_ln_s='ln -s'/g" $(find . -name 'configure') )
@@ -285,8 +285,8 @@ function bash_build
 	# disable loadable plugins
 	sed -i -E 's/-\( cd \$\(LOADABLES_DIR\) && \$\(MAKE\) \$\(MFLAGS\) DESTDIR=\$\(DESTDIR\) \$@ \)//' Makefile.in
 
-	# Cygwin: workaround for configure using cp -p where ln -s should be used
-	# (this is an automake/autoconf issue, they should trust Cygwin and not use
+	# Cygwin/MSYS2: workaround for configure using cp -p where ln -s should be used
+	# (this is an automake/autoconf issue, they should trust Cygwin/MSYS2 and not use
 	# ancient workarounds for issues which no longer exists)
 	(set -o xtrace ; sed -i "s/as_ln_s='cp -pR'/as_ln_s='ln -s'/g" $(find . -name 'configure') )
 
@@ -329,10 +329,18 @@ function bash_build
 	#
 	# build bash
 	#
-	if (( (cygwin_vers.major*1000+cygwin_vers.minor) >= 3005 )) ; then
-		time ksh93 -c 'export SHELL=/bin/ksh93 ; bmake -j8 install DESTDIR=$PWD/install_root'
+	if $config_use_posix_ksh93_builtins ; then
+		if is_cygwin && (( (cygwin_vers.major*1000+cygwin_vers.minor) >= 3005 )) ; then
+			time ksh93 -c 'export SHELL=/bin/ksh93 ; bmake -j8 install DESTDIR=$PWD/install_root'
+		else
+			time ksh93 -c 'export SHELL=/bin/ksh93 ; make -j8 install DESTDIR=$PWD/install_root'
+		fi
 	else
-		time ksh93 -c 'export SHELL=/bin/ksh93 ; make -j8 install DESTDIR=$PWD/install_root'
+		if is_cygwin && (( (cygwin_vers.major*1000+cygwin_vers.minor) >= 3005 )) ; then
+			time bash -c 'export SHELL=/bin/bash ; bmake -j8 install DESTDIR=$PWD/install_root'
+		else
+			time bash -c 'export SHELL=/bin/bash ; make -j8 install DESTDIR=$PWD/install_root'
+		fi
 	fi
 	echo $?
 
@@ -464,7 +472,7 @@ function msnfs41client_clean
 function get_cpv_cygwin_version
 {
 	nameref c_vers=$1
-	typeset uname_r="${ uname -r ; }"
+	typeset uname_r="${ /usr/bin/uname -r ; }"
 	typeset leftover
 
 	leftover="${uname_r/~(Elr)([[:digit:]]+)\.([[:digit:]]+)\.([[:digit:]]+)-([[:digit:]]+)\..+/x}"
@@ -483,21 +491,50 @@ function get_cpv_cygwin_version
 	return 0
 }
 
+function is_cygwin
+{
+	if [[ "$(/usr/bin/uname -s)" == ~(El)CYGWIN_NT ]] ; then
+		return 0
+	fi
+
+	return 1
+}
+
+function is_mingw64
+{
+	if [[ "$(/usr/bin/uname -s)" == ~(El)MINGW64_NT ]] ; then
+		return 0
+	fi
+
+	return 1
+}
 
 #
-# Enumerate installed Cygwin packages and fill
+# Enumerate installed toolkit packages and fill
 # an associative array with the package names
 #
-function enumerate_cygwin_packages
+function enumerate_toolkit_packages
 {
 	nameref package_arr=$1
 	typeset i j
 
-	# cygcheck in Cygwin 3.3 does not support -n
-	/usr/bin/cygcheck -c -d | while read i j ; do
-		package_arr["$i"]='true'
-	done
-	return 0
+	if is_cygwin ; then
+		# cygcheck in Cygwin 3.3 does not support -n
+		/usr/bin/cygcheck -c -d | while read i j ; do
+			package_arr["$i"]='true'
+		done
+		return 0
+	elif is_mingw64 ; then
+		# cygcheck in Cygwin 3.3 does not support -n
+		/usr/bin/pacman -Qqn | while read i j ; do
+			package_arr["$i"]='true'
+		done
+		return 0
+	fi
+
+	print -u2 -f $"%s: Unsupported toolkit.\n" "$0"
+
+	return 1
 }
 
 
@@ -505,12 +542,12 @@ function enumerate_cygwin_packages
 # test if a Cygwin package is installed, based on
 # the array of package names passed as $1
 #
-function is_cygwin_pkg_installed
+function is_toolkit_pkg_installed
 {
 	nameref package_arr=$1
 	typeset package_name="$2"
 	if [[ ! -v package_arr["$package_name"] ]] ; then
-		print -u2 -f $"Cygwin package '%s' not installed.\n" "$package_name"
+		print -u2 -f $"Toolkit package '%s' not installed.\n" "$package_name"
 		return 1
 	fi
 
@@ -520,7 +557,7 @@ function is_cygwin_pkg_installed
 
 function main
 {
-	typeset -A icp # installed cygwin packages
+	typeset -A itp # installed toolkit packages
 	integer errc=0 # error counter
 	typeset target="$1"
 	typeset subcmd="$2"
@@ -528,28 +565,28 @@ function main
 
 	get_cpv_cygwin_version cygwin_vers
 
-	enumerate_cygwin_packages icp
+	enumerate_toolkit_packages itp
 
 	case "${target}_${subcmd}" in
 		'gcc_createcache')
-			is_cygwin_pkg_installed icp 'git' || (( errc++ ))
+			is_toolkit_pkg_installed itp 'git' || (( errc++ ))
 			gcc_createcache
 			return $?
 			;;
 		'gcc_build')
-			is_cygwin_pkg_installed icp 'git' || (( errc++ ))
-			is_cygwin_pkg_installed icp 'gcc-core' || (( errc++ ))
-			is_cygwin_pkg_installed icp 'gcc-g++' || (( errc++ ))
-			is_cygwin_pkg_installed icp 'make' || (( errc++ ))
-			is_cygwin_pkg_installed icp 'flex' || (( errc++ ))
-			is_cygwin_pkg_installed icp 'bison' || (( errc++ ))
-			is_cygwin_pkg_installed icp 'libgmp-devel' || (( errc++ ))
-			is_cygwin_pkg_installed icp 'libmpfr-devel' || (( errc++ ))
-			is_cygwin_pkg_installed icp 'libmpc-devel' || (( errc++ ))
-			is_cygwin_pkg_installed icp 'libintl-devel' || (( errc++ ))
-			is_cygwin_pkg_installed icp 'libisl-devel' || (( errc++ ))
-			is_cygwin_pkg_installed icp 'gettext' || (( errc++ ))
-			is_cygwin_pkg_installed icp 'gettext-devel' || (( errc++ ))
+			is_toolkit_pkg_installed itp 'git' || (( errc++ ))
+			is_toolkit_pkg_installed itp 'gcc-core' || (( errc++ ))
+			is_toolkit_pkg_installed itp 'gcc-g++' || (( errc++ ))
+			is_toolkit_pkg_installed itp 'make' || (( errc++ ))
+			is_toolkit_pkg_installed itp 'flex' || (( errc++ ))
+			is_toolkit_pkg_installed itp 'bison' || (( errc++ ))
+			is_toolkit_pkg_installed itp 'libgmp-devel' || (( errc++ ))
+			is_toolkit_pkg_installed itp 'libmpfr-devel' || (( errc++ ))
+			is_toolkit_pkg_installed itp 'libmpc-devel' || (( errc++ ))
+			is_toolkit_pkg_installed itp 'libintl-devel' || (( errc++ ))
+			is_toolkit_pkg_installed itp 'libisl-devel' || (( errc++ ))
+			is_toolkit_pkg_installed itp 'gettext' || (( errc++ ))
+			is_toolkit_pkg_installed itp 'gettext-devel' || (( errc++ ))
 			(( errc > 0 )) && return 1
 			gcc_build
 			return $?
@@ -559,25 +596,31 @@ function main
 			return $?
 			;;
 		'bash_createcache')
-			is_cygwin_pkg_installed icp 'git' || (( errc++ ))
+			is_toolkit_pkg_installed itp 'git' || (( errc++ ))
 			bash_createcache
 			return $?
 			;;
 		'bash_build')
-			is_cygwin_pkg_installed icp 'git' || (( errc++ ))
-			is_cygwin_pkg_installed icp 'gcc-core' || (( errc++ ))
-			is_cygwin_pkg_installed icp 'gcc-g++' || (( errc++ ))
-			if (( (cygwin_vers.major*1000+cygwin_vers.minor) >= 3005 )) ; then
-				print '# bash_build: Using Cygwin >= 3.5 config'
-				# Only Cygwin >= 3.5 has /usr/bin/bmake
-				is_cygwin_pkg_installed icp 'bmake' || (( errc++ ))
+			is_toolkit_pkg_installed itp 'git' || (( errc++ ))
+			is_toolkit_pkg_installed itp 'gcc-core' || (( errc++ ))
+			is_toolkit_pkg_installed itp 'gcc-g++' || (( errc++ ))
+			if is_cygwin ; then
+				if (( (cygwin_vers.major*1000+cygwin_vers.minor) >= 3005 )) ; then
+					print '# bash_build: Using Cygwin >= 3.5 config'
+					# Only Cygwin >= 3.5 has /usr/bin/bmake
+					is_toolkit_pkg_installed itp 'bmake' || (( errc++ ))
+				else
+					print '# bash_build: Using Cygwin < 3.5 config'
+					is_toolkit_pkg_installed itp 'make' || (( errc++ ))
+				fi
+			elif is_mingw64 ; then
+				is_toolkit_pkg_installed itp 'make' || (( errc++ ))
 			else
-				print '# bash_build: Using Cygwin < 3.5 config'
-				is_cygwin_pkg_installed icp 'make' || (( errc++ ))
+				print '# bash_build: unsupported toolkit'
 			fi
-			is_cygwin_pkg_installed icp 'libncurses-devel' || (( errc++ ))
-			is_cygwin_pkg_installed icp 'gettext' || (( errc++ ))
-			is_cygwin_pkg_installed icp 'gettext-devel' || (( errc++ ))
+			is_toolkit_pkg_installed itp 'libncurses-devel' || (( errc++ ))
+			is_toolkit_pkg_installed itp 'gettext' || (( errc++ ))
+			is_toolkit_pkg_installed itp 'gettext-devel' || (( errc++ ))
 			(( errc > 0 )) && return 1
 			bash_build
 			return $?
@@ -587,20 +630,20 @@ function main
 			return $?
 			;;
 		'msnfs41client_createcache')
-			is_cygwin_pkg_installed icp 'git' || (( errc++ ))
+			is_toolkit_pkg_installed itp 'git' || (( errc++ ))
 			msnfs41client_createcache
 			return $?
 			;;
 		'msnfs41client_build')
-			is_cygwin_pkg_installed icp 'git' || (( errc++ ))
-			is_cygwin_pkg_installed icp 'gcc-core' || (( errc++ ))
-			is_cygwin_pkg_installed icp 'gcc-g++' || (( errc++ ))
-			is_cygwin_pkg_installed icp 'mingw64-i686-clang' || (( errc++ ))
-			is_cygwin_pkg_installed icp 'mingw64-x86_64-clang' || (( errc++ ))
-			is_cygwin_pkg_installed icp 'make' || (( errc++ ))
-			is_cygwin_pkg_installed icp 'tar' || (( errc++ ))
-			is_cygwin_pkg_installed icp 'bzip2' || (( errc++ ))
-			is_cygwin_pkg_installed icp 'openssl' || (( errc++ ))
+			is_toolkit_pkg_installed itp 'git' || (( errc++ ))
+			is_toolkit_pkg_installed itp 'gcc-core' || (( errc++ ))
+			is_toolkit_pkg_installed itp 'gcc-g++' || (( errc++ ))
+			is_toolkit_pkg_installed itp 'mingw64-i686-clang' || (( errc++ ))
+			is_toolkit_pkg_installed itp 'mingw64-x86_64-clang' || (( errc++ ))
+			is_toolkit_pkg_installed itp 'make' || (( errc++ ))
+			is_toolkit_pkg_installed itp 'tar' || (( errc++ ))
+			is_toolkit_pkg_installed itp 'bzip2' || (( errc++ ))
+			is_toolkit_pkg_installed itp 'openssl' || (( errc++ ))
 			(( errc > 0 )) && return 1
 			msnfs41client_build
 			return $?
@@ -626,7 +669,9 @@ function main
 #
 builtin id
 builtin mkdir
-builtin uname
+# builtin uname - for now (until we have a native MSYS2 ksh93) we
+# should not use the builtin uname here, because it will store the
+# toolkit name (Cygwin, MSYS2, ...) at libast built time
 
 main "$@"
 return $?
