@@ -31,6 +31,9 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <locale.h>
+#include <io.h>
+#include <fcntl.h>
 
 #include "nfs41_build_features.h"
 #include "nfs41_driver.h" /* |NFS41_PROVIDER_NAME_U| */
@@ -562,8 +565,12 @@ int list_nfs_mounts_main(int argc, wchar_t *argv[])
 int __cdecl wmain(int argc, wchar_t *argv[])
 {
     DWORD result = NO_ERROR;
-
     int crtsetdbgflags = 0;
+
+    (void)setlocale(LC_ALL, "");
+    (void)_setmode(_fileno(stdout), _O_WTEXT);
+    (void)_setmode(_fileno(stderr), _O_WTEXT);
+
     crtsetdbgflags |= _CRTDBG_ALLOC_MEM_DF;  /* use debug heap */
     crtsetdbgflags |= _CRTDBG_LEAK_CHECK_DF; /* report leaks on exit */
     crtsetdbgflags |= _CRTDBG_DELAY_FREE_MEM_DF;
