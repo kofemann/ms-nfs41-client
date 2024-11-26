@@ -3,6 +3,7 @@
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
+ * Roland Mainz <roland.mainz@nrubsig.org>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -76,17 +77,17 @@ void FreeMountOptions(
     IN OUT PMOUNT_OPTION_LIST Options);
 
 BOOL FindOptionByName(
-    IN LPCTSTR Name,
+    IN LPCWSTR Name,
     IN PMOUNT_OPTION_LIST Options,
     OUT PFILE_FULL_EA_INFORMATION* ppOption);
 
 BOOL ParseMountOptions(
-    IN LPTSTR Arg,
+    IN LPWSTR Arg,
     IN OUT PMOUNT_OPTION_LIST Options);
 
 BOOL InsertOption(
-    IN LPCTSTR Name,
-    IN LPCTSTR Value,
+    IN LPCWSTR Name,
+    IN LPCWSTR Value,
     IN OUT PMOUNT_OPTION_LIST Options);
 
 void RecursivePrintEaInformation(

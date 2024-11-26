@@ -59,7 +59,7 @@ const LUID SystemLuid = SYSTEM_LUID;
 static DWORD is_unc_path_mounted(__in LPWSTR lpRemoteName);
 
 
-ULONG _cdecl NFS41DbgPrint(__in LPTSTR fmt, ...)
+ULONG _cdecl NFS41DbgPrint(__in LPWSTR fmt, ...)
 {
     DWORD saved_lasterr;
     ULONG rc = 0;
@@ -80,7 +80,7 @@ ULONG _cdecl NFS41DbgPrint(__in LPTSTR fmt, ...)
         fmt, marker);
     szbuffer[SZBUFFER_SIZE-1] = L'\0';
 
-    OutputDebugString(szbuffer);
+    OutputDebugStringW(szbuffer);
 
     va_end(marker);
 
@@ -326,13 +326,13 @@ static DWORD StoreConnectionInfo(
         (USHORT)(wcslen(lpNetResource->lpRemoteName)+1)*sizeof(WCHAR);
     pNfs41NetResource->ConnectionNameLength = ConnectionNameLength;
 
-    (void)StringCchCopy(pNfs41NetResource->LocalName,
+    (void)StringCchCopyW(pNfs41NetResource->LocalName,
         pNfs41NetResource->LocalNameLength,
         LocalName);
-    (void)StringCchCopy(pNfs41NetResource->RemoteName,
+    (void)StringCchCopyW(pNfs41NetResource->RemoteName,
         pNfs41NetResource->RemoteNameLength,
         lpNetResource->lpRemoteName);
-    (void)StringCchCopy(pNfs41NetResource->ConnectionName,
+    (void)StringCchCopyW(pNfs41NetResource->ConnectionName,
         pNfs41NetResource->ConnectionNameLength,
         ConnectionName);
 
@@ -555,7 +555,7 @@ NPAddConnection3(
     //  \device\miniredirector\;<DriveLetter>:\Server\Share
 
     // local name, must start with "X:"
-    if (lstrlen(lpLocalName) < 2 ||
+    if (wcslen(lpLocalName) < 2 ||
         lpLocalName[1] != L':') {
         DbgP((L"lpLocalName(='%s') "
             "is not a device letter\n",
@@ -676,7 +676,7 @@ NPAddConnection3(
     DbgP((L"Full Connect Name: '%s'\n", ConnectionName));
     DbgP((L"Full Connect Name Length: %d %d\n",
         (wcslen(ConnectionName) + 1) * sizeof(WCHAR),
-        (lstrlen(ConnectionName) + 1) * sizeof(WCHAR)));
+        (wcslen(ConnectionName) + 1) * sizeof(WCHAR)));
 
     if (lpNetResource->lpLocalName == NULL) {
         DWORD gc_status;
@@ -703,9 +703,9 @@ NPAddConnection3(
         DWORD lasterr;
 
         wszScratch[0] = L'\0';
-        Status = QueryDosDevice(LocalName, wszScratch, 1024);
+        Status = QueryDosDeviceW(LocalName, wszScratch, 1024);
         lasterr = GetLastError();
-        DbgP((L"QueryDosDevice(lpDeviceName='%s',lpTargetPath='%s') "
+        DbgP((L"QueryDosDeviceW(lpDeviceName='%s',lpTargetPath='%s') "
             L"returned %d/GetLastError()=%d\n",
             LocalName, wszScratch, Status, (int)lasterr));
 
@@ -726,15 +726,15 @@ NPAddConnection3(
     }
 
     if (lpNetResource->lpLocalName != NULL) {
-        DbgP((L"DefineDosDevice(lpLocalName='%s', "
+        DbgP((L"DefineDosDeviceW(lpLocalName='%s', "
             L"ConnectionName='%s')\n",
             lpLocalName, ConnectionName));
-        if (!DefineDosDevice(DDD_RAW_TARGET_PATH |
+        if (!DefineDosDeviceW(DDD_RAW_TARGET_PATH |
             DDD_NO_BROADCAST_SYSTEM,
             lpLocalName,
             ConnectionName)) {
             Status = GetLastError();
-            DbgP((L"DefineDosDevice(lpLocalName='%s',"
+            DbgP((L"DefineDosDeviceW(lpLocalName='%s',"
                 L"ConnectionName='%s') failed with %d\n",
                 lpLocalName, ConnectionName, Status));
             goto out_delconn;
@@ -756,7 +756,7 @@ out:
     return Status;
 out_undefine:
     if (lpNetResource->lpLocalName != NULL) {
-        (void)DefineDosDevice(DDD_REMOVE_DEFINITION |
+        (void)DefineDosDeviceW(DDD_REMOVE_DEFINITION |
             DDD_RAW_TARGET_PATH |
             DDD_EXACT_MATCH_ON_REMOVE,
             LocalName, ConnectionName);
@@ -891,12 +891,12 @@ NPCancelConnection(
                     break;
                 }
 
-                if (DefineDosDevice(DDD_REMOVE_DEFINITION |
+                if (DefineDosDeviceW(DDD_REMOVE_DEFINITION |
                         DDD_RAW_TARGET_PATH | DDD_EXACT_MATCH_ON_REMOVE,
                     lpName,
                     pNetResource->ConnectionName) == FALSE) {
                     Status = GetLastError();
-                    DbgP((L"DefineDosDevice error: %d\n",
+                    DbgP((L"DefineDosDeviceW error: %d\n",
                         (int)Status));
                 }
                 else {
@@ -1244,13 +1244,13 @@ NPEnumResource(
                 SpaceNeeded -= sizeof(NETRESOURCE);
                 StringZone = (PWCHAR)( (PBYTE) StringZone - SpaceNeeded);
                 // copy local name
-                (void)StringCchCopy(StringZone,
+                (void)StringCchCopyW(StringZone,
                     pNfsNetResource->LocalNameLength,
                     pNfsNetResource->LocalName);
                 pNetResource->lpLocalName = StringZone;
                 StringZone += pNfsNetResource->LocalNameLength/sizeof(WCHAR);
                 // copy remote name
-                (void)StringCchCopy(StringZone,
+                (void)StringCchCopyW(StringZone,
                     pNfsNetResource->RemoteNameLength,
                     pNfsNetResource->RemoteName);
                 pNetResource->lpRemoteName = StringZone;

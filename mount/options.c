@@ -66,7 +66,7 @@ BOOL FindOptionByName(
     for (;;)
     {
         if ((Current->EaNameLength == NameLength) &&
-            (!wcscmp((LPTSTR)Current->EaName, Name))) {
+            (!wcscmp((LPWSTR)Current->EaName, Name))) {
             *ppOption = Current;
             return TRUE;
         }
@@ -147,12 +147,12 @@ BOOL InsertOption(
 
     Current->EaNameLength = NameLen;
     if (NameLen) /* copy attribute name */
-        StringCbCopy((LPTSTR)Current->EaName,
+        StringCbCopyW((LPWSTR)Current->EaName,
             NameLen + sizeof(wchar_t), Name);
 
     Current->EaValueLength = ValueLen;
     if (ValueLen) /* copy attribute value */
-        StringCbCopy((LPTSTR)(Current->EaName + NameLen + sizeof(wchar_t)),
+        StringCbCopyW((LPWSTR)(Current->EaName + NameLen + sizeof(wchar_t)),
             ValueLen + sizeof(wchar_t), Value);
 
     Current->Flags = 0;
@@ -182,8 +182,8 @@ void RecursivePrintEaInformation(
         EA->Flags,
         EA->EaNameLength,
         EA->EaValueLength,
-        (LPTSTR)EA->EaName,
-        (LPTSTR)(EA->EaName + EA->EaNameLength + sizeof(wchar_t)));
+        (LPWSTR)EA->EaName,
+        (LPWSTR)(EA->EaName + EA->EaNameLength + sizeof(wchar_t)));
 
     if (EA->NextEntryOffset)
         RecursivePrintEaInformation((PFILE_FULL_EA_INFORMATION)
@@ -194,7 +194,7 @@ static const wchar_t COMMA_T = L',';
 static const wchar_t EQUAL_T = L'=';
 
 BOOL ParseMountOptions(
-    IN LPTSTR Arg,
+    IN LPWSTR Arg,
     IN OUT PMOUNT_OPTION_LIST Options)
 {
     PTCH pos, comma, equals;

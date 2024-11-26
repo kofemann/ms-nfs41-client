@@ -219,21 +219,21 @@ void PrintMountLine(
 #define ENUM_RESOURCE_BUFFER_SIZE (16*1024)
 
 DWORD EnumMounts(
-    IN LPNETRESOURCE pContainer)
+    IN LPNETRESOURCEW pContainer)
 {
     DWORD result = NO_ERROR;
-    LPNETRESOURCE pResources;
+    LPNETRESOURCEW pResources;
     DWORD i, dwCount, dwTotal = 0;
     DWORD dwBufferSize = ENUM_RESOURCE_BUFFER_SIZE;
     HANDLE hEnum;
 
-    pResources = (LPNETRESOURCE)GlobalAlloc(0, ENUM_RESOURCE_BUFFER_SIZE);
+    pResources = (LPNETRESOURCEW)GlobalAlloc(0, ENUM_RESOURCE_BUFFER_SIZE);
     if (pResources == NULL) {
         result = WN_OUT_OF_MEMORY;
         goto out;
     }
 
-    result = WNetOpenEnum(RESOURCE_CONNECTED,
+    result = WNetOpenEnumW(RESOURCE_CONNECTED,
         RESOURCETYPE_DISK, 0, pContainer, &hEnum);
     if (result)
         goto out_free;

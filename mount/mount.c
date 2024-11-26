@@ -51,7 +51,7 @@
 #define MOUNT_CONFIG_NFS_PORT_DEFAULT   2049
 
 DWORD EnumMounts(
-    IN LPNETRESOURCE pContainer);
+    IN LPNETRESOURCEW pContainer);
 
 static DWORD ParseRemoteName(
     IN bool use_nfspubfh,
@@ -72,7 +72,7 @@ static DWORD DoUnmount(
     IN BOOL bForce);
 static BOOL ParseDriveLetter(
     IN LPWSTR pArg,
-    OUT PTCH pDriveLetter);
+    OUT PWCH pDriveLetter);
 void PrintErrorMessage(
     IN DWORD dwError);
 
@@ -687,7 +687,7 @@ static DWORD ParseRemoteName(
     wchar_t srvname[SRVNAME_LEN];
     url_parser_context *uctx = NULL;
 
-    result = StringCchCopy(premotename, NFS41_SYS_MAX_PATH_LEN, pRemoteName);
+    result = StringCchCopyW(premotename, NFS41_SYS_MAX_PATH_LEN, pRemoteName);
 
     /*
      * Support nfs://-URLS per RFC 2224 ("NFS URL
@@ -962,22 +962,22 @@ static DWORD ParseRemoteName(
         goto out;
     }
 
-    result = StringCchCopy(pConnectionName, cchConnectionLen, L"\\\\");
+    result = StringCchCopyW(pConnectionName, cchConnectionLen, L"\\\\");
     if (FAILED(result))
         goto out;
-    result = StringCbCat(pConnectionName, cchConnectionLen, srvname);
+    result = StringCbCatW(pConnectionName, cchConnectionLen, srvname);
     if (FAILED(result))
         goto out;
 #ifdef NFS41_DRIVER_MOUNT_DOES_NFS4_PREFIX
-    result = StringCbCat(pConnectionName, cchConnectionLen,
+    result = StringCbCatW(pConnectionName, cchConnectionLen,
         (use_nfspubfh?(L"\\pubnfs4"):(L"\\nfs4")));
     if (FAILED(result))
         goto out;
 #endif /* NFS41_DRIVER_MOUNT_DOES_NFS4_PREFIX */
     if (*pEnd)
-        result = StringCchCat(pConnectionName, cchConnectionLen, pEnd);
+        result = StringCchCatW(pConnectionName, cchConnectionLen, pEnd);
 
-    result = StringCchCopy(pParsedRemoteName, cchConnectionLen, srvname);
+    result = StringCchCopyW(pParsedRemoteName, cchConnectionLen, srvname);
 
 #ifdef DEBUG_MOUNT
     (void)fwprintf(stderr,
@@ -1007,7 +1007,7 @@ static DWORD DoMount(
     DWORD result = NO_ERROR;
     wchar_t szExisting[NFS41_SYS_MAX_PATH_LEN];
     DWORD dwLength;
-    NETRESOURCE NetResource;
+    NETRESOURCEW NetResource;
 
     if (pOptions->Buffer->Length) {
         if (pOptions->Current)
@@ -1027,7 +1027,7 @@ static DWORD DoMount(
     if (pLocalName) {
         /* fail if the connection already exists */
         dwLength = NFS41_SYS_MAX_PATH_LEN;
-        result = WNetGetConnection(pLocalName, (LPWSTR)szExisting, &dwLength);
+        result = WNetGetConnectionW(pLocalName, (LPWSTR)szExisting, &dwLength);
         if (result == NO_ERROR) {
             result = ERROR_ALREADY_ASSIGNED;
             (void)fwprintf(stderr, L"Mount failed, drive '%s' is "
@@ -1042,7 +1042,7 @@ static DWORD DoMount(
     DWORD ConnectResult;
     DWORD Flags = 0;
 
-    (void)memset(&NetResource, 0, sizeof(NETRESOURCE));
+    (void)memset(&NetResource, 0, sizeof(NETRESOURCEW));
     NetResource.dwType = RESOURCETYPE_DISK;
     if (pLocalName) {
         /* drive letter is chosen automatically if lpLocalName == "*" */
@@ -1062,7 +1062,7 @@ static DWORD DoMount(
     if (bPersistent)
         Flags |= CONNECT_UPDATE_PROFILE;
 
-    result = WNetUseConnection(NULL,
+    result = WNetUseConnectionW(NULL,
         &NetResource, NULL, NULL, Flags,
         szConnection, &ConnectSize, &ConnectResult);
 
@@ -1071,7 +1071,7 @@ static DWORD DoMount(
             pParsedRemoteName, szConnection);
     }
     else {
-        (void)fwprintf(stderr, L"WNetUseConnection('%s', '%s') "
+        (void)fwprintf(stderr, L"WNetUseConnectionW('%s', '%s') "
             L"failed with error code %u.\n",
             pLocalName, pRemoteName, result);
     }
@@ -1086,7 +1086,7 @@ static DWORD DoUnmount(
     DWORD result;
 
     /* disconnect the specified local drive */
-    result = WNetCancelConnection2(pLocalName, CONNECT_UPDATE_PROFILE, bForce);
+    result = WNetCancelConnection2W(pLocalName, CONNECT_UPDATE_PROFILE, bForce);
     /* TODO: verify that this connection uses the nfs41 provider -cbodley */
     switch (result)
     {
@@ -1099,7 +1099,7 @@ static DWORD DoUnmount(
             L"connected.\n", pLocalName);
         break;
     default:
-        (void)fwprintf(stderr, L"WNetCancelConnection2('%s') failed "
+        (void)fwprintf(stderr, L"WNetCancelConnection2W('%s') failed "
             L"with error code %u.\n", pLocalName, result);
         break;
     }
@@ -1139,7 +1139,7 @@ void PrintErrorMessage(
     IN DWORD dwError)
 {
     LPWSTR lpMsgBuf = NULL;
-    FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
+    FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
         NULL, dwError, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
         (LPWSTR)&lpMsgBuf, 0, NULL);
     (void)fputws(lpMsgBuf, stderr);
