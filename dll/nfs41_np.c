@@ -61,10 +61,13 @@ static DWORD is_unc_path_mounted(__in LPWSTR lpRemoteName);
 
 ULONG _cdecl NFS41DbgPrint(__in LPTSTR fmt, ...)
 {
+    DWORD saved_lasterr;
     ULONG rc = 0;
 #define SZBUFFER_SIZE 1024
     wchar_t szbuffer[SZBUFFER_SIZE+1];
     wchar_t *szbp = szbuffer;
+
+    saved_lasterr = GetLastError();
 
     va_list marker;
     va_start(marker, fmt);
@@ -80,6 +83,8 @@ ULONG _cdecl NFS41DbgPrint(__in LPTSTR fmt, ...)
     OutputDebugString(szbuffer);
 
     va_end(marker);
+
+    SetLastError(saved_lasterr);
 
     return rc;
 }
@@ -695,13 +700,16 @@ NPAddConnection3(
         }
     }
     else {
+        DWORD lasterr;
+
         wszScratch[0] = L'\0';
         Status = QueryDosDevice(LocalName, wszScratch, 1024);
+        lasterr = GetLastError();
         DbgP((L"QueryDosDevice(lpDeviceName='%s',lpTargetPath='%s') "
             L"returned %d/GetLastError()=%d\n",
-            LocalName, wszScratch, Status, (int)GetLastError()));
+            LocalName, wszScratch, Status, (int)lasterr));
 
-        if (Status || (GetLastError() != ERROR_FILE_NOT_FOUND)) {
+        if (Status || (lasterr != ERROR_FILE_NOT_FOUND)) {
             Status = WN_ALREADY_CONNECTED;
             goto out;
         }
@@ -887,9 +895,9 @@ NPCancelConnection(
                         DDD_RAW_TARGET_PATH | DDD_EXACT_MATCH_ON_REMOVE,
                     lpName,
                     pNetResource->ConnectionName) == FALSE) {
-                    DbgP((L"DefineDosDevice error: %d\n",
-                        GetLastError()));
                     Status = GetLastError();
+                    DbgP((L"DefineDosDevice error: %d\n",
+                        (int)Status));
                 }
                 else {
                     pNetResource->InUse = FALSE;

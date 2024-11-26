@@ -154,8 +154,9 @@ static unsigned int nfsd_worker_thread_main(void *args)
         0, NULL);
     if (pipe == INVALID_HANDLE_VALUE)
     {
-        eprintf("Unable to open upcall pipe %d\n", GetLastError());
-        return GetLastError();
+        DWORD lasterr = GetLastError();
+        eprintf("Unable to open upcall pipe %d\n", (int)lasterr);
+        return lasterr;
     }
 
     while(1) {

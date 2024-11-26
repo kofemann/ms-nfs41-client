@@ -710,10 +710,10 @@ static DWORD ParseRemoteName(
          */
         premotename_utf8 = wcs2utf8str(premotename);
         if (!premotename_utf8) {
+            result = GetLastError();
             (void)fwprintf(stderr,
                 L"wcs2utf8str() failed, lasterr=%d\n.",
-                (int)GetLastError());
-            result = GetLastError();
+                (int)result);
             goto out;
         }
 
