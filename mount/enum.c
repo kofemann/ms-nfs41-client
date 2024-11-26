@@ -122,7 +122,7 @@ void PrintMountLine(
     utf8unc_p += 2;
 
     for ( ; *utf8unc_p != '\0' ; ) {
-        char uc = *utf8unc_p++;
+        unsigned char uc = *utf8unc_p++;
 
         if (uc == '/')
             slash_counter++;
@@ -166,7 +166,7 @@ void PrintMountLine(
      * in this context it is safe to use
      */
 #pragma warning (disable : 4996)
-            (void)sprintf(us, "%%%2.2x", uc);
+            (void)sprintf(us, "%%%2.2x", (int)uc);
 #pragma warning( pop )
             us+=3;
         }
