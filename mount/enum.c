@@ -93,6 +93,22 @@ void PrintMountLine(
  * Note that '+' must always be encoded because urldecoding
  * turns it into a <space>.
  */
+/*
+ * SHELL_SAFE_URLS - urlencode characters which are special words
+ * in POSIX shells, e.g. '!', '(', ')', '*', "'", "$".
+ * Fixme: This should be a command-line option
+ */
+#define SHELL_SAFE_URLS 1
+#ifdef SHELL_SAFE_URLS
+#define ISVALIDURLCHAR(c) \
+	( \
+            ((c) >= '0' && (c) <= '9') || \
+	    ((c) >= 'a' && (c) <= 'z') || \
+	    ((c) >= 'A' && (c) <= 'Z') || \
+            ((c) == '-') || ((c) == '_') || ((c) == '.') || \
+            ((c) == '/') \
+        )
+#else
 #define ISVALIDURLCHAR(c) \
 	( \
             ((c) >= '0' && (c) <= '9') || \
@@ -102,6 +118,7 @@ void PrintMountLine(
             ((c) == '!') || ((c) == '*') || ((c) == '\'') || \
             ((c) == '(') || ((c) == ')') || ((c) == ',') || ((c) == '/') \
         )
+#endif /* SHELL_SAFE_URLS */
 
     unsigned int slash_counter = 0;
     char *utf8unc = wcs2utf8str(cygwin_unc_buffer);
