@@ -89,7 +89,9 @@ void PrintMountLine(
  * characters which must be encoded because they have a special meaning:
  * ";", "/", "?", ":", "@", "=" and "&"
  * Only alphanumerics, "$-_.+!*'()," and reserved characters
- * ("/" for nfs://-URLS) are allowed
+ * ("/" for nfs://-URLS) are allowed.
+ * Note that '+' must always be encoded because urldecoding
+ * turns it into a <space>.
  */
 #define ISVALIDURLCHAR(c) \
 	( \
@@ -97,7 +99,7 @@ void PrintMountLine(
 	    ((c) >= 'a' && (c) <= 'z') || \
 	    ((c) >= 'A' && (c) <= 'Z') || \
             ((c) == '$') || ((c) == '-') || ((c) == '_') || ((c) == '.') || \
-            ((c) == '+') || ((c) == '!') || ((c) == '*') || ((c) == '\'') || \
+            ((c) == '!') || ((c) == '*') || ((c) == '\'') || \
             ((c) == '(') || ((c) == ')') || ((c) == ',') || ((c) == '/') \
         )
 
