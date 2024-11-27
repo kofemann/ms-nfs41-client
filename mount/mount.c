@@ -79,11 +79,11 @@ void PrintErrorMessage(
 static
 void PrintMountUsage(LPWSTR pProcess)
 {
-    (void)fprintf(stderr,
-        "Usage: %S [options] <drive letter|*> <hostname>:<path>\n"
-        "Usage: %S [options] <hostname>:<path>\n"
-        "Usage: %S -d [options] <drive letter>\n"
-        "Usage: %S\n"
+    (void)fwprintf(stderr,
+        L"Usage: %s [options] <drive letter|*> <hostname>:<path>\n"
+        "Usage: %s [options] <hostname>:<path>\n"
+        "Usage: %s -d [options] <drive letter>\n"
+        "Usage: %s\n"
 
         "* Options:\n"
         "\t-h, --help, /?\thelp\n"
@@ -173,8 +173,8 @@ void PrintMountUsage(LPWSTR pProcess)
 static
 void PrintUmountUsage(LPWSTR pProcess)
 {
-    (void)fprintf(stderr,
-        "Usage: %S [options] <drive letter>\n"
+    (void)fwprintf(stderr,
+        L"Usage: %s [options] <drive letter>\n"
 
         "* Options:\n"
         "\t-h, --help, /?\thelp\n"
@@ -568,6 +568,13 @@ int __cdecl wmain(int argc, wchar_t *argv[])
     int crtsetdbgflags = 0;
 
     (void)setlocale(LC_ALL, "");
+    /*
+     * |_O_WTEXT| - set streams to wide-char mode so we print
+     * non-ASCII characters like Japanese or Chinese/GB18030
+     * correctly.
+     * Note that in CRT/UCRT any attempt to use single-byte
+     * functions like |printf()| will trigger an exception
+     */
     (void)_setmode(_fileno(stdout), _O_WTEXT);
     (void)_setmode(_fileno(stderr), _O_WTEXT);
 
