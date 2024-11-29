@@ -314,7 +314,7 @@ function nfsclient_adddriver
 	#
 	if is_windows_64bit ; then
 		# copy from the 32bit install dir
-		cp '../../../../../cygdrive/c/cygwin/lib/msnfs41client/nfs41_np.dll' '/cygdrive/c/Windows/SysWOW64/'
+		cp './i686/nfs41_np.dll' '/cygdrive/c/Windows/SysWOW64/'
 	fi
 
 	return 0

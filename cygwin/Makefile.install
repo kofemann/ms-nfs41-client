@@ -51,6 +51,13 @@ installdest:
 	cp $(VS_BUILD_DIR)/nfs_install.*	$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/.
 	cp $(VS_BUILD_DIR)/libtirpc.*	$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/.
 	cp $(VS_BUILD_DIR)/nfs41_np.*	$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/.
+	if [[ "$(CYGWIN_BASEPATH)" == *64* ]] ; then \
+		mkdir -p -- $(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/i686 ; \
+		cp $(VS_BUILD_DIR32)/../Release/nfs41_np.dll $(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/i686/nfs41_np.dll ; \
+		cp $(VS_BUILD_DIR32)/../Release/nfs41_np.exp $(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/i686/nfs41_np.exp ; \
+		cp $(VS_BUILD_DIR32)/../Release/nfs41_np.lib $(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/i686/nfs41_np.lib ; \
+		cp $(VS_BUILD_DIR32)/../Release/nfs41_np.pdb $(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/i686/nfs41_np.pdb ; \
+	fi
 	cp $(VS_BUILD_DIR)/nfs41_driver.*	$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/.
 	cp $(PROJECT_BASEDIR_DIR)/nfs41rdr.inf	$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/.
 	cp $(PROJECT_BASEDIR_DIR)/etc_netconfig	$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/.
