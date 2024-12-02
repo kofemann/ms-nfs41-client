@@ -1011,19 +1011,50 @@ out:
 
 DWORD APIENTRY
 NPGetConnection(
-    __in LPWSTR  lpLocalName,
+    __in LPWSTR                         lpLocalName,
     __out_bcount(*lpBufferSize) LPWSTR  lpRemoteName,
-    __inout LPDWORD lpBufferSize )
+    __inout LPDWORD                     lpBufferSize)
 {
-    DWORD   Status = 0;
+    DWORD Status = 0;
+    DbgP((L"--> NPGetConnection(lpLocalName='%s')\n",
+        lpLocalName));
+    Status = NPGetConnection3(lpLocalName,
+        WNGETCON_CONNECTED, lpRemoteName, lpBufferSize);
+    if (Status == WN_SUCCESS) {
+        DbgP((L"<-- NPGetConnection(lpRemoteName='%.*s',*lpBufferSize=%d) returns %d\n",
+            (int)*lpBufferSize,
+            lpRemoteName,
+            (int)*lpBufferSize,
+            (int)Status));
+    }
+    else {
+        DbgP((L"<-- NPGetConnection() returns %d\n", (int)Status));
+    }
 
+    return Status;
+}
+
+DWORD APIENTRY
+NPGetConnection3(
+    __in LPCWSTR                        lpLocalName,
+    __in DWORD                          dwLevel,
+    __out_bcount(*lpBufferSize) LPWSTR  lpRemoteName,
+    __inout LPDWORD                     lpBufferSize)
+{
+    DWORD Status = 0;
     HANDLE  hMutex, hMemory;
     PNFS41NP_SHARED_MEMORY  pSharedMemory;
 #ifdef NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE
     LUID authenticationid = { .LowPart = 0, .HighPart = 0L };
 #endif /* NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE */
 
-    DbgP((L"--> NPGetConnection(lpLocalName='%s')\n", lpLocalName));
+    DbgP((L"--> NPGetConnection3(lpLocalName='%s',dwLevel=%d)\n",
+        lpLocalName, (int)dwLevel));
+
+    if (dwLevel != WNGETCON_CONNECTED) {
+        Status = WN_SUCCESS;
+        goto out;
+    }
 
     if (lpLocalName == NULL) {
         lpLocalName = NFS41NP_LOCALNAME_UNC_MARKER;
@@ -1108,7 +1139,16 @@ NPGetConnection(
 
     CloseSharedMemory( &hMutex, &hMemory, (PVOID)&pSharedMemory);
 out:
-    DbgP((L"<-- NPGetConnection returns %d\n", (int)Status));
+    if (Status == WN_SUCCESS) {
+        DbgP((L"<-- NPGetConnection3(lpRemoteName='%.*s',*lpBufferSize=%d) returns %d\n",
+            (int)*lpBufferSize,
+            lpRemoteName,
+            (int)*lpBufferSize,
+            (int)Status));
+    }
+    else {
+        DbgP((L"<-- NPGetConnection3() returns %d\n", (int)Status));
+    }
 
     return Status;
 }
