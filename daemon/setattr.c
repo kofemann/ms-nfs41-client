@@ -352,7 +352,7 @@ static int handle_nfs41_rename(void *daemon_context, setattr_upcall_args *args)
     if (dst_path.len == 0) {
         eprintf("handle_nfs41_rename(args->path='%s'): "
             "WideCharToMultiByte() failed to convert destination "
-            "filename '%*S', lasterr=%d.\n",
+            "filename '%.*S', lasterr=%d.\n",
             args->path,
             (int)(rename->FileNameLength/sizeof(WCHAR)),
             rename->FileName,
@@ -511,7 +511,7 @@ static int handle_nfs41_link(void *daemon_context, setattr_upcall_args *args)
     if (dst_path.len == 0) {
         eprintf("handle_nfs41_link(args->path='%s'): "
             "WideCharToMultiByte() failed to convert destination "
-            "filename '%*S', lasterr=%d.\n",
+            "filename '%.*S', lasterr=%d.\n",
             args->path,
             (int)(link->FileNameLength/sizeof(WCHAR)),
             link->FileName, (int)GetLastError());

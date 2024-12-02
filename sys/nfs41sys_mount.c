@@ -427,7 +427,7 @@ NTSTATUS nfs41_MountConfig_ParseOptions(
         Name = (LPWSTR)Option->EaName;
         NameLen = Option->EaNameLength/sizeof(WCHAR);
 
-        DbgP("nfs41_MountConfig_ParseOptions: Name='%*S'/NameLen=%d\n",
+        DbgP("nfs41_MountConfig_ParseOptions: Name='%.*S'/NameLen=%d\n",
             (int)NameLen, Name, (int)NameLen);
 
         usValue.Length = usValue.MaximumLength = Option->EaValueLength;

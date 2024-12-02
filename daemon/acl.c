@@ -1114,13 +1114,13 @@ add_domain:
         (!strncmp(who_out, "Administrators@", who_size+1))) {
         domain = "BUILTIN";
         DPRINTF(1,
-            ("map_sid2nfs4ace_who: Fixup '%*s' domain='%s'\n",
+            ("map_sid2nfs4ace_who: Fixup '%.*s' domain='%s'\n",
             (int)who_size+1, who_out, domain));
     }
     else if (!strncmp(who_out, "SYSTEM@", who_size+1)) {
         domain = "NT AUTHORITY";
         DPRINTF(1,
-            ("map_sid2nfs4ace_who: Fixup '%*s' domain='%s'\n",
+            ("map_sid2nfs4ace_who: Fixup '%.*s' domain='%s'\n",
             (int)who_size+1, who_out, domain));
     }
 #endif /* NFS41_DRIVER_WS2022_HACKS */
