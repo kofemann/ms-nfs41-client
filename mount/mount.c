@@ -373,10 +373,13 @@ opt_o_argv_i_again:
                     goto out_free;
                 }
             }
-            else
-                (void)fwprintf(stderr, L"Unrecognized option "
-                    L"'%s', disregarding.\n",
+            else {
+                (void)fwprintf(stderr,
+                    L"Unrecognized option '%s'\n",
                     argv[i]);
+                result = 1;
+                goto out;
+            }
         }
         /* Windows-style "nfs_mount /?" help */
         else if (!wcscmp(argv[i], L"/?")) {
@@ -394,9 +397,11 @@ opt_o_argv_i_again:
             pRemoteName = argv[i];
         }
         else {
-            (void)fwprintf(stderr, L"Unrecognized argument "
-                L"'%s', disregarding.\n",
+            (void)fwprintf(stderr,
+                L"Unrecognized argument '%s'.\n",
                 argv[i]);
+            result = 1;
+            goto out;
         }
     }
 
