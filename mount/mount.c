@@ -1053,7 +1053,13 @@ static DWORD DoMount(
     NetResource.dwType = RESOURCETYPE_DISK;
     if (pLocalName) {
         /* drive letter is chosen automatically if lpLocalName == "*" */
-        NetResource.lpLocalName = *pLocalName == L'*' ? NULL : pLocalName;
+        if (*pLocalName == L'*') {
+            NetResource.lpLocalName = NULL;
+            Flags |= CONNECT_REDIRECT;
+        }
+        else {
+            NetResource.lpLocalName = pLocalName;
+        }
     }
     else {
         NetResource.lpLocalName = NULL;
