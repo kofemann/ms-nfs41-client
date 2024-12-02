@@ -43,14 +43,14 @@ NFSv4.1 filesystem driver for Windows 10/11&Windows Server 2019
       characters in the mount path, independent of current locale.
 
 - UNC paths
-    - Mounting UNC paths without DOS driver letterpacman -S --noconfirm
+    - Mounting UNC paths without DOS drive letter
     - IPv6 support in UNC paths
     - /sbin/nfs_mount prints UNC paths in Win32+Cygwin/MSYS2 formats
     - Cygwin/MSYS2 bash+ksh93 support UNC paths, e.g.
       cd //derfwnb4966@2049/nfs4/bigdisk/mysqldb4/
 
 - WSL support
-    - Mount Windows NFSv4.1 shares via driver letter or UNC path
+    - Mount Windows NFSv4.1 shares via drive letter or UNC path
       in WSL via mount -t drvfs
     - Supports NFS owner/group to WSL uid/gid mapping
 
@@ -369,14 +369,14 @@ does not wait until nfsd*.exe is available for accepting mounts.
 
 
 # WSL usage:
-Example 1: Mount Windows NFSv4.1 share via Windows driver letter
-# Mount NFSv4.1 share in Windows to driver letter 'N':
+Example 1: Mount Windows NFSv4.1 share via Windows drive letter
+# Mount NFSv4.1 share in Windows to drive letter 'N':
 ---- snip ----
 $ /sbin/nfs_mount -o rw 'N' nfs://10.49.202.230//bigdisk
 Successfully mounted '10.49.202.230@2049' to drive 'N:'
 ---- snip ----
 
-# Within WSL mount driver letter 'N' to /mnt/n
+# Within WSL mount drive letter 'N' to /mnt/n
 ---- snip ----
 $ sudo bash
 $ mkdir /mnt/n
