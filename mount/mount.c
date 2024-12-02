@@ -368,7 +368,7 @@ opt_o_argv_i_again:
                 if (!wcscmp(argv[i], L"nfs")) {
                     result = ERROR_BAD_ARGUMENTS;
                     (void)fwprintf(stderr, L"Filesystem type '%s' "
-                        L"not supported.\n\n./build.vc19/x64/Debug/nfs_mount.exe", argv[i]);
+                        L"not supported.\n\n.", argv[i]);
                     PrintMountUsage(argv[0]);
                     goto out_free;
                 }
