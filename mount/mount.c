@@ -24,6 +24,10 @@
 #error Code requires ISO C17
 #endif
 
+#ifndef _CRT_STDIO_ISO_WIDE_SPECIFIERS
+#error Code requires ISO wide-char behaviour
+#endif /* !_CRT_STDIO_ISO_WIDE_SPECIFIERS */
+
 #include <crtdbg.h>
 #include <Windows.h>
 #include <strsafe.h>
@@ -80,10 +84,10 @@ static
 void PrintMountUsage(LPWSTR pProcess)
 {
     (void)fwprintf(stderr,
-        L"Usage: %s [options] <drive letter|*> <hostname>:<path>\n"
-        "Usage: %s [options] <hostname>:<path>\n"
-        "Usage: %s -d [options] <drive letter>\n"
-        "Usage: %s\n"
+        L"Usage: %ls [options] <drive letter|*> <hostname>:<path>\n"
+        "Usage: %ls [options] <hostname>:<path>\n"
+        "Usage: %ls -d [options] <drive letter>\n"
+        "Usage: %ls\n"
 
         "* Options:\n"
         "\t-h, --help, /?\thelp\n"
@@ -174,7 +178,7 @@ static
 void PrintUmountUsage(LPWSTR pProcess)
 {
     (void)fwprintf(stderr,
-        L"Usage: %s [options] <drive letter>\n"
+        L"Usage: %ls [options] <drive letter>\n"
 
         "* Options:\n"
         "\t-h, --help, /?\thelp\n"
@@ -367,7 +371,7 @@ opt_o_argv_i_again:
 
                 if (!wcscmp(argv[i], L"nfs")) {
                     result = ERROR_BAD_ARGUMENTS;
-                    (void)fwprintf(stderr, L"Filesystem type '%s' "
+                    (void)fwprintf(stderr, L"Filesystem type '%ls' "
                         L"not supported.\n\n.", argv[i]);
                     PrintMountUsage(argv[0]);
                     goto out_free;
@@ -375,7 +379,7 @@ opt_o_argv_i_again:
             }
             else {
                 (void)fwprintf(stderr,
-                    L"Unrecognized option '%s'\n",
+                    L"Unrecognized option '%ls'\n",
                     argv[i]);
                 result = 1;
                 goto out;
@@ -398,7 +402,7 @@ opt_o_argv_i_again:
         }
         else {
             (void)fwprintf(stderr,
-                L"Unrecognized argument '%s'.\n",
+                L"Unrecognized argument '%ls'.\n",
                 argv[i]);
             result = 1;
             goto out;
@@ -409,7 +413,7 @@ opt_o_argv_i_again:
     if (pLocalName) {
         if (!ParseDriveLetter(pLocalName, szLocalName)) {
             result = ERROR_BAD_ARGUMENTS;
-            (void)fwprintf(stderr, L"Invalid drive letter '%s'. "
+            (void)fwprintf(stderr, L"Invalid drive letter '%ls'. "
                 L"Expected 'C' or 'C:'.\n\n",
                 pLocalName);
             PrintMountUsage(argv[0]);
@@ -503,7 +507,7 @@ int umount_main(int argc, wchar_t *argv[])
             }
             else {
                 (void)fwprintf(stderr, L"Unrecognized option "
-                    L"'%s', disregarding.\n",
+                    L"'%ls', disregarding.\n",
                     argv[i]);
                 result = ERROR_BAD_ARGUMENTS;
             }
@@ -520,7 +524,7 @@ int umount_main(int argc, wchar_t *argv[])
         }
         else {
             (void)fwprintf(stderr, L"Unrecognized argument "
-                L"'%s', disregarding.\n",
+                L"'%ls', disregarding.\n",
                 argv[i]);
         }
     }
@@ -534,7 +538,7 @@ int umount_main(int argc, wchar_t *argv[])
 
     if (!ParseDriveLetter(pLocalName, szLocalName)) {
         result = ERROR_BAD_ARGUMENTS;
-        (void)fwprintf(stderr, L"Invalid drive letter '%s'. "
+        (void)fwprintf(stderr, L"Invalid drive letter '%ls'. "
             L"Expected 'C' or 'C:'.\n\n",
             pLocalName);
         PrintUmountUsage(argv[0]);
@@ -604,7 +608,7 @@ int __cdecl wmain(int argc, wchar_t *argv[])
         goto out;
     }
     else {
-        (void)fwprintf(stderr, L"%s: Unknown mode\n", argv[0]);
+        (void)fwprintf(stderr, L"%ls: Unknown mode\n", argv[0]);
         result = 1;
         goto out;
     }
@@ -738,7 +742,7 @@ static DWORD ParseRemoteName(
 
         if (url_parser_parse(uctx) < 0) {
             result = ERROR_BAD_ARGUMENTS;
-            (void)fwprintf(stderr, L"Error parsing nfs://-URL '%S'.\n", premotename_utf8);
+            (void)fwprintf(stderr, L"Error parsing nfs://-URL '%s'.\n", premotename_utf8);
             goto out;
         }
 
@@ -774,7 +778,7 @@ static DWORD ParseRemoteName(
                         result = ERROR_BAD_ARGUMENTS;
                         (void)fwprintf(stderr,
                             L"Unsupported nfs://-URL parameter "
-                            L"'%S' value '%S'.\n",
+                            L"'%s' value '%s'.\n",
                             pname, pvalue);
                         goto out;
                     }
@@ -790,7 +794,7 @@ static DWORD ParseRemoteName(
                         result = ERROR_BAD_ARGUMENTS;
                         (void)fwprintf(stderr,
                             L"Unsupported nfs://-URL parameter "
-                            L"'%S' value '%S'.\n",
+                            L"'%s' value '%s'.\n",
                             pname, pvalue);
                         goto out;
                     }
@@ -798,7 +802,7 @@ static DWORD ParseRemoteName(
                 else {
                     result = ERROR_BAD_ARGUMENTS;
                     (void)fwprintf(stderr,
-                        L"Unsupported nfs://-URL parameter '%S'.\n",
+                        L"Unsupported nfs://-URL parameter '%s'.\n",
                         pname);
                     goto out;
                 }
@@ -811,7 +815,7 @@ static DWORD ParseRemoteName(
         hostname_wstr = utf8str2wcs(uctx->hostport.hostname);
         if (!hostname_wstr) {
             result = GetLastError();
-            (void)fwprintf(stderr, L"Cannot convert URL host '%S', lasterr=%d\n",
+            (void)fwprintf(stderr, L"Cannot convert URL host '%s', lasterr=%d\n",
                 uctx->hostport.hostname, result);
             goto out;
         }
@@ -835,7 +839,7 @@ static DWORD ParseRemoteName(
         pEnd = mountstrmem = utf8str2wcs(uctx->path);
         if (!mountstrmem) {
             result = GetLastError();
-            (void)fwprintf(stderr, L"Cannot convert URL path '%S', lasterr=%d\n",
+            (void)fwprintf(stderr, L"Cannot convert URL path '%s', lasterr=%d\n",
                 uctx->path, result);
             goto out;
         }
@@ -920,7 +924,7 @@ static DWORD ParseRemoteName(
             c = premotename[i];
             if (!(iswxdigit(c) || (c == L':'))) {
                 fwprintf(stderr, L"Failed to parse raw IPv6 "
-		    L"address, illegal character '%c' found.\n",
+		    L"address, illegal character '%lc' found.\n",
 		    c);
                 result = ERROR_BAD_ARGUMENTS;
                 goto out;
@@ -942,11 +946,11 @@ static DWORD ParseRemoteName(
 	 *   too
 	 */
         (void)swprintf(srvname, SRVNAME_LEN,
-	    L"%s.ipv6-literal.net@%d", premotename, port);
+	    L"%ls.ipv6-literal.net@%d", premotename, port);
     }
     else {
         /* ALWAYS add port number to hostname, so UNC paths use it too */
-        (void)swprintf(srvname, SRVNAME_LEN, L"%s@%d",
+        (void)swprintf(srvname, SRVNAME_LEN, L"%ls@%d",
 	    premotename, port);
     }
 
@@ -955,15 +959,15 @@ static DWORD ParseRemoteName(
      * address without ':', or just random garbage
      */
     if (wcschr(srvname, L':')) {
-        fwprintf(stderr,
-	    L"Illegal ':' character hostname '%s'.\n", srvname);
+        (void)fwprintf(stderr,
+	    L"Illegal ':' character hostname '%ls'.\n", srvname);
         result = ERROR_BAD_ARGUMENTS;
         goto out;
     }
 
 #ifdef DEBUG_MOUNT
     (void)fwprintf(stderr,
-        L"srvname='%s', mntpt='%s'\n",
+        L"srvname='%ls', mntpt='%ls'\n",
         srvname,
         pEnd);
 #endif
@@ -993,7 +997,7 @@ static DWORD ParseRemoteName(
 
 #ifdef DEBUG_MOUNT
     (void)fwprintf(stderr,
-        L"pConnectionName='%s', pParsedRemoteName='%s', use_nfspubfh='%d'\n",
+        L"pConnectionName='%ls', pParsedRemoteName='%ls', use_nfspubfh='%d'\n",
         pConnectionName,
         pParsedRemoteName,
         (int)use_nfspubfh);
@@ -1029,7 +1033,7 @@ static DWORD DoMount(
 
 #ifdef DEBUG_MOUNT
     (void)fwprintf(stderr,
-        L"DoMount(pLocalName='%s', pRemoteName='%s', pParsedRemoteName='%s')\n",
+        L"DoMount(pLocalName='%ls', pRemoteName='%ls', pParsedRemoteName='%ls')\n",
         pLocalName,
         pRemoteName,
         pParsedRemoteName);
@@ -1042,8 +1046,8 @@ static DWORD DoMount(
         result = WNetGetConnectionW(pLocalName, (LPWSTR)szExisting, &dwLength);
         if (result == NO_ERROR) {
             result = ERROR_ALREADY_ASSIGNED;
-            (void)fwprintf(stderr, L"Mount failed, drive '%s' is "
-                L"already assigned to '%s'.\n",
+            (void)fwprintf(stderr, L"Mount failed, drive '%ls' is "
+                L"already assigned to '%ls'.\n",
                 pLocalName, szExisting);
             return result;
         }
@@ -1085,11 +1089,11 @@ static DWORD DoMount(
         szConnection, &ConnectSize, &ConnectResult);
 
     if (result == NO_ERROR) {
-        (void)wprintf(L"Successfully mounted '%s' to drive '%s'\n",
+        (void)wprintf(L"Successfully mounted '%ls' to drive '%ls'\n",
             pParsedRemoteName, szConnection);
     }
     else {
-        (void)fwprintf(stderr, L"WNetUseConnectionW('%s', '%s') "
+        (void)fwprintf(stderr, L"WNetUseConnectionW('%ls', '%ls') "
             L"failed with error code %u.\n",
             pLocalName, pRemoteName, result);
     }
@@ -1109,15 +1113,15 @@ static DWORD DoUnmount(
     switch (result)
     {
     case NO_ERROR:
-        (void)wprintf(L"Drive '%s' unmounted successfully.\n",
+        (void)wprintf(L"Drive '%ls' unmounted successfully.\n",
             pLocalName);
         break;
     case ERROR_NOT_CONNECTED:
-        (void)fwprintf(stderr, L"Drive '%s' is not currently "
+        (void)fwprintf(stderr, L"Drive '%ls' is not currently "
             L"connected.\n", pLocalName);
         break;
     default:
-        (void)fwprintf(stderr, L"WNetCancelConnection2W('%s') failed "
+        (void)fwprintf(stderr, L"WNetCancelConnection2W('%ls') failed "
             L"with error code %u.\n", pLocalName, result);
         break;
     }

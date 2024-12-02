@@ -20,6 +20,10 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  */
 
+#ifndef _CRT_STDIO_ISO_WIDE_SPECIFIERS
+#error Code requires ISO wide-char behaviour
+#endif /* !_CRT_STDIO_ISO_WIDE_SPECIFIERS */
+
 #include <crtdbg.h>
 #include <Windows.h>
 #include <strsafe.h>
@@ -124,9 +128,9 @@ BOOL InsertOption(
     if (FindOptionByName(Name, Options, &Current)) {
         (void)fwprintf(stderr, L"Found a duplicate option "
             L"'%s%s%s' while parsing '%s%s%s'.\n",
-            (PTCH)Current->EaName,
+            (PWCH)Current->EaName,
             Current->EaValueLength ? L"=" : L"",
-            (PTCH)(Current->EaName + Current->EaNameLength + sizeof(wchar_t)),
+            (PWCH)(Current->EaName + Current->EaNameLength + sizeof(wchar_t)),
             Name, ValueLen ? L"=" : Value, Value);
         return FALSE;
     }
@@ -197,7 +201,7 @@ BOOL ParseMountOptions(
     IN LPWSTR Arg,
     IN OUT PMOUNT_OPTION_LIST Options)
 {
-    PTCH pos, comma, equals;
+    PWCH pos, comma, equals;
 
     pos = Arg;
     for (;;)
@@ -237,7 +241,7 @@ BOOL ParseMountOptions(
 
 out_empty_option:
     (void)fwprintf(stderr, L"Found an empty option while "
-        L"reading mount options at '%s'.\n",
+        L"reading mount options at '%ls'.\n",
         pos);
     return FALSE;
 }

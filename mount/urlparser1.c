@@ -25,6 +25,12 @@
 #error Code requires ISO C17
 #endif
 
+#ifdef _MSC_VER
+#ifndef _CRT_STDIO_ISO_WIDE_SPECIFIERS
+#error Code requires ISO wide-char behaviour
+#endif /* !_CRT_STDIO_ISO_WIDE_SPECIFIERS */
+#endif /* _MSC_VER */
+
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>

@@ -20,6 +20,14 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  */
 
+#if ((__STDC_VERSION__-0) < 201710L)
+#error Code requires ISO C17
+#endif
+
+#ifndef _CRT_STDIO_ISO_WIDE_SPECIFIERS
+#error Code requires ISO wide-char behaviour
+#endif /* !_CRT_STDIO_ISO_WIDE_SPECIFIERS */
+
 #include <Windows.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -203,7 +211,7 @@ void PrintMountLine(
 #pragma warning( pop )
     }
 
-    (void)wprintf(L"%-8s\t%-50s\t%-50s\t%-50S\n",
+    (void)wprintf(L"%-8ls\t%-50ls\t%-50ls\t%-50s\n",
         local, remote, cygwin_unc_buffer, cygwin_nfsurl_buffer);
 
     free(utf8unc);
@@ -238,9 +246,9 @@ DWORD EnumMounts(
     if (result)
         goto out_free;
 
-    (void)wprintf(L"Listing '%s' mounts:\n\n",
+    (void)wprintf(L"Listing '%ls' mounts:\n\n",
         NFS41_PROVIDER_NAME_U);
-    (void)wprintf(L"%-8s\t%-50s\t%-50s\t%-50s\n",
+    (void)wprintf(L"%-8ls\t%-50ls\t%-50ls\t%-50ls\n",
         L"Volume", L"Remote path", L"Cygwin UNC path", L"URL");
 
     do
@@ -269,7 +277,7 @@ DWORD EnumMounts(
 
     result = WNetCloseEnum(hEnum);
 
-    (void)wprintf(L"\nFound %d share%s.\n", dwTotal,
+    (void)wprintf(L"\nFound %d share%ls.\n", dwTotal,
         (dwTotal == 1) ? L"" : L"s");
 
 out_free:

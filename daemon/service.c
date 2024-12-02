@@ -21,6 +21,11 @@ FUNCTIONS:
   GetLastErrorText( LPTSTR lpszBuf, DWORD dwSize );
 
   ---------------------------------------------------------------------------*/
+
+#ifndef _CRT_STDIO_ISO_WIDE_SPECIFIERS
+#error Code requires ISO wide-char behaviour
+#endif /* !_CRT_STDIO_ISO_WIDE_SPECIFIERS */
+
 #include <windows.h>
 #ifndef STANDALONE_NFSD
 #include <stdio.h>
@@ -303,7 +308,7 @@ VOID AddToMessageLog(LPTSTR lpszMsg)
       //
       hEventSource = RegisterEventSource(NULL, TEXT(SZSERVICENAME));
 
-      _stprintf_s(szMsg,(sizeof(SZSERVICENAME) / sizeof(TCHAR)) + 100, TEXT("%s error: %d"), TEXT(SZSERVICENAME), dwErr);
+      _stprintf_s(szMsg,(sizeof(SZSERVICENAME) / sizeof(TCHAR)) + 100, TEXT("%ls error: %d"), TEXT(SZSERVICENAME), dwErr);
       lpszStrings[0] = szMsg;
       lpszStrings[1] = lpszMsg;
 
@@ -355,7 +360,7 @@ void CmdInstallService()
 
    if ( GetModuleFileName( NULL, szPath, 512 ) == 0 )
    {
-      _tprintf(TEXT("Unable to install %s - %s\n"), TEXT(SZSERVICEDISPLAYNAME), GetLastErrorText(szErr, 256));
+      _tprintf(TEXT("Unable to install %ls - %ls\n"), TEXT(SZSERVICEDISPLAYNAME), GetLastErrorText(szErr, 256));
       return;
    }
 
@@ -383,18 +388,18 @@ void CmdInstallService()
 
       if ( schService )
       {
-         _tprintf(TEXT("%s installed.\n"), TEXT(SZSERVICEDISPLAYNAME) );
+         _tprintf(TEXT("%ls installed.\n"), TEXT(SZSERVICEDISPLAYNAME) );
          CloseServiceHandle(schService);
       }
       else
       {
-         _tprintf(TEXT("CreateService failed - %s\n"), GetLastErrorText(szErr, 256));
+         _tprintf(TEXT("CreateService failed - %ls\n"), GetLastErrorText(szErr, 256));
       }
 
       CloseServiceHandle(schSCManager);
    }
    else
-      _tprintf(TEXT("OpenSCManager failed - %s\n"), GetLastErrorText(szErr,256));
+      _tprintf(TEXT("OpenSCManager failed - %ls\n"), GetLastErrorText(szErr,256));
 }
 
 
@@ -431,7 +436,7 @@ void CmdRemoveService()
          // try to stop the service
          if ( ControlService( schService, SERVICE_CONTROL_STOP, &ssStatus ) )
          {
-            _tprintf(TEXT("Stopping %s."), TEXT(SZSERVICEDISPLAYNAME));
+            _tprintf(TEXT("Stopping %ls."), TEXT(SZSERVICEDISPLAYNAME));
             Sleep( 1000 );
 
             while ( QueryServiceStatus( schService, &ssStatus ) )
@@ -446,28 +451,28 @@ void CmdRemoveService()
             }
 
             if ( ssStatus.dwCurrentState == SERVICE_STOPPED )
-               _tprintf(TEXT("\n%s stopped.\n"), TEXT(SZSERVICEDISPLAYNAME) );
+               _tprintf(TEXT("\n%ls stopped.\n"), TEXT(SZSERVICEDISPLAYNAME) );
             else
-               _tprintf(TEXT("\n%s failed to stop.\n"), TEXT(SZSERVICEDISPLAYNAME) );
+               _tprintf(TEXT("\n%ls failed to stop.\n"), TEXT(SZSERVICEDISPLAYNAME) );
 
          }
 
          // now remove the service
          if ( DeleteService(schService) )
-            _tprintf(TEXT("%s removed.\n"), TEXT(SZSERVICEDISPLAYNAME) );
+            _tprintf(TEXT("%ls removed.\n"), TEXT(SZSERVICEDISPLAYNAME) );
          else
-            _tprintf(TEXT("DeleteService failed - %s\n"), GetLastErrorText(szErr,256));
+            _tprintf(TEXT("DeleteService failed - %ls\n"), GetLastErrorText(szErr,256));
 
 
          CloseServiceHandle(schService);
       }
       else
-         _tprintf(TEXT("OpenService failed - %s\n"), GetLastErrorText(szErr,256));
+         _tprintf(TEXT("OpenService failed - %ls\n"), GetLastErrorText(szErr,256));
 
       CloseServiceHandle(schSCManager);
    }
    else
-      _tprintf(TEXT("OpenSCManager failed - %s\n"), GetLastErrorText(szErr,256));
+      _tprintf(TEXT("OpenSCManager failed - %ls\n"), GetLastErrorText(szErr,256));
 }
 
 
@@ -511,7 +516,7 @@ void CmdDebugService(int argc, char ** argv)
    lpszArgv = argv;
 #endif
 
-   _tprintf(TEXT("Debugging %s.\n"), TEXT(SZSERVICEDISPLAYNAME));
+   _tprintf(TEXT("Debugging %ls.\n"), TEXT(SZSERVICEDISPLAYNAME));
 
    SetConsoleCtrlHandler( ControlHandler, TRUE );
 
@@ -546,7 +551,7 @@ BOOL WINAPI ControlHandler ( DWORD dwCtrlType )
    {
    case CTRL_BREAK_EVENT:  // use Ctrl+C or Ctrl+Break to simulate
    case CTRL_C_EVENT:      // SERVICE_CONTROL_STOP in debug mode
-      _tprintf(TEXT("Stopping %s.\n"), TEXT(SZSERVICEDISPLAYNAME));
+      _tprintf(TEXT("Stopping %ls.\n"), TEXT(SZSERVICEDISPLAYNAME));
       ServiceStop();
       return TRUE;
       break;
@@ -590,7 +595,7 @@ LPTSTR GetLastErrorText( LPTSTR lpszBuf, DWORD dwSize )
        if (NULL != lpszTemp)
        {
            lpszTemp[lstrlen(lpszTemp)-2] = TEXT('\0');  //remove cr and newline character
-           _stprintf_s( lpszBuf, dwSize, TEXT("%s (0x%x)"), lpszTemp, GetLastError() );
+           _stprintf_s( lpszBuf, dwSize, TEXT("%ls (0x%x)"), lpszTemp, GetLastError() );
        }
    }
 
