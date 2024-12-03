@@ -1,22 +1,25 @@
 /*
- * NFSv4.1 client for Windows
+ * MIT License
+ *
  * Copyright (c) 2024 Roland Mainz <roland.mainz@nrubsig.org>
  *
- * Roland Mainz <roland.mainz@nrubsig.org>
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
  *
- * This library is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation; either version 2.1 of the License, or (at
- * your option) any later version.
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
  *
- * This library is distributed in the hope that it will be useful, but
- * without any warranty; without even the implied warranty of merchantability
- * or fitness for a particular purpose.  See the GNU Lesser General Public
- * License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this library; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
  */
 
 /* urlparser1.c - simple URL parser */
@@ -24,6 +27,15 @@
 #if ((__STDC_VERSION__-0) < 201710L)
 #error Code requires ISO C17
 #endif
+
+/*
+ * Build config:
+ * - Test paser
+ * #define TEST_URLPARSER 1
+ * - Use wide-char API, e.g. for Visual Studio if |stdout|/|stderr|
+ *   are in |_O_WTEXT| mode
+ * #define DBG_USE_WIDECHAR 1
+ */
 
 #ifdef _MSC_VER
 #ifndef _CRT_STDIO_ISO_WIDE_SPECIFIERS
@@ -37,7 +49,12 @@
 #include <ctype.h>
 #include <stdio.h>
 
-// #define TEST_URLPARSER 1
+#ifdef DBG_USE_WIDECHAR
+#include <wchar.h>
+#include <locale.h>
+#include <io.h>
+#include <fcntl.h>
+#endif /* DBG_USE_WIDECHAR */
 
 #include "urlparser1.h"
 
@@ -92,6 +109,20 @@ typedef struct _url_parser_context_private {
 #else
 #define D(x)
 #endif
+
+#ifdef DBG_USE_WIDECHAR
+/*
+ * Use wide-char APIs on WIN32, otherwise we cannot output
+ * Japanese/Chinese/etc correctly
+ */
+#define DBG_PUTS(str, fp)		fputws(L"" str, (fp))
+#define DBG_PUTC(c, fp)			fputwc(btowc(c), (fp))
+#define DBG_PRINTF(fp, fmt, ...)	fwprintf((fp), L"" fmt, __VA_ARGS__)
+#else
+#define DBG_PUTS(str, fp)		fputs((str), (fp))
+#define DBG_PUTC(c, fp)			fputc((c), (fp))
+#define DBG_PRINTF(fp, fmt, ...)	fprintf((fp), fmt, __VA_ARGS__)
+#endif /* DBG_USE_WIDECHAR */
 
 static
 void urldecodestr(char *outbuff, const char *buffer, size_t len)
@@ -175,7 +206,7 @@ int url_parser_parse(url_parser_context *ctx)
 {
 	url_parser_context_private *uctx = (url_parser_context_private *)ctx;
 
-	D((void)fprintf(stderr, "## parser in_url='%s'\n", uctx->c.in_url));
+	D((void)DBG_PRINTF(stderr, "## parser in_url='%s'\n", uctx->c.in_url));
 
 	char *s;
 	const char *urlstr = uctx->c.in_url;
@@ -183,7 +214,7 @@ int url_parser_parse(url_parser_context *ctx)
 
 	s = strstr(urlstr, "://");
 	if (!s) {
-		D((void)fprintf(stderr, "url_parser: Not an URL\n"));
+		D((void)DBG_PUTS("url_parser: Not an URL\n", stderr));
 		return -1;
 	}
 
@@ -192,7 +223,7 @@ int url_parser_parse(url_parser_context *ctx)
 	uctx->c.scheme[slen] = '\0';
 	urlstr += slen + 3;
 
-	D((void)fprintf(stdout, "scheme='%s', rest='%s'\n", uctx->c.scheme, urlstr));
+	D((void)DBG_PRINTF(stdout, "scheme='%s', rest='%s'\n", uctx->c.scheme, urlstr));
 
 	s = strstr(urlstr, "@");
 	if (s) {
@@ -207,8 +238,7 @@ int url_parser_parse(url_parser_context *ctx)
 			uctx->c.login.passwd = s+1;
 			*s = '\0';
 		}
-		else
-		{
+		else {
 			uctx->c.login.passwd = NULL;
 		}
 
@@ -216,13 +246,12 @@ int url_parser_parse(url_parser_context *ctx)
 		if (uctx->c.login.username[0] == '\0')
 			uctx->c.login.username = NULL;
 	}
-	else
-	{
+	else {
 		uctx->c.login.username = NULL;
 		uctx->c.login.passwd = NULL;
 	}
 
-	D((void)fprintf(stdout, "login='%s', passwd='%s', rest='%s'\n",
+	D((void)DBG_PRINTF(stdout, "login='%s', passwd='%s', rest='%s'\n",
 		DBGNULLSTR(uctx->c.login.username),
 		DBGNULLSTR(uctx->c.login.passwd),
 		DBGNULLSTR(urlstr)));
@@ -231,9 +260,10 @@ int url_parser_parse(url_parser_context *ctx)
 
 	uctx->c.num_parameters = 0;
 	raw_parameters = strstr(urlstr, "?");
-	if (raw_parameters) {
+	/* Do we have a non-empty parameter string ? */
+	if (raw_parameters && (raw_parameters[1] != '\0')) {
 		*raw_parameters++ = '\0';
-		D((void)fprintf(stdout, "raw parameters = '%s'\n", raw_parameters));
+		D((void)DBG_PRINTF(stdout, "raw parameters = '%s'\n", raw_parameters));
 
 		char *ps = raw_parameters;
 		char *pv; /* parameter value */
@@ -306,7 +336,7 @@ int url_parser_parse(url_parser_context *ctx)
 			s = strstr(s, "]");
 
 		if (s == NULL) {
-			D((void)fprintf(stderr, "url_parser: Unmatched '[' in hostname\n"));
+			D((void)DBG_PUTS("url_parser: Unmatched '[' in hostname\n", stderr));
 			return -1;
 		}
 
@@ -317,23 +347,27 @@ int url_parser_parse(url_parser_context *ctx)
 			*s = '\0';
 		}
 	}
-	else
-	{
+	else {
 		(void)strcpy(uctx->c.hostport.hostname, urlstr);
 		uctx->c.path = NULL;
 		urlstr = NULL;
 	}
 
-	D((void)fprintf(stdout, "hostport='%s', port=%d, rest='%s', num_parameters=%d\n",
-		DBGNULLSTR(uctx->c.hostport.hostname),
-		uctx->c.hostport.port,
-		DBGNULLSTR(urlstr),
-		(int)uctx->c.num_parameters));
+	D(
+		(void)DBG_PRINTF(stdout,
+			"hostport='%s', port=%d, rest='%s', num_parameters=%d\n",
+			DBGNULLSTR(uctx->c.hostport.hostname),
+			uctx->c.hostport.port,
+			DBGNULLSTR(urlstr),
+			(int)uctx->c.num_parameters);
+	);
+
 
 	D(
 		ssize_t dpi;
 		for (dpi = 0 ; dpi < uctx->c.num_parameters ; dpi++) {
-			(void)fprintf(stdout, "param[%d]: name='%s'/value='%s'\n",
+			(void)DBG_PRINTF(stdout,
+				"param[%d]: name='%s'/value='%s'\n",
 				(int)dpi,
 				uctx->c.parameters[dpi].name,
 				DBGNULLSTR(uctx->c.parameters[dpi].value));
@@ -345,7 +379,7 @@ int url_parser_parse(url_parser_context *ctx)
 	}
 
 	urldecodestr(uctx->c.path, urlstr, strlen(urlstr));
-	D((void)fprintf(stdout, "path='%s'\n", uctx->c.path));
+	D((void)DBG_PRINTF(stdout, "path='%s'\n", uctx->c.path));
 
 done:
 	return 0;
@@ -366,14 +400,18 @@ void test_url_parser(const char *instr)
 
 	(void)url_parser_parse(c);
 
-	(void)fputc('\n', stdout);
+	DBG_PUTC('\n', stdout);
 
 	url_parser_free_context(c);
 }
 
+
 int main(int ac, char *av[])
 {
-	(void)puts("#start");
+	(void)ac; /* not used */
+	(void)av; /* not used */
+
+	(void)DBG_PUTS("#start\n", stdout);
 
 	(void)setvbuf(stdout, NULL, _IONBF, 0);
 	(void)setvbuf(stderr, NULL, _IONBF, 0);
@@ -404,12 +442,13 @@ int main(int ac, char *av[])
 	(void)test_url_parser("foo://hostbar:93//path/path2?param1&param2=p2");
 	(void)test_url_parser("foo://hostbar:93?pname1=pvalue1&%E2%82%AC=u+n2&n3=v3");
 	(void)test_url_parser("foo://hostbar:93?pname1=pvalue1&%E2%82%AC=%E2%82%AC&n3=v3");
+	(void)test_url_parser("foo://hostbar:93?");
 
 	(void)test_url_parser("foo://");
 	(void)test_url_parser("typo:/hostbar");
 	(void)test_url_parser("wrong");
 
-	(void)puts("#done");
+	(void)DBG_PUTS("#done\n", stdout);
 
 	return EXIT_SUCCESS;
 }
