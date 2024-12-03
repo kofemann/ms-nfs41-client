@@ -132,7 +132,7 @@ static void clnt_vc_destroy(CLIENT *);
 static struct clnt_ops *clnt_vc_ops(void);
 static bool_t time_not_ok(struct timeval *);
 static int read_vc(void *, void *, int);
-static int write_vc(void *, char *, int);
+static int write_vc(void *, void *, int);
 
 struct ct_data {
 	int		ct_fd;		/* connection's fd */
@@ -1075,11 +1075,12 @@ read_vc(ctp, buf, len)
 }
 
 static int
-write_vc(ctp, buf, len)
+write_vc(ctp, bufp, len)
 	void *ctp;
-	char *buf;
+	void *bufp;
 	int len;
 {
+	char *buf = bufp;
 	struct ct_data *ct = (struct ct_data *)ctp;
 	int i = 0, cnt;
 

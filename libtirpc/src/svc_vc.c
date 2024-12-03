@@ -75,7 +75,7 @@ static enum xprt_stat rendezvous_stat(SVCXPRT *);
 static void svc_vc_destroy(SVCXPRT *);
 static void __svc_vc_dodestroy (SVCXPRT *);
 static int read_vc(void *, void *, int);
-static int write_vc(void *, char *, int);
+static int write_vc(void *, void *, int);
 static enum xprt_stat svc_vc_stat(SVCXPRT *);
 static bool_t svc_vc_recv(SVCXPRT *, struct rpc_msg *);
 static bool_t svc_vc_getargs(SVCXPRT *, xdrproc_t, void *);
@@ -567,18 +567,20 @@ fatal_err:
  * Any error is fatal and the connection is closed.
  */
 static int
-write_vc(xprtp, buf, len)
+write_vc(xprtp, bufp, len)
 	void *xprtp;
-	char *buf;
+	void *bufp;
 	int len;
 {
 	SVCXPRT *xprt;
+	char *buf;
 	int i, cnt;
 	struct cf_conn *cd;
 	struct timeval tv0 = { 0 }, tv1;
 
 	xprt = (SVCXPRT *)xprtp;
 	assert(xprt != NULL);
+	buf = bufp;
 
 	cd = (struct cf_conn *)xprt->xp_p1;
 

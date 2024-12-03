@@ -1038,7 +1038,7 @@ DWORD APIENTRY
 NPGetConnection3(
     __in LPCWSTR                        lpLocalName,
     __in DWORD                          dwLevel,
-    __out_bcount(*lpBufferSize) LPWSTR  lpRemoteName,
+    __out_bcount(*lpBufferSize) LPVOID  lpRemoteName,
     __inout LPDWORD                     lpBufferSize)
 {
     DWORD Status = 0;

@@ -552,8 +552,10 @@ static
 void nfsd_crt_debug_init(void)
 {
 #ifdef _DEBUG
-    /* dump memory leaks to stderr on exit; this requires the debug heap,
-    /* available only when built in debug mode under visual studio -cbodley */
+    /*
+     * dump memory leaks to stderr on exit; this requires the debug heap,
+     * available only when built in debug mode under visual studio -cbodley
+     */
 
     int crtsetdbgflags = nfs41_dg.crtdbgmem_flags;
 
