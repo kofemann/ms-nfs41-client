@@ -250,15 +250,14 @@ int mount_main(int argc, wchar_t *argv[])
                 {
                     result = ERROR_BAD_ARGUMENTS;
                     (void)fwprintf(stderr,
-                        L"Mount options missing after '-o'.\n\n");
-                    PrintMountUsage(argv[0]);
+                        L"Mount options missing after '-o'.\n");
                     goto out_free;
                 }
 
                 if (num_mntopts >= (MAX_MNTOPTS-1)) {
                     result = ERROR_BAD_ARGUMENTS;
                     (void)fwprintf(stderr,
-                        L"Too many -o options.\n\n");
+                        L"Too many -o options.\n");
                     goto out_free;
                 }
 
@@ -336,7 +335,7 @@ opt_o_argv_i_again:
                     (!wcscmp(argv[i], L"--read-only"))) {
                 if (num_mntopts >= (MAX_MNTOPTS-1)) {
                     result = ERROR_BAD_ARGUMENTS;
-                    (void)fwprintf(stderr, L"Too many options.\n\n");
+                    (void)fwprintf(stderr, L"Too many options.\n");
                     goto out_free;
                 }
 
@@ -348,7 +347,7 @@ opt_o_argv_i_again:
                     (!wcscmp(argv[i], L"--read-write"))) {
                 if (num_mntopts >= (MAX_MNTOPTS-1)) {
                     result = ERROR_BAD_ARGUMENTS;
-                    (void)fwprintf(stderr, L"Too many options.\n\n");
+                    (void)fwprintf(stderr, L"Too many options.\n");
                     goto out_free;
                 }
 
@@ -367,8 +366,7 @@ opt_o_argv_i_again:
                 {
                     result = ERROR_BAD_ARGUMENTS;
                     (void)fwprintf(stderr, L"Filesystem type missing "
-                        L"after '-t'/'-F'.\n\n");
-                    PrintMountUsage(argv[0]);
+                        L"after '-t'/'-F'.\n");
                     goto out_free;
                 }
 
@@ -381,8 +379,7 @@ opt_o_argv_i_again:
                 else {
                     result = ERROR_BAD_ARGUMENTS;
                     (void)fwprintf(stderr, L"Filesystem type '%ls' "
-                        L"not supported.\n\n.", argv[i]);
-                    PrintMountUsage(argv[0]);
+                        L"not supported.\n", argv[i]);
                     goto out_free;
                 }
             }
@@ -423,9 +420,8 @@ opt_o_argv_i_again:
         if (!ParseDriveLetter(pLocalName, szLocalName)) {
             result = ERROR_BAD_ARGUMENTS;
             (void)fwprintf(stderr, L"Invalid drive letter '%ls'. "
-                L"Expected 'C' or 'C:'.\n\n",
+                L"Expected 'C' or 'C:'.\n",
                 pLocalName);
-            PrintMountUsage(argv[0]);
             goto out_free;
         }
     }
@@ -447,8 +443,7 @@ opt_o_argv_i_again:
         if (pRemoteName == NULL)
         {
             result = ERROR_BAD_NET_NAME;
-            (void)fwprintf(stderr, L"Missing argument for remote path.\n\n");
-            PrintMountUsage(argv[0]);
+            (void)fwprintf(stderr, L"Missing argument for remote path.\n");
             goto out_free;
         }
 
@@ -548,9 +543,8 @@ int umount_main(int argc, wchar_t *argv[])
     if (!ParseDriveLetter(pLocalName, szLocalName)) {
         result = ERROR_BAD_ARGUMENTS;
         (void)fwprintf(stderr, L"Invalid drive letter '%ls'. "
-            L"Expected 'C' or 'C:'.\n\n",
+            L"Expected 'C' or 'C:'.\n",
             pLocalName);
-        PrintUmountUsage(argv[0]);
         goto out;
     }
 
@@ -778,7 +772,7 @@ static DWORD ParseRemoteName(
         if (!premotename_utf8) {
             result = GetLastError();
             (void)fwprintf(stderr,
-                L"wcs2utf8str() failed, lasterr=%d\n.",
+                L"wcs2utf8str() failed, lasterr=%d\n",
                 (int)result);
             goto out;
         }
