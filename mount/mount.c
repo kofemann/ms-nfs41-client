@@ -914,7 +914,7 @@ static DWORD ParseRemoteName(
         pEnd = wcsrchr(premotename, L':');
         if (pEnd == NULL || pEnd[1] != L'\\') {
             (void)fwprintf(stderr, L"Failed to parse the remote path. "
-                L"Expected 'hostname:\\path'.\n");
+                L"Expected 'hostname:\\path' or nfs://-URL.\n");
             result = ERROR_BAD_ARGUMENTS;
             goto out;
         }
