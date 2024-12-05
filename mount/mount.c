@@ -55,7 +55,8 @@
 #define MOUNT_CONFIG_NFS_PORT_DEFAULT   2049
 
 DWORD EnumMounts(
-    IN LPNETRESOURCEW pContainer);
+    IN LPNETRESOURCEW pContainer,
+    IN BOOL printURLShellSafe);
 
 static DWORD ParseRemoteName(
     IN bool use_nfspubfh,
@@ -101,6 +102,8 @@ void PrintMountUsage(LPWSTR pProcess)
         "\t-o. --options <comma-separated mount options>\n"
         "\t-r, --read-only\tAlias for -o ro (read-only mount)\n"
         "\t-w, --rw, --read-write\tAlias for -o rw (read-write mount)\n"
+        "\t-U, --urlencoding\tDefine encoding used by URLs\n"
+        "\t\t('rfc1738', 'posixshell'/'posixshellsafe', 'default')\n"
 
         "* Mount options:\n"
         "\tpublic\tconnect to the server using the public file handle lookup protocol.\n"
@@ -556,17 +559,55 @@ out:
 static
 int list_nfs_mounts_main(int argc, wchar_t *argv[])
 {
-    DWORD result;
+    int     i;
+    DWORD   result = NO_ERROR;
+    BOOL    bShellSafeURLEncoding = TRUE;
 
-    /* Unused for now */
-    (void)argc;
-    (void)argv;
+    /*
+     * parse command line
+     * (-h, --help, /? is handled by |mount_main()|)
+     */
+    for (i = 1; i < argc; i++) {
+        if ((!wcscmp(argv[i], L"-U")) ||
+                (!wcscmp(argv[i], L"--urlencoding"))) {
+            ++i;
+            if (i >= argc) {
+                result = ERROR_BAD_ARGUMENTS;
+                (void)fwprintf(stderr, L"URL encoding type missing "
+                    L"after '-U'/'--urlencoding'.\n");
+                goto out;
+            }
+
+            if (!wcscmp(argv[i], L"rfc1738")) {
+                bShellSafeURLEncoding = FALSE;
+            }
+            else if ((!wcscmp(argv[i], L"posixshellsafe")) ||
+                (!wcscmp(argv[i], L"posixshell")) ||
+                (!wcscmp(argv[i], L"default"))) {
+                bShellSafeURLEncoding = TRUE;
+            }
+            else {
+                result = ERROR_BAD_ARGUMENTS;
+                (void)fwprintf(stderr, L"URL encoding type '%ls' "
+                    L"not supported.\n", argv[i]);
+                goto out;
+            }
+        }
+        else {
+            (void)fwprintf(stderr, L"Unrecognized option "
+                L"'%ls'.\n",
+                argv[i]);
+            result = ERROR_BAD_ARGUMENTS;
+            goto out;
+        }
+    }
 
     /* list open nfs shares */
-    result = EnumMounts(NULL);
+    result = EnumMounts(NULL, bShellSafeURLEncoding);
     if (result)
         PrintErrorMessage(GetLastError());
 
+out:
     return result;
 }
 
@@ -595,7 +636,10 @@ int __cdecl wmain(int argc, wchar_t *argv[])
     (void)_CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_FILE);
     (void)_CrtSetReportMode(_CRT_ASSERT, _CRTDBG_MODE_FILE);
 
-    if (argc == 1) {
+    if ((argc == 1) ||
+        (((argc >= 2) && (argc <= 3)) &&
+            ((!wcscmp(argv[1], L"-U")) ||
+            (!wcscmp(argv[1], L"--urlencoding"))))) {
         result = list_nfs_mounts_main(argc, argv);
         goto out;
     }

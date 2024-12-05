@@ -287,12 +287,13 @@ function main
 
 	# fixme: Need better text layout for $ nfsurlconv --man #
 	typeset -r nfsurlconv_usage=$'+
-	[-?\n@(#)\$Id: nfsurlconv (Roland Mainz) 2024-11-25 \$\n]
+	[-?\n@(#)\$Id: nfsurlconv (Roland Mainz) 2024-12-04 \$\n]
 	[-author?Roland Mainz <roland.mainz@nrubsig.org>]
 	[+NAME?nfsurlconv - convert hostname,port,path from/to a nfs://-URL]
 	[+DESCRIPTION?\bnfsurlconv\b convert { hostname, port, path } from/to a nfs://-URL.]
 	[D:debug?Enable debugging.]
-	[S!:posixshellsafe?urlencode shell special characters.]
+	[U:urlencoding?Encoding method used \brfc1738\b or
+	\bposixshell\b/\bposixshellsafe\b (default).]:[encoding]
 
 	hostnameportpath2nfsurl hostname port path
 	hostnamepath2nfsurl hostname path
@@ -352,8 +353,19 @@ urlparameter=( name=param2 value=pvalue2 )
 			'D')
 				# fixme: Implement debugging option
 				;;
-			'S')
-				(( encode_posix_shell_safe=0 ))
+			'U')
+				case "$OPTARG" in
+					'rfc1738')
+						(( encode_posix_shell_safe=0 ))
+						;;
+					'posixshell' | 'posixshellsafe' | 'default')
+						(( encode_posix_shell_safe=1 ))
+						;;
+					*)
+						print -u2 -f $"%s: Unknown -U encoding %q\n" "$progname" "$OPTARG"
+						return 1
+						;;
+				esac
 				;;
 			*)
 				usage "${progname}" "${nfsurlconv_usage}"

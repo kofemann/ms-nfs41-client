@@ -43,8 +43,9 @@ void PrintErrorMessage(IN DWORD dwError);
 /* fixme: this function needs a cleanup */
 static __inline
 void PrintMountLine(
-    LPCWSTR local,
-    LPCWSTR remote)
+    IN LPCWSTR local,
+    IN LPCWSTR remote,
+    IN BOOL printURLShellSafe)
 {
     size_t remote_len = wcslen(remote);
     wchar_t *cygwin_unc_buffer =
@@ -106,9 +107,8 @@ void PrintMountLine(
  * in POSIX shells, e.g. '!', '(', ')', '*', "'", "$".
  * Fixme: This should be a command-line option
  */
-#define SHELL_SAFE_URLS 1
-#ifdef SHELL_SAFE_URLS
-#define ISVALIDURLCHAR(c) \
+
+#define ISVALIDSHELLSAFEURLCHAR(c) \
 	( \
             ((c) >= '0' && (c) <= '9') || \
 	    ((c) >= 'a' && (c) <= 'z') || \
@@ -116,7 +116,6 @@ void PrintMountLine(
             ((c) == '-') || ((c) == '_') || ((c) == '.') || \
             ((c) == '/') \
         )
-#else
 #define ISVALIDURLCHAR(c) \
 	( \
             ((c) >= '0' && (c) <= '9') || \
@@ -126,7 +125,6 @@ void PrintMountLine(
             ((c) == '!') || ((c) == '*') || ((c) == '\'') || \
             ((c) == '(') || ((c) == ')') || ((c) == ',') || ((c) == '/') \
         )
-#endif /* SHELL_SAFE_URLS */
 
     unsigned int slash_counter = 0;
     char *utf8unc = wcs2utf8str(cygwin_unc_buffer);
@@ -183,7 +181,9 @@ void PrintMountLine(
         if ((uc == '@') && (slash_counter == 0)) {
             *us++ = ':';
         }
-        else if (ISVALIDURLCHAR(uc)) {
+        else if (printURLShellSafe?
+                    (ISVALIDSHELLSAFEURLCHAR(uc)):
+                    (ISVALIDURLCHAR(uc))) {
             *us++ = uc;
         }
         else {
@@ -227,7 +227,8 @@ void PrintMountLine(
 #define ENUM_RESOURCE_BUFFER_SIZE (16*1024)
 
 DWORD EnumMounts(
-    IN LPNETRESOURCEW pContainer)
+    IN LPNETRESOURCEW pContainer,
+    IN BOOL printURLShellSafe)
 {
     DWORD result = NO_ERROR;
     LPNETRESOURCEW pResources;
@@ -265,7 +266,8 @@ DWORD EnumMounts(
                     NFS41_PROVIDER_NAME_U))
                 {
                     PrintMountLine(pResources[i].lpLocalName,
-                        pResources[i].lpRemoteName);
+                        pResources[i].lpRemoteName,
+                        printURLShellSafe);
                     dwTotal++;
                 }
             }
