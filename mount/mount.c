@@ -373,6 +373,12 @@ opt_o_argv_i_again:
                 }
 
                 if (!wcscmp(argv[i], L"nfs")) {
+                    /*
+                     * "nfs" is the only supported filesystem type
+                     * in nfs_mount.exe
+                     */
+                }
+                else {
                     result = ERROR_BAD_ARGUMENTS;
                     (void)fwprintf(stderr, L"Filesystem type '%ls' "
                         L"not supported.\n\n.", argv[i]);
