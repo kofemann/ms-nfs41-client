@@ -6,6 +6,7 @@ EXPORTS
 	NPAddConnection3
 	NPCancelConnection
 	NPGetConnection
+	NPGetConnection3
 	NPOpenEnum
 	NPEnumResource
 	NPCloseEnum
