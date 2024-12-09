@@ -434,7 +434,7 @@ NPGetCaps(
 {
     DWORD rc = 0;
 
-    DbgP((L"--> GetNetCaps(nIndex='%S'(=%d)\n",
+    DbgP((L"--> NPGetCaps(nIndex='%s'(=%d)\n",
         netcaps2string(nIndex), nIndex));
     switch(nIndex) {
         case WNNC_SPEC_VERSION:
@@ -467,7 +467,7 @@ NPGetCaps(
             break;
     }
 
-    DbgP((L"<-- GetNetCaps returns %d\n", (int)rc));
+    DbgP((L"<-- NPGetCaps returns %d\n", (int)rc));
     return rc;
 }
 
