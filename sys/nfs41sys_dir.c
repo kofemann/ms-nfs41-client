@@ -104,7 +104,7 @@ NTSTATUS marshal_nfs41_dirquery(
     __try {
         entry->u.QueryFile.mdl_buf =
             MmMapLockedPagesSpecifyCache(entry->u.QueryFile.mdl,
-                UserMode, MmCached, NULL, TRUE,
+                UserMode, MmCached, NULL, FALSE,
                 NormalPagePriority|MdlMappingNoExecute);
         if (entry->u.QueryFile.mdl_buf == NULL) {
             print_error("marshal_nfs41_dirquery: "

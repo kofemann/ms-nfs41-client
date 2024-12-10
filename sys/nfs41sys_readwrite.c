@@ -120,7 +120,7 @@ NTSTATUS marshal_nfs41_rw(
 #pragma warning( pop )
         entry->buf =
             MmMapLockedPagesSpecifyCache(entry->u.ReadWrite.MdlAddress,
-                UserMode, MmCached, NULL, TRUE, NormalPagePriority);
+                UserMode, MmCached, NULL, FALSE, NormalPagePriority);
         if (entry->buf == NULL) {
             print_error("marshal_nfs41_rw: "
                 "MmMapLockedPagesSpecifyCache() failed to map pages\n");

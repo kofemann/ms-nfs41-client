@@ -163,7 +163,7 @@ NTSTATUS marshal_nfs41_open(
         if (entry->u.Open.EaMdl) {
             entry->u.Open.EaBuffer =
                 MmMapLockedPagesSpecifyCache(entry->u.Open.EaMdl,
-                    UserMode, MmCached, NULL, TRUE,
+                    UserMode, MmCached, NULL, FALSE,
                     NormalPagePriority|MdlMappingNoExecute);
             if (entry->u.Open.EaBuffer == NULL) {
                 print_error("marshal_nfs41_open: "
