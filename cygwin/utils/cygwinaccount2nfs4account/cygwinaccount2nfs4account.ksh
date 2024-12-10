@@ -100,7 +100,7 @@ function getent_passwd2compound
 	out.stderr="${ { out.stdout="${ getent_local_domain_passwd "$username" ; (( out.res=$? )) ; }" ; } 2>&1 ; }"
 
 	if [[ "${out.stderr}" != '' ]] || (( out.res != 0 )) ; then
-		print -u2 $"%s: getent failed, msg=%q, res=%d\n" \
+		print -u2 -f $"%s: getent failed, msg=%q, res=%d\n" \
 			"$0" "${out.stderr}" out.res
 		return 1
 	fi
@@ -151,7 +151,7 @@ function getent_group2compound
 	out.stderr="${ { out.stdout="${ getent_local_domain_group "$groupname" ; (( out.res=$? )) ; }" ; } 2>&1 ; }"
 
 	if [[ "${out.stderr}" != '' ]] || (( out.res != 0 )) ; then
-		print -u2 $"%s: getent failed, msg=%q, res=%d\n" \
+		print -u2 -f $"%s: getent failed, msg=%q, res=%d\n" \
 			"$0" "${out.stderr}" out.res
 		return 1
 	fi
@@ -336,7 +336,7 @@ function convert_givenuser2linuxscript
 		(( out.res=$? )) ; }" ; } 2>&1 ; }"
 
 	if [[ "${out.stderr}" != '' ]] || (( out.res != 0 )) ; then
-		print -u2 $"%s: powershell querying groups from DS failed, msg=%q, res=%d\n" \
+		print -u2 -f $"%s: powershell querying groups from DS failed, msg=%q, res=%d\n" \
 			"$0" "${out.stderr}" out.res
 		return 1
 	fi
