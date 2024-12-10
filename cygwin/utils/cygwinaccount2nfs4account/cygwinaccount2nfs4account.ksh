@@ -382,7 +382,7 @@ function main
 {
 	set -o nounset
 
-	# fixme: Need better text layout for $ nfsurlconv --man #
+	# fixme: Need better text layout for $ cygwinaccount2nfs4account --man #
 	typeset -r cygwinaccount2nfs4account_usage=$'+
 	[-?\n@(#)\$Id: cygwinaccount2nfs4account (Roland Mainz) 2024-12-10 \$\n]
 	[-author?Roland Mainz <roland.mainz@nrubsig.org>]
