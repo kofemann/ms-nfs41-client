@@ -40,6 +40,52 @@ function usage
 	return 2
 }
 
+function getent_local_domain_passwd
+{
+	integer res
+	typeset passwdname="$1"
+
+	#
+	# first try local accounts and if getent does
+	# not find anything do a (normal) domain lookup
+	#
+	# Cygwin getent uses '+' prefix to search for local
+	# accounts only
+	#
+	getent passwd "+${passwdname}"
+	(( res=$? ))
+
+	if (( res == 2 )) ; then
+		getent passwd "${passwdname}"
+		(( res=$? ))
+	fi
+
+	return $res
+}
+
+function getent_local_domain_group
+{
+	integer res
+	typeset groupname="$1"
+
+	#
+	# first try local accounts and if getent does
+	# not find anything do a (normal) domain lookup
+	#
+	# Cygwin getent uses '+' prefix to search for local
+	# accounts only
+	#
+	getent group "+${groupname}"
+	(( res=$? ))
+
+	if (( res == 2 )) ; then
+		getent group "${groupname}"
+		(( res=$? ))
+	fi
+
+	return $res
+}
+
 function getent_passwd2compound
 {
 	set -o nounset
@@ -51,7 +97,7 @@ function getent_passwd2compound
 	compound out
 
 	# capture getent output
-	out.stderr="${ { out.stdout="${ getent passwd "$username" ; (( out.res=$? )) ; }" ; } 2>&1 ; }"
+	out.stderr="${ { out.stdout="${ getent_local_domain_passwd "$username" ; (( out.res=$? )) ; }" ; } 2>&1 ; }"
 
 	if [[ "${out.stderr}" != '' ]] || (( out.res != 0 )) ; then
 		print -u2 $"%s: getent failed, msg=%q, res=%d\n" \
@@ -102,7 +148,7 @@ function getent_group2compound
 	compound out
 
 	# capture getent output
-	out.stderr="${ { out.stdout="${ getent group "$groupname" ; (( out.res=$? )) ; }" ; } 2>&1 ; }"
+	out.stderr="${ { out.stdout="${ getent_local_domain_group "$groupname" ; (( out.res=$? )) ; }" ; } 2>&1 ; }"
 
 	if [[ "${out.stderr}" != '' ]] || (( out.res != 0 )) ; then
 		print -u2 $"%s: getent failed, msg=%q, res=%d\n" \
@@ -338,7 +384,7 @@ function main
 
 	# fixme: Need better text layout for $ nfsurlconv --man #
 	typeset -r cygwinaccount2nfs4account_usage=$'+
-	[-?\n@(#)\$Id: cygwinaccount2nfs4account (Roland Mainz) 2024-08-01 \$\n]
+	[-?\n@(#)\$Id: cygwinaccount2nfs4account (Roland Mainz) 2024-12-10 \$\n]
 	[-author?Roland Mainz <roland.mainz@nrubsig.org>]
 	[+NAME?cygwinaccount2nfs4account - convert Cygwin user/group account
 		info to Linux/UNIX NFSv4 server account data]
