@@ -180,6 +180,52 @@ compound -A localgroups=(
 	)
 )
 
+function getent_local_domain_passwd
+{
+	integer res
+	typeset passwdname="$1"
+
+	#
+	# first try local accounts and if getent does
+	# not find anything do a (normal) domain lookup
+	#
+	# Cygwin getent uses '+' prefix to search for local
+	# accounts only
+	#
+	getent passwd "+${passwdname}"
+	(( res=$? ))
+
+	if (( res == 2 )) ; then
+		getent passwd "${passwdname}"
+		(( res=$? ))
+	fi
+
+	return $res
+}
+
+function getent_local_domain_group
+{
+	integer res
+	typeset groupname="$1"
+
+	#
+	# first try local accounts and if getent does
+	# not find anything do a (normal) domain lookup
+	#
+	# Cygwin getent uses '+' prefix to search for local
+	# accounts only
+	#
+	getent group "+${groupname}"
+	(( res=$? ))
+
+	if (( res == 2 )) ; then
+		getent group "${groupname}"
+		(( res=$? ))
+	fi
+
+	return $res
+}
+
 if [[ -v c.localised_groupnames['None'] ]] ; then
 	localgroups+=(
 		["${c.localised_groupnames['None']}"]=(
@@ -229,7 +275,7 @@ case "${c.mode}" in
 		#
 		compound gec # getent compound var
 		typeset dummy1 dummy2
-		getent passwd "${c.name}" | \
+		getent_local_domain_passwd "${c.name}" | \
 			IFS=':' read gec.localaccountname dummy1 gec.localuid gec.localgid dummy2
 
 		if [[ "${gec.localaccountname-}" != '' ]] ; then
@@ -268,7 +314,7 @@ case "${c.mode}" in
 		#
 		compound gec # getent compound var
 		typeset dummy1 dummy2
-		getent group "${c.name}" | \
+		getent_local_domain_group "${c.name}" | \
 			IFS=':' read gec.localgroupname dummy1 gec.localgid dummy2
 
 		if [[ "${gec.localgroupname-}" != '' ]] ; then
