@@ -767,6 +767,10 @@ NTSTATUS nfs41_Read(
     IN OUT PRX_CONTEXT RxContext);
 NTSTATUS nfs41_Write(
     IN OUT PRX_CONTEXT RxContext);
+ULONG nfs41_ExtendForCache(
+    IN OUT PRX_CONTEXT RxContext,
+    IN PLARGE_INTEGER pNewFileSize,
+    OUT PLARGE_INTEGER pNewAllocationSize);
 
 /* nfs41sys_symlink.c */
 NTSTATUS marshal_nfs41_symlink(

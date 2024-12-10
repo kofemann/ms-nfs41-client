@@ -434,3 +434,34 @@ out:
 #endif
     return status;
 }
+
+ULONG nfs41_ExtendForCache(
+    IN OUT PRX_CONTEXT RxContext,
+    IN PLARGE_INTEGER pNewFileSize,
+    OUT PLARGE_INTEGER pNewAllocationSize)
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    __notnull PNFS41_FCB nfs41_fcb = NFS41GetFcbExtension(RxContext->pFcb);
+#ifdef DEBUG_CACHE
+    PLOWIO_CONTEXT LowIoContext  = &RxContext->LowIoContext;
+    DbgEn();
+    print_debug_header(RxContext);
+    DbgP("input: bytecount=0x%lx filesize=0x%llx allocsize=0x%llx\n",
+        (long)LowIoContext->ParamsFor.ReadWrite.ByteCount,
+        (long long)pNewFileSize->QuadPart,
+        (long long)pNewAllocationSize->QuadPart);
+#endif
+    pNewAllocationSize->QuadPart = pNewFileSize->QuadPart + 8192;
+    nfs41_fcb->StandardInfo.AllocationSize.QuadPart =
+        pNewAllocationSize->QuadPart;
+    nfs41_fcb->StandardInfo.EndOfFile.QuadPart = pNewFileSize->QuadPart;
+#ifdef DEBUG_CACHE
+    DbgP("newfilesize=0x%llx newallocationsize=0x%llx\n",
+        (long long)pNewFileSize->QuadPart,
+        (long long)pNewAllocationSize->QuadPart);
+#endif
+#ifdef DEBUG_CACHE
+    DbgEx();
+#endif
+    return status;
+}
