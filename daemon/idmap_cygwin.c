@@ -146,6 +146,9 @@ int cygwin_getent_passwd(const char *name, char *res_loginname, uid_t *res_uid, 
         }
     }
 
+    if (!localaccountname)
+        goto fail;
+
     /*
      * Cygwin /usr/bin/getent passwd can return "Unknown+User"
      * in cases when an SID is valid but does not match an account.
@@ -157,9 +160,6 @@ int cygwin_getent_passwd(const char *name, char *res_loginname, uid_t *res_uid, 
             name, localaccountname);
         goto fail;
     }
-
-    if (!localaccountname)
-        goto fail;
 
     if (res_loginname)
         (void)strcpy_s(res_loginname, VAL_LEN, localaccountname);
@@ -286,6 +286,9 @@ int cygwin_getent_group(const char* name, char* res_group_name, gid_t* res_gid)
         }
     }
 
+    if (!localgroupname)
+        goto fail;
+
     /*
      * Cygwin /usr/bin/getent group can return "Unknown+Group"
      * in cases when an SID is valid but does not match an account.
@@ -297,9 +300,6 @@ int cygwin_getent_group(const char* name, char* res_group_name, gid_t* res_gid)
             name, localgroupname);
         goto fail;
     }
-
-    if (!localgroupname)
-        goto fail;
 
     if (res_group_name)
         (void)strcpy_s(res_group_name, VAL_LEN, localgroupname);
