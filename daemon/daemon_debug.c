@@ -785,7 +785,7 @@ void print_condwait_status(int level, int status)
         case WAIT_ABANDONED: fprintf(dlog_file, "WAIT_ABANDONED\n"); break;
         case WAIT_OBJECT_0: fprintf(dlog_file, "WAIT_OBJECT_0\n"); break;
         case WAIT_TIMEOUT: fprintf(dlog_file, "WAIT_TIMEOUT\n"); break;
-        case WAIT_FAILED: fprintf(dlog_file, "WAIT_FAILED %d\n", GetLastError());
+        case WAIT_FAILED: fprintf(dlog_file, "WAIT_FAILED %d\n", (int)GetLastError());
         default: fprintf(dlog_file, "unknown status =%d\n", status);
     }
 }
@@ -793,10 +793,10 @@ void print_condwait_status(int level, int status)
 void print_sr_status_flags(int level, int flags)
 {
     if (level > g_debug_level) return;
-    fprintf(dlog_file, "%04x: sr_status_flags: ", GetCurrentThreadId());
-    if (flags & SEQ4_STATUS_CB_PATH_DOWN) 
+    fprintf(dlog_file, "%04x: sr_status_flags: ", (int)GetCurrentThreadId());
+    if (flags & SEQ4_STATUS_CB_PATH_DOWN)
         fprintf(dlog_file, "SEQ4_STATUS_CB_PATH_DOWN ");
-    if (flags & SEQ4_STATUS_CB_GSS_CONTEXTS_EXPIRING) 
+    if (flags & SEQ4_STATUS_CB_GSS_CONTEXTS_EXPIRING)
         fprintf(dlog_file, "SEQ4_STATUS_CB_GSS_CONTEXTS_EXPIRING ");
     if (flags & SEQ4_STATUS_CB_GSS_CONTEXTS_EXPIRED) 
         fprintf(dlog_file, "SEQ4_STATUS_CB_GSS_CONTEXTS_EXPIRED ");
