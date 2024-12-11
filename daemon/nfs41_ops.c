@@ -378,6 +378,8 @@ static void open_delegation_return(
 
     /* clear the delegation type returned by nfs41_open() */
     delegation->type = OPEN_DELEGATE_NONE;
+
+    EASSERT(status == 0);
 }
 
 static void open_update_cache(
