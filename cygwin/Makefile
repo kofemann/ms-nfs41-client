@@ -69,6 +69,14 @@ build_testutils:
 build: build_32bit_release build_32bit_debug build_64bit_release build_64bit_debug build_arm_64bit_debug build_testutils
 	sync
 
+# 32bit kernel only build, for Windows <= 10/32bit
+# - BUG: ARM64 build not working yet
+build32: \
+	build_32bit_release \
+	build_32bit_debug \
+	build_testutils
+	sync
+
 # 64bit kernel only build, for Visual Studio 2022 build
 # - VS2022 no longe supports building 32bit kernel modules
 # - we need 32bit nfs_mount.exe for testing
@@ -140,7 +148,7 @@ installdest: installdest_util installdest32 .WAIT installdest64
 
 bintarball: installdest
 	set -o errexit ; set -o xtrace ; \
-	base_filename="msnfs41client_cygwin_binaries_$$(date +%Y%m%d_%Hh%Mm)_git$$(git rev-parse --short HEAD)" ; \
+	base_filename="msnfs41client_cygwin_64bit32bit_binaries_$$(date +%Y%m%d_%Hh%Mm)_git$$(git rev-parse --short HEAD)" ; \
 	( \
 	cd "$(DESTDIR)" && \
 	tar -cvf - \
@@ -160,9 +168,30 @@ bintarball: installdest
 	ls -l "$(DESTDIR)/$${base_filename}.readme"
 	sync
 
+bintarball32: installdest32
+	set -o errexit ; set -o xtrace ; \
+	base_filename="msnfs41client_cygwin_32bit_binaries_$$(date +%Y%m%d_%Hh%Mm)_git$$(git rev-parse --short HEAD)" ; \
+	( \
+	cd "$(DESTDIR)" && \
+	tar -cvf - \
+		--owner=SYSTEM:18 \
+		--group=SYSTEM:18 \
+		cygdrive/c/cygwin \
+		| \
+			bzip2 -9 >"$${base_filename}.tar.bz2" ; \
+	archive_sha256hash="$$(openssl sha256 -r "$${base_filename}.tar.bz2" | while read a dummy ; do printf "%s\n" "$$a" ; done)" ; \
+		sed -E <"../cygwin/README.bintarball.txt" \
+			-e "s/\\$$\{bintarball.base_filename\}/$${base_filename}/g" \
+			-e "s/\\$$\{bintarball.archive_sha256hash\}/$${archive_sha256hash}/g" >"$${base_filename}.readme" \
+	) ; \
+	printf "\n#\n# 32bit-only tarball is ready now\n#\n" ; \
+	ls -l "$(DESTDIR)/$${base_filename}.tar.bz2" ; \
+	ls -l "$(DESTDIR)/$${base_filename}.readme"
+	sync
+
 bintarball64: installdest64
 	set -o errexit ; set -o xtrace ; \
-	base_filename="msnfs41client_cygwin_binaries_$$(date +%Y%m%d_%Hh%Mm)_git$$(git rev-parse --short HEAD)" ; \
+	base_filename="msnfs41client_cygwin_64bit_binaries_$$(date +%Y%m%d_%Hh%Mm)_git$$(git rev-parse --short HEAD)" ; \
 	( \
 	cd "$(DESTDIR)" && \
 	tar -cvf - \
