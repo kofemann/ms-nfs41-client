@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <sddl.h>
 #include <lmcons.h>
+#include <direct.h> /* for |_getcwd()| */
 
 #include "daemon_debug.h"
 #include "from_kernel.h"
@@ -54,16 +55,30 @@ void open_log_files()
 
     elog_file = fopen(efile, mode);
     if (elog_file == NULL) {
+        char *cwd;
         lasterr = GetLastError();
+        cwd = _getcwd(NULL, 1);
+        (void)fprintf(stderr,
+            "open_log_files: "
+            "Cannot open log file '%s\\%s', lasterr=%d\n",
+            cwd, efile, (int)lasterr);
         ReportStatusToSCMgr(SERVICE_STOPPED, lasterr, 0);
-        exit(lasterr);
+        free(cwd);
+        exit(1);
     }
 
     dlog_file = fopen(dfile, mode);
     if (dlog_file == NULL) {
+        char *cwd;
         lasterr = GetLastError();
+        cwd = _getcwd(NULL, 1);
+        (void)fprintf(stderr,
+            "open_log_files: "
+            "Cannot open log file '%s\\%s', lasterr=%d\n",
+            cwd, dfile, (int)lasterr);
         ReportStatusToSCMgr(SERVICE_STOPPED, lasterr, 0);
-        exit(lasterr);
+        free(cwd);
+        exit(1);
     }
 }
 

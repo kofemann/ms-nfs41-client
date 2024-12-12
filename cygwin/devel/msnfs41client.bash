@@ -516,6 +516,13 @@ function nfsclient_system_rundeamon
 	# gets printed correctly on a terminal
 	chcp.com 65001
 
+	# make sure nfsd running as user "SYSTEM" can write
+	# its log files to CWD
+	# We explicitly use the SID ("S-1-5-18") for user "SYSTEM",
+	# because the username can be localised, e.g.
+	# $'Syst\xc3\xa8me' for French Windows
+	icacls "$(cygpath -w "$PWD")" /grant '*S-1-5-18:(F)'
+
 	typeset -a nfsd_args=(
 		'nfsd.exe'
 		'-debug'
