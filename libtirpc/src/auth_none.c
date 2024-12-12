@@ -86,7 +86,7 @@ static bool_t authnone_validate (AUTH *, struct opaque_auth *, u_int);
 static bool_t authnone_refresh (AUTH *, void *);
 static void authnone_destroy (AUTH *);
 
-extern bool_t xdr_opaque_auth();
+extern bool_t xdr_opaque_auth(XDR *, struct opaque_auth *);
 
 static struct auth_ops *authnone_ops();
 

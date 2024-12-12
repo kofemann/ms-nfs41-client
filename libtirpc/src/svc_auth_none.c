@@ -38,8 +38,8 @@
 #include <wintirpc.h>
 #include <rpc/rpc.h>
 
-//static bool_t	svcauth_none_destroy();
-//static bool_t   svcauth_none_wrap();
+//static bool_t	svcauth_none_destroy(SVCAUTH *);
+//static bool_t   svcauth_none_wrap(SVCAUTH *, XDR *, bool_t (*)(XDR *, ...), char *);
 
 static bool_t
 svcauth_none_destroy(SVCAUTH *auth)
