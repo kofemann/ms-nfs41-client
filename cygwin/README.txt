@@ -49,6 +49,9 @@ make bintarball
 export PATH="/cygdrive/c/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/:$PATH"
 git clone https://github.com/kofemann/ms-nfs41-client.git
 cd ms-nfs41-client
+# "retarget" VS platform toolset to "v143"
+# ("v142" should remain the default when comitting)
+sed -i -E 's/<PlatformToolset>v142<\/PlatformToolset>/<PlatformToolset>v143<\/PlatformToolset>/g' $(find 'build.vc19' -name \*.vcxproj)
 cd cygwin
 make build64
 make installdest64
