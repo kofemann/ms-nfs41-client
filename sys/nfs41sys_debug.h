@@ -64,7 +64,11 @@ void print_debug_header(PRX_CONTEXT RxContext);
 #define PTR2PTRDIFF_T(p) (((char *)(p))-((char *)0))
 #define PsGetCurrentProcessShortDebugId() ((int)PTR2PTRDIFF_T(PsGetCurrentProcessId()))
 
-
+#ifdef NDEBUG
+#define DbgEn()
+#define DbgEx()
+#define DbgR()
+#else
 #define DbgEn() DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, \
         "--> [%s] [%04x] %s\n", _DRIVER_NAME_, PsGetCurrentProcessShortDebugId(), \
         __func__); __try {
@@ -83,6 +87,7 @@ void print_debug_header(PRX_CONTEXT RxContext);
             exc_status = GetExceptionCode() ; \
             DbgP("Exception encountered with value = 0x%lx\n", (long)exc_status); \
         }
+#endif /* NDEBUG */
 
 /* These are for ToasterDebugPrint */
 
