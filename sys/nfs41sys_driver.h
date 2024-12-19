@@ -48,8 +48,10 @@
     (POOL_FLAG_UNINITIALIZED|POOL_FLAG_CACHE_ALIGNED)
 
 #define RxAllocatePoolWithTag(rxallocpool, numbytes, tag) \
-    ExAllocatePool2(((((rxallocpool) == NonPagedPoolNx)? \
-            POOL_FLAG_NON_PAGED:POOL_FLAG_NON_PAGED_EXECUTE) | \
+    ExAllocatePool2((( \
+            ((rxallocpool) == PagedPool)?POOL_FLAG_PAGED: \
+                (((rxallocpool) == NonPagedPoolNx)? \
+                    POOL_FLAG_NON_PAGED:POOL_FLAG_NON_PAGED_EXECUTE)) | \
             RXALLOCATEPOOL_DEFAULT_ALLOCATEPOOL2FLAGS), \
         (numbytes), (tag))
 #endif /* EXALLOCATEPOOLWITHTAG_DEPRECATED */
