@@ -333,6 +333,15 @@ static BOOLEAN isOpen2Create(
     return FALSE;
 }
 
+static BOOLEAN isWriteOnlyDesiredAccess(PNT_CREATE_PARAMETERS params)
+{
+    if (((params->DesiredAccess & (FILE_EXECUTE|FILE_READ_DATA)) == 0) &&
+        ((params->DesiredAccess & (FILE_WRITE_DATA|FILE_APPEND_DATA)) != 0)) {
+        return TRUE;
+    }
+    return FALSE;
+}
+
 static BOOLEAN areOpenParamsValid(NT_CREATE_PARAMETERS *params)
 {
     /* from ms-fsa page 52 */
@@ -851,6 +860,19 @@ retry_on_link:
 #ifdef DEBUG_OPEN
         DbgP("nfs41_Create: received delegation %d\n", entry->u.Open.deleg_type);
 #endif
+
+        /*
+         * We cannot have a file cached on a write-only handle,
+         * so we have to set |SRVOPEN_FLAG_DONTUSE_WRITE_CACHING|
+         * in this case.
+         */
+        if (isWriteOnlyDesiredAccess(params)) {
+            SrvOpen->Flags |= SRVOPEN_FLAG_DONTUSE_WRITE_CACHING;
+            DbgP("nfs41_Create: write-only handle for file '%wZ', "
+                "setting SRVOPEN_FLAG_DONTUSE_WRITE_CACHING\n",
+                SrvOpen->pAlreadyPrefixedName);
+        }
+
         if (!(params->CreateOptions & FILE_WRITE_THROUGH) &&
                 !pVNetRootContext->write_thru &&
                 (entry->u.Open.deleg_type == 2 ||

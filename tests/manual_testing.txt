@@ -1,5 +1,5 @@
 #
-# ms-nfs41-client manual testing sequence, 2024-07-04
+# ms-nfs41-client manual testing sequence, 2024-12-19
 #
 # Draft version, needs to be turned into automated tests
 # if possible
@@ -455,6 +455,38 @@ drmemory -batch -check_uninit_all -strict_bitops -logdir "$(cygpath -w "$PWD")" 
 #
 # Run Windows tar (/cygdrive/c/Windows/system32/tar) tests
 # on NFSv4.1 filesystem
+#
+# Notes:
+# - Win10 /cygdrive/c/Windows/system32/tar uses write-only handles
+#   which should turn-off write caching. If we do not turn off
+#   write caching in this case "wintartest_seq001.bash" will fail
+#   like this (might require a few hundred cycles, and only fails
+#   on a freshly booted machine):
+#   -------- snip --------
+#   #### Test cycle 11 (usingbzip=true,tarfileonlocaldisk=true):
+#   x 1seq.txt
+#   x 100seq.txt
+#   x 1040seq.txt
+#   x 5000seq.txt
+#   x 10000seq.txt
+#   x 12000seq.txt
+#   #### Test cycle 12 (usingbzip=true,tarfileonlocaldisk=true):
+#   x 1seq.txt
+#   x 100seq.txt
+#   x 1040seq.txt
+#   x 5000seq.txt
+#   x 10000seq.txt
+#   x 12000seq.txt
+#   ## ERROR: Zero byte in plain /usr/bin/seq output 10000seq.txt found:
+#   ---- snip ----
+#   000000 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+#   000010 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+#   000020 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+#   000030 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+#   000040 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+#   ---- snip ----
+#   -------- snip --------
+#
 #
 
 cd /cygdrive/n/xxx/
