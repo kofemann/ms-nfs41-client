@@ -690,16 +690,18 @@ retry_on_link:
     }
 
     status = nfs41_UpcallWaitForReply(entry, pVNetRootContext->timeout);
+
     if (entry->psec_ctx == &entry->sec_ctx) {
         SeDeleteClientSecurity(entry->psec_ctx);
     }
     entry->psec_ctx = NULL;
-    if (status) goto out;
 
     if (entry->u.Open.EaMdl) {
         MmUnlockPages(entry->u.Open.EaMdl);
         IoFreeMdl(entry->u.Open.EaMdl);
     }
+
+    if (status) goto out;
 
     if (entry->status == NO_ERROR && entry->errno == ERROR_REPARSE) {
         /* symbolic link handling. when attempting to open a symlink when the

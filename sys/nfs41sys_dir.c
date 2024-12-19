@@ -288,8 +288,10 @@ NTSTATUS nfs41_QueryDirectory(
     entry->u.QueryFile.return_single = RxContext->QueryDirectory.ReturnSingleEntry;
 
     status = nfs41_UpcallWaitForReply(entry, pVNetRootContext->timeout);
-    if (status) goto out;
+
     MmUnlockPages(entry->u.QueryFile.mdl);
+
+    if (status) goto out;
 
     if (entry->status == STATUS_BUFFER_TOO_SMALL) {
         DbgP("nfs41_QueryDirectory: buffer too small provided %d need %lu\n",
