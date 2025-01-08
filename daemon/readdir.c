@@ -767,6 +767,13 @@ fetch_entries:
         nfs41_readdir_entry *entry = (nfs41_readdir_entry*)entry_buf;
         entry->cookie = 0;
         entry->name_len = (uint32_t)strlen(args->filter) + 1;
+        if (entry->name_len >= NFS41_MAX_COMPONENT_LEN) {
+            DPRINTF(1,
+                ("entry->name_len(=%d) >= NFS41_MAX_COMPONENT_LEN\n",
+                (int)entry->name_len));
+            status = ERROR_FILENAME_EXCED_RANGE;
+            goto out_free_cookie;
+        }
         StringCbCopyA(entry->name, entry->name_len, args->filter);
         entry->next_entry_offset = 0;
 
