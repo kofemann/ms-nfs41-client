@@ -53,7 +53,8 @@ void compound_init(
     compound->args.argarray = argops;
 
     /* initialize results */
-    ZeroMemory(&compound->res, sizeof(nfs41_compound_res));
+    compound->res.status = 0;
+    compound->res.tag[0] = '\0';
     compound->res.tag_len = NFS4_OPAQUE_LIMIT;
     compound->res.resarray_count = 0;
     compound->res.resarray = resops;
