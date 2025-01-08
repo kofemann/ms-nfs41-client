@@ -745,7 +745,7 @@ function require_file
 	typeset testfile="$1"
 
 	if [[ ! -f "$testfile" ]] ; then
-		printf $"%s: File %q not found in %q\n" "$0" "$cmd" "$PWD" 1>&2
+		printf $"%s: File %q not found in %q\n" "$0" "$testfile" "$PWD" 1>&2
 		return 1
 	fi
 	return 0
