@@ -40,7 +40,7 @@
  * We use |128| here to pack as much data into one compound
  * to optimise for high latency links (satellite, ssh tunnel etc.)
  *
- * The real value is negotiated with the NFSv4.1 server
+ * The real value is negotiated with the NFSv4.2/4.1 server
  * at session creation time (e.g. (|min(
  * session->fore_chan_attrs.ca_maxoperations|,
  * MAX_LOOKUP_COMPONENTS)|), see |max_lookup_components()| below.
@@ -135,7 +135,8 @@ static int lookup_rpc(
     nfs_argop4 argops[4+MAX_LOOKUP_COMPONENTS*3];
     nfs_resop4 resops[4+MAX_LOOKUP_COMPONENTS*3];
 
-    compound_init(&compound, argops, resops, "lookup");
+    compound_init(&compound, session->client->root->nfsminorvers,
+        argops, resops, "lookup");
 
     compound_add_op(&compound, OP_SEQUENCE, &args->sequence, &res->sequence);
     nfs41_session_sequence(&args->sequence, session, 0);

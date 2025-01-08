@@ -3624,6 +3624,27 @@ static const op_table_entry g_op_table[] = {
     { encode_op_want_delegation, decode_op_want_delegation }, /* OP_WANT_DELEGATION = 56 */
     { encode_op_destroy_clientid, decode_op_destroy_clientid }, /* OP_DESTROY_CLIENTID = 57 */
     { encode_op_reclaim_complete, decode_op_reclaim_complete }, /* OP_RECLAIM_COMPLETE = 58 */
+
+    /* new operations for NFSv4.2 */
+    { NULL, NULL }, /* OP_ALLOCATE = 59, */
+    { NULL, NULL }, /* OP_COPY = 60, */
+    { NULL, NULL }, /* OP_COPY_NOTIFY = 61, */
+    { NULL, NULL }, /* OP_DEALLOCATE = 62, */
+    { NULL, NULL }, /* OP_IO_ADVISE = 63, */
+    { NULL, NULL }, /* OP_LAYOUTERROR = 64, */
+    { NULL, NULL }, /* OP_LAYOUTSTATS = 65, */
+    { NULL, NULL }, /* OP_OFFLOAD_CANCEL = 66, */
+    { NULL, NULL }, /* OP_OFFLOAD_STATUS = 67, */
+    { NULL, NULL }, /* OP_READ_PLUS = 68, */
+    { NULL, NULL }, /* OP_SEEK = 69, */
+    { NULL, NULL }, /* OP_WRITE_SAME = 70, */
+    { NULL, NULL }, /* OP_CLONE = 71, */
+
+    /* xattr support (RFC8726) */
+    { NULL, NULL }, /* OP_GETXATTR = 72, */
+    { NULL, NULL }, /* OP_SETXATTR = 73, */
+    { NULL, NULL }, /* OP_LISTXATTRS = 74, */
+    { NULL, NULL }, /* OP_REMOVEXATTR = 75, */
 };
 static const uint32_t g_op_table_size = ARRAYSIZE(g_op_table);
 

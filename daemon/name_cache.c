@@ -1356,7 +1356,8 @@ static int rpc_array_putfh(
 
     *valid_out = 0;
 
-    compound_init(&compound, argops, resops, "array_putfh");
+    compound_init(&compound, session->client->root->nfsminorvers,
+        argops, resops, "array_putfh");
 
     compound_add_op(&compound, OP_SEQUENCE, &sequence_args, &sequence_res);
     nfs41_session_sequence(&sequence_args, session, 0);

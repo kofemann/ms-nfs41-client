@@ -222,13 +222,13 @@ enum nfsstat4 {
     NFS4ERR_DELEG_REVOKED       = 10087,    /* deleg./layout revoked   */
 
     /* NFSv4.2 errors start here... */
-    NFS4ERR_PARTNER_NOTSUPP     = 10088,
-    NFS4ERR_PARTNER_NO_AUTH     = 10089,
-    NFS4ERR_UNION_NOTSUPP       = 10090,
-    NFS4ERR_OFFLOAD_DENIED      = 10091,
-    NFS4ERR_WRONG_LFS           = 10092,
-    NFS4ERR_BADLABEL            = 10093,
-    NFS4ERR_OFFLOAD_NO_REQS     = 10094,
+    NFS4ERR_PARTNER_NOTSUPP     = 10088,    /* s2s not supported       */
+    NFS4ERR_PARTNER_NO_AUTH     = 10089,    /* s2s not authorized      */
+    NFS4ERR_UNION_NOTSUPP       = 10090,    /* arm of union not supp   */
+    NFS4ERR_OFFLOAD_DENIED      = 10091,    /* dest not allowing copy  */
+    NFS4ERR_WRONG_LFS           = 10092,    /* LFS not supported       */
+    NFS4ERR_BADLABEL            = 10093,    /* incorrect label         */
+    NFS4ERR_OFFLOAD_NO_REQS     = 10094,    /* dest not meeting reqs   */
 
     /* NFSv4 xattr (RFC 8276) error codes start here... */
     NFS4ERR_NOXATTR             = 10095,

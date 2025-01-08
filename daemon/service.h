@@ -66,7 +66,7 @@ extern "C" {
 // internal name of the service
 #define SZSERVICENAME        "pnfs"
 // displayed name of the service
-#define SZSERVICEDISPLAYNAME "NFSv4.1 Client"
+#define SZSERVICEDISPLAYNAME "NFSv4.2 Client"
 // list of service dependencies - "dep1\0dep2\0\0"
 #define SZDEPENDENCIES       ""
 //////////////////////////////////////////////////////////////////////////////

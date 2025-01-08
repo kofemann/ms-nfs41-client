@@ -62,6 +62,7 @@ int compound_error(int status);
 
 void compound_init(
     nfs41_compound *compound,
+    int minorversion,
     nfs_argop4 *argops,
     nfs_resop4 *resops,
     const char *tag);

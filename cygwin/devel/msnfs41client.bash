@@ -1,8 +1,8 @@
 #!/bin/bash
 
 #
-# msnfs41client.bash - simple Cygwin frontent for the msnfsv41
-# NFSv4.1 filesystem driver development
+# msnfs41client.bash - simple Cygwin frontent for the msnfs41client
+# NFSv4.2/NFSv4.1 filesystem driver development
 #
 
 #

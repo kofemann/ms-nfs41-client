@@ -1,10 +1,10 @@
 #
-# NFSv4.1 server setup for testing
+# NFSv4.2/NFSv4.1 server setup for testing
 #
 
 #
 # TODO:
-# - Debian Linux NFSv4.1 server setup
+# - Debian Linux NFSv4.2 server setup
 # - Solaris 11.4 NFSv4.1 server setup
 # - Illumos 11.4 NFSv4.1 server setup
 # - FreeBSD NFSv4.1 server setup

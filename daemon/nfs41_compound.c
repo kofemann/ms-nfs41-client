@@ -40,6 +40,7 @@ int compound_error(int status)
 
 void compound_init(
     nfs41_compound *compound,
+    int minorversion,
     nfs_argop4 *argops,
     nfs_resop4 *resops,
     const char *tag)
@@ -47,7 +48,7 @@ void compound_init(
     /* initialize args */
     compound->args.tag_len = (uint32_t)strlen(tag);
     memcpy(compound->args.tag, tag, compound->args.tag_len);
-    compound->args.minorversion = 1;
+    compound->args.minorversion = minorversion;
     compound->args.argarray_count = 0;
     compound->args.argarray = argops;
 

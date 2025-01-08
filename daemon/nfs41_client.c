@@ -174,7 +174,8 @@ int nfs41_client_renew(
     nfs41_exchange_id_res exchangeid = { 0 };
     int status;
 
-    status = nfs41_exchange_id(client->rpc, &client->owner,
+    status = nfs41_exchange_id(client->rpc,
+        client->root->nfsminorvers, &client->owner,
         nfs41_exchange_id_flags(client->is_data), &exchangeid);
     if (status) {
         eprintf("nfs41_exchange_id() failed with %d\n", status);
@@ -362,6 +363,7 @@ out:
 int nfs41_client_owner(
     IN const char *name,
     IN uint32_t port,
+    IN int nfsminorvers,
     IN bool use_nfspubfh,
     IN uint32_t sec_flavor,
     OUT client_owner4 *owner)
@@ -419,6 +421,13 @@ int nfs41_client_owner(
         status = GetLastError();
         eprintf("CryptCreateHash() failed with %d\n", status);
         goto out_context;
+    }
+
+    if (!CryptHashData(hash,
+        (const BYTE*)&nfsminorvers, (DWORD)sizeof(int), 0)) {
+        status = GetLastError();
+        eprintf("CryptHashData() failed with %d\n", status);
+        goto out_hash;
     }
 
     if (!CryptHashData(hash,

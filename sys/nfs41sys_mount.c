@@ -112,7 +112,7 @@ NTSTATUS marshal_nfs41_mount(
         goto out;
     }
     header_len = *len + length_as_utf8(entry->u.Mount.srv_name) +
-        length_as_utf8(entry->u.Mount.root) + 4 * sizeof(DWORD);
+        length_as_utf8(entry->u.Mount.root) + 5 * sizeof(DWORD);
     if (header_len > buf_len) {
         status = STATUS_INSUFFICIENT_RESOURCES;
         goto out;
@@ -128,16 +128,20 @@ NTSTATUS marshal_nfs41_mount(
     RtlCopyMemory(tmp, &entry->u.Mount.wsize, sizeof(DWORD));
     tmp += sizeof(DWORD);
     RtlCopyMemory(tmp, &entry->u.Mount.use_nfspubfh, sizeof(DWORD));
+    tmp += sizeof(DWORD);
+    RtlCopyMemory(tmp, &entry->u.Mount.nfsvers, sizeof(DWORD));
 
     *len = header_len;
 
 #ifdef DEBUG_MARSHAL_DETAIL
     DbgP("marshal_nfs41_mount: server name='%wZ' mount point='%wZ' "
-         "sec_flavor='%s' rsize=%d wsize=%d use_nfspubfh=%d\n",
+         "sec_flavor='%s' rsize=%d wsize=%d use_nfspubfh=%d "
+         "nfsvers=%d\n",
 	 entry->u.Mount.srv_name, entry->u.Mount.root,
          secflavorop2name(entry->u.Mount.sec_flavor),
          (int)entry->u.Mount.rsize, (int)entry->u.Mount.wsize,
-         (int)entry->u.Mount.use_nfspubfh);
+         (int)entry->u.Mount.use_nfspubfh,
+         (int)entry->u.Mount.nfsvers);
 #endif
 out:
     return status;
@@ -227,6 +231,7 @@ NTSTATUS map_mount_errors(
     case ERROR_BAD_NET_NAME:    return STATUS_BAD_NETWORK_NAME;
     case ERROR_BAD_NETPATH:     return STATUS_BAD_NETWORK_PATH;
     case ERROR_NOT_SUPPORTED:   return STATUS_NOT_SUPPORTED;
+    case ERROR_NFS_VERSION_MISMATCH: return STATUS_NFS_VERSION_MISMATCH;
     case ERROR_INTERNAL_ERROR:  return STATUS_INTERNAL_ERROR;
     default:
         print_error("map_mount_errors: "
@@ -261,6 +266,7 @@ NTSTATUS nfs41_mount(
     entry->u.Mount.rsize = config->ReadSize;
     entry->u.Mount.wsize = config->WriteSize;
     entry->u.Mount.use_nfspubfh = config->use_nfspubfh;
+    entry->u.Mount.nfsvers = config->nfsvers;
     entry->u.Mount.sec_flavor = sec_flavor;
     entry->u.Mount.FsAttrs = FsAttrs;
 
@@ -295,6 +301,7 @@ void nfs41_MountConfig_InitDefaults(
     Config->ReadSize = MOUNT_CONFIG_RW_SIZE_DEFAULT;
     Config->WriteSize = MOUNT_CONFIG_RW_SIZE_DEFAULT;
     Config->use_nfspubfh = FALSE;
+    Config->nfsvers = NFS_VERSION_AUTONEGOTIATION;
     Config->ReadOnly = FALSE;
     Config->write_thru = FALSE;
     Config->nocache = FALSE;
@@ -483,6 +490,16 @@ NTSTATUS nfs41_MountConfig_ParseOptions(
             status = nfs41_MountConfig_ParseDword(Option, &usValue,
                 &Config->WriteSize, MOUNT_CONFIG_RW_SIZE_MIN,
                 MOUNT_CONFIG_RW_SIZE_MAX);
+        }
+        else if (wcsncmp(L"vers", Name, NameLen) == 0) {
+            if (wcsncmp(L"4.2", usValue.Buffer, usValue.Length) == 0)
+                Config->nfsvers = 42;
+            else if (wcsncmp(L"4.1", usValue.Buffer, usValue.Length) == 0)
+                Config->nfsvers = 41;
+            else {
+                status = STATUS_INVALID_PARAMETER;
+                print_error("Invalid vers= string\n");
+            }
         }
         else if (wcsncmp(L"public", Name, NameLen) == 0) {
             /*
@@ -874,6 +891,8 @@ NTSTATUS nfs41_CreateVNetRoot(
             DbgP("nfs41_MountConfig_ParseOptions() failed\n");
             goto out_free;
         }
+
+        pVNetRootContext->nfsvers = Config->nfsvers;
         pVNetRootContext->read_only = Config->ReadOnly;
         pVNetRootContext->write_thru = Config->write_thru;
         pVNetRootContext->nocache = Config->nocache;
@@ -996,6 +1015,7 @@ NTSTATUS nfs41_CreateVNetRoot(
             goto out_free;
         }
 
+        pVNetRootContext->nfsvers = Config->nfsvers;
         pVNetRootContext->read_only = Config->ReadOnly;
         pVNetRootContext->write_thru = Config->write_thru;
         pVNetRootContext->nocache = Config->nocache;
@@ -1008,6 +1028,7 @@ NTSTATUS nfs41_CreateVNetRoot(
         "MntPt='%wZ', "
         "SrvName='%wZ', "
         "usenfspubfh=%d, "
+        "nfsvers=%d, "
         "ro=%d, "
         "writethru=%d, "
         "nocache=%d "
@@ -1019,6 +1040,7 @@ NTSTATUS nfs41_CreateVNetRoot(
         &Config->MntPt,
         &Config->SrvName,
         Config->use_nfspubfh?1:0,
+        (int)Config->nfsvers,
         Config->ReadOnly?1:0,
         Config->write_thru?1:0,
         Config->nocache?1:0,

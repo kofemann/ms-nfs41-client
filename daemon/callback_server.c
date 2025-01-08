@@ -387,9 +387,10 @@ static void handle_cb_compound(nfs41_rpc_clnt *rpc_clnt, cb_req *req, struct cb_
     }
 
     DPRINTF(CBSLVL, ("CB_COMPOUND('%s', %u)\n", args.tag.str, args.argarray_count));
-    if (args.minorversion != 1) {
+    if ((args.minorversion != 1) && (args.minorversion != 2)) {
         res->status = NFS4ERR_MINOR_VERS_MISMATCH; //XXXXX
-        eprintf("args.minorversion %u != 1\n", args.minorversion);
+        eprintf("handle_cb_compound: args.minorversion %u != 1/2\n",
+            (unsigned int)args.minorversion);
         goto out;
     }
 

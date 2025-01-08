@@ -37,6 +37,7 @@ typedef struct __mount_upcall_args {
     DWORD       rsize;
     DWORD       wsize;
     DWORD       use_nfspubfh;
+    DWORD       nfsvers;
     DWORD       lease_time;
     FILE_FS_ATTRIBUTE_INFORMATION FsAttrs;
 } mount_upcall_args;

@@ -208,6 +208,7 @@ typedef struct _updowncall_entry {
             DWORD wsize;
             DWORD lease_time;
             DWORD use_nfspubfh;
+            DWORD nfsvers;
         } Mount;
         struct {
             PMDL MdlAddress;
@@ -308,6 +309,7 @@ typedef struct _NFS41_MOUNT_CREATEMODE {
 
 typedef struct _NFS41_MOUNT_CONFIG {
     BOOLEAN use_nfspubfh;
+    DWORD nfsvers;
     DWORD ReadSize;
     DWORD WriteSize;
     BOOLEAN ReadOnly;
@@ -415,6 +417,7 @@ typedef struct _NFS41_V_NET_ROOT_EXTENSION {
     NFS41_MOUNT_CREATEMODE  dir_createmode;
     NFS41_MOUNT_CREATEMODE  file_createmode;
     USHORT                  MountPathLen;
+    DWORD                   nfsvers;
     BOOLEAN                 read_only;
     BOOLEAN                 write_thru;
     BOOLEAN                 nocache;

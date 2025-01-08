@@ -1,5 +1,5 @@
 #
-# ms-nfs41-client manual testing sequence, 2024-12-19
+# ms-nfs41-client manual testing sequence, 2025-01-08
 #
 # Draft version, needs to be turned into automated tests
 # if possible
@@ -94,8 +94,8 @@
 #   regtool -i set '/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows/CurrentVersion/Policies/DataCollection/AllowTelemetry' 0
 #   ---- snip ----
 #
-# - A timeserver shoud be running on both Windows (NFSv4.1 client and
-#   NFSv4.1 server).
+# - A timeserver shoud be running on both Windows (NFSv4.2/NFSv4.1
+#   client and NFSv4.2/NFSv4.1 server).
 #   For example on Windows add timeserver 10.49.0.6 like this:
 #   ---- snip ----
 #   sc config w32time start=auto
@@ -196,7 +196,7 @@ root@DERFWNB4966:~# usermod -a -G cygwingrp2 roland_mainz
 #
 Testcase:
 -------- snip --------
-# cd to a NFSv4.1 filesystem
+# cd to a NFS >= v4.1 filesystem
 $ rm -f test1.txt
 $ touch test1.txt
 $ icacls test1.txt /grant:r 'cygwingrp1:(WDAC)' /t /c
@@ -220,7 +220,7 @@ other::r--
 
 or one-liner:
 -------- snip --------
-# cd to a NFSv4.1 filesystem
+# cd to a NFS >= v4.1 filesystem
 # getfact output should contain both "cygwingrp1" and "cygwingrp2"
 ksh93 -c 'rm -f test1.txt ; touch test1.txt ; icacls test1.txt /grant:r "cygwingrp1:(WDAC)" /grant:r "cygwingrp2:(WDAC)" /t /c ; getfacl test1.txt | grep -C 20 --colour -E "cygwingrp[12]"'
 -------- snip --------
@@ -244,7 +244,7 @@ icacls mytestfile1.txt | grep --colour -E 'cygwingrp2.+GR'
 
 #
 # Compile each of the following package
-# on a NFSv4.1 share, and run each build in parallel/sequence
+# on a NFS >= v4.1 share, and run each build in parallel/sequence
 # multiple times on one or multiple mounts
 #
 # ./nfs_mount -p -o sec=sys T derfwnb4966_ipv6:/net_tmpfs2
@@ -364,7 +364,7 @@ make -j8 all
 
 
 #
-# Run Cygwin installer from NFSv4.1 share
+# Run Cygwin installer from NFS >= v4.1 share
 #
 wget 'https://www.cygwin.com/setup-x86_64.exe'
 chmod a+rx setup-x86_64.exe
@@ -440,21 +440,21 @@ svn checkout https://svn.FreeBSD.org/base/head/share/man
 
 
 #
-# Run parallel make job on NFSv4.1 filesystem (/cygdrive/n/xxx/)
+# Run parallel make job on NFS >= v4.1 filesystem (/cygdrive/n/xxx/)
 #
 cd /cygdrive/n/xxx/
 time ksh93 $msnfs41clientgitroot/tests/fstest_make_numtree1/fstest_make_numtree1.ksh93 all
 
 
 #
-# Run DrMemory with log dir on NFSv4.1 filesystem
+# Run DrMemory with log dir on NFS >= v4.1 filesystem
 #
 cd /cygdrive/n/xxx/
 drmemory -batch -check_uninit_all -strict_bitops -logdir "$(cygpath -w "$PWD")" -- "$(cygpath -w /sbin/nfs_mount)"
 
 #
 # Run Windows tar (/cygdrive/c/Windows/system32/tar) tests
-# on NFSv4.1 filesystem
+# on NFS >= v4.1 filesystem
 #
 # Notes:
 # - Win10 /cygdrive/c/Windows/system32/tar uses write-only handles

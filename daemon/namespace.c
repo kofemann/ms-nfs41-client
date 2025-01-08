@@ -26,6 +26,9 @@
 #include "nfs41_ops.h"
 #include "util.h"
 #include "daemon_debug.h"
+/* for |ERROR_NFS_VERSION_MISMATCH|+|NFS_VERSION_AUTONEGOTIATION| */
+#include "nfs41_driver.h"
+
 
 
 #define NSLVL 2 /* dprintf level for namespace logging */
@@ -39,6 +42,7 @@ int nfs41_root_create(
     IN const char *name,
     IN uint32_t port,
     IN bool use_nfspubfh,
+    IN DWORD nfsvers,
     IN uint32_t sec_flavor,
     IN uint32_t wsize,
     IN uint32_t rsize,
@@ -47,7 +51,10 @@ int nfs41_root_create(
     int status = NO_ERROR;
     nfs41_root *root;
 
-    DPRINTF(NSLVL, ("--> nfs41_root_create(name='%s', port=%d)\n", name, port));
+    DPRINTF(NSLVL,
+        ("--> nfs41_root_create(name='%s', port=%d, "
+            "use_nfspubfh=%d, nfsvers=%d)\n",
+            name, port, (int)use_nfspubfh, (int)nfsvers));
 
     root = calloc(1, sizeof(nfs41_root));
     if (root == NULL) {
@@ -57,6 +64,17 @@ int nfs41_root_create(
 
     list_init(&root->clients);
     root->use_nfspubfh = use_nfspubfh;
+    if (nfsvers == NFS_VERSION_AUTONEGOTIATION) {
+        /*
+         * Use auto negotiation, |nfs41_root_mount_addrs()| will
+         * set |root->nfsminorvers| to the minor version being used
+         */
+        root->nfsminorvers = NFS_VERSION_AUTONEGOTIATION;
+    }
+    else {
+        root->nfsminorvers = nfsvers % 10; /* 41 --> 1, 42 --> 2, ... */
+        EASSERT((root->nfsminorvers >= 1) && (root->nfsminorvers <= 2));
+    }
     root->wsize = wsize;
     root->rsize = rsize;
     InitializeCriticalSection(&root->lock);
@@ -64,7 +82,8 @@ int nfs41_root_create(
     root->sec_flavor = sec_flavor;
 
     /* generate a unique client_owner */
-    status = nfs41_client_owner(name, port, use_nfspubfh, sec_flavor, &root->client_owner);
+    status = nfs41_client_owner(name, port, root->nfsminorvers,
+        use_nfspubfh, sec_flavor, &root->client_owner);
     if (status) {
         eprintf("nfs41_client_owner() failed with %d\n", status);
         free(root);
@@ -368,12 +387,49 @@ int nfs41_root_mount_addrs(
         goto out;
     }
 
+    bool nfsminorvers_autonegotiate = false;
+
+    /*
+     * NFSv4 protocol minor version "autonegotiation"
+     * First try with 4.2, and if this fails try 4.1
+     */
+    if (root->nfsminorvers == NFS_VERSION_AUTONEGOTIATION) {
+        root->nfsminorvers = 2;
+        nfsminorvers_autonegotiate = true;
+    }
+
+retry_nfs41_exchange_id:
+    if (nfsminorvers_autonegotiate) {
+        DPRINTF(0, ("nfs41_root_mount_addrs: "
+            "Autonegotiating NFS version, "
+            "trying NFSv4.%d\n",
+            (int)root->nfsminorvers));
+    }
+
     /* get a clientid with exchangeid */
-    status = nfs41_exchange_id(rpc, &root->client_owner,
+    status = nfs41_exchange_id(rpc, root->nfsminorvers,
+        &root->client_owner,
         nfs41_exchange_id_flags(is_data), &exchangeid);
     if (status) {
-        eprintf("nfs41_exchange_id() failed '%s'\n", nfs_error_string(status));
-        status = ERROR_BAD_NET_RESP;
+        if (status == NFS4ERR_MINOR_VERS_MISMATCH) {
+            if (nfsminorvers_autonegotiate &&
+                (root->nfsminorvers >= 1)) {
+                root->nfsminorvers--;
+                goto retry_nfs41_exchange_id;
+            }
+
+            eprintf("nfs41_root_mount_addrs: "
+                "nfs41_exchange_id() NFS4ERR_MINOR_VERS_MISMATCH,"
+                "nfsminorvers=%d failed\n",
+                (int)root->nfsminorvers);
+            status = ERROR_NFS_VERSION_MISMATCH;
+        }
+        else {
+            eprintf("nfs41_root_mount_addrs: "
+                "nfs41_exchange_id() failed '%s'\n",
+                nfs_error_string(status));
+            status = ERROR_BAD_NET_RESP;
+        }
         goto out_free_rpc;
     }
 

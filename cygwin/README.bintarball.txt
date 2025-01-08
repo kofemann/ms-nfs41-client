@@ -10,13 +10,13 @@
 #
 # 1. What is this ?
 #
-NFSv4.1 filesystem driver for Windows 10/11&Windows Server 2019
+NFSv4.2/NFSv4.1 filesystem driver for Windows 10/11&Windows Server 2019
 
 
 #
 # 2. Features:
 #
-- Full NFSv4.1 protocol support
+- Full NFSv4.2/NFSv4.1 protocol support
 
 - idmapper (mapping usernames and uid/gid values between server and
     client)
@@ -50,7 +50,7 @@ NFSv4.1 filesystem driver for Windows 10/11&Windows Server 2019
       cd //derfwnb4966@2049/nfs4/bigdisk/mysqldb4/
 
 - WSL support
-    - Mount Windows NFSv4.1 shares via drive letter or UNC path
+    - Mount Windows NFSv4.2 shares via drive letter or UNC path
       in WSL via mount -t drvfs
     - Supports NFS owner/group to WSL uid/gid mapping
 
@@ -80,18 +80,19 @@ NFSv4.1 filesystem driver for Windows 10/11&Windows Server 2019
     - Supports primary group changes in the calling process/thread
       (via |SetTokenInformation(..., TokenPrimaryGroup,...)|), e.g.
       if the calling process/threads switches the primary group
-      in its access token then the NFSv4.1 client will use that
+      in its access token then the NFSv4.2 client will use that
       group as GID for file creation.
     - newgrp(1)/sg(1)-style "winsg" utilty to run cmd.exe with
       different primary group, e.g.
       $ winsg [-] -g group [-c command | /C command] #
 
 - Software compatibility:
-    - Any NFSv4.1 server (Linux, Solaris, Illumos, FreeBSD, nfs4j,
-        ...)
+    - Any NFSv4.2/NFSv4.1 server (Linux, Solaris, Illumos,
+        FreeBSD, nfs4j, ...)
     - All tools from Cygwin/MSYS2/MinGW
     - Visual Studio
-    - VMware Workstation (can use VMs hosted on NFSv4.1 filesystem)
+    - VMware Workstation (can use VMs hosted on NFSv4.2/NFSv4.1
+        filesystem)
 
 
 #
@@ -189,7 +190,7 @@ echo %PROCESSOR_ARCHITECTURE%
 - Cygwin 64bit can be installed like this:
 # ---- snip ----
 # Install Cygwin 64bit on Windows 64bit with packages required by "ms-nfs41-client"
-# (Windows NFSv4.1 client):
+# (Windows NFSv4.2 client):
 # 1. Create subdir
 mkdir download
 cd download
@@ -203,7 +204,7 @@ setup-x86_64.exe -q --site "https://mirrors.kernel.org/sourceware/cygwin" -P cyg
 - Cygwin 32bit can be installed like this:
 # ---- snip ----
 # Install Cygwin 32bit on Windows 32bit with packages required by "ms-nfs41-client"
-# (Windows NFSv4.1 client):
+# (Windows NFSv4.2 client):
 # 1. Create subdir
 mkdir download
 cd download
@@ -346,7 +347,7 @@ $ cd ~ && /sbin/nfs_umount '\\10.49.202.230@2049\nfs4\net_tmpfs2'
 $ cd ~
 $ net use '\\10.49.202.230@2049\nfs4\net_tmpfs2' /delete
 
-# List mounted NFSv4.1 filesystems:
+# List mounted NFSv4.2 filesystems:
 $ /sbin/nfs_mount
 
 
@@ -369,8 +370,8 @@ does not wait until nfsd*.exe is available for accepting mounts.
 
 
 # WSL usage:
-Example 1: Mount Windows NFSv4.1 share via Windows drive letter
-# Mount NFSv4.1 share in Windows to drive letter 'N':
+Example 1: Mount Windows NFSv4.2 share via Windows drive letter
+# Mount NFSv4.2 share in Windows to drive letter 'N':
 ---- snip ----
 $ /sbin/nfs_mount -o rw 'N' nfs://10.49.202.230//bigdisk
 Successfully mounted '10.49.202.230@2049' to drive 'N:'
@@ -383,8 +384,8 @@ $ mkdir /mnt/n
 $ mount -t drvfs N: /mnt/n
 ---- snip ----
 
-Example 2: Mount Windows NFSv4.1 share via UNC path:
-# Mount NFSv4.1 share in Windows
+Example 2: Mount Windows NFSv4.2 share via UNC path:
+# Mount NFSv4.2 share in Windows
 ---- snip ----
 $ /sbin/nfs_mount -o rw nfs://10.49.202.230//bigdisk
 Successfully mounted '10.49.202.230@2049' to drive '\\10.49.202.230@2049\nfs4\bigdisk'

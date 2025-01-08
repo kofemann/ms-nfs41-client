@@ -86,6 +86,28 @@ enum nfs_opnum4 {
     OP_WANT_DELEGATION      = 56,
     OP_DESTROY_CLIENTID     = 57,
     OP_RECLAIM_COMPLETE     = 58,
+
+    /* new operations for NFSv4.2 */
+    OP_ALLOCATE             = 59,
+    OP_COPY                 = 60,
+    OP_COPY_NOTIFY          = 61,
+    OP_DEALLOCATE           = 62,
+    OP_IO_ADVISE            = 63,
+    OP_LAYOUTERROR          = 64,
+    OP_LAYOUTSTATS          = 65,
+    OP_OFFLOAD_CANCEL       = 66,
+    OP_OFFLOAD_STATUS       = 67,
+    OP_READ_PLUS            = 68,
+    OP_SEEK                 = 69,
+    OP_WRITE_SAME           = 70,
+    OP_CLONE                = 71,
+
+    /* xattr support (RFC8726) */
+    OP_GETXATTR             = 72,
+    OP_SETXATTR             = 73,
+    OP_LISTXATTRS           = 74,
+    OP_REMOVEXATTR          = 75,
+
     OP_ILLEGAL              = 10044
 };
 
@@ -1001,6 +1023,7 @@ typedef struct __pnfs_getdeviceinfo_res {
 /* nfs41_ops.c */
 int nfs41_exchange_id(
     IN nfs41_rpc_clnt *rpc,
+    IN int nfsminorvers,
     IN client_owner4 *owner,
     IN uint32_t flags_in,
     OUT nfs41_exchange_id_res *res_out);

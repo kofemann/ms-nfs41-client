@@ -574,6 +574,7 @@ static const struct xdr_discrim cb_argop_discrim[] = {
     { OP_CB_WANTS_CANCELLED, (xdrproc_t)op_cb_wants_cancelled_args },
     { OP_CB_NOTIFY_LOCK,     (xdrproc_t)op_cb_notify_lock_args },
     { OP_CB_NOTIFY_DEVICEID, (xdrproc_t)op_cb_notify_deviceid_args },
+    { OP_CB_OFFLOAD,         NULL_xdrproc_t },
     { OP_CB_ILLEGAL,         NULL_xdrproc_t },
 };
 
@@ -623,6 +624,7 @@ static const struct xdr_discrim cb_resop_discrim[] = {
     { OP_CB_WANTS_CANCELLED, (xdrproc_t)op_cb_wants_cancelled_res },
     { OP_CB_NOTIFY_LOCK,     (xdrproc_t)op_cb_notify_lock_res },
     { OP_CB_NOTIFY_DEVICEID, (xdrproc_t)op_cb_notify_deviceid_res },
+    { OP_CB_OFFLOAD,         NULL_xdrproc_t },
     { OP_CB_ILLEGAL,         NULL_xdrproc_t },
 };
 

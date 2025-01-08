@@ -52,11 +52,15 @@ static int parse_mount(unsigned char *buffer, uint32_t length, nfs41_upcall *upc
     if (status) goto out;
     status = safe_read(&buffer, &length, &args->use_nfspubfh, sizeof(DWORD));
     if (status) goto out;
+    status = safe_read(&buffer, &length, &args->nfsvers, sizeof(DWORD));
+    if (status) goto out;
 
     DPRINTF(1, ("parsing NFS41_SYSOP_MOUNT: hostport='%s' root='%s' "
-        "sec_flavor='%s' rsize=%d wsize=%d use_nfspubfh=%d\n",
+        "sec_flavor='%s' rsize=%d wsize=%d use_nfspubfh=%d "
+        "nfsvers=%d\n",
         args->hostport, args->path, secflavorop2name(args->sec_flavor),
-        args->rsize, args->wsize, args->use_nfspubfh));
+        args->rsize, args->wsize, args->use_nfspubfh,
+        args->nfsvers));
     return status;
 out:
     DPRINTF(1, ("parsing NFS41_SYSOP_MOUNT: failed %d\n", status));
@@ -148,7 +152,9 @@ static int handle_mount(void *daemon_context, nfs41_upcall *upcall)
     } else {
         // create root
         status = nfs41_root_create(hostname, port,
-            args->use_nfspubfh?true:false, args->sec_flavor,
+            args->use_nfspubfh?true:false,
+            args->nfsvers,
+            args->sec_flavor,
             args->wsize + WRITE_OVERHEAD, args->rsize + READ_OVERHEAD, &root);
         if (status) {
             eprintf("nfs41_root_create(hostname='%s', port=%d) failed %d\n",

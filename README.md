@@ -1,5 +1,5 @@
 
-# Windows NFS 4.1 Client Instructions
+# Windows NFS 4.2 Client Instructions
 
 1.  [Building from Source](#build)
 2.  [Installing Binaries](#install)

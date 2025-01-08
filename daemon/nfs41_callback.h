@@ -35,6 +35,7 @@ enum nfs41_callback_proc {
 enum nfs41_callback_op {
     OP_CB_GETATTR           = 3,
     OP_CB_RECALL            = 4,
+    /* Callback operations new to NFSv4.1 */
     OP_CB_LAYOUTRECALL      = 5,
     OP_CB_NOTIFY            = 6,
     OP_CB_PUSH_DELEG        = 7,
@@ -45,6 +46,9 @@ enum nfs41_callback_op {
     OP_CB_WANTS_CANCELLED   = 12,
     OP_CB_NOTIFY_LOCK       = 13,
     OP_CB_NOTIFY_DEVICEID   = 14,
+    /* Callback operations new to NFSv4.2 */
+    OP_CB_OFFLOAD = 15,
+
     OP_CB_ILLEGAL           = 10044
 };
 
