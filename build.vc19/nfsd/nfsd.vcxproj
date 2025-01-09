@@ -1,20 +1,10 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Target Name="generate_git_version_header" BeforeTargets="ClCompile">
-    <Exec
-      Command="git describe --long --always --dirty --exclude=* --abbrev=8"
-      ConsoleToMSBuild="True"
-      IgnoreExitCode="False">
+    <Exec Command="git describe --long --always --dirty --exclude=* --abbrev=8" ConsoleToMSBuild="True" IgnoreExitCode="False">
       <Output TaskParameter="ConsoleOutput" PropertyName="git_version_string" />
     </Exec>
-
-    <WriteLinesToFile
-      File="$(IntermediateOutputPath)/git_version.h"
-      Overwrite="True"
-      Lines="
-/* Generated file, do not edit */
-#define GIT_COMMIT_ID &quot;$(git_version_string)&quot;
-" />
+    <WriteLinesToFile File="$(IntermediateOutputPath)/git_version.h" Overwrite="True" Lines="&#xA;/* Generated file, do not edit */&#xA;#define GIT_COMMIT_ID &quot;$(git_version_string)&quot;&#xA;" />
   </Target>
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
