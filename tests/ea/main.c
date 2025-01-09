@@ -158,6 +158,85 @@ out:
     return status;
 }
 
+typedef struct _nfs3_attrs {
+    DWORD type, mode, nlink, uid, gid, filler1;
+    LARGE_INTEGER size, used;
+    struct {
+        DWORD specdata1;
+        DWORD specdata2;
+    } rdev;
+    LONGLONG fsid, fileid;
+    LONGLONG atime, mtime, ctime;
+} nfs3_attrs;
+
+static NTSTATUS ea_get_nfs3attr(
+    HANDLE FileHandle)
+{
+    IO_STATUS_BLOCK IoStatusBlock;
+    CHAR GetBuffer[MAX_LIST_LEN] = { 0 };
+    CHAR FullBuffer[MAX_LIST_LEN] = { 0 };
+    PFILE_GET_EA_INFORMATION EaList = (PFILE_GET_EA_INFORMATION)GetBuffer, EaQuery;
+    PFILE_FULL_EA_INFORMATION EaBuffer = (PFILE_FULL_EA_INFORMATION)FullBuffer;
+    ULONG EaListLength;
+    NTSTATUS status;
+
+    (void)memset(&IoStatusBlock, 0, sizeof(IoStatusBlock));
+
+    EaQuery = EaList;
+    EaListLength = 0;
+
+    (void)strcpy(EaQuery->EaName, "NfsV3Attributes");
+    EaQuery->EaNameLength = 15;
+    EaQuery->NextEntryOffset = FIELD_OFFSET(FILE_GET_EA_INFORMATION, EaName) + EaQuery->EaNameLength + 1;
+
+    EaListLength += EaQuery->NextEntryOffset;
+    EaQuery->NextEntryOffset = 0;
+    EaQuery = (PFILE_GET_EA_INFORMATION)((PCHAR)EaQuery + EaQuery->NextEntryOffset);
+
+    status = ZwQueryEaFile(FileHandle, &IoStatusBlock,
+        EaBuffer, MAX_FULLEA, FALSE, EaList, EaListLength, NULL, TRUE);
+    switch (status) {
+    case STATUS_SUCCESS:
+        break;
+    case STATUS_NO_EAS_ON_FILE:
+        (void)fprintf(stderr, "No EAs on file, status=0x%lx.\n", (long)status);
+        goto out;
+    default:
+        (void)fprintf(stderr, "ZwQueryEaFile('%s') failed with 0x%lx\n", EaList->EaName, (long)status);
+        goto out;
+    }
+
+    (void)printf("%s:\n", EaBuffer->EaName);
+    nfs3_attrs *n3a = (void *)(EaBuffer->EaName + EaBuffer->EaNameLength + 1);
+    (void)printf("(\n"
+        "\ttype=%d\n"
+        "\tmode=0%o\n"
+        "\tnlink=%d\n"
+        "\tuid=%d\n\tgid=%d\n"
+        "\tsize=%lld\n\tused=%lld\n"
+        "\trdev=( specdata1=0x%x specdata2=0x%x )\n"
+        "\tfsid=%lld\n\tfileid=%lld\n"
+        "\tatime=%lld\n\tmtime=%lld\n\tctime=%lld\n"
+        ")\n",
+        (int)n3a->type,
+        (int)n3a->mode,
+        (int)n3a->nlink,
+        (int)n3a->uid,
+        (int)n3a->gid,
+        (long long)n3a->size.QuadPart,
+        (long long)n3a->used.QuadPart,
+        (int)n3a->rdev.specdata1,
+        (int)n3a->rdev.specdata2,
+        (long long)n3a->fsid,
+        (long long)n3a->fileid,
+        (long long)n3a->atime,
+        (long long)n3a->mtime,
+        (long long)n3a->ctime);
+
+out:
+    return status;
+}
+
 static NTSTATUS full_ea_init(
     IN LPCWSTR EaName,
     IN LPCWSTR EaValue,
@@ -246,9 +325,9 @@ int wmain(int argc, const wchar_t *argv[])
     ULONG EaLength = 0;
 
     if (argc < 3) {
-        fwprintf(stderr, L"Usage: nfs_ea <ntobjectpath> <create|set|get|list> ...\n");
+        fwprintf(stderr, L"Usage: nfs_ea <ntobjectpath> <create|set|get|getnfs3attr|list> ...\n");
         fwprintf(stderr, L"Example:\n");
-        fwprintf(stderr, L"\tnfs_ea '\\??\\L:\\builds\\bash_build1' get NfsV3Attributes\n");
+        fwprintf(stderr, L"\tnfs_ea '\\??\\L:\\builds\\bash_build1' getnfs3attr\n");
         status = STATUS_INVALID_PARAMETER;
         goto out;
     }
@@ -274,6 +353,12 @@ int wmain(int argc, const wchar_t *argv[])
     } else if (wcscmp(argv[2], L"get") == 0) {
         if (argc < 4) {
             fwprintf(stderr, L"Usage: nfs_ea <ntobjectpath> get <name> [name...]\n");
+            status = STATUS_INVALID_PARAMETER;
+            goto out;
+        }
+    } else if (wcscmp(argv[2], L"getnfs3attr") == 0) {
+        if (argc < 3) {
+            fwprintf(stderr, L"Usage: nfs_ea <ntobjectpath> getnfs3attr\n");
             status = STATUS_INVALID_PARAMETER;
             goto out;
         }
@@ -308,6 +393,10 @@ int wmain(int argc, const wchar_t *argv[])
         wprintf(L"Querying extended attribute on file '%ls':\n",
             FileName.Buffer);
         status = ea_get(FileHandle, argv + 3, argc - 3);
+    } else if (wcscmp(argv[2], L"getnfs3attr") == 0) {
+        wprintf(L"Querying extended attribute 'NfsV3Attributes' on file '%ls':\n",
+            FileName.Buffer);
+        status = ea_get_nfs3attr(FileHandle);
     } else if (wcscmp(argv[2], L"list") == 0) {
         wprintf(L"Listing extended attributes for '%ls':\n", FileName.Buffer);
         status = ea_list(FileHandle);
