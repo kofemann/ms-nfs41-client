@@ -247,6 +247,8 @@ int wmain(int argc, const wchar_t *argv[])
 
     if (argc < 3) {
         fwprintf(stderr, L"Usage: nfs_ea <ntobjectpath> <create|set|get|list> ...\n");
+        fwprintf(stderr, L"Example:\n");
+        fwprintf(stderr, L"\tnfs_ea '\\??\\L:\\builds\\bash_build1' get NfsV3Attributes\n");
         status = STATUS_INVALID_PARAMETER;
         goto out;
     }
