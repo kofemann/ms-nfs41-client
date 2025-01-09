@@ -20,6 +20,14 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  */
 
+#if ((__STDC_VERSION__-0) < 201710L)
+#error Code requires ISO C17
+#endif
+
+#ifndef _CRT_STDIO_ISO_WIDE_SPECIFIERS
+#error Code requires ISO wide-char behaviour
+#endif /* !_CRT_STDIO_ISO_WIDE_SPECIFIERS */
+
 #include <ntifs.h>
 #include <strsafe.h>
 #include <stdio.h>
@@ -108,7 +116,7 @@ static NTSTATUS ea_get(
         status = RtlUnicodeToUTF8N(EaQuery->EaName, MAX_EA_VALUE,
             &ActualByteCount, EaName, EaNameLength);
         if (status) {
-            fwprintf(stderr, L"RtlUnicodeToUTF8N('%s') failed with 0x%lx\n", EaName, (long)status);
+            fwprintf(stderr, L"RtlUnicodeToUTF8N('%ls') failed with 0x%lx\n", EaName, (long)status);
             goto out;
         }
         EaQuery->EaNameLength = (UCHAR)ActualByteCount - 1;
@@ -169,7 +177,7 @@ static NTSTATUS full_ea_init(
         FIELD_OFFSET(FILE_FULL_EA_INFORMATION, EaName),
         &ActualByteCount, EaName, EaNameLength);
     if (status) {
-        fwprintf(stderr, L"RtlUnicodeToUTF8N('%s') failed with 0x%lx\n", EaName, (long)status);
+        fwprintf(stderr, L"RtlUnicodeToUTF8N('%ls') failed with 0x%lx\n", EaName, (long)status);
         goto out;
     }
     EaBuffer->EaNameLength = (UCHAR)ActualByteCount - 1;
@@ -184,7 +192,7 @@ static NTSTATUS full_ea_init(
             MAX_FULLEA - FIELD_OFFSET(FILE_FULL_EA_INFORMATION, EaName) - EaBuffer->EaNameLength - 1,
             &ActualByteCount, EaValue, EaValueLength);
         if (status) {
-            fwprintf(stderr, L"RtlUnicodeToUTF8N('%s') failed with 0x%lx\n", EaName, (long)status);
+            fwprintf(stderr, L"RtlUnicodeToUTF8N('%ls') failed with 0x%lx\n", EaName, (long)status);
             goto out;
         }
         EaBuffer->EaValueLength = (UCHAR)ActualByteCount - 1;
@@ -253,7 +261,7 @@ int wmain(int argc, const wchar_t *argv[])
         status = full_ea_init(argv[3], argv[4], EaBuffer, &EaLength);
         if (status)
             goto out;
-        wprintf(L"Creating file %s.\n", argv[1]);
+        wprintf(L"Creating file '%ls'.\n", argv[1]);
     } else if (wcscmp(argv[2], L"set") == 0) {
         if (argc < 4) {
             fwprintf(stderr, L"Usage: nfs_ea <ntobjectpath> set <name> [value]\n");
@@ -280,7 +288,7 @@ int wmain(int argc, const wchar_t *argv[])
         &IoStatusBlock, NULL, FileAttributes, ShareAccess,
         CreateDisposition, CreateOptions, EaBuffer, EaLength);
     if (status) {
-        fwprintf(stderr, L"NtCreateFile(%s) failed with 0x%lx\n", FileName.Buffer, (long)status);
+        fwprintf(stderr, L"NtCreateFile('%ls') failed with 0x%lx\n", FileName.Buffer, (long)status);
         goto out;
     }
 
@@ -291,18 +299,18 @@ int wmain(int argc, const wchar_t *argv[])
         if (status)
             goto out_close;
 
-        wprintf(L"Setting extended attribute '%s' on file '%s':\n",
+        wprintf(L"Setting extended attribute '%ls' on file '%ls':\n",
             argv[3], FileName.Buffer);
         status = ea_set(FileHandle, EaBuffer, EaLength);
     } else if (wcscmp(argv[2], L"get") == 0) {
-        wprintf(L"Querying extended attribute on file '%s':\n",
-            argv[3], FileName.Buffer);
+        wprintf(L"Querying extended attribute on file '%ls':\n",
+            FileName.Buffer);
         status = ea_get(FileHandle, argv + 3, argc - 3);
     } else if (wcscmp(argv[2], L"list") == 0) {
-        wprintf(L"Listing extended attributes for '%s':\n", FileName.Buffer);
+        wprintf(L"Listing extended attributes for '%ls':\n", FileName.Buffer);
         status = ea_list(FileHandle);
     } else if (wcscmp(argv[2], L"create") == 0) {
-        wprintf(L"File '%s' was created with \n", FileName.Buffer);
+        wprintf(L"File '%ls' was created with \n", FileName.Buffer);
         status = ea_get(FileHandle, argv + 3, 1);
     }
 
