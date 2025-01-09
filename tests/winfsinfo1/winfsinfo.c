@@ -622,6 +622,149 @@ done:
     return res;
 }
 
+typedef struct _nfs3_attrs {
+    DWORD type, mode, nlink, uid, gid, filler1;
+    LARGE_INTEGER size, used;
+    struct {
+        DWORD specdata1;
+        DWORD specdata2;
+    } rdev;
+    LONGLONG fsid, fileid;
+    LONGLONG atime, mtime, ctime;
+} nfs3_attrs;
+
+#define NfsV3Attributes_NAME "NfsV3Attributes"
+
+typedef struct _FILE_EA_INFORMATION {
+    ULONG EaSize;
+} FILE_EA_INFORMATION, *PFILE_EA_INFORMATION;
+
+typedef struct _FILE_GET_EA_INFORMATION {
+    ULONG NextEntryOffset;
+    UCHAR EaNameLength;
+    CHAR  EaName[1];
+} FILE_GET_EA_INFORMATION, *PFILE_GET_EA_INFORMATION;
+
+typedef struct _FILE_FULL_EA_INFORMATION {
+    ULONG NextEntryOffset;
+    UCHAR Flags;
+    UCHAR EaNameLength;
+    USHORT EaValueLength;
+    CHAR EaName[1];
+} FILE_FULL_EA_INFORMATION, *PFILE_FULL_EA_INFORMATION;
+
+typedef struct _IO_STATUS_BLOCK {
+    union {
+        NTSTATUS Status;
+        PVOID Pointer;
+    } DUMMYUNIONNAME;
+    ULONG_PTR Information;
+} IO_STATUS_BLOCK, *PIO_STATUS_BLOCK;
+
+#define STATUS_SUCCESS ((NTSTATUS)0x00000000)
+#define STATUS_NO_EAS_ON_FILE ((NTSTATUS)0xC0000052)
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+ZwQueryEaFile(
+  IN HANDLE FileHandle,
+  OUT PIO_STATUS_BLOCK IoStatusBlock,
+  OUT PVOID Buffer,
+  IN ULONG Length,
+  IN BOOLEAN ReturnSingleEntry,
+  IN PVOID EaList OPTIONAL,
+  IN ULONG EaListLength,
+  IN PULONG EaIndex OPTIONAL,
+  IN BOOLEAN RestartScan);
+
+static
+bool get_getnfs3attr(const char *progname, const char *filename)
+{
+    int res = EXIT_FAILURE;
+
+    HANDLE fileHandle = CreateFileA(filename,
+        GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING,
+        FILE_FLAG_BACKUP_SEMANTICS, NULL);
+    if (fileHandle == INVALID_HANDLE_VALUE) {
+        (void)fprintf(stderr,
+            "%s: Error opening file '%s'. Last error was %d.\n",
+            progname,
+            filename,
+            (int)GetLastError());
+        return EXIT_FAILURE;
+    }
+
+    struct {
+        FILE_FULL_EA_INFORMATION ffeai;
+        char buf[sizeof(NfsV3Attributes_NAME) + sizeof(nfs3_attrs)];
+    } ffeai_buf;
+    struct {
+        FILE_GET_EA_INFORMATION fgeai;
+        char buf[sizeof(NfsV3Attributes_NAME)];
+    } fgeai_buf;
+
+    NTSTATUS status;
+    IO_STATUS_BLOCK io;
+
+    fgeai_buf.fgeai.NextEntryOffset = 0;
+    fgeai_buf.fgeai.EaNameLength = 15;
+    (void)strcpy(fgeai_buf.fgeai.EaName, NfsV3Attributes_NAME);
+
+    status = ZwQueryEaFile(fileHandle, &io,
+        &ffeai_buf.ffeai, sizeof(ffeai_buf), TRUE,
+        &fgeai_buf.fgeai, sizeof(fgeai_buf), NULL, TRUE);
+
+    switch (status) {
+        case STATUS_SUCCESS:
+            break;
+        case STATUS_NO_EAS_ON_FILE:
+            (void)fprintf(stderr, "No EAs on file, status=0x%lx.\n", (long)status);
+            res = EXIT_FAILURE;
+            goto done;
+        default:
+            (void)fprintf(stderr, "ZwQueryEaFile() failed with 0x%lx\n", (long)status);
+            res = EXIT_FAILURE;
+            goto done;
+    }
+
+    nfs3_attrs *n3a = (nfs3_attrs *)(ffeai_buf.ffeai.EaName
+        + ffeai_buf.ffeai.EaNameLength + 1);
+
+    (void)printf("(\n");
+
+    (void)printf("\tfilename='%s'\n"
+        "\ttype=%d\n"
+        "\tmode=0%o\n"
+        "\tnlink=%d\n"
+        "\tuid=%d\n\tgid=%d\n"
+        "\tsize=%lld\n\tused=%lld\n"
+        "\trdev=( specdata1=0x%x specdata2=0x%x )\n"
+        "\tfsid=%lld\n\tfileid=%lld\n"
+        "\tatime=%lld\n\tmtime=%lld\n\tctime=%lld\n"
+        ")\n",
+        filename,
+        (int)n3a->type,
+        (int)n3a->mode,
+        (int)n3a->nlink,
+        (int)n3a->uid,
+        (int)n3a->gid,
+        (long long)n3a->size.QuadPart,
+        (long long)n3a->used.QuadPart,
+        (int)n3a->rdev.specdata1,
+        (int)n3a->rdev.specdata2,
+        (long long)n3a->fsid,
+        (long long)n3a->fileid,
+        (long long)n3a->atime,
+        (long long)n3a->mtime,
+        (long long)n3a->ctime);
+    res = EXIT_SUCCESS;
+
+done:
+    (void)CloseHandle(fileHandle);
+    return res;
+}
+
 static
 void usage(void)
 {
@@ -633,7 +776,8 @@ void usage(void)
         "filenameinfo|"
         "filenormalizednameinfo|"
         "filecasesensitiveinfo|"
-        "getfiletime"
+        "getfiletime|"
+        "getnfs3attr"
         "> path\n");
 }
 
@@ -671,6 +815,9 @@ int main(int ac, char *av[])
     }
     else if (!strcmp(subcmd, "filecasesensitiveinfo")) {
         return get_filecasesensitiveinfo(av[0], av[2]);
+    }
+    else if (!strcmp(subcmd, "getnfs3attr")) {
+        return get_getnfs3attr(av[0], av[2]);
     }
     else {
         (void)fprintf(stderr, "%s: Unknown subcmd '%s'\n", av[0], subcmd);
