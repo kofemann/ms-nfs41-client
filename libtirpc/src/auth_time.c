@@ -250,7 +250,7 @@ __rpc_get_time_offset(td, srv, thost, uaddr, netid)
 	endpoint		teps[32];
 	nis_server		tsrv = { 0 };
 #ifndef _WIN32
-	void			(*oldsig)() = NULL; /* old alarm handler */
+	void			(*oldsig)(int) = NULL; /* old alarm handler */
 #endif
 	struct sockaddr_in	sin;
 	int			s = RPC_ANYSOCK;
@@ -420,7 +420,7 @@ __rpc_get_time_offset(td, srv, thost, uaddr, netid)
 		} else {
 			int res;
 #ifndef _WIN32
-			oldsig = (void (*)())signal(SIGALRM, alarm_hndler);
+			oldsig = (void (*)(int))signal(SIGALRM, alarm_hndler);
 			saw_alarm = 0; /* global tracking the alarm */
 			alarm(20); /* only wait 20 seconds */
 #else
