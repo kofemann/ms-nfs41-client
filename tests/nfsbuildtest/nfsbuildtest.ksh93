@@ -621,6 +621,7 @@ function main
 			is_toolkit_pkg_installed itp 'libncurses-devel' || (( errc++ ))
 			is_toolkit_pkg_installed itp 'gettext' || (( errc++ ))
 			is_toolkit_pkg_installed itp 'gettext-devel' || (( errc++ ))
+			is_toolkit_pkg_installed itp 'texinfo' || (( errc++ ))
 			(( errc > 0 )) && return 1
 			bash_build
 			return $?
