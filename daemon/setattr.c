@@ -237,6 +237,59 @@ static int is_dst_name_opened(nfs41_abs_path *dst_path, nfs41_session *dst_sessi
 
     return status;
 }
+
+#define CYGWIN_STOMP_SILLY_RENAME_INVALID_UTF16_SEQUENCE 1
+#define MSYS2_STOMP_SILLY_RENAME_INVALID_UTF16_SEQUENCE 1
+
+#if defined(CYGWIN_STOMP_SILLY_RENAME_INVALID_UTF16_SEQUENCE) || \
+    defined(MSYS2_STOMP_SILLY_RENAME_INVALID_UTF16_SEQUENCE)
+#define STOMP_SILLY_RENAME_INVALID_UTF16_SEQUENCE_SUPPORT 1
+#endif
+
+#ifdef STOMP_SILLY_RENAME_INVALID_UTF16_SEQUENCE_SUPPORT
+typedef struct _silly_rename_seq
+{
+    const char *name;
+    size_t size;
+    const wchar_t *in_sequence;
+    const wchar_t *out_sequence;
+} silly_rename_seq;
+
+const silly_rename_seq silly_rename_seqlist[] = {
+#ifdef CYGWIN_STOMP_SILLY_RENAME_INVALID_UTF16_SEQUENCE
+    /* old Cygwin sequence, using valid Unicode characters */
+    {
+        .name="Cygwin1",
+        .size=4,
+        .in_sequence=L".\xdc63\xdc79\xdc67",
+        .out_sequence=L".cyg"
+    },
+    /*
+     * New Cygwin sequence, using valid Unicode characters -
+     * see Cygwin commit "Cygwin: try_to_bin: transpose
+     * deleted file name to valid Unicode chars"
+     */
+    {
+        .name="Cygwin2",
+        .size=4,
+        .in_sequence=L".\xf763\xf779\xf767",
+        .out_sequence=L".cyg"
+    },
+#endif /* CYGWIN_STOMP_SILLY_RENAME_INVALID_UTF16_SEQUENCE */
+#ifdef MSYS2_STOMP_SILLY_RENAME_INVALID_UTF16_SEQUENCE
+    {
+        .name="msys2",
+        .size=5,
+        .in_sequence=L".\xdc6d\xdc73\xdc79\xdc73",
+        .out_sequence=L".msys"
+    },
+#endif /* MSYS2_STOMP_SILLY_RENAME_INVALID_UTF16_SEQUENCE */
+    {
+        .name = NULL
+    }
+};
+#endif /* STOMP_SILLY_RENAME_INVALID_UTF16_SEQUENCE_SUPPORT */
+
 static int handle_nfs41_rename(void *daemon_context, setattr_upcall_args *args)
 {
     nfs41_open_state *state = args->state;
@@ -284,14 +337,12 @@ static int handle_nfs41_rename(void *daemon_context, setattr_upcall_args *args)
 
     EASSERT((rename->FileNameLength%sizeof(WCHAR)) == 0);
 
-#define CYGWIN_STOMP_SILLY_RENAME_INVALID_UTF16_SEQUENCE 1
-#define MSYS2_STOMP_SILLY_RENAME_INVALID_UTF16_SEQUENCE 1
-
-#ifdef CYGWIN_STOMP_SILLY_RENAME_INVALID_UTF16_SEQUENCE
+#ifdef STOMP_SILLY_RENAME_INVALID_UTF16_SEQUENCE_SUPPORT
     /*
-     * Stomp Cygwin "silly rename" invalid Unicode sequence
+     * Stomp old+new Cygwin+MSYS2 "silly rename" invalid Unicode
+     * sequence
      *
-     * Cygwin has it's own variation of "silly rename" (i.e. if
+     * Cygwin+MSYS2 has it's own variation of "silly rename" (i.e. if
      * someone deletes a file while someone else still has
      * a valid fd to that file it first renames that file with a
      * special prefix, see
@@ -299,12 +350,15 @@ static int handle_nfs41_rename(void *daemon_context, setattr_upcall_args *args)
      * |try_to_bin()|).
      *
      * Unfortunately on filesystems supporting Unicode
-     * (i.e. |FILE_UNICODE_ON_DISK|) Cygwin adds the prefix
+     * (i.e. |FILE_UNICODE_ON_DISK|) older Cygwin (before Cygwin
+     * commit "Cygwin: try_to_bin: transpose deleted file name to
+     * valid Unicode chars") adds the prefix
      * L".\xdc63\xdc79\xdc67", which is NOT a valid UTF-16 sequence,
      * and will be rejected by a filesystem validating the
      * UTF-16 sequence (e.g. SAMBA, ReFS, OpenZFS, ...; for SAMBA
      * Cygwin uses the ".cyg" prefix used for
      * non-|FILE_UNICODE_ON_DISK| filesystems).
+     *
      * In our case the NFSv4.1 protocol requires valid UTF-8
      * sequences, and the NFS server will reject filenames if either
      * the server or the exported filesystem will validate the UTF-8
@@ -315,35 +369,23 @@ static int handle_nfs41_rename(void *daemon_context, setattr_upcall_args *args)
      * used for non-|FILE_UNICODE_ON_DISK| filesystems.
      * We ignore the side-effects here, e.g. that Win32 will still
      * "remember" the original filename in the file name cache.
-     */
-    if ((rename->FileNameLength > (4*sizeof(wchar_t))) &&
-        (!memcmp(rename->FileName,
-            L".\xdc63\xdc79\xdc67", (4*sizeof(wchar_t))))) {
-        DPRINTF(1, ("handle_nfs41_rename(args->path='%s'): "
-            "Cygwin sillyrename prefix \".\\xdc63\\xdc79\\xdc67\" "
-            "detected, squishing prefix to \".cyg\"\n",
-            args->path));
-        (void)memcpy(rename->FileName, L".cyg", 4*sizeof(wchar_t));
-    }
-#endif /* CYGWIN_STOMP_SILLY_RENAME_INVALID_UTF16_SEQUENCE */
-#ifdef MSYS2_STOMP_SILLY_RENAME_INVALID_UTF16_SEQUENCE
-    /*
-     * Stomp MSYS2 "silly rename" invalid Unicode sequence
      *
-     * Same procedure as Cygwin "silly rename", just with a different
-     * prefix (L".\xdc6d\xdc73\xdc79\xdc73")
+     * For MSYS2+newer Cygwin we do the same.
      */
-    if ((rename->FileNameLength > (5*sizeof(wchar_t))) &&
-        (!memcmp(rename->FileName,
-            L".\xdc6d\xdc73\xdc79\xdc73", (5*sizeof(wchar_t))))) {
-        DPRINTF(1, ("handle_nfs41_rename(args->path='%s'): "
-            "msys2 sillyrename prefix "
-            "\".\\xdc6d\\xdc73\\xdc79\\xdc73\" detected, squishing "
-            "prefix to \".msys\"\n",
-            args->path));
-        (void)memcpy(rename->FileName, L".msys", 5*sizeof(wchar_t));
+    for (const silly_rename_seq *srs = &silly_rename_seqlist[0];
+        srs->name != NULL ; srs++) {
+        if ((rename->FileNameLength > (srs->size*sizeof(wchar_t))) &&
+            (!memcmp(rename->FileName,
+                srs->in_sequence, (srs->size*sizeof(wchar_t))))) {
+            DPRINTF(1, ("handle_nfs41_rename(args->path='%s'): "
+                "'%s' sillyrename prefix "
+                "detected, squishing prefix to '%ls'\n",
+                args->path, srs->name, srs->out_sequence));
+                (void)memcpy(rename->FileName, srs->out_sequence,
+                srs->size*sizeof(wchar_t));
+        }
     }
-#endif /* MSYS2_STOMP_SILLY_RENAME_INVALID_UTF16_SEQUENCE */
+#endif /* STOMP_SILLY_RENAME_INVALID_UTF16_SEQUENCE_SUPPORT */
 
     dst_path.len = (unsigned short)WideCharToMultiByte(CP_UTF8,
         WC_ERR_INVALID_CHARS|WC_NO_BEST_FIT_CHARS,
