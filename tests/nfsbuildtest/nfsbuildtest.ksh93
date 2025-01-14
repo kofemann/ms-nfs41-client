@@ -295,7 +295,7 @@ function bash_build
 	fi
 
 	# workaround for gcc 15.0 used in Cygwin 3.6
-	export CFLAGS="-Wno-error=implicit-function-declaration -Wno-error=implicit-int"
+	export CFLAGS="-std=gnu17 -Wno-error=implicit-function-declaration -Wno-error=implicit-int"
 
 	if $config_use_posix_ksh93_builtins ; then
 		CONFIG_SHELL=/usr/bin/ksh93 ksh93 ./configure "${configure_options[@]}"
