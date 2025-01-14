@@ -58,6 +58,8 @@ installdest:
 		cp $(VS_BUILD_DIR32)/../Release/nfs41_np.lib $(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/i686/nfs41_np.lib ; \
 		cp $(VS_BUILD_DIR32)/../Release/nfs41_np.pdb $(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/i686/nfs41_np.pdb ; \
 	fi
+	# workaround for coreutils 9.5-1 /bin/cp bug stuck in an endless loop with compressed files
+	chattr -V -c $(VS_BUILD_DIR)/nfs41_driver.*
 	cp $(VS_BUILD_DIR)/nfs41_driver.*	$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/.
 	cp $(PROJECT_BASEDIR_DIR)/nfs41rdr.inf	$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/.
 	cp $(PROJECT_BASEDIR_DIR)/etc_netconfig	$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/.
