@@ -99,6 +99,8 @@ function nfsclient_install
 	set -o xtrace
 	set -o errexit
 
+	typeset use_secureboot=false
+
 	# switch to the location where this script is installed,
 	# because on Cygwin the script will be installed
 	# in /cygdrive/c/cygwin/lib/msnfs41client/ (32bit) or
@@ -140,13 +142,15 @@ function nfsclient_install
 	regtool add '/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows NT/CurrentVersion/Image File Execution Options/nfs_mount.exe'
 	regtool -i set '/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows NT/CurrentVersion/Image File Execution Options/nfs_mount.exe/FrontEndHeapDebugOptions' 0x08
 
-	# make sure we can load the kernel driver
-	# (does not work with SecureBoot)
-	bcdedit /set testsigning on
+	if ! $use_secureboot ; then
+		# make sure we can load the kernel driver
+		# (does not work with SecureBoot)
+		bcdedit /set testsigning on
 
-	# enable local kernel debugging
-	bcdedit /debug on
-	bcdedit /dbgsettings local
+		# enable local kernel debugging
+		bcdedit /debug on
+		bcdedit /dbgsettings local
+	fi
 
 	# set domain name
 	typeset win_domainname=''
