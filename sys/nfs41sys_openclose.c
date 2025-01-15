@@ -911,8 +911,7 @@ retry_on_link:
             DbgP("nfs41_Create: received no delegations: srv_open=0x%p "
                 "ctime=%llu\n", SrvOpen, entry->ChangeTime);
 #endif
-            oentry = RxAllocatePoolWithTag(NonPagedPoolNx,
-                sizeof(nfs41_fcb_list_entry), NFS41_MM_POOLTAG_OPEN);
+            oentry = nfs41_allocate_nfs41_fcb_list_entry();
             if (oentry == NULL) {
                 status = STATUS_INSUFFICIENT_RESOURCES;
                 goto out_free;

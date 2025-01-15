@@ -119,6 +119,9 @@ DECLARE_EXTERN_CONST_ANSI_STRING(NfsActOnLink);
 extern NPAGED_LOOKASIDE_LIST updowncall_entry_upcall_lookasidelist;
 extern NPAGED_LOOKASIDE_LIST updowncall_entry_downcall_lookasidelist;
 #endif /* USE_LOOKASIDELISTS_FOR_UPDOWNCALLENTRY_MEM */
+#ifdef USE_LOOKASIDELISTS_FOR_FCBLISTENTRY_MEM
+extern NPAGED_LOOKASIDE_LIST fcblistentry_lookasidelist;
+#endif /* USE_LOOKASIDELISTS_FOR_FCBLISTENTRY_MEM */
 
 #ifdef ENABLE_TIMINGS
 extern nfs41_timings lookup;
@@ -608,6 +611,8 @@ NTSTATUS nfs41_QueryDirectory(
     IN OUT PRX_CONTEXT RxContext);
 
 /* nfs41sys_driver.c */
+nfs41_fcb_list_entry *nfs41_allocate_nfs41_fcb_list_entry(void);
+void nfs41_free_nfs41_fcb_list_entry(nfs41_fcb_list_entry *entry);
 NTSTATUS marshall_unicode_as_utf8(
     IN OUT unsigned char **pos,
     IN PCUNICODE_STRING str);

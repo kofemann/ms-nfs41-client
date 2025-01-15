@@ -92,6 +92,9 @@ DECLARE_CONST_ANSI_STRING(NfsActOnLink, EA_NFSACTONLINK);
 NPAGED_LOOKASIDE_LIST updowncall_entry_upcall_lookasidelist;
 NPAGED_LOOKASIDE_LIST updowncall_entry_downcall_lookasidelist;
 #endif /* USE_LOOKASIDELISTS_FOR_UPDOWNCALLENTRY_MEM */
+#ifdef USE_LOOKASIDELISTS_FOR_FCBLISTENTRY_MEM
+NPAGED_LOOKASIDE_LIST fcblistentry_lookasidelist;
+#endif /* USE_LOOKASIDELISTS_FOR_FCBLISTENTRY_MEM */
 
 #ifdef ENABLE_TIMINGS
 nfs41_timings lookup;
@@ -140,6 +143,31 @@ LARGE_INTEGER unix_time_diff;
 nfs41_init_driver_state nfs41_init_state = NFS41_INIT_DRIVER_STARTABLE;
 nfs41_start_driver_state nfs41_start_state = NFS41_START_DRIVER_STARTABLE;
 
+nfs41_fcb_list_entry *nfs41_allocate_nfs41_fcb_list_entry(void)
+{
+    nfs41_fcb_list_entry *e;
+#ifdef USE_LOOKASIDELISTS_FOR_FCBLISTENTRY_MEM
+    e = ExAllocateFromNPagedLookasideList(
+        &fcblistentry_lookasidelist);
+
+#else
+    e = RxAllocatePoolWithTag(NonPagedPoolNx,
+        sizeof(nfs41_fcb_list_entry),
+        NFS41_MM_POOLTAG_OPEN);
+#endif /* USE_LOOKASIDELISTS_FOR_FCBLISTENTRY_MEM */
+
+    return e;
+}
+
+void nfs41_free_nfs41_fcb_list_entry(nfs41_fcb_list_entry *entry)
+{
+#ifdef USE_LOOKASIDELISTS_FOR_FCBLISTENTRY_MEM
+    ExFreeToNPagedLookasideList(&fcblistentry_lookasidelist,
+        entry);
+#else
+    RxFreePool(entry);
+#endif /* USE_LOOKASIDELISTS_FOR_FCBLISTENTRY_MEM */
+}
 
 NTSTATUS marshall_unicode_as_utf8(
     IN OUT unsigned char **pos,
@@ -675,7 +703,7 @@ VOID nfs41_remove_fcb_entry(
             DbgP("nfs41_remove_fcb_entry: Found match for fcb=0x%p\n", fcb);
 #endif
             RemoveEntryList(pEntry);
-            RxFreePool(cur);
+            nfs41_free_nfs41_fcb_list_entry(cur);
             break;
         }
         if (pEntry->Flink == &openlist.head) {
@@ -908,8 +936,7 @@ void enable_caching(
 #ifdef DEBUG_TIME_BASED_COHERENCY
         DbgP("enable_caching: delegation recalled: srv_open=0x%p\n", SrvOpen);
 #endif
-        oentry = RxAllocatePoolWithTag(NonPagedPoolNx,
-            sizeof(nfs41_fcb_list_entry), NFS41_MM_POOLTAG_OPEN);
+        oentry = nfs41_allocate_nfs41_fcb_list_entry();
         if (oentry == NULL)
             goto out_release_fcblistlock;
         oentry->fcb = SrvOpen->pFcb;
@@ -1361,6 +1388,17 @@ NTSTATUS DriverEntry(
         POOL_NX_ALLOCATION, sizeof(nfs41_updowncall_entry),
         NFS41_MM_POOLTAG_DOWN, 0);
 #endif /* USE_LOOKASIDELISTS_FOR_UPDOWNCALLENTRY_MEM */
+#ifdef USE_LOOKASIDELISTS_FOR_FCBLISTENTRY_MEM
+    /*
+     * The |Depth| parameter is unfortunately ignored in Win10,
+     * otherwise we could use |MmQuerySystemSize()| to scale the
+     * lookasidelists
+     */
+    ExInitializeNPagedLookasideList(
+        &fcblistentry_lookasidelist, NULL, NULL,
+        POOL_NX_ALLOCATION, sizeof(nfs41_fcb_list_entry),
+        NFS41_MM_POOLTAG_OPEN, 0);
+#endif /* USE_LOOKASIDELISTS_FOR_FCBLISTENTRY_MEM */
     InitializeObjectAttributes(&oattrs, NULL, OBJ_KERNEL_HANDLE, NULL, NULL);
     status = PsCreateSystemThread(&dev_exts->openlistHandle, mask,
         &oattrs, NULL, NULL, &fcbopen_main, NULL);
