@@ -342,6 +342,15 @@ static BOOLEAN isWriteOnlyDesiredAccess(PNT_CREATE_PARAMETERS params)
     return FALSE;
 }
 
+static BOOLEAN isAttributeOnlyDesiredAccess(PNT_CREATE_PARAMETERS params)
+{
+    if ((params->DesiredAccess &
+        ~(FILE_READ_ATTRIBUTES|FILE_WRITE_ATTRIBUTES|SYNCHRONIZE)) == 0) {
+        return TRUE;
+    }
+    return FALSE;
+}
+
 static BOOLEAN areOpenParamsValid(NT_CREATE_PARAMETERS *params)
 {
     /* from ms-fsa page 52 */
@@ -856,6 +865,12 @@ retry_on_link:
 #endif
         RxChangeBufferingState((PSRV_OPEN)SrvOpen, ULongToPtr(flag), 1);
     }
+
+    if (!nfs41_fcb->StandardInfo.Directory &&
+        isAttributeOnlyDesiredAccess(params)) {
+        SrvOpen->Flags |= SRVOPEN_FLAG_NO_BUFFERING_STATE_CHANGE;
+    }
+
     if (!nfs41_fcb->StandardInfo.Directory &&
             isDataAccess(params->DesiredAccess)) {
         nfs41_fobx->deleg_type = entry->u.Open.deleg_type;
