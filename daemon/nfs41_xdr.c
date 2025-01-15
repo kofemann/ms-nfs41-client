@@ -2328,14 +2328,14 @@ static bool_t decode_readdir_entry(
     readdir_entry_iterator *it)
 {
     uint64_t cookie;
-    unsigned char name[NFS4_OPAQUE_LIMIT];
+    unsigned char name[NFS4_OPAQUE_LIMIT+1];
     unsigned char *nameptr = &name[0];
     uint32_t name_len, entry_len;
     fattr4 attrs = { 0 };
 
     /* decode into temporaries so we can determine if there's enough
      * room in the buffer for this entry */
-    ZeroMemory(name, NFS4_OPAQUE_LIMIT);
+    name[0] = '\0';
     name_len = NFS4_OPAQUE_LIMIT;
     entry_len = (uint32_t)FIELD_OFFSET(nfs41_readdir_entry, name);
     attrs.attr_vals_len = NFS4_OPAQUE_LIMIT;
@@ -2356,6 +2356,9 @@ static bool_t decode_readdir_entry(
         return TRUE;
 
     name_len += 1; /* account for null terminator */
+    name[name_len] = '\0';
+    EASSERT(name_len < NFS4_OPAQUE_LIMIT);
+
     if (entry_len + name_len <= it->remaining_len)
     {
         XDR fattr_xdr;
