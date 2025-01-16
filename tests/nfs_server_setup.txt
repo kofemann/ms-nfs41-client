@@ -40,4 +40,31 @@ Start-Service -Name ms-nfs41-client-service
 
 C:\cygwin64\sbin\nfs_mount -o rw N nfs://192.168.209.129//
 
+
+#
+# Solaris 11.4 NFSv4.1 server setup
+#
+
+# 1. Server setup
+svcadm enable network/nfs/server
+sharectl set -p nfsmapid_domain=global.loc nfs
+sharectl set -p server_delegation=on nfs
+mkdir /nfsdata
+chmod a+rwx /nfsdata
+share -F nfs -o rw /nfsdata/
+svcs svc:/network/nfs/server:default
+
+# 2. Windows ms-nfs41-client setup:
+# Add entries for groups "sys" and "nobody"
+echo "sys:S-1-0-3:3:" >>/etc/groups
+echo "nobody:S-1-0-65534:65534:" >>/etc/group
+
+# 3. Misc commands:
+ls -v filename # list ACLs
+chmod A... # to edit ACLs
+
+# 4. Troubleshooting:
+See https://docs.oracle.com/en/operating-systems/solaris/oracle-solaris/11.4/manage-nfs/troubleshooting-network-file-systems1.html
+
+
 # EOF.
