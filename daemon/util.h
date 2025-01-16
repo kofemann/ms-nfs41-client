@@ -205,9 +205,13 @@ void nfs_to_stat_lx_info(
     IN const nfs41_file_info *info,
     OUT PFILE_STAT_LX_INFORMATION stat_lx_out);
 #endif /* NFS41_DRIVER_WSL_SUPPORT */
+
+/* Copy |info->symlink_dir| */
+#define NFS41FILEINFOCPY_COPY_SYMLINK_DIR (1 << 0)
 void nfs41_file_info_cpy(
     OUT nfs41_file_info *dest,
-    IN const nfs41_file_info *src);
+    IN const nfs41_file_info *src,
+    IN int flags);
 
 /* http://msdn.microsoft.com/en-us/library/ms724290%28VS.85%29.aspx:
  * A file time is a 64-bit value that represents the number of

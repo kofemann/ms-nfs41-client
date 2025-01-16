@@ -236,7 +236,7 @@ static int server_lookup(
         if (target_out)
             *target_out = dir;
         if (info_out) {
-            nfs41_file_info_cpy(info_out, res->getrootattr.info);
+            nfs41_file_info_cpy(info_out, res->getrootattr.info, 0);
         }
     } else if (count == 1) {
         if (parent_out)
@@ -285,7 +285,7 @@ static int server_lookup(
             if (target_out)
                 *target_out = file;
             if (info_out) {
-                nfs41_file_info_cpy(info_out, res->getattr[i].info);
+                nfs41_file_info_cpy(info_out, res->getattr[i].info, 0);
             }
         } else if (i == count-2) {
             if (parent_out)

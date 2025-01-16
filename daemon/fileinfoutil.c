@@ -445,16 +445,140 @@ void nfs_to_stat_lx_info(
 /* copy |nfs41_file_info| */
 void nfs41_file_info_cpy(
     OUT nfs41_file_info *dest,
-    IN const nfs41_file_info *src)
+    IN const nfs41_file_info *src,
+    IN int flags)
 {
-    /*
-     * FIXME: Using |memcpy()| here over the whole struct
-     * |nfs41_file_info| will trigger DrMemory uninitialized
-     * variable hits if |*src| was not completely initialized
-     */
-    (void)memcpy(dest, src, sizeof(nfs41_file_info));
-    if (src->owner != NULL)
-        dest->owner = dest->owner_buf;
-    if (src->owner_group != NULL)
-        dest->owner_group = dest->owner_group_buf;
+    const bitmap4 *attrmask = &src->attrmask;
+    bitmap4_cpy(&dest->attrmask, &src->attrmask);
+
+    if (attrmask->count > 0) {
+        if (attrmask->arr[0] & FATTR4_WORD0_SUPPORTED_ATTRS) {
+            dest->supported_attrs = src->supported_attrs;
+        }
+        if (attrmask->arr[0] & FATTR4_WORD0_TYPE) {
+            dest->type = src->type;
+        }
+        if (attrmask->arr[0] & FATTR4_WORD0_CHANGE) {
+            dest->change = src->change;
+        }
+        if (attrmask->arr[0] & FATTR4_WORD0_SIZE) {
+            dest->size = src->size;
+        }
+        if (attrmask->arr[0] & FATTR4_WORD0_LINK_SUPPORT) {
+            dest->link_support = src->link_support;
+        }
+        if (attrmask->arr[0] & FATTR4_WORD0_SYMLINK_SUPPORT) {
+            dest->symlink_support = src->symlink_support;
+        }
+        if (attrmask->arr[0] & FATTR4_WORD0_FSID) {
+            dest->fsid = src->fsid;
+        }
+        if (attrmask->arr[0] & FATTR4_WORD0_LEASE_TIME) {
+            dest->lease_time = src->lease_time;
+        }
+        if (attrmask->arr[0] & FATTR4_WORD0_RDATTR_ERROR) {
+            dest->rdattr_error = src->rdattr_error;
+        }
+        if (attrmask->arr[0] & FATTR4_WORD0_ACL) {
+            /* fixme: we should copy the contents! */
+            dest->acl = src->acl;
+        }
+        if (attrmask->arr[0] & FATTR4_WORD0_ACLSUPPORT) {
+            dest->aclsupport = src->aclsupport;
+        }
+        if (attrmask->arr[0] & FATTR4_WORD0_ARCHIVE) {
+            dest->archive = src->archive;
+        }
+        if (attrmask->arr[0] & FATTR4_WORD0_CANSETTIME) {
+            dest->cansettime = src->cansettime;
+        }
+        if (attrmask->arr[0] & FATTR4_WORD0_CASE_INSENSITIVE) {
+            dest->case_insensitive = src->case_insensitive;
+        }
+        if (attrmask->arr[0] & FATTR4_WORD0_CASE_PRESERVING) {
+            dest->case_preserving = src->case_preserving;
+        }
+        if (attrmask->arr[0] & FATTR4_WORD0_FILEID) {
+            dest->fileid = src->fileid;
+        }
+        if (attrmask->arr[0] & FATTR4_WORD0_FS_LOCATIONS) {
+            /* fixme: we should copy the contents, not the pointer! */
+            dest->fs_locations = src->fs_locations;
+        }
+        if (attrmask->arr[0] & FATTR4_WORD0_HIDDEN) {
+            dest->hidden = src->hidden;
+        }
+        if (attrmask->arr[0] & FATTR4_WORD0_MAXREAD) {
+            dest->maxread = src->maxread;
+        }
+        if (attrmask->arr[0] & FATTR4_WORD0_MAXWRITE) {
+            dest->maxwrite = src->maxwrite;
+        }
+    }
+    if (attrmask->count > 1) {
+        if (attrmask->arr[1] & FATTR4_WORD1_MODE) {
+            dest->mode = src->mode;
+        }
+        if (attrmask->arr[1] & FATTR4_WORD1_NUMLINKS) {
+            dest->numlinks = src->numlinks;
+        }
+        if (attrmask->arr[1] & FATTR4_WORD1_OWNER) {
+            EASSERT(src->owner != NULL);
+            EASSERT(src->owner[0] != '\0');
+            dest->owner = dest->owner_buf;
+            (void)strcpy(dest->owner, src->owner);
+        }
+        if (attrmask->arr[1] & FATTR4_WORD1_OWNER_GROUP) {
+            EASSERT(src->owner_group != NULL);
+            EASSERT(src->owner_group[0] != '\0');
+            dest->owner_group = dest->owner_group_buf;
+            (void)strcpy(dest->owner_group_buf, src->owner_group_buf);
+        }
+        if (attrmask->arr[1] & FATTR4_WORD1_SPACE_AVAIL) {
+            dest->space_avail = src->space_avail;
+        }
+        if (attrmask->arr[1] & FATTR4_WORD1_SPACE_FREE) {
+            dest->space_free = src->space_free;
+        }
+        if (attrmask->arr[1] & FATTR4_WORD1_SPACE_TOTAL) {
+            dest->space_total = src->space_total;
+        }
+        if (attrmask->arr[1] & FATTR4_WORD1_SYSTEM) {
+            dest->system = src->system;
+        }
+        if (attrmask->arr[1] & FATTR4_WORD1_TIME_ACCESS) {
+            dest->time_access = src->time_access;
+        }
+        if (attrmask->arr[1] & FATTR4_WORD1_TIME_CREATE) {
+            dest->time_create = src->time_create;
+        }
+        if (attrmask->arr[1] & FATTR4_WORD1_TIME_DELTA) {
+            dest->time_delta = src->time_delta;
+        }
+        if (attrmask->arr[1] & FATTR4_WORD1_TIME_MODIFY) {
+            dest->time_modify = src->time_modify;
+        }
+        if (attrmask->arr[1] & FATTR4_WORD1_DACL) {
+            /* fixme: we should copy the contents! */
+            dest->acl = src->acl;
+        }
+        if (attrmask->arr[1] & FATTR4_WORD1_FS_LAYOUT_TYPE) {
+            dest->fs_layout_types = src->fs_layout_types;
+        }
+    }
+    if (attrmask->count > 2) {
+        if (attrmask->arr[2] & FATTR4_WORD2_MODE_SET_MASKED) {
+            dest->mode_mask = src->mode_mask;
+        }
+        if (attrmask->arr[2] & FATTR4_WORD2_MDSTHRESHOLD) {
+            dest->mdsthreshold = src->mdsthreshold;
+        }
+        if (attrmask->arr[2] & FATTR4_WORD2_SUPPATTR_EXCLCREAT) {
+            dest->suppattr_exclcreat = src->suppattr_exclcreat;
+        }
+    }
+
+    if (flags & NFS41FILEINFOCPY_COPY_SYMLINK_DIR) {
+        dest->symlink_dir = src->symlink_dir;
+    }
 }
