@@ -131,7 +131,11 @@ static __inline void bitmap4_cpy(
     OUT bitmap4 *restrict dst,
     IN  const bitmap4 *restrict src)
 {
-    (void)memcpy(dst, src, sizeof(bitmap4));
+    uint32_t i;
+    for (i = 0; i < src->count; i++) {
+        dst->arr[i] = src->arr[i];
+    }
+    dst->count = src->count;
 }
 
 static __inline void bitmap4_clear(
