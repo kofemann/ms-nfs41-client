@@ -32,7 +32,7 @@
 #define NFS4_OPAQUE_LIMIT       1024
 #define NFS4_SESSIONID_SIZE     16
 #define NFS4_STATEID_OTHER      12
-#define NFS4_EASIZE             256
+#define NFS4_EASIZE             2048
 #define NFS4_EANAME_SIZE        128
 
 /*
