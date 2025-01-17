@@ -430,6 +430,9 @@ function msnfs41client_build
 
 	cd "$PWD/ms-nfs41-client/"
 
+	# make sure git commands (like "git describe ...") work
+	git config --global --add safe.directory "$PWD"
+
 	#
 	# patch sources and configure build
 	#
@@ -446,8 +449,15 @@ function msnfs41client_build
 	#
 	# build ms-nfs41-client
 	#
-	export PATH+=":/cygdrive/c/Program Files (x86)/Microsoft Visual Studio/2019/Community/MSBuild/Current/Bin/"
-	time make -j1 -f cygwin/Makefile bintarball
+	(
+		# Visual Studio 19 64bit+32bit kernel codepath
+		# fixme: Add support for VS2022 64bit-only codepath
+		export PATH+=":/cygdrive/c/Program Files (x86)/Microsoft Visual Studio/2019/Community/MSBuild/Current/Bin/"
+		set -o errexit
+		time make -j1 -f cygwin/Makefile build
+		time make -j1 -f cygwin/Makefile installdest
+		time make -j1 -f cygwin/Makefile bintarball
+	)
 	echo $?
 
 	echo "#Done."
