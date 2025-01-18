@@ -660,16 +660,17 @@ static int idmap_lookup_user(
     const struct idmap_lookup *lookup,
     struct idmap_user *user)
 {
-    PCHAR* values[NUM_ATTRIBUTES] = { NULL };
 #ifndef NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN
+    PCHAR* values[NUM_ATTRIBUTES] = { NULL };
     const unsigned attributes = ATTR_FLAG(ATTR_USER_NAME)
         | ATTR_FLAG(ATTR_PRINCIPAL)
         | ATTR_FLAG(ATTR_UID)
         | ATTR_FLAG(ATTR_GID);
     /* principal is optional; we'll cache it if we have it */
     const unsigned optional = ATTR_FLAG(ATTR_PRINCIPAL);
+    int i;
 #endif /* !NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN */
-    int i, status;
+    int status;
 
     /* check the user cache for an existing entry */
     status = cache_lookup(&context->users, lookup, &user->entry);
@@ -831,12 +832,13 @@ static int idmap_lookup_group(
     const struct idmap_lookup *lookup,
     struct idmap_group *group)
 {
-    PCHAR* values[NUM_ATTRIBUTES] = { NULL };
 #ifndef NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN
+    PCHAR* values[NUM_ATTRIBUTES] = { NULL };
     const unsigned attributes = ATTR_FLAG(ATTR_GROUP_NAME)
         | ATTR_FLAG(ATTR_GID);
+    int i;
 #endif
-    int i, status;
+    int status;
 
     /* check the group cache for an existing entry */
     status = cache_lookup(&context->groups, lookup, &group->entry);
