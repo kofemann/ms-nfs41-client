@@ -1510,7 +1510,8 @@ int nfs41_setattr(
     nfs41_attr_cache_update(session_name_cache(session),
         file->fh.fileid, info);
 
-    if (setattr_res.attrsset.arr[0] & FATTR4_WORD0_SIZE)
+    if ((setattr_res.attrsset.count > 0) &&
+        (setattr_res.attrsset.arr[0] & FATTR4_WORD0_SIZE))
         nfs41_superblock_space_changed(file->fh.superblock);
 out:
     return status;
