@@ -813,15 +813,15 @@ static int idmap_lookup_user(
             (unsigned int)user->gid));
     }
 #endif /* !NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN */
-    if (context->config.cache_ttl) {
+    if ((status == 0) && context->config.cache_ttl) {
         /* insert the entry into the cache */
         cache_insert(&context->users, lookup, &user->entry);
     }
 #ifndef NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN
 out_free_values:
-#endif
     for (i = 0; i < NUM_ATTRIBUTES; i++)
         ldap_value_freeA(values[i]);
+#endif
 out:
     return status;
 }
@@ -918,15 +918,15 @@ static int idmap_lookup_group(
             (unsigned int)group->gid));
     }
 #endif /* !NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN */
-    if (context->config.cache_ttl) {
+    if ((status == 0) && context->config.cache_ttl) {
         /* insert the entry into the cache */
         cache_insert(&context->groups, lookup, &group->entry);
     }
 #ifndef NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN
 out_free_values:
-#endif
     for (i = 0; i < NUM_ATTRIBUTES; i++)
         ldap_value_freeA(values[i]);
+#endif
 out:
     return status;
 }
