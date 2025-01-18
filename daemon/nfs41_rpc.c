@@ -3,6 +3,7 @@
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
+ * Roland Mainz <roland.mainz@nrubsig.org>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -19,6 +20,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  */
 
+#include "accesstoken.h"
 #include "nfs41_ops.h"
 #include "daemon_debug.h"
 #include "nfs41_xdr.h"
@@ -157,7 +159,6 @@ int nfs41_rpc_clnt_create(
     uint32_t addr_index;
     int status;
     char machname[MAXHOSTNAMELEN + 1];
-    gid_t gids[1];
     bool_t needcb = 1;
 
     rpc = calloc(1, sizeof(nfs41_rpc_clnt));
@@ -191,12 +192,26 @@ int nfs41_rpc_clnt_create(
 
     rpc->sec_flavor = sec_flavor;
     if (sec_flavor == RPCSEC_AUTH_SYS) {
+        gid_t aup_gids[RPC_AUTHUNIX_AUP_MAX_NUM_GIDS];
+        int num_aup_gids = 0;
+
         if (gethostname(machname, sizeof(machname)) == -1) {
             eprintf("nfs41_rpc_clnt_create: gethostname failed\n");
             goto out_err_client;
         }
         machname[sizeof(machname) - 1] = '\0';
-        client->cl_auth = authsys_create(machname, uid, gid, 0, gids);
+
+        if (!fill_auth_unix_aup_gids(GetCurrentThreadToken(),
+            aup_gids, &num_aup_gids)) {
+            eprintf("nfs41_rpc_clnt_create: "
+                "fill_auth_unix_aup_gids() failed\n");
+            status = ERROR_NETWORK_UNREACHABLE;
+            goto out_err_client;
+        }
+
+        client->cl_auth = authsys_create(machname,
+            uid, gid,
+            num_aup_gids, aup_gids);
         if (client->cl_auth == NULL) {
             eprintf("nfs41_rpc_clnt_create: failed to create rpc authsys\n");
             status = ERROR_NETWORK_UNREACHABLE;

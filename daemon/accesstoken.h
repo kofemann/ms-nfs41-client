@@ -24,10 +24,16 @@
 
 #include <Windows.h>
 #include <stdbool.h>
+#include "nfs41_types.h" /* for |gid_t| */
 
 bool get_token_user_name(HANDLE tok, char *out_buffer);
 bool get_token_primarygroup_name(HANDLE tok, char *out_buffer);
 bool get_token_authenticationid(HANDLE tok, LUID *out_authenticationid);
 bool set_token_privilege(HANDLE tok, const char *seprivname, bool enable_priv);
+bool fill_auth_unix_aup_gids(HANDLE tok,
+    gid_t *, int *num_aup_gids);
+bool get_token_groups_names(HANDLE tok,
+    int num_out_buffers, char *out_buffers[],
+    int *out_buffers_count);
 
 #endif /* !__NFS41_DAEMON_ACCESSTOKEN_H__ */

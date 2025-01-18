@@ -23,6 +23,7 @@
 #include "accesstoken.h"
 #include "sid.h"
 #include "daemon_debug.h"
+#include "nfs41_daemon.h"
 #include <Lmcons.h>
 
 #ifndef _NFS41_DRIVER_BUILDFEATURES_
@@ -128,6 +129,151 @@ bool get_token_primarygroup_name(HANDLE tok, char *out_buffer)
 #endif /* NFS41_DRIVER_SID_CACHE */
 
     return true;
+}
+
+bool fill_auth_unix_aup_gids(HANDLE tok,
+    gid_t *aup_gids, int *num_aup_gids)
+{
+    char group_names_buff[RPC_AUTHUNIX_AUP_MAX_NUM_GIDS*(GNLEN+1)];
+    char *group_names[RPC_AUTHUNIX_AUP_MAX_NUM_GIDS];
+    char *s;
+    int i;
+    int num_groups;
+
+    /* fixme: This should be a function argument */
+    extern nfs41_daemon_globals nfs41_dg;
+
+    /*
+     * VS2019 |_alloca()| cannot be used in a loop, so we use multiple
+     * pointers into one buffer instead
+     */
+    for (s=group_names_buff,i=0 ; i < RPC_AUTHUNIX_AUP_MAX_NUM_GIDS ; i++) {
+        group_names[i] = s;
+        s += GNLEN+1;
+    }
+
+    if (!get_token_groups_names(tok,
+        RPC_AUTHUNIX_AUP_MAX_NUM_GIDS, group_names, &num_groups)) {
+        eprintf("fill_auth_unix_aup_gids: "
+            "get_token_groups_names() failed\n");
+        *num_aup_gids = 0;
+        return false;
+    }
+
+    gid_t map_gid;
+    *num_aup_gids = 0;
+
+    for (i=0 ; i < num_groups ; i++) {
+        if (nfs41_idmap_group_to_gid(
+            nfs41_dg.idmapper,
+            group_names[i],
+            &map_gid) == 0) {
+            aup_gids[(*num_aup_gids)++] = map_gid;
+        }
+        else {
+            eprintf("fill_auth_unix_aup_gids: "
+                "no group mapping for '%s'\n",
+                group_names[i]);
+        }
+    }
+
+    return true;
+}
+
+bool get_token_groups_names(HANDLE tok,
+    int num_out_buffers, char *out_buffers[],
+    int *out_buffers_count)
+{
+    DWORD tokdatalen;
+    PTOKEN_GROUPS ptgroups;
+    char namebuffer[GNLEN+1];
+    DWORD namesize;
+    char domainbuffer[UNLEN+1];
+    DWORD domainbuffer_size;
+    SID_NAME_USE name_use;
+    bool retval = false;
+
+    DPRINTF(1,
+        ("--> get_token_groups_names"
+        "(tok=0x%p,num_out_buffers=%d,out_buffers=0x%p)\n",
+        (void *)tok, num_out_buffers, out_buffers));
+
+    tokdatalen = sizeof(TOKEN_GROUPS)+GETTOKINFO_EXTRA_BUFFER;
+    ptgroups = _alloca(tokdatalen);
+    if (!GetTokenInformation(tok, TokenGroups, ptgroups,
+        tokdatalen, &tokdatalen)) {
+        DPRINTF(0, ("get_token_groups_names: "
+            "GetTokenInformation(tok=0x%p, TokenGroups) failed, "
+            "status=%d.\n",
+            (void *)tok, (int)GetLastError()));
+        retval = false;
+        goto done;
+    }
+
+    DWORD i;
+    int iob = 0; /* index in |out_buffers| */
+
+    DPRINTF(1, ("get_token_groups_names: got %d groups\n",
+            (int)ptgroups->GroupCount));
+
+    for (i = 0 ; i < ptgroups->GroupCount ; i++) {
+        if (!(ptgroups->Groups[i].Attributes & SE_GROUP_ENABLED)) {
+            continue;
+        }
+
+        namesize = sizeof(namebuffer)-1;
+        domainbuffer_size = sizeof(domainbuffer)-1;
+
+        if (!LookupAccountSidA(NULL, ptgroups->Groups[i].Sid,
+            namebuffer, &namesize, domainbuffer, &domainbuffer_size, &name_use)) {
+            DPRINTF(0, ("get_token_groups_names: "
+                "LookupAccountSidA() failed, status=%d.\n",
+                (int)GetLastError()));
+            continue;
+        }
+
+        if (iob < num_out_buffers) {
+            DPRINTF(1,
+                ("get_token_groups_names: adding group='%s', domain='%s'\n",
+                namebuffer, domainbuffer));
+            (void)strcpy(out_buffers[iob], namebuffer);
+            iob++;
+        }
+        else {
+            DPRINTF(0,
+                ("get_token_groups_names: "
+                "buffer full, skip group='%s', domain='%s'\n",
+                namebuffer, domainbuffer));
+        }
+    }
+
+    *out_buffers_count = iob;
+    retval = true;
+
+done:
+    if (retval) {
+        /* success */
+        DPRINTF(1,
+            ("<-- get_token_groups_names"
+            "(tok=0x%p,num_out_buffers=%d,out_buffers=0x%p,*out_buffers_count=%d), retval=%d\n",
+            (void *)tok,
+            num_out_buffers,
+            out_buffers,
+            *out_buffers_count,
+            (int)retval));
+    }
+    else {
+        /* failure */
+        DPRINTF(1,
+            ("<-- get_token_groups_names"
+            "(tok=0x%p,num_out_buffers=%d,out_buffers=0x%p) failed, retval=%d\n",
+            (void *)tok,
+            num_out_buffers,
+            out_buffers,
+            (int)retval));
+    }
+
+    return retval;
 }
 
 bool get_token_authenticationid(HANDLE tok, LUID *out_authenticationid)

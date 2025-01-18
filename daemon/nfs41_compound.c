@@ -3,6 +3,7 @@
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
+ * Roland Mainz <roland.mainz@nrubsig.org>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -22,6 +23,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "accesstoken.h"
 #include "nfs41_compound.h"
 #include "nfs41_xdr.h"
 #include "nfs41_ops.h"
@@ -111,14 +113,25 @@ static int create_new_rpc_auth(nfs41_session *session, uint32_t op,
             sec_flavor = secinfo[i].type;
         } else {
             char machname[MAXHOSTNAMELEN + 1];
-            gid_t gids[1];
+            gid_t aup_gids[RPC_AUTHUNIX_AUP_MAX_NUM_GIDS];
+            int num_aup_gids = 0;
+
+            if (!fill_auth_unix_aup_gids(GetCurrentThreadToken(),
+                aup_gids, &num_aup_gids)) {
+                eprintf("create_new_rpc_auth: "
+                    "fill_auth_unix_aup_gids() failed\n");
+                continue;
+            }
+
             if (gethostname(machname, sizeof(machname)) == -1) {
                 eprintf("nfs41_rpc_clnt_create: gethostname failed\n");
                 continue;
             }
             machname[sizeof(machname) - 1] = '\0';
-            auth = authsys_create(machname, session->client->rpc->uid, 
-                        session->client->rpc->gid, 0, gids);
+            auth = authsys_create(machname,
+                session->client->rpc->uid,
+                session->client->rpc->gid,
+                num_aup_gids, aup_gids);
             if (auth == NULL) {
                 eprintf("handle_wrongsecinfo_noname: authsys_create failed\n");
                 continue;

@@ -35,6 +35,9 @@
 #define NFS4_EASIZE             2048
 #define NFS4_EANAME_SIZE        128
 
+/* Maximum number of AUP GIDs for |AUTH_UNIX| */
+#define RPC_AUTHUNIX_AUP_MAX_NUM_GIDS 16
+
 /*
  * |NFS4_FATTR4_OWNER_LIMIT| - limits for
  * |fattr4_owner|+|fattr4_owner_group|
