@@ -45,7 +45,12 @@ C:\cygwin64\sbin\nfs_mount -o rw N nfs://192.168.209.129//
 # Solaris 11.4 NFSv4.1 server setup
 #
 
-# 1. Server setup
+##### 1. Server setup
+# enable ntp server "10.49.0.5"
+printf "server 10.49.0.5\n" >/etc/inet/ntp.conf
+svcadm enable ntp
+
+# configure&start NFS server
 svcadm enable network/nfs/server
 sharectl set -p nfsmapid_domain=global.loc nfs
 sharectl set -p server_delegation=on nfs
@@ -54,16 +59,19 @@ chmod a+rwx /nfsdata
 share -F nfs -o rw /nfsdata/
 svcs svc:/network/nfs/server:default
 
-# 2. Windows ms-nfs41-client setup:
-# Add entries for groups "sys" and "nobody"
-echo "sys:S-1-0-3:3:" >>/etc/groups
-echo "nobody:S-1-0-65534:65534:" >>/etc/group
+# performance: disable sync/ZIL on ZFS pool which exports NFS files
+zfs set sync=disabled rpool
 
-# 3. Misc commands:
+##### 2. Windows ms-nfs41-client setup:
+# Add entries for groups "sys" and "nobody" used by Solaris nfsd
+printf "sys:S-1-0-3:3:\n" >>/etc/groups
+printf "nobody:S-1-0-65534:65534:\n" >>/etc/group
+
+##### 3. Misc commands:
 ls -v filename # list ACLs
 chmod A... # to edit ACLs
 
-# 4. Troubleshooting:
+##### 4. Troubleshooting:
 See https://docs.oracle.com/en/operating-systems/solaris/oracle-solaris/11.4/manage-nfs/troubleshooting-network-file-systems1.html
 
 
