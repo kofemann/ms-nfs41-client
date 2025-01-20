@@ -154,7 +154,7 @@ typedef struct _nfs3_attrs {
         DWORD specdata1;
         DWORD specdata2;
     } rdev;
-    LONGLONG fsid, fileid;
+    ULONGLONG fsid, fileid;
     LONGLONG atime, mtime, ctime;
 } nfs3_attrs;
 
@@ -231,6 +231,7 @@ typedef struct _updowncall_entry {
         struct {
             FILE_BASIC_INFORMATION binfo;
             FILE_STANDARD_INFORMATION sinfo;
+            ULONGLONG fileid;
             UNICODE_STRING symlink;
             ULONG access_mask;
             ULONG access_mode;
@@ -435,6 +436,7 @@ typedef struct _NFS41_FCB {
     NODE_BYTE_SIZE          NodeByteSize;
     FILE_BASIC_INFORMATION  BasicInfo;
     FILE_STANDARD_INFORMATION StandardInfo;
+    ULONGLONG               fileid;
     BOOLEAN                 Renamed;
     BOOLEAN                 DeletePending;
     DWORD                   mode;

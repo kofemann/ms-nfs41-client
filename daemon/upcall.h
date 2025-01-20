@@ -46,6 +46,7 @@ typedef struct __open_upcall_args {
     nfs41_abs_path symlink;
     FILE_BASIC_INFO basic_info;
     FILE_STANDARD_INFO std_info;
+    ULONGLONG fileid;
     const char *path;
     ULONG access_mask;
     ULONG access_mode;

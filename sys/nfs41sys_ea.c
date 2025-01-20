@@ -211,6 +211,8 @@ static void create_nfs3_attrs(
     attrs->nlink = nfs41_fcb->StandardInfo.NumberOfLinks;
     attrs->size.QuadPart = attrs->used.QuadPart =
         nfs41_fcb->StandardInfo.EndOfFile.QuadPart;
+    attrs->fsid = 0xBABAFACEBABAFACE;
+    attrs->fileid = nfs41_fcb->fileid;
     file_time_to_nfs_time(&nfs41_fcb->BasicInfo.LastAccessTime, &attrs->atime);
     file_time_to_nfs_time(&nfs41_fcb->BasicInfo.ChangeTime, &attrs->mtime);
     file_time_to_nfs_time(&nfs41_fcb->BasicInfo.CreationTime, &attrs->ctime);

@@ -780,6 +780,9 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
         }
         nfs_to_basic_info(state->file.name.name, &info, &args->basic_info);
         nfs_to_standard_info(&info, &args->std_info);
+        EASSERT((info.attrmask.count > 0) &&
+            (info.attrmask.arr[0] & FATTR4_WORD0_FILEID));
+        args->fileid = info.fileid;
         EASSERT((info.attrmask.count > 1) &&
             (info.attrmask.arr[1] & FATTR4_WORD1_MODE));
         args->mode = info.mode;
@@ -795,6 +798,9 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
 
         nfs_to_basic_info(state->file.name.name, &info, &args->basic_info);
         nfs_to_standard_info(&info, &args->std_info);
+        EASSERT((info.attrmask.count > 0) &&
+            (info.attrmask.arr[0] & FATTR4_WORD0_FILEID));
+        args->fileid = info.fileid;
         EASSERT((info.attrmask.count > 1) &&
             (info.attrmask.arr[1] & FATTR4_WORD1_MODE));
         args->mode = info.mode;
@@ -1027,6 +1033,9 @@ create_chgrp_out:
 
             nfs_to_basic_info(state->file.name.name, &info, &args->basic_info);
             nfs_to_standard_info(&info, &args->std_info);
+            EASSERT((info.attrmask.count > 0) &&
+                (info.attrmask.arr[0] & FATTR4_WORD0_FILEID));
+            args->fileid = info.fileid;
             EASSERT((info.attrmask.count > 1) &&
                 (info.attrmask.arr[1] & FATTR4_WORD1_MODE));
             args->mode = info.mode;
@@ -1060,6 +1069,8 @@ static int marshall_open(unsigned char *buffer, uint32_t *length, nfs41_upcall *
     if (status) goto out;
     status = safe_write(&buffer, length, &args->std_info, sizeof(args->std_info));
     if (status) goto out;
+    status = safe_write(&buffer, length, &args->fileid, sizeof(args->fileid));
+    if (status) goto out;
     status = safe_write(&buffer, length, &upcall->state_ref, sizeof(HANDLE));
     if (status) goto out;
     status = safe_write(&buffer, length, &args->mode, sizeof(args->mode));
@@ -1089,8 +1100,10 @@ static int marshall_open(unsigned char *buffer, uint32_t *length, nfs41_upcall *
             goto out;
         }
     }
-    DPRINTF(2, ("NFS41_SYSOP_OPEN: downcall open_state=0x%p mode %o changeattr 0x%llu\n",
-        upcall->state_ref, args->mode, args->changeattr));
+    DPRINTF(2, ("NFS41_SYSOP_OPEN: downcall "
+        "open_state=0x%p fileid=0x%llx mode=0o%o changeattr=0x%llu\n",
+        upcall->state_ref, (unsigned long long)args->fileid,
+        args->mode, args->changeattr));
 out:
     return status;
 }
