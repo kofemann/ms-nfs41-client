@@ -232,6 +232,7 @@ typedef struct _updowncall_entry {
             FILE_BASIC_INFORMATION binfo;
             FILE_STANDARD_INFORMATION sinfo;
             ULONGLONG fileid;
+            ULONGLONG fsid_major, fsid_minor;
             UNICODE_STRING symlink;
             ULONG access_mask;
             ULONG access_mode;
@@ -437,6 +438,7 @@ typedef struct _NFS41_FCB {
     FILE_BASIC_INFORMATION  BasicInfo;
     FILE_STANDARD_INFORMATION StandardInfo;
     ULONGLONG               fileid;
+    ULONGLONG               fsid_major, fsid_minor;
     BOOLEAN                 Renamed;
     BOOLEAN                 DeletePending;
     DWORD                   mode;

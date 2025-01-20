@@ -267,6 +267,10 @@ NTSTATUS unmarshal_nfs41_open(
     *buf += sizeof(FILE_STANDARD_INFORMATION);
     RtlCopyMemory(&cur->u.Open.fileid, *buf, sizeof(ULONGLONG));
     *buf += sizeof(ULONGLONG);
+    RtlCopyMemory(&cur->u.Open.fsid_major, *buf, sizeof(ULONGLONG));
+    *buf += sizeof(ULONGLONG);
+    RtlCopyMemory(&cur->u.Open.fsid_minor, *buf, sizeof(ULONGLONG));
+    *buf += sizeof(ULONGLONG);
     RtlCopyMemory(&cur->open_state, *buf, sizeof(HANDLE));
     *buf += sizeof(HANDLE);
     RtlCopyMemory(&cur->u.Open.mode, *buf, sizeof(DWORD));
@@ -304,13 +308,15 @@ NTSTATUS unmarshal_nfs41_open(
     }
 #ifdef DEBUG_MARSHAL_DETAIL
     DbgP("unmarshal_nfs41_open: "
-        "open_state 0x%x fileid=0x%llx mode 0%o "
+        "open_state 0x%x fileid=0x%llx fsid=(0x%llx.0x%llx) mode 0%o "
 #ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES
         "owner_local_uid %u owner_group_local_gid %u "
 #endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
         "changeattr %llu "
         "deleg_type %d\n",
-        cur->open_state, cur->u.Open.fileid, cur->u.Open.mode,
+        cur->open_state, cur->u.Open.fileid,
+        cur->u.Open.fsid_major, cur->u.Open.fsid_minor,
+        cur->u.Open.mode,
 #ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES
         cur->u.Open.owner_local_uid, cur->u.Open.owner_group_local_gid,
 #endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
@@ -817,6 +823,8 @@ retry_on_link:
         RtlCopyMemory(&nfs41_fcb->StandardInfo, &entry->u.Open.sinfo,
             sizeof(entry->u.Open.sinfo));
         nfs41_fcb->fileid = entry->u.Open.fileid;
+        nfs41_fcb->fsid_major = entry->u.Open.fsid_major;
+        nfs41_fcb->fsid_minor = entry->u.Open.fsid_minor;
         nfs41_fcb->mode = entry->u.Open.mode;
 #ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES
         nfs41_fcb->owner_local_uid = entry->u.Open.owner_local_uid;

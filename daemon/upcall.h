@@ -47,6 +47,7 @@ typedef struct __open_upcall_args {
     FILE_BASIC_INFO basic_info;
     FILE_STANDARD_INFO std_info;
     ULONGLONG fileid;
+    ULONGLONG fsid_major, fsid_minor;
     const char *path;
     ULONG access_mask;
     ULONG access_mode;

@@ -82,6 +82,8 @@ struct attr_cache_entry {
     uint64_t                change;
     uint64_t                size;
     uint64_t                fileid;
+    uint64_t                fsid_major;
+    uint64_t                fsid_minor;
     int64_t                 time_access_s;
     int64_t                 time_create_s;
     int64_t                 time_modify_s;
@@ -295,6 +297,10 @@ static void attr_cache_update(
             entry->invalidated = 0;
             entry->expiration = UTIL_GETRELTIME() + NAME_CACHE_EXPIRATION;
         }
+        if (info->attrmask.arr[0] & FATTR4_WORD0_FSID) {
+            entry->fsid_major = info->fsid.major;
+            entry->fsid_minor = info->fsid.minor;
+        }
         if (info->attrmask.arr[0] & FATTR4_WORD0_SIZE)
             entry->size = info->size;
         if (info->attrmask.arr[0] & FATTR4_WORD0_HIDDEN)
@@ -341,7 +347,7 @@ static void copy_attrs(
 {
     dst->attrmask.count = 2;
     dst->attrmask.arr[0] = FATTR4_WORD0_TYPE | FATTR4_WORD0_CHANGE
-        | FATTR4_WORD0_SIZE | FATTR4_WORD0_FILEID
+        | FATTR4_WORD0_SIZE | FATTR4_WORD0_FSID | FATTR4_WORD0_FILEID
         | FATTR4_WORD0_HIDDEN | FATTR4_WORD0_ARCHIVE;
     dst->attrmask.arr[1] = FATTR4_WORD1_MODE
         | FATTR4_WORD1_NUMLINKS
@@ -386,6 +392,8 @@ static void copy_attrs(
         dst->owner_group = NULL;
     }
     dst->fileid = src->fileid;
+    dst->fsid.major = src->fsid_major;
+    dst->fsid.minor = src->fsid_minor;
     dst->hidden = src->hidden;
     dst->system = src->system;
     dst->archive = src->archive;

@@ -783,6 +783,10 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
         EASSERT((info.attrmask.count > 0) &&
             (info.attrmask.arr[0] & FATTR4_WORD0_FILEID));
         args->fileid = info.fileid;
+        EASSERT((info.attrmask.count > 0) &&
+            (info.attrmask.arr[0] & FATTR4_WORD0_FSID));
+        args->fsid_major = info.fsid.major;
+        args->fsid_minor = info.fsid.minor;
         EASSERT((info.attrmask.count > 1) &&
             (info.attrmask.arr[1] & FATTR4_WORD1_MODE));
         args->mode = info.mode;
@@ -801,6 +805,10 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
         EASSERT((info.attrmask.count > 0) &&
             (info.attrmask.arr[0] & FATTR4_WORD0_FILEID));
         args->fileid = info.fileid;
+        EASSERT((info.attrmask.count > 0) &&
+            (info.attrmask.arr[0] & FATTR4_WORD0_FSID));
+        args->fsid_major = info.fsid.major;
+        args->fsid_minor = info.fsid.minor;
         EASSERT((info.attrmask.count > 1) &&
             (info.attrmask.arr[1] & FATTR4_WORD1_MODE));
         args->mode = info.mode;
@@ -1036,6 +1044,10 @@ create_chgrp_out:
             EASSERT((info.attrmask.count > 0) &&
                 (info.attrmask.arr[0] & FATTR4_WORD0_FILEID));
             args->fileid = info.fileid;
+            EASSERT((info.attrmask.count > 0) &&
+                (info.attrmask.arr[0] & FATTR4_WORD0_FSID));
+            args->fsid_major = info.fsid.major;
+            args->fsid_minor = info.fsid.minor;
             EASSERT((info.attrmask.count > 1) &&
                 (info.attrmask.arr[1] & FATTR4_WORD1_MODE));
             args->mode = info.mode;
@@ -1071,6 +1083,10 @@ static int marshall_open(unsigned char *buffer, uint32_t *length, nfs41_upcall *
     if (status) goto out;
     status = safe_write(&buffer, length, &args->fileid, sizeof(args->fileid));
     if (status) goto out;
+    status = safe_write(&buffer, length, &args->fsid_major, sizeof(args->fsid_major));
+    if (status) goto out;
+    status = safe_write(&buffer, length, &args->fsid_minor, sizeof(args->fsid_minor));
+    if (status) goto out;
     status = safe_write(&buffer, length, &upcall->state_ref, sizeof(HANDLE));
     if (status) goto out;
     status = safe_write(&buffer, length, &args->mode, sizeof(args->mode));
@@ -1101,8 +1117,13 @@ static int marshall_open(unsigned char *buffer, uint32_t *length, nfs41_upcall *
         }
     }
     DPRINTF(2, ("NFS41_SYSOP_OPEN: downcall "
-        "open_state=0x%p fileid=0x%llx mode=0o%o changeattr=0x%llu\n",
-        upcall->state_ref, (unsigned long long)args->fileid,
+        "open_state=0x%p "
+        "fileid=0x%llx fsid=(0x%llx.0x%llx) "
+        "mode=0o%o changeattr=0x%llu\n",
+        upcall->state_ref,
+        (unsigned long long)args->fileid,
+        (unsigned long long)args->fsid_major,
+        (unsigned long long)args->fsid_minor,
         args->mode, args->changeattr));
 out:
     return status;

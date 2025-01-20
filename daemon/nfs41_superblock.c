@@ -136,8 +136,8 @@ static int get_superblock_attrs(
     superblock->default_getattr.count = 2;
     superblock->default_getattr.arr[0] = FATTR4_WORD0_TYPE
         | FATTR4_WORD0_CHANGE | FATTR4_WORD0_SIZE
-        | FATTR4_WORD0_FILEID | FATTR4_WORD0_HIDDEN
-        | FATTR4_WORD0_ARCHIVE;
+        | FATTR4_WORD0_FSID | FATTR4_WORD0_FILEID
+        | FATTR4_WORD0_HIDDEN | FATTR4_WORD0_ARCHIVE;
     superblock->default_getattr.arr[1] = FATTR4_WORD1_MODE
         | FATTR4_WORD1_NUMLINKS | FATTR4_WORD1_SYSTEM
         | FATTR4_WORD1_TIME_ACCESS | FATTR4_WORD1_TIME_CREATE

@@ -211,7 +211,17 @@ static void create_nfs3_attrs(
     attrs->nlink = nfs41_fcb->StandardInfo.NumberOfLinks;
     attrs->size.QuadPart = attrs->used.QuadPart =
         nfs41_fcb->StandardInfo.EndOfFile.QuadPart;
-    attrs->fsid = 0xBABAFACEBABAFACE;
+    /*
+     * NFSv4.1 |nfs41_fsid| contains two 64bit fields (|major|,
+     * |minor|), but the |nfs3_attrs.fsid| field is only one 64bit
+     * value.
+     *
+     * For now we XOR both |nfs41_fsid.major|^|nfs41_fsid.minor|
+     * to avoid loosing data and to deal with NFSv4.1 filesystems
+     * which might have |0| in either |nfs41_fsid.major| or
+     * |nfs41_fsid.minor|.
+     */
+    attrs->fsid = nfs41_fcb->fsid_major ^ nfs41_fcb->fsid_minor;
     attrs->fileid = nfs41_fcb->fileid;
     file_time_to_nfs_time(&nfs41_fcb->BasicInfo.LastAccessTime, &attrs->atime);
     file_time_to_nfs_time(&nfs41_fcb->BasicInfo.ChangeTime, &attrs->mtime);
