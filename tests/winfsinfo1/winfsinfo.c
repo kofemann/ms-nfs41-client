@@ -668,7 +668,7 @@ ZwQueryEaFile(
   IN BOOLEAN RestartScan);
 
 static
-bool get_getnfs3attr(const char *progname, const char *filename)
+bool get_nfs3attr(const char *progname, const char *filename)
 {
     int res = EXIT_FAILURE;
 
@@ -777,7 +777,7 @@ void usage(void)
         "filenormalizednameinfo|"
         "filecasesensitiveinfo|"
         "getfiletime|"
-        "getnfs3attr"
+        "nfs3attr"
         "> path\n");
 }
 
@@ -816,8 +816,8 @@ int main(int ac, char *av[])
     else if (!strcmp(subcmd, "filecasesensitiveinfo")) {
         return get_filecasesensitiveinfo(av[0], av[2]);
     }
-    else if (!strcmp(subcmd, "getnfs3attr")) {
-        return get_getnfs3attr(av[0], av[2]);
+    else if (!strcmp(subcmd, "nfs3attr")) {
+        return get_nfs3attr(av[0], av[2]);
     }
     else {
         (void)fprintf(stderr, "%s: Unknown subcmd '%s'\n", av[0], subcmd);
