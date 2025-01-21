@@ -207,7 +207,9 @@ static NTSTATUS ea_get_nfs3attr(
         "\tsize=%lld\n\tused=%lld\n"
         "\trdev=( specdata1=0x%x specdata2=0x%x )\n"
         "\tfsid=%lld\n\tfileid=%lld\n"
-        "\tatime=%lld\n\tmtime=%lld\n\tctime=%lld\n"
+        "\tatime=(tv_sec=%ld,tv_nsec=%lu)\n"
+        "\tmtime=(tv_sec=%ld,tv_nsec=%lu)\n"
+        "\tctime=(tv_sec=%ld,tv_nsec=%lu)\n"
         ")\n",
         (int)n3a->type,
         (int)n3a->mode,
@@ -220,9 +222,9 @@ static NTSTATUS ea_get_nfs3attr(
         (int)n3a->rdev.specdata2,
         (long long)n3a->fsid,
         (long long)n3a->fileid,
-        (long long)n3a->atime,
-        (long long)n3a->mtime,
-        (long long)n3a->ctime);
+        (long)n3a->atime.tv_sec, (unsigned long)n3a->atime.tv_nsec,
+        (long)n3a->mtime.tv_sec, (unsigned long)n3a->mtime.tv_nsec,
+        (long)n3a->ctime.tv_sec, (unsigned long)n3a->ctime.tv_nsec);
 
 out:
     return status;

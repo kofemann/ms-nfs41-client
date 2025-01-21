@@ -42,6 +42,10 @@
  * Note that we cannot use <stdint.h> in the Windows kernel, so we
  * use Windows Types here
  */
+typedef struct _nfs3_attrs_timestruc_t {
+    INT32   tv_sec;
+    UINT32  tv_nsec;
+} nfs3_attrs_timestruc_t;
 
 typedef struct _nfs3_attrs {
     UINT32 type, mode, nlink, uid, gid, filler1;
@@ -51,7 +55,7 @@ typedef struct _nfs3_attrs {
         UINT32 specdata2;
     } rdev;
     UINT64 fsid, fileid;
-    INT64 atime, mtime, ctime;
+    nfs3_attrs_timestruc_t atime, mtime, ctime;
 } nfs3_attrs;
 
 enum ftype3 {

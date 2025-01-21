@@ -741,7 +741,9 @@ bool get_nfs3attr(const char *progname, const char *filename)
         "\tsize=%lld\n\tused=%lld\n"
         "\trdev=( specdata1=0x%x specdata2=0x%x )\n"
         "\tfsid=0x%llx\n\tfileid=0x%llx\n"
-        "\tatime=%lld\n\tmtime=%lld\n\tctime=%lld\n"
+        "\tatime=(tv_sec=%ld,tv_nsec=%lu)\n"
+        "\tmtime=(tv_sec=%ld,tv_nsec=%lu)\n"
+        "\tctime=(tv_sec=%ld,tv_nsec=%lu)\n"
         ")\n",
         filename,
         (int)n3a->type,
@@ -755,9 +757,9 @@ bool get_nfs3attr(const char *progname, const char *filename)
         (int)n3a->rdev.specdata2,
         (unsigned long long)n3a->fsid,
         (unsigned long long)n3a->fileid,
-        (long long)n3a->atime,
-        (long long)n3a->mtime,
-        (long long)n3a->ctime);
+        (long)n3a->atime.tv_sec, (unsigned long)n3a->atime.tv_nsec,
+        (long)n3a->mtime.tv_sec, (unsigned long)n3a->mtime.tv_nsec,
+        (long)n3a->ctime.tv_sec, (unsigned long)n3a->ctime.tv_nsec);
     res = EXIT_SUCCESS;
 
 done:

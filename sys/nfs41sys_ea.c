@@ -175,21 +175,30 @@ static void print_nfs3_attrs(
     nfs3_attrs *attrs)
 {
     DbgP("type=%d mode=0%o nlink=%d size=%lld "
-        "atime=0x%llx mtime=0x%llx ctime=0x%llx\n",
+        "atime=(tv_sec=%ld,tv_nsec=%lu) "
+        "mtime=(tv_sec=%ld,tv_nsec=%lu) "
+        "ctime=(tv_sec=%ld,tv_nsec=%lu)\n",
         attrs->type, attrs->mode, attrs->nlink,
         (long long)attrs->size,
-        (long long)attrs->atime,
-        (long long)attrs->mtime,
-        (long long)attrs->ctime);
+        (long)attrs->atime.tv_sec, (unsigned long)attrs->atime.tv_nsec,
+        (long)attrs->mtime.tv_sec, (unsigned long)attrs->mtime.tv_nsec,
+        (long)attrs->ctime.tv_sec, (unsigned long)attrs->ctime.tv_nsec);
 }
 
 static void file_time_to_nfs_time(
     IN const PLARGE_INTEGER file_time,
-    OUT LONGLONG *nfs_time)
+    OUT nfs3_attrs_timestruc_t *nfs_time)
 {
+    /*
+     * Win32 timestamps (|time_file|) use 100-nanosecond intervals
+     * (10000000 intervals == one second) since January 1, 1601 (UTC),
+     * while "old UNIX" timestamps count in seconds since 00:00:00 UTC
+     * on 1 January 1970
+     */
     LARGE_INTEGER diff = unix_time_diff;
     diff.QuadPart = file_time->QuadPart - diff.QuadPart;
-    *nfs_time = diff.QuadPart / 10000000;
+    nfs_time->tv_sec  = (INT32)(diff.QuadPart / 10000000LL);
+    nfs_time->tv_nsec = (UINT32)((diff.QuadPart % 10000000LL) * 100LL);
 }
 
 static void create_nfs3_attrs(
