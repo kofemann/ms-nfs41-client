@@ -35,16 +35,23 @@
 #define EA_NFSACTONLINK "NfsActOnLink"
 #define EA_NFSACTONLINK_LEN (11)
 
-/* NfsV3Attributes uses |nfs3_attrs| as content */
+/*
+ * "NfsV3Attributes" uses |nfs3_attrs| as content
+ */
+/*
+ * Note that we cannot use <stdint.h> in the Windows kernel, so we
+ * use Windows Types here
+ */
+
 typedef struct _nfs3_attrs {
-    DWORD type, mode, nlink, uid, gid, filler1;
-    LARGE_INTEGER size, used;
+    UINT32 type, mode, nlink, uid, gid, filler1;
+    UINT64 size, used;
     struct {
-        DWORD specdata1;
-        DWORD specdata2;
+        UINT32 specdata1;
+        UINT32 specdata2;
     } rdev;
-    ULONGLONG fsid, fileid;
-    LONGLONG atime, mtime, ctime;
+    UINT64 fsid, fileid;
+    INT64 atime, mtime, ctime;
 } nfs3_attrs;
 
 enum ftype3 {

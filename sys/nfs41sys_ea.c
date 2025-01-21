@@ -177,7 +177,7 @@ static void print_nfs3_attrs(
     DbgP("type=%d mode=0%o nlink=%d size=%lld "
         "atime=0x%llx mtime=0x%llx ctime=0x%llx\n",
         attrs->type, attrs->mode, attrs->nlink,
-        (long long)attrs->size.QuadPart,
+        (long long)attrs->size,
         (long long)attrs->atime,
         (long long)attrs->mtime,
         (long long)attrs->ctime);
@@ -209,7 +209,7 @@ static void create_nfs3_attrs(
     attrs->gid = nfs41_fcb->owner_group_local_gid;
 #endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
     attrs->nlink = nfs41_fcb->StandardInfo.NumberOfLinks;
-    attrs->size.QuadPart = attrs->used.QuadPart =
+    attrs->size = attrs->used =
         nfs41_fcb->StandardInfo.EndOfFile.QuadPart;
     /*
      * NFSv4.1 |nfs41_fsid| contains two 64bit fields (|major|,
