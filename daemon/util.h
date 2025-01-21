@@ -49,14 +49,6 @@ enum stable_how4;
     (((signed long long)(t1))-((signed long long)(t2)))
 typedef ULONGLONG util_reltimestamp;
 
-/*
- * LargeInteger.QuadPart value to indicate a time value was not
- * available
- *
- * gisburn: FIXME: We need a better header for this
- */
-#define FILE_INFO_TIME_NOT_SET (0LL)
-
 #define PTR2PTRDIFF_T(p) ((ptrdiff_t)((char *)((void *)(p)) - ((char *)0)))
 #define PTRDIFF_T2PTR(d) ((void *)(((char *)0) + (d)))
 

@@ -189,6 +189,16 @@ static void file_time_to_nfs_time(
     IN const PLARGE_INTEGER file_time,
     OUT nfs3_attrs_timestruc_t *nfs_time)
 {
+    if (file_time->QuadPart == FILE_INFO_TIME_NOT_SET) {
+        /*
+         * Return tv_sec==-1 to indicate that this
+         * value is not supported
+         */
+        nfs_time->tv_sec = -1L;
+        nfs_time->tv_nsec = ~0UL;
+        return;
+    }
+
     /*
      * Win32 timestamps (|time_file|) use 100-nanosecond intervals
      * (10000000 intervals == one second) since January 1, 1601 (UTC),

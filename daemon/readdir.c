@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+#include "nfs41_driver.h" /* for |FILE_INFO_TIME_NOT_SET| */
 #include "from_kernel.h"
 #include "nfs41_ops.h"
 #include "daemon_debug.h"

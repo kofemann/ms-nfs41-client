@@ -31,6 +31,7 @@
 #include "nfs41_daemon.h"
 #include "util.h"
 #include "nfs41_ops.h"
+#include "nfs41_driver.h" /* for |FILE_INFO_TIME_NOT_SET| */
 
 
 ULONG nfs_file_info_to_attributes(

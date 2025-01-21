@@ -108,6 +108,14 @@ typedef enum _nfs41_start_driver_state {
 #define NFS_VERSION_AUTONEGOTIATION (0xFFFF)
 
 /*
+ * LargeInteger.QuadPart value to indicate a time value was not
+ * available
+ *
+ * gisburn: FIXME: We need a better header for this
+ */
+#define FILE_INFO_TIME_NOT_SET (0LL)
+
+/*
  * Error/Status codes
  */
 #define ERROR_NFS_VERSION_MISMATCH ERROR_REMOTE_FILE_VERSION_MISMATCH
