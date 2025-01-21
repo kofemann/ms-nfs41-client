@@ -243,8 +243,8 @@ static void create_nfs3_attrs(
     attrs->fsid = nfs41_fcb->fsid_major ^ nfs41_fcb->fsid_minor;
     attrs->fileid = nfs41_fcb->fileid;
     file_time_to_nfs_time(&nfs41_fcb->BasicInfo.LastAccessTime, &attrs->atime);
-    file_time_to_nfs_time(&nfs41_fcb->BasicInfo.ChangeTime, &attrs->mtime);
-    file_time_to_nfs_time(&nfs41_fcb->BasicInfo.CreationTime, &attrs->ctime);
+    file_time_to_nfs_time(&nfs41_fcb->BasicInfo.LastWriteTime, &attrs->mtime);
+    file_time_to_nfs_time(&nfs41_fcb->BasicInfo.ChangeTime, &attrs->ctime);
 }
 
 
