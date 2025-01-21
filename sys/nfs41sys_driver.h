@@ -147,27 +147,6 @@ extern nfs41_timings getexattr;
 #define MILLISECONDS(milli) (((signed __int64)(milli)) * MICROSECONDS(1000L))
 #define SECONDS(seconds) (((signed __int64)(seconds)) * MILLISECONDS(1000L))
 
-typedef struct _nfs3_attrs {
-    DWORD type, mode, nlink, uid, gid, filler1;
-    LARGE_INTEGER size, used;
-    struct {
-        DWORD specdata1;
-        DWORD specdata2;
-    } rdev;
-    ULONGLONG fsid, fileid;
-    LONGLONG atime, mtime, ctime;
-} nfs3_attrs;
-
-enum ftype3 {
-    NF3REG = 1,
-    NF3DIR,
-    NF3BLK,
-    NF3CHR,
-    NF3LNK,
-    NF3SOCK,
-    NF3FIFO
-};
-
 typedef enum _nfs41_updowncall_state {
     NFS41_WAITING_FOR_UPCALL,
     NFS41_WAITING_FOR_DOWNCALL,

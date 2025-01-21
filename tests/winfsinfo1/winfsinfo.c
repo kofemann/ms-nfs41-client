@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2023-2024 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (c) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -37,6 +37,8 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
+
+#include "nfs_ea.h"
 
 static
 bool filetime2localsystemtime(const FILETIME *ft, SYSTEMTIME *st)
@@ -622,19 +624,6 @@ done:
     return res;
 }
 
-typedef struct _nfs3_attrs {
-    DWORD type, mode, nlink, uid, gid, filler1;
-    LARGE_INTEGER size, used;
-    struct {
-        DWORD specdata1;
-        DWORD specdata2;
-    } rdev;
-    LONGLONG fsid, fileid;
-    LONGLONG atime, mtime, ctime;
-} nfs3_attrs;
-
-#define NfsV3Attributes_NAME "NfsV3Attributes"
-
 typedef struct _FILE_EA_INFORMATION {
     ULONG EaSize;
 } FILE_EA_INFORMATION, *PFILE_EA_INFORMATION;
@@ -697,11 +686,11 @@ bool get_getnfs3attr(const char *progname, const char *filename)
 
     struct {
         FILE_FULL_EA_INFORMATION ffeai;
-        char buf[sizeof(NfsV3Attributes_NAME) + sizeof(nfs3_attrs)];
+        char buf[sizeof(EA_NFSV3ATTRIBUTES) + sizeof(nfs3_attrs)];
     } ffeai_buf;
     struct {
         FILE_GET_EA_INFORMATION fgeai;
-        char buf[sizeof(NfsV3Attributes_NAME)];
+        char buf[sizeof(EA_NFSV3ATTRIBUTES)];
     } fgeai_buf;
 
     NTSTATUS status;
@@ -709,7 +698,7 @@ bool get_getnfs3attr(const char *progname, const char *filename)
 
     fgeai_buf.fgeai.NextEntryOffset = 0;
     fgeai_buf.fgeai.EaNameLength = 15;
-    (void)strcpy(fgeai_buf.fgeai.EaName, NfsV3Attributes_NAME);
+    (void)strcpy(fgeai_buf.fgeai.EaName, EA_NFSV3ATTRIBUTES);
 
     status = ZwQueryEaFile(fileHandle, &io,
         &ffeai_buf.ffeai, sizeof(ffeai_buf), TRUE,
@@ -728,6 +717,17 @@ bool get_getnfs3attr(const char *progname, const char *filename)
             goto done;
     }
 
+    if (ffeai_buf.ffeai.EaValueLength < sizeof(nfs3_attrs)) {
+            (void)fprintf(stderr,
+                "EA '%s' size too small (%ld bytes), "
+                "expected at least %ld bytes for nfs3_attrs\n",
+                EA_NFSV3ATTRIBUTES,
+                (long)ffeai_buf.ffeai.EaValueLength,
+                (long)sizeof(nfs3_attrs));
+            res = EXIT_FAILURE;
+            goto done;
+    }
+
     nfs3_attrs *n3a = (nfs3_attrs *)(ffeai_buf.ffeai.EaName
         + ffeai_buf.ffeai.EaNameLength + 1);
 
@@ -740,7 +740,7 @@ bool get_getnfs3attr(const char *progname, const char *filename)
         "\tuid=%d\n\tgid=%d\n"
         "\tsize=%lld\n\tused=%lld\n"
         "\trdev=( specdata1=0x%x specdata2=0x%x )\n"
-        "\tfsid=%lld\n\tfileid=%lld\n"
+        "\tfsid=0x%llx\n\tfileid=0x%llx\n"
         "\tatime=%lld\n\tmtime=%lld\n\tctime=%lld\n"
         ")\n",
         filename,
@@ -753,8 +753,8 @@ bool get_getnfs3attr(const char *progname, const char *filename)
         (long long)n3a->used.QuadPart,
         (int)n3a->rdev.specdata1,
         (int)n3a->rdev.specdata2,
-        (long long)n3a->fsid,
-        (long long)n3a->fileid,
+        (unsigned long long)n3a->fsid,
+        (unsigned long long)n3a->fileid,
         (long long)n3a->atime,
         (long long)n3a->mtime,
         (long long)n3a->ctime);

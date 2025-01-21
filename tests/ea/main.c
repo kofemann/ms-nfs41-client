@@ -36,6 +36,8 @@
 typedef unsigned long DWORD, *PDWORD, *LPDWORD;
 #endif
 
+#include "nfs_ea.h"
+
 #define MAX_LIST_LEN 4096
 #define MAX_EA_VALUE 256
 
@@ -157,17 +159,6 @@ static NTSTATUS ea_get(
 out:
     return status;
 }
-
-typedef struct _nfs3_attrs {
-    DWORD type, mode, nlink, uid, gid, filler1;
-    LARGE_INTEGER size, used;
-    struct {
-        DWORD specdata1;
-        DWORD specdata2;
-    } rdev;
-    LONGLONG fsid, fileid;
-    LONGLONG atime, mtime, ctime;
-} nfs3_attrs;
 
 static NTSTATUS ea_get_nfs3attr(
     HANDLE FileHandle)

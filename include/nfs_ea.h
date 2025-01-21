@@ -1,6 +1,6 @@
 /*
  * NFSv4.1 client for Windows
- * Copyright (C) 2024 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2024-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Roland Mainz <roland.mainz@nrubsig.org>
  *
@@ -34,5 +34,27 @@
 
 #define EA_NFSACTONLINK "NfsActOnLink"
 #define EA_NFSACTONLINK_LEN (11)
+
+/* NfsV3Attributes uses |nfs3_attrs| as content */
+typedef struct _nfs3_attrs {
+    DWORD type, mode, nlink, uid, gid, filler1;
+    LARGE_INTEGER size, used;
+    struct {
+        DWORD specdata1;
+        DWORD specdata2;
+    } rdev;
+    ULONGLONG fsid, fileid;
+    LONGLONG atime, mtime, ctime;
+} nfs3_attrs;
+
+enum ftype3 {
+    NF3REG = 1,
+    NF3DIR,
+    NF3BLK,
+    NF3CHR,
+    NF3LNK,
+    NF3SOCK,
+    NF3FIFO
+};
 
 #endif /* !__NFS41_DAEMON_NFSV4_EA */
