@@ -35,7 +35,7 @@
 
 
 ULONG nfs_file_info_to_attributes(
-    IN const nfs41_file_info *info)
+    IN const nfs41_file_info *restrict info)
 {
     ULONG attrs = 0;
 
@@ -74,8 +74,8 @@ ULONG nfs_file_info_to_attributes(
 }
 
 void nfs_to_basic_info(
-    IN const char *name,
-    IN const nfs41_file_info *info,
+    IN const char *restrict name,
+    IN const nfs41_file_info *restrict info,
     OUT PFILE_BASIC_INFO basic_out)
 {
     EASSERT(info->attrmask.count > 0);
@@ -121,8 +121,8 @@ void nfs_to_basic_info(
 }
 
 void nfs_to_standard_info(
-    IN const nfs41_file_info *info,
-    OUT PFILE_STANDARD_INFO std_out)
+    IN const nfs41_file_info *restrict info,
+    OUT PFILE_STANDARD_INFO restrict std_out)
 {
     const ULONG FileAttributes = nfs_file_info_to_attributes(info);
 
@@ -139,9 +139,9 @@ void nfs_to_standard_info(
 }
 
 void nfs_to_network_openinfo(
-    IN const char *name,
-    IN const nfs41_file_info *info,
-    OUT PFILE_NETWORK_OPEN_INFORMATION net_out)
+    IN const char *restrict name,
+    IN const nfs41_file_info *restrict info,
+    OUT PFILE_NETWORK_OPEN_INFORMATION restrict net_out)
 {
     EASSERT(info->attrmask.count > 0);
 
@@ -189,9 +189,9 @@ void nfs_to_network_openinfo(
 
 #ifdef NFS41_DRIVER_WSL_SUPPORT
 void nfs_to_stat_info(
-    IN const char *name,
-    IN const nfs41_file_info *info,
-    OUT PFILE_STAT_INFORMATION stat_out)
+    IN const char *restrict name,
+    IN const nfs41_file_info *restrict info,
+    OUT PFILE_STAT_INFORMATION restrict stat_out)
 {
     EASSERT(info->attrmask.count > 0);
 
@@ -249,9 +249,9 @@ void nfs_to_stat_info(
 
 void nfs_to_stat_lx_info(
     IN void *daemon_context,
-    IN const char *name,
-    IN const nfs41_file_info *info,
-    OUT PFILE_STAT_LX_INFORMATION stat_lx_out)
+    IN const char *restrict name,
+    IN const nfs41_file_info *restrict info,
+    OUT PFILE_STAT_LX_INFORMATION restrict stat_lx_out)
 {
     nfs41_daemon_globals *nfs41_dg =
         (nfs41_daemon_globals *)daemon_context;
@@ -445,8 +445,8 @@ void nfs_to_stat_lx_info(
 
 /* copy |nfs41_file_info| */
 void nfs41_file_info_cpy(
-    OUT nfs41_file_info *dest,
-    IN const nfs41_file_info *src,
+    OUT nfs41_file_info *restrict dest,
+    IN const nfs41_file_info *restrict src,
     IN int flags)
 {
     const bitmap4 *attrmask = &src->attrmask;

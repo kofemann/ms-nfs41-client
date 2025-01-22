@@ -174,35 +174,35 @@ static __inline void open_delegation4_cpy(
 }
 
 ULONG nfs_file_info_to_attributes(
-    IN const nfs41_file_info *info);
+    IN const nfs41_file_info *restrict info);
 void nfs_to_basic_info(
-    IN const char *name,
-    IN const nfs41_file_info *info,
-    OUT PFILE_BASIC_INFO basic_out);
+    IN const char *restrict name,
+    IN const nfs41_file_info *restrict info,
+    OUT PFILE_BASIC_INFO restrict basic_out);
 void nfs_to_standard_info(
-    IN const nfs41_file_info *info,
-    OUT PFILE_STANDARD_INFO std_out);
+    IN const nfs41_file_info *restrict info,
+    OUT PFILE_STANDARD_INFO restrict std_out);
 void nfs_to_network_openinfo(
-    IN const char *name,
-    IN const nfs41_file_info *info,
-    OUT PFILE_NETWORK_OPEN_INFORMATION std_out);
+    IN const char *restrict name,
+    IN const nfs41_file_info *restrict info,
+    OUT PFILE_NETWORK_OPEN_INFORMATION restrict std_out);
 #ifdef NFS41_DRIVER_WSL_SUPPORT
 void nfs_to_stat_info(
-    IN const char *name,
-    IN const nfs41_file_info *info,
-    OUT PFILE_STAT_INFORMATION stat_out);
+    IN const char *restrict name,
+    IN const nfs41_file_info *restrict info,
+    OUT PFILE_STAT_INFORMATION restrict stat_out);
 void nfs_to_stat_lx_info(
     IN void *daemon_context,
-    IN const char *name,
-    IN const nfs41_file_info *info,
-    OUT PFILE_STAT_LX_INFORMATION stat_lx_out);
+    IN const char *restrict name,
+    IN const nfs41_file_info *restrict info,
+    OUT PFILE_STAT_LX_INFORMATION restrict stat_lx_out);
 #endif /* NFS41_DRIVER_WSL_SUPPORT */
 
 /* Copy |info->symlink_dir| */
 #define NFS41FILEINFOCPY_COPY_SYMLINK_DIR (1 << 0)
 void nfs41_file_info_cpy(
-    OUT nfs41_file_info *dest,
-    IN const nfs41_file_info *src,
+    OUT nfs41_file_info *restrict dest,
+    IN const nfs41_file_info *restrict src,
     IN int flags);
 
 /* http://msdn.microsoft.com/en-us/library/ms724290%28VS.85%29.aspx:
@@ -212,8 +212,8 @@ void nfs41_file_info_cpy(
 #define FILETIME_EPOCH 116444736000000000LL
 
 static __inline void file_time_to_nfs_time(
-    IN const PLARGE_INTEGER file_time,
-    OUT nfstime4 *nfs_time)
+    IN const PLARGE_INTEGER restrict file_time,
+    OUT nfstime4 *restrict nfs_time)
 {
     LONGLONG diff = file_time->QuadPart - FILETIME_EPOCH;
     nfs_time->seconds = diff / 10000000;
@@ -221,8 +221,8 @@ static __inline void file_time_to_nfs_time(
 }
 
 static __inline void nfs_time_to_file_time(
-    IN const nfstime4 *nfs_time,
-    OUT PLARGE_INTEGER file_time)
+    IN const nfstime4 *restrict nfs_time,
+    OUT PLARGE_INTEGER restrict file_time)
 {
     file_time->QuadPart = FILETIME_EPOCH +
         nfs_time->seconds * 10000000 +
@@ -230,12 +230,12 @@ static __inline void nfs_time_to_file_time(
 }
 
 void get_file_time(
-    OUT PLARGE_INTEGER file_time);
+    OUT PLARGE_INTEGER restrict file_time);
 void get_nfs_time(
-    OUT nfstime4 *nfs_time);
+    OUT nfstime4 *restrict nfs_time);
 
 static __inline void nfstime_normalize(
-    IN OUT nfstime4 *nfstime)
+    IN OUT nfstime4 *restrict nfstime)
 {
     /* return time in normalized form (0 <= nsec < 1s) */
     while ((int32_t)nfstime->nseconds < 0) {
@@ -244,8 +244,8 @@ static __inline void nfstime_normalize(
     }
 }
 static __inline void nfstime_diff(
-    IN const nfstime4 *lhs,
-    IN const nfstime4 *rhs,
+    IN const nfstime4 *restrict lhs,
+    IN const nfstime4 *restrict rhs,
     OUT nfstime4 *result)
 {
     /* result = lhs - rhs */
@@ -254,8 +254,8 @@ static __inline void nfstime_diff(
     nfstime_normalize(result);
 }
 static __inline void nfstime_abs(
-    IN const nfstime4 *nt,
-    OUT nfstime4 *result)
+    IN const nfstime4 *restrict nt,
+    OUT nfstime4 *restrict result)
 {
     if (nt->seconds < 0) {
         const nfstime4 zero = { .seconds=0LL, .nseconds=0UL };
