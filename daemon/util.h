@@ -76,12 +76,12 @@ bool_t verify_commit(
     IN nfs41_write_verf *verf);
 
 /* bitmap4 */
-static __inline bool_t bitmap_isset(
+static __inline bool bitmap_isset(
     IN const bitmap4 *mask,
     IN uint32_t word,
     IN uint32_t flag)
 {
-    return mask->count > word && mask->arr[word] & flag;
+    return ((mask->count > word) && (mask->arr[word] & flag))?true:false;
 }
 static __inline void bitmap_set(
     IN bitmap4 *mask,
