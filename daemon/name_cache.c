@@ -75,10 +75,26 @@ static __inline bool_t is_delegation(
     return type == OPEN_DELEGATE_READ || type == OPEN_DELEGATE_WRITE;
 }
 
+#define NC_ATTR_TYPE        (1 <<  0)
+#define NC_ATTR_CHANGE      (1 <<  1)
+#define NC_ATTR_FSID        (1 <<  2)
+#define NC_ATTR_SIZE        (1 <<  3)
+#define NC_ATTR_HIDDEN      (1 <<  4)
+#define NC_ATTR_ARCHIVE     (1 <<  5)
+#define NC_ATTR_MODE        (1 <<  6)
+#define NC_ATTR_NUMLINKS    (1 <<  7)
+#define NC_ATTR_OWNER       (1 <<  8)
+#define NC_ATTR_OWNER_GROUP (1 <<  9)
+#define NC_ATTR_TIME_ACCESS (1 << 10)
+#define NC_ATTR_TIME_CREATE (1 << 11)
+#define NC_ATTR_TIME_MODIFY (1 << 12)
+#define NC_ATTR_SYSTEM      (1 << 13)
+
 /* attribute cache */
 struct attr_cache_entry {
     RB_ENTRY(attr_cache_entry) rbnode;
     struct list_entry       free_entry;
+    uint32_t                nc_attrs;
     uint64_t                change;
     uint64_t                size;
     uint64_t                fileid;
@@ -139,6 +155,7 @@ static int attr_cache_entry_create(
     entry = attr_entry(cache->free_entries.next);
     list_remove(&entry->free_entry);
 
+    entry->nc_attrs = 0;
     entry->fileid = fileid;
     entry->invalidated = FALSE;
     entry->delegated = FALSE;
@@ -289,52 +306,73 @@ static void attr_cache_update(
 {
     /* update the attributes present in mask */
     if (info->attrmask.count > 0) {
-        if (info->attrmask.arr[0] & FATTR4_WORD0_TYPE)
+        if (info->attrmask.arr[0] & FATTR4_WORD0_TYPE) {
+            entry->nc_attrs |= NC_ATTR_TYPE;
             entry->type = (unsigned char)(info->type & NFS_FTYPE_MASK);
+        }
         if (info->attrmask.arr[0] & FATTR4_WORD0_CHANGE) {
+            entry->nc_attrs |= NC_ATTR_CHANGE;
             entry->change = info->change;
             /* revalidate whenever we get a change attribute */
             entry->invalidated = 0;
             entry->expiration = UTIL_GETRELTIME() + NAME_CACHE_EXPIRATION;
         }
         if (info->attrmask.arr[0] & FATTR4_WORD0_FSID) {
+            entry->nc_attrs |= NC_ATTR_FSID;
             entry->fsid_major = info->fsid.major;
             entry->fsid_minor = info->fsid.minor;
         }
-        if (info->attrmask.arr[0] & FATTR4_WORD0_SIZE)
+        if (info->attrmask.arr[0] & FATTR4_WORD0_SIZE) {
+            entry->nc_attrs |= NC_ATTR_SIZE;
             entry->size = info->size;
-        if (info->attrmask.arr[0] & FATTR4_WORD0_HIDDEN)
+        }
+        if (info->attrmask.arr[0] & FATTR4_WORD0_HIDDEN) {
+            entry->nc_attrs |= NC_ATTR_HIDDEN;
             entry->hidden = info->hidden;
-        if (info->attrmask.arr[0] & FATTR4_WORD0_ARCHIVE)
+        }
+        if (info->attrmask.arr[0] & FATTR4_WORD0_ARCHIVE) {
+            entry->nc_attrs |= NC_ATTR_ARCHIVE;
             entry->archive = info->archive;
+        }
     }
     if (info->attrmask.count > 1) {
-        if (info->attrmask.arr[1] & FATTR4_WORD1_MODE)
+        if (info->attrmask.arr[1] & FATTR4_WORD1_MODE) {
+            entry->nc_attrs |= NC_ATTR_MODE;
             entry->mode = info->mode;
+        }
         if (info->attrmask.arr[1] & FATTR4_WORD1_OWNER) {
+            entry->nc_attrs |= NC_ATTR_OWNER;
             EASSERT(info->owner != NULL);
             (void)strcpy(entry->owner, info->owner);
         }
         if (info->attrmask.arr[1] & FATTR4_WORD1_OWNER_GROUP) {
+            entry->nc_attrs |= NC_ATTR_OWNER_GROUP;
             EASSERT(info->owner_group != NULL);
             (void)strcpy(entry->owner_group, info->owner_group);
         }
-        if (info->attrmask.arr[1] & FATTR4_WORD1_NUMLINKS)
+        if (info->attrmask.arr[1] & FATTR4_WORD1_NUMLINKS) {
+            entry->nc_attrs |= NC_ATTR_NUMLINKS;
             entry->numlinks = info->numlinks;
+        }
         if (info->attrmask.arr[1] & FATTR4_WORD1_TIME_ACCESS) {
-            entry->time_access_s = info->time_access.seconds;
+            entry->nc_attrs |= NC_ATTR_TIME_ACCESS;
+            entry->time_access_s  = info->time_access.seconds;
             entry->time_access_ns = info->time_access.nseconds;
         }
         if (info->attrmask.arr[1] & FATTR4_WORD1_TIME_CREATE) {
-            entry->time_create_s = info->time_create.seconds;
+            entry->nc_attrs |= NC_ATTR_TIME_CREATE;
+            entry->time_create_s  = info->time_create.seconds;
             entry->time_create_ns = info->time_create.nseconds;
         }
         if (info->attrmask.arr[1] & FATTR4_WORD1_TIME_MODIFY) {
-            entry->time_modify_s = info->time_modify.seconds;
+            entry->nc_attrs |= NC_ATTR_TIME_MODIFY;
+            entry->time_modify_s  = info->time_modify.seconds;
             entry->time_modify_ns = info->time_modify.nseconds;
         }
-        if (info->attrmask.arr[1] & FATTR4_WORD1_SYSTEM)
+        if (info->attrmask.arr[1] & FATTR4_WORD1_SYSTEM) {
+            entry->nc_attrs |= NC_ATTR_SYSTEM;
             entry->system = info->system;
+        }
     }
 
     if (is_delegation(delegation))
@@ -345,36 +383,49 @@ static void copy_attrs(
     OUT nfs41_file_info *dst,
     IN const struct attr_cache_entry *src)
 {
-    dst->attrmask.count = 2;
-    dst->attrmask.arr[0] = FATTR4_WORD0_TYPE | FATTR4_WORD0_CHANGE
-        | FATTR4_WORD0_SIZE | FATTR4_WORD0_FSID | FATTR4_WORD0_FILEID
-        | FATTR4_WORD0_HIDDEN | FATTR4_WORD0_ARCHIVE;
-    dst->attrmask.arr[1] = FATTR4_WORD1_MODE
-        | FATTR4_WORD1_NUMLINKS
-        | FATTR4_WORD1_SYSTEM;
+    dst->attrmask.arr[0] = 0;
+    dst->attrmask.arr[1] = 0;
 
-    dst->change = src->change;
-    dst->size = src->size;
-    if (!((src->time_access_s == 0) && (src->time_access_ns == 0))) {
+    dst->attrmask.arr[0] |= FATTR4_WORD0_FILEID;
+    dst->fileid = src->fileid;
+
+    if (src->nc_attrs & NC_ATTR_CHANGE) {
+        dst->attrmask.arr[0] |= FATTR4_WORD0_CHANGE;
+        dst->change = src->change;
+    }
+    if (src->nc_attrs & NC_ATTR_SIZE) {
+        dst->attrmask.arr[0] |= FATTR4_WORD0_SIZE;
+        dst->size = src->size;
+    }
+    if (src->nc_attrs & NC_ATTR_TIME_ACCESS) {
         dst->attrmask.arr[1] |= FATTR4_WORD1_TIME_ACCESS;
-    dst->time_access.seconds = src->time_access_s;
-    dst->time_access.nseconds = src->time_access_ns;
+        dst->time_access.seconds = src->time_access_s;
+        dst->time_access.nseconds = src->time_access_ns;
     }
-    if (!((src->time_create_s == 0) && (src->time_create_ns == 0))) {
+    if (src->nc_attrs & NC_ATTR_TIME_CREATE) {
         dst->attrmask.arr[1] |= FATTR4_WORD1_TIME_CREATE;
-    dst->time_create.seconds = src->time_create_s;
-    dst->time_create.nseconds = src->time_create_ns;
+        dst->time_create.seconds = src->time_create_s;
+        dst->time_create.nseconds = src->time_create_ns;
     }
-    if (!((src->time_modify_s == 0) && (src->time_modify_ns == 0))) {
+    if (src->nc_attrs & NC_ATTR_TIME_MODIFY) {
         dst->attrmask.arr[1] |= FATTR4_WORD1_TIME_MODIFY;
-    dst->time_modify.seconds = src->time_modify_s;
-    dst->time_modify.nseconds = src->time_modify_ns;
+        dst->time_modify.seconds = src->time_modify_s;
+        dst->time_modify.nseconds = src->time_modify_ns;
     }
-    dst->type = src->type;
-    dst->numlinks = src->numlinks;
-    dst->mode = src->mode;
-
-    if (src->owner[0] != '\0') {
+    if (src->nc_attrs & NC_ATTR_TYPE) {
+        dst->attrmask.arr[0] |= FATTR4_WORD0_TYPE;
+        dst->type = src->type;
+    }
+    if (src->nc_attrs & NC_ATTR_NUMLINKS) {
+        dst->attrmask.arr[1] |= FATTR4_WORD1_NUMLINKS;
+        dst->numlinks = src->numlinks;
+    }
+    if (src->nc_attrs & NC_ATTR_MODE) {
+        dst->attrmask.arr[1] |= FATTR4_WORD1_MODE;
+        dst->mode = src->mode;
+    }
+    if (src->nc_attrs & NC_ATTR_OWNER) {
+        dst->attrmask.arr[1] |= FATTR4_WORD1_OWNER;
         dst->owner = dst->owner_buf;
         (void)strcpy(dst->owner, src->owner);
     }
@@ -382,8 +433,8 @@ static void copy_attrs(
         /* this should only happen for newly created files/dirs */
         dst->owner = NULL;
     }
-
-    if (src->owner_group[0] != '\0') {
+    if (src->nc_attrs & NC_ATTR_OWNER_GROUP) {
+        dst->attrmask.arr[1] |= FATTR4_WORD1_OWNER_GROUP;
         dst->owner_group = dst->owner_group_buf;
         (void)strcpy(dst->owner_group, src->owner_group);
     }
@@ -391,17 +442,30 @@ static void copy_attrs(
         /* this should only happen for newly created files/dirs */
         dst->owner_group = NULL;
     }
-    dst->fileid = src->fileid;
-    dst->fsid.major = src->fsid_major;
-    dst->fsid.minor = src->fsid_minor;
-    dst->hidden = src->hidden;
-    dst->system = src->system;
-    dst->archive = src->archive;
+    if (src->nc_attrs & NC_ATTR_FSID) {
+        dst->attrmask.arr[0] |= FATTR4_WORD0_FSID;
+        dst->fsid.major = src->fsid_major;
+        dst->fsid.minor = src->fsid_minor;
+    }
+    if (src->nc_attrs & NC_ATTR_HIDDEN) {
+        dst->attrmask.arr[0] |= FATTR4_WORD0_HIDDEN;
+        dst->hidden = src->hidden;
+    }
+    if (src->nc_attrs & NC_ATTR_ARCHIVE) {
+        dst->attrmask.arr[0] |= FATTR4_WORD0_ARCHIVE;
+        dst->archive = src->archive;
+    }
+    if (src->nc_attrs & NC_ATTR_SYSTEM) {
+        dst->attrmask.arr[1] |= FATTR4_WORD1_SYSTEM;
+        dst->system = src->system;
+    }
 
-    if (dst->owner)
-        dst->attrmask.arr[1] |= FATTR4_WORD1_OWNER;
-    if (dst->owner_group)
-        dst->attrmask.arr[1] |= FATTR4_WORD1_OWNER_GROUP;
+    if (dst->attrmask.arr[1] != 0) {
+        dst->attrmask.count = 2;
+    }
+    else {
+        dst->attrmask.count = 1;
+    }
 }
 
 
