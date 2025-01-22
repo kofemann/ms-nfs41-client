@@ -465,12 +465,15 @@ function nfsclient_rundeamon
 				'-delay_frees_maxsz' $((64*1024*1024))
 				'-redzone_size' '4096'
 				'-check_uninitialized'
+				'-check_uninit_non_moves'
 				'-check_uninit_all'
 				'-strict_bitops'
 				'-gen_suppress_syms'
 				'-preload_symbols'
 				# no symbol cache, user "SYSTEM" cannot write data to cache
 				'-no_use_symcache'
+				# disable leak checking for performance
+				'-no_check_leaks'
 				'--'
 				"$(cygpath -w "$(which "${nfsd_args[0]}")")"
 				"${nfsd_args[@]:1}"
@@ -597,12 +600,15 @@ function nfsclient_system_rundeamon
 				'-delay_frees_maxsz' $((64*1024*1024))
 				'-redzone_size' '4096'
 				'-check_uninitialized'
+				'-check_uninit_non_moves'
 				'-check_uninit_all'
 				'-strict_bitops'
 				'-gen_suppress_syms'
 				'-preload_symbols'
 				# no symbol cache, user "SYSTEM" cannot write data to cache
 				'-no_use_symcache'
+				# disable leak checking for performance
+				'-no_check_leaks'
 				'--'
 				"$(cygpath -w "$(which "${nfsd_args[0]}")")"
 				"${nfsd_args[@]:1}"
