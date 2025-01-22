@@ -198,44 +198,48 @@ typedef struct __mdsthreshold4 {
 } mdsthreshold4;
 
 typedef struct __nfs41_file_info {
+    bitmap4                 attrmask;
+    uint64_t                fileid;
     nfs41_fsid              fsid;
     mdsthreshold4           mdsthreshold;
     nfstime4                time_access;
     nfstime4                time_create;
     nfstime4                time_modify;
     nfsacl41                *acl;
-    nfstime4                *time_delta; /* XXX: per-fs */
-    bitmap4                 attrmask;
-    bitmap4                 *supported_attrs; /* XXX: per-fs */
-    bitmap4                 *suppattr_exclcreat; /* XXX: per-fs */
-    uint64_t                maxread; /* XXX: per-fs */
-    uint64_t                maxwrite; /* XXX: per-fs */
     uint64_t                change;
     uint64_t                size;
-    uint64_t                fileid;
-    uint64_t                space_avail; /* XXX: per-fs */
-    uint64_t                space_free; /* XXX: per-fs */
-    uint64_t                space_total; /* XXX: per-fs */
     uint32_t                type;
     uint32_t                numlinks;
     uint32_t                rdattr_error;
     uint32_t                mode;
     uint32_t                mode_mask;
-    fs_locations4           *fs_locations; /* XXX: per-fs */
-    uint32_t                lease_time; /* XXX: per-server */
-    uint32_t                fs_layout_types; /* pnfs, XXX: per-fs */
+    char                    *owner;
+    char                    *owner_group;
     bool_t                  hidden;
     bool_t                  system;
     bool_t                  archive;
-    bool_t                  cansettime; /* XXX: per-fs */
     bool_t                  case_insensitive;
     bool_t                  case_preserving;
     bool_t                  symlink_dir;
     bool_t                  symlink_support;
     bool_t                  link_support;
-    char                    *owner;
-    char                    *owner_group;
+
+    /* per-fs attributes */
     uint32_t                aclsupport;
+    uint64_t                space_avail;
+    uint64_t                space_free;
+    uint64_t                space_total;
+    nfstime4                *time_delta;
+    bitmap4                 *supported_attrs;
+    bitmap4                 *suppattr_exclcreat;
+    uint64_t                maxread;
+    uint64_t                maxwrite;
+    fs_locations4           *fs_locations;
+    bool_t                  cansettime;
+    uint32_t                fs_layout_types; /* pnfs, per-fs */
+
+    /* per-server attributes */
+    uint32_t                lease_time;
 
     /* Buffers */
     char owner_buf[NFS4_FATTR4_OWNER_LIMIT+1];
