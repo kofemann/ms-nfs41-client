@@ -77,14 +77,14 @@ bool_t verify_commit(
 
 /* bitmap4 */
 static __inline bool bitmap_isset(
-    IN const bitmap4 *mask,
+    IN const bitmap4 *restrict mask,
     IN uint32_t word,
     IN uint32_t flag)
 {
     return ((mask->count > word) && (mask->arr[word] & flag))?true:false;
 }
 static __inline void bitmap_set(
-    IN bitmap4 *mask,
+    IN bitmap4 *restrict mask,
     IN uint32_t word,
     IN uint32_t flag)
 {
@@ -96,7 +96,7 @@ static __inline void bitmap_set(
     }
 }
 static __inline void bitmap_unset(
-    IN bitmap4 *mask,
+    IN bitmap4 *restrict mask,
     IN uint32_t word,
     IN uint32_t flag)
 {
@@ -107,8 +107,8 @@ static __inline void bitmap_unset(
     }
 }
 static __inline void bitmap_intersect(
-    IN bitmap4 *dst,
-    IN const bitmap4 *src)
+    IN bitmap4 *restrict dst,
+    IN const bitmap4 *restrict src)
 {
     uint32_t i, count = 0;
     for (i = 0; i < 3; i++) {
