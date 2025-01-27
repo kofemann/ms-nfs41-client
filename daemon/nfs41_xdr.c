@@ -2915,7 +2915,10 @@ static bool_t encode_op_write(
     if (!xdr_u_int32_t(xdr, &args->stable))
         return FALSE;
 
-    return xdr_bytes(xdr, (char **)&data, &args->data_len, NFS41_MAX_FILEIO_SIZE);
+    if (!xdr_u_int32_t(xdr, &args->data_len))
+        return FALSE;
+
+    return xdr_opaque(xdr, (char *)data, args->data_len);
 }
 
 static bool_t xdr_write_verf(
