@@ -1,5 +1,6 @@
 /* NFSv4.1 client for Windows
- * Copyright © 2012 The Regents of the University of Michigan
+ * Copyright (C) 2012 The Regents of the University of Michigan
+ * Copyright (C) 2024-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -77,8 +78,21 @@ static int read_from_mds(
     while(to_rcv > 0) {
         uint32_t bytes_read = 0, chunk = min(to_rcv, maxreadsize);
 
-        status = nfs41_read(session, file, stateid, args->offset + reloffset, chunk, 
+        if (session->client->root->supports_nfs42_read_plus) {
+            status = nfs42_read_plus(session, file, stateid,
+                args->offset + reloffset, chunk,
                 p, &bytes_read, &eof);
+            if (status) {
+                DPRINTF(0, ("nfs42_read_plus() failed, status=%d\n", status));
+                session->client->root->supports_nfs42_read_plus = false;
+            }
+        }
+        else {
+            status = nfs41_read(session, file, stateid,
+                args->offset + reloffset, chunk,
+                p, &bytes_read, &eof);
+        }
+
         if (status == NFS4ERR_OPENMODE && !len) {
             stateid->type = STATEID_SPECIAL;
             stateid4_cpy(&stateid->stateid, &special_read_stateid);

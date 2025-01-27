@@ -285,6 +285,8 @@
     <ClCompile Include="..\..\daemon\nfs41_session.c" />
     <ClCompile Include="..\..\daemon\nfs41_superblock.c" />
     <ClCompile Include="..\..\daemon\nfs41_xdr.c" />
+    <ClCompile Include="..\..\daemon\nfs42_ops.c" />
+    <ClCompile Include="..\..\daemon\nfs42_xdr.c" />
     <ClCompile Include="..\..\daemon\open.c" />
     <ClCompile Include="..\..\daemon\pnfs_debug.c" />
     <ClCompile Include="..\..\daemon\pnfs_device.c" />

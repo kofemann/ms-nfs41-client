@@ -90,6 +90,12 @@
     <ClCompile Include="..\..\daemon\nfs41_xdr.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\daemon\nfs42_ops.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\daemon\nfs42_xdr.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\daemon\open.c">
       <Filter>Source Files</Filter>
     </ClCompile>

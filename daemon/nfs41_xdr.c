@@ -1,5 +1,6 @@
 /* NFSv4.1 client for Windows
- * Copyright © 2012 The Regents of the University of Michigan
+ * Copyright (C) 2012 The Regents of the University of Michigan
+ * Copyright (C) 2024-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -131,7 +132,7 @@ static bool_t xdr_settime4(
 }
 
 /* stateid4 */
-static bool_t xdr_stateid4(
+bool_t xdr_stateid4(
     XDR *xdr,
     stateid4 *si)
 {
@@ -2262,11 +2263,32 @@ static bool_t decode_read_res_ok(
     nfs41_read_res_ok *res)
 {
     unsigned char *data = res->data;
+    uint32_t data_len = res->data_len;
+    uint32_t count;
 
     if (!xdr_bool(xdr, &res->eof))
         return FALSE;
 
-    return xdr_bytes(xdr, (char **)&data, &res->data_len, NFS41_MAX_FILEIO_SIZE);
+    if (!xdr_u_int32_t(xdr, &count)) {
+        DPRINTF(0, ("decode_read_res_ok: decoding 'count' failed\n"));
+        return FALSE;
+    }
+
+    EASSERT(count <= data_len);
+    /*
+     * If a buggy server erroneously sends more data then we
+     * requested we'll clamp this via |__min()| to avoid an buffer
+     * overflow (but will still get an RPC error later).
+     */
+    count = __min(data_len, count);
+    if (!xdr_opaque(xdr, (char *)data, count)) {
+        DPRINTF(0, ("decode_read_res_ok_ decoding 'bytes' failed\n"));
+        return FALSE;
+    }
+
+    res->data_len = count;
+
+    return TRUE;
 }
 
 static bool_t decode_op_read(
@@ -3638,7 +3660,7 @@ static const op_table_entry g_op_table[] = {
     { NULL, NULL }, /* OP_LAYOUTSTATS = 65, */
     { NULL, NULL }, /* OP_OFFLOAD_CANCEL = 66, */
     { NULL, NULL }, /* OP_OFFLOAD_STATUS = 67, */
-    { NULL, NULL }, /* OP_READ_PLUS = 68, */
+    { encode_op_read_plus, decode_op_read_plus }, /* OP_READ_PLUS = 68, */
     { NULL, NULL }, /* OP_SEEK = 69, */
     { NULL, NULL }, /* OP_WRITE_SAME = 70, */
     { NULL, NULL }, /* OP_CLONE = 71, */

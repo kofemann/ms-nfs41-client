@@ -1,8 +1,10 @@
 /* NFSv4.1 client for Windows
- * Copyright © 2012 The Regents of the University of Michigan
+ * Copyright (C) 2012 The Regents of the University of Michigan
+ * Copyright (C) 2024-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
+ * Roland Mainz <roland.mainz@nrubsig.org>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -726,6 +728,65 @@ typedef struct __nfs41_read_res {
     nfs41_read_res_ok       resok4;
 } nfs41_read_res;
 
+typedef struct __data4 {
+    uint64_t        offset;
+    uint32_t        count;
+    uint32_t        data_len;
+    unsigned char   *data;
+} data4;
+
+typedef struct __data_info4 {
+    uint64_t offset;
+    uint64_t length;
+} data_info4;
+
+typedef enum __data_content4 {
+    NFS4_CONTENT_DATA = 0,
+    NFS4_CONTENT_HOLE = 1
+} data_content4;
+
+/* OP_READ_PLUS */
+typedef struct __nfs42_read_plus_args {
+    stateid_arg     *stateid; /* -> nfs41_op_open_res_ok.stateid */
+    uint64_t        offset;
+    uint32_t        count;
+} nfs42_read_plus_args;
+
+typedef union __nfs42_read_plus_content {
+    /* switch (data_content4 rpc_content) */
+    data_content4   content;
+    /* case NFS4_CONTENT_DATA: */
+    data4           data;
+    /* case NFS4_CONTENT_HOLE: */
+    data_info4      hole;
+    /* default: */
+} nfs42_read_plus_content;
+
+typedef struct __nfs42_read_plus_res_ok {
+    /*
+     * HACK: Copy of |nfs42_read_plus_args.offset| - needed because
+     * |nfs_op_decode_proc()| only has a |nfs_resop4| argument but
+     * no |nfs_argop4| argument (yet)
+     */
+    uint64_t                args_offset;
+
+    bool_t                  eof;
+    uint32_t                count;
+    /*
+     * We don't define a |nfs42_read_plus_content *contents| member
+     * here, because |decode_read_plus_res_ok()| only uses this
+     * internally and does not have an external consumer, saving a
+     * |malloc()|+|free()| in this case
+     */
+    unsigned char           *data; /* caller-allocated */
+    uint32_t                data_len;
+} nfs42_read_plus_res_ok;
+
+typedef struct __nfs42_read_plus_res {
+    uint32_t                status;
+    /* case NFS4_OK: */
+    nfs42_read_plus_res_ok  resok4;
+} nfs42_read_plus_res;
 
 /* OP_READDIR */
 typedef struct __nfs41_readdir_args {
@@ -1103,6 +1164,16 @@ int nfs41_write(
     OUT nfs41_file_info *cinfo);
 
 int nfs41_read(
+    IN nfs41_session *session,
+    IN nfs41_path_fh *file,
+    IN stateid_arg *stateid,
+    IN uint64_t offset,
+    IN uint32_t count,
+    OUT unsigned char *data_out,
+    OUT uint32_t *data_len_out,
+    OUT bool_t *eof_out);
+
+int nfs42_read_plus(
     IN nfs41_session *session,
     IN nfs41_path_fh *file,
     IN stateid_arg *stateid,

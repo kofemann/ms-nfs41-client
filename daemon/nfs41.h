@@ -1,5 +1,6 @@
 /* NFSv4.1 client for Windows
- * Copyright © 2012 The Regents of the University of Michigan
+ * Copyright (C) 2012 The Regents of the University of Michigan
+ * Copyright (C) 2024-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -300,6 +301,7 @@ typedef struct __nfs41_root {
     CRITICAL_SECTION lock;
     struct list_entry clients;
     bool use_nfspubfh;
+    bool supports_nfs42_read_plus;
     DWORD nfsminorvers;
     uint32_t wsize;
     uint32_t rsize;
