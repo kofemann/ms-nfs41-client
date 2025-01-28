@@ -39,6 +39,7 @@
 #include <stdbool.h>
 
 #include "nfs_ea.h"
+#include "from_kernel.h"
 
 static
 bool filetime2localsystemtime(const FILETIME *ft, SYSTEMTIME *st)
@@ -159,43 +160,8 @@ typedef struct _IO_STATUS_BLOCK {
 #define NTDLL_HAS_ZWQUERYVOLUMEINFORMATIONFILE 1
 #endif
 
-#define SSINFO_FLAGS_ALIGNED_DEVICE                 0x00000001
-#define SSINFO_FLAGS_PARTITION_ALIGNED_ON_DEVICE    0x00000002
-#define SSINFO_FLAGS_NO_SEEK_PENALTY                0x00000004
-#define SSINFO_FLAGS_TRIM_ENABLED                   0x00000008
-#define SSINFO_FLAGS_BYTE_ADDRESSABLE               0x00000010
-#define SSINFO_OFFSET_UNKNOWN (0xffffffff)
-
-typedef struct _FILE_FS_SECTOR_SIZE_INFORMATION {
-    ULONG LogicalBytesPerSector;
-    ULONG PhysicalBytesPerSectorForAtomicity;
-    ULONG PhysicalBytesPerSectorForPerformance;
-    ULONG FileSystemEffectivePhysicalBytesPerSectorForAtomicity;
-    ULONG Flags;
-    ULONG ByteOffsetForSectorAlignment;
-    ULONG ByteOffsetForPartitionAlignment;
-} FILE_FS_SECTOR_SIZE_INFORMATION, *PFILE_FS_SECTOR_SIZE_INFORMATION;
-
 #define STATUS_SUCCESS ((NTSTATUS)0x00000000)
 #define STATUS_NO_EAS_ON_FILE ((NTSTATUS)0xC0000052)
-
-typedef enum _FSINFOCLASS {
-    FileFsVolumeInformation         = 1,
-    FileFsLabelInformation,         // 2
-    FileFsSizeInformation,          // 3
-    FileFsDeviceInformation,        // 4
-    FileFsAttributeInformation,     // 5
-    FileFsControlInformation,       // 6
-    FileFsFullSizeInformation,      // 7
-    FileFsObjectIdInformation,      // 8
-    FileFsDriverPathInformation,    // 9
-    FileFsVolumeFlagsInformation,   // 10
-    FileFsSectorSizeInformation,    // 11
-    FileFsDataCopyInformation,      // 12
-    FileFsMetadataSizeInformation,  // 13
-    FileFsFullSizeInformationEx,    // 14
-    FileFsMaximumInformation
-} FS_INFORMATION_CLASS, *PFS_INFORMATION_CLASS;
 
 #ifdef NTDLL_HAS_ZWQUERYVOLUMEINFORMATIONFILE
 NTSYSAPI
@@ -770,24 +736,6 @@ done:
     (void)CloseHandle(fileHandle);
     return res;
 }
-
-typedef struct _FILE_EA_INFORMATION {
-    ULONG EaSize;
-} FILE_EA_INFORMATION, *PFILE_EA_INFORMATION;
-
-typedef struct _FILE_GET_EA_INFORMATION {
-    ULONG NextEntryOffset;
-    UCHAR EaNameLength;
-    CHAR  EaName[1];
-} FILE_GET_EA_INFORMATION, *PFILE_GET_EA_INFORMATION;
-
-typedef struct _FILE_FULL_EA_INFORMATION {
-    ULONG NextEntryOffset;
-    UCHAR Flags;
-    UCHAR EaNameLength;
-    USHORT EaValueLength;
-    CHAR EaName[1];
-} FILE_FULL_EA_INFORMATION, *PFILE_FULL_EA_INFORMATION;
 
 NTSYSAPI
 NTSTATUS
