@@ -231,6 +231,7 @@ NTSTATUS nfs41_QueryVolumeInformation(
         /* else fall through and send the upcall */
     case FileFsSizeInformation:
     case FileFsFullSizeInformation:
+    case FileFsSectorSizeInformation:
         break;
 
     default:

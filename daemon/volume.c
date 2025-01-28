@@ -148,6 +148,28 @@ static int handle_volume(void *daemon_context, nfs41_upcall *upcall)
             &args->info.attribute);
         break;
 
+    case FileFsSectorSizeInformation:
+        args->len = sizeof(args->info.sector_size);
+
+        args->info.sector_size.LogicalBytesPerSector = BYTES_PER_SECTOR;
+        args->info.sector_size.PhysicalBytesPerSectorForAtomicity =
+            BYTES_PER_SECTOR;
+        args->info.sector_size.PhysicalBytesPerSectorForPerformance =
+            BYTES_PER_SECTOR;
+        args->info.sector_size.FileSystemEffectivePhysicalBytesPerSectorForAtomicity =
+            BYTES_PER_SECTOR;
+        /*
+         * |SSINFO_FLAGS_NO_SEEK_PENALTY| is required by
+         * Cygwin/MSYS2/mingw to support sparse files
+         */
+        args->info.sector_size.Flags =
+                SSINFO_FLAGS_ALIGNED_DEVICE |
+                SSINFO_FLAGS_PARTITION_ALIGNED_ON_DEVICE |
+                SSINFO_FLAGS_NO_SEEK_PENALTY;
+        args->info.sector_size.ByteOffsetForSectorAlignment = 0;
+        args->info.sector_size.ByteOffsetForPartitionAlignment = 0;
+        break;
+
     default:
         eprintf("unhandled fs query class %d\n", args->query);
         status = ERROR_INVALID_PARAMETER;

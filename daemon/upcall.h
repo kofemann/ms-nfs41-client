@@ -169,8 +169,9 @@ typedef struct __volume_upcall_args {
     int len;
     union {
         FILE_FS_SIZE_INFORMATION size;
-        FILE_FS_FULL_SIZE_INFORMATION fullsize;
         FILE_FS_ATTRIBUTE_INFORMATION attribute;
+        FILE_FS_FULL_SIZE_INFORMATION fullsize;
+        FILE_FS_SECTOR_SIZE_INFORMATION sector_size;
     } info;
 } volume_upcall_args;
 
