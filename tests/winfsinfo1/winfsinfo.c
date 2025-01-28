@@ -147,6 +147,153 @@ done:
     return res;
 }
 
+typedef struct _IO_STATUS_BLOCK {
+    union {
+        NTSTATUS Status;
+        PVOID Pointer;
+    } DUMMYUNIONNAME;
+    ULONG_PTR Information;
+} IO_STATUS_BLOCK, *PIO_STATUS_BLOCK;
+
+#ifdef _WIN64
+#define NTDLL_HAS_ZWQUERYVOLUMEINFORMATIONFILE 1
+#endif
+
+#define SSINFO_FLAGS_ALIGNED_DEVICE                 0x00000001
+#define SSINFO_FLAGS_PARTITION_ALIGNED_ON_DEVICE    0x00000002
+#define SSINFO_FLAGS_NO_SEEK_PENALTY                0x00000004
+#define SSINFO_FLAGS_TRIM_ENABLED                   0x00000008
+#define SSINFO_FLAGS_BYTE_ADDRESSABLE               0x00000010
+#define SSINFO_OFFSET_UNKNOWN (0xffffffff)
+
+typedef struct _FILE_FS_SECTOR_SIZE_INFORMATION {
+    ULONG LogicalBytesPerSector;
+    ULONG PhysicalBytesPerSectorForAtomicity;
+    ULONG PhysicalBytesPerSectorForPerformance;
+    ULONG FileSystemEffectivePhysicalBytesPerSectorForAtomicity;
+    ULONG Flags;
+    ULONG ByteOffsetForSectorAlignment;
+    ULONG ByteOffsetForPartitionAlignment;
+} FILE_FS_SECTOR_SIZE_INFORMATION, *PFILE_FS_SECTOR_SIZE_INFORMATION;
+
+#define STATUS_SUCCESS ((NTSTATUS)0x00000000)
+#define STATUS_NO_EAS_ON_FILE ((NTSTATUS)0xC0000052)
+
+typedef enum _FSINFOCLASS {
+    FileFsVolumeInformation         = 1,
+    FileFsLabelInformation,         // 2
+    FileFsSizeInformation,          // 3
+    FileFsDeviceInformation,        // 4
+    FileFsAttributeInformation,     // 5
+    FileFsControlInformation,       // 6
+    FileFsFullSizeInformation,      // 7
+    FileFsObjectIdInformation,      // 8
+    FileFsDriverPathInformation,    // 9
+    FileFsVolumeFlagsInformation,   // 10
+    FileFsSectorSizeInformation,    // 11
+    FileFsDataCopyInformation,      // 12
+    FileFsMetadataSizeInformation,  // 13
+    FileFsFullSizeInformationEx,    // 14
+    FileFsMaximumInformation
+} FS_INFORMATION_CLASS, *PFS_INFORMATION_CLASS;
+
+#ifdef NTDLL_HAS_ZWQUERYVOLUMEINFORMATIONFILE
+NTSYSAPI
+NTSTATUS
+ZwQueryVolumeInformationFile(
+    HANDLE               FileHandle,
+    PIO_STATUS_BLOCK     IoStatusBlock,
+    PVOID                FsInformation,
+    ULONG                Length,
+    FS_INFORMATION_CLASS FsInformationClass
+);
+
+static
+bool getfilefssectorsizeinformation(const char *progname, const char *filename)
+{
+    int res = EXIT_FAILURE;
+
+    HANDLE fileHandle = CreateFileA(filename,
+        GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING,
+        FILE_FLAG_BACKUP_SEMANTICS, NULL);
+    if (fileHandle == INVALID_HANDLE_VALUE) {
+        (void)fprintf(stderr,
+            "%s: Error opening file '%s'. Last error was %d.\n",
+            progname,
+            filename,
+            (int)GetLastError());
+        return EXIT_FAILURE;
+    }
+
+    FILE_FS_SECTOR_SIZE_INFORMATION ffssi = { 0 };
+    NTSTATUS status;
+    IO_STATUS_BLOCK io;
+
+    status = ZwQueryVolumeInformationFile(fileHandle, &io, &ffssi, sizeof ffssi,
+        FileFsSectorSizeInformation);
+
+    switch (status) {
+        case STATUS_SUCCESS:
+            break;
+        default:
+            (void)fprintf(stderr, "ZwQueryVolumeInformationFile() failed with 0x%lx\n", (long)status);
+            res = EXIT_FAILURE;
+            goto done;
+    }
+
+    (void)printf("(\n");
+    (void)printf("\tfilename='%s'\n", filename);
+
+    (void)printf("\tLogicalBytesPerSector=%lu\n",
+        (unsigned long)ffssi.LogicalBytesPerSector);
+    (void)printf("\tPhysicalBytesPerSectorForAtomicity=%lu\n",
+        (unsigned long)ffssi.PhysicalBytesPerSectorForAtomicity);
+    (void)printf("\tPhysicalBytesPerSectorForPerformance=%lu\n",
+        (unsigned long)ffssi.PhysicalBytesPerSectorForPerformance);
+    (void)printf("\t"
+        "FileSystemEffectivePhysicalBytesPerSectorForAtomicity=%lu\n",
+        (unsigned long)ffssi.FileSystemEffectivePhysicalBytesPerSectorForAtomicity);
+
+
+    DWORD fssiflags = ffssi.Flags;
+
+    (void)printf("\ttypeset -a Flags=(\n");
+
+#define TESTFSSI(s) \
+    if (fssiflags & (s)) { \
+        (void)puts("\t\t"#s); \
+        fssiflags &= ~(s); \
+    }
+    TESTFSSI(SSINFO_FLAGS_ALIGNED_DEVICE);
+    TESTFSSI(SSINFO_FLAGS_PARTITION_ALIGNED_ON_DEVICE);
+    TESTFSSI(SSINFO_FLAGS_NO_SEEK_PENALTY);
+    TESTFSSI(SSINFO_FLAGS_TRIM_ENABLED);
+    TESTFSSI(SSINFO_FLAGS_BYTE_ADDRESSABLE);
+
+    (void)printf("\t)\n");
+
+    /*
+     * print any leftover flags not covered by |TESTFBIA(FILE_*)|
+     * above
+     */
+    if (fssiflags) {
+        (void)printf("\tFlags=0x%lx\n", (long)fssiflags);
+    }
+
+    (void)printf("\tByteOffsetForSectorAlignment=%lu\n",
+        (unsigned long)ffssi.ByteOffsetForSectorAlignment);
+    (void)printf("\tByteOffsetForPartitionAlignment=%lu\n",
+        (unsigned long)ffssi.ByteOffsetForPartitionAlignment);
+
+    (void)printf(")\n");
+    res = EXIT_SUCCESS;
+
+done:
+    (void)CloseHandle(fileHandle);
+    return res;
+}
+#endif /* NTDLL_HAS_ZWQUERYVOLUMEINFORMATIONFILE */
+
 
 static
 bool get_file_basic_info(const char *progname, const char *filename)
@@ -642,17 +789,6 @@ typedef struct _FILE_FULL_EA_INFORMATION {
     CHAR EaName[1];
 } FILE_FULL_EA_INFORMATION, *PFILE_FULL_EA_INFORMATION;
 
-typedef struct _IO_STATUS_BLOCK {
-    union {
-        NTSTATUS Status;
-        PVOID Pointer;
-    } DUMMYUNIONNAME;
-    ULONG_PTR Information;
-} IO_STATUS_BLOCK, *PIO_STATUS_BLOCK;
-
-#define STATUS_SUCCESS ((NTSTATUS)0x00000000)
-#define STATUS_NO_EAS_ON_FILE ((NTSTATUS)0xC0000052)
-
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -772,6 +908,9 @@ void usage(void)
 {
     (void)fprintf(stderr, "winfsinfo <"
         "getvolumeinfo|"
+#ifdef NTDLL_HAS_ZWQUERYVOLUMEINFORMATIONFILE
+        "getfilefssectorsizeinformation|"
+#endif /* NTDLL_HAS_ZWQUERYVOLUMEINFORMATIONFILE */
         "filebasicinfo|"
         "fileexinfostandard|"
         "filestandardinfo|"
@@ -797,6 +936,11 @@ int main(int ac, char *av[])
     if (!strcmp(subcmd, "getvolumeinfo")) {
         return getvolumeinfo(av[0], av[2]);
     }
+#ifdef NTDLL_HAS_ZWQUERYVOLUMEINFORMATIONFILE
+    if (!strcmp(subcmd, "getfilefssectorsizeinformation")) {
+        return getfilefssectorsizeinformation(av[0], av[2]);
+    }
+#endif /* NTDLL_HAS_ZWQUERYVOLUMEINFORMATIONFILE */
     else if (!strcmp(subcmd, "filebasicinfo")) {
         return get_file_basic_info(av[0], av[2]);
     }
