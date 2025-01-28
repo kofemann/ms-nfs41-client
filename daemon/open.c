@@ -778,8 +778,13 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
             status = map_symlink_errors(status);
             goto out_free_state;
         }
-        nfs_to_basic_info(state->file.name.name, &info, &args->basic_info);
-        nfs_to_standard_info(&info, &args->std_info);
+        nfs_to_basic_info(state->file.name.name,
+            state->file.fh.superblock,
+            &info,
+            &args->basic_info);
+        nfs_to_standard_info(state->file.fh.superblock,
+            &info,
+            &args->std_info);
         EASSERT((info.attrmask.count > 0) &&
             (info.attrmask.arr[0] & FATTR4_WORD0_FILEID));
         args->fileid = info.fileid;
@@ -800,8 +805,13 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
             goto out_free_state;
         }
 
-        nfs_to_basic_info(state->file.name.name, &info, &args->basic_info);
-        nfs_to_standard_info(&info, &args->std_info);
+        nfs_to_basic_info(state->file.name.name,
+            state->file.fh.superblock,
+            &info,
+            &args->basic_info);
+        nfs_to_standard_info(state->file.fh.superblock,
+            &info,
+            &args->std_info);
         EASSERT((info.attrmask.count > 0) &&
             (info.attrmask.arr[0] & FATTR4_WORD0_FILEID));
         args->fileid = info.fileid;
@@ -1039,8 +1049,13 @@ create_chgrp_out:
             }
 #endif /* NFS41_DRIVER_SETGID_NEWGRP_SUPPORT */
 
-            nfs_to_basic_info(state->file.name.name, &info, &args->basic_info);
-            nfs_to_standard_info(&info, &args->std_info);
+            nfs_to_basic_info(state->file.name.name,
+                state->file.fh.superblock,
+                &info,
+                &args->basic_info);
+            nfs_to_standard_info(state->file.fh.superblock,
+                &info,
+                &args->std_info);
             EASSERT((info.attrmask.count > 0) &&
                 (info.attrmask.arr[0] & FATTR4_WORD0_FILEID));
             args->fileid = info.fileid;

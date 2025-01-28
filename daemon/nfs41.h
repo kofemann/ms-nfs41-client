@@ -58,6 +58,7 @@ typedef struct __nfs41_superblock {
     unsigned int ea_support : 1;
     unsigned int case_preserving : 1;
     unsigned int case_insensitive : 1;
+    unsigned int sparse_file_support : 1;
 
     /* variable filesystem attributes */
     uint64_t space_avail;

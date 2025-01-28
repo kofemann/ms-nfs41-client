@@ -1,8 +1,10 @@
 /* NFSv4.1 client for Windows
- * Copyright © 2012 The Regents of the University of Michigan
+ * Copyright (C) 2012 The Regents of the University of Michigan
+ * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
+ * Roland Mainz <roland.mainz@nrubsig.org>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -122,6 +124,7 @@ static int get_superblock_attrs(
     superblock->ea_support = supports_named_attrs;
     superblock->case_preserving = info.case_preserving;
     superblock->case_insensitive = info.case_insensitive;
+    superblock->sparse_file_support = 1; /* always ON for now */
 
     if (bitmap_isset(&info.attrmask, 0, FATTR4_WORD0_CANSETTIME))
         superblock->cansettime = info.cansettime;
@@ -167,6 +170,7 @@ void nfs41_superblock_fs_attributes(
     OUT PFILE_FS_ATTRIBUTE_INFORMATION FsAttrs)
 {
     FsAttrs->FileSystemAttributes = 0;
+    FsAttrs->FileSystemAttributes |= FILE_SUPPORTS_SPARSE_FILES;
     FsAttrs->FileSystemAttributes |= FILE_SUPPORTS_REMOTE_STORAGE;
     /* NFSv4 protocol uses Unicode by default */
     FsAttrs->FileSystemAttributes |= FILE_UNICODE_ON_DISK;

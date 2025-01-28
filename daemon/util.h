@@ -33,6 +33,8 @@
 extern DWORD NFS41D_VERSION;
 struct __nfs41_session;
 struct __nfs41_write_verf;
+typedef struct __nfs41_file_info nfs41_file_info;
+typedef struct __nfs41_superblock nfs41_superblock;
 enum stable_how4;
 
 /*
@@ -174,26 +176,32 @@ static __inline void open_delegation4_cpy(
 }
 
 ULONG nfs_file_info_to_attributes(
+    IN const nfs41_superblock *restrict superblock,
     IN const nfs41_file_info *restrict info);
 void nfs_to_basic_info(
     IN const char *restrict name,
+    IN const nfs41_superblock *restrict superblock,
     IN const nfs41_file_info *restrict info,
     OUT PFILE_BASIC_INFO restrict basic_out);
 void nfs_to_standard_info(
+    IN const nfs41_superblock *restrict superblock,
     IN const nfs41_file_info *restrict info,
     OUT PFILE_STANDARD_INFO restrict std_out);
 void nfs_to_network_openinfo(
     IN const char *restrict name,
+    IN const nfs41_superblock *restrict superblock,
     IN const nfs41_file_info *restrict info,
     OUT PFILE_NETWORK_OPEN_INFORMATION restrict std_out);
 #ifdef NFS41_DRIVER_WSL_SUPPORT
 void nfs_to_stat_info(
     IN const char *restrict name,
+    IN const nfs41_superblock *restrict superblock,
     IN const nfs41_file_info *restrict info,
     OUT PFILE_STAT_INFORMATION restrict stat_out);
 void nfs_to_stat_lx_info(
     IN void *daemon_context,
     IN const char *restrict name,
+    IN const nfs41_superblock *restrict superblock,
     IN const nfs41_file_info *restrict info,
     OUT PFILE_STAT_LX_INFORMATION restrict stat_lx_out);
 #endif /* NFS41_DRIVER_WSL_SUPPORT */

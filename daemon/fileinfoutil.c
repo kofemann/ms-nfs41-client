@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2023-2024 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -35,6 +35,7 @@
 
 
 ULONG nfs_file_info_to_attributes(
+    IN const nfs41_superblock *restrict superblock,
     IN const nfs41_file_info *restrict info)
 {
     ULONG attrs = 0;
@@ -46,7 +47,13 @@ ULONG nfs_file_info_to_attributes(
         if (info->symlink_dir)
             attrs |= FILE_ATTRIBUTE_DIRECTORY;
     }
-    else if (info->type != NF4REG) {
+    else if (info->type == NF4REG) {
+        if (superblock->sparse_file_support) {
+            /* FIXME: What about pNFS ? */
+            attrs |= FILE_ATTRIBUTE_SPARSE_FILE;
+        }
+    }
+    else {
         DPRINTF(1,
             ("nfs_file_info_to_attributes: "
             "unhandled file type %d, defaulting to NF4REG\n",
@@ -75,6 +82,7 @@ ULONG nfs_file_info_to_attributes(
 
 void nfs_to_basic_info(
     IN const char *restrict name,
+    IN const nfs41_superblock *restrict superblock,
     IN const nfs41_file_info *restrict info,
     OUT PFILE_BASIC_INFO basic_out)
 {
@@ -117,14 +125,17 @@ void nfs_to_basic_info(
         basic_out->ChangeTime.QuadPart = FILE_INFO_TIME_NOT_SET;
     }
 
-    basic_out->FileAttributes = nfs_file_info_to_attributes(info);
+    basic_out->FileAttributes =
+        nfs_file_info_to_attributes(superblock, info);
 }
 
 void nfs_to_standard_info(
+    IN const nfs41_superblock *restrict superblock,
     IN const nfs41_file_info *restrict info,
     OUT PFILE_STANDARD_INFO restrict std_out)
 {
-    const ULONG FileAttributes = nfs_file_info_to_attributes(info);
+    const ULONG FileAttributes =
+        nfs_file_info_to_attributes(superblock, info);
 
     EASSERT(info->attrmask.arr[0] & FATTR4_WORD0_SIZE);
     EASSERT((info->attrmask.count > 0) &&
@@ -140,6 +151,7 @@ void nfs_to_standard_info(
 
 void nfs_to_network_openinfo(
     IN const char *restrict name,
+    IN const nfs41_superblock *restrict superblock,
     IN const nfs41_file_info *restrict info,
     OUT PFILE_NETWORK_OPEN_INFORMATION restrict net_out)
 {
@@ -184,12 +196,14 @@ void nfs_to_network_openinfo(
 
     net_out->AllocationSize.QuadPart =
         net_out->EndOfFile.QuadPart = (LONGLONG)info->size;
-    net_out->FileAttributes = nfs_file_info_to_attributes(info);
+    net_out->FileAttributes =
+        nfs_file_info_to_attributes(superblock, info);
 }
 
 #ifdef NFS41_DRIVER_WSL_SUPPORT
 void nfs_to_stat_info(
     IN const char *restrict name,
+    IN const nfs41_superblock *restrict superblock,
     IN const nfs41_file_info *restrict info,
     OUT PFILE_STAT_INFORMATION restrict stat_out)
 {
@@ -237,7 +251,8 @@ void nfs_to_stat_info(
     stat_out->AllocationSize.QuadPart =
         stat_out->EndOfFile.QuadPart = (LONGLONG)info->size;
 
-    stat_out->FileAttributes = nfs_file_info_to_attributes(info);
+    stat_out->FileAttributes =
+        nfs_file_info_to_attributes(superblock, info);
 
     stat_out->ReparseTag = (info->type == NF4LNK)?
         IO_REPARSE_TAG_SYMLINK : 0;
@@ -250,6 +265,7 @@ void nfs_to_stat_info(
 void nfs_to_stat_lx_info(
     IN void *daemon_context,
     IN const char *restrict name,
+    IN const nfs41_superblock *restrict superblock,
     IN const nfs41_file_info *restrict info,
     OUT PFILE_STAT_LX_INFORMATION restrict stat_lx_out)
 {
@@ -303,7 +319,8 @@ void nfs_to_stat_lx_info(
     stat_lx_out->AllocationSize.QuadPart =
         stat_lx_out->EndOfFile.QuadPart = (LONGLONG)info->size;
 
-    stat_lx_out->FileAttributes = nfs_file_info_to_attributes(info);
+    stat_lx_out->FileAttributes =
+        nfs_file_info_to_attributes(superblock, info);
 
     stat_lx_out->ReparseTag = (info->type == NF4LNK)?
         IO_REPARSE_TAG_SYMLINK : 0;

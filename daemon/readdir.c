@@ -322,6 +322,7 @@ static uint32_t readdir_size_for_entry(
 
 static void readdir_copy_dir_info(
     IN nfs41_readdir_entry *entry,
+    IN const nfs41_superblock *restrict superblock,
     IN PFILE_DIR_INFO_UNION info)
 {
     info->fdi.FileIndex = (ULONG)entry->attr_info.fileid;
@@ -372,8 +373,8 @@ static void readdir_copy_dir_info(
     info->fdi.EndOfFile.QuadPart =
         info->fdi.AllocationSize.QuadPart =
             entry->attr_info.size;
-    info->fdi.FileAttributes = nfs_file_info_to_attributes(
-        &entry->attr_info);
+    info->fdi.FileAttributes =
+        nfs_file_info_to_attributes(superblock, &entry->attr_info);
 }
 
 #ifndef NFS41_DRIVER_DISABLE_8DOT3_SHORTNAME_GENERATION
@@ -393,12 +394,13 @@ static void readdir_copy_shortname(
 
 static void readdir_copy_full_dir_info(
     IN nfs41_readdir_entry *entry,
+    IN const nfs41_superblock *restrict superblock,
     IN PFILE_DIR_INFO_UNION info)
 {
-    readdir_copy_dir_info(entry, info);
-    /* for files with the FILE_ATTRIBUTE_REPARSE_POINT attribute, 
-     * EaSize is used instead to specify its reparse tag. this makes 
-     * the 'dir' command to show files as <SYMLINK>, and triggers a 
+    readdir_copy_dir_info(entry, superblock, info);
+    /* for files with the FILE_ATTRIBUTE_REPARSE_POINT attribute,
+     * EaSize is used instead to specify its reparse tag. this makes
+     * the 'dir' command to show files as <SYMLINK>, and triggers a
      * FSCTL_GET_REPARSE_POINT to query the symlink target 
      */
     info->fifdi.EaSize = entry->attr_info.type == NF4LNK ?
@@ -408,9 +410,10 @@ static void readdir_copy_full_dir_info(
 static void readdir_copy_both_dir_info(
     IN nfs41_readdir_entry *entry,
     IN LPWSTR wname,
+    IN const nfs41_superblock *restrict superblock,
     IN PFILE_DIR_INFO_UNION info)
 {
-    readdir_copy_full_dir_info(entry, info);
+    readdir_copy_full_dir_info(entry, superblock, info);
 #ifdef NFS41_DRIVER_DISABLE_8DOT3_SHORTNAME_GENERATION
     info->fbdi.ShortName[0] = L'\0';
     info->fbdi.ShortNameLength = 0;
@@ -512,6 +515,7 @@ static int readdir_copy_entry(
     WCHAR wname[NFS4_OPAQUE_LIMIT];
     uint32_t wname_len, wname_size, needed;
     PFILE_DIR_INFO_UNION info;
+    const nfs41_superblock *superblock = args->state->file.fh.superblock;
 
     wname_len = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS,
         entry->name, entry->name_len, wname, NFS4_OPAQUE_LIMIT);
@@ -552,28 +556,28 @@ static int readdir_copy_entry(
             info->fni.FileName, &info->fni.FileNameLength);
         break;
     case FileDirectoryInformation:
-        readdir_copy_dir_info(entry, info);
+        readdir_copy_dir_info(entry, superblock, info);
         readdir_copy_filename(wname, wname_size,
             info->fdi.FileName, &info->fdi.FileNameLength);
         break;
     case FileFullDirectoryInformation:
-        readdir_copy_full_dir_info(entry, info);
+        readdir_copy_full_dir_info(entry, superblock, info);
         readdir_copy_filename(wname, wname_size,
             info->ffdi.FileName, &info->ffdi.FileNameLength);
         break;
     case FileIdFullDirectoryInformation:
-        readdir_copy_full_dir_info(entry, info);
+        readdir_copy_full_dir_info(entry, superblock, info);
         info->fibdi.FileId.QuadPart = (LONGLONG)entry->attr_info.fileid;
         readdir_copy_filename(wname, wname_size,
             info->fifdi.FileName, &info->fifdi.FileNameLength);
         break;
     case FileBothDirectoryInformation:
-        readdir_copy_both_dir_info(entry, wname, info);
+        readdir_copy_both_dir_info(entry, wname, superblock, info);
         readdir_copy_filename(wname, wname_size,
             info->fbdi.FileName, &info->fbdi.FileNameLength);
         break;
     case FileIdBothDirectoryInformation:
-        readdir_copy_both_dir_info(entry, wname, info);
+        readdir_copy_both_dir_info(entry, wname, superblock, info);
         info->fibdi.FileId.QuadPart = (LONGLONG)entry->attr_info.fileid;
         readdir_copy_filename(wname, wname_size,
             info->fibdi.FileName, &info->fibdi.FileNameLength);

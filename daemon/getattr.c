@@ -171,13 +171,20 @@ static int handle_getattr(void *daemon_context, nfs41_upcall *upcall)
 
     switch (args->query_class) {
     case FileBasicInformation:
-        nfs_to_basic_info(state->file.name.name, &info, &args->basic_info);
+        nfs_to_basic_info(state->file.name.name,
+            state->file.fh.superblock,
+            &info,
+            &args->basic_info);
         break;
     case FileStandardInformation:
-        nfs_to_standard_info(&info, &args->std_info);
+        nfs_to_standard_info(state->file.fh.superblock,
+            &info,
+            &args->std_info);
         break;
     case FileAttributeTagInformation:
-        args->tag_info.FileAttributes = nfs_file_info_to_attributes(&info);
+        args->tag_info.FileAttributes =
+            nfs_file_info_to_attributes(state->file.fh.superblock,
+                &info);
         args->tag_info.ReparseTag = info.type == NF4LNK ?
             IO_REPARSE_TAG_SYMLINK : 0;
         break;
@@ -185,15 +192,24 @@ static int handle_getattr(void *daemon_context, nfs41_upcall *upcall)
         args->intr_info.IndexNumber.QuadPart = info.fileid;
         break;
     case FileNetworkOpenInformation:
-        nfs_to_network_openinfo(state->file.name.name, &info, &args->network_info);
+        nfs_to_network_openinfo(state->file.name.name,
+            state->file.fh.superblock,
+            &info,
+            &args->network_info);
         break;
 #ifdef NFS41_DRIVER_WSL_SUPPORT
     case FileStatInformation:
-        nfs_to_stat_info(state->file.name.name, &info, &args->stat_info);
+        nfs_to_stat_info(state->file.name.name,
+            state->file.fh.superblock,
+            &info,
+            &args->stat_info);
         break;
     case FileStatLxInformation:
         nfs_to_stat_lx_info(daemon_context,
-            state->file.name.name, &info, &args->stat_lx_info);
+            state->file.name.name,
+            state->file.fh.superblock,
+            &info,
+            &args->stat_lx_info);
         break;
 #endif /* NFS41_DRIVER_WSL_SUPPORT */
     default:
