@@ -94,3 +94,53 @@ int nfs42_read_plus(
 out:
     return status;
 }
+
+int nfs42_seek(
+    IN nfs41_session *session,
+    IN nfs41_path_fh *file,
+    IN stateid_arg *stateid,
+    IN uint64_t offset,
+    IN data_content4 what,
+    OUT bool_t *eof_out,
+    OUT uint64_t *offset_out)
+{
+    int status;
+    nfs41_compound compound;
+    nfs_argop4 argops[4];
+    nfs_resop4 resops[4];
+    nfs41_sequence_args sequence_args;
+    nfs41_sequence_res sequence_res;
+    nfs41_putfh_args putfh_args;
+    nfs41_putfh_res putfh_res;
+    nfs42_seek_args seek_args;
+    nfs42_seek_res  seek_res;
+
+    compound_init(&compound, session->client->root->nfsminorvers,
+        argops, resops,
+        "seek");
+
+    compound_add_op(&compound, OP_SEQUENCE,
+        &sequence_args, &sequence_res);
+    nfs41_session_sequence(&sequence_args, session, 0);
+
+    compound_add_op(&compound, OP_PUTFH, &putfh_args, &putfh_res);
+    putfh_args.file = file;
+    putfh_args.in_recovery = 0;
+
+    compound_add_op(&compound, OP_SEEK, &seek_args, &seek_res);
+    seek_args.stateid = stateid;
+    seek_args.offset = offset;
+    seek_args.what = what;
+
+    status = compound_encode_send_decode(session, &compound, TRUE);
+    if (status)
+        goto out;
+
+    if (compound_error(status = compound.res.status))
+        goto out;
+
+    *eof_out = seek_res.resok4.eof;
+    *offset_out = seek_res.resok4.offset;
+out:
+    return status;
+}

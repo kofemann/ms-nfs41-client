@@ -1115,6 +1115,167 @@ void print_nfs41_file_info(
     dprintf_out("%s={ %s }\n", label, buf);
 }
 
+void debug_list_sparsefile_holes(nfs41_open_state *state)
+{
+    int seek_status;
+    bool_t seek_sr_eof = FALSE;
+    uint64_t seek_sr_offset = 0ULL;
+    uint64_t next_offset = 0ULL;
+    stateid_arg stateid;
+    int seek_cycle;
+    bool is_sparse_file = false;
+    bool file_has_data_blocks = false;
+    uint64_t offset_of_first_data = ~0ULL;
+    uint64_t offset_of_first_hole = ~0ULL;
+
+    dprintf_out(
+        "--> debug_list_sparsefile_holes(state->path.path='%s')\n",
+        state->path.path);
+
+    nfs41_open_stateid_arg(state, &stateid);
+
+    seek_status = nfs42_seek(state->session,
+        &state->file,
+        &stateid,
+        0,
+        NFS4_CONTENT_HOLE,
+        &seek_sr_eof,
+        &seek_sr_offset);
+    if (seek_status) {
+        dprintf_out("initial SEEK_HOLE failed "
+        "OP_SEEK(sa_offset=%llu,sa_what=SEEK_HOLE) "
+        "failed with %d(='%s')\n",
+        0,
+        seek_status,
+        nfs_error_string(seek_status));
+        goto out;
+    }
+
+    offset_of_first_hole = seek_sr_offset;
+
+    /* Not a virtual hole at the end ? Then this is a sparse file */
+    if (seek_sr_eof == FALSE) {
+        is_sparse_file = true;
+    }
+
+    seek_status = nfs42_seek(state->session,
+        &state->file,
+        &stateid,
+        0,
+        NFS4_CONTENT_DATA,
+        &seek_sr_eof,
+        &seek_sr_offset);
+    if (seek_status && (seek_status != NFS4ERR_NXIO)) {
+        dprintf_out("initial SEEL_DATA failed "
+        "OP_SEEK(sa_offset=%llu,sa_what=SEEK_DATA) "
+        "failed with %d(='%s')\n",
+        0,
+        seek_status,
+        nfs_error_string(seek_status));
+        goto out;
+    }
+
+
+    if (seek_status == NFS4ERR_NXIO) {
+        file_has_data_blocks = false;
+        offset_of_first_data = ~0ULL;
+    }
+    else {
+        file_has_data_blocks = true;
+        offset_of_first_data = seek_sr_offset;
+    }
+
+    dprintf_out("INFO: "
+        "is_sparse_file=%d "
+        "file_has_data_blocks=%d, "
+        "offset_of_first_hole=%llu, "
+        "offset_of_first_data=%llu\n",
+        (int)is_sparse_file, (int)file_has_data_blocks,
+        (long long)offset_of_first_hole,
+        (long long)offset_of_first_data);
+
+    data_content4 cycle_what;
+
+    /* Does the file start with data or a hole ? */
+    if (file_has_data_blocks &&
+        (offset_of_first_data < offset_of_first_hole)) {
+        cycle_what = NFS4_CONTENT_DATA;
+    }
+    else {
+        cycle_what = NFS4_CONTENT_HOLE;
+    }
+
+    /*
+     * Limit to 100 cycles to avoid locking-up the client if
+     * something unexpected happen
+     */
+    for (seek_cycle = 0 ; seek_cycle < 100 ; seek_cycle++) {
+        if ((file_has_data_blocks == false) &&
+            (cycle_what == NFS4_CONTENT_DATA)) {
+            dprintf_out("cycle=%d: "
+                "no data blocks, skipping SEEK_DATA, assuming EOF.\n",
+                seek_cycle);
+            break;
+        }
+
+        seek_status = nfs42_seek(state->session,
+            &state->file,
+            &stateid,
+            next_offset,
+            cycle_what,
+            &seek_sr_eof,
+            &seek_sr_offset);
+
+        if (seek_status) {
+            dprintf_out("cycle=%d: "
+                "OP_SEEK(sa_offset=%llu,sa_what='%s') "
+                "failed with %d(='%s')\n",
+                seek_cycle,
+                next_offset,
+                (cycle_what==NFS4_CONTENT_DATA?"SEEK_DATA":"SEEK_HOLE"),
+                seek_status,
+                nfs_error_string(seek_status));
+            break;
+        }
+
+        dprintf_out("cycle=%d: "
+            "OP_SEEK(sa_offset=%llu,sa_what='%s') SUCCESS: "
+            "sr_eof=%d, sr_offset=%lld\n",
+            seek_cycle,
+            next_offset,
+            (cycle_what==NFS4_CONTENT_DATA?"SEEK_DATA":"SEEK_HOLE"),
+            (int)seek_sr_eof,
+            (long long)seek_sr_offset);
+
+        if (seek_sr_eof)
+            break;
+
+        next_offset = seek_sr_offset;
+
+        /*
+         * Note this assumes that "hole" and "data" are alternating,
+         * and we never get a { ..., hole, hole, ... } or
+         * { ... data, data ... }. The original |lseek()|
+         * |SEEK_HOLE|/|SEEK_DATA| API would allow this, but it is
+         * not clear whether the POSIX standard would allow this.
+         *
+         * Technically it would be usefull in case of pNFS, where one
+         * file can be split over multiple data servers, and SEEK_DATA
+         * would stop at the boundary of data_server_1, followed by
+         * another SEEK_DATA which starts at the next data server.
+         */
+        if (cycle_what == NFS4_CONTENT_DATA) {
+            cycle_what = NFS4_CONTENT_HOLE;
+        }
+        else {
+            cycle_what = NFS4_CONTENT_DATA;
+        }
+    }
+
+out:
+    dprintf_out("<-- debug_list_sparsefile_holes()\n");
+}
+
 #define NUM_RECENTLY_DELETED 128
 static struct
 {

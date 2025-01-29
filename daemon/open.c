@@ -1078,6 +1078,14 @@ create_chgrp_out:
         }
     }
 
+#ifdef DEBUG_OPEN_SPARSE_FILES
+    if ((status == 0) &&
+        (info.type == NF4REG) &&
+        (state->session->client->root->nfsminorvers >= 2)) {
+        debug_list_sparsefile_holes(state);
+    }
+#endif /* DEBUG_OPEN_SPARSE_FILES */
+
     upcall->state_ref = state;
     nfs41_open_state_ref(upcall->state_ref);
 out:

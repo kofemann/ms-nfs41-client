@@ -788,6 +788,26 @@ typedef struct __nfs42_read_plus_res {
     nfs42_read_plus_res_ok  resok4;
 } nfs42_read_plus_res;
 
+#if 1
+/* OP_SEEK */
+typedef struct __nfs42_seek_args {
+    stateid_arg     *stateid; /* -> nfs41_op_open_res_ok.stateid */
+    uint64_t        offset;
+    data_content4   what;
+} nfs42_seek_args;
+
+typedef struct __nfs42_seek_res_ok {
+    bool_t      eof;
+    uint64_t    offset;
+} nfs42_seek_res_ok;
+
+typedef struct __nfs42_seek_res {
+    uint32_t            status;
+    /* case NFS4_OK: */
+    nfs42_seek_res_ok   resok4;
+} nfs42_seek_res;
+#endif
+
 /* OP_READDIR */
 typedef struct __nfs41_readdir_args {
     nfs41_readdir_cookie    cookie;
@@ -1182,6 +1202,15 @@ int nfs42_read_plus(
     OUT unsigned char *data_out,
     OUT uint32_t *data_len_out,
     OUT bool_t *eof_out);
+
+int nfs42_seek(
+    IN nfs41_session *session,
+    IN nfs41_path_fh *file,
+    IN stateid_arg *stateid,
+    IN uint64_t offset,
+    IN data_content4 what,
+    OUT bool_t *eof_out,
+    OUT uint64_t *offset_out);
 
 int nfs41_commit(
     IN nfs41_session *session,

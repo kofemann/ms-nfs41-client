@@ -153,6 +153,8 @@ void open_log_files();
 void close_log_files();
 const char* secflavorop2name(DWORD sec_flavor);
 void print_nfs41_file_info(const char *label, const void *vinfo);
+typedef struct __nfs41_open_state nfs41_open_state;
+void debug_list_sparsefile_holes(nfs41_open_state *state);
 
 /* pnfs_debug.c */
 enum pnfs_status;

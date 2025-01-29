@@ -189,3 +189,61 @@ bool_t decode_op_read_plus(
 
     return TRUE;
 }
+
+/*
+ * OP_SEEK
+ */
+bool_t encode_op_seek(
+    XDR *xdr,
+    nfs_argop4 *argop)
+{
+    nfs42_seek_args *args = (nfs42_seek_args *)argop->arg;
+
+    if (unexpected_op(argop->op, OP_SEEK))
+        return FALSE;
+
+    if (!xdr_stateid4(xdr, &args->stateid->stateid))
+        return FALSE;
+
+    if (!xdr_u_hyper(xdr, &args->offset))
+        return FALSE;
+
+    uint32_t args_what = args->what;
+    EASSERT((args_what == NFS4_CONTENT_DATA) ||
+        (args_what == NFS4_CONTENT_HOLE));
+    return xdr_u_int32_t(xdr, &args_what);
+}
+
+static bool_t decode_seek_res_ok(
+    XDR *xdr,
+    nfs42_seek_res_ok *res)
+{
+    if (!xdr_bool(xdr, &res->eof)) {
+        DPRINTF(0, ("decode eof failed\n"));
+        return FALSE;
+    }
+
+    if (!xdr_u_hyper(xdr, &res->offset)) {
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+bool_t decode_op_seek(
+    XDR *xdr,
+    nfs_resop4 *resop)
+{
+    nfs42_seek_res *res = (nfs42_seek_res *)resop->res;
+
+    if (unexpected_op(resop->op, OP_SEEK))
+        return FALSE;
+
+    if (!xdr_u_int32_t(xdr, &res->status))
+        return FALSE;
+
+    if (res->status == NFS4_OK)
+        return decode_seek_res_ok(xdr, &res->resok4);
+
+    return TRUE;
+}
