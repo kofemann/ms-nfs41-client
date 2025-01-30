@@ -1018,6 +1018,7 @@ NTSTATUS map_close_errors(
 {
     switch (status) {
     case NO_ERROR:              return STATUS_SUCCESS;
+    case ERROR_FILE_NOT_FOUND:  return STATUS_NO_SUCH_FILE;
     case ERROR_NETNAME_DELETED: return STATUS_NETWORK_NAME_DELETED;
     case ERROR_NOT_EMPTY:       return STATUS_DIRECTORY_NOT_EMPTY;
     case ERROR_FILE_INVALID:    return STATUS_FILE_INVALID;
