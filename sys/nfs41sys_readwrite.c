@@ -118,9 +118,19 @@ NTSTATUS marshal_nfs41_rw(
 #pragma warning (disable : 28145)
         entry->u.ReadWrite.MdlAddress->MdlFlags |= MDL_MAPPING_CAN_FAIL;
 #pragma warning( pop )
+        ULONG prio_writeflags = 0;
+
+        /*
+         * The userland daemon will only read from this memory for
+         * "write" requests, so make it read-only
+         */
+        if (entry->opcode == NFS41_SYSOP_WRITE)
+            prio_writeflags |= MdlMappingNoWrite;
+
         entry->buf =
             MmMapLockedPagesSpecifyCache(entry->u.ReadWrite.MdlAddress,
-                UserMode, MmCached, NULL, FALSE, NormalPagePriority);
+                UserMode, MmCached, NULL, FALSE,
+                (NormalPagePriority|prio_writeflags));
         if (entry->buf == NULL) {
             print_error("marshal_nfs41_rw: "
                 "MmMapLockedPagesSpecifyCache() failed to map pages\n");
