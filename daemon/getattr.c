@@ -50,7 +50,8 @@ int nfs41_cached_getattr(
 
         status = nfs41_getattr(session, file, &attr_request, info);
         if (status) {
-            eprintf("nfs41_getattr() failed with '%s'\n",
+            eprintf("nfs41_cached_getattr: "
+                "nfs41_getattr() failed with '%s'\n",
                 nfs_error_string(status));
             status = nfs_to_windows_error(status, ERROR_BAD_NET_RESP);
         }
@@ -153,7 +154,10 @@ static int handle_getattr(void *daemon_context, nfs41_upcall *upcall)
 
     status = nfs41_cached_getattr(state->session, &state->file, &info);
     if (status) {
-        eprintf("nfs41_cached_getattr() failed with %d\n", status);
+        eprintf("handle_getattr(state->path.path='%s'): "
+            "nfs41_cached_getattr() failed with %d\n",
+            state->path.path,
+            status);
         goto out;
     }
 
@@ -213,7 +217,10 @@ static int handle_getattr(void *daemon_context, nfs41_upcall *upcall)
         break;
 #endif /* NFS41_DRIVER_WSL_SUPPORT */
     default:
-        eprintf("unhandled file query class %d\n", args->query_class);
+        eprintf("handle_getattr(state->path.path='%s'): "
+            "unhandled file query class %d\n",
+            state->path.path,
+            args->query_class);
         status = ERROR_INVALID_PARAMETER;
         break;
     }
@@ -280,7 +287,8 @@ static int marshall_getattr(unsigned char *buffer, uint32_t *length, nfs41_upcal
         break;
 #endif /* NFS41_DRIVER_WSL_SUPPORT */
     default:
-        eprintf("unknown file query class %d\n", args->query_class);
+        eprintf("marshall_getattr: unknown file query class %d\n",
+            args->query_class);
         status = 103;
         goto out;
     }
