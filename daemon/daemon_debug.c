@@ -1165,7 +1165,29 @@ void debug_list_sparsefile_holes(nfs41_open_state *state)
         NFS4_CONTENT_DATA,
         &seek_sr_eof,
         &seek_sr_offset);
-    if (seek_status && (seek_status != NFS4ERR_NXIO)) {
+
+    /*
+     * 1. Note that Linux returns |NFS4ERR_NXIO| if it cannot find
+     * a data block, but
+     * https://datatracker.ietf.org/doc/html/rfc7862#section-15.11.3
+     * says "... If the server cannot find a corresponding sa_what,
+     * then the status will still be NFS4_OK, but sr_eof would be
+     * TRUE. ..."
+     * 2. NFSv4.2 spec bug:
+     * https://datatracker.ietf.org/doc/html/rfc7862#section-11.2
+     * section "SEEK" does not list |NFS4ERR_NXIO| as valid error
+     * for SEEK, but
+     * https://datatracker.ietf.org/doc/html/rfc7862#section-15.11.3
+     * states "If the sa_offset is beyond the end of the file, then
+     * SEEK MUST return NFS4ERR_NXIO."
+     */
+#define LINUX_NFSD_SEEK_NXIO_BUG_WORKAROUND 1
+
+    if ((seek_status)
+#ifdef LINUX_NFSD_SEEK_NXIO_BUG_WORKAROUND
+        && (seek_status != NFS4ERR_NXIO)
+#endif
+    ) {
         dprintf_out("initial SEEL_DATA failed "
         "OP_SEEK(sa_offset=%llu,sa_what=SEEK_DATA) "
         "failed with %d(='%s')\n",
@@ -1175,8 +1197,11 @@ void debug_list_sparsefile_holes(nfs41_open_state *state)
         goto out;
     }
 
-
-    if (seek_status == NFS4ERR_NXIO) {
+    if (((seek_status == 0) && (seek_sr_eof != FALSE))
+#ifdef LINUX_NFSD_SEEK_NXIO_BUG_WORKAROUND
+        || (seek_status == NFS4ERR_NXIO)
+#endif
+        ) {
         file_has_data_blocks = false;
         offset_of_first_data = ~0ULL;
     }
