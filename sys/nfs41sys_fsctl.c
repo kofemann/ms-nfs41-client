@@ -68,6 +68,110 @@
 #include "nfs41sys_driver.h"
 #include "nfs41sys_util.h"
 
+static
+NTSTATUS check_nfs41_queryallocatedranges_args(
+    PRX_CONTEXT RxContext)
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    XXCTL_LOWIO_COMPONENT *FsCtl =
+        &RxContext->LowIoContext.ParamsFor.FsCtl;
+    const USHORT HeaderLen = sizeof(FILE_ALLOCATED_RANGE_BUFFER);
+
+    /*
+     * Must have a filename longer than vnetroot name,
+     * or it's trying to operate on the volume itself
+     */
+    if (is_root_directory(RxContext)) {
+        status = STATUS_INVALID_PARAMETER;
+        goto out;
+    }
+
+    if (!FsCtl->pOutputBuffer) {
+        status = STATUS_INVALID_USER_BUFFER;
+        goto out;
+    }
+
+    if (FsCtl->OutputBufferLength < HeaderLen) {
+        RxContext->InformationToReturn = HeaderLen;
+        status = STATUS_BUFFER_TOO_SMALL;
+        goto out;
+    }
+out:
+    return status;
+}
+
+static
+NTSTATUS nfs41_QueryAllocatedRanges(
+    IN OUT PRX_CONTEXT RxContext)
+{
+    NTSTATUS status = STATUS_INVALID_DEVICE_REQUEST;
+    __notnull XXCTL_LOWIO_COMPONENT *FsCtl =
+        &RxContext->LowIoContext.ParamsFor.FsCtl;
+    __notnull PFILE_ALLOCATED_RANGE_BUFFER in_range_buffer =
+        (PFILE_ALLOCATED_RANGE_BUFFER)FsCtl->pInputBuffer;
+    __notnull PFILE_ALLOCATED_RANGE_BUFFER out_range_buffer =
+        (PFILE_ALLOCATED_RANGE_BUFFER)FsCtl->pOutputBuffer;
+    __notnull PNFS41_FCB nfs41_fcb =
+        NFS41GetFcbExtension(RxContext->pFcb);
+
+    DbgEn();
+
+    RxContext->IoStatusBlock.Information = 0;
+
+    status = check_nfs41_queryallocatedranges_args(RxContext);
+    if (status)
+        goto out;
+
+    if (FsCtl->InputBufferLength <
+        sizeof(FILE_ALLOCATED_RANGE_BUFFER)) {
+        DbgP("nfs41_QueryAllocatedRanges: "
+            "in_range_buffer to small\n");
+        status = STATUS_BUFFER_TOO_SMALL;
+        goto out;
+    }
+
+/*
+ * FIXME: For now we implement |FSCTL_QUERY_ALLOCATED_RANGES| using
+ * a dummy implementation which just returns { 0, filesize }
+ * so we can do testing with Cygwin >= 3.6.x
+ * |lseek(..., SEEK_HOLE/SEEK_DATA, ...)| and
+ * Windows $ fsutil sparse queryrange mysparsefile.txt #.
+ *
+ * We really need an upcall which issues NFSv4.2 SEEK to enumerate the
+ * data/hole sections and fill an array of
+ * |FILE_ALLOCATED_RANGE_BUFFER|s with the positions of tha SEEK_DATA
+ * results.
+ */
+#define NFS41SYS_FSCTL_QUERY_ALLOCATED_RANGES_PLACEHOLDER_DUMMY_IMPL 1
+
+#ifdef NFS41SYS_FSCTL_QUERY_ALLOCATED_RANGES_PLACEHOLDER_DUMMY_IMPL
+    DbgP("nfs41_QueryAllocatedRanges: "
+        "in_range_buffer=(FileOffset=%lld,Length=%lld)\n",
+        (long long)in_range_buffer->FileOffset.QuadPart,
+        (long long)in_range_buffer->Length.QuadPart);
+
+    if (FsCtl->OutputBufferLength <
+        (1*sizeof(FILE_ALLOCATED_RANGE_BUFFER))) {
+        DbgP("nfs41_QueryAllocatedRanges: "
+            "FsCtl->OutputBufferLength too small\n");
+        status = STATUS_BUFFER_TOO_SMALL;
+        goto out;
+    }
+
+    out_range_buffer->FileOffset.QuadPart = 0;
+    out_range_buffer->Length.QuadPart =
+        nfs41_fcb->StandardInfo.EndOfFile.QuadPart;
+
+    RxContext->IoStatusBlock.Information =
+        (ULONG_PTR)1*sizeof(FILE_ALLOCATED_RANGE_BUFFER);
+
+    status = STATUS_SUCCESS;
+#endif /* NFS41SYS_FSCTL_QUERY_ALLOCATED_RANGES_PLACEHOLDER_DUMMY_IMPL */
+
+out:
+    DbgEx();
+    return status;
+}
 
 NTSTATUS nfs41_FsCtl(
     IN OUT PRX_CONTEXT RxContext)
@@ -86,6 +190,9 @@ NTSTATUS nfs41_FsCtl(
         break;
     case FSCTL_GET_REPARSE_POINT:
         status = nfs41_GetReparsePoint(RxContext);
+        break;
+    case FSCTL_QUERY_ALLOCATED_RANGES:
+        status = nfs41_QueryAllocatedRanges(RxContext);
         break;
     default:
         break;
