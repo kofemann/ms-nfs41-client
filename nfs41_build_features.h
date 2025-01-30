@@ -173,4 +173,12 @@
  */
 #define NFS41_DRIVER_WS2022_HACKS 1
 
+/*
+ * NFS41_DRIVER_DEFAULT_NFS4MINORVERSION - set default NFSv4.x
+ * protocol minor version used by protocol autonegotiation if no
+ * minor version was given via $ nfs_mount -o vers= ... #
+ * Value can be |1| or |2|
+ */
+#define NFS41_DRIVER_DEFAULT_NFS4MINORVERSION 2
+
 #endif /* !_NFS41_DRIVER_BUILDFEATURES_ */

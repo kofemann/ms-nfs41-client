@@ -400,7 +400,11 @@ int nfs41_root_mount_addrs(
      * First try with 4.2, and if this fails try 4.1
      */
     if (root->nfsminorvers == NFS_VERSION_AUTONEGOTIATION) {
-        root->nfsminorvers = 2;
+#if ((NFS41_DRIVER_DEFAULT_NFS4MINORVERSION > 2) || \
+    (NFS41_DRIVER_DEFAULT_NFS4MINORVERSION < 1))
+#error Illegal NFS41_DRIVER_DEFAULT_NFS4MINORVERSION
+#endif
+        root->nfsminorvers = NFS41_DRIVER_DEFAULT_NFS4MINORVERSION;
         nfsminorvers_autonegotiate = true;
     }
 
