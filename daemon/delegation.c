@@ -299,7 +299,7 @@ static int delegation_return(
 out_downcall:
 
     /* recover opens and locks associated with the delegation */
-    while (open = deleg_open_find(&client->state, deleg)) {
+    while ((open = deleg_open_find(&client->state, deleg)) != NULL) {
         status = nfs41_delegation_to_open(open, try_recovery);
         if (status == NFS4_OK)
             status = delegation_flush_locks(open, try_recovery);
