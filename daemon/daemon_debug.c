@@ -35,7 +35,7 @@
 #include "rpc/auth_sspi.h"
 #include "accesstoken.h"
 
-extern int g_debug_level = DEFAULT_DEBUG_LEVEL;
+int g_debug_level = DEFAULT_DEBUG_LEVEL;
 
 void set_debug_level(int level) { g_debug_level = level; }
 
