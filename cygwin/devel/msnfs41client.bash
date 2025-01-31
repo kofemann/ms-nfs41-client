@@ -651,6 +651,25 @@ function nfsclient_system_rundeamon
 	return $?
 }
 
+function attach_debugger_to_daemon
+{
+	set -o nounset
+	set -o xtrace
+	set -o errexit
+
+	typeset nfsd_winpid
+	typeset dummy
+
+	export NT_ALT_SYMBOL_PATH="$(cygpath -w "$PWD");srv*https://msdl.microsoft.com/download/symbols"
+
+	# Get Windows pid of nfsd.exe
+	read dummy nfsd_winpid < <(tasklist /FI "IMAGENAME eq nfsd.exe" /FO list | fgrep 'PID:')
+
+	cdb '-c' '!gflag +soe;sxe -c "kp;gn" *;.lines -e;g' -p ${nfsd_winpid}
+
+	return $?
+}
+
 function watch_kernel_debuglog
 {
 	typeset dbgview_cmd
@@ -946,6 +965,19 @@ function main
 			return $?
 			;;
 		# misc
+		'attach_debugger_to_daemon')
+			check_machine_arch || (( numerr++ ))
+			require_cmd 'tasklist.exe' || (( numerr++ ))
+			require_cmd 'cdb.exe' || (( numerr++ ))
+			if ! is_windows_admin_account ; then
+				printf $"%s: %q requires Windows Adminstator permissions.\n" "$0" "$cmd"
+				(( numerr++ ))
+			fi
+			(( numerr > 0 )) && return 1
+
+			attach_debugger_to_daemon
+			return $?
+			;;
 		'watch_kernel_debuglog')
 			check_machine_arch || (( numerr++ ))
 			case "$(uname -m)" in
