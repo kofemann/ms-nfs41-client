@@ -227,9 +227,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\sys\nfs41_debug.h" />
-    <ClInclude Include="..\..\sys\nfs41_driver.h" />
     <ClInclude Include="..\..\sys\wmlkm.h" />
-    <ClInclude Include="..\..\daemon\nfs_ea.h" />
+    <ClInclude Include="..\..\include\nfs41_driver.h" />
+    <ClInclude Include="..\..\include\nfs_ea.h" />
     <ClInclude Include="..\..\include\win_reparse.h" />
   </ItemGroup>
   <ItemGroup>
