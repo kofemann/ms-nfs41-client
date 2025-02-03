@@ -1,5 +1,5 @@
 #
-# ms-nfs41-client manual testing sequence, 2025-01-08
+# ms-nfs41-client manual testing sequence, 2025-02-03
 #
 # Draft version, needs to be turned into automated tests
 # if possible
@@ -512,6 +512,34 @@ bash /usr/share/msnfs41client/tests/misc/wintartest_comparewinvsgnu001.bash myta
 # bypasses the Cygwin code
 bash -c 'set -o errexit ; rm -Rf sillytestdir ; mkdir sillytestdir ; cd sillytestdir ; touch sillytest ; ( command exec {n}<"sillytest" ; printf "fd=%d\n" $n ; sleep 10) & sleep 1 ; ls -la ; cmd /C "del sillytest" ; ls -la ; if [[ "$(ls -1 .nfs*)" != "" ]] ; then echo "# test OK" ; else echo "# test FAILED" ; fi ; wait'
 bash -c 'set -o errexit ; rm -Rf sillytestdir ; mkdir sillytestdir ; cd sillytestdir ; touch sillytest ; ( command exec {n}<"sillytest" ; printf "fd=%d\n" $n ; sleep 10) & sleep 1 ; ls -la ; rm -f sillytest ; ls -la ; if [[ "$(ls -1 .nfs*)" != "" ]] ; then echo "# test OK" ; else echo "# test FAILED" ; fi ; wait'
+
+#
+# WSL install for testing
+#
+
+# install WSL
+# (from Admin powershell)
+wsl --install --web-download -d Debian
+
+# Update Debian Linux
+# wsl # (enter WSL environment)
+
+$ sudo root
+
+# update /etc/apt/sources.list to include "contrib"+"non-free"
+$ cat /etc/apt/sources.list
+deb http://ftp.gwdg.de/debian/ bullseye main contrib non-free
+deb-src http://ftp.gwdg.de/debian/ bullseye main contrib non-free
+
+deb http://security.debian.org/debian-security bullseye-security main contrib non-free
+deb-src http://security.debian.org/debian-security bullseye-security main contrib non-free
+
+# update package lists+update packages
+$ apt-get update
+$ apt-get upgrade
+
+# install packages for testing
+$ apt-get install clang gcc gdb nedit emacs vim x11-apps xterm ksh traceroute strace ddd mesa-utils tk xpdf xmpuzzles mwm xutils-dev valgrind crash libhugetlbfs-bin wireguard xtron x11-xserver-utils sunclock moreutils iproute2 inetutils-tools build-essential linux-source libncurses5-dev xvkbd ethtool tshark xmldiff krb5-user krb5-kdc libkrb5-dev keyutils info bc kmod cpio flex libncurses5-dev libelf-dev libssl-dev inkscape xdmx xdmx-tools twm mwm sbuild autoconf automake openbsd-inetd rwho rwhod finger fingerd cronutils at nfs-kernel-server nfs-common nfs4-acl-tools autofs openjdk-17-jdk openjdk-17-demo python talk talkd libcurl4 libc6-dbg sysvbanner powertop iftop acpidump linux-perf ltrace locales task-german task-japanese schroot groff squashfs-tools dpkg-dev devscripts kernel-wedge sbsigntool git-svn apt-file module-assistant dwarves tree net-tools bridge-utils xnest uml-utilities inxi libxaw7-dev whois extrace kexec-tools dos2unix pkg-config libglib2.0-dev libpixman-1-dev qemu qemu-utils qemu-system-\* qemu-system-gui libsixel-bin w3m-img sharutils freerdp2-x11 nscd debconf-utils iotop 'manpages-posix*' konsole lsof
 
 #
 # EOF.
