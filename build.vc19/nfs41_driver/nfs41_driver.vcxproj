@@ -218,6 +218,7 @@
     <ClCompile Include="..\..\sys\nfs41sys_mount.c" />
     <ClCompile Include="..\..\sys\nfs41sys_openclose.c" />
     <ClCompile Include="..\..\sys\nfs41sys_readwrite.c" />
+    <ClCompile Include="..\..\sys\nfs41sys_reparse.c" />
     <ClCompile Include="..\..\sys\nfs41sys_symlink.c" />
     <ClCompile Include="..\..\sys\nfs41sys_util.c" />
     <ClCompile Include="..\..\sys\nfs41sys_updowncall.c" />
@@ -229,6 +230,7 @@
     <ClInclude Include="..\..\sys\nfs41_driver.h" />
     <ClInclude Include="..\..\sys\wmlkm.h" />
     <ClInclude Include="..\..\daemon\nfs_ea.h" />
+    <ClInclude Include="..\..\include\win_reparse.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="..\..\sys\nfs41_driver.rc" />

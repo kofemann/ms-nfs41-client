@@ -61,6 +61,9 @@
     <ClCompile Include="..\..\sys\nfs41sys_readwrite.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\sys\nfs41sys_reparse.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\sys\nfs41sys_symlink.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -85,6 +88,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\daemon\nfs_ea.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\win_reparse.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

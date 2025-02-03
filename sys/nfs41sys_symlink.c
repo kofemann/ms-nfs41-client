@@ -68,6 +68,8 @@
 #include "nfs41sys_driver.h"
 #include "nfs41sys_util.h"
 
+#include "win_reparse.h"
+
 
 NTSTATUS marshal_nfs41_symlink(
     nfs41_updowncall_entry *entry,
@@ -248,7 +250,7 @@ out:
     return status;
 }
 
-NTSTATUS nfs41_SetReparsePoint(
+NTSTATUS nfs41_SetSymlinkReparsePoint(
     IN OUT PRX_CONTEXT RxContext)
 {
     NTSTATUS status;
@@ -268,8 +270,14 @@ NTSTATUS nfs41_SetReparsePoint(
     print_debug_header(RxContext);
     print_reparse_buffer(Reparse);
 #endif
+
+    DbgP("nfs41_SetSymlinkReparsePoint: ReparseTag: '%s'/0x%04lx\n",
+        reparsetag2string(Reparse->ReparseTag),
+        (long)Reparse->ReparseTag);
+
     status = check_nfs41_setreparse_args(RxContext);
     if (status) goto out;
+
 
     TargetName.MaximumLength = TargetName.Length =
         Reparse->SymbolicLinkReparseBuffer.PrintNameLength;
@@ -337,7 +345,7 @@ out:
     return status;
 }
 
-NTSTATUS nfs41_GetReparsePoint(
+NTSTATUS nfs41_GetSymlinkReparsePoint(
     IN OUT PRX_CONTEXT RxContext)
 {
     NTSTATUS status;

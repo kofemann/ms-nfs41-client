@@ -774,6 +774,12 @@ NTSTATUS marshal_nfs41_symlink(
 void unmarshal_nfs41_symlink(
     nfs41_updowncall_entry *cur,
     unsigned char **buf);
+NTSTATUS nfs41_SetSymlinkReparsePoint(
+    IN OUT PRX_CONTEXT RxContext);
+NTSTATUS nfs41_GetSymlinkReparsePoint(
+    IN OUT PRX_CONTEXT RxContext);
+
+/* nfs41sys_reparse.c */
 NTSTATUS nfs41_SetReparsePoint(
     IN OUT PRX_CONTEXT RxContext);
 NTSTATUS nfs41_GetReparsePoint(
