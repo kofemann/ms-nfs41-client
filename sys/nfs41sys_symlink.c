@@ -189,7 +189,7 @@ static void print_reparse_buffer(
 }
 
 static
-NTSTATUS check_nfs41_setreparse_args(
+NTSTATUS check_nfs41_setsymlinkreparse_args(
     IN PRX_CONTEXT RxContext)
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -214,36 +214,50 @@ NTSTATUS check_nfs41_setreparse_args(
      * or it's trying to operate on the volume itself */
     if (is_root_directory(RxContext)) {
         status = STATUS_INVALID_PARAMETER;
+        DbgP("check_nfs41_setsymlinkreparse_args: "
+            "is_root_directory() == TRUE\n");
         goto out;
     }
+
     if (FsCtl->pOutputBuffer != NULL) {
         status = STATUS_INVALID_PARAMETER;
+        DbgP("check_nfs41_setsymlinkreparse_args: "
+            "FsCtl->pOutputBuffer == NULL\n");
         goto out;
     }
 
     /* validate input buffer and length */
     if (!Reparse) {
         status = STATUS_INVALID_BUFFER_SIZE;
+        DbgP("check_nfs41_setsymlinkreparse_args: Reparse == NULL\n");
         goto out;
     }
 
     if (FsCtl->InputBufferLength < HeaderLen ||
             FsCtl->InputBufferLength > MAXIMUM_REPARSE_DATA_BUFFER_SIZE) {
+        DbgP("check_nfs41_setsymlinkreparse_args: "
+            "InputBufferLength too small/large\n");
         status = STATUS_IO_REPARSE_DATA_INVALID;
         goto out;
     }
     if (FsCtl->InputBufferLength != HeaderLen + Reparse->ReparseDataLength) {
         status = STATUS_IO_REPARSE_DATA_INVALID;
+        DbgP("check_nfs41_setsymlinkreparse_args: "
+            "InputBufferLength != HeaderLen + ReparseDataLength\n");
         goto out;
     }
 
     /* validate reparse tag */
     if (!IsReparseTagValid(Reparse->ReparseTag)) {
         status = STATUS_IO_REPARSE_TAG_INVALID;
+        DbgP("check_nfs41_setsymlinkreparse_args: "
+            "IsReparseTagValid() failed\n");
         goto out;
     }
     if (Reparse->ReparseTag != IO_REPARSE_TAG_SYMLINK) {
         status = STATUS_IO_REPARSE_TAG_MISMATCH;
+        DbgP("check_nfs41_setsymlinkreparse_args: "
+            "Reparse->ReparseTag != IO_REPARSE_TAG_SYMLINK\n");
         goto out;
     }
 out:
@@ -275,9 +289,14 @@ NTSTATUS nfs41_SetSymlinkReparsePoint(
         reparsetag2string(Reparse->ReparseTag),
         (long)Reparse->ReparseTag);
 
-    status = check_nfs41_setreparse_args(RxContext);
-    if (status) goto out;
-
+    status = check_nfs41_setsymlinkreparse_args(RxContext);
+    if (status) {
+        DbgP("nfs41_SetSymlinkReparsePoint: "
+            "check_nfs41_setsymlinkreparse_args() failed, "
+            "status=0xlx\n",
+                (long)status);
+        goto out;
+    }
 
     TargetName.MaximumLength = TargetName.Length =
         Reparse->SymbolicLinkReparseBuffer.PrintNameLength;
@@ -305,7 +324,7 @@ out:
 }
 
 static
-NTSTATUS check_nfs41_getreparse_args(
+NTSTATUS check_nfs41_getsymlinkreparse_args(
     PRX_CONTEXT RxContext)
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -317,6 +336,8 @@ NTSTATUS check_nfs41_getreparse_args(
      * or it's trying to operate on the volume itself */
     if (is_root_directory(RxContext)) {
         status = STATUS_INVALID_PARAMETER;
+        DbgP("check_nfs41_getsymlinkreparse_args: "
+            "is_root_directory() == TRUE\n");
         goto out;
     }
     /* ifs reparse tests expect STATUS_INVALID_PARAMETER,
@@ -327,6 +348,8 @@ NTSTATUS check_nfs41_getreparse_args(
     } */
     if (!FsCtl->pOutputBuffer) {
         status = STATUS_INVALID_USER_BUFFER;
+        DbgP("check_nfs41_getsymlinkreparse_args: "
+            "FsCtl->pOutputBuffer == NULL\n");
         goto out;
     }
     if (!BooleanFlagOn(RxContext->pFcb->Attributes,
@@ -339,6 +362,8 @@ NTSTATUS check_nfs41_getreparse_args(
     if (FsCtl->OutputBufferLength < HeaderLen) {
         RxContext->InformationToReturn = HeaderLen;
         status = STATUS_BUFFER_TOO_SMALL;
+        DbgP("check_nfs41_getsymlinkreparse_args: "
+            "FsCtl->OutputBufferLength < HeaderLen\n");
         goto out;
     }
 out:
@@ -364,8 +389,14 @@ NTSTATUS nfs41_GetSymlinkReparsePoint(
 #ifdef DEBUG_SYMLINK
     DbgEn();
 #endif
-    status = check_nfs41_getreparse_args(RxContext);
-    if (status) goto out;
+    status = check_nfs41_getsymlinkreparse_args(RxContext);
+    if (status) {
+        DbgP("nfs41_GetSymlinkReparsePoint: "
+            "check_nfs41_getsymlinkreparse_args() failed, "
+            "status=0xlx\n",
+                (long)status);
+        goto out;
+    }
 
     TargetName.Buffer = (PWCH)((PBYTE)FsCtl->pOutputBuffer + HeaderLen);
     TargetName.MaximumLength = (USHORT)min(FsCtl->OutputBufferLength -
