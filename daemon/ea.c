@@ -52,7 +52,8 @@ static int set_ea_value(
 
     /* don't allow values larger than NFS4_EASIZE */
     if (ea->EaValueLength > NFS4_EASIZE) {
-        eprintf("trying to write extended attribute value of size %d, "
+        eprintf("set_ea_value: "
+            "trying to write extended attribute value of size %d, "
             "max allowed %d\n", ea->EaValueLength, NFS4_EASIZE);
         status = NFS4ERR_FBIG;
         goto out;
@@ -83,7 +84,11 @@ static int set_ea_value(
         OPEN4_SHARE_DENY_BOTH, OPEN4_CREATE, UNCHECKED4,
         &createattrs, TRUE, &stateid.stateid, &delegation, NULL);
     if (status) {
-        eprintf("nfs41_open() failed with '%s'\n", nfs_error_string(status));
+        eprintf("set_ea_value: "
+            "nfs41_open(ea_name='%.*s') failed with '%s'\n",
+            (int)ea->EaNameLength,
+            ea->EaName,
+            nfs_error_string(status));
         goto out;
     }
 
@@ -92,7 +97,11 @@ static int set_ea_value(
         ea->EaValueLength, 0, FILE_SYNC4, &bytes_written,
         &verf, NULL);
     if (status) {
-        eprintf("nfs41_write() failed with '%s'\n", nfs_error_string(status));
+        eprintf("set_ea_value: "
+            "nfs41_write(ea_name='%.*s') failed with '%s'\n",
+            (int)ea->EaNameLength,
+            ea->EaName,
+            nfs_error_string(status));
         goto out_close;
     }
 
@@ -125,7 +134,8 @@ int nfs41_ea_set(
 
     status = nfs41_rpc_openattr(state->session, &state->file, TRUE, &attrdir.fh);
     if (status) {
-        eprintf("nfs41_rpc_openattr() failed with error '%s'\n",
+        eprintf("nfs41_ea_set: "
+            "nfs41_rpc_openattr() failed with error '%s'\n",
             nfs_error_string(status));
         goto out;
     }
@@ -447,7 +457,11 @@ static int get_ea_value(
         OPEN4_SHARE_DENY_WRITE, OPEN4_NOCREATE, UNCHECKED4, NULL, TRUE,
         &stateid.stateid, &delegation, &info);
     if (status) {
-        eprintf("nfs41_open() failed with '%s'\n", nfs_error_string(status));
+        eprintf("get_ea_value: "
+            "nfs41_open(ea_name='%.*s') failed with '%s'\n",
+            (int)ea->EaNameLength,
+            ea->EaName,
+            nfs_error_string(status));
         if (status == NFS4ERR_NOENT)
             goto out_empty;
         goto out;
@@ -455,7 +469,8 @@ static int get_ea_value(
 
     if (info.size > NFS4_EASIZE) {
         status = NFS4ERR_FBIG;
-        eprintf("EA value for '%s' longer than maximum %u "
+        eprintf("get_ea_value: "
+            "EA value for '%s' longer than maximum %u "
             "(%llu bytes), returning %s\n", ea->EaName, NFS4_EASIZE,
             info.size, nfs_error_string(status));
         goto out_close;
@@ -476,7 +491,8 @@ static int get_ea_value(
     status = nfs41_read(session, &file, &stateid,
         0, length - diff, buffer, &bytes_read, &eof);
     if (status) {
-        eprintf("nfs41_read() failed with '%s'\n", nfs_error_string(status));
+        eprintf("get_ea_value: nfs41_read() failed with '%s'\n",
+            nfs_error_string(status));
         goto out_close;
     }
     if (!eof) {
@@ -551,7 +567,8 @@ static int handle_getexattr(void *daemon_context, nfs41_upcall *upcall)
             goto out;
         }
     } else if (status) {
-        eprintf("nfs41_rpc_openattr() failed with '%s'\n",
+        eprintf("handle_getexattr: "
+            "nfs41_rpc_openattr() failed with '%s'\n",
             nfs_error_string(status));
         status = nfs_to_windows_error(status, ERROR_EAS_NOT_SUPPORTED);
         goto out;
