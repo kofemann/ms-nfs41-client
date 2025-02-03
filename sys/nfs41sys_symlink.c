@@ -219,13 +219,6 @@ NTSTATUS check_nfs41_setsymlinkreparse_args(
         goto out;
     }
 
-    if (FsCtl->pOutputBuffer != NULL) {
-        status = STATUS_INVALID_PARAMETER;
-        DbgP("check_nfs41_setsymlinkreparse_args: "
-            "FsCtl->pOutputBuffer == NULL\n");
-        goto out;
-    }
-
     /* validate input buffer and length */
     if (!Reparse) {
         status = STATUS_INVALID_BUFFER_SIZE;

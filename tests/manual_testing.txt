@@ -159,6 +159,26 @@ ksh93 -c 'builtin id ; rm -f x ; touch x ; chown "$(id -u -n):$(id -g -n)" x && 
 ksh93 -c 'builtin id ; rm -f x ; touch x ; chgrp "$(id -g -n)" x && print OK'
 ---- snip ----
 
+#
+# Test for native mklink  && powershell New-Item -ItemType SymbolicLink
+#
+# Notes:
+# - powershell might require admin rights depending on Windows
+# registry settings)
+#
+
+# 1. cmd.exe mklink dir
+mkdir mydir1
+cmd /C 'mklink /D symLinkmydir1 mydir1'
+# 2. cmd.exe mklink file
+touch myfile1
+cmd /C 'mklink symLinkmyfile myfile1'
+# 3. powershell mklink dir
+mkdir mypsdir1
+powershell -Command 'New-Item -Path sym_mypsdir1 -ItemType SymbolicLink -Value mypsdir1'
+# 4. powershell mklink file
+mkdir mypsfile1
+powershell -Command 'New-Item -Path sym_mypsfile1 -ItemType SymbolicLink -Value mypsfile1'
 
 #
 # Tests for groups
