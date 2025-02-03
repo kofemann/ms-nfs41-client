@@ -1377,10 +1377,41 @@ void debug_print_ea(PFILE_FULL_EA_INFORMATION ea)
         const char *ea_name = print_ea->EaName;
         size_t ea_name_len = print_ea->EaNameLength;
 
-        dprintf_out("EA name='%.*s', value_len=%d\n",
-            (int)print_ea->EaNameLength,
-            print_ea->EaName,
-            (int)print_ea->EaValueLength);
+#ifdef NFS41_DRIVER_WSL_SUPPORT
+        /*
+         * WSL EAs: See
+         * https://learn.microsoft.com/en-us/windows/wsl/file-permissions
+         * for a description
+         */
+        if (!strncmp(ea_name, "$LXUID", ea_name_len)) {
+            dprintf_out("EA name='%.*s', value_len=%d type=WSL_UID uid=%ld\n",
+                (int)print_ea->EaNameLength,
+                print_ea->EaName,
+                (int)print_ea->EaValueLength,
+                (long)(*((DWORD *)EA_VALUE(ea))));
+        }
+        else if (!strncmp(ea_name, "$LXGID", ea_name_len)) {
+            dprintf_out("EA name='%.*s', value_len=%d type=WSL_GID gid=%ld\n",
+                (int)print_ea->EaNameLength,
+                print_ea->EaName,
+                (int)print_ea->EaValueLength,
+                (long)(*((DWORD *)EA_VALUE(ea))));
+        }
+        else if (!strncmp(ea_name, "$LXMOD", ea_name_len)) {
+            dprintf_out("EA name='%.*s', value_len=%d type=WSL_MODE mode=0%lo\n",
+                (int)print_ea->EaNameLength,
+                print_ea->EaName,
+                (int)print_ea->EaValueLength,
+                (long)(*((DWORD *)EA_VALUE(ea))));
+        }
+        else
+#endif /* NFS41_DRIVER_WSL_SUPPORT */
+        {
+            dprintf_out("EA name='%.*s', value_len=%d\n",
+                (int)print_ea->EaNameLength,
+                print_ea->EaName,
+                (int)print_ea->EaValueLength);
+        }
 
         if (print_ea->NextEntryOffset == 0)
             break;
