@@ -1072,6 +1072,13 @@ create_chgrp_out:
         }
 
         /* set extended attributes on file creation */
+        if (DPRINTF_LEVEL_ENABLED(1)) {
+            if (args->ea)
+                debug_print_ea(args->ea);
+            else
+                DPRINTF(1, ("handle_open: No EA\n"));
+        }
+
         if (args->ea && create_with_ea(args->disposition, lookup_status)) {
             status = nfs41_ea_set(state, args->ea);
             status = nfs_to_windows_error(status, ERROR_FILE_NOT_FOUND);

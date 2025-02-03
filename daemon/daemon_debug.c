@@ -1360,3 +1360,34 @@ void debug_delayed_free(void *in_ptr)
     debug_delay_free_data.free_ptrs[i] = in_ptr;
     ReleaseSRWLockExclusive(&debug_delay_free_data.lock);
 }
+
+void debug_print_ea(PFILE_FULL_EA_INFORMATION ea)
+{
+    PFILE_FULL_EA_INFORMATION print_ea = ea;
+
+    dprintf_out("--> debug_print_ea(ea=0x%p)\n", ea);
+    if (ea == NULL)
+        goto out;
+
+#define EA_NEXT_ENTRY(ea) ((PBYTE)(ea) + (ea)->NextEntryOffset)
+#define EA_VALUE(ea) \
+    ((void *)((unsigned char*)(ea)->EaName + (ea)->EaNameLength + 1))
+
+    while (1) {
+        const char *ea_name = print_ea->EaName;
+        size_t ea_name_len = print_ea->EaNameLength;
+
+        dprintf_out("EA name='%.*s', value_len=%d\n",
+            (int)print_ea->EaNameLength,
+            print_ea->EaName,
+            (int)print_ea->EaValueLength);
+
+        if (print_ea->NextEntryOffset == 0)
+            break;
+        print_ea = (PFILE_FULL_EA_INFORMATION)EA_NEXT_ENTRY(print_ea);
+    }
+
+out:
+    dprintf_out("<-- debug_print_ea()\n");
+
+}
