@@ -1009,9 +1009,36 @@ NTSTATUS nfs41_AreFilesAliased(
     PFCB a,
     PFCB b)
 {
-    DbgP("nfs41_AreFilesAliased: a=0x%p b=0x%p\n",
-        (void *)a, (void *)b);
-    return STATUS_NOT_IMPLEMENTED;
+    __notnull PNFS41_FCB nfs41_fcb_a = (PNFS41_FCB)a;
+    __notnull PNFS41_FCB nfs41_fcb_b = (PNFS41_FCB)b;
+
+    if ((nfs41_fcb_a->fileid == nfs41_fcb_b->fileid) &&
+        (nfs41_fcb_a->fsid_major == nfs41_fcb_b->fsid_major) &&
+        (nfs41_fcb_a->fsid_minor == nfs41_fcb_b->fsid_minor)) {
+
+        DbgP("nfs41_AreFilesAliased: "
+            "a=0x%p b=0x%p aliases, fileid=0x%llx "
+            "fsid_major=0x%llx fsid_minor=0x%llx\n",
+            (void *)a, (void *)b,
+            (long long)nfs41_fcb_a->fileid,
+            (long long)nfs41_fcb_a->fsid_major,
+            (long long)nfs41_fcb_a->fsid_minor);
+        return STATUS_MORE_PROCESSING_REQUIRED;
+    }
+    else {
+        DbgP("nfs41_AreFilesAliased: "
+            "a=0x%p b=0x%p NOT aliases, "
+            "a=(fileid=0x%llx fsid_major=0x%llx fsid_minor=0x%llx) "
+            "b=(fileid=0x%llx fsid_major=0x%llx fsid_minor=0x%llx)\n",
+            (void *)a, (void *)b,
+            (long long)nfs41_fcb_a->fileid,
+            (long long)nfs41_fcb_a->fsid_major,
+            (long long)nfs41_fcb_a->fsid_minor,
+            (long long)nfs41_fcb_b->fileid,
+            (long long)nfs41_fcb_b->fsid_major,
+            (long long)nfs41_fcb_b->fsid_minor);
+        return STATUS_SUCCESS;
+    }
 }
 
 static
