@@ -114,6 +114,8 @@
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <StringPooling>true</StringPooling>
       <AdditionalOptions>/std:c17 /Zc:preprocessor- /kernel /wd4100 /wd4201 /wd5104</AdditionalOptions>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
     </ClCompile>
     <Link>
       <AdditionalDependencies>$(DDK_LIB_PATH)\ntoskrnl.lib;$(DDK_LIB_PATH)\hal.lib;$(DDK_LIB_PATH)\BufferOverflowfastfailK.lib;$(DDK_LIB_PATH)\ksecdd.lib;$(DDK_LIB_PATH)\rxce.lib;$(DDK_LIB_PATH)\rdbsslib.lib</AdditionalDependencies>
@@ -128,9 +130,12 @@
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <StringPooling>true</StringPooling>
       <AdditionalOptions>/std:c17 /Zc:preprocessor- /kernel /wd4100 /wd4201 /wd5104</AdditionalOptions>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
     </ClCompile>
     <Link>
       <AdditionalDependencies>$(DDK_LIB_PATH)\ntoskrnl.lib;$(DDK_LIB_PATH)\hal.lib;$(DDK_LIB_PATH)\BufferOverflowfastfailK.lib;$(DDK_LIB_PATH)\ksecdd.lib;$(DDK_LIB_PATH)\rxce.lib;$(DDK_LIB_PATH)\rdbsslib.lib</AdditionalDependencies>
+      <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -142,6 +147,8 @@
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <StringPooling>true</StringPooling>
       <AdditionalOptions>/std:c17 /Zc:preprocessor- /kernel /wd4100 /wd4201 /wd5104</AdditionalOptions>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
     </ClCompile>
     <Link>
       <AdditionalDependencies>$(DDK_LIB_PATH)\ntoskrnl.lib;$(DDK_LIB_PATH)\hal.lib;$(DDK_LIB_PATH)\BufferOverflowfastfailK.lib;$(DDK_LIB_PATH)\ksecdd.lib;$(DDK_LIB_PATH)\rxce.lib;$(DDK_LIB_PATH)\rdbsslib.lib</AdditionalDependencies>
@@ -159,9 +166,12 @@
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <StringPooling>true</StringPooling>
       <AdditionalOptions>/std:c17 /Zc:preprocessor- /kernel /wd4100 /wd4201 /wd5104</AdditionalOptions>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
     </ClCompile>
     <Link>
       <AdditionalDependencies>$(DDK_LIB_PATH)\ntoskrnl.lib;$(DDK_LIB_PATH)\hal.lib;$(DDK_LIB_PATH)\BufferOverflowfastfailK.lib;$(DDK_LIB_PATH)\ksecdd.lib;$(DDK_LIB_PATH)\rxce.lib;$(DDK_LIB_PATH)\rdbsslib.lib</AdditionalDependencies>
+      <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
     </Link>
     <DriverSign>
       <FileDigestAlgorithm>sha256</FileDigestAlgorithm>
@@ -176,6 +186,8 @@
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <StringPooling>true</StringPooling>
       <AdditionalOptions>/std:c17 /Zc:preprocessor- /kernel /wd4100 /wd4201 /wd5104</AdditionalOptions>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
     </ClCompile>
     <Link>
       <AdditionalDependencies>$(DDK_LIB_PATH)\ntoskrnl.lib;$(DDK_LIB_PATH)\hal.lib;$(DDK_LIB_PATH)\BufferOverflowfastfailK.lib;$(DDK_LIB_PATH)\ksecdd.lib;$(DDK_LIB_PATH)\rxce.lib;$(DDK_LIB_PATH)\rdbsslib.lib</AdditionalDependencies>
@@ -193,9 +205,12 @@
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <StringPooling>true</StringPooling>
       <AdditionalOptions>/std:c17 /Zc:preprocessor- /kernel /wd4100 /wd4201 /wd5104</AdditionalOptions>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
     </ClCompile>
     <Link>
       <AdditionalDependencies>$(DDK_LIB_PATH)\ntoskrnl.lib;$(DDK_LIB_PATH)\hal.lib;$(DDK_LIB_PATH)\BufferOverflowfastfailK.lib;$(DDK_LIB_PATH)\ksecdd.lib;$(DDK_LIB_PATH)\rxce.lib;$(DDK_LIB_PATH)\rdbsslib.lib</AdditionalDependencies>
+      <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
     </Link>
     <DriverSign>
       <FileDigestAlgorithm>sha256</FileDigestAlgorithm>
