@@ -58,6 +58,7 @@
 #include <winerror.h>
 
 #include <Ntstrsafe.h>
+#include <stdbool.h>
 
 #include "nfs41sys_buildconfig.h"
 
@@ -248,7 +249,8 @@ NTSTATUS nfs41_SetSymlinkReparsePoint(
         NFS41GetVNetRootExtension(SrvOpen->pVNetRoot);
     __notnull PNFS41_NETROOT_EXTENSION pNetRootContext =
         NFS41GetNetRootExtension(SrvOpen->pVNetRoot->pNetRoot);
-    nfs41_updowncall_entry *entry;
+    nfs41_updowncall_entry *entry = NULL;
+    PWSTR prefixed_targetname = NULL;
 
 #ifdef DEBUG_SYMLINK
     DbgEn();
@@ -269,10 +271,110 @@ NTSTATUS nfs41_SetSymlinkReparsePoint(
         goto out;
     }
 
+    if (Reparse->ReparseTag != IO_REPARSE_TAG_SYMLINK) {
+        status = IO_REPARSE_TAG_SYMLINK;
+        DbgP("nfs41_SetSymlinkReparsePoint: "
+            "Reparse->ReparseTag != IO_REPARSE_TAG_SYMLINK\n");
+        goto out;
+    }
+
     TargetName.MaximumLength = TargetName.Length =
-        Reparse->SymbolicLinkReparseBuffer.PrintNameLength;
+        Reparse->SymbolicLinkReparseBuffer.SubstituteNameLength;
     TargetName.Buffer = &Reparse->SymbolicLinkReparseBuffer.PathBuffer[
-        Reparse->SymbolicLinkReparseBuffer.PrintNameOffset/sizeof(WCHAR)];
+        Reparse->SymbolicLinkReparseBuffer.SubstituteNameOffset/sizeof(WCHAR)];
+
+    if (TargetName.Buffer[0] == L'.') {
+        DbgP("nfs41_SetSymlinkReparsePoint: "
+            "relative path TargetName='%wZ'\n",
+            &TargetName);
+    }
+    else {
+        DbgP("nfs41_SetSymlinkReparsePoint: "
+            "absolute path TargetName='%wZ'\n",
+            &TargetName);
+
+        /* Strip "\\??\\" prefix */
+        if (!memcmp(&TargetName.Buffer[0], L"\\??\\",
+            (4*sizeof(wchar_t)))) {
+            TargetName.Buffer += 4;
+            TargetName.MaximumLength = TargetName.Length =
+                TargetName.Length-(4*sizeof(wchar_t));
+        }
+
+        /* UNC path ? */
+        if (!memcmp(&TargetName.Buffer[0], L"UNC\\",
+            (4*sizeof(wchar_t)))) {
+
+            /*
+             * Turn "UNC\" into "\\"
+             * (userland daemon will convert the backslashes in UNC
+             * path to slashes)
+             */
+            TargetName.Buffer += 2;
+            TargetName.MaximumLength = TargetName.Length =
+                TargetName.Length-(2*sizeof(wchar_t));
+            TargetName.Buffer[0] = L'\\';
+
+            DbgP("nfs41_SetSymlinkReparsePoint: "
+                "UNC TargetName='%wZ'\n",
+                &TargetName);
+        }
+        else {
+            wchar_t devletter;
+
+            DbgP("nfs41_SetSymlinkReparsePoint: "
+                "DEVLETTER TargetName='%wZ'\n",
+                &TargetName);
+
+            if ((TargetName.Buffer[1] != L':') ||
+                (TargetName.Buffer[2] != L'\\')) {
+                status = STATUS_INVALID_PARAMETER;
+                DbgP("nfs41_SetSymlinkReparsePoint: "
+                    "DEVLETTER path '%wZ' should start with 'L:\\'\n",
+                    &TargetName);
+                goto out;
+            }
+
+            /* Get devletter and skip "L:\" "*/
+            devletter = towlower(TargetName.Buffer[0]);
+            TargetName.Buffer += 3;
+            TargetName.MaximumLength = TargetName.Length =
+                TargetName.Length-(3*sizeof(wchar_t));
+
+            DbgP("nfs41_SetSymlinkReparsePoint: "
+                "deviceletter='%C' path='%wZ'\n",
+                devletter,
+                &TargetName);
+
+            size_t prefixed_targetname_len = 4096*sizeof(wchar_t);
+
+            prefixed_targetname = RxAllocatePoolWithTag(NonPagedPoolNx,
+                prefixed_targetname_len, NFS41_MM_POOLTAG);
+            if (prefixed_targetname == NULL) {
+                status = STATUS_INSUFFICIENT_RESOURCES;
+                goto out;
+            }
+
+            /*
+             * Stuff Cygwin /cygdrive/<deviceletter>/ prefix in front
+             * of path, userland daemon will convert the backslashes
+             * to slashes
+             */
+            (void)_snwprintf(prefixed_targetname,
+                prefixed_targetname_len, L"\\cygdrive\\%C\\%wZ",
+                devletter,
+                &TargetName);
+
+            /* Put new buffer into target name */
+            TargetName.MaximumLength = TargetName.Length =
+                (USHORT)(wcslen(prefixed_targetname)*sizeof(wchar_t));
+            TargetName.Buffer = prefixed_targetname;
+
+            DbgP("nfs41_SetSymlinkReparsePoint: "
+                "new TargetName='%wZ'\n",
+                &TargetName);
+        }
+    }
 
     status = nfs41_UpcallCreate(NFS41_SYSOP_SYMLINK_SET, &Fobx->sec_ctx,
         VNetRootContext->session, Fobx->nfs41_open_state,
@@ -285,8 +387,12 @@ NTSTATUS nfs41_SetSymlinkReparsePoint(
     if (status) goto out;
 
     status = map_symlink_errors(entry->status);
-    nfs41_UpcallDestroy(entry);
 out:
+    if (entry)
+        nfs41_UpcallDestroy(entry);
+    if (prefixed_targetname)
+        RxFreePool(prefixed_targetname);
+
 #ifdef DEBUG_SYMLINK
     DbgEx();
 #endif
@@ -340,6 +446,75 @@ out:
     return status;
 }
 
+static
+bool is_us_relative_path(UNICODE_STRING *restrict us)
+{
+    /* Match exactly "." (single dot) */
+    if ((us->Length == (1*sizeof(wchar_t))) &&
+        (us->Buffer[0] == L'.'))
+        return true;
+
+    /* Match exactly ".." (double dot) */
+    if ((us->Length == (2*sizeof(wchar_t)) &&
+        (!memcmp(&us->Buffer[0], L"..", (2*sizeof(wchar_t))))))
+        return true;
+
+    /* Match "..\..." */
+    if ((us->Length >= (3*sizeof(wchar_t))) &&
+        (!memcmp(&us->Buffer[0], L"..\\", (3*sizeof(wchar_t)))))
+        return true;
+
+    /* Match ".\..." */
+    if ((us->Length >= (2*sizeof(wchar_t))) &&
+        (!memcmp(&us->Buffer[0], L".\\", (2*sizeof(wchar_t)))))
+        return true;
+
+    /* Reject any absolute paths or similar stuff */
+    if ((us->Length >= (1*sizeof(wchar_t)) &&
+        (
+            (us->Buffer[0] == L'\\') ||
+            (us->Buffer[0] == L'/')
+        ))) {
+        return false;
+    }
+
+    /*
+     * Reject paths like L: (':' is an illegal filesystem name
+     * character, reserved for alternate data streams only)
+     */
+    if ((us->Length >= (2*sizeof(wchar_t)) &&
+        (us->Buffer[1] == L':'))) {
+        return false;
+    }
+
+    /*
+     * Handle the case of symlink foo --> bar (and foo -->bar/baz),
+     * e.g. symlinking one name to a file/dir in the same directory
+     */
+    return true;
+}
+
+static
+bool is_us_unc_path(UNICODE_STRING *restrict us)
+{
+    if (!memcmp(&us->Buffer[0], L"\\\\", (2*sizeof(wchar_t))))
+        return true;
+    return false;
+}
+
+static
+bool is_us_cygdrive_path(UNICODE_STRING *restrict us)
+{
+    /* Fixme: What about MSYS2 ? */
+
+    /* "/cygdrive/l" == 11 characters */
+    if ((us->Length >= (11*sizeof(wchar_t))) &&
+        (!memcmp(&us->Buffer[0],
+            L"\\cygdrive\\", (10*sizeof(wchar_t)))))
+        return true;
+    return false;
+}
+
 NTSTATUS nfs41_GetSymlinkReparsePoint(
     IN OUT PRX_CONTEXT RxContext)
 {
@@ -352,9 +527,8 @@ NTSTATUS nfs41_GetSymlinkReparsePoint(
         NFS41GetVNetRootExtension(SrvOpen->pVNetRoot);
     __notnull PNFS41_NETROOT_EXTENSION pNetRootContext =
         NFS41GetNetRootExtension(SrvOpen->pVNetRoot->pNetRoot);
-    nfs41_updowncall_entry *entry;
-    const USHORT HeaderLen = FIELD_OFFSET(REPARSE_DATA_BUFFER,
-        SymbolicLinkReparseBuffer.PathBuffer);
+    nfs41_updowncall_entry *entry = NULL;
+    PWSTR targetname_buffer = NULL;
 
 #ifdef DEBUG_SYMLINK
     DbgEn();
@@ -368,9 +542,16 @@ NTSTATUS nfs41_GetSymlinkReparsePoint(
         goto out;
     }
 
-    TargetName.Buffer = (PWCH)((PBYTE)FsCtl->pOutputBuffer + HeaderLen);
-    TargetName.MaximumLength = (USHORT)min(FsCtl->OutputBufferLength -
-        HeaderLen, 0xFFFF);
+    size_t targetname_buffer_len = 4096*sizeof(wchar_t);
+    targetname_buffer = RxAllocatePoolWithTag(NonPagedPoolNx,
+        targetname_buffer_len, NFS41_MM_POOLTAG);
+    if (targetname_buffer == NULL) {
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto out;
+    }
+
+    TargetName.Buffer = targetname_buffer;
+    TargetName.MaximumLength = (USHORT)targetname_buffer_len;
 
     status = nfs41_UpcallCreate(NFS41_SYSOP_SYMLINK_GET, &Fobx->sec_ctx,
         VNetRootContext->session, Fobx->nfs41_open_state,
@@ -387,27 +568,195 @@ NTSTATUS nfs41_GetSymlinkReparsePoint(
         /* fill in the output buffer */
         PREPARSE_DATA_BUFFER Reparse = (PREPARSE_DATA_BUFFER)
             FsCtl->pOutputBuffer;
-        Reparse->ReparseTag = IO_REPARSE_TAG_SYMLINK;
-        Reparse->ReparseDataLength = HeaderLen + TargetName.Length -
-            REPARSE_DATA_BUFFER_HEADER_SIZE;
-        Reparse->Reserved = 0;
-        Reparse->SymbolicLinkReparseBuffer.Flags = SYMLINK_FLAG_RELATIVE;
-        /* PrintName and SubstituteName point to the same string */
-        Reparse->SymbolicLinkReparseBuffer.SubstituteNameOffset = 0;
-        Reparse->SymbolicLinkReparseBuffer.SubstituteNameLength =
-            TargetName.Length;
-        Reparse->SymbolicLinkReparseBuffer.PrintNameOffset = 0;
-        Reparse->SymbolicLinkReparseBuffer.PrintNameLength = TargetName.Length;
-        print_reparse_buffer(Reparse);
 
-        RxContext->IoStatusBlock.Information =
-            (ULONG_PTR)HeaderLen + TargetName.Length;
+        DbgP("nfs41_GetSymlinkReparsePoint: "
+            "got TargetName='%wZ', len=%d\n",
+            &TargetName, (int)TargetName.Length);
+
+        /* POSIX slash to Win32 backslash */
+        size_t i;
+        for (i=0 ; i < TargetName.Length ; i++) {
+            if (TargetName.Buffer[i] == L'/')
+                TargetName.Buffer[i] = L'\\';
+        }
+
+        DbgP("nfs41_GetSymlinkReparsePoint: "
+            "TargetName='%wZ' with '/'-->'\\' conversion\n",
+            &TargetName);
+
+        if (is_us_cygdrive_path(&TargetName)) {
+            const USHORT HeaderLen = FIELD_OFFSET(REPARSE_DATA_BUFFER,
+                SymbolicLinkReparseBuffer.PathBuffer);
+
+            DbgP("nfs41_GetSymlinkReparsePoint: /cygdrive/ codepath\n");
+
+            wchar_t dosletter;
+            dosletter = towupper(TargetName.Buffer[10]);
+            TargetName.Buffer += 9;
+            TargetName.MaximumLength = TargetName.Length =
+                TargetName.Length-(9*sizeof(wchar_t));
+
+            /* If we only have "L:" turn this into "L:\" */
+            if (TargetName.Length == (2*sizeof(wchar_t))) {
+                TargetName.MaximumLength = TargetName.Length =
+                    TargetName.Length + (1*sizeof(wchar_t));
+            }
+
+            TargetName.Buffer[0] = dosletter;
+            TargetName.Buffer[1] = L':';
+            TargetName.Buffer[2] = L'\\';
+
+            DbgP("nfs41_GetSymlinkReparsePoint: new TargetName='%wZ'\n",
+                &TargetName);
+
+            /* Copy data into FsCtl buffer  */
+            PWCH outbuff = (PWCH)(((PBYTE)FsCtl->pOutputBuffer) + HeaderLen);
+            (void)memcpy(outbuff, TargetName.Buffer, TargetName.Length);
+            TargetName.Buffer = outbuff;
+
+            DbgP("nfs41_GetSymlinkReparsePoint: new TargetName='%wZ'\n",
+                &TargetName);
+
+            Reparse->ReparseTag = IO_REPARSE_TAG_SYMLINK;
+            Reparse->ReparseDataLength = HeaderLen + TargetName.Length -
+                REPARSE_DATA_BUFFER_HEADER_SIZE;
+            Reparse->Reserved = 0;
+            /* /cygwin/<devletter>/ are absolute paths */
+#define CYGWIN_WANTS_SYMLINKFLAGRELATIVE_FOR_ABS_PATHS 1 /* FIXME: Why ? */
+
+#ifdef CYGWIN_WANTS_SYMLINKFLAGRELATIVE_FOR_ABS_PATHS
+            Reparse->SymbolicLinkReparseBuffer.Flags = SYMLINK_FLAG_RELATIVE;
+#else
+            Reparse->SymbolicLinkReparseBuffer.Flags = 0;
+#endif
+
+            /* PrintName and SubstituteName point to the same string */
+            Reparse->SymbolicLinkReparseBuffer.SubstituteNameOffset = 0;
+            Reparse->SymbolicLinkReparseBuffer.SubstituteNameLength =
+                TargetName.Length;
+            Reparse->SymbolicLinkReparseBuffer.PrintNameOffset = 0;
+            Reparse->SymbolicLinkReparseBuffer.PrintNameLength =
+                TargetName.Length;
+
+            print_reparse_buffer(Reparse);
+
+            RxContext->IoStatusBlock.Information =
+                (ULONG_PTR)HeaderLen + TargetName.Length;
+        }
+        else if (is_us_unc_path(&TargetName)) {
+            /*
+             * FIXME: UNC paths should return
+             * |IO_REPARSE_TAG_MOUNT_POINT|, but Cygwin does not
+             * support |IO_REPARSE_TAG_MOUNT_POINT| for remote
+             * filesystems.
+             * Note that we if we switch this over to
+             * |IO_REPARSE_TAG_MOUNT_POINT| we also have to teach
+             * daemon/readdir.c&co that we have more than one type
+             * of reparse tag
+             */
+            const USHORT HeaderLen = FIELD_OFFSET(REPARSE_DATA_BUFFER,
+                SymbolicLinkReparseBuffer.PathBuffer);
+
+            DbgP("nfs41_GetSymlinkReparsePoint: UNC codepath\n");
+
+            /* Copy data into FsCtl buffer  */
+            PWCH outbuff = (PWCH)(((PBYTE)FsCtl->pOutputBuffer) + HeaderLen);
+            (void)memcpy(outbuff, TargetName.Buffer, TargetName.Length);
+            TargetName.Buffer = outbuff;
+
+
+            DbgP("nfs41_GetSymlinkReparsePoint: "
+                "new UNC TargetName='%wZ'\n",
+                &TargetName);
+
+            Reparse->ReparseTag = IO_REPARSE_TAG_SYMLINK;
+            Reparse->ReparseDataLength = HeaderLen + TargetName.Length -
+            REPARSE_DATA_BUFFER_HEADER_SIZE;
+            Reparse->Reserved = 0;
+            /* UNC paths are absolute paths */
+#ifdef CYGWIN_WANTS_SYMLINKFLAGRELATIVE_FOR_ABS_PATHS
+            Reparse->SymbolicLinkReparseBuffer.Flags = SYMLINK_FLAG_RELATIVE;
+#else
+            Reparse->SymbolicLinkReparseBuffer.Flags = 0;
+#endif
+
+            /* PrintName and SubstituteName point to the same string */
+            Reparse->SymbolicLinkReparseBuffer.SubstituteNameOffset = 0;
+            Reparse->SymbolicLinkReparseBuffer.SubstituteNameLength =
+                TargetName.Length;
+            Reparse->SymbolicLinkReparseBuffer.PrintNameOffset = 0;
+            Reparse->SymbolicLinkReparseBuffer.PrintNameLength =
+                TargetName.Length;
+
+            print_reparse_buffer(Reparse);
+
+            RxContext->IoStatusBlock.Information =
+                (ULONG_PTR)HeaderLen + TargetName.Length;
+        }
+        else if (is_us_relative_path(&TargetName)) {
+            const USHORT HeaderLen = FIELD_OFFSET(REPARSE_DATA_BUFFER,
+                SymbolicLinkReparseBuffer.PathBuffer);
+
+            DbgP("nfs41_GetSymlinkReparsePoint: relative symlink codepath\n");
+
+            /* Copy data into FsCtl buffer  */
+            (void)memcpy(((PBYTE)FsCtl->pOutputBuffer + HeaderLen),
+                TargetName.Buffer, TargetName.Length);
+            TargetName.Buffer =
+                (PWCH)((PBYTE)FsCtl->pOutputBuffer + HeaderLen);
+
+            DbgP("nfs41_GetSymlinkReparsePoint: "
+                "new relative TargetName='%wZ'\n",
+                &TargetName);
+
+            Reparse->ReparseTag = IO_REPARSE_TAG_SYMLINK;
+            Reparse->ReparseDataLength = HeaderLen + TargetName.Length -
+            REPARSE_DATA_BUFFER_HEADER_SIZE;
+            Reparse->Reserved = 0;
+            Reparse->SymbolicLinkReparseBuffer.Flags =
+                SYMLINK_FLAG_RELATIVE;
+            /* PrintName and SubstituteName point to the same string */
+            Reparse->SymbolicLinkReparseBuffer.SubstituteNameOffset = 0;
+            Reparse->SymbolicLinkReparseBuffer.SubstituteNameLength =
+                TargetName.Length;
+            Reparse->SymbolicLinkReparseBuffer.PrintNameOffset = 0;
+            Reparse->SymbolicLinkReparseBuffer.PrintNameLength =
+                TargetName.Length;
+
+            print_reparse_buffer(Reparse);
+
+            RxContext->IoStatusBlock.Information =
+                (ULONG_PTR)HeaderLen + TargetName.Length;
+        }
+        else {
+            status = STATUS_IO_REPARSE_DATA_INVALID;
+            DbgP("nfs41_GetSymlinkReparsePoint: "
+                "cannot parse symlink data TargetName='%wZ'\n",
+                &TargetName);
+        }
     } else if (status == STATUS_BUFFER_TOO_SMALL) {
+        const size_t sym_hdr_len =
+            FIELD_OFFSET(REPARSE_DATA_BUFFER,
+                MountPointReparseBuffer.PathBuffer);
+        const size_t mnt_hdr_len =
+            FIELD_OFFSET(REPARSE_DATA_BUFFER,
+                SymbolicLinkReparseBuffer.PathBuffer);
+        /*
+         * We don't know whether we have to return
+         * |IO_REPARSE_TAG_MOUNT_POINT| or |IO_REPARSE_TAG_SYMLINK|,
+         * so we return a size which can fit both
+         */
+#define MAX(a, b) (((a) > (b)) ? (a) : (b))
         RxContext->InformationToReturn =
-            (ULONG_PTR)HeaderLen + TargetName.Length;
+            MAX(sym_hdr_len, mnt_hdr_len) + TargetName.Length;
     }
-    nfs41_UpcallDestroy(entry);
+
 out:
+    if (entry)
+        nfs41_UpcallDestroy(entry);
+    if (targetname_buffer)
+        RxFreePool(targetname_buffer);
+
 #ifdef DEBUG_SYMLINK
     DbgEx();
 #endif
