@@ -142,6 +142,8 @@ NTSTATUS map_symlink_errors(
 {
     switch (status) {
     case NO_ERROR:                  return STATUS_SUCCESS;
+    case ERROR_FILE_NOT_FOUND:      return STATUS_OBJECT_NAME_NOT_FOUND;
+    case ERROR_PATH_NOT_FOUND:      return STATUS_OBJECT_PATH_NOT_FOUND;
     case ERROR_INVALID_REPARSE_DATA: return STATUS_IO_REPARSE_DATA_INVALID;
     case ERROR_NOT_A_REPARSE_POINT: return STATUS_NOT_A_REPARSE_POINT;
     case ERROR_ACCESS_DENIED:       return STATUS_ACCESS_DENIED;
