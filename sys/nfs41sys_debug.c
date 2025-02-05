@@ -1,5 +1,6 @@
 /* NFSv4.1 client for Windows
- * Copyright © 2012 The Regents of the University of Michigan
+ * Copyright (C) 2012 The Regents of the University of Michigan
+ * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -671,7 +672,8 @@ const char *opcode2string(int opcode)
     case NFS41_SYSOP_FILE_SET: return "NFS41_SYSOP_FILE_SET";
     case NFS41_SYSOP_EA_SET: return "NFS41_SYSOP_EA_SET";
     case NFS41_SYSOP_EA_GET: return "NFS41_SYSOP_EA_GET";
-    case NFS41_SYSOP_SYMLINK: return "NFS41_SYSOP_SYMLINK";
+    case NFS41_SYSOP_SYMLINK_GET: return "NFS41_SYSOP_SYMLINK_GET";
+    case NFS41_SYSOP_SYMLINK_SET: return "NFS41_SYSOP_SYMLINK_SET";
     case NFS41_SYSOP_VOLUME_QUERY: return "NFS41_SYSOP_VOLUME_QUERY";
     case NFS41_SYSOP_ACL_QUERY: return "NFS41_SYSOP_ACL_QUERY";
     case NFS41_SYSOP_ACL_SET: return "NFS41_SYSOP_ACL_SET";

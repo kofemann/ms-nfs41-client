@@ -1,5 +1,6 @@
 /* NFSv4.1 client for Windows
- * Copyright © 2012 The Regents of the University of Michigan
+ * Copyright (C) 2012 The Regents of the University of Michigan
+ * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -460,7 +461,8 @@ const char* opcode2string(nfs41_opcodes opcode)
         NFSOPCODE_TO_STRLITERAL(NFS41_SYSOP_FILE_SET)
         NFSOPCODE_TO_STRLITERAL(NFS41_SYSOP_EA_SET)
         NFSOPCODE_TO_STRLITERAL(NFS41_SYSOP_EA_GET)
-        NFSOPCODE_TO_STRLITERAL(NFS41_SYSOP_SYMLINK)
+        NFSOPCODE_TO_STRLITERAL(NFS41_SYSOP_SYMLINK_GET)
+        NFSOPCODE_TO_STRLITERAL(NFS41_SYSOP_SYMLINK_SET)
         NFSOPCODE_TO_STRLITERAL(NFS41_SYSOP_VOLUME_QUERY)
         NFSOPCODE_TO_STRLITERAL(NFS41_SYSOP_ACL_QUERY)
         NFSOPCODE_TO_STRLITERAL(NFS41_SYSOP_ACL_SET)

@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2023-2024 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -473,13 +473,12 @@ NTSTATUS QueryCygwinSymlink(
     TargetName.MaximumLength = (USHORT)min(RxContext->Info.LengthRemaining -
         HeaderLen, 0xFFFF);
 
-    status = nfs41_UpcallCreate(NFS41_SYSOP_SYMLINK, &Fobx->sec_ctx,
+    status = nfs41_UpcallCreate(NFS41_SYSOP_SYMLINK_GET, &Fobx->sec_ctx,
         VNetRootContext->session, Fobx->nfs41_open_state,
         NetRootContext->nfs41d_version, SrvOpen->pAlreadyPrefixedName, &entry);
     if (status) goto out;
 
     entry->u.Symlink.target = &TargetName;
-    entry->u.Symlink.set = FALSE;
 
     status = nfs41_UpcallWaitForReply(entry, VNetRootContext->timeout);
     if (status) goto out;

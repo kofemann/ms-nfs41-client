@@ -161,7 +161,6 @@ typedef struct __symlink_upcall_args {
     nfs41_abs_path target_get;
     char *target_set;
     const char *path;
-    BOOLEAN set;
 } symlink_upcall_args;
 
 typedef struct __volume_upcall_args {

@@ -1,8 +1,10 @@
 /* NFSv4.1 client for Windows
- * Copyright © 2012 The Regents of the University of Michigan
+ * Copyright (C) 2012 The Regents of the University of Michigan
+ * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
+ * Roland Mainz <roland.mainz@nrubsig.org>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -22,6 +24,7 @@
 #include <Windows.h>
 #include <strsafe.h>
 
+#include "nfs41_driver.h"
 #include "nfs41_ops.h"
 #include "upcall.h"
 #include "util.h"
@@ -186,7 +189,7 @@ out:
 }
 
 
-/* NFS41_SYSOP_SYMLINK */
+/* NFS41_SYSOP_SYMLINK_GET, NFS41_SYSOP_SYMLINK_SET */
 static int parse_symlink(unsigned char *buffer, uint32_t length, nfs41_upcall *upcall)
 {
     symlink_upcall_args *args = &upcall->args.symlink;
@@ -194,21 +197,34 @@ static int parse_symlink(unsigned char *buffer, uint32_t length, nfs41_upcall *u
 
     status = get_name(&buffer, &length, &args->path);
     if (status) goto out;
-    status = safe_read(&buffer, &length, &args->set, sizeof(BOOLEAN));
-    if (status) goto out;
 
-    if (args->set)
+    if (upcall->opcode == NFS41_SYSOP_SYMLINK_SET) {
         /*
          * args->target_set is not const because handle_symlink() might
          * have to replace '\\' with '/'
          */
         status = get_name(&buffer, &length,
             (const char **)(&args->target_set));
-    else
+
+        DPRINTF(1,
+            ("parsing NFS41_SYSOP_SYMLINK_SET: "
+            "path='%s' target='%s'\n",
+            args->path, args->target_set));
+    }
+    else if (upcall->opcode == NFS41_SYSOP_SYMLINK_GET) {
         args->target_set = NULL;
 
-    DPRINTF(1, ("parsing NFS41_SYSOP_SYMLINK: path='%s' set=%u target='%s'\n",
-        args->path, args->set, args->target_set));
+        DPRINTF(1,
+            ("parsing NFS41_SYSOP_SYMLINK_GET: "
+            "path='%s' target='%s'\n",
+            args->path, args->target_set));
+    }
+    else {
+        status = ERROR_INVALID_PARAMETER;
+        eprintf("parse_symlink: Unknown upcall->opcode=%d\n",
+            (int)upcall->opcode);
+    }
+
 out:
     return status;
 }
@@ -219,7 +235,7 @@ static int handle_symlink(void *daemon_context, nfs41_upcall *upcall)
     nfs41_open_state *state = upcall->state_ref;
     int status = NO_ERROR;
 
-    if (args->set) {
+    if (upcall->opcode == NFS41_SYSOP_SYMLINK_SET) {
         nfs41_file_info info, createattrs;
 
         /* don't send windows slashes to the server */
@@ -280,7 +296,7 @@ static int marshall_symlink(unsigned char *buffer, uint32_t *length, nfs41_upcal
     unsigned short len = (args->target_get.len + 1) * sizeof(WCHAR);
     int status = NO_ERROR;
 
-    if (args->set)
+    if (upcall->opcode == NFS41_SYSOP_SYMLINK_SET)
         goto out;
 
     status = safe_write(&buffer, length, &len, sizeof(len));
@@ -306,7 +322,14 @@ out:
 }
 
 
-const nfs41_upcall_op nfs41_op_symlink = {
+const nfs41_upcall_op nfs41_op_symlink_get = {
+    .parse = parse_symlink,
+    .handle = handle_symlink,
+    .marshall = marshall_symlink,
+    .arg_size = sizeof(symlink_upcall_args)
+};
+
+const nfs41_upcall_op nfs41_op_symlink_set = {
     .parse = parse_symlink,
     .handle = handle_symlink,
     .marshall = marshall_symlink,

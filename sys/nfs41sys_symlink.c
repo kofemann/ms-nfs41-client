@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2023-2024 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -85,8 +85,8 @@ NTSTATUS marshal_nfs41_symlink(
     if (status) goto out;
     else tmp += *len;
 
-    header_len = *len + sizeof(BOOLEAN) + length_as_utf8(entry->filename);
-    if (entry->u.Symlink.set)
+    header_len = *len + length_as_utf8(entry->filename);
+    if (entry->opcode == NFS41_SYSOP_SYMLINK_SET)
         header_len += length_as_utf8(entry->u.Symlink.target);
     if (header_len > buf_len) {
         status = STATUS_INSUFFICIENT_RESOURCES;
@@ -95,19 +95,25 @@ NTSTATUS marshal_nfs41_symlink(
 
     status = marshall_unicode_as_utf8(&tmp, entry->filename);
     if (status) goto out;
-    RtlCopyMemory(tmp, &entry->u.Symlink.set, sizeof(BOOLEAN));
-    tmp += sizeof(BOOLEAN);
-    if (entry->u.Symlink.set) {
+    if (entry->opcode == NFS41_SYSOP_SYMLINK_SET) {
         status = marshall_unicode_as_utf8(&tmp, entry->u.Symlink.target);
         if (status) goto out;
     }
     *len = header_len;
 
 #ifdef DEBUG_MARSHAL_DETAIL
-    DbgP("marshal_nfs41_symlink: name '%wZ' symlink target '%wZ'\n",
-         entry->filename,
-         entry->u.Symlink.set?entry->u.Symlink.target : NULL);
-#endif
+    if (entry->opcode == NFS41_SYSOP_SYMLINK_SET) {
+        DbgP("marshal_nfs41_symlink: "
+            "SET: name '%wZ' symlink target '%wZ'\n",
+            entry->filename,
+            entry->u.Symlink.target);
+    }
+    else {
+        DbgP("marshal_nfs41_symlink: "
+            "GET: name '%wZ'\n",
+            entry->filename);
+    }
+#endif /* DEBUG_MARSHAL_DETAIL */
 out:
     return status;
 }
@@ -116,7 +122,8 @@ void unmarshal_nfs41_symlink(
     nfs41_updowncall_entry *cur,
     unsigned char **buf)
 {
-    if (cur->u.Symlink.set) return;
+    if (cur->opcode == NFS41_SYSOP_SYMLINK_SET)
+        return;
 
     RtlCopyMemory(&cur->u.Symlink.target->Length, *buf, sizeof(USHORT));
     *buf += sizeof(USHORT);
@@ -296,13 +303,12 @@ NTSTATUS nfs41_SetSymlinkReparsePoint(
     TargetName.Buffer = &Reparse->SymbolicLinkReparseBuffer.PathBuffer[
         Reparse->SymbolicLinkReparseBuffer.PrintNameOffset/sizeof(WCHAR)];
 
-    status = nfs41_UpcallCreate(NFS41_SYSOP_SYMLINK, &Fobx->sec_ctx,
+    status = nfs41_UpcallCreate(NFS41_SYSOP_SYMLINK_SET, &Fobx->sec_ctx,
         VNetRootContext->session, Fobx->nfs41_open_state,
         pNetRootContext->nfs41d_version, SrvOpen->pAlreadyPrefixedName, &entry);
     if (status) goto out;
 
     entry->u.Symlink.target = &TargetName;
-    entry->u.Symlink.set = TRUE;
 
     status = nfs41_UpcallWaitForReply(entry, VNetRootContext->timeout);
     if (status) goto out;
@@ -395,13 +401,12 @@ NTSTATUS nfs41_GetSymlinkReparsePoint(
     TargetName.MaximumLength = (USHORT)min(FsCtl->OutputBufferLength -
         HeaderLen, 0xFFFF);
 
-    status = nfs41_UpcallCreate(NFS41_SYSOP_SYMLINK, &Fobx->sec_ctx,
+    status = nfs41_UpcallCreate(NFS41_SYSOP_SYMLINK_GET, &Fobx->sec_ctx,
         VNetRootContext->session, Fobx->nfs41_open_state,
         pNetRootContext->nfs41d_version, SrvOpen->pAlreadyPrefixedName, &entry);
     if (status) goto out;
 
     entry->u.Symlink.target = &TargetName;
-    entry->u.Symlink.set = FALSE;
 
     status = nfs41_UpcallWaitForReply(entry, VNetRootContext->timeout);
     if (status) goto out;

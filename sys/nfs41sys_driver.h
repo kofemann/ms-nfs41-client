@@ -261,7 +261,6 @@ typedef struct _updowncall_entry {
         } QueryEa;
         struct {
             PUNICODE_STRING target;
-            BOOLEAN set;
         } Symlink;
         struct {
             FS_INFORMATION_CLASS query;

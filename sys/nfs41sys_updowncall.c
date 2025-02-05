@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2023-2024 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -289,7 +289,8 @@ NTSTATUS handle_upcall(
     case NFS41_SYSOP_EA_GET:
         status = marshal_nfs41_eaget(entry, pbOut, cbOut, len);
         break;
-    case NFS41_SYSOP_SYMLINK:
+    case NFS41_SYSOP_SYMLINK_GET:
+    case NFS41_SYSOP_SYMLINK_SET:
         status = marshal_nfs41_symlink(entry, pbOut, cbOut, len);
         break;
     case NFS41_SYSOP_VOLUME_QUERY:
@@ -631,7 +632,8 @@ NTSTATUS nfs41_downcall(
         case NFS41_SYSOP_EA_GET:
             unmarshal_nfs41_eaget(cur, &buf);
             break;
-        case NFS41_SYSOP_SYMLINK:
+        case NFS41_SYSOP_SYMLINK_GET:
+        case NFS41_SYSOP_SYMLINK_SET:
             unmarshal_nfs41_symlink(cur, &buf);
             break;
         case NFS41_SYSOP_VOLUME_QUERY:

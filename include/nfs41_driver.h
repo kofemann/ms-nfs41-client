@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2023-2024 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -77,7 +77,8 @@ typedef enum _nfs41_opcodes {
     NFS41_SYSOP_FILE_SET,
     NFS41_SYSOP_EA_GET,
     NFS41_SYSOP_EA_SET,
-    NFS41_SYSOP_SYMLINK,
+    NFS41_SYSOP_SYMLINK_GET,
+    NFS41_SYSOP_SYMLINK_SET,
     NFS41_SYSOP_VOLUME_QUERY,
     NFS41_SYSOP_ACL_QUERY,
     NFS41_SYSOP_ACL_SET,

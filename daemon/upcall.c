@@ -1,5 +1,6 @@
 /* NFSv4.1 client for Windows
- * Copyright © 2012 The Regents of the University of Michigan
+ * Copyright (C) 2012 The Regents of the University of Michigan
+ * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -43,7 +44,8 @@ extern const nfs41_upcall_op nfs41_op_getattr;
 extern const nfs41_upcall_op nfs41_op_setattr;
 extern const nfs41_upcall_op nfs41_op_getexattr;
 extern const nfs41_upcall_op nfs41_op_setexattr;
-extern const nfs41_upcall_op nfs41_op_symlink;
+extern const nfs41_upcall_op nfs41_op_symlink_get;
+extern const nfs41_upcall_op nfs41_op_symlink_set;
 extern const nfs41_upcall_op nfs41_op_volume;
 extern const nfs41_upcall_op nfs41_op_getacl;
 extern const nfs41_upcall_op nfs41_op_setacl;
@@ -65,7 +67,8 @@ static const nfs41_upcall_op *g_upcall_op_table[] = {
     &nfs41_op_setattr,
     &nfs41_op_getexattr,
     &nfs41_op_setexattr,
-    &nfs41_op_symlink,
+    &nfs41_op_symlink_get,
+    &nfs41_op_symlink_set,
     &nfs41_op_volume,
     &nfs41_op_getacl,
     &nfs41_op_setacl,
