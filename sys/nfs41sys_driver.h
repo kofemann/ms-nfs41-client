@@ -777,6 +777,8 @@ NTSTATUS nfs41_SetSymlinkReparsePoint(
     IN OUT PRX_CONTEXT RxContext);
 NTSTATUS nfs41_GetSymlinkReparsePoint(
     IN OUT PRX_CONTEXT RxContext);
+void print_reparse_buffer(
+    PREPARSE_DATA_BUFFER r);
 
 /* nfs41sys_reparse.c */
 NTSTATUS nfs41_SetReparsePoint(

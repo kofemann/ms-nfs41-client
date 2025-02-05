@@ -115,3 +115,60 @@ NTSTATUS nfs41_GetReparsePoint(
     DbgEx();
     return status;
 }
+
+void print_reparse_buffer(
+    PREPARSE_DATA_BUFFER r)
+{
+    UNICODE_STRING name;
+    DbgP("ReparseTag: 0x%lx\n", (long)r->ReparseTag);
+    DbgP("ReparseDataLength: %u\n", (int)r->ReparseDataLength);
+    DbgP("Reserved: %u\n", (int)r->Reserved);
+    if (r->ReparseTag == IO_REPARSE_TAG_SYMLINK) {
+        DbgP("IO_REPARSE_TAG_SYMLINK:\n");
+        DbgP("SubstituteNameOffset: %u\n",
+            r->SymbolicLinkReparseBuffer.SubstituteNameOffset);
+        DbgP("SubstituteNameLength: %u\n",
+            r->SymbolicLinkReparseBuffer.SubstituteNameLength);
+        DbgP("PrintNameOffset: %u\n",
+            r->SymbolicLinkReparseBuffer.PrintNameOffset);
+        DbgP("PrintNameLength: %u\n",
+            r->SymbolicLinkReparseBuffer.PrintNameLength);
+        DbgP("Flags: 0x%lx\n",
+            (long)r->SymbolicLinkReparseBuffer.Flags);
+
+        name.Buffer = &r->SymbolicLinkReparseBuffer.PathBuffer[
+            r->SymbolicLinkReparseBuffer.SubstituteNameOffset/sizeof(WCHAR)];
+        name.MaximumLength = name.Length =
+            r->SymbolicLinkReparseBuffer.SubstituteNameLength;
+        DbgP("SubstituteName: '%wZ'\n", &name);
+
+        name.Buffer = &r->SymbolicLinkReparseBuffer.PathBuffer[
+            r->SymbolicLinkReparseBuffer.PrintNameOffset/sizeof(WCHAR)];
+        name.MaximumLength = name.Length =
+            r->SymbolicLinkReparseBuffer.PrintNameLength;
+            DbgP("PrintName: '%wZ'\n", &name);
+    }
+    else if (r->ReparseTag == IO_REPARSE_TAG_MOUNT_POINT) {
+        DbgP("IO_REPARSE_TAG_MOUNT_POINT:\n");
+        DbgP("SubstituteNameOffset: %u\n",
+            r->MountPointReparseBuffer.SubstituteNameOffset);
+        DbgP("SubstituteNameLength: %u\n",
+            r->MountPointReparseBuffer.SubstituteNameLength);
+        DbgP("PrintNameOffset: %u\n",
+            r->MountPointReparseBuffer.PrintNameOffset);
+        DbgP("PrintNameLength: %u\n",
+            r->MountPointReparseBuffer.PrintNameLength);
+
+        name.Buffer = &r->MountPointReparseBuffer.PathBuffer[
+            r->MountPointReparseBuffer.SubstituteNameOffset/sizeof(WCHAR)];
+        name.MaximumLength = name.Length =
+            r->MountPointReparseBuffer.SubstituteNameLength;
+        DbgP("SubstituteName: '%wZ'\n", &name);
+
+        name.Buffer = &r->MountPointReparseBuffer.PathBuffer[
+            r->MountPointReparseBuffer.PrintNameOffset/sizeof(WCHAR)];
+        name.MaximumLength = name.Length =
+            r->MountPointReparseBuffer.PrintNameLength;
+            DbgP("PrintName: '%wZ'\n", &name);
+    }
+}

@@ -166,37 +166,6 @@ NTSTATUS map_symlink_errors(
     }
 }
 
-static void print_reparse_buffer(
-    PREPARSE_DATA_BUFFER Reparse)
-{
-    UNICODE_STRING name;
-    DbgP("ReparseTag:           %08X\n", Reparse->ReparseTag);
-    DbgP("ReparseDataLength:    %8u\n", Reparse->ReparseDataLength);
-    DbgP("Reserved:             %8u\n", Reparse->Reserved);
-    DbgP("SubstituteNameOffset: %8u\n",
-         Reparse->SymbolicLinkReparseBuffer.SubstituteNameOffset);
-    DbgP("SubstituteNameLength: %8u\n",
-         Reparse->SymbolicLinkReparseBuffer.SubstituteNameLength);
-    DbgP("PrintNameOffset:      %8u\n",
-         Reparse->SymbolicLinkReparseBuffer.PrintNameOffset);
-    DbgP("PrintNameLength:      %8u\n",
-         Reparse->SymbolicLinkReparseBuffer.PrintNameLength);
-    DbgP("Flags:                %08X\n",
-         Reparse->SymbolicLinkReparseBuffer.Flags);
-
-    name.Buffer = &Reparse->SymbolicLinkReparseBuffer.PathBuffer[
-        Reparse->SymbolicLinkReparseBuffer.SubstituteNameOffset/sizeof(WCHAR)];
-    name.MaximumLength = name.Length =
-        Reparse->SymbolicLinkReparseBuffer.SubstituteNameLength;
-    DbgP("SubstituteName:       '%wZ'\n", &name);
-
-    name.Buffer = &Reparse->SymbolicLinkReparseBuffer.PathBuffer[
-        Reparse->SymbolicLinkReparseBuffer.PrintNameOffset/sizeof(WCHAR)];
-    name.MaximumLength = name.Length =
-        Reparse->SymbolicLinkReparseBuffer.PrintNameLength;
-    DbgP("PrintName:            '%wZ'\n", &name);
-}
-
 static
 NTSTATUS check_nfs41_setsymlinkreparse_args(
     IN PRX_CONTEXT RxContext)
