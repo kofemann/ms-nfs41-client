@@ -69,7 +69,7 @@ static int abs_path_link(
         }
 
         /* copy the component and add a \ */
-        if (FAILED(StringCchCopyNA(path_pos, path_max-path_pos, name.name, 
+        if (FAILED(StringCchCopyNA(path_pos, path_max-path_pos, name.name,
                 name.len))) {
             status = ERROR_BUFFER_OVERFLOW;
             goto out;
@@ -189,115 +189,60 @@ out:
 }
 
 
-/* NFS41_SYSOP_SYMLINK_GET, NFS41_SYSOP_SYMLINK_SET */
-static int parse_symlink(unsigned char *buffer, uint32_t length, nfs41_upcall *upcall)
+/* NFS41_SYSOP_SYMLINK_GET */
+static int parse_symlink_get(unsigned char *buffer, uint32_t length,
+    nfs41_upcall *upcall)
 {
     symlink_upcall_args *args = &upcall->args.symlink;
     int status;
 
     status = get_name(&buffer, &length, &args->path);
-    if (status) goto out;
+    if (status)
+        goto out;
 
-    if (upcall->opcode == NFS41_SYSOP_SYMLINK_SET) {
-        /*
-         * args->target_set is not const because handle_symlink() might
-         * have to replace '\\' with '/'
-         */
-        status = get_name(&buffer, &length,
-            (const char **)(&args->target_set));
+    args->target_set = NULL;
 
-        DPRINTF(1,
-            ("parsing NFS41_SYSOP_SYMLINK_SET: "
-            "path='%s' target='%s'\n",
-            args->path, args->target_set));
-    }
-    else if (upcall->opcode == NFS41_SYSOP_SYMLINK_GET) {
-        args->target_set = NULL;
-
-        DPRINTF(1,
-            ("parsing NFS41_SYSOP_SYMLINK_GET: "
-            "path='%s' target='%s'\n",
-            args->path, args->target_set));
-    }
-    else {
-        status = ERROR_INVALID_PARAMETER;
-        eprintf("parse_symlink: Unknown upcall->opcode=%d\n",
-            (int)upcall->opcode);
-    }
+    DPRINTF(1,
+        ("parse_symlink_get: parsing NFS41_SYSOP_SYMLINK_GET: "
+        "path='%s' target='%s'\n",
+        args->path, args->target_set));
 
 out:
     return status;
 }
 
-static int handle_symlink(void *daemon_context, nfs41_upcall *upcall)
+static int handle_symlink_get(void *daemon_context, nfs41_upcall *upcall)
 {
     symlink_upcall_args *args = &upcall->args.symlink;
     nfs41_open_state *state = upcall->state_ref;
     int status = NO_ERROR;
 
-    if (upcall->opcode == NFS41_SYSOP_SYMLINK_SET) {
-        nfs41_file_info info, createattrs;
+    uint32_t len;
 
-        /* don't send windows slashes to the server */
-        char *p;
-        for (p = args->target_set; *p; p++) if (*p == '\\') *p = '/';
-
-        if (state->file.fh.len) {
-            /* the check in handle_open() didn't catch that we're creating
-             * a symlink, so we have to remove the file it already created */
-            eprintf("handle_symlink: attempting to create a symlink when "
-                "the file=%s was already created on open; sending REMOVE "
-                "first\n", state->file.path->path);
-            status = nfs41_remove(state->session, &state->parent,
-                &state->file.name, state->file.fh.fileid);
-            if (status) {
-                eprintf("nfs41_remove() for symlink='%s' failed with '%s'\n",
-                    args->target_set, nfs_error_string(status));
-                status = map_symlink_errors(status);
-                goto out;
-            }
-        }
-
-        /* create the symlink */
-        createattrs.attrmask.count = 2;
-        createattrs.attrmask.arr[0] = 0;
-        createattrs.attrmask.arr[1] = FATTR4_WORD1_MODE;
-        createattrs.mode = 0777;
-        status = nfs41_create(state->session, NF4LNK, &createattrs,
-            args->target_set, &state->parent, &state->file, &info);
-        if (status) {
-            eprintf("nfs41_create() for symlink='%s' failed with '%s'\n",
-                args->target_set, nfs_error_string(status));
-            status = map_symlink_errors(status);
-            goto out;
-        }
-    } else {
-        uint32_t len;
-
-        /* read the link */
-        status = nfs41_readlink(state->session, &state->file,
-            NFS41_MAX_PATH_LEN, args->target_get.path, &len);
-        if (status) {
-            eprintf("nfs41_readlink() for filename='%s' failed with '%s'\n",
-                state->file.path->path, nfs_error_string(status));
-            status = map_symlink_errors(status);
-            goto out;
-        }
-        args->target_get.len = (unsigned short)len;
-        DPRINTF(2, ("returning symlink target '%s'\n", args->target_get.path));
+    /* read the link */
+    status = nfs41_readlink(state->session, &state->file,
+        NFS41_MAX_PATH_LEN, args->target_get.path, &len);
+    if (status) {
+        eprintf("handle_symlink_get: "
+            "nfs41_readlink() for filename='%s' failed with '%s'\n",
+            state->file.path->path, nfs_error_string(status));
+        status = map_symlink_errors(status);
+        goto out;
     }
+    args->target_get.len = (unsigned short)len;
+    DPRINTF(2,
+        ("returning symlink target '%s'\n", args->target_get.path));
+
 out:
     return status;
 }
 
-static int marshall_symlink(unsigned char *buffer, uint32_t *length, nfs41_upcall *upcall)
+static int marshall_symlink_get(unsigned char *buffer, uint32_t *length,
+    nfs41_upcall *upcall)
 {
     symlink_upcall_args *args = &upcall->args.symlink;
     unsigned short len = (args->target_get.len + 1) * sizeof(WCHAR);
     int status = NO_ERROR;
-
-    if (upcall->opcode == NFS41_SYSOP_SYMLINK_SET)
-        goto out;
 
     status = safe_write(&buffer, length, &len, sizeof(len));
     if (status) goto out;
@@ -311,7 +256,7 @@ static int marshall_symlink(unsigned char *buffer, uint32_t *length, nfs41_upcal
             MB_ERR_INVALID_CHARS,
             args->target_get.path, args->target_get.len,
             (LPWSTR)buffer, len / sizeof(WCHAR))) {
-        eprintf("marshall_symlink: "
+        eprintf("marshall_symlink_get: "
             "MultiByteToWideChar() failed, lasterr=%d\n",
             (int)GetLastError());
         status = ERROR_BUFFER_OVERFLOW;
@@ -323,15 +268,104 @@ out:
 
 
 const nfs41_upcall_op nfs41_op_symlink_get = {
-    .parse = parse_symlink,
-    .handle = handle_symlink,
-    .marshall = marshall_symlink,
+    .parse = parse_symlink_get,
+    .handle = handle_symlink_get,
+    .marshall = marshall_symlink_get,
     .arg_size = sizeof(symlink_upcall_args)
 };
 
+/* NFS41_SYSOP_SYMLINK_SET */
+static int parse_symlink_set(unsigned char *buffer, uint32_t length,
+    nfs41_upcall *upcall)
+{
+    symlink_upcall_args *args = &upcall->args.symlink;
+    int status;
+
+    status = get_name(&buffer, &length, &args->path);
+    if (status)
+        goto out;
+
+    /*
+     * args->target_set is not const because |handle_symlink_set()|
+     * might have to replace '\\' with '/'
+     */
+    status = get_name(&buffer, &length,
+        (const char **)(&args->target_set));
+
+    DPRINTF(1,
+        ("parse_symlink_set: parsing NFS41_SYSOP_SYMLINK_SET: "
+        "path='%s' target='%s'\n",
+        args->path, args->target_set));
+
+out:
+    return status;
+}
+
+static int handle_symlink_set(void *daemon_context, nfs41_upcall *upcall)
+{
+    symlink_upcall_args *args = &upcall->args.symlink;
+    nfs41_open_state *state = upcall->state_ref;
+    int status = NO_ERROR;
+
+    nfs41_file_info info, createattrs;
+
+    /* don't send windows slashes to the server */
+    char *p;
+    for (p = args->target_set; *p; p++) {
+        if (*p == '\\') *p = '/';
+    }
+
+    if (state->file.fh.len) {
+        /*
+         * the check in handle_open() didn't catch that we're creating
+         * a symlink, so we have to remove the file it already created
+         */
+        eprintf("handle_symlink_set: "
+            "attempting to create a symlink when "
+            "the file='%s' was already created on open; sending "
+            "REMOVE first\n", state->file.path->path);
+        status = nfs41_remove(state->session, &state->parent,
+            &state->file.name, state->file.fh.fileid);
+        if (status) {
+            eprintf("handle_symlink_set: "
+                "nfs41_remove() for symlink='%s' failed with '%s'\n",
+                args->target_set, nfs_error_string(status));
+            status = map_symlink_errors(status);
+            goto out;
+        }
+    }
+
+    /* create the symlink */
+    createattrs.attrmask.count = 2;
+    createattrs.attrmask.arr[0] = 0;
+    createattrs.attrmask.arr[1] = FATTR4_WORD1_MODE;
+    createattrs.mode = 0777;
+
+    /* FIXME: What about newgrp support ? */
+
+    status = nfs41_create(state->session, NF4LNK, &createattrs,
+        args->target_set, &state->parent, &state->file, &info);
+    if (status) {
+        eprintf("handle_symlink_set: "
+            "nfs41_create() for symlink='%s' failed with '%s'\n",
+            args->target_set, nfs_error_string(status));
+        status = map_symlink_errors(status);
+        goto out;
+    }
+
+out:
+    return status;
+}
+
+static int marshall_symlink_set(unsigned char *buffer, uint32_t *length,
+    nfs41_upcall *upcall)
+{
+    return NO_ERROR;
+}
+
 const nfs41_upcall_op nfs41_op_symlink_set = {
-    .parse = parse_symlink,
-    .handle = handle_symlink,
-    .marshall = marshall_symlink,
+    .parse = parse_symlink_set,
+    .handle = handle_symlink_set,
+    .marshall = marshall_symlink_set,
     .arg_size = sizeof(symlink_upcall_args)
 };
