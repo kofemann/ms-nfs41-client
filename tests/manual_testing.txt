@@ -183,6 +183,8 @@ powershell -Command 'New-Item -Path sym_mypsfile1 -ItemType SymbolicLink -Value 
 mkdir targetdir1
 cmd /C 'mklink /D targetdir1_sym targetdir1'
 cmd /C 'mklink /D targetdir2_sym .\targetdir1'
+# 6. Cygwin /dev/ symlinks, e.g. foo --> /dev/null
+ln -s /dev/zero foo && ls -l foo && rm foo
 
 #
 # Tests for groups

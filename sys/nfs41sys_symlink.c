@@ -598,6 +598,56 @@ NTSTATUS nfs41_GetSymlinkReparsePoint(
             "got TargetName='%wZ', len=%d\n",
             &TargetName, (int)TargetName.Length);
 
+        /*
+         * Cygwin: Pass-through for POSIX symlinks to /dev, e.g.
+         * /dev/null, /dev/zero, /dev/stdin etc.
+         * Otherwise code like
+         * $ ln -s /dev/zero foo && ls -l foo && rm foo #
+         * will fail.
+         * We restrict this to /dev only, all other kind of POSIX
+         * symlinks should be translated to Win32 symlink syntax
+         */
+        if (((TargetName.Length > 5*sizeof(wchar_t)) &&
+            (!wcsncmp(TargetName.Buffer, L"/dev/", 5)))) {
+            const USHORT HeaderLen = FIELD_OFFSET(REPARSE_DATA_BUFFER,
+                SymbolicLinkReparseBuffer.PathBuffer);
+
+            DbgP("nfs41_GetSymlinkReparsePoint: "
+                "Cygwin /dev/ symlink codepath\n");
+
+            /* Copy data into FsCtl buffer  */
+            (void)memcpy(((PBYTE)FsCtl->pOutputBuffer + HeaderLen),
+                TargetName.Buffer, TargetName.Length);
+            TargetName.Buffer =
+                (PWCH)((PBYTE)FsCtl->pOutputBuffer + HeaderLen);
+
+            DbgP("nfs41_GetSymlinkReparsePoint: "
+                "Cygwin /dev/ symlink TargetName='%wZ'\n",
+                &TargetName);
+
+            Reparse->ReparseTag = IO_REPARSE_TAG_SYMLINK;
+            Reparse->ReparseDataLength = HeaderLen + TargetName.Length -
+                REPARSE_DATA_BUFFER_HEADER_SIZE;
+            Reparse->Reserved = 0;
+            /* Cygwin wants |SYMLINK_FLAG_RELATIVE| for these symlinks */
+            Reparse->SymbolicLinkReparseBuffer.Flags =
+                SYMLINK_FLAG_RELATIVE;
+
+            /* PrintName and SubstituteName point to the same string */
+            Reparse->SymbolicLinkReparseBuffer.SubstituteNameOffset = 0;
+            Reparse->SymbolicLinkReparseBuffer.SubstituteNameLength =
+                TargetName.Length;
+            Reparse->SymbolicLinkReparseBuffer.PrintNameOffset = 0;
+            Reparse->SymbolicLinkReparseBuffer.PrintNameLength =
+                TargetName.Length;
+
+            print_reparse_buffer(Reparse);
+
+            RxContext->IoStatusBlock.Information =
+                (ULONG_PTR)HeaderLen + TargetName.Length;
+            goto out;
+        }
+
         /* POSIX slash to Win32 backslash */
         size_t i;
         for (i=0 ; i < TargetName.Length ; i++) {
