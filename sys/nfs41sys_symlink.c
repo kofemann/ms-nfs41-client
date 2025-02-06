@@ -293,17 +293,15 @@ NTSTATUS nfs41_SetSymlinkReparsePoint(
             "absolute path TargetName='%wZ'\n",
             &TargetName);
 
-        /* Strip "\\??\\" prefix */
-        if (!memcmp(&TargetName.Buffer[0], L"\\??\\",
-            (4*sizeof(wchar_t)))) {
+        /* UNC path ? */
+        if ((TargetName.Length > 8*sizeof(wchar_t)) &&
+            (!memcmp(&TargetName.Buffer[0], L"\\??\\UNC\\",
+            (8*sizeof(wchar_t))))) {
+
+            /* Strip "\\??\\" prefix */
             TargetName.Buffer += 4;
             TargetName.MaximumLength = TargetName.Length =
                 TargetName.Length-(4*sizeof(wchar_t));
-        }
-
-        /* UNC path ? */
-        if (!memcmp(&TargetName.Buffer[0], L"UNC\\",
-            (4*sizeof(wchar_t)))) {
 
             /*
              * Turn "UNC\" into "\\"
@@ -319,12 +317,21 @@ NTSTATUS nfs41_SetSymlinkReparsePoint(
                 "UNC TargetName='%wZ'\n",
                 &TargetName);
         }
-        else {
+        /* DEVICELETTR path ? */
+        else if ((TargetName.Length >= 6*sizeof(wchar_t)) &&
+            (!memcmp(&TargetName.Buffer[0], L"\\??\\",
+            (4*sizeof(wchar_t)))) &&
+            (TargetName.Buffer[5] == L':')) {
             wchar_t devletter;
 
             DbgP("nfs41_SetSymlinkReparsePoint: "
                 "DEVLETTER TargetName='%wZ'\n",
                 &TargetName);
+
+            /* Strip "\\??\\" prefix */
+            TargetName.Buffer += 4;
+            TargetName.MaximumLength = TargetName.Length =
+                TargetName.Length-(4*sizeof(wchar_t));
 
             if ((TargetName.Buffer[1] != L':') ||
                 (TargetName.Buffer[2] != L'\\')) {
@@ -372,6 +379,24 @@ NTSTATUS nfs41_SetSymlinkReparsePoint(
 
             DbgP("nfs41_SetSymlinkReparsePoint: "
                 "new TargetName='%wZ'\n",
+                &TargetName);
+        }
+        else if ((TargetName.Length > 1*sizeof(wchar_t)) &&
+            (
+                (TargetName.Buffer[0] == L'\\') ||
+                (TargetName.Buffer[0] == L'/') ||
+                (TargetName.Buffer[0] == L':')
+            )) {
+            DbgP("nfs41_SetSymlinkReparsePoint: "
+                "TargetName='%wZ' should not start "
+                "with '/', '\\' or ':'\n",
+                &TargetName);
+            status = STATUS_INVALID_PARAMETER;
+            goto out;
+        }
+        else {
+            DbgP("nfs41_SetSymlinkReparsePoint: "
+                "relative symlink TargetName='%wZ'\n",
                 &TargetName);
         }
     }

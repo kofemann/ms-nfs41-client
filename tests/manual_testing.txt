@@ -179,6 +179,10 @@ powershell -Command 'New-Item -Path sym_mypsdir1 -ItemType SymbolicLink -Value m
 # 4. powershell mklink file
 mkdir mypsfile1
 powershell -Command 'New-Item -Path sym_mypsfile1 -ItemType SymbolicLink -Value mypsfile1'
+# 5. Relative links:
+mkdir targetdir1
+cmd /C 'mklink /D targetdir1_sym targetdir1'
+cmd /C 'mklink /D targetdir2_sym .\targetdir1'
 
 #
 # Tests for groups
