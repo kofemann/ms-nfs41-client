@@ -43,9 +43,21 @@ static int abs_path_link(
     const char *link_end = link + link_len;
     int status = NO_ERROR;
 
+    DPRINTF(2,
+        ("--> abs_path_link(path_pos='%s', link='%.*s', link_len=%d)\n",
+        path_pos, (int)link_len, link, (int)link_len));
+
+    /* UNC path ? Make sure we return \\... */
+    if ((link_len > 2) && (!memcmp(link, "//", 2))) {
+        path->path[0] = '\\';
+        path->path[1] = '\\';
+        path_pos = path->path+2;
+        link_pos += 2;
+    }
     /* if link is an absolute path, start path_pos at the beginning */
-    if (is_delimiter(*link))
+    else if (is_delimiter(*link)) {
         path_pos = path->path;
+    }
 
     /* copy each component of link into the path */
     while (next_component(link_pos, link_end, &name)) {
@@ -89,6 +101,18 @@ static int abs_path_link(
     *path_pos = '\0';
 out:
     path->len = (unsigned short)(path_pos - path->path);
+
+    if (status) {
+        DPRINTF(2,
+            ("<-- abs_path_link(), status=%d\n",
+            status));
+    }
+    else {
+        DPRINTF(2,
+            ("<-- abs_path_link(path='%.*s'), status=%d\n",
+            (int)path->len, path->path, status));
+    }
+
     return status;
 }
 
