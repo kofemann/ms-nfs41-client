@@ -25,6 +25,8 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+
+#include "nfs41_build_features.h"
 #include "nfs41_driver.h" /* for |FILE_INFO_TIME_NOT_SET| */
 #include "from_kernel.h"
 #include "nfs41_ops.h"
@@ -498,7 +500,14 @@ static int lookup_symlink(
     last_component(path.path, path.path + path.len, &file.name);
 
     status = nfs41_symlink_follow(root, session, &file, &info);
-    if (status) goto out;
+    if (status) {
+#ifdef NFS41_DRIVER_TREAT_UNRESOLVEABLE_SYMLINKS_AS_DIRS
+        info_out->symlink_dir = TRUE;
+#else
+        info_out->symlink_dir = FALSE;
+#endif /* NFS41_DRIVER_TREAT_UNRESOLVEABLE_SYMLINKS_AS_DIRS */
+        goto out;
+    }
 
     info_out->symlink_dir = info.type == NF4DIR;
 out:

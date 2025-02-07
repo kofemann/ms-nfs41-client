@@ -181,4 +181,18 @@
  */
 #define NFS41_DRIVER_DEFAULT_NFS4MINORVERSION 2
 
+/*
+ * NFS41_DRIVER_TREAT_UNRESOLVEABLE_SYMLINKS_AS_DIRS - treat symlinks
+ * which cannot be resolved within the NFS filesystem as dirs
+ *
+ * The idea is that such symlinks are UNC paths or drives (e.g. T:\),
+ * and powershell+cmd.exe will only cd into such symlinks if
+ * the flag |FILE_ATTRIBUTE_DIRECTORY| is set for them.
+ *
+ * ToDo: Maybe we should read the symlink value, and only set
+ * |FILE_ATTRIBUTE_DIRECTORY| if the symlink value ends with
+ * "/", "/." or "/.." ...
+ */
+#define NFS41_DRIVER_TREAT_UNRESOLVEABLE_SYMLINKS_AS_DIRS 1
+
 #endif /* !_NFS41_DRIVER_BUILDFEATURES_ */

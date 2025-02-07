@@ -709,8 +709,16 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
                 nfs41_file_info target_info;
                 int target_status = nfs41_symlink_follow(upcall->root_ref,
                     state->session, &state->file, &target_info);
-                if (target_status == NO_ERROR && target_info.type == NF4DIR)
-                    info.symlink_dir = TRUE;
+                if (target_status == NO_ERROR) {
+                    info.symlink_dir = target_info.type == NF4DIR;
+                }
+                else {
+#ifdef NFS41_DRIVER_TREAT_UNRESOLVEABLE_SYMLINKS_AS_DIRS
+                    target_info.type = TRUE;
+#else
+                    target_info.type = FALSE;
+#endif /* NFS41_DRIVER_TREAT_UNRESOLVEABLE_SYMLINKS_AS_DIRS */
+                }
             } else {
                 /* replace the path with the symlink target */
                 status = nfs41_symlink_target(state->session,

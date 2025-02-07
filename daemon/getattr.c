@@ -165,8 +165,16 @@ static int handle_getattr(void *daemon_context, nfs41_upcall *upcall)
         nfs41_file_info target_info;
         int target_status = nfs41_symlink_follow(upcall->root_ref,
             state->session, &state->file, &target_info);
-        if (target_status == NO_ERROR && target_info.type == NF4DIR)
+        if (target_status == NO_ERROR) {
+            info.symlink_dir = target_info.type == NF4DIR;
+        }
+        else {
+#ifdef NFS41_DRIVER_TREAT_UNRESOLVEABLE_SYMLINKS_AS_DIRS
             info.symlink_dir = TRUE;
+#else
+            info.symlink_dir = FALSE;
+#endif /* NFS41_DRIVER_TREAT_UNRESOLVEABLE_SYMLINKS_AS_DIRS */
+        }
     }
 
     EASSERT((info.attrmask.count > 0) &&
