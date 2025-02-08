@@ -1,5 +1,6 @@
 /* NFSv4.1 client for Windows
- * Copyright © 2012 The Regents of the University of Michigan
+ * Copyright (C) 2012 The Regents of the University of Michigan
+ * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -605,6 +606,85 @@ static int create_with_ea(
         || (disposition == FILE_OPEN_IF && lookup_status == NFS4ERR_NOENT);
 }
 
+static
+void symlink2ntpath(
+    IN OUT nfs41_abs_path *restrict symlink)
+{
+    DPRINTF(1, ("--> symlink2ntpath(symlink='%.*s', len=%d)\n",
+        (int)symlink->len,
+        symlink->path,
+        (int)symlink->len));
+
+    /*
+     * Path with \cygdrive\<devletter> prefix
+     * (e.g. "\cygdrive\l\path" or "\cygdrive\l" ) ?
+     */
+    if ((symlink->len > 10) &&
+        (!memcmp(symlink->path, "\\cygdrive\\", 10)) &&
+        ((symlink->path[11] == '\\') || (symlink->len == 11))) {
+        char deviceletter;
+        char ntpath_buf[NFS41_MAX_PATH_LEN];
+
+        deviceletter = symlink->path[10];
+
+        EASSERT(((deviceletter >= 'a') && (deviceletter <= 'z')) ||
+            ((deviceletter >= 'A') && (deviceletter <= 'Z')));
+
+        /* Return an "drive absolute" NT path */
+        (void)snprintf(ntpath_buf, sizeof(ntpath_buf),
+            "\\??\\%c:\\%.*s",
+            toupper(deviceletter),
+            (int)(symlink->len-12),
+            &symlink->path[12]);
+        (void)strcpy(symlink->path, ntpath_buf);
+        symlink->len = (unsigned short)strlen(ntpath_buf);
+
+        DPRINTF(1, ("drive abolute symlink='%.*s', len=%d\n",
+            (int)symlink->len,
+            symlink->path,
+            (int)symlink->len));
+    }
+    /* UNC path (e.g. "\\server\path") ? */
+    else if ((symlink->len > 3) &&
+        (!memcmp(symlink->path, "\\\\", 2)) &&
+        (memchr(&symlink->path[3], '\\', symlink->len-3) != NULL)) {
+        char ntpath_buf[NFS41_MAX_PATH_LEN];
+
+        /* return an (absolute) UNC NT PATH*/
+        (void)snprintf(ntpath_buf, sizeof(ntpath_buf),
+            "\\??\\UNC\\%.*s",
+            (int)(symlink->len-2),
+            &symlink->path[2]);
+        (void)strcpy(symlink->path, ntpath_buf);
+        symlink->len = (unsigned short)strlen(ntpath_buf);
+
+        DPRINTF(1, ("UNC symlink='%.*s', len=%d\n",
+            (int)symlink->len,
+            symlink->path,
+            (int)symlink->len));
+    }
+    else {
+        /*
+         * All other paths just return a "drive abolute" path,
+         * e.g. \foo\bar
+         *
+         * FIXME/BUG: What about a directory called "??" in the
+         * base of a filesystem, and access it with a trailing
+         * slash in the symlink - that would result in "\??\",
+         * which the kernel would treat as direct NT path...
+         */
+
+        /* These asserts should never be triggered... */
+        EASSERT(symlink->len > 0);
+        EASSERT((symlink->len > 0) && (symlink->path[0] == '\\'));
+    }
+
+    DPRINTF(1, ("<-- symlink2ntpath(symlink='%.*s', len=%d)\n",
+        (int)symlink->len,
+        symlink->path,
+        (int)symlink->len));
+}
+
 static int handle_open(void *daemon_context, nfs41_upcall *upcall)
 {
     int status = 0;
@@ -727,6 +807,7 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
                     eprintf("nfs41_symlink_target() for '%s' failed with %d\n",
                         args->path, status);
                 } else {
+                    symlink2ntpath(&args->symlink);
                     /* tell the driver to call RxPrepareToReparseSymbolicLink() */
                     upcall->last_error = ERROR_REPARSE;
                     args->symlink_embedded = FALSE;

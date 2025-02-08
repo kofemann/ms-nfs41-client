@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2023-2024 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -735,11 +735,33 @@ retry_on_link:
         UNICODE_STRING AbsPath;
         PCHAR buf;
         BOOLEAN ReparseRequired;
+        /* symhasntpathprefix - symlink target has "\??\" prefix ? */
+        BOOLEAN symhasntpathprefix;
 
-        /* allocate the string for RxPrepareToReparseSymbolicLink(), and
-         * format an absolute path "DeviceName+VNetRootName+symlink" */
-        AbsPath.Length = DeviceObject->DeviceName.Length +
-            VNetRootPrefix->Length + entry->u.Open.symlink.Length;
+        if ((entry->u.Open.symlink.Length > (4*sizeof(wchar_t))) &&
+            (!memcmp(entry->u.Open.symlink.Buffer,
+                L"\\??\\", (4*sizeof(wchar_t))))) {
+            symhasntpathprefix = TRUE;
+            DbgP("symhasntpathprefix = TRUE\n");
+        }
+        else {
+            symhasntpathprefix = FALSE;
+            DbgP("symhasntpathprefix = TRUE\n");
+        }
+
+        /*
+         * Allocate the string for |RxPrepareToReparseSymbolicLink()|,
+         * and format an absolute path
+         * "DeviceName+VNetRootName+symlink" if the symlink is
+         * device-relative, or just "symlink" if the input is an NT path
+         * (which starts with "\??\", see above)
+         */
+        AbsPath.Length = 0;
+        if (symhasntpathprefix == FALSE) {
+            AbsPath.Length += DeviceObject->DeviceName.Length +
+                VNetRootPrefix->Length;
+        }
+        AbsPath.Length += entry->u.Open.symlink.Length;
         AbsPath.MaximumLength = AbsPath.Length + sizeof(UNICODE_NULL);
         AbsPath.Buffer = RxAllocatePoolWithTag(NonPagedPoolNx,
             AbsPath.MaximumLength, NFS41_MM_POOLTAG);
@@ -749,25 +771,36 @@ retry_on_link:
         }
 
         buf = (PCHAR)AbsPath.Buffer;
-        RtlCopyMemory(buf, DeviceObject->DeviceName.Buffer,
-            DeviceObject->DeviceName.Length);
-        buf += DeviceObject->DeviceName.Length;
-        RtlCopyMemory(buf, VNetRootPrefix->Buffer, VNetRootPrefix->Length);
-        buf += VNetRootPrefix->Length;
+        if (symhasntpathprefix == FALSE) {
+            RtlCopyMemory(buf, DeviceObject->DeviceName.Buffer,
+                DeviceObject->DeviceName.Length);
+            buf += DeviceObject->DeviceName.Length;
+            RtlCopyMemory(buf, VNetRootPrefix->Buffer,
+                VNetRootPrefix->Length);
+            buf += VNetRootPrefix->Length;
+        }
+
         RtlCopyMemory(buf, entry->u.Open.symlink.Buffer,
             entry->u.Open.symlink.Length);
-        RxFreePool(entry->u.Open.symlink.Buffer);
-        entry->u.Open.symlink.Buffer = NULL;
         buf += entry->u.Open.symlink.Length;
         *(PWCHAR)buf = UNICODE_NULL;
 
+        RxFreePool(entry->u.Open.symlink.Buffer);
+        entry->u.Open.symlink.Buffer = NULL;
+
         status = RxPrepareToReparseSymbolicLink(RxContext,
             entry->u.Open.symlink_embedded, &AbsPath, TRUE, &ReparseRequired);
-#ifdef DEBUG_OPEN
-        DbgP("RxPrepareToReparseSymbolicLink(%u, '%wZ') returned 0x%08lX, "
-            "FileName is '%wZ'\n", entry->u.Open.symlink_embedded,
-            &AbsPath, status, &RxContext->CurrentIrpSp->FileObject->FileName);
-#endif
+
+        DbgP("nfs41_Create: "
+            "RxPrepareToReparseSymbolicLink(%u, '%wZ') returned "
+            "ReparseRequired=%d, status=0x%lx, "
+            "FileName is '%wZ'\n",
+            entry->u.Open.symlink_embedded,
+            &AbsPath,
+            (int)ReparseRequired,
+            (long)status,
+            &RxContext->CurrentIrpSp->FileObject->FileName);
+
         if (status == STATUS_SUCCESS) {
             /* if a reparse is not required, reopen the link itself.  this
              * happens with operations on cygwin symlinks, where the reparse

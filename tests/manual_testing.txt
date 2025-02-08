@@ -1,5 +1,5 @@
 #
-# ms-nfs41-client manual testing sequence, 2025-02-03
+# ms-nfs41-client manual testing sequence, 2025-02-08
 #
 # Draft version, needs to be turned into automated tests
 # if possible
@@ -185,6 +185,21 @@ cmd /C 'mklink /D targetdir1_sym targetdir1'
 cmd /C 'mklink /D targetdir2_sym .\targetdir1'
 # 6. Cygwin /dev/ symlinks, e.g. foo --> /dev/null
 ln -s /dev/zero foo && ls -l foo && rm foo
+# 7. cmd.exe follow sublink dir to other filesystem
+# (this assumes we have a drive 'M:' with a subdir "builds")
+rm -f symlink1_to_m_builds ; cmd /C 'mklink /D symlink1_to_m_builds M:\builds' ; cmd /C 'cd symlink1_to_m_builds && dir && echo test_OK'
+# 8. cmd.exe follow sublink dir to other filesystem
+# (this assumes we have an valid UNC path
+# \\derfwnb4966_ipv6linklocal@2049\nfs4\bigdisk\ with a subdir "builds")
+rm -f symlink1_to_unc ; cmd /C 'mklink /D symlink1_to_unc \\derfwnb4966_ipv6linklocal@2049\nfs4\bigdisk\builds\' ; cmd /C 'cd symlink1_to_unc && dir && echo test_OK'
+# 9a. powershell follow sublink dir to other filesystem
+# (this assumes we have an valid UNC path
+# \\derfwnb4966_ipv6linklocal@2049\nfs4\bigdisk\ with a subdir "builds")
+rm -f symlink1_to_unc ; cmd /C 'mklink /D symlink1_to_unc \\derfwnb4966_ipv6linklocal@2049\nfs4\bigdisk\builds\' ; powershell -Command 'cd symlink1_to_unc ; if ($?) { dir ; if ($?) { echo "test OK" } else { echo "dir failed" } } else { echo "cd failed" }'
+# 9b. powershell follow sublink dir to other filesystem
+# (this assumes we have an valid UNC path
+# \\derfwpc5131_ipv4@2049\nfs4\export\home2\rmainz\ with a subdir "tmp")
+rm -f symlink1_to_h_tmp ; cmd /C 'mklink /D symlink1_to_h_tmp \\derfwpc5131_ipv4@2049\nfs4\export\home2\rmainz\tmp' ; powershell -Command 'cd symlink1_to_h_tmp ; if ($?) { dir ; if ($?) { echo "test OK" } else { echo "dir failed" } } else { echo "cd failed" }'
 
 #
 # Tests for groups
