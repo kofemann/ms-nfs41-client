@@ -48,6 +48,10 @@ NFSv4.2/NFSv4.1 filesystem driver for Windows 10/11&Windows Server 2019
     - /sbin/nfs_mount prints UNC paths in Win32+Cygwin/MSYS2 formats
     - Cygwin/MSYS2 bash+ksh93 support UNC paths, e.g.
       cd //derfwnb4966@2049/nfs4/bigdisk/mysqldb4/
+    - Symlinks on NFS can redirect to other filesystems via UNC
+      syntax and work with Cygwin, MSYS2, cmd.exe, powershell etc.,
+      e.g.:
+      mklink /D symlnk1_to_h_tmp \\lab17@2049\nfs4\export\home\rsm\tmp
 
 - WSL support
     - Mount Windows NFSv4.2 shares via drive letter or UNC path
@@ -62,6 +66,16 @@ NFSv4.2/NFSv4.1 filesystem driver for Windows 10/11&Windows Server 2019
     - Win32 C:\Windows\system32\icacls.exe
     - Cygwin /usr/bin/setfacl+/usr/bin/getfacl
     - Windows Explorer ACL dialog
+
+- Symlink reparse and translation support
+    - Translates Win32/NT symlink syntax (e.g.
+      $ mklink /D ... Y:\tmp\ #) to NFS/POSIX syntax (e.g.
+      "/cygdrive/y/tmp/") and back
+    - Translates Cygwin /cygdrive/<devletter> symlinks on NFS to
+      Win32 <devletter>:\ and back
+    - Pass-through for NFS /dev-Symlinks (e.g. /dev/null) to Cygwin
+    - Interoperability for symlinks between Cygwin, powershell,
+      cmd.exe and other POSIX-compatible NFSv4.2/NFSv4.1 clients.
 
 - Support for NFSv4 public mounts (i.e. use the NFSv4 public file handle
     lookup protocol via $ nfs_mount -o public ... #)
