@@ -115,47 +115,53 @@ NFSv4.2/NFSv4.1 filesystem driver for Windows 10/11&Windows Server 2019
 - Windows 10 (32bit or 64bit), Windows 11 or Windows Server 2019
 - Cygwin:
     - Cygwin versions:
-        - 64bit: >= 3.5.3 (or 3.6.x-devel)
+        - 64bit: >= 3.5.7 (or 3.6.x-devel)
         - 32bit: >= 3.3.6
     - Packages (required):
         cygwin
-        cygwin-devel
         cygrunsrv
         cygutils
         cygutils-extra
-        bash
-        bzip2
-        coreutils
-        getent
-        gdb
-        grep
-        hostname
-        less
         libiconv
         libiconv2
+        procps-ng
+        util-linux
+
+    - Packages (optional, recommended):
+        bison
+        cygport
+        cygwin-devel
+        clang
+        dos2unix
         pax
         pbzip2
-        procps-ng
-        sed
-        tar
-        time
-        util-linux
-        wget
-    - Packages (recommended):
         libnfs-utils (for /usr/bin/nfs-ls)
+        libiconv-devel
         make
         bmake
         git
         gcc-core
         gcc-g++
-        clang
+        gdb
         mingw64-i686-clang
         mingw64-x86_64-clang
-        dos2unix
         unzip
-        bison
-        cygport
-        libiconv-devel
+        time
+
+    - Packages (only-CI):
+        # required packages, but part of Cygwin default installation
+        # listed here for CI package list ONLY
+        bash
+        bzip2
+        coreutils
+        getent
+        grep
+        hostname
+        less
+        sed
+        tar
+        wget
+
 - MSYS2 (64bit, optional):
     - Packages (recommended):
         base-devel
