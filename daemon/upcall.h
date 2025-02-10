@@ -25,6 +25,7 @@
 
 #include "nfs41_build_features.h"
 #include "nfs41_ops.h"
+#include "nfs41_driver.h"
 #include "from_kernel.h"
 
 #define NFSD_VERSION_MISMATCH 116
@@ -66,6 +67,7 @@ typedef struct __open_upcall_args {
     PFILE_FULL_EA_INFORMATION ea;
     BOOLEAN created;
     BOOLEAN symlink_embedded;
+    nfs41_sysop_open_symlinktarget_type symlinktarget_type;
 } open_upcall_args;
 
 typedef struct __close_upcall_args {

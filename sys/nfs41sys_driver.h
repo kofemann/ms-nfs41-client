@@ -228,6 +228,7 @@ typedef struct _updowncall_entry {
             HANDLE srv_open;
             DWORD deleg_type;
             BOOLEAN symlink_embedded;
+            nfs41_sysop_open_symlinktarget_type symlinktarget_type;
             PMDL EaMdl;
             PVOID EaBuffer;
         } Open;

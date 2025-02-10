@@ -288,6 +288,10 @@ NTSTATUS unmarshal_nfs41_open(
     if (cur->errno == ERROR_REPARSE) {
         RtlCopyMemory(&cur->u.Open.symlink_embedded, *buf, sizeof(BOOLEAN));
         *buf += sizeof(BOOLEAN);
+        BYTE tmp_symlinktarget_type;
+        RtlCopyMemory(&tmp_symlinktarget_type, *buf, sizeof(BYTE));
+        cur->u.Open.symlinktarget_type = tmp_symlinktarget_type;
+        *buf += sizeof(BYTE);
         RtlCopyMemory(&cur->u.Open.symlink.MaximumLength, *buf,
             sizeof(USHORT));
         *buf += sizeof(USHORT);
@@ -735,19 +739,6 @@ retry_on_link:
         UNICODE_STRING AbsPath;
         PCHAR buf;
         BOOLEAN ReparseRequired;
-        /* symhasntpathprefix - symlink target has "\??\" prefix ? */
-        BOOLEAN symhasntpathprefix;
-
-        if ((entry->u.Open.symlink.Length > (4*sizeof(wchar_t))) &&
-            (!memcmp(entry->u.Open.symlink.Buffer,
-                L"\\??\\", (4*sizeof(wchar_t))))) {
-            symhasntpathprefix = TRUE;
-            DbgP("symhasntpathprefix = TRUE\n");
-        }
-        else {
-            symhasntpathprefix = FALSE;
-            DbgP("symhasntpathprefix = TRUE\n");
-        }
 
         /*
          * Allocate the string for |RxPrepareToReparseSymbolicLink()|,
@@ -757,9 +748,19 @@ retry_on_link:
          * (which starts with "\??\", see above)
          */
         AbsPath.Length = 0;
-        if (symhasntpathprefix == FALSE) {
+        if (entry->u.Open.symlinktarget_type ==
+            NFS41_SYMLINKTARGET_FILESYSTEM_ABSOLUTE) {
             AbsPath.Length += DeviceObject->DeviceName.Length +
                 VNetRootPrefix->Length;
+        }
+        else if (entry->u.Open.symlinktarget_type ==
+            NFS41_SYMLINKTARGET_NTPATH) {
+        }
+        else {
+            DbgP("nfs41_Create: Unknown symlinktarget_type=%d\n",
+                (int)entry->u.Open.symlinktarget_type);
+            status = STATUS_INVALID_PARAMETER;
+            goto out_free;
         }
         AbsPath.Length += entry->u.Open.symlink.Length;
         AbsPath.MaximumLength = AbsPath.Length + sizeof(UNICODE_NULL);
@@ -771,7 +772,8 @@ retry_on_link:
         }
 
         buf = (PCHAR)AbsPath.Buffer;
-        if (symhasntpathprefix == FALSE) {
+        if (entry->u.Open.symlinktarget_type ==
+            NFS41_SYMLINKTARGET_FILESYSTEM_ABSOLUTE) {
             RtlCopyMemory(buf, DeviceObject->DeviceName.Buffer,
                 DeviceObject->DeviceName.Length);
             buf += DeviceObject->DeviceName.Length;

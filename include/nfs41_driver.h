@@ -86,6 +86,20 @@ typedef enum _nfs41_opcodes {
     NFS41_SYSOP_INVALID_OPCODE1
 } nfs41_opcodes;
 
+/*
+ * Symlink target path types returned by the |NFS41_SYSOP_OPEN|
+ * downcall
+ */
+typedef enum _nfs41_sysop_open_symlinktarget_type {
+    NFS41_SYMLINKTARGET_TYPE_UNDEFINED = 0,
+    /*
+     * Symlink within the same filesystem, but "absolute" from
+     * mount root
+     */
+    NFS41_SYMLINKTARGET_FILESYSTEM_ABSOLUTE = 1,
+    NFS41_SYMLINKTARGET_NTPATH = 2
+} nfs41_sysop_open_symlinktarget_type;
+
 enum rpcsec_flavors {
     RPCSEC_AUTH_SYS,
     RPCSEC_AUTHGSS_KRB5,

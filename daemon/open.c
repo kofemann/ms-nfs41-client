@@ -608,7 +608,8 @@ static int create_with_ea(
 
 static
 void symlink2ntpath(
-    IN OUT nfs41_abs_path *restrict symlink)
+    IN OUT nfs41_abs_path *restrict symlink,
+    OUT nfs41_sysop_open_symlinktarget_type *out_target_type)
 {
     DPRINTF(1, ("--> symlink2ntpath(symlink='%.*s', len=%d)\n",
         (int)symlink->len,
@@ -643,6 +644,7 @@ void symlink2ntpath(
             (int)symlink->len,
             symlink->path,
             (int)symlink->len));
+        *out_target_type = NFS41_SYMLINKTARGET_NTPATH;
     }
     /* UNC path (e.g. "\\server\path") ? */
     else if ((symlink->len > 3) &&
@@ -662,27 +664,27 @@ void symlink2ntpath(
             (int)symlink->len,
             symlink->path,
             (int)symlink->len));
+        *out_target_type = NFS41_SYMLINKTARGET_NTPATH;
     }
     else {
         /*
          * All other paths just return a "drive abolute" path,
          * e.g. \foo\bar
-         *
-         * FIXME/BUG: What about a directory called "??" in the
-         * base of a filesystem, and access it with a trailing
-         * slash in the symlink - that would result in "\??\",
-         * which the kernel would treat as direct NT path...
          */
 
         /* These asserts should never be triggered... */
         EASSERT(symlink->len > 0);
         EASSERT((symlink->len > 0) && (symlink->path[0] == '\\'));
+        *out_target_type = NFS41_SYMLINKTARGET_FILESYSTEM_ABSOLUTE;
     }
 
-    DPRINTF(1, ("<-- symlink2ntpath(symlink='%.*s', len=%d)\n",
+    DPRINTF(1,
+        ("<-- symlink2ntpath(symlink='%.*s', len=%d, "
+            "*out_target_type=%d)\n",
         (int)symlink->len,
         symlink->path,
-        (int)symlink->len));
+        (int)symlink->len,
+        (int)*out_target_type));
 }
 
 static int handle_open(void *daemon_context, nfs41_upcall *upcall)
@@ -759,6 +761,8 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
             status = NO_ERROR;
             upcall->last_error = ERROR_REPARSE;
             args->symlink_embedded = TRUE;
+            args->symlinktarget_type =
+                NFS41_SYMLINKTARGET_FILESYSTEM_ABSOLUTE;
         }
         goto out_free_state;
     }
@@ -807,7 +811,7 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
                     eprintf("nfs41_symlink_target() for '%s' failed with %d\n",
                         args->path, status);
                 } else {
-                    symlink2ntpath(&args->symlink);
+                    symlink2ntpath(&args->symlink, &args->symlinktarget_type);
                     /* tell the driver to call RxPrepareToReparseSymbolicLink() */
                     upcall->last_error = ERROR_REPARSE;
                     args->symlink_embedded = FALSE;
@@ -1223,6 +1227,9 @@ static int marshall_open(unsigned char *buffer, uint32_t *length, nfs41_upcall *
     if (upcall->last_error == ERROR_REPARSE) {
         unsigned short len = (args->symlink.len + 1) * sizeof(WCHAR);
         status = safe_write(&buffer, length, &args->symlink_embedded, sizeof(BOOLEAN));
+        if (status) goto out;
+        BYTE tmp_symlinktarget_type = args->symlinktarget_type;
+        status = safe_write(&buffer, length, &tmp_symlinktarget_type, sizeof(BYTE));
         if (status) goto out;
         status = safe_write(&buffer, length, &len, sizeof(len));
         if (status) goto out;
