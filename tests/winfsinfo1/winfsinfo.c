@@ -852,6 +852,124 @@ done:
 }
 
 static
+bool get_file_remote_protocol_info(const char *progname, const char *filename)
+{
+    int res = EXIT_FAILURE;
+    bool ok;
+    FILE_REMOTE_PROTOCOL_INFO frpi;
+    int i;
+    (void)memset(&frpi, 0, sizeof(frpi));
+
+    HANDLE fileHandle = CreateFileA(filename,
+        GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING,
+        FILE_FLAG_BACKUP_SEMANTICS, NULL);
+    if (fileHandle == INVALID_HANDLE_VALUE) {
+        (void)fprintf(stderr,
+            "%s: Error opening file '%s'. Last error was %d.\n",
+            progname,
+            filename,
+            (int)GetLastError());
+        return EXIT_FAILURE;
+    }
+
+    ok = GetFileInformationByHandleEx(fileHandle,
+        FileRemoteProtocolInfo, &frpi, sizeof(frpi));
+
+    if (!ok) {
+        (void)fprintf(stderr, "%s: GetFileInformationByHandleEx() "
+            "error. GetLastError()==%d.\n",
+            progname,
+            (int)GetLastError());
+        res = EXIT_FAILURE;
+        goto done;
+    }
+
+    (void)printf("(\n");
+    (void)printf("\tfilename='%s'\n", filename);
+
+    (void)printf("\tStructureVersion=%u\n",
+        (unsigned int)frpi.StructureVersion);
+    (void)printf("\tStructureSize=%u\n",
+        (unsigned int)frpi.StructureSize);
+    (void)printf("\tProtocol=%ld\n",
+        (long)frpi.Protocol);
+    (void)printf("\tProtocolMajorVersion=%u\n",
+        (unsigned int)frpi.ProtocolMajorVersion);
+    (void)printf("\tProtocolMinorVersion=%u\n",
+        (unsigned int)frpi.ProtocolMinorVersion);
+    (void)printf("\tProtocolRevision=%u\n",
+        (unsigned int)frpi.ProtocolRevision);
+    (void)printf("\tReserved=0x%x\n",
+        (unsigned int)frpi.Reserved);
+
+    (void)printf("\ttypeset -a Flags=(\n");
+
+#define TESTREMOTEPROTOCOLFLAG(s) \
+    if (frpi.Flags & (s)) { \
+        (void)puts("\t\t"#s); \
+        frpi.Flags &= ~(s); \
+    }
+
+    TESTREMOTEPROTOCOLFLAG(REMOTE_PROTOCOL_FLAG_LOOPBACK);
+    TESTREMOTEPROTOCOLFLAG(REMOTE_PROTOCOL_FLAG_OFFLINE);
+    TESTREMOTEPROTOCOLFLAG(REMOTE_PROTOCOL_FLAG_PERSISTENT_HANDLE);
+    TESTREMOTEPROTOCOLFLAG(REMOTE_PROTOCOL_FLAG_PRIVACY);
+    TESTREMOTEPROTOCOLFLAG(REMOTE_PROTOCOL_FLAG_INTEGRITY);
+    TESTREMOTEPROTOCOLFLAG(REMOTE_PROTOCOL_FLAG_MUTUAL_AUTH);
+
+    (void)printf("\t)\n");
+
+    /*
+     * print any leftover flags not covered by
+     * |TESTREMOTEPROTOCOLFLAG()| above
+     */
+    if (frpi.Flags) {
+        (void)printf("\tattr=0x%lx\n", (long)frpi.Flags);
+    }
+
+    /* GenericReserved */
+    (void)printf("\tcompound GenericReserved=(\n");
+    (void)printf("\t\ttypeset -a Reserved=(\n");
+    for (i=0 ; i < 8 ; i++) {
+        (void)printf("\t\t\t[%d]=%lx\n",
+            i,
+            (long)frpi.GenericReserved.Reserved[i]);
+    }
+    (void)printf("\t\t)\n");
+    (void)printf("\t)\n");
+
+#if (_WIN32_WINNT < _WIN32_WINNT_WIN8)
+    /* ProtocolSpecificReserved */
+    (void)printf("\tcompound ProtocolSpecificReserved=(\n");
+    (void)printf("\t\ttypeset -a Reserved=(\n");
+    for (i=0 ; i < 16 ; i++) {
+        (void)printf("\t\t\t[%d]=%lx\n",
+            i,
+            (long)frpi.ProtocolSpecificReserved.Reserved[i]);
+    }
+    (void)printf("\t\t)\n");
+    (void)printf("\t)\n");
+#else
+    /* ProtocolSpecific */
+    (void)printf("\tcompound ProtocolSpecific=(\n");
+    (void)printf("\t\ttypeset -a Reserved=(\n");
+    for (i=0 ; i < 16 ; i++) {
+        (void)printf("\t\t\t[%d]=%lx\n",
+            i,
+            (long)frpi.ProtocolSpecific.Reserved[i]);
+    }
+    (void)printf("\t\t)\n");
+    (void)printf("\t)\n");
+#endif /* (_WIN32_WINNT < _WIN32_WINNT_WIN8) */
+    (void)printf(")\n");
+    res = EXIT_SUCCESS;
+
+done:
+    (void)CloseHandle(fileHandle);
+    return res;
+}
+
+static
 void usage(void)
 {
     (void)fprintf(stderr, "winfsinfo <"
@@ -866,7 +984,8 @@ void usage(void)
         "filenormalizednameinfo|"
         "filecasesensitiveinfo|"
         "getfiletime|"
-        "nfs3attr"
+        "nfs3attr|"
+        "fileremoteprotocolinfo"
         "> path\n");
 }
 
@@ -912,6 +1031,9 @@ int main(int ac, char *av[])
     }
     else if (!strcmp(subcmd, "nfs3attr")) {
         return get_nfs3attr(av[0], av[2]);
+    }
+    else if (!strcmp(subcmd, "fileremoteprotocolinfo")) {
+        return get_file_remote_protocol_info(av[0], av[2]);
     }
     else {
         (void)fprintf(stderr, "%s: Unknown subcmd '%s'\n", av[0], subcmd);
