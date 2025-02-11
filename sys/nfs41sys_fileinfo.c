@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2023-2024 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -237,37 +237,6 @@ NTSTATUS nfs41_QueryFileInformation(
         status = STATUS_SUCCESS;
         goto out;
     }
-    case FileRemoteProtocolInformation:
-    {
-        if (RxContext->Info.LengthRemaining <
-            sizeof(FILE_REMOTE_PROTOCOL_INFORMATION)) {
-            print_error("nfs41_QueryFileInformation: "
-                "FILE_REMOTE_PROTOCOL_INFORMATION buffer too small\n");
-            status = STATUS_BUFFER_TOO_SMALL;
-            goto out;
-        }
-
-        PFILE_REMOTE_PROTOCOL_INFORMATION info =
-            (PFILE_REMOTE_PROTOCOL_INFORMATION)RxContext->Info.Buffer;
-
-        (void)RtlZeroMemory(info,
-            sizeof(FILE_REMOTE_PROTOCOL_INFORMATION));
-        info->StructureVersion = 1;
-        info->StructureSize = sizeof(FILE_REMOTE_PROTOCOL_INFORMATION);
-        info->Protocol = WNNC_NET_RDR2SAMPLE; /* FIXME! */
-        /*
-         * ToDo: If we add NFSv4.1/NFSv4.2 protocol negotiation, then
-         * we need to call the userland daemon to return the correct
-         * protocol minor version
-         */
-        info->ProtocolMajorVersion = 4;
-        info->ProtocolMinorVersion = 1;
-        info->ProtocolRevision = 0;
-        RxContext->Info.LengthRemaining -=
-            sizeof(FILE_REMOTE_PROTOCOL_INFORMATION);
-        status = STATUS_SUCCESS;
-        goto out;
-    }
     case FileCaseSensitiveInformation:
     {
         if (RxContext->Info.LengthRemaining <
@@ -306,6 +275,7 @@ NTSTATUS nfs41_QueryFileInformation(
     case FileInternalInformation:
     case FileAttributeTagInformation:
     case FileNetworkOpenInformation:
+    case FileRemoteProtocolInformation:
 #ifdef NFS41_DRIVER_WSL_SUPPORT
     case FileStatInformation:
     case FileStatLxInformation:
@@ -401,6 +371,7 @@ NTSTATUS nfs41_QueryFileInformation(
 #endif
             break;
         case FileNetworkOpenInformation:
+        case FileRemoteProtocolInformation:
         case FileInternalInformation:
         case FileAttributeTagInformation:
 #ifdef NFS41_DRIVER_WSL_SUPPORT

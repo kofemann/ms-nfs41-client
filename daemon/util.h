@@ -1,5 +1,6 @@
 /* NFSv4.1 client for Windows
- * Copyright © 2012 The Regents of the University of Michigan
+ * Copyright (C) 2012 The Regents of the University of Michigan
+ * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -192,6 +193,10 @@ void nfs_to_network_openinfo(
     IN const nfs41_superblock *restrict superblock,
     IN const nfs41_file_info *restrict info,
     OUT PFILE_NETWORK_OPEN_INFORMATION restrict std_out);
+typedef struct __nfs41_open_state nfs41_open_state;
+void nfs_to_remote_protocol_info(
+    IN nfs41_open_state *state,
+    OUT PFILE_REMOTE_PROTOCOL_INFORMATION restrict rpi_out);
 #ifdef NFS41_DRIVER_WSL_SUPPORT
 void nfs_to_stat_info(
     IN const char *restrict name,

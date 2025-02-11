@@ -200,6 +200,30 @@ void nfs_to_network_openinfo(
         nfs_file_info_to_attributes(superblock, info);
 }
 
+void nfs_to_remote_protocol_info(
+    IN nfs41_open_state *state,
+    OUT PFILE_REMOTE_PROTOCOL_INFORMATION restrict rpi_out)
+{
+    (void)memset(rpi_out, 0, sizeof(FILE_REMOTE_PROTOCOL_INFORMATION));
+
+    rpi_out->StructureVersion = 1;
+    rpi_out->StructureSize = sizeof(FILE_REMOTE_PROTOCOL_INFORMATION);
+    rpi_out->Protocol = WNNC_NET_RDR2SAMPLE; /* FIXME! */
+
+    /* ToDo: Add pNFS info */
+    rpi_out->ProtocolMajorVersion = 4;
+    rpi_out->ProtocolMinorVersion =
+        (USHORT)state->session->client->root->nfsminorvers;
+    rpi_out->ProtocolRevision = 0;
+
+    /*
+     * FIXME: |FILE_REMOTE_PROTOCOL_INFORMATION.Flags| should contain
+     * |REMOTE_PROTOCOL_FLAG_PRIVACY| (krb5p) and
+     * |REMOTE_PROTOCOL_FLAG_INTEGRITY| (krb5i) in case of Krb5 auth
+     */
+    rpi_out->Flags = 0;
+}
+
 #ifdef NFS41_DRIVER_WSL_SUPPORT
 void nfs_to_stat_info(
     IN const char *restrict name,

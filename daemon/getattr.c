@@ -1,5 +1,6 @@
 /* NFSv4.1 client for Windows
- * Copyright © 2012 The Regents of the University of Michigan
+ * Copyright (C) 2012 The Regents of the University of Michigan
+ * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -209,6 +210,15 @@ static int handle_getattr(void *daemon_context, nfs41_upcall *upcall)
             &info,
             &args->network_info);
         break;
+    case FileRemoteProtocolInformation:
+        /*
+         * |FileRemoteProtocolInformation| does not use |info|, but
+         * we have to do the |nfs41_cached_getattr()| anyway to fill
+         * out |info.change| to return the proper |args->ctime|
+         */
+        nfs_to_remote_protocol_info(state,
+            &args->remote_protocol_info);
+        break;
 #ifdef NFS41_DRIVER_WSL_SUPPORT
     case FileStatInformation:
         nfs_to_stat_info(state->file.name.name,
@@ -276,6 +286,14 @@ static int marshall_getattr(unsigned char *buffer, uint32_t *length, nfs41_upcal
         status = safe_write(&buffer, length, &info_len, sizeof(info_len));
         if (status) goto out;
         status = safe_write(&buffer, length, &args->network_info, info_len);
+        if (status) goto out;
+        break;
+    case FileRemoteProtocolInformation:
+        info_len = sizeof(args->remote_protocol_info);
+        status = safe_write(&buffer, length, &info_len, sizeof(info_len));
+        if (status) goto out;
+        status = safe_write(&buffer, length,
+            &args->remote_protocol_info, info_len);
         if (status) goto out;
         break;
 #ifdef NFS41_DRIVER_WSL_SUPPORT

@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2023-2024 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -251,6 +251,43 @@ typedef struct _FILE_NETWORK_OPEN_INFORMATION {
     LARGE_INTEGER EndOfFile;
     ULONG FileAttributes;
 } FILE_NETWORK_OPEN_INFORMATION, *PFILE_NETWORK_OPEN_INFORMATION;
+
+#define REMOTE_PROTOCOL_FLAG_LOOPBACK           0x00000001
+#define REMOTE_PROTOCOL_FLAG_OFFLINE            0x00000002
+#define REMOTE_PROTOCOL_FLAG_PERSISTENT_HANDLE  0x00000004
+#define REMOTE_PROTOCOL_FLAG_PRIVACY            0x00000008
+#define REMOTE_PROTOCOL_FLAG_INTEGRITY          0x00000010
+#define REMOTE_PROTOCOL_FLAG_MUTUAL_AUTH        0x00000020
+
+/*
+ * Note: |struct _FILE_REMOTE_PROTOCOL_INFORMATION| must be identical
+ * to the Win32 |struct FILE_REMOTE_PROTOCOL_INFO|
+ */
+typedef struct _FILE_REMOTE_PROTOCOL_INFORMATION
+{
+    USHORT  StructureVersion;
+    USHORT  StructureSize;
+    ULONG   Protocol; /* |WNNC_NET_*| defines */
+    USHORT  ProtocolMajorVersion;
+    USHORT  ProtocolMinorVersion;
+    USHORT  ProtocolRevision;
+    USHORT  Reserved;
+    ULONG   Flags;
+
+    struct {
+        ULONG Reserved[8];
+    } GenericReserved;
+
+#if (_WIN32_WINNT < _WIN32_WINNT_WIN8)
+    struct {
+        ULONG Reserved[16];
+    } ProtocolSpecificReserved;
+#else
+    union {
+        ULONG Reserved[16];
+    } ProtocolSpecific;
+#endif /* (_WIN32_WINNT < _WIN32_WINNT_WIN8) */
+} FILE_REMOTE_PROTOCOL_INFORMATION, *PFILE_REMOTE_PROTOCOL_INFORMATION;
 
 #ifndef LX_FILE_METADATA_HAS_UID
 typedef struct _FILE_STAT_INFORMATION {
