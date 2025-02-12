@@ -190,6 +190,14 @@ typedef struct __setacl_upcall_args {
     ULONGLONG ctime;
 } setacl_upcall_args;
 
+typedef struct __queryallocatedranges_upcall_args {
+    FILE_ALLOCATED_RANGE_BUFFER     inrange;
+    HANDLE                          outbuffer;
+    ULONG                           outbuffersize;
+    ULONG                           returned_size;
+} queryallocatedranges_upcall_args;
+
+
 typedef union __upcall_args {
     mount_upcall_args       mount;
     open_upcall_args        open;
@@ -206,6 +214,7 @@ typedef union __upcall_args {
     volume_upcall_args      volume;
     getacl_upcall_args      getacl;
     setacl_upcall_args      setacl;
+    queryallocatedranges_upcall_args queryallocatedranges;
 } upcall_args;
 
 typedef enum _nfs41_opcodes nfs41_opcodes;

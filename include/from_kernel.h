@@ -439,4 +439,17 @@ typedef struct _FILE_FS_SECTOR_SIZE_INFORMATION {
 typedef struct _FILE_INTERNAL_INFORMATION {
     LARGE_INTEGER IndexNumber;
 } FILE_INTERNAL_INFORMATION, *PFILE_INTERNAL_INFORMATION;
+
+/*
+ * |FILE_ALLOCATED_RANGE_BUFFER| - test for
+ * /usr/i686-w64-mingw32/sys-root/mingw/include/winioctl.h header
+ * to avoid type redefinition warnings
+ */
+#ifndef _WINIOCTL_
+typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
+    LARGE_INTEGER FileOffset;
+    LARGE_INTEGER Length;
+} FILE_ALLOCATED_RANGE_BUFFER, *PFILE_ALLOCATED_RANGE_BUFFER;
+#endif /* _WINIOCTL_ */
+
 #endif

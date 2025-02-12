@@ -302,6 +302,10 @@ NTSTATUS handle_upcall(
     case NFS41_SYSOP_ACL_SET:
         status = marshal_nfs41_setacl(entry, pbOut, cbOut, len);
         break;
+    case NFS41_SYSOP_FSCTL_QUERYALLOCATEDRANGES:
+        status = marshal_nfs41_queryallocatedranges(entry,
+            pbOut, cbOut, len);
+        break;
     default:
         status = STATUS_INVALID_PARAMETER;
         print_error("Unknown nfs41 ops %d\n", entry->opcode);
@@ -598,6 +602,15 @@ NTSTATUS nfs41_downcall(
                 IoFreeMdl(cur->u.Open.EaMdl);
             }
             break;
+        case NFS41_SYSOP_FSCTL_QUERYALLOCATEDRANGES:
+            if (cur->u.QueryAllocatedRanges.BufferMdl) {
+                MmUnmapLockedPages(
+                    cur->u.QueryAllocatedRanges.Buffer,
+                    cur->u.QueryAllocatedRanges.BufferMdl);
+                IoFreeMdl(cur->u.QueryAllocatedRanges.BufferMdl);
+                cur->u.QueryAllocatedRanges.BufferMdl = NULL;
+            }
+            break;
         }
         ExReleaseFastMutex(&cur->lock);
         nfs41_RemoveEntry(downcallLock, cur);
@@ -650,6 +663,9 @@ NTSTATUS nfs41_downcall(
             break;
         case NFS41_SYSOP_ACL_SET:
             unmarshal_nfs41_setattr(cur, &cur->ChangeTime, &buf);
+            break;
+        case NFS41_SYSOP_FSCTL_QUERYALLOCATEDRANGES:
+            unmarshal_nfs41_queryallocatedranges(cur, &buf);
             break;
         }
     }

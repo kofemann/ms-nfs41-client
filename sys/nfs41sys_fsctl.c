@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2023-2024 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -105,14 +105,20 @@ NTSTATUS nfs41_QueryAllocatedRanges(
     IN OUT PRX_CONTEXT RxContext)
 {
     NTSTATUS status = STATUS_INVALID_DEVICE_REQUEST;
+    nfs41_updowncall_entry *entry = NULL;
+    __notnull PMRX_SRV_OPEN SrvOpen = RxContext->pRelevantSrvOpen;
+    __notnull PNFS41_V_NET_ROOT_EXTENSION pVNetRootContext =
+        NFS41GetVNetRootExtension(SrvOpen->pVNetRoot);
+    __notnull PNFS41_NETROOT_EXTENSION pNetRootContext =
+        NFS41GetNetRootExtension(SrvOpen->pVNetRoot->pNetRoot);
     __notnull XXCTL_LOWIO_COMPONENT *FsCtl =
         &RxContext->LowIoContext.ParamsFor.FsCtl;
     __notnull PFILE_ALLOCATED_RANGE_BUFFER in_range_buffer =
         (PFILE_ALLOCATED_RANGE_BUFFER)FsCtl->pInputBuffer;
     __notnull PFILE_ALLOCATED_RANGE_BUFFER out_range_buffer =
         (PFILE_ALLOCATED_RANGE_BUFFER)FsCtl->pOutputBuffer;
-    __notnull PNFS41_FCB nfs41_fcb =
-        NFS41GetFcbExtension(RxContext->pFcb);
+    ULONG out_range_buffer_len = FsCtl->OutputBufferLength;
+    __notnull PNFS41_FOBX nfs41_fobx = NFS41GetFobxExtension(RxContext->pFobx);
 
     DbgEn();
 
@@ -130,46 +136,182 @@ NTSTATUS nfs41_QueryAllocatedRanges(
         goto out;
     }
 
-/*
- * FIXME: For now we implement |FSCTL_QUERY_ALLOCATED_RANGES| using
- * a dummy implementation which just returns { 0, filesize }
- * so we can do testing with Cygwin >= 3.6.x
- * |lseek(..., SEEK_HOLE/SEEK_DATA, ...)| and
- * Windows $ fsutil sparse queryrange mysparsefile.txt #.
- *
- * We really need an upcall which issues NFSv4.2 SEEK to enumerate the
- * data/hole sections and fill an array of
- * |FILE_ALLOCATED_RANGE_BUFFER|s with the positions of tha SEEK_DATA
- * results.
- */
-#define NFS41SYS_FSCTL_QUERY_ALLOCATED_RANGES_PLACEHOLDER_DUMMY_IMPL 1
-
-#ifdef NFS41SYS_FSCTL_QUERY_ALLOCATED_RANGES_PLACEHOLDER_DUMMY_IMPL
-    DbgP("nfs41_QueryAllocatedRanges: "
+    DbgP("nfs41_QueryAllocatedRanges/REAL: "
         "in_range_buffer=(FileOffset=%lld,Length=%lld)\n",
         (long long)in_range_buffer->FileOffset.QuadPart,
         (long long)in_range_buffer->Length.QuadPart);
 
-    if (FsCtl->OutputBufferLength <
-        (1*sizeof(FILE_ALLOCATED_RANGE_BUFFER))) {
-        DbgP("nfs41_QueryAllocatedRanges: "
-            "FsCtl->OutputBufferLength too small\n");
-        status = STATUS_BUFFER_TOO_SMALL;
+    status = nfs41_UpcallCreate(NFS41_SYSOP_FSCTL_QUERYALLOCATEDRANGES,
+        &nfs41_fobx->sec_ctx,
+        pVNetRootContext->session,
+        nfs41_fobx->nfs41_open_state,
+        pNetRootContext->nfs41d_version,
+        SrvOpen->pAlreadyPrefixedName,
+        &entry);
+
+    if (status)
+        goto out;
+
+    entry->u.QueryAllocatedRanges.inrange = *in_range_buffer;
+    entry->u.QueryAllocatedRanges.BufferSize = out_range_buffer_len;
+
+    /* lock the buffer for write access in user space */
+    entry->u.QueryAllocatedRanges.BufferMdl = IoAllocateMdl(
+        out_range_buffer,
+        out_range_buffer_len,
+        FALSE, FALSE, NULL);
+    if (entry->u.QueryAllocatedRanges.BufferMdl == NULL) {
+        status = STATUS_INTERNAL_ERROR;
+        DbgP("nfs41_QueryAllocatedRanges: IoAllocateMdl() failed\n");
+        goto out_free;
+    }
+
+#pragma warning( push )
+/*
+ * C28145: "The opaque MDL structure should not be modified by a
+ * driver.", |MDL_MAPPING_CAN_FAIL| is the exception
+ */
+#pragma warning (disable : 28145)
+    entry->u.QueryAllocatedRanges.BufferMdl->MdlFlags |=
+        MDL_MAPPING_CAN_FAIL;
+#pragma warning( pop )
+    MmProbeAndLockPages(entry->u.QueryAllocatedRanges.BufferMdl,
+        KernelMode,
+        IoModifyAccess);
+
+    status = nfs41_UpcallWaitForReply(entry, pVNetRootContext->timeout);
+    if (status) {
+        /* Timeout - |nfs41_downcall()| will free |entry|+contents */
         goto out;
     }
 
-    out_range_buffer->FileOffset.QuadPart = 0;
-    out_range_buffer->Length.QuadPart =
-        nfs41_fcb->StandardInfo.EndOfFile.QuadPart;
+    if (entry->psec_ctx == &entry->sec_ctx) {
+        SeDeleteClientSecurity(entry->psec_ctx);
+    }
+    entry->psec_ctx = NULL;
 
-    RxContext->IoStatusBlock.Information =
-        (ULONG_PTR)1*sizeof(FILE_ALLOCATED_RANGE_BUFFER);
+    if (!entry->status) {
+        DbgP("nfs41_QueryAllocatedRanges: SUCCESS\n");
+        RxContext->CurrentIrp->IoStatus.Status = STATUS_SUCCESS;
+        RxContext->IoStatusBlock.Information =
+            (ULONG_PTR)entry->u.QueryAllocatedRanges.returned_size;
+    }
+    else {
+        DbgP("nfs41_QueryAllocatedRanges: "
+            "FAILURE, entry->status=0x%lx\n", entry->status);
+        status = map_setfile_error(entry->status);
+        RxContext->CurrentIrp->IoStatus.Status = status;
+        RxContext->IoStatusBlock.Information = 0;
+    }
 
-    status = STATUS_SUCCESS;
-#endif /* NFS41SYS_FSCTL_QUERY_ALLOCATED_RANGES_PLACEHOLDER_DUMMY_IMPL */
+out_free:
+    if (entry) {
+        if (entry->u.QueryAllocatedRanges.BufferMdl) {
+            MmUnlockPages(entry->u.QueryAllocatedRanges.BufferMdl);
+            IoFreeMdl(entry->u.QueryAllocatedRanges.BufferMdl);
+            entry->u.QueryAllocatedRanges.BufferMdl = NULL;
+        }
+
+        nfs41_UpcallDestroy(entry);
+    }
 
 out:
     DbgEx();
+    return status;
+}
+
+NTSTATUS marshal_nfs41_queryallocatedranges(
+    nfs41_updowncall_entry *entry,
+    unsigned char *buf,
+    ULONG buf_len,
+    ULONG *len)
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    ULONG header_len = 0;
+    unsigned char *tmp = buf;
+
+    status = marshal_nfs41_header(entry, tmp, buf_len, len);
+    if (status) goto out;
+    else tmp += *len;
+
+    header_len = *len + sizeof(FILE_ALLOCATED_RANGE_BUFFER) +
+        sizeof(LONGLONG) +
+        sizeof(HANDLE);
+    if (header_len > buf_len) {
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto out;
+    }
+
+    RtlCopyMemory(tmp, &entry->u.QueryAllocatedRanges.inrange,
+        sizeof(entry->u.QueryAllocatedRanges.inrange));
+    tmp += sizeof(entry->u.QueryAllocatedRanges.inrange);
+    RtlCopyMemory(tmp, &entry->u.QueryAllocatedRanges.BufferSize,
+        sizeof(entry->u.QueryAllocatedRanges.BufferSize));
+    tmp += sizeof(entry->u.QueryAllocatedRanges.BufferSize);
+
+    __try {
+        if (entry->u.QueryAllocatedRanges.BufferMdl) {
+            entry->u.QueryAllocatedRanges.Buffer =
+                MmMapLockedPagesSpecifyCache(
+                    entry->u.QueryAllocatedRanges.BufferMdl,
+                    UserMode, MmCached, NULL, FALSE,
+                    NormalPagePriority|MdlMappingNoExecute);
+            if (entry->u.QueryAllocatedRanges.Buffer == NULL) {
+                print_error("marshal_nfs41_queryallocatedranges: "
+                    "MmMapLockedPagesSpecifyCache() failed to "
+                    "map pages\n");
+                status = STATUS_INSUFFICIENT_RESOURCES;
+                goto out;
+            }
+        }
+    } __except(EXCEPTION_EXECUTE_HANDLER) {
+        print_error("marshal_nfs41_queryallocatedranges: Call to "
+            "MmMapLockedPagesSpecifyCache() failed "
+            "due to exception 0x%lx\n", (long)GetExceptionCode());
+        status = STATUS_ACCESS_VIOLATION;
+        goto out;
+    }
+    RtlCopyMemory(tmp, &entry->u.QueryAllocatedRanges.Buffer,
+        sizeof(HANDLE));
+    *len = header_len;
+
+    DbgP("marshal_nfs41_queryallocatedranges: name='%wZ' "
+        "buffersize=0x%ld, buffer=0x%p\n",
+         entry->filename,
+         (long)entry->u.QueryAllocatedRanges.BufferSize,
+         (void *)entry->u.QueryAllocatedRanges.Buffer);
+out:
+    return status;
+}
+
+NTSTATUS unmarshal_nfs41_queryallocatedranges(
+    nfs41_updowncall_entry *cur,
+    unsigned char **buf)
+{
+    NTSTATUS status = STATUS_SUCCESS;
+
+    __try {
+        if (cur->u.QueryAllocatedRanges.Buffer)
+            MmUnmapLockedPages(
+                cur->u.QueryAllocatedRanges.Buffer,
+                cur->u.QueryAllocatedRanges.BufferMdl);
+    } __except(EXCEPTION_EXECUTE_HANDLER) {
+        print_error("unmarshal_nfs41_queryallocatedranges: "
+            "MmUnmapLockedPages thrown exception=0x%lx\n",
+            (long)GetExceptionCode());
+        status = cur->status = STATUS_ACCESS_VIOLATION;
+        goto out;
+    }
+
+    RtlCopyMemory(&cur->u.QueryAllocatedRanges.returned_size,
+        *buf, sizeof(ULONG));
+    *buf += sizeof(ULONG);
+
+    DbgP("unmarshal_nfs41_queryallocatedranges: "
+        "queryallocatedranges.returned_size=%llu\n",
+        cur->u.QueryAllocatedRanges.returned_size);
+
+out:
     return status;
 }
 

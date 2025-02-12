@@ -39,6 +39,9 @@
     <ClCompile Include="..\..\daemon\fileinfoutil.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\daemon\fsctl.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\daemon\getattr.c">
       <Filter>Source Files</Filter>
     </ClCompile>

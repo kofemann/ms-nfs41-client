@@ -677,6 +677,7 @@ const char *opcode2string(int opcode)
     case NFS41_SYSOP_VOLUME_QUERY: return "NFS41_SYSOP_VOLUME_QUERY";
     case NFS41_SYSOP_ACL_QUERY: return "NFS41_SYSOP_ACL_QUERY";
     case NFS41_SYSOP_ACL_SET: return "NFS41_SYSOP_ACL_SET";
+    case NFS41_SYSOP_FSCTL_QUERYALLOCATEDRANGES: return "NFS41_SYSOP_FSCTL_QUERYALLOCATEDRANGES";
     default: return "UNKNOWN";
     }
 }

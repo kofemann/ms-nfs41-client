@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2023-2024 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -269,6 +269,13 @@ typedef struct _updowncall_entry {
         struct {
             SECURITY_INFORMATION query;
         } Acl;
+        struct {
+            FILE_ALLOCATED_RANGE_BUFFER inrange;
+            PMDL BufferMdl;
+            ULONG BufferSize;
+            PVOID Buffer;
+            LONGLONG returned_size;
+        } QueryAllocatedRanges;
     } u;
 
 } nfs41_updowncall_entry;
@@ -635,6 +642,14 @@ NTSTATUS nfs41_QueryEaInformation(
 /* nfs41sys_fsctl.c */
 NTSTATUS nfs41_FsCtl(
     IN OUT PRX_CONTEXT RxContext);
+NTSTATUS marshal_nfs41_queryallocatedranges(
+    nfs41_updowncall_entry *entry,
+    unsigned char *buf,
+    ULONG buf_len,
+    ULONG *len);
+NTSTATUS unmarshal_nfs41_queryallocatedranges(
+    nfs41_updowncall_entry *cur,
+    unsigned char **buf);
 
 /* nfs41sys_ioctl.c */
 NTSTATUS nfs41_IoCtl(
