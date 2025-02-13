@@ -315,6 +315,68 @@ out:
     return status;
 }
 
+static
+NTSTATUS nfs41_SetSparse(
+    IN OUT PRX_CONTEXT RxContext)
+{
+    NTSTATUS status = STATUS_INVALID_DEVICE_REQUEST;
+    __notnull PMRX_SRV_OPEN SrvOpen = RxContext->pRelevantSrvOpen;
+    __notnull XXCTL_LOWIO_COMPONENT *FsCtl =
+        &RxContext->LowIoContext.ParamsFor.FsCtl;
+    __notnull PFILE_SET_SPARSE_BUFFER set_parse_buffer =
+        (PFILE_SET_SPARSE_BUFFER)FsCtl->pInputBuffer;
+
+    DbgEn();
+
+    /*
+     * Special case: No input buffer, so we treat this as if we got
+     * |set_parse_buffer->SetSparse == TRUE|
+     */
+    if (FsCtl->InputBufferLength == 0) {
+        /*
+         * We treat all files on NFS as sparse files by default,
+         * so setting the flag is just a (valid) NOP
+         */
+        DbgP("nfs41_SetSparse: "
+            "SUCCESS: FsCtl->InputBufferLength==0, "
+            "treating as SetSparse=TRUE for file '%wZ'\n",
+            SrvOpen->pAlreadyPrefixedName);
+        status = STATUS_SUCCESS;
+        goto out;
+    }
+
+    if (FsCtl->InputBufferLength < sizeof(FILE_SET_SPARSE_BUFFER)) {
+        DbgP("nfs41_SetSparse: Buffer too small\n");
+        status = STATUS_INVALID_PARAMETER;
+        goto out;
+    }
+
+    if (set_parse_buffer->SetSparse) {
+        /*
+         * We treat all files on NFS as sparse files by default,
+         * so setting the flag is just a (valid) NOP
+         */
+        DbgP("nfs41_SetSparse: "
+            "SUCCESS: SetSparse=TRUE for file '%wZ'\n",
+            SrvOpen->pAlreadyPrefixedName);
+        status = STATUS_SUCCESS;
+    }
+    else {
+        /*
+         * We cannot disable the sparse flag, as we treat all files
+         * on NFS as sparse files
+         */
+        DbgP("nfs41_SetSparse: "
+            "FAIL: Cannot set SetSparse=FALSE for file '%wZ'\n",
+            SrvOpen->pAlreadyPrefixedName);
+        status = STATUS_INVALID_PARAMETER;
+    }
+
+out:
+    DbgEx();
+    return status;
+}
+
 NTSTATUS nfs41_FsCtl(
     IN OUT PRX_CONTEXT RxContext)
 {
@@ -335,6 +397,9 @@ NTSTATUS nfs41_FsCtl(
         break;
     case FSCTL_QUERY_ALLOCATED_RANGES:
         status = nfs41_QueryAllocatedRanges(RxContext);
+        break;
+    case FSCTL_SET_SPARSE:
+        status = nfs41_SetSparse(RxContext);
         break;
     default:
         break;
