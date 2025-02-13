@@ -1304,6 +1304,90 @@ out:
     dprintf_out("<-- debug_list_sparsefile_holes()\n");
 }
 
+void debug_list_sparsefile_datasections(nfs41_open_state *state)
+{
+    uint64_t next_offset = 0ULL;
+    uint64_t data_size = 0ULL;
+    int data_seek_status;
+    bool_t data_seek_sr_eof;
+    uint64_t data_seek_sr_offset;
+    int hole_seek_status;
+    bool_t hole_seek_sr_eof;
+    uint64_t hole_seek_sr_offset;
+    int i;
+
+    stateid_arg stateid;
+
+    dprintf_out(
+        "--> debug_list_sparsefile_datasections(state->path.path='%s')\n",
+        state->path.path);
+
+    nfs41_open_stateid_arg(state, &stateid);
+
+    next_offset = 0;
+
+    /*
+     * Limit to 100 cycles to avoid locking-up the client if
+     * something unexpected happen
+     */
+    for (i=0 ; i < 100 ; i++) {
+        data_seek_status = nfs42_seek(state->session,
+            &state->file,
+            &stateid,
+            next_offset,
+            NFS4_CONTENT_DATA,
+            &data_seek_sr_eof,
+            &data_seek_sr_offset);
+        if (data_seek_status) {
+            dprintf_out("SEEK_DATA failed "
+            "OP_SEEK(sa_offset=%llu,sa_what=SEEK_DATA) "
+            "failed with %d(='%s')\n",
+            next_offset,
+            data_seek_status,
+            nfs_error_string(data_seek_status));
+            goto out;
+        }
+
+        next_offset = data_seek_sr_offset;
+
+        hole_seek_status = nfs42_seek(state->session,
+            &state->file,
+            &stateid,
+            next_offset,
+            NFS4_CONTENT_HOLE,
+            &hole_seek_sr_eof,
+            &hole_seek_sr_offset);
+        if (hole_seek_status) {
+            dprintf_out("SEEK_HOLE failed "
+            "OP_SEEK(sa_offset=%llu,sa_what=SEEK_HOLE) "
+            "failed with %d(='%s')\n",
+            next_offset,
+            hole_seek_status,
+            nfs_error_string(hole_seek_status));
+            goto out;
+        }
+
+        next_offset = hole_seek_sr_offset;
+
+        data_size = hole_seek_sr_offset - data_seek_sr_offset;
+
+        dprintf_out("data_section: from "
+            "%llu to %llu, size=%llu (data_eof=%d, hole_eof=%d)\n",
+            data_seek_sr_offset,
+            hole_seek_sr_offset,
+            data_size,
+            (int)data_seek_sr_eof,
+            (int)hole_seek_sr_eof);
+
+        if (data_seek_sr_eof || hole_seek_sr_eof) {
+            break;
+        }
+    }
+
+out:
+    dprintf_out("<-- debug_list_sparsefile_datasections()\n");
+}
+
 #define NUM_RECENTLY_DELETED 128
 static struct
 {

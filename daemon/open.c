@@ -1182,7 +1182,8 @@ create_chgrp_out:
     if ((status == 0) &&
         (info.type == NF4REG) &&
         (state->session->client->root->nfsminorvers >= 2)) {
-        debug_list_sparsefile_holes(state);
+        //debug_list_sparsefile_holes(state);
+        debug_list_sparsefile_datasections(state);
     }
 #endif /* DEBUG_OPEN_SPARSE_FILES */
 
