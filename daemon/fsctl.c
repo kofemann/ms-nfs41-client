@@ -27,6 +27,8 @@
 #include "daemon_debug.h"
 #include "util.h"
 
+#define QARLVL 2 /* dprintf level for "query allocated ranges" logging */
+
 static int parse_queryallocatedranges(unsigned char *buffer,
     uint32_t length, nfs41_upcall *upcall)
 {
@@ -40,7 +42,7 @@ static int parse_queryallocatedranges(unsigned char *buffer,
     status = safe_read(&buffer, &length, &args->outbuffer, sizeof(args->outbuffer));
     if (status) goto out;
 
-    DPRINTF(0, ("parse_queryallocatedranges: "
+    DPRINTF(QARLVL, ("parse_queryallocatedranges: "
         "parsing '%s' inrange=(FileOffset=%lld Length=%lld) "
         "outbuffersize=%lu outbuffer=0x%p\n",
         opcode2string(upcall->opcode),
@@ -52,8 +54,113 @@ out:
     return status;
 }
 
+static
+int query_sparsefile_datasections(nfs41_open_state *state,
+    uint64_t start_offset,
+    FILE_ALLOCATED_RANGE_BUFFER *outbuffer,
+    size_t out_maxrecords,
+    size_t *restrict res_num_records)
+{
+    int status = NO_ERROR;
+    uint64_t next_offset;
+    uint64_t data_size;
+    int data_seek_status;
+    bool_t data_seek_sr_eof;
+    uint64_t data_seek_sr_offset;
+    int hole_seek_status;
+    bool_t hole_seek_sr_eof;
+    uint64_t hole_seek_sr_offset;
+    size_t i;
 
-static int handle_queryallocatedranges(void *daemon_context, nfs41_upcall *upcall)
+    stateid_arg stateid;
+
+    DPRINTF(QARLVL,
+        ("--> query_sparsefile_datasections(state->path.path='%s')\n",
+        state->path.path));
+
+    /* NFS SEEK requires NFSv4.2 */
+    if (state->session->client->root->nfsminorvers < 2) {
+        status = ERROR_NOT_SUPPORTED;
+        goto out;
+    }
+
+    nfs41_open_stateid_arg(state, &stateid);
+
+    next_offset = start_offset;
+    *res_num_records = 0;
+
+    for (i=0 ; i < out_maxrecords ; i++) {
+        data_seek_status = nfs42_seek(state->session,
+            &state->file,
+            &stateid,
+            next_offset,
+            NFS4_CONTENT_DATA,
+            &data_seek_sr_eof,
+            &data_seek_sr_offset);
+        if (data_seek_status) {
+            status = nfs_to_windows_error(data_seek_status,
+                ERROR_INVALID_PARAMETER);
+            DPRINTF(QARLVL, ("SEEK_DATA failed "
+                "OP_SEEK(sa_offset=%llu,sa_what=SEEK_DATA) "
+                "failed with %d(='%s')\n",
+                next_offset,
+                data_seek_status,
+                nfs_error_string(data_seek_status)));
+            goto out;
+        }
+
+        next_offset = data_seek_sr_offset;
+
+        hole_seek_status = nfs42_seek(state->session,
+            &state->file,
+            &stateid,
+            next_offset,
+            NFS4_CONTENT_HOLE,
+            &hole_seek_sr_eof,
+            &hole_seek_sr_offset);
+        if (hole_seek_status) {
+            status = nfs_to_windows_error(hole_seek_status,
+                ERROR_INVALID_PARAMETER);
+            DPRINTF(QARLVL, ("SEEK_HOLE failed "
+                "OP_SEEK(sa_offset=%llu,sa_what=SEEK_HOLE) "
+                "failed with %d(='%s')\n",
+                next_offset,
+                hole_seek_status,
+                nfs_error_string(hole_seek_status)));
+            goto out;
+        }
+
+        next_offset = hole_seek_sr_offset;
+
+        data_size = hole_seek_sr_offset - data_seek_sr_offset;
+
+        DPRINTF(QARLVL, ("data_section: from "
+            "%llu to %llu, size=%llu (data_eof=%d, hole_eof=%d)\n",
+            data_seek_sr_offset,
+            hole_seek_sr_offset,
+            data_size,
+            (int)data_seek_sr_eof,
+            (int)hole_seek_sr_eof));
+
+        outbuffer[i].FileOffset.QuadPart = data_seek_sr_offset;
+        outbuffer[i].Length.QuadPart = data_size;
+        (*res_num_records)++;
+
+        if (data_seek_sr_eof || hole_seek_sr_eof) {
+            break;
+        }
+    }
+
+out:
+    DPRINTF(QARLVL, ("<-- query_sparsefile_datasections(), status=0x%x\n",
+        status));
+    return status;
+}
+
+
+static
+int handle_queryallocatedranges(void *daemon_context,
+    nfs41_upcall *upcall)
 {
     queryallocatedranges_upcall_args *args =
         &upcall->args.queryallocatedranges;
@@ -61,41 +168,44 @@ static int handle_queryallocatedranges(void *daemon_context, nfs41_upcall *upcal
     PFILE_ALLOCATED_RANGE_BUFFER outbuffer =
         (PFILE_ALLOCATED_RANGE_BUFFER)args->outbuffer;
     int status = ERROR_INVALID_PARAMETER;
-    nfs41_file_info info;
+    size_t num_records;
 
-    DPRINTF(0,
+    DPRINTF(QARLVL,
         ("--> handle_queryallocatedranges("
-            "state->path.path='%s')\n",
-            state->path.path));
+            "state->path.path='%s', "
+            "args->inrange.FileOffset=%llu, "
+            "args->inrange.Length=%llu)\n",
+            state->path.path,
+            args->inrange.FileOffset.QuadPart,
+            args->inrange.Length.QuadPart));
 
-    DPRINTF(0,
+    num_records =
+        ((size_t)args->outbuffersize /
+            sizeof(FILE_ALLOCATED_RANGE_BUFFER));
+
+    DPRINTF(QARLVL,
         ("handle_queryallocatedranges:"
             "got space for %ld records\n",
-            (int)((size_t)args->outbuffersize / sizeof(FILE_ALLOCATED_RANGE_BUFFER))));
+            (int)num_records));
 
     args->returned_size = 0;
 
-    (void)memset(&info, 0, sizeof(info));
+    size_t res_num_records = 0;
 
-    status = nfs41_cached_getattr(state->session,
-        &state->file, &info);
-    if (status)
-        goto out;
+    status = query_sparsefile_datasections(state,
+        args->inrange.FileOffset.QuadPart,
+        outbuffer,
+        num_records,
+        &res_num_records);
 
-    if (args->outbuffersize < (1*sizeof(FILE_ALLOCATED_RANGE_BUFFER))) {
-        /* FIXME: We should return the size of the required buffer */
-        status = ERROR_INSUFFICIENT_BUFFER;
-        goto out;
+    if (!status) {
+        args->returned_size =
+            (ULONG)res_num_records*sizeof(FILE_ALLOCATED_RANGE_BUFFER);
     }
 
-    /* return size of file */
-    outbuffer[0].FileOffset.QuadPart = 0;
-    outbuffer[0].Length.QuadPart = info.size;
-    args->returned_size = 1*sizeof(FILE_ALLOCATED_RANGE_BUFFER);
-    status = NO_ERROR;
-
-out:
-    DPRINTF(0, ("<-- handle_queryallocatedranges(), status=0x%lx\n", status));
+    DPRINTF(QARLVL,
+        ("<-- handle_queryallocatedranges(), status=0x%lx\n",
+        status));
     return status;
 }
 

@@ -36,6 +36,7 @@ installdest:
 	mkdir -p $(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/msnfs41client
 	mkdir -p $(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/msnfs41client/tests
 	mkdir -p $(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/msnfs41client/tests/misc
+	mkdir -p $(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/msnfs41client/tests/sparsefiles
 	cp $(VS_BUILD_DIR)/nfsd.exe		$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/nfsd_debug.exe
 	cp $(VS_BUILD_DIR)/nfsd.pdb		$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/nfsd_debug.pdb
 	cp $(VS_BUILD_DIR)/nfs_mount.*	$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/.
@@ -110,6 +111,7 @@ installdest:
 		cp "$(PROJECT_BASEDIR_DIR)/tests/ea/nfs_ea.i686.exe" $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/nfs_ea.exe ; \
 	fi
 	cp $(PROJECT_BASEDIR_DIR)/tests/nfsbuildtest/nfsbuildtest.ksh93 $(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/msnfs41client/tests/misc/nfsbuildtest.ksh93
+	cp $(PROJECT_BASEDIR_DIR)/tests/sparsefiles/testsparsefile1.ksh $(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/msnfs41client/tests/sparsefiles/testsparsefile1.ksh
 	cp $(PROJECT_BASEDIR_DIR)/tests/fstest_make_numtree1/fstest_make_numtree1.ksh93 $(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/msnfs41client/tests/misc/fstest_make_numtree1.ksh93
 	cp $(PROJECT_BASEDIR_DIR)/tests/wintartests/wintartest_comparewinvsgnu001.bash $(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/msnfs41client/tests/misc/wintartest_comparewinvsgnu001.bash
 	cp $(PROJECT_BASEDIR_DIR)/tests/wintartests/wintartest_seq001.bash $(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/msnfs41client/tests/misc/wintartest_seq001.bash

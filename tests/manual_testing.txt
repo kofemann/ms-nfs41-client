@@ -583,4 +583,9 @@ $ apt-get upgrade
 $ apt-get install clang gcc gdb nedit emacs vim x11-apps xterm ksh traceroute strace ddd mesa-utils tk xpdf xmpuzzles mwm xutils-dev valgrind crash libhugetlbfs-bin wireguard xtron x11-xserver-utils sunclock moreutils iproute2 inetutils-tools build-essential linux-source libncurses5-dev xvkbd ethtool tshark xmldiff krb5-user krb5-kdc libkrb5-dev keyutils info bc kmod cpio flex libncurses5-dev libelf-dev libssl-dev inkscape xdmx xdmx-tools twm mwm sbuild autoconf automake openbsd-inetd rwho rwhod finger fingerd cronutils at nfs-kernel-server nfs-common nfs4-acl-tools autofs openjdk-17-jdk openjdk-17-demo python talk talkd libcurl4 libc6-dbg sysvbanner powertop iftop acpidump linux-perf ltrace locales task-german task-japanese schroot groff squashfs-tools dpkg-dev devscripts kernel-wedge sbsigntool git-svn apt-file module-assistant dwarves tree net-tools bridge-utils xnest uml-utilities inxi libxaw7-dev whois extrace kexec-tools dos2unix pkg-config libglib2.0-dev libpixman-1-dev qemu qemu-utils qemu-system-\* qemu-system-gui libsixel-bin w3m-img sharutils freerdp2-x11 nscd debconf-utils iotop 'manpages-posix*' konsole lsof
 
 #
+# sparse file (data+hole) tests
+#
+ksh93 tests/sparsefiles/testsparsefile1.ksh
+
+#
 # EOF.
