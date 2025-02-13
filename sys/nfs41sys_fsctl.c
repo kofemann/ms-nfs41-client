@@ -77,15 +77,6 @@ NTSTATUS check_nfs41_queryallocatedranges_args(
         &RxContext->LowIoContext.ParamsFor.FsCtl;
     const USHORT HeaderLen = sizeof(FILE_ALLOCATED_RANGE_BUFFER);
 
-    /*
-     * Must have a filename longer than vnetroot name,
-     * or it's trying to operate on the volume itself
-     */
-    if (is_root_directory(RxContext)) {
-        status = STATUS_INVALID_PARAMETER;
-        goto out;
-    }
-
     if (!FsCtl->pOutputBuffer) {
         status = STATUS_INVALID_USER_BUFFER;
         goto out;
