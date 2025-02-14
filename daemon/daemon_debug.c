@@ -1183,6 +1183,10 @@ void debug_list_sparsefile_holes(nfs41_open_state *state)
      * https://datatracker.ietf.org/doc/html/rfc7862#section-15.11.3
      * states "If the sa_offset is beyond the end of the file, then
      * SEEK MUST return NFS4ERR_NXIO."
+     *
+     * Question is... which offset should a conforming NFSv4.2
+     * SEEK_DATA return if there is no data block (i.e. sparse
+     * file which only consists of one hole) ?
      */
 #define LINUX_NFSD_SEEK_NXIO_BUG_WORKAROUND 1
 

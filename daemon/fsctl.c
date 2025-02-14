@@ -97,6 +97,34 @@ int query_sparsefile_datasections(nfs41_open_state *state,
             NFS4_CONTENT_DATA,
             &data_seek_sr_eof,
             &data_seek_sr_offset);
+
+        /*
+         * 1. Note that Linux returns |NFS4ERR_NXIO| if it cannot find
+         * a data block, but
+         * https://datatracker.ietf.org/doc/html/rfc7862#section-15.11.3
+         * says "... If the server cannot find a corresponding sa_what,
+         * then the status will still be NFS4_OK, but sr_eof would be
+         * TRUE. ..."
+         * 2. NFSv4.2 spec bug:
+         * https://datatracker.ietf.org/doc/html/rfc7862#section-11.2
+         * section "SEEK" does not list |NFS4ERR_NXIO| as valid error
+         * for SEEK, but
+         * https://datatracker.ietf.org/doc/html/rfc7862#section-15.11.3
+         * states "If the sa_offset is beyond the end of the file, then
+         * SEEK MUST return NFS4ERR_NXIO."
+         *
+         * Question is... which offset should a conforming NFSv4.2
+         * SEEK_DATA return if there is no data block (i.e. sparse
+         * file which only consists of one hole) ?
+         */
+#define LINUX_NFSD_SEEK_NXIO_BUG_WORKAROUND 1
+
+#ifdef LINUX_NFSD_SEEK_NXIO_BUG_WORKAROUND
+        if (data_seek_status == NFS4ERR_NXIO) {
+            DPRINTF(QARLVL, ("SEEK_DATA failed with NFS4ERR_NXIO\n"));
+            goto out;
+        }
+#endif
         if (data_seek_status) {
             status = nfs_to_windows_error(data_seek_status,
                 ERROR_INVALID_PARAMETER);

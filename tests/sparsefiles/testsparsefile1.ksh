@@ -31,12 +31,69 @@
 #
 
 
+function test_sparse_holeonly
+{
+    set -o errexit
+    set -o nounset
+    #set -o xtrace
 
-PATH='/bin:/usr/bin'
+    rm -f 'sparse_file_hole_only'
+    dd if='/dev/null' of='sparse_file_hole_only' bs=1 count=1 seek=$((65536*1024))
 
-builtin rm
+    ls -l 'sparse_file_hole_only'
+    /cygdrive/c/Windows/system32/fsutil sparse queryrange 'sparse_file_hole_only'
 
-function test_sparsefile1
+    integer fsutil_num_data_sections="$(/cygdrive/c/Windows/system32/fsutil sparse queryrange 'sparse_file_hole_only' | wc -l)"
+
+    #
+    # test whether the file is OK
+    #
+    if (( fsutil_num_data_sections != 0 )) ; then
+        printf "# TEST failed, found %d data sections, expceted %d\n" \
+            fsutil_num_data_sections \
+            0
+        return 1
+    fi
+
+    printf "\n#\n# TEST %q OK, found %d data sections\n#\n" \
+        "$0" \
+        fsutil_num_data_sections
+
+    return 0
+}
+
+function test_normal_file
+{
+    set -o errexit
+    set -o nounset
+    #set -o xtrace
+
+    rm -f 'test_normal_file'
+    dd if='/dev/zero' of='test_normal_file' bs=1024 count=1024
+
+    ls -l 'test_normal_file'
+    /cygdrive/c/Windows/system32/fsutil sparse queryrange 'test_normal_file'
+
+    integer fsutil_num_data_sections="$(/cygdrive/c/Windows/system32/fsutil sparse queryrange 'test_normal_file' | wc -l)"
+
+    #
+    # test whether the file is OK
+    #
+    if (( fsutil_num_data_sections != 1 )) ; then
+        printf "# TEST failed, found %d data sections, expceted %d\n" \
+            fsutil_num_data_sections \
+            0
+        return 1
+    fi
+
+    printf "\n#\n# TEST %q OK, found %d data sections\n#\n" \
+        "$0" \
+        fsutil_num_data_sections
+
+    return 0
+}
+
+function test_multihole_sparsefile1
 {
     set -o errexit
     set -o nounset
@@ -47,6 +104,7 @@ function test_sparsefile1
     integer c.fsblocksize=$1
     integer c.start_data_section=$2
     integer c.end_data_section=$3
+    typeset c.holeatend=$4
 
     integer i
     compound -a c.filecontent
@@ -61,7 +119,6 @@ function test_sparsefile1
         )
     done
 
-
     #
     # generate sparse file
     #
@@ -72,13 +129,28 @@ function test_sparsefile1
         dd of='mysparsefile' bs=1 conv=notrunc seek=${c.filecontent[$i].pos} status=none <<<"${c.filecontent[$i].data}"
     done
 
+    # if we want a hole at the end, make a hole so the file itself is 8GB large
+    if ${c.holeatend} ; then
+        integer new_filesize=8*1024*1024*1024
+        integer stat_filsize
+
+        truncate -s ${new_filesize} 'mysparsefile'
+
+        stat_filsize=$(stat --printf '%s\n' 'mysparsefile')
+
+        if (( new_filesize != stat_filsize )) ; then
+            printf 'Filesize after extening via truncate -s %d, expected %d\n' \
+                stat_filsize new_filesize
+            return 1
+        fi
+    fi
 
     #
     # print results
     #
     printf '#\n# Results:\n#\n'
 
-    ls -l mysparsefile
+    ls -l 'mysparsefile'
 
     /cygdrive/c/Windows/system32/fsutil sparse queryrange 'mysparsefile'
 
@@ -95,7 +167,8 @@ function test_sparsefile1
         return 1
     fi
 
-    printf "\n#\n# TEST OK, found %d data sections\n#\n" \
+    printf "\n#\n# TEST %q OK, found %d data sections\n#\n" \
+        "$0" \
         fsutil_num_data_sections
     return 0
 }
@@ -105,14 +178,29 @@ function test_sparsefile1
 # main
 #
 set -o errexit
-test_sparsefile1 1024 0 4
-test_sparsefile1 1024 1 4
-test_sparsefile1 1024 0 32
-test_sparsefile1 1024 2 32
+
+PATH='/bin:/usr/bin'
+
+builtin basename
+builtin rm
+builtin wc
+
+test_sparse_holeonly
+test_normal_file
+
+test_multihole_sparsefile1 1024 0 4  false
+test_multihole_sparsefile1 1024 1 4  false
+test_multihole_sparsefile1 1024 0 32 false
+test_multihole_sparsefile1 1024 2 32 false
+
+test_multihole_sparsefile1 1024 0 4  true
+test_multihole_sparsefile1 1024 1 4  true
 
 # 512 does not work, as Win10 fsutil can only handle 64 data sections
-# test_sparsefile1 1024 2 512
+# test_multihole_sparsefile1 1024 2 512 false
 
-printf '%s: All tests OK\n' "$0"
+printf '#\n# done\n#\n\n'
+
+printf '%s: All tests OK\n' "$(basename $0)"
 exit 0
 # EOF.
