@@ -452,4 +452,16 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 } FILE_ALLOCATED_RANGE_BUFFER, *PFILE_ALLOCATED_RANGE_BUFFER;
 #endif /* _WINIOCTL_ */
 
+/*
+ * |FILE_ZERO_DATA_INFORMATION| - test for
+ * /usr/i686-w64-mingw32/sys-root/mingw/include/winioctl.h header
+ * to avoid type redefinition warnings
+ */
+#ifndef _WINIOCTL_
+typedef struct _FILE_ZERO_DATA_INFORMATION {
+    LARGE_INTEGER FileOffset;       /* absolute offset */
+    LARGE_INTEGER BeyondFinalZero;  /* absolute offset */
+} FILE_ZERO_DATA_INFORMATION, *PFILE_ZERO_DATA_INFORMATION;
+#endif /* !_WINIOCTL_ */
+
 #endif

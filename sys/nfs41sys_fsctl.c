@@ -368,6 +368,144 @@ out:
     return status;
 }
 
+static
+NTSTATUS nfs41_SetZeroData(
+    IN OUT PRX_CONTEXT RxContext)
+{
+    NTSTATUS status = STATUS_INVALID_DEVICE_REQUEST;
+    nfs41_updowncall_entry *entry = NULL;
+    __notnull PMRX_SRV_OPEN SrvOpen = RxContext->pRelevantSrvOpen;
+    __notnull PNFS41_V_NET_ROOT_EXTENSION pVNetRootContext =
+        NFS41GetVNetRootExtension(SrvOpen->pVNetRoot);
+    __notnull PNFS41_NETROOT_EXTENSION pNetRootContext =
+        NFS41GetNetRootExtension(SrvOpen->pVNetRoot->pNetRoot);
+    __notnull XXCTL_LOWIO_COMPONENT *FsCtl =
+        &RxContext->LowIoContext.ParamsFor.FsCtl;
+    __notnull PFILE_ZERO_DATA_INFORMATION setzerodatabuffer =
+        (PFILE_ZERO_DATA_INFORMATION)FsCtl->pInputBuffer;
+    __notnull PNFS41_FOBX nfs41_fobx = NFS41GetFobxExtension(RxContext->pFobx);
+
+    DbgEn();
+
+    RxContext->IoStatusBlock.Information = 0;
+
+    if (FsCtl->InputBufferLength <
+        sizeof(FILE_ZERO_DATA_INFORMATION)) {
+        DbgP("nfs41_SetZeroData: "
+            "buffer to small\n");
+        status = STATUS_BUFFER_TOO_SMALL;
+        goto out;
+    }
+
+    DbgP("nfs41_SetZeroData: "
+        "setzerodatabuffer=(FileOffset=%lld,BeyondFinalZero=%lld)\n",
+        (long long)setzerodatabuffer->FileOffset.QuadPart,
+        (long long)setzerodatabuffer->BeyondFinalZero.QuadPart);
+
+    /*
+     * Disable caching because NFSv4.2 DEALLOCATE is basically a
+     * "write" operation. AFAIK we should flush the cache and wait
+     * for the kernel lazy writer (which |RxChangeBufferingState()|
+     * AFAIK does) before doing the DEALLOCATE, to avoid that we
+     * have outstanding writes in the kernel cache at the same
+     * location where the DEALLOCATE should do it's work
+     */
+    ULONG flag = DISABLE_CACHING;
+    DbgP("nfs41_SetZeroData: disableing caching for file '%wZ'\n",
+        SrvOpen->pAlreadyPrefixedName);
+    RxChangeBufferingState((PSRV_OPEN)SrvOpen, ULongToPtr(flag), 1);
+
+    status = nfs41_UpcallCreate(NFS41_SYSOP_FSCTL_SET_ZERO_DATA,
+        &nfs41_fobx->sec_ctx,
+        pVNetRootContext->session,
+        nfs41_fobx->nfs41_open_state,
+        pNetRootContext->nfs41d_version,
+        SrvOpen->pAlreadyPrefixedName,
+        &entry);
+
+    if (status)
+        goto out;
+
+    entry->u.SetZeroData.setzerodata = *setzerodatabuffer;
+
+    status = nfs41_UpcallWaitForReply(entry, pVNetRootContext->timeout);
+    if (status) {
+        /* Timeout - |nfs41_downcall()| will free |entry|+contents */
+        goto out;
+    }
+
+    if (entry->psec_ctx == &entry->sec_ctx) {
+        SeDeleteClientSecurity(entry->psec_ctx);
+    }
+    entry->psec_ctx = NULL;
+
+    if (!entry->status) {
+        DbgP("nfs41_SetZeroData: SUCCESS\n");
+        RxContext->CurrentIrp->IoStatus.Status = STATUS_SUCCESS;
+        RxContext->IoStatusBlock.Information = 0;
+    }
+    else {
+        DbgP("nfs41_SetZeroData: "
+            "FAILURE, entry->status=0x%lx\n", entry->status);
+        status = map_setfile_error(entry->status);
+        RxContext->CurrentIrp->IoStatus.Status = status;
+        RxContext->IoStatusBlock.Information = 0;
+    }
+
+    if (entry) {
+        nfs41_UpcallDestroy(entry);
+    }
+
+out:
+    DbgEx();
+    return status;
+}
+
+NTSTATUS marshal_nfs41_setzerodata(
+    nfs41_updowncall_entry *entry,
+    unsigned char *buf,
+    ULONG buf_len,
+    ULONG *len)
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    ULONG header_len = 0;
+    unsigned char *tmp = buf;
+
+    status = marshal_nfs41_header(entry, tmp, buf_len, len);
+    if (status) goto out;
+    else tmp += *len;
+
+    header_len = *len + sizeof(FILE_ZERO_DATA_INFORMATION);
+    if (header_len > buf_len) {
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto out;
+    }
+
+    RtlCopyMemory(tmp, &entry->u.SetZeroData.setzerodata,
+        sizeof(entry->u.SetZeroData.setzerodata));
+    tmp += sizeof(entry->u.SetZeroData.setzerodata);
+
+    *len = header_len;
+
+    DbgP("marshal_nfs41_setzerodata: name='%wZ'\n",
+         entry->filename);
+out:
+    return status;
+}
+
+NTSTATUS unmarshal_nfs41_setzerodata(
+    nfs41_updowncall_entry *cur,
+    unsigned char **buf)
+{
+    NTSTATUS status = STATUS_SUCCESS;
+
+    RtlCopyMemory(&cur->ChangeTime, *buf, sizeof(ULONGLONG));
+    DbgP("unmarshal_nfs41_setzerodata: returned ChangeTime %llu\n",
+        cur->ChangeTime);
+
+    return status;
+}
+
 NTSTATUS nfs41_FsCtl(
     IN OUT PRX_CONTEXT RxContext)
 {
@@ -391,6 +529,9 @@ NTSTATUS nfs41_FsCtl(
         break;
     case FSCTL_SET_SPARSE:
         status = nfs41_SetSparse(RxContext);
+        break;
+    case FSCTL_SET_ZERO_DATA:
+        status = nfs41_SetZeroData(RxContext);
         break;
     default:
         break;

@@ -197,6 +197,10 @@ typedef struct __queryallocatedranges_upcall_args {
     ULONG                           returned_size;
 } queryallocatedranges_upcall_args;
 
+typedef struct __setzerodata_upcall_args {
+    FILE_ZERO_DATA_INFORMATION  setzerodata;
+    ULONGLONG                   ctime;
+} setzerodata_upcall_args;
 
 typedef union __upcall_args {
     mount_upcall_args       mount;
@@ -215,6 +219,7 @@ typedef union __upcall_args {
     getacl_upcall_args      getacl;
     setacl_upcall_args      setacl;
     queryallocatedranges_upcall_args queryallocatedranges;
+    setzerodata_upcall_args setzerodata;
 } upcall_args;
 
 typedef enum _nfs41_opcodes nfs41_opcodes;

@@ -28,6 +28,7 @@
 #include "util.h"
 
 #define QARLVL 2 /* dprintf level for "query allocated ranges" logging */
+#define SZDLVL 2 /* dprintf level for "set zero data" logging */
 
 static int parse_queryallocatedranges(unsigned char *buffer,
     uint32_t length, nfs41_upcall *upcall)
@@ -253,4 +254,120 @@ const nfs41_upcall_op nfs41_op_queryallocatedranges = {
     .handle = handle_queryallocatedranges,
     .marshall = marshall_queryallocatedranges,
     .arg_size = sizeof(queryallocatedranges_upcall_args)
+};
+
+static int parse_setzerodata(unsigned char *buffer,
+    uint32_t length, nfs41_upcall *upcall)
+{
+    int status;
+    setzerodata_upcall_args *args = &upcall->args.setzerodata;
+
+    status = safe_read(&buffer, &length, &args->setzerodata,
+        sizeof(args->setzerodata));
+    if (status) goto out;
+
+    DPRINTF(SZDLVL, ("parse_setzerodata: "
+        "parsing '%s' setzerodata=(FileOffset=%lld BeyondFinalZero=%lld)\n",
+        opcode2string(upcall->opcode),
+        (long long)args->setzerodata.FileOffset.QuadPart,
+        (long long)args->setzerodata.BeyondFinalZero.QuadPart));
+out:
+    return status;
+}
+
+
+static
+int handle_setzerodata(void *daemon_context,
+    nfs41_upcall *upcall)
+{
+    int status = ERROR_INVALID_PARAMETER;
+    setzerodata_upcall_args *args = &upcall->args.setzerodata;
+    nfs41_open_state *state = upcall->state_ref;
+    nfs41_session *session = state->session;
+    nfs41_path_fh *file = &state->file;
+    nfs41_file_info info;
+    int64_t offset_start; /* signed! */
+    int64_t offset_end; /* signed! */
+    int64_t len; /* signed! */
+    stateid_arg stateid;
+
+    (void)memset(&info, 0, sizeof(info));
+
+    offset_start = args->setzerodata.FileOffset.QuadPart;
+    offset_end = args->setzerodata.BeyondFinalZero.QuadPart;
+    len = offset_end - offset_start;
+
+    DPRINTF(SZDLVL,
+        ("--> handle_setzerodata("
+            "state->path.path='%s', "
+            "offset_start=%lld, "
+            "offset_end=%lld, "
+            "len=%lld)\n",
+            state->path.path,
+            offset_start,
+            offset_end,
+            len));
+
+    /* NFS DEALLOCATE requires NFSv4.2 */
+    if (state->session->client->root->nfsminorvers < 2) {
+        status = ERROR_NOT_SUPPORTED;
+        goto out;
+    }
+
+    if (len < 0) {
+        status = ERROR_INVALID_PARAMETER;
+        DPRINTF(SZDLVL, ("handle_setzerodata: invalid len\b"));
+        goto out;
+    }
+
+    if (len == 0) {
+        status = NO_ERROR;
+        DPRINTF(SZDLVL, ("handle_setzerodata: len == 0, NOP\n"));
+        goto out;
+    }
+
+    nfs41_open_stateid_arg(state, &stateid);
+
+    status = nfs42_deallocate(session, file, &stateid,
+         offset_start, len, &info);
+     if (status) {
+        DPRINTF(SZDLVL, ("handle_setzerodata(state->path.path='%s'): "
+            "DEALLOCATE failed with status=0x%x\n",
+            state->path.path,
+            status));
+        goto out;
+     }
+
+    /* Update ctime on success */
+    EASSERT((info.attrmask.count > 0) &&
+        (info.attrmask.arr[0] & FATTR4_WORD0_CHANGE));
+    args->ctime = info.change;
+
+    DPRINTF(SZDLVL,
+        ("handle_setzerodata(state->path.path='%s'): args->ctime=%llu\n",
+        state->path.path,
+        args->ctime));
+
+out:
+    DPRINTF(SZDLVL,
+        ("<-- handle_setzerodata(), status=0x%lx\n",
+        status));
+
+    return status;
+}
+
+static int marshall_setzerodata(unsigned char *buffer,
+    uint32_t *length, nfs41_upcall *upcall)
+{
+    setzerodata_upcall_args *args = &upcall->args.setzerodata;
+    int status;
+    status = safe_write(&buffer, length, &args->ctime, sizeof(args->ctime));
+    return status;
+}
+
+const nfs41_upcall_op nfs41_op_setzerodata = {
+    .parse = parse_setzerodata,
+    .handle = handle_setzerodata,
+    .marshall = marshall_setzerodata,
+    .arg_size = sizeof(setzerodata_upcall_args)
 };

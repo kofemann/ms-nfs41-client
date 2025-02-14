@@ -306,6 +306,10 @@ NTSTATUS handle_upcall(
         status = marshal_nfs41_queryallocatedranges(entry,
             pbOut, cbOut, len);
         break;
+    case NFS41_SYSOP_FSCTL_SET_ZERO_DATA:
+        status = marshal_nfs41_setzerodata(entry,
+            pbOut, cbOut, len);
+        break;
     default:
         status = STATUS_INVALID_PARAMETER;
         print_error("Unknown nfs41 ops %d\n", entry->opcode);
@@ -666,6 +670,9 @@ NTSTATUS nfs41_downcall(
             break;
         case NFS41_SYSOP_FSCTL_QUERYALLOCATEDRANGES:
             unmarshal_nfs41_queryallocatedranges(cur, &buf);
+            break;
+        case NFS41_SYSOP_FSCTL_SET_ZERO_DATA:
+            unmarshal_nfs41_setzerodata(cur, &buf);
             break;
         }
     }

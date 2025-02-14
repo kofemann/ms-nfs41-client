@@ -173,6 +173,44 @@ function test_multihole_sparsefile1
     return 0
 }
 
+function test_sparse_punchhole1
+{
+    set -o errexit
+    set -o nounset
+    #set -o xtrace
+
+    rm -f 'sparse_file_punchhole'
+    dd if='/dev/zero' of='sparse_file_punchhole' count=8 bs=$((1024*1024)) status=none
+    chattr -V +S 'sparse_file_punchhole'
+
+    printf '# expected: one data section before fallocate\n'
+    /cygdrive/c/Windows/system32/fsutil sparse queryrange 'sparse_file_punchhole'
+
+    fallocate -n -p -o $((0x16000)) -l $((0x8000)) 'sparse_file_punchhole'
+
+    printf '# expected: two data section after fallocate\n'
+    /cygdrive/c/Windows/system32/fsutil sparse queryrange 'sparse_file_punchhole'
+
+    integer fsutil_num_data_sections="$(/cygdrive/c/Windows/system32/fsutil sparse queryrange 'sparse_file_punchhole' | wc -l)"
+
+    #
+    # test whether the file is OK
+    #
+    if (( fsutil_num_data_sections != 2 )) ; then
+        printf "# TEST %q failed, found %d data sections, expceted %d\n" \
+            "$0" \
+            fsutil_num_data_sections \
+            2
+        return 1
+    fi
+
+    printf "\n#\n# TEST %q OK, found %d data sections\n#\n" \
+        "$0" \
+        fsutil_num_data_sections
+
+    return 0
+}
+
 
 #
 # main
@@ -198,6 +236,8 @@ test_multihole_sparsefile1 1024 1 4  true
 
 # 512 does not work, as Win10 fsutil can only handle 64 data sections
 # test_multihole_sparsefile1 1024 2 512 false
+
+test_sparse_punchhole1
 
 printf '#\n# done\n#\n\n'
 

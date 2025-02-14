@@ -276,6 +276,9 @@ typedef struct _updowncall_entry {
             PVOID Buffer;
             LONGLONG returned_size;
         } QueryAllocatedRanges;
+        struct {
+            FILE_ZERO_DATA_INFORMATION setzerodata;
+        } SetZeroData;
     } u;
 
 } nfs41_updowncall_entry;
@@ -648,6 +651,14 @@ NTSTATUS marshal_nfs41_queryallocatedranges(
     ULONG buf_len,
     ULONG *len);
 NTSTATUS unmarshal_nfs41_queryallocatedranges(
+    nfs41_updowncall_entry *cur,
+    unsigned char **buf);
+NTSTATUS marshal_nfs41_setzerodata(
+    nfs41_updowncall_entry *entry,
+    unsigned char *buf,
+    ULONG buf_len,
+    ULONG *len);
+NTSTATUS unmarshal_nfs41_setzerodata(
     nfs41_updowncall_entry *cur,
     unsigned char **buf);
 
