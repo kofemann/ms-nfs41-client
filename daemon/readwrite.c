@@ -189,8 +189,9 @@ static int write_to_mds(
     IN nfs41_upcall *upcall,
     IN stateid_arg *stateid)
 {
-    nfs41_session *session = upcall->state_ref->session;
-    nfs41_path_fh *file = &upcall->state_ref->file;
+    nfs41_open_state *state = upcall->state_ref;
+    nfs41_session *session = state->session;
+    nfs41_path_fh *file = &state->file;
     readwrite_upcall_args *args = &upcall->args.rw;
     nfs41_write_verf verf;
     enum stable_how4 stable, committed;
@@ -203,6 +204,56 @@ static int write_to_mds(
     nfs41_file_info info;
 
     (void)memset(&info, 0, sizeof(info));
+
+
+#ifdef TEST_OP_ALLOCAE_OP_DEALLOCATE
+    /*
+     * Test code for OP_ALLOCATE and OP_DEALLOCATE, do not use except for
+     * testing!
+     */
+    size_t data_i;
+
+    /* Test whether the data block consists is a block of zero bytes */
+    for (data_i = 0 ; data_i < args->len ; data_i++) {
+        if (((char *)args->buffer)[data_i] != '\0')
+            break;
+    }
+
+    if (data_i == args->len) {
+        DPRINTF(0, ("write_to_mds(state->path.path='%s'): "
+            "Using DEALLOCATE+ALLOCATE for zero block\n",
+            state->path.path));
+
+        status = nfs42_deallocate(session, file, stateid,
+            args->offset, args->len,
+            &info);
+        if (status) {
+            DPRINTF(0, ("write_to_mds(state->path.path='%s'): "
+                "DEALLOCATE failed with status=0x%x\n",
+                state->path.path,
+                status));
+        }
+        else {
+            status = nfs42_allocate(session, file, stateid,
+                args->offset, args->len,
+                &info);
+            if (status) {
+                DPRINTF(0, ("write_to_mds(state->path.path='%s'): "
+                    "ALLOCATE failed with status=0x%x\n",
+                    state->path.path,
+                    status));
+            }
+        }
+
+        if (!status) {
+            /* Update ctime on success */
+            args->ctime = info.change;
+        }
+
+        len = args->len;
+        goto out;
+    }
+#endif /* TEST_OP_ALLOCAE_OP_DEALLOCATE */
 
 retry_write:
     p = args->buffer;

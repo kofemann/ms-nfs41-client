@@ -788,6 +788,28 @@ typedef struct __nfs42_read_plus_res {
     nfs42_read_plus_res_ok  resok4;
 } nfs42_read_plus_res;
 
+/* OP_ALLOCATE */
+typedef struct __nfs42_allocate_args {
+    stateid_arg     *stateid;
+    uint64_t        offset;
+    uint64_t        length;
+} nfs42_allocate_args;
+
+typedef struct __nfs42_allocate_res {
+    uint32_t    status;
+} nfs42_allocate_res;
+
+/* OP_DEALLOCATE */
+typedef struct __nfs42_deallocate_args {
+    stateid_arg     *stateid;
+    uint64_t        offset;
+    uint64_t        length;
+} nfs42_deallocate_args;
+
+typedef struct __nfs42_deallocate_res {
+    uint32_t    status;
+} nfs42_deallocate_res;
+
 #if 1
 /* OP_SEEK */
 typedef struct __nfs42_seek_args {
@@ -1202,6 +1224,22 @@ int nfs42_read_plus(
     OUT unsigned char *data_out,
     OUT uint32_t *data_len_out,
     OUT bool_t *eof_out);
+
+int nfs42_allocate(
+    IN nfs41_session *session,
+    IN nfs41_path_fh *file,
+    IN stateid_arg *stateid,
+    IN uint64_t offset,
+    IN uint64_t length,
+    OUT nfs41_file_info *cinfo);
+
+int nfs42_deallocate(
+    IN nfs41_session *session,
+    IN nfs41_path_fh *file,
+    IN stateid_arg *stateid,
+    IN uint64_t offset,
+    IN uint64_t length,
+    OUT nfs41_file_info *cinfo);
 
 int nfs42_seek(
     IN nfs41_session *session,

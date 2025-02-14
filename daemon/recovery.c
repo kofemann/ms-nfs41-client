@@ -809,6 +809,14 @@ bool_t nfs41_recover_stateid(
     } else if (argop->op == OP_READ_PLUS) {
         nfs42_read_plus_args *read_plus = (nfs42_read_plus_args *)argop->arg;
         stateid = read_plus->stateid;
+    } else if (argop->op == OP_ALLOCATE) {
+        nfs42_allocate_args *allocate =
+            (nfs42_allocate_args *)argop->arg;
+        stateid = allocate->stateid;
+    } else if (argop->op == OP_DEALLOCATE) {
+        nfs42_deallocate_args *deallocate =
+            (nfs42_deallocate_args *)argop->arg;
+        stateid = deallocate->stateid;
     } else if (argop->op == OP_SEEK) {
         nfs42_seek_args *seek = (nfs42_seek_args *)argop->arg;
         stateid = seek->stateid;

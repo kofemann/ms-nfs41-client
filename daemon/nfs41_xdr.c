@@ -3654,10 +3654,10 @@ static const op_table_entry g_op_table[] = {
     { encode_op_reclaim_complete, decode_op_reclaim_complete }, /* OP_RECLAIM_COMPLETE = 58 */
 
     /* new operations for NFSv4.2 */
-    { NULL, NULL }, /* OP_ALLOCATE = 59, */
+    { encode_op_allocate, decode_op_allocate }, /* OP_ALLOCATE = 59, */
     { NULL, NULL }, /* OP_COPY = 60, */
     { NULL, NULL }, /* OP_COPY_NOTIFY = 61, */
-    { NULL, NULL }, /* OP_DEALLOCATE = 62, */
+    { encode_op_deallocate, decode_op_deallocate }, /* OP_DEALLOCATE = 62, */
     { NULL, NULL }, /* OP_IO_ADVISE = 63, */
     { NULL, NULL }, /* OP_LAYOUTERROR = 64, */
     { NULL, NULL }, /* OP_LAYOUTSTATS = 65, */

@@ -41,6 +41,81 @@ static __inline int unexpected_op(uint32_t op, uint32_t expected)
 }
 
 /*
+ * OP_ALLOCATE
+ */
+bool_t encode_op_allocate(
+    XDR *xdr,
+    nfs_argop4 *argop)
+{
+    nfs42_allocate_args *args = (nfs42_allocate_args *)argop->arg;
+
+    if (unexpected_op(argop->op, OP_ALLOCATE))
+        return FALSE;
+
+    if (!xdr_stateid4(xdr, &args->stateid->stateid))
+        return FALSE;
+
+    if (!xdr_u_hyper(xdr, &args->offset))
+        return FALSE;
+
+    return xdr_u_hyper(xdr, &args->length);
+}
+
+
+bool_t decode_op_allocate(
+    XDR *xdr,
+    nfs_resop4 *resop)
+{
+    nfs42_allocate_res *res = (nfs42_allocate_res *)resop->res;
+
+    if (unexpected_op(resop->op, OP_ALLOCATE))
+        return FALSE;
+
+    if (!xdr_u_int32_t(xdr, &res->status))
+        return FALSE;
+
+    return TRUE;
+}
+
+/*
+ * OP_DEALLOCATE
+ */
+bool_t encode_op_deallocate(
+    XDR *xdr,
+    nfs_argop4 *argop)
+{
+    nfs42_deallocate_args *args = (nfs42_deallocate_args *)argop->arg;
+
+    if (unexpected_op(argop->op, OP_DEALLOCATE))
+        return FALSE;
+
+    if (!xdr_stateid4(xdr, &args->stateid->stateid))
+        return FALSE;
+
+    if (!xdr_u_hyper(xdr, &args->offset))
+        return FALSE;
+
+    return xdr_u_hyper(xdr, &args->length);
+}
+
+
+bool_t decode_op_deallocate(
+    XDR *xdr,
+    nfs_resop4 *resop)
+{
+    nfs42_deallocate_res *res = (nfs42_deallocate_res *)resop->res;
+
+    if (unexpected_op(resop->op, OP_DEALLOCATE))
+        return FALSE;
+
+    if (!xdr_u_int32_t(xdr, &res->status))
+        return FALSE;
+
+    return TRUE;
+}
+
+
+/*
  * OP_READ_PLUS
  */
 bool_t encode_op_read_plus(
