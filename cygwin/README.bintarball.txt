@@ -68,6 +68,7 @@ NFSv4.2/NFSv4.1 filesystem driver for Windows 10/11&Windows Server 2019
     - Windows Explorer ACL dialog
 
 - Sparse file support
+    - Requires Cygwin 3.6 and a MFSv4.2 server
     - Full sparse file support, including creation, punching holes
       (via NFSv4.2 DEALLOCATE), enumeration of hole&data ranges etc.
     - Supports Win32 APIs |FSCTL_QUERY_ALLOCATED_RANGES|,
