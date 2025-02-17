@@ -692,7 +692,22 @@ function cmd_mount
 
 				# fixme: we should set LC_ALL=C because below we depend on
 				# a l10n message
-				stdout="${ "${c.msnfsv41_nfsmountcmd}" "${mount_args[@]}" ; (( retval=$? )) ;}"
+				if false ; then
+					stdout="${ "${c.msnfsv41_nfsmountcmd}" "${mount_args[@]}" ; (( retval=$? )) ;}"
+				else
+					#
+					# FIXME: workaround for Cygwin 3.6 issue that
+					# stdout="${ cmd ; }" only reads the first character
+					# Observed with ksh93u+m/1.0.10 2024-08-01+Cygwin
+					# 3.6.0-0.374.g4dd859d01c22.x86_64
+					#
+					typeset tmpfilename="$(mktemp '/tmp/mount_sshnfs_XXXXXXXXXX.tmp')"
+
+					"${c.msnfsv41_nfsmountcmd}" "${mount_args[@]}" >"${tmpfilename}" ; (( retval=$? ))
+					IFS='' read stdout <"${tmpfilename}"
+					rm -f -- "${tmpfilename}"
+				fi
+
 				cat <<<"$stdout"
 
 				if (( retval == 0 )) ; then
