@@ -193,7 +193,8 @@ function nfsclient_install
 	sc query nfs41_driver
 	domainname
 
-	openfiles /local ON
+	#openfiles /local ON
+	openfiles /local OFF
 
 	#
 	# install "msnfs41client run_daemon" as system service
