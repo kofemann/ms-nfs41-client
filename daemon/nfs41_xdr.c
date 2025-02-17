@@ -1873,6 +1873,10 @@ static bool_t decode_file_attrs(
             if (!xdr_u_hyper(xdr, &info->space_total))
                 return FALSE;
         }
+        if (attrs->attrmask.arr[1] & FATTR4_WORD1_SPACE_USED) {
+            if (!xdr_u_hyper(xdr, &info->space_used))
+                return FALSE;
+        }
         if (attrs->attrmask.arr[1] & FATTR4_WORD1_SYSTEM) {
             if (!xdr_bool(xdr, &info->system))
                 return FALSE;

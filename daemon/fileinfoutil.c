@@ -140,9 +140,11 @@ void nfs_to_standard_info(
     EASSERT(info->attrmask.arr[0] & FATTR4_WORD0_SIZE);
     EASSERT((info->attrmask.count > 0) &&
         (info->attrmask.arr[1] & FATTR4_WORD1_NUMLINKS));
+    EASSERT((info->attrmask.count > 0) &&
+        (info->attrmask.arr[1] & FATTR4_WORD1_SPACE_USED));
 
-    std_out->AllocationSize.QuadPart =
-        std_out->EndOfFile.QuadPart = (LONGLONG)info->size;
+    std_out->EndOfFile.QuadPart = (LONGLONG)info->size;
+    std_out->AllocationSize.QuadPart = (LONGLONG)info->space_used;
     std_out->NumberOfLinks = info->numlinks;
     std_out->DeletePending = FALSE;
     std_out->Directory = FileAttributes & FILE_ATTRIBUTE_DIRECTORY ?
@@ -194,8 +196,8 @@ void nfs_to_network_openinfo(
         net_out->ChangeTime.QuadPart = FILE_INFO_TIME_NOT_SET;
     }
 
-    net_out->AllocationSize.QuadPart =
-        net_out->EndOfFile.QuadPart = (LONGLONG)info->size;
+    net_out->EndOfFile.QuadPart = (LONGLONG)info->size;
+    net_out->AllocationSize.QuadPart = (LONGLONG)info->space_used;
     net_out->FileAttributes =
         nfs_file_info_to_attributes(superblock, info);
 }
@@ -272,8 +274,8 @@ void nfs_to_stat_info(
         stat_out->ChangeTime.QuadPart = FILE_INFO_TIME_NOT_SET;
     }
 
-    stat_out->AllocationSize.QuadPart =
-        stat_out->EndOfFile.QuadPart = (LONGLONG)info->size;
+    stat_out->EndOfFile.QuadPart = (LONGLONG)info->size;
+    stat_out->AllocationSize.QuadPart = (LONGLONG)info->space_used;
 
     stat_out->FileAttributes =
         nfs_file_info_to_attributes(superblock, info);
@@ -340,8 +342,8 @@ void nfs_to_stat_lx_info(
         stat_lx_out->ChangeTime.QuadPart = FILE_INFO_TIME_NOT_SET;
     }
 
-    stat_lx_out->AllocationSize.QuadPart =
-        stat_lx_out->EndOfFile.QuadPart = (LONGLONG)info->size;
+    stat_lx_out->EndOfFile.QuadPart = (LONGLONG)info->size;
+    stat_lx_out->AllocationSize.QuadPart = (LONGLONG)info->space_used;
 
     stat_lx_out->FileAttributes =
         nfs_file_info_to_attributes(superblock, info);
@@ -584,6 +586,10 @@ void nfs41_file_info_cpy(
         }
         if (attrmask->arr[1] & FATTR4_WORD1_SPACE_TOTAL) {
             dest->space_total = src->space_total;
+        }
+        if (attrmask->arr[1] & FATTR4_WORD1_SPACE_USED) {
+            /* Per file-object size */
+            dest->space_used = src->space_used;
         }
         if (attrmask->arr[1] & FATTR4_WORD1_SYSTEM) {
             dest->system = src->system;

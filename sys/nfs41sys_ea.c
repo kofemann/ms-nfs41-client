@@ -174,12 +174,13 @@ void unmarshal_nfs41_eaget(
 static void print_nfs3_attrs(
     nfs3_attrs *attrs)
 {
-    DbgP("type=%d mode=0%o nlink=%d size=%lld "
+    DbgP("type=%d mode=0%o nlink=%d "
+        "size=%lld used=%lld"
         "atime=(tv_sec=%ld,tv_nsec=%lu) "
         "mtime=(tv_sec=%ld,tv_nsec=%lu) "
         "ctime=(tv_sec=%ld,tv_nsec=%lu)\n",
         attrs->type, attrs->mode, attrs->nlink,
-        (long long)attrs->size,
+        (long long)attrs->size, (long long)attrs->used,
         (long)attrs->atime.tv_sec, (unsigned long)attrs->atime.tv_nsec,
         (long)attrs->mtime.tv_sec, (unsigned long)attrs->mtime.tv_nsec,
         (long)attrs->ctime.tv_sec, (unsigned long)attrs->ctime.tv_nsec);
@@ -228,8 +229,9 @@ static void create_nfs3_attrs(
     attrs->gid = nfs41_fcb->owner_group_local_gid;
 #endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
     attrs->nlink = nfs41_fcb->StandardInfo.NumberOfLinks;
-    attrs->size = attrs->used =
-        nfs41_fcb->StandardInfo.EndOfFile.QuadPart;
+    attrs->size = nfs41_fcb->StandardInfo.EndOfFile.QuadPart;
+    attrs->used = nfs41_fcb->StandardInfo.AllocationSize.QuadPart;
+
     /*
      * NFSv4.1 |nfs41_fsid| contains two 64bit fields (|major|,
      * |minor|), but the |nfs3_attrs.fsid| field is only one 64bit

@@ -1,5 +1,6 @@
 /* NFSv4.1 client for Windows
- * Copyright © 2012 The Regents of the University of Michigan
+ * Copyright (C) 2012 The Regents of the University of Michigan
+ * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -501,6 +502,15 @@ static int handle_nfs41_set_size(void *daemon_context, setattr_upcall_args *args
         ("handle_nfs41_set_size: set_class='%s', new_file=%lld\n",
             FILE_INFORMATION_CLASS2string(args->set_class),
             (long long)size->QuadPart));
+
+    /*
+     * We cannot set the allocation size, the NFS server handles this
+     * automagically
+     */
+    if (args->set_class == FileAllocationInformation) {
+        status = NO_ERROR;
+        goto out;
+    }
 
     /* break read delegations before SETATTR */
     nfs41_delegation_return(state->session, &state->file,

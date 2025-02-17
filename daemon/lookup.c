@@ -1,5 +1,6 @@
 /* NFSv4.1 client for Windows
- * Copyright © 2012 The Regents of the University of Michigan
+ * Copyright (C) 2012 The Regents of the University of Michigan
+ * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -100,7 +101,8 @@ static void init_component_args(
         | FATTR4_WORD0_FSID | FATTR4_WORD0_FILEID
         | FATTR4_WORD0_HIDDEN | FATTR4_WORD0_ARCHIVE;
     args->attr_request.arr[1] = FATTR4_WORD1_MODE
-        | FATTR4_WORD1_NUMLINKS | FATTR4_WORD1_SYSTEM
+        | FATTR4_WORD1_NUMLINKS | FATTR4_WORD1_SPACE_USED
+        | FATTR4_WORD1_SYSTEM
         | FATTR4_WORD1_TIME_ACCESS | FATTR4_WORD1_TIME_CREATE
         | FATTR4_WORD1_TIME_MODIFY
         | FATTR4_WORD1_OWNER | FATTR4_WORD1_OWNER_GROUP;

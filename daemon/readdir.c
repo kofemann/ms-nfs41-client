@@ -1,5 +1,6 @@
 /* NFSv4.1 client for Windows
- * Copyright © 2012 The Regents of the University of Michigan
+ * Copyright (C) 2012 The Regents of the University of Michigan
+ * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -372,9 +373,9 @@ static void readdir_copy_dir_info(
         info->fdi.ChangeTime.QuadPart = FILE_INFO_TIME_NOT_SET;
     }
 
-    info->fdi.EndOfFile.QuadPart =
-        info->fdi.AllocationSize.QuadPart =
-            entry->attr_info.size;
+    info->fdi.EndOfFile.QuadPart = entry->attr_info.size;
+    info->fdi.AllocationSize.QuadPart = entry->attr_info.space_used;
+
     info->fdi.FileAttributes =
         nfs_file_info_to_attributes(superblock, &entry->attr_info);
 }

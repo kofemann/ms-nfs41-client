@@ -1,5 +1,6 @@
 /* NFSv4.1 client for Windows
- * Copyright © 2012 The Regents of the University of Michigan
+ * Copyright (C) 2012 The Regents of the University of Michigan
+ * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -263,9 +264,11 @@ static bool_t info_to_fattr4(nfs41_file_info *info, fattr4 *fattr)
     /* encode nfs41_file_info into fattr4 */
     xdrmem_create(&fattr_xdr, (char*)fattr->attr_vals,
         NFS4_OPAQUE_LIMIT, XDR_ENCODE);
-    
+
     /* The only attributes that the server can reliably
-     * query via CB_GETATTR are size and change. */
+     * query via CB_GETATTR are size and change.
+     * FIXME: What about |FATTR4_WORD1_SPACE_USED| ?
+     */
     if (bitmap_isset(&info->attrmask, 0, FATTR4_WORD0_CHANGE)) {
         result = xdr_u_hyper(&fattr_xdr, &info->change);
         if (!result) { CBX_ERR("getattr.info.change"); goto out; }

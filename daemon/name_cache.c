@@ -1,5 +1,6 @@
 /* NFSv4.1 client for Windows
- * Copyright © 2012 The Regents of the University of Michigan
+ * Copyright (C) 2012 The Regents of the University of Michigan
+ * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -79,16 +80,17 @@ static __inline bool_t is_delegation(
 #define NC_ATTR_CHANGE      (1 <<  1)
 #define NC_ATTR_FSID        (1 <<  2)
 #define NC_ATTR_SIZE        (1 <<  3)
-#define NC_ATTR_HIDDEN      (1 <<  4)
-#define NC_ATTR_ARCHIVE     (1 <<  5)
-#define NC_ATTR_MODE        (1 <<  6)
-#define NC_ATTR_NUMLINKS    (1 <<  7)
-#define NC_ATTR_OWNER       (1 <<  8)
-#define NC_ATTR_OWNER_GROUP (1 <<  9)
-#define NC_ATTR_TIME_ACCESS (1 << 10)
-#define NC_ATTR_TIME_CREATE (1 << 11)
-#define NC_ATTR_TIME_MODIFY (1 << 12)
-#define NC_ATTR_SYSTEM      (1 << 13)
+#define NC_ATTR_SPACE_USED  (1 <<  4)
+#define NC_ATTR_HIDDEN      (1 <<  5)
+#define NC_ATTR_ARCHIVE     (1 <<  6)
+#define NC_ATTR_MODE        (1 <<  7)
+#define NC_ATTR_NUMLINKS    (1 <<  8)
+#define NC_ATTR_OWNER       (1 <<  9)
+#define NC_ATTR_OWNER_GROUP (1 << 10)
+#define NC_ATTR_TIME_ACCESS (1 << 11)
+#define NC_ATTR_TIME_CREATE (1 << 12)
+#define NC_ATTR_TIME_MODIFY (1 << 13)
+#define NC_ATTR_SYSTEM      (1 << 14)
 
 /* attribute cache */
 struct attr_cache_entry {
@@ -97,6 +99,7 @@ struct attr_cache_entry {
     uint32_t                nc_attrs;
     uint64_t                change;
     uint64_t                size;
+    uint64_t                space_used;
     uint64_t                fileid;
     uint64_t                fsid_major;
     uint64_t                fsid_minor;
@@ -369,6 +372,10 @@ static void attr_cache_update(
             entry->time_modify_s  = info->time_modify.seconds;
             entry->time_modify_ns = info->time_modify.nseconds;
         }
+        if (info->attrmask.arr[1] & FATTR4_WORD1_SPACE_USED) {
+            entry->nc_attrs |= NC_ATTR_SPACE_USED;
+            entry->space_used = info->space_used;
+        }
         if (info->attrmask.arr[1] & FATTR4_WORD1_SYSTEM) {
             entry->nc_attrs |= NC_ATTR_SYSTEM;
             entry->system = info->system;
@@ -454,6 +461,10 @@ static void copy_attrs(
     if (src->nc_attrs & NC_ATTR_ARCHIVE) {
         dst->attrmask.arr[0] |= FATTR4_WORD0_ARCHIVE;
         dst->archive = src->archive;
+    }
+    if (src->nc_attrs & NC_ATTR_SPACE_USED) {
+        dst->attrmask.arr[1] |= FATTR4_WORD1_SPACE_USED;
+        dst->space_used = src->space_used;
     }
     if (src->nc_attrs & NC_ATTR_SYSTEM) {
         dst->attrmask.arr[1] |= FATTR4_WORD1_SYSTEM;

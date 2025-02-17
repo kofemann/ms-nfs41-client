@@ -1111,6 +1111,9 @@ void print_nfs41_file_info(
                 (long)info->time_modify.seconds,
                 (long)info->time_modify.nseconds);
         }
+        if (info->attrmask.arr[1] & FATTR4_WORD1_SPACE_USED)
+            PRNFS41FI_FMT("space_used=%lld, ",
+                (long long)info->space_used);
         if (info->attrmask.arr[1] & FATTR4_WORD1_SYSTEM)
             PRNFS41FI_FMT("system=%d, ", (int)info->system);
         p += snprintf(p, (sizeof(buf)-(p-buf)), "} ");

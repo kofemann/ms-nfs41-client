@@ -593,9 +593,6 @@ NTSTATUS nfs41_SetFileInformation(
                 (PFILE_ALLOCATION_INFORMATION)RxContext->Info.Buffer;
 
             nfs41_fcb->StandardInfo.AllocationSize.QuadPart = info->AllocationSize.QuadPart;
-            if (nfs41_fcb->StandardInfo.EndOfFile.QuadPart > info->AllocationSize.QuadPart) {
-                nfs41_fcb->StandardInfo.EndOfFile.QuadPart = info->AllocationSize.QuadPart;
-            }
             break;
         }
     case FileEndOfFileInformation:
@@ -603,13 +600,7 @@ NTSTATUS nfs41_SetFileInformation(
             PFILE_END_OF_FILE_INFORMATION info =
                 (PFILE_END_OF_FILE_INFORMATION)RxContext->Info.Buffer;
 
-            if (info->EndOfFile.QuadPart > nfs41_fcb->StandardInfo.AllocationSize.QuadPart) {
-                nfs41_fcb->StandardInfo.AllocationSize.QuadPart =
-                    nfs41_fcb->StandardInfo.EndOfFile.QuadPart = info->EndOfFile.QuadPart;
-            }
-            else {
-                nfs41_fcb->StandardInfo.EndOfFile.QuadPart = info->EndOfFile.QuadPart;
-            }
+            nfs41_fcb->StandardInfo.EndOfFile.QuadPart = info->EndOfFile.QuadPart;
             break;
         }
     case FileRenameInformation:
