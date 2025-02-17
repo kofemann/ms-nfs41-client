@@ -3,7 +3,7 @@
 #
 # MIT License
 #
-# Copyright (c) 2023-2024 Roland Mainz <roland.mainz@nrubsig.org>
+# Copyright (c) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -486,6 +486,8 @@ function main
 				# for a benchmark) and lower latency, as NFS is
 				# a bit latency-sensitive
 				# - We turn compression off, as it incrases latency
+				# - ServerAliveInterval+ServerAliveCountMax ==
+				#   15min timeout (10sec*6*15)
 				#
 				ssh \
 					-L "${c.local_forward_port}:localhost:2049" \
@@ -494,6 +496,8 @@ function main
 					-f -o 'ExitOnForwardFailure=yes' \
 					-o 'Compression=no' \
 					-o 'Ciphers=aes128-cbc,aes128-ctr' \
+					-o 'ServerAliveInterval=10' \
+					-o "ServerAliveCountMax=$((6*15))" \
 					"${c.ssh_jumphost_args[@]}" \
 					"${c.nfsserver_ssh_login_name}@${c.nfs_server.host}"
 				if (( $? != 0 )) ; then
@@ -534,12 +538,16 @@ function main
 				# for a benchmark) and lower latency, as NFS is
 				# a bit latency-sensitive
 				# - We turn compression off, as it incrases latency
+				# - ServerAliveInterval+ServerAliveCountMax ==
+				#   15min timeout (10sec*6*15)
 				#
 				c.args=(
 					'-R' "${c.destination_nfs_port}:localhost:${c.local_forward_port}"
 					'-o' 'ExitOnForwardFailure=yes'
 					'-o' 'Compression=no'
 					'-o' 'Ciphers=aes128-cbc,aes128-ctr'
+					'-o' 'ServerAliveInterval=10' \
+					'-o' "ServerAliveCountMax=$((6*15))" \
 					"${c.args[@]}"
 				)
 				;;
