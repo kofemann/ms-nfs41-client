@@ -32,15 +32,15 @@
 # Example usage:
 #
 # 1. UNIX/Linux: Mount&&unmount /export/home/rmainz on NFS server "/export/home/rmainz":
-# $ mkdir -p /foobarmnt
-# $ ksh mount_sshnfs.ksh mount ssh+nfs://rmainz@derfwpc5131//export/home/rmainz /foobarmnt
-# $ mount_sshnfs.ksh umount /foobarmnt
+# $ mkdir -p /tmp/foobarmnt
+# $ ksh mount_sshnfs.ksh mount ssh+nfs://rmainz@derfwpc5131//export/home/rmainz /tmp/foobarmnt
+# $ mount_sshnfs.ksh umount /tmp/foobarmnt
 #
 #
 # 2. UNIX/Linux: Mount&&unmount /export/home/rmainz on NFS server "/export/home/rmainz" via SSH jumphost rmainz@10.49.20.131:
-# $ mkdir -p /foobarmnt
-# $ ksh mount_sshnfs.ksh mount -o ro,mount_sshnfs_jumphost=rmainz@10.49.20.131 ssh+nfs://rmainz@derfwpc5131//export/home/rmainz /foobarmnt
-# $ mount_sshnfs.ksh umount /foobarmnt
+# $ mkdir -p /tmp/foobarmnt
+# $ ksh mount_sshnfs.ksh mount -o ro,mount_sshnfs_jumphost=rmainz@10.49.20.131 ssh+nfs://rmainz@derfwpc5131//export/home/rmainz /tmp/foobarmnt
+# $ mount_sshnfs.ksh umount /tmp/foobarmnt
 #
 
 #
@@ -927,15 +927,15 @@ function main
 
 	[+EXAMPLES]{
 		[+?Example 1:][+?Mount&&unmount /export/home/rmainz on NFS server "/export/home/rmainz"]{
-[+\n# mkdir -p /foobarmnt
-# mount_sshnfs mount ssh+nfs:://rmainz@derfwpc5131//export/home/rmainz /foobarmnt
-# mount_sshnfs umount /foobarmnt
+[+\n# mkdir -p /tmp/foobarmnt
+# mount_sshnfs mount ssh+nfs:://rmainz@derfwpc5131//export/home/rmainz /tmp/foobarmnt
+# mount_sshnfs umount /tmp/foobarmnt
 ]
 }
 		[+?Example 2:][+?Mount&&unmount /export/home/rmainz on NFS server "/export/home/rmainz" via SSH jumphost rmainz@10.49.20.131]{
-[+\n# mkdir -p /foobarmnt
-# mount_sshnfs mount -o ro,mount_sshnfs_jumphost=rmainz@10.49.20.131 ssh+nfs:://rmainz@derfwpc5131//export/home/rmainz /foobarmnt
-# mount_sshnfs umount /foobarmnt
+[+\n# mkdir -p /tmp/foobarmnt
+# mount_sshnfs mount -o ro,mount_sshnfs_jumphost=rmainz@10.49.20.131 ssh+nfs:://rmainz@derfwpc5131//export/home/rmainz /tmp/foobarmnt
+# mount_sshnfs umount /tmp/foobarmnt
 ]
 		}
 	}

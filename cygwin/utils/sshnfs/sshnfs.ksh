@@ -513,8 +513,8 @@ function main
 						"${c.nfsserver_ssh_login_name}@${c.nfs_server.host}"
 
 				print -u2 -f $"# Linux: Use this to mount the directory:\n"
-				print -u2 -f $"# $ mkdir /mnt_nfs\n"
-				print -u2 -f $"# $ mount -vvv -t nfs -o vers=4.2,port=%d localhost:%s /mnt_nfs\n" \
+				print -u2 -f $"# $ mkdir /tmp/mnt_nfs\n"
+				print -u2 -f $"# $ mount -vvv -t nfs -o vers=4.2,port=%d localhost:%s /tmp/mnt_nfs\n" \
 					c.destination_nfs_port \
 					"${c.nfs_server.uripath}"
 				print -u2 -f $"\n"
@@ -585,8 +585,8 @@ function main
 				(( c.destination_nfs_port += (mypid+myuid+PPID) % 16381 ))
 
 				print -u2 -f $"# Use this to mount the directory:\n"
-				print -u2 -f $"# $ mkdir /mnt_nfs\n"
-				print -u2 -f $"# $ mount -vvv -t nfs -o vers=4.2,port=%d localhost:%s /mnt_nfs\n" \
+				print -u2 -f $"# $ mkdir /tmp/mnt_nfs\n"
+				print -u2 -f $"# $ mount -vvv -t nfs -o vers=4.2,port=%d localhost:%s /tmp/mnt_nfs\n" \
 					c.destination_nfs_port \
 					"${c.nfs_server.uripath}"
 
