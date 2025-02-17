@@ -67,6 +67,24 @@ NFSv4.2/NFSv4.1 filesystem driver for Windows 10/11&Windows Server 2019
     - Cygwin /usr/bin/setfacl+/usr/bin/getfacl
     - Windows Explorer ACL dialog
 
+- Sparse file support
+    - Full sparse file support, including creation, punching holes
+      (via NFSv4.2 DEALLOCATE), enumeration of hole&data ranges etc.
+    - Supports Win32 APIs |FSCTL_QUERY_ALLOCATED_RANGES|,
+      |FSCTL_SET_SPARSE|, |FSCTL_SET_ZERO_DATA|; NFSv4.1
+      |FATTR4_WORD1_SPACE_USED| is mapped to Win32
+      |FILE_STANDARD_INFORMATION.AllocationSize| and
+      |NfsV3Attributes.used| EA for sparse file support.
+    - Cygwin >= 3.6 support POSIX-1.2024 |lseek(...,SEEK_HOLE,...)|
+      and |lseek(...,SEEK_DATA,...)|, coreutils /usr/bin/fallocate
+      and $ /usr/bin/cp --sparse=auto src dest #
+    - /cygdrive/c/Windows/system32/fsutil sparse queryrange myfile.dat
+      can be used to enumerate ranges where data are allocated
+      (BUG: Win10+Win11 fsutil only support 64 data ranges, the
+      filesystem itself supports an unlimited number of data ranges)
+    - /cygdrive/c/Windows/system32/xcopy /sparse (on Win11) can be
+      used to copy sparse files
+
 - Symlink reparse and translation support
     - Translates Win32/NT symlink syntax (e.g.
       $ mklink /D ... Y:\tmp\ #) to NFS/POSIX syntax (e.g.
