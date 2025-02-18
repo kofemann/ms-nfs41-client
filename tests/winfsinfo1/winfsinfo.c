@@ -32,6 +32,8 @@
 #define UNICODE 1
 #define _UNICODE 1
 
+#include <io.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <windows.h>
 #include <stdlib.h>
@@ -992,6 +994,15 @@ void usage(void)
 int main(int ac, char *av[])
 {
     const char *subcmd;
+
+    /*
+     * Force |O_BINARY| mode for stdio so we do not set <CR> to be
+     * UNIX/POSIX-compatible, otherwise we would need dos2unix each
+     * time to make our output compatble to POSIX sh shell scripts
+     */
+    (void)_setmode(fileno(stdin), O_BINARY);
+    (void)_setmode(fileno(stdout), O_BINARY);
+    (void)_setmode(fileno(stderr), O_BINARY);
 
     if (ac < 3) {
         usage();
