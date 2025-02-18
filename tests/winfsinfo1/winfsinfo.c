@@ -149,7 +149,7 @@ bool getvolumeinfo(const char *progname, const char *filename)
     res = EXIT_SUCCESS;
 
 done:
-    CloseHandle(fileHandle);
+    (void)CloseHandle(fileHandle);
     return res;
 }
 
@@ -352,7 +352,7 @@ bool get_file_basic_info(const char *progname, const char *filename)
     res = EXIT_SUCCESS;
 
 done:
-    CloseHandle(fileHandle);
+    (void)CloseHandle(fileHandle);
     return res;
 }
 
@@ -498,7 +498,7 @@ bool get_file_standard_info(const char *progname, const char *filename)
     res = EXIT_SUCCESS;
 
 done:
-    CloseHandle(fileHandle);
+    (void)CloseHandle(fileHandle);
     return res;
 }
 
@@ -618,7 +618,7 @@ bool get_filenormalizednameinfo(const char *progname, const char *filename)
     res = EXIT_SUCCESS;
 
 done:
-    CloseHandle(fileHandle);
+    (void)CloseHandle(fileHandle);
     return res;
 }
 
