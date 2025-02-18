@@ -1,0 +1,60 @@
+From 9279c46b92c037dc3cb9f4472a773539e0eb977d Mon Sep 17 00:00:00 2001
+From: Roland Mainz <roland.mainz@nrubsig.org>
+Date: Tue, 18 Feb 2025 17:11:09 +0100
+Subject: [PATCH 1/4] tools: Cygwin 3.6 port
+
+Cygwin 3.6 port
+
+Signed-off-by: Roland Mainz <roland.mainz@nrubsig.org>
+---
+ tools/dirdmp.c | 6 +++---
+ tools/dirprt.c | 2 +-
+ 2 files changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/tools/dirdmp.c b/tools/dirdmp.c
+index 6b231a0..e8dcca3 100644
+--- a/tools/dirdmp.c
++++ b/tools/dirdmp.c
+@@ -7,8 +7,8 @@
+
+ #include <sys/param.h>
+ #include <sys/types.h>
+-#include <dirent.h>
+ #include <sys/stat.h>
++#include <dirent.h>
+ #include <fcntl.h>
+ #include <stdio.h>
+ #include <stdlib.h>
+@@ -38,7 +38,7 @@ main(argc, argv)
+	int argc;
+	char *argv[];
+ {
+-#if defined(LINUX) || defined (AIX)
++#if defined(LINUX) || defined(__CYGWIN__) || defined (AIX)
+	fprintf(stderr, "dirdmp is not supported on this platform.\n");
+	exit(1);
+ #else
+@@ -50,7 +50,7 @@ main(argc, argv)
+ #endif /* LINUX || AIX */
+ }
+
+-#if !(defined(LINUX) || defined(AIX))
++#if !(defined(LINUX) || defined(__CYGWIN__) || defined(AIX))
+
+ static void
+ print(dir)
+diff --git a/tools/dirprt.c b/tools/dirprt.c
+index a0630eb..acb9ec3 100644
+--- a/tools/dirprt.c
++++ b/tools/dirprt.c
+@@ -72,7 +72,7 @@ print(dir)
+		return;
+	}
+	while ((dp = readdir(dirp)) != NULL) {
+-#if defined(SVR3) || defined(SVR4) || defined(LINUX)
++#if defined(SVR3) || defined(SVR4) || defined(LINUX) || defined(__CYGWIN__)
+		printf("%5ld %5ld %5d %s\n", (long)telldir(dirp),
+		       (long)dp->d_ino,
+		       dp->d_reclen, dp->d_name);
+--
+2.45.1

@@ -136,29 +136,11 @@ bash ../cygwin/devel/msnfs41client.bash run_daemon
 bash ../cygwin/devel/msnfs41client.bash mount_homedir
 
 
-
 ######## Testing:
-** "cthon04" test suite:
-# mount a NFSv4 filesystem, and then execute this
-# on this filesystem
-mkdir nfsv4cthontest1 && cd nfsv4cthontest1
-git clone https://github.com/kofemann/ms-nfs41-client.git
-git clone git://git.linux-nfs.org/projects/steved/cthon04.git
-cd cthon04/
-git config --global --add safe.directory "$PWD"
-git checkout 8cefaa2ecf8d5c1240f1573530f07cfbbfc092ea
-git am ../ms-nfs41-client/tests/cthon04/*.patch
-make 2>&1 | tee buildlog.log
-mkdir testdir1
-./runtests -a -t "$PWD/testdir1" 2>&1 | tee testrun.log
-
-
-** "winfstest" test suite:
-See tests/winfstest/README.txt
-
+Seen tests/manual_testing.txt
 
 #### ToDo:
-- Makefile/script support for release blob generaetion, local test installation, running cthon4 etc
+- Makefile/script support for release blob generaetion, local test installation etc
 - DocBook/XML based documentation
 - Document how to get and build ksh93 for Cygwin
 - Cygwin-specific binary release blob

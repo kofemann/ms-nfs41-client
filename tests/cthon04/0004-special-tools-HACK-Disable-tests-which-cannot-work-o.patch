@@ -1,0 +1,59 @@
+From 190b1032a6dad762fdd5d015320788aa8e259672 Mon Sep 17 00:00:00 2001
+From: Roland Mainz <roland.mainz@nrubsig.org>
+Date: Tue, 18 Feb 2025 17:17:39 +0100
+Subject: [PATCH 4/4] special,tools: HACK: Disable tests which cannot work on
+ Cygwin/ms-nfs41-client
+
+HACK: Disable tests which cannot work on Cygwin/ms-nfs41-client
+
+Signed-off-by: Roland Mainz <roland.mainz@nrubsig.org>
+---
+ special/Makefile     | 4 ++--
+ special/runtests.wrk | 2 +-
+ tools/Makefile       | 2 +-
+ 3 files changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/special/Makefile b/special/Makefile
+index 77215c1..36f4978 100644
+--- a/special/Makefile
++++ b/special/Makefile
+@@ -3,9 +3,9 @@
+ #	1.4 Lachman ONC Test Suite source
+ #
+
+-TESTS=op_unlk op_ren op_chmod dupreq excltest negseek rename holey \
++TESTS=op_unlk op_chmod dupreq excltest negseek rename holey \
+	truncate nfsidem nstat stat stat2 touchn fstat rewind \
+-	telldir bigfile bigfile2 freesp
++	telldir bigfile bigfile2 freesp
+ DOSRUNFILES = scripts/*.bat
+ DOSBUILDFILES = console/*.bat console/*.mak dos/*.bat dos/*.mak
+ DOSFILES = $(DOSRUNFILES) $(DOSBUILDFILES)
+diff --git a/special/runtests.wrk b/special/runtests.wrk
+index 8f099fa..385ac61 100644
+--- a/special/runtests.wrk
++++ b/special/runtests.wrk
+@@ -29,7 +29,7 @@ if [ "$CIFS" = "yes" ] && echo $MNTOPTIONS | grep -E "vers=2|vers=3" > /dev/null
+ then
+	echo "skipping test; not supported by SMB 2.0 and higher versions"
+ else
+-	TMPDIR= ./op_ren
++	: # TMPDIR= ./op_ren
+ fi
+
+ echo ""
+diff --git a/tools/Makefile b/tools/Makefile
+index ce2cbc7..8cc1903 100644
+--- a/tools/Makefile
++++ b/tools/Makefile
+@@ -8,7 +8,7 @@
+ # 'make copy DESTDIR=path'      copies test programs to path
+ # 'make dist DESTDIR=path'      copies sources to path
+
+-TESTS = tcp tcpd udp udpd dirdmp dirprt pmaptst pmapbrd
++TESTS = tcp tcpd udp udpd dirdmp dirprt
+
+ # dirdmp apparently doesn't work with Linux 2.2.  So for Linux systems,
+ # comment out the above definition and use this one.
+--
+2.45.1

@@ -1,0 +1,30 @@
+From 8c4799d4f3bab10be067e1074bffe043147ba7b0 Mon Sep 17 00:00:00 2001
+From: Roland Mainz <roland.mainz@nrubsig.org>
+Date: Tue, 18 Feb 2025 17:12:30 +0100
+Subject: [PATCH 2/4] basic: Workaround for ms-nfs41-client POSIX symlink to
+ WinNT symlink syntax limitation
+
+Workaround for ms-nfs41-client POSIX symlink to WinNT symlink syntax,
+WinNT does not have the concept of a global root like UNIX/POSIX,
+so a symlink target currently gets rejected
+
+Signed-off-by: Roland Mainz <roland.mainz@nrubsig.org>
+---
+ basic/test8.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/basic/test8.c b/basic/test8.c
+index d65eb3a..f993631 100644
+--- a/basic/test8.c
++++ b/basic/test8.c
+@@ -43,7 +43,7 @@ static int Tflag = 0;	/* print timing */
+ static int Fflag = 0;	/* test function only;  set count to 1, negate -t */
+ static int Nflag = 0;	/* Suppress directory operations */
+
+-#define SNAME "/this/is/a/symlink"	/* symlink prefix */
++#define SNAME "/dev/this/is/a/symlink"	/* symlink prefix */
+
+ static void
+ usage()
+--
+2.45.1

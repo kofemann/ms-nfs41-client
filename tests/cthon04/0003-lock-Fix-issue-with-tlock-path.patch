@@ -1,0 +1,27 @@
+From fa34ebf1b4ea266129d05e79f3d594fd70752226 Mon Sep 17 00:00:00 2001
+From: Roland Mainz <roland.mainz@nrubsig.org>
+Date: Tue, 18 Feb 2025 17:15:21 +0100
+Subject: [PATCH 3/4] lock: Fix issue with tlock path
+
+Fix issue with tlock path
+
+Signed-off-by: Roland Mainz <roland.mainz@nrubsig.org>
+---
+ lock/runtests | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/lock/runtests b/lock/runtests
+index 21b09a5..4db16e2 100755
+--- a/lock/runtests
++++ b/lock/runtests
+@@ -64,7 +64,7 @@ do
+			;;
+	esac
+	echo ""
+-	$i $TESTARGS $NFSTESTDIR
++	./$i $TESTARGS $NFSTESTDIR
+ done
+
+ echo "Congratulations, you passed the locking tests!"
+--
+2.45.1
