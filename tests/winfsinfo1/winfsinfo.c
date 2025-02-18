@@ -89,11 +89,11 @@ bool getvolumeinfo(const char *progname, const char *filename)
 
     (void)printf("(\n");
     (void)printf("\tfilename='%s'\n", filename);
-    (void)printf("\ttypeset -a volumeflags=(\n");
+    (void)printf("\ttypeset -A volumeflags=(\n");
 
 #define TESTVOLFLAG(s) \
     if (volumeFlags & (s)) { \
-        (void)puts("\t\t"#s); \
+        (void)printf("\t\t['%s']=0x%lx\n", (#s), (unsigned long)(s)); \
         volumeFlags &= ~(s); \
     }
 
@@ -133,15 +133,18 @@ bool getvolumeinfo(const char *progname, const char *filename)
     TESTVOLFLAG(FILE_SUPPORTS_GHOSTING);
 #endif
 
-    (void)printf("\t)\n");
 
     /*
      * print any leftover flags not covered by |TESTVOLFLAG(FILE_*)|
      * above
      */
     if (volumeFlags) {
-        (void)printf("\tattr=0x%lx\n", (long)volumeFlags);
+        (void)printf("\t\t['remainingflags']=0x%lx\n",
+            (unsigned long)volumeFlags);
     }
+
+    (void)printf("\t)\n");
+
     (void)printf(")\n");
     res = EXIT_SUCCESS;
 
@@ -225,11 +228,11 @@ bool getfilefssectorsizeinformation(const char *progname, const char *filename)
 
     DWORD fssiflags = ffssi.Flags;
 
-    (void)printf("\ttypeset -a Flags=(\n");
+    (void)printf("\ttypeset -A Flags=(\n");
 
 #define TESTFSSI(s) \
     if (fssiflags & (s)) { \
-        (void)puts("\t\t"#s); \
+        (void)printf("\t\t['%s']=0x%lx\n", (#s), (unsigned long)(s)); \
         fssiflags &= ~(s); \
     }
     TESTFSSI(SSINFO_FLAGS_ALIGNED_DEVICE);
@@ -238,15 +241,15 @@ bool getfilefssectorsizeinformation(const char *progname, const char *filename)
     TESTFSSI(SSINFO_FLAGS_TRIM_ENABLED);
     TESTFSSI(SSINFO_FLAGS_BYTE_ADDRESSABLE);
 
-    (void)printf("\t)\n");
-
     /*
      * print any leftover flags not covered by |TESTFBIA(FILE_*)|
      * above
      */
     if (fssiflags) {
-        (void)printf("\tFlags=0x%lx\n", (long)fssiflags);
+        (void)printf("\t\t['remainingflags']=0x%lx\n", (unsigned long)fssiflags);
     }
+
+    (void)printf("\t)\n");
 
     (void)printf("\tByteOffsetForSectorAlignment=%lu\n",
         (unsigned long)ffssi.ByteOffsetForSectorAlignment);
@@ -304,11 +307,11 @@ bool get_file_basic_info(const char *progname, const char *filename)
     (void)printf("\tChangeTime=%lld\n", (long long)finfo.ChangeTime.QuadPart);
     DWORD fattr = finfo.FileAttributes;
 
-    (void)printf("\ttypeset -a FileAttributes=(\n");
+    (void)printf("\ttypeset -A FileAttributes=(\n");
 
 #define TESTFBIA(s) \
     if (fattr & (s)) { \
-        (void)puts("\t\t"#s); \
+        (void)printf("\t\t['%s']=0x%lx\n", (#s), (unsigned long)(s)); \
         fattr &= ~(s); \
     }
     TESTFBIA(FILE_ATTRIBUTE_READONLY);
@@ -334,15 +337,17 @@ bool get_file_basic_info(const char *progname, const char *filename)
     TESTFBIA(FILE_ATTRIBUTE_RECALL_ON_OPEN);
     TESTFBIA(FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS);
 
-    (void)printf("\t)\n");
-
     /*
      * print any leftover flags not covered by |TESTFBIA(FILE_*)|
      * above
      */
     if (fattr) {
-        (void)printf("\tfattr=0x%lx\n", (long)fattr);
+        (void)printf("\t\t['remainingflags']=0x%lx\n",
+            (unsigned long)fattr);
     }
+
+    (void)printf("\t)\n");
+
     (void)printf(")\n");
     res = EXIT_SUCCESS;
 
@@ -400,11 +405,11 @@ bool get_fileexinfostandard(const char *progname, const char *filename)
 
     DWORD fattr = finfo.dwFileAttributes;
 
-    (void)printf("\ttypeset -a dwFileAttributes=(\n");
+    (void)printf("\ttypeset -A dwFileAttributes=(\n");
 
 #define TESTFEIS(s) \
     if (fattr & (s)) { \
-        (void)puts("\t\t"#s); \
+        (void)printf("\t\t['%s']=0x%lx\n", (#s), (unsigned long)(s)); \
         fattr &= ~(s); \
     }
     TESTFEIS(FILE_ATTRIBUTE_READONLY);
@@ -430,15 +435,17 @@ bool get_fileexinfostandard(const char *progname, const char *filename)
     TESTFEIS(FILE_ATTRIBUTE_RECALL_ON_OPEN);
     TESTFEIS(FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS);
 
-    (void)printf("\t)\n");
-
     /*
      * print any leftover flags not covered by |TESTFNOI(FILE_*)|
      * above
      */
     if (fattr) {
-        (void)printf("\tfattr=0x%lx\n", (long)fattr);
+        (void)printf("\t\t['remainingflags']=0x%lx\n",
+            (unsigned long)fattr);
     }
+
+    (void)printf("\t)\n");
+
     (void)printf(")\n");
     res = EXIT_SUCCESS;
 
@@ -652,25 +659,27 @@ bool get_filecasesensitiveinfo(const char *progname, const char *filename)
     (void)printf("(\n");
     (void)printf("\tfilename='%s'\n", filename);
 
-    (void)printf("\ttypeset -a Flags=(\n");
+    (void)printf("\ttypeset -A Flags=(\n");
 
     ULONG fcsi_flags = finfo.Flags;
 #define TESTFCSI(s) \
     if (fcsi_flags & (s)) { \
-        (void)puts("\t\t"#s); \
+        (void)printf("\t\t['%s']=0x%lx\n", (#s), (unsigned long)(s)); \
         fcsi_flags &= ~(s); \
     }
     TESTFCSI(FILE_CS_FLAG_CASE_SENSITIVE_DIR);
-
-    (void)printf("\t)\n");
 
     /*
      * print any leftover flags not covered by |TESTFCSI(FILE_*)|
      * above
      */
     if (fcsi_flags) {
-        (void)printf("\ffcsi_flags=0x%lx\n", (long)fcsi_flags);
+        (void)printf("\t\t['remainingflags']=0x%lx\n",
+            (unsigned long)fcsi_flags);
     }
+
+    (void)printf("\t)\n");
+
     (void)printf(")\n");
     res = EXIT_SUCCESS;
 
@@ -904,11 +913,11 @@ bool get_file_remote_protocol_info(const char *progname, const char *filename)
     (void)printf("\tReserved=0x%x\n",
         (unsigned int)frpi.Reserved);
 
-    (void)printf("\ttypeset -a Flags=(\n");
+    (void)printf("\ttypeset -A Flags=(\n");
 
 #define TESTREMOTEPROTOCOLFLAG(s) \
     if (frpi.Flags & (s)) { \
-        (void)puts("\t\t"#s); \
+        (void)printf("\t\t['%s']=0x%lx\n", (#s), (unsigned long)(s)); \
         frpi.Flags &= ~(s); \
     }
 
@@ -919,15 +928,16 @@ bool get_file_remote_protocol_info(const char *progname, const char *filename)
     TESTREMOTEPROTOCOLFLAG(REMOTE_PROTOCOL_FLAG_INTEGRITY);
     TESTREMOTEPROTOCOLFLAG(REMOTE_PROTOCOL_FLAG_MUTUAL_AUTH);
 
-    (void)printf("\t)\n");
-
     /*
      * print any leftover flags not covered by
      * |TESTREMOTEPROTOCOLFLAG()| above
      */
     if (frpi.Flags) {
-        (void)printf("\tattr=0x%lx\n", (long)frpi.Flags);
+        (void)printf("\t\t['remainingflags']=0x%lx\n",
+            (unsigned long)frpi.Flags);
     }
+
+    (void)printf("\t)\n");
 
     /* GenericReserved */
     (void)printf("\tcompound GenericReserved=(\n");
