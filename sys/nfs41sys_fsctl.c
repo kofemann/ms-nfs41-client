@@ -320,6 +320,14 @@ NTSTATUS nfs41_SetSparse(
     DbgEn();
 
     /*
+     * We do not do any access checks here because ms-nfs41-client
+     * files always have the |FILE_ATTRIBUTE_SPARSE_FILE| set.
+     * This function is basically only a dummy which returns
+     * |STATUS_SUCCESS| (if the correct are provided) to conform
+     * sto the Win32 sparse file API.
+     */
+
+    /*
      * Special case: No input buffer, so we treat this as if we got
      * |set_parse_buffer->SetSparse == TRUE|
      */
@@ -369,6 +377,29 @@ out:
 }
 
 static
+NTSTATUS check_nfs41_setzerodata_args(
+    PRX_CONTEXT RxContext)
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    __notnull PMRX_SRV_OPEN SrvOpen = RxContext->pRelevantSrvOpen;
+    __notnull PNFS41_V_NET_ROOT_EXTENSION VNetRootContext =
+        NFS41GetVNetRootExtension(SrvOpen->pVNetRoot);
+
+    /* access checks */
+    if (VNetRootContext->read_only) {
+        status = STATUS_MEDIA_WRITE_PROTECTED;
+        goto out;
+    }
+    if (!(SrvOpen->DesiredAccess &
+        (FILE_WRITE_DATA|FILE_WRITE_ATTRIBUTES))) {
+        status = STATUS_ACCESS_DENIED;
+        goto out;
+    }
+out:
+    return status;
+}
+
+static
 NTSTATUS nfs41_SetZeroData(
     IN OUT PRX_CONTEXT RxContext)
 {
@@ -388,6 +419,10 @@ NTSTATUS nfs41_SetZeroData(
     DbgEn();
 
     RxContext->IoStatusBlock.Information = 0;
+
+    status = check_nfs41_setzerodata_args(RxContext);
+    if (status)
+        goto out;
 
     if (FsCtl->InputBufferLength <
         sizeof(FILE_ZERO_DATA_INFORMATION)) {
