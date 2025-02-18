@@ -159,6 +159,20 @@ ksh93 -c 'builtin id ; rm -f x ; touch x ; chown "$(id -u -n):$(id -g -n)" x && 
 ksh93 -c 'builtin id ; rm -f x ; touch x ; chgrp "$(id -g -n)" x && print OK'
 ---- snip ----
 
+
+#
+# Test for |chgrp()| used with GNU /usr/bin/patch
+# (GNU patch usually fails with
+# 'patch: **** Failed to set the owning group of file ./d2.oL0Iv8e : Permission denied'
+# if |chgrp()| fails
+#
+---- snip ----
+$ rm -f d1 d2 d1.diff ; printf '1\n2\n' >d1 ; cp d1 d2 ; printf '3\n' >> d2 ; diff -u d1 d2 | sed 's/d1/d2/g' >d1.diff ; patch -R -p0 <d1.diff && echo "# test OK"
+---- snip ----
+
+The test should print "# test OK"
+
+
 #
 # Test for native mklink  && powershell New-Item -ItemType SymbolicLink
 #
