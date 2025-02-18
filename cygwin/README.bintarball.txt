@@ -25,8 +25,9 @@ NFSv4.2/NFSv4.1 filesystem driver for Windows 10/11&Windows Server 2019+2022
     client can use different ports per mount)
 
 - Support for nfs://-URLs
-    * Why ? nfs://-URLs are crossplatform, portable and Character-Encoding
-      independent descriptions of NFSv4 server resources (exports).
+    * Why ? nfs://-URLs are cross-platform, portable and
+      Character-Encoding independent descriptions of NFSv4 server
+      resources (exports).
     - including custom ports and raw IPv6 addresses
     - nfs://-URL conversion utility (/usr/bin/nfsurlconv) to convert
         URLs, including non-ASCII/Unicode characters in mount path
@@ -68,23 +69,26 @@ NFSv4.2/NFSv4.1 filesystem driver for Windows 10/11&Windows Server 2019+2022
     - Windows Explorer ACL dialog
 
 - Sparse file support
-    - Requires Cygwin 3.6 and a MFSv4.2 server
-    - Full sparse file support, including creation, punching holes
-      (via NFSv4.2 DEALLOCATE), enumeration of hole&data ranges etc.
+    - Requires NFSv4.2 server which supports the NFSv4.2
+      operations "ALLOCATE", "DEALLOCATE", "SEEK", and the
+      |FATTR4_WORD1_SPACE_USED| attribute.
+    - Full Win32 sparse file API support, including creation,
+      punching holes, enumeration of hole&data ranges etc.
     - Supports Win32 APIs |FSCTL_QUERY_ALLOCATED_RANGES|,
-      |FSCTL_SET_SPARSE|, |FSCTL_SET_ZERO_DATA|; NFSv4.1
-      |FATTR4_WORD1_SPACE_USED| is mapped to Win32
-      |FILE_STANDARD_INFORMATION.AllocationSize| and
-      |NfsV3Attributes.used| EA for sparse file support.
-    - Cygwin >= 3.6 support POSIX-1.2024 |lseek(...,SEEK_HOLE,...)|
-      and |lseek(...,SEEK_DATA,...)|, coreutils /usr/bin/fallocate
-      and $ /usr/bin/cp --sparse=auto src dest #
+      |FSCTL_SET_SPARSE|, |FSCTL_SET_ZERO_DATA|; and
+      |NfsV3Attributes.used| EA
+    - Cygwin sparse file support requires >= Cygwin 3.6 to support
+      POSIX-1.2024 |lseek(...,SEEK_HOLE/SEEK_DATA,...)|, which is
+      needed for coreutils /usr/bin/fallocate and
+      $ /usr/bin/cp --sparse=auto src dest #
     - /cygdrive/c/Windows/system32/fsutil sparse queryrange myfile.dat
       can be used to enumerate ranges where data are allocated
       (BUG: Win10+Win11 fsutil only support 64 data ranges, the
       filesystem itself supports an unlimited number of data ranges)
-    - /cygdrive/c/Windows/system32/xcopy /sparse (on Win11) can be
-      used to copy sparse files
+    - /cygdrive/c/Windows/system32/xcopy /sparse can be
+      used to copy sparse files.
+      Requires on Win11 >= 22H2 because it relies on |CopyFile2()|
+      flag |COPY_FILE_ENABLE_SPARSE_COPY|.
 
 - Symlink reparse and translation support
     - Translates Win32/NT symlink syntax (e.g.
@@ -304,12 +308,12 @@ $ (set -o xtrace ; cd / && tar -tf ~/download/${bintarball.base_filename}.tar.bz
 
 # Option a)
 # * Start NFSv4 client daemon as Windows service (requires
-# "Adminstrator" account):
+# "Administrator" account):
 
 $ sc start ms-nfs41-client-service
 
 # * Notes:
-# - requires "Adminstrator" account, and one nfsd client daemon is
+# - requires "Administrator" account, and one nfsd client daemon is
 #   used for all users on a machine.
 # - The "ms-nfs41-client-service" service is installed by default as
 #   "disabled" and therefore always requires a "manual" start (e.g.
@@ -472,7 +476,7 @@ $ mount -t drvfs '\\10.49.202.230@2049\nfs4\bigdisk' /mnt/bigdisk
 
 - Cygwin/MSYS2 symlinks are supported, but might require
   $ fsutil behavior set SymlinkEvaluation L2L:1 R2R:1 L2R:1 R2L:1 #.
-  This includes symlinks to UNC paths, e.g. as Admin
+  This includes symlinks to UNC paths, e.g. as Administrator
   $ cmd /c 'mklink /d c:\home\rmainz \\derfwpc5131_ipv6@2049\nfs4\export\home2\rmainz' #
   and then $ cd /cygdrive/c/home/rmainz/ # should work
 
@@ -482,7 +486,7 @@ $ mount -t drvfs '\\10.49.202.230@2049\nfs4\bigdisk' /mnt/bigdisk
 - bad performance due to Windows Defender AntiVirus:
   Option 1:
   # disable Windows defender realtime monitoring
-  # (requires Admin shell)
+  # (requires Administrator shell)
   powershell -Command 'Set-MpPreference -DisableRealtimeMonitoring 1'
   Option 2:
   Add "nfsd.exe", "nfsd_debug.exe", "ksh93.exe", "bash.exe",
@@ -563,7 +567,7 @@ $ mount -t drvfs '\\10.49.202.230@2049\nfs4\bigdisk' /mnt/bigdisk
   Working theory is that this is related to FCB caching, see
   |FCB_STATE_FILESIZECACHEING_ENABLED|, as the nfs41_driver.sys
   kernel module does not see the |stat()| syscalls. But $ tail -f ... #
-  always works for a momemnt if something else opens the same file.
+  always works for a moment if something else opens the same file.
 
 - Unmounting and then mounting the same filesystem causes issues
   as the name cache in nfsd*.exe is not flushed on umount, including
@@ -669,7 +673,7 @@ $ mount -t drvfs '\\10.49.202.230@2049\nfs4\bigdisk' /mnt/bigdisk
 - The "msnfs41client" script has the option "watch_kernel_debuglog"
   to get the debug output of the kernel module.
 
-  Run as Admin: $ /sbin/msnfs41client watch_kernel_debuglog #
+  Run as Administrator: $ /sbin/msnfs41client watch_kernel_debuglog #
 
   Currently requires DebugView
   (https://learn.microsoft.com/en-gb/sysinternals/downloads/debugview)
