@@ -825,9 +825,9 @@ bool get_nfs3attr(const char *progname, const char *filename)
         "\tsize=%lld\n\tused=%lld\n"
         "\trdev=( specdata1=0x%x specdata2=0x%x )\n"
         "\tfsid=0x%llx\n\tfileid=0x%llx\n"
-        "\tatime=(tv_sec=%ld,tv_nsec=%lu)\n"
-        "\tmtime=(tv_sec=%ld,tv_nsec=%lu)\n"
-        "\tctime=(tv_sec=%ld,tv_nsec=%lu)\n"
+        "\tatime=( tv_sec=%ld tv_nsec=%lu )\n"
+        "\tmtime=( tv_sec=%ld tv_nsec=%lu )\n"
+        "\tctime=( tv_sec=%ld tv_nsec=%lu )\n"
         ")\n",
         filename,
         (int)n3a->type,
