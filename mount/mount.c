@@ -653,14 +653,19 @@ int __cdecl wmain(int argc, wchar_t *argv[])
 
     (void)setlocale(LC_ALL, "");
     /*
-     * |_O_WTEXT| - set streams to wide-char mode so we print
+     * |_O_U8TEXT| - set streams to UTF-8 mode so we print
      * non-ASCII characters like Japanese or Chinese/GB18030
      * correctly.
-     * Note that in CRT/UCRT any attempt to use single-byte
-     * functions like |printf()| will trigger an exception
+     * Notes:
+     * 1. in CRT/UCRT any attempt to use single-byte
+     * functions like |printf()| with |_O_U8TEXT| or |_O_WTEXT|
+     * will trigger an exception
+     * 2. |_O_WTEXT| cannot be used here, because then
+     * stdout will contain UTF-16LE characters, which will break
+     * bash x=$(nfs_mount.exe)
      */
-    (void)_setmode(_fileno(stdout), _O_WTEXT);
-    (void)_setmode(_fileno(stderr), _O_WTEXT);
+    (void)_setmode(_fileno(stdout), _O_U8TEXT);
+    (void)_setmode(_fileno(stderr), _O_U8TEXT);
 
     crtsetdbgflags |= _CRTDBG_ALLOC_MEM_DF;  /* use debug heap */
     crtsetdbgflags |= _CRTDBG_LEAK_CHECK_DF; /* report leaks on exit */

@@ -422,7 +422,7 @@ function cmd_mount
 
 	# fixme: Need better text layout for $ mount_sshnfs mount --man #
 	typeset -r mount_sshnfs_cmdmount_usage=$'+
-	[-?\n@(#)\$Id: mount_sshnfs mount (Roland Mainz) 2025-02-17 \$\n]
+	[-?\n@(#)\$Id: mount_sshnfs mount (Roland Mainz) 2025-02-19 \$\n]
 	[-author?Roland Mainz <roland.mainz@nrubsig.org>]
 	[+NAME?mount_sshnfs mount - mount NFSv4 filesystem through ssh
 		tunnel]
@@ -692,21 +692,7 @@ function cmd_mount
 
 				# fixme: we should set LC_ALL=C because below we depend on
 				# a l10n message
-				if false ; then
-					stdout="${ "${c.msnfsv41_nfsmountcmd}" "${mount_args[@]}" ; (( retval=$? )) ;}"
-				else
-					#
-					# FIXME: workaround for Cygwin 3.6 issue that
-					# stdout="${ cmd ; }" only reads the first character
-					# Observed with ksh93u+m/1.0.10 2024-08-01+Cygwin
-					# 3.6.0-0.374.g4dd859d01c22.x86_64
-					#
-					typeset tmpfilename="$(mktemp '/tmp/mount_sshnfs_XXXXXXXXXX.tmp')"
-
-					"${c.msnfsv41_nfsmountcmd}" "${mount_args[@]}" >"${tmpfilename}" ; (( retval=$? ))
-					IFS='' read stdout <"${tmpfilename}"
-					rm -f -- "${tmpfilename}"
-				fi
+				stdout="${ "${c.msnfsv41_nfsmountcmd}" "${mount_args[@]}" ; (( retval=$? )) ;}"
 
 				cat <<<"$stdout"
 
@@ -807,7 +793,7 @@ function cmd_umount
 	typeset mydebug=false # fixme: should be "bool" for ksh93v
 	# fixme: Need better text layout for $ mount_sshnfs mount --man #
 	typeset -r mount_sshnfs_cmdumount_usage=$'+
-	[-?\n@(#)\$Id: mount_sshnfs umount (Roland Mainz) 2025-02-17 \$\n]
+	[-?\n@(#)\$Id: mount_sshnfs umount (Roland Mainz) 2025-02-19 \$\n]
 	[-author?Roland Mainz <roland.mainz@nrubsig.org>]
 	[+NAME?mount_sshnfs umount - unmount NFSv4 filesystem mounted
 		via mount_sshnfs mount]
@@ -911,7 +897,7 @@ function main
 
 	# fixme: Need better text layout for $ mount_sshnfs --man #
 	typeset -r mount_sshnfs_usage=$'+
-	[-?\n@(#)\$Id: mount_sshnfs (Roland Mainz) 2025-02-17 \$\n]
+	[-?\n@(#)\$Id: mount_sshnfs (Roland Mainz) 2025-02-19 \$\n]
 	[-author?Roland Mainz <roland.mainz@nrubsig.org>]
 	[+NAME?mount_sshnfs - mount/umount NFSv4 filesystem via ssh
 		tunnel]
