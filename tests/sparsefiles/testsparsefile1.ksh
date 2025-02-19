@@ -31,15 +31,49 @@
 #
 
 
-function test_sparse_holeonly
+function test_sparse_holeonly_dd
 {
     set -o errexit
     set -o nounset
     #set -o xtrace
 
     rm -f 'sparse_file_hole_only'
-    dd if='/dev/null' of='sparse_file_hole_only' bs=1 count=0 seek=$((65536*1024))
+    dd if='/dev/null' of='sparse_file_hole_only' bs=1 count=0 seek=$((256*1024*1024))
     chattr -V +S 'sparse_file_hole_only'
+
+    ls -l 'sparse_file_hole_only'
+    /cygdrive/c/Windows/system32/fsutil sparse queryrange 'sparse_file_hole_only'
+
+    integer fsutil_num_data_sections="$(/cygdrive/c/Windows/system32/fsutil sparse queryrange 'sparse_file_hole_only' | wc -l)"
+
+    #
+    # test whether the file is OK
+    #
+    if (( fsutil_num_data_sections != 0 )) ; then
+        printf "# TEST failed, found %d data sections, expceted %d\n" \
+            fsutil_num_data_sections \
+            0
+        return 1
+    fi
+
+    printf "\n#\n# TEST %q OK, found %d data sections\n#\n" \
+        "$0" \
+        fsutil_num_data_sections
+
+    return 0
+}
+
+function test_sparse_holeonly_truncate
+{
+    set -o errexit
+    set -o nounset
+    #set -o xtrace
+
+    rm -f 'sparse_file_hole_only'
+    touch 'sparse_file_hole_only'
+    chattr -V +S 'sparse_file_hole_only'
+
+    truncate -s $((256*1024*1024)) 'sparse_file_hole_only'
 
     ls -l 'sparse_file_hole_only'
     /cygdrive/c/Windows/system32/fsutil sparse queryrange 'sparse_file_hole_only'
@@ -228,7 +262,8 @@ builtin basename
 builtin rm
 builtin wc
 
-test_sparse_holeonly
+test_sparse_holeonly_dd
+test_sparse_holeonly_truncate
 test_normal_file
 
 test_multihole_sparsefile1 1024 0 4  false
