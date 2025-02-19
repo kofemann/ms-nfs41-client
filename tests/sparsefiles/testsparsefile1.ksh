@@ -38,7 +38,8 @@ function test_sparse_holeonly
     #set -o xtrace
 
     rm -f 'sparse_file_hole_only'
-    dd if='/dev/null' of='sparse_file_hole_only' bs=1 count=1 seek=$((65536*1024))
+    dd if='/dev/null' of='sparse_file_hole_only' bs=1 count=0 seek=$((65536*1024))
+    chattr -V +S 'sparse_file_hole_only'
 
     ls -l 'sparse_file_hole_only'
     /cygdrive/c/Windows/system32/fsutil sparse queryrange 'sparse_file_hole_only'
@@ -70,6 +71,7 @@ function test_normal_file
 
     rm -f 'test_normal_file'
     dd if='/dev/zero' of='test_normal_file' bs=1024 count=1024
+    chattr -V +S 'test_normal_file'
 
     ls -l 'test_normal_file'
     /cygdrive/c/Windows/system32/fsutil sparse queryrange 'test_normal_file'
@@ -124,6 +126,7 @@ function test_multihole_sparsefile1
     #
     rm -f 'mysparsefile'
     printf '' >'mysparsefile' # trunc
+    chattr -V +S 'mysparsefile'
 
     for i in ${!c.filecontent[@]} ; do
         dd of='mysparsefile' bs=1 conv=notrunc seek=${c.filecontent[$i].pos} status=none <<<"${c.filecontent[$i].data}"
@@ -180,13 +183,15 @@ function test_sparse_punchhole1
     #set -o xtrace
 
     rm -f 'sparse_file_punchhole'
-    dd if='/dev/zero' of='sparse_file_punchhole' count=8 bs=$((1024*1024)) status=none
+    touch 'sparse_file_punchhole'
     chattr -V +S 'sparse_file_punchhole'
+
+    dd if='/dev/zero' of='sparse_file_punchhole' conv=notrunc count=32 bs=$((1024*1024)) status=none
 
     printf '# expected: one data section before fallocate\n'
     /cygdrive/c/Windows/system32/fsutil sparse queryrange 'sparse_file_punchhole'
 
-    fallocate -n -p -o $((0x16000)) -l $((0x8000)) 'sparse_file_punchhole'
+    fallocate -n -p -o $((8*1024*1024)) -l $((4*1024*1024)) 'sparse_file_punchhole'
 
     printf '# expected: two data section after fallocate\n'
     /cygdrive/c/Windows/system32/fsutil sparse queryrange 'sparse_file_punchhole'
