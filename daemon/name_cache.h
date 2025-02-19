@@ -20,7 +20,7 @@
  */
 
 #ifndef __NFS41_DAEMON_NAME_CACHE_H__
-#define __NFS41_DAEMON_NAME_CACHE_H__
+#define __NFS41_DAEMON_NAME_CACHE_H__ 1
 
 #include "nfs41.h"
 

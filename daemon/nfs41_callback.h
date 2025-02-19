@@ -20,7 +20,7 @@
  */
 
 #ifndef __NFS41_CALLBACK_H__
-#define __NFS41_CALLBACK_H__
+#define __NFS41_CALLBACK_H__ 1
 
 #include "wintirpc.h"
 #include "rpc/rpc.h"

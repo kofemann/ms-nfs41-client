@@ -22,7 +22,7 @@
  */
 
 #ifndef __NFS41_NFS_OPS_H__
-#define __NFS41_NFS_OPS_H__
+#define __NFS41_NFS_OPS_H__ 1
 
 #include "nfs41.h"
 #include "pnfs.h"
@@ -810,7 +810,6 @@ typedef struct __nfs42_deallocate_res {
     uint32_t    status;
 } nfs42_deallocate_res;
 
-#if 1
 /* OP_SEEK */
 typedef struct __nfs42_seek_args {
     stateid_arg     *stateid; /* -> nfs41_op_open_res_ok.stateid */
@@ -828,7 +827,6 @@ typedef struct __nfs42_seek_res {
     /* case NFS4_OK: */
     nfs42_seek_res_ok   resok4;
 } nfs42_seek_res;
-#endif
 
 /* OP_READDIR */
 typedef struct __nfs41_readdir_args {

@@ -45,5 +45,5 @@ WmlTrace(
 };
 #endif
 
-#endif // NFS41_WMLKM_H
+#endif /* !NFS41_WMLKM_H */
 

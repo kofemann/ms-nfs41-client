@@ -20,7 +20,7 @@
  */
 
 #ifndef __NFS41_DAEMON_COMPOUND_H__
-#define __NFS41_DAEMON_COMPOUND_H__
+#define __NFS41_DAEMON_COMPOUND_H__ 1
 
 #include "nfs41.h"
 
@@ -78,4 +78,4 @@ int compound_encode_send_decode(
     nfs41_compound *compound,
     bool_t try_recovery);
 
-#endif /* __NFS41_DAEMON_COMPOUND_H__ */
+#endif /* !__NFS41_DAEMON_COMPOUND_H__ */

@@ -22,7 +22,7 @@
  */
 
 #ifndef __NFS41_NFS_XDR_H__
-#define __NFS41_NFS_XDR_H__
+#define __NFS41_NFS_XDR_H__ 1
 
 #include "nfs41_types.h"
 #include "nfs41_compound.h"

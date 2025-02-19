@@ -50,7 +50,7 @@ Copyright (C) Microsoft Corporation.  All rights reserved.
 ------------------------------------------------------------------------------*/
 
 #ifndef _SERVICE_H
-#define _SERVICE_H
+#define _SERVICE_H 1
 
 
 #ifdef __cplusplus
@@ -134,4 +134,4 @@ extern "C" {
 }
 #endif
 
-#endif
+#endif /* !_SERVICE_H */

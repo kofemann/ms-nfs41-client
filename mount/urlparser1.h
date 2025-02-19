@@ -25,7 +25,7 @@
 /* urlparser1.h - header for simple URL parser */
 
 #ifndef __URLPARSER1_H__
-#define __URLPARSER1_H__
+#define __URLPARSER1_H__ 1
 
 #include <stdlib.h>
 

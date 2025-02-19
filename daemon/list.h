@@ -20,7 +20,7 @@
  */
 
 #ifndef NFS41_LIST_H
-#define NFS41_LIST_H
+#define NFS41_LIST_H 1
 
 
 /* doubly-linked list */

@@ -21,7 +21,7 @@
  */
 
 #ifndef __NFS41_NFS_CONST_H__
-#define __NFS41_NFS_CONST_H__
+#define __NFS41_NFS_CONST_H__ 1
 
 
 /*

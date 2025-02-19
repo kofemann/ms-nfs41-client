@@ -22,7 +22,7 @@
  */
 
 #ifndef __NFS41_DAEMON_UPCALL_H__
-#define __NFS41_DAEMON_UPCALL_H__
+#define __NFS41_DAEMON_UPCALL_H__ 1
 
 #include "nfs41_build_features.h"
 #include "nfs41_ops.h"

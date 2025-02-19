@@ -21,7 +21,7 @@
  */
 
 #ifndef IDMAP_H
-#define IDMAP_H
+#define IDMAP_H 1
 
 #include "nfs41_types.h"
 

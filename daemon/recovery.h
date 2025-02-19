@@ -20,7 +20,7 @@
  */
 
 #ifndef RECOVERY_H
-#define RECOVERY_H
+#define RECOVERY_H 1
 
 #include "nfs41.h"
 
@@ -56,4 +56,4 @@ bool_t nfs41_recover_stateid(
     IN nfs41_session *session,
     IN struct __nfs_argop4 *argop);
 
-#endif /* RECOVERY_H */
+#endif /* !RECOVERY_H */

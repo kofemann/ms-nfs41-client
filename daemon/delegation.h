@@ -20,7 +20,7 @@
  */
 
 #ifndef DELEGATION_H
-#define DELEGATION_H
+#define DELEGATION_H 1
 
 #include "nfs41.h"
 
@@ -106,4 +106,4 @@ int nfs41_client_delegation_recovery(
 int nfs41_client_delegation_return_lru(
     IN nfs41_client *client);
 
-#endif /* DELEGATION_H */
+#endif /* !DELEGATION_H */

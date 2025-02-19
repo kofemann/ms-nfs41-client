@@ -20,7 +20,7 @@
  */
 
 #ifndef __PNFS_H__
-#define __PNFS_H__
+#define __PNFS_H__ 1
 
 #include "nfs41_types.h"
 #include "list.h"

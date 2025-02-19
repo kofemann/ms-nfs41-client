@@ -21,7 +21,7 @@
  */
 
 #ifndef __NFS41_MOUNT_OPTIONS_H__
-#define __NFS41_MOUNT_OPTIONS_H__
+#define __NFS41_MOUNT_OPTIONS_H__ 1
 
 
 #define MOUNT_OPTION_BUFFER_SECRET ('n4')

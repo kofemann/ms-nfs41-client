@@ -22,7 +22,7 @@
  */
 
 #ifndef __NFS41__
-#define __NFS41__
+#define __NFS41__ 1
 
 #include <stdbool.h>
 #include "util.h"
@@ -570,4 +570,4 @@ int nfs41_ea_set(
     IN nfs41_open_state *state,
     IN struct _FILE_FULL_EA_INFORMATION *ea);
 
-#endif /* __NFS41__ */
+#endif /* !__NFS41__ */

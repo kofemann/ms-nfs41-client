@@ -21,8 +21,8 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  */
 
-#ifndef _NFS41_DAEMON_
-#define _NFS41_DAEMON_
+#ifndef _NFS41_FROM_KERNEL_
+#define _NFS41_FROM_KERNEL_ 1
 
 #define FILE_DIRECTORY_FILE                     0x00000001
 #define FILE_WRITE_THROUGH                      0x00000002
@@ -450,7 +450,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
     LARGE_INTEGER FileOffset;
     LARGE_INTEGER Length;
 } FILE_ALLOCATED_RANGE_BUFFER, *PFILE_ALLOCATED_RANGE_BUFFER;
-#endif /* _WINIOCTL_ */
+#endif /* !_WINIOCTL_ */
 
 /*
  * |FILE_ZERO_DATA_INFORMATION| - test for
@@ -464,4 +464,4 @@ typedef struct _FILE_ZERO_DATA_INFORMATION {
 } FILE_ZERO_DATA_INFORMATION, *PFILE_ZERO_DATA_INFORMATION;
 #endif /* !_WINIOCTL_ */
 
-#endif
+#endif /* !_NFS41_FROM_KERNEL_ */

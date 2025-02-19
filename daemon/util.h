@@ -22,7 +22,7 @@
  */
 
 #ifndef __NFS41_DAEMON_UTIL_H__
-#define __NFS41_DAEMON_UTIL_H__
+#define __NFS41_DAEMON_UTIL_H__ 1
 
 #include <stdlib.h>
 #include <stdbool.h>

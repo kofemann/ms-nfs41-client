@@ -21,7 +21,7 @@
  */
 
 #ifndef __NFS41_DAEMON_TYPES_H__
-#define __NFS41_DAEMON_TYPES_H__
+#define __NFS41_DAEMON_TYPES_H__ 1
 
 #include "wintirpc.h"
 #include "rpc/xdr.h"
