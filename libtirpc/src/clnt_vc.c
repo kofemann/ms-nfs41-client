@@ -259,7 +259,7 @@ loop_restart:
                 if (cond_wait_timed_fails++ > 2) {
                     mutex_unlock(&clnt_fd_lock);
                     (void)fprintf(stdout,
-                        "%04lx: cb: possible deadlockm, lasterr=%d\n",
+                        "%04lx: cb: possible deadlock, lasterr=%d\n",
                         (long)GetCurrentThreadId(), (int)lasterr);
                     goto loop_restart;
                 }
