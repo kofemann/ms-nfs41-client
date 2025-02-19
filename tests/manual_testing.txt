@@ -302,6 +302,29 @@ or one-liner:
 ksh93 -c 'rm -f test1.txt ; touch test1.txt ; icacls test1.txt /grant:r "cygwingrp1:(WDAC)" /grant:r "cygwingrp2:(WDAC)" /t /c ; getfacl test1.txt | grep -C 20 --colour -E "cygwingrp[12]"'
 -------- snip --------
 
+Same test with xcopy /O (requires SeBackupPrivilege/SeRestorePrivilege):
+-------- snip --------
+# cd to a NFS >= v4.1 filesystem
+# getfact output should contain both "cygwingrp1" and "cygwingrp2"
+ksh93 -c 'rm -f test1.txt subdir1/test1.txt ; touch test1.txt ; icacls test1.txt /grant:r "cygwingrp1:(WDAC)" /grant:r "cygwingrp2:(WDAC)" /t /c ; xcopy /O /I test1.txt "subdir1\\" ; getfacl subdir1/test1.txt | grep -C 20 --colour -E "cygwingrp[12]"'
+-------- snip --------
+
+Same test with icacls /save+/restore (requires SeBackupPrivilege/SeRestorePrivilege):
+-------- snip --------
+# * Test: Copy ACL from "test1.txt" to "test2.txt"
+# * Expected result: getfacl output should contain both "cygwingrp1" and "cygwingrp2"
+# * Description:
+# 1. save ACL data of "test1.txt" to "aclspec.icacls"
+# 2. replace the filename "test1.txt" with "test2.txt" in
+#   "aclspec.icacls" and save the resulting data as
+#   "aclspec2.icacls"
+# 3. use $ icacls . /restore aclspec2.icacls # to set
+#   the ACL on "test2.txt"
+# * Usage:
+#   cd to a NFS >= v4.1 filesystem and execute the one-liner below:
+ksh93 -c 'rm -f test1.txt test2.txt aclspec.icacls aclspec2.icacls ; touch test1.txt ; touch test2.txt ; icacls test1.txt /grant:r "cygwingrp1:(WDAC)" /grant:r "cygwingrp2:(WDAC)" /t /c ; icacls test1.txt /save aclspec.icacls ; iconv -f UTF16LE -t UTF-8 <aclspec.icacls | { IFS="" read fname ; IFS="" read aclstr ; } ; printf "test2.txt\r\n%s\n" "$aclstr" | iconv -f UTF-8 -t UTF16LE >aclspec2.icacls ; icacls . /restore aclspec2.icacls ; getfacl test2.txt | grep -C 20 --colour -E "cygwingrp[12]"'
+-------- snip --------
+
 #
 # Test for "Generic Write" ACL:
 #
