@@ -1,5 +1,5 @@
 #
-# ms-nfs41-client manual testing sequence, 2025-02-18
+# ms-nfs41-client manual testing sequence, 2025-02-24
 #
 # Draft version, needs to be turned into automated tests
 # if possible
@@ -157,7 +157,7 @@ cd cthon04/
 git config --global --add safe.directory "$PWD"
 git checkout 6c9abfd6907b2b43036af111cc600ab60ef804e5
 git am ../ms-nfs41-client/tests/cthon04/*.patch
-(make CC="gcc -std=gnu17 -Wno-implicit-int -Wno-implicit-function-declaration -Wno-incompatible-pointer-types" 2>&1 | tee buildlog.log)
+(make CC="gcc -std=gnu17 -Wno-implicit-int -Wno-implicit-function-declaration -Wno-incompatible-pointer-types -DNATIVE64=1" 2>&1 | tee buildlog.log)
 (rm -Rf testdir1 && mkdir testdir1 && PATH="$PATH:." ksh93 ./runtests -a -t "$PWD/testdir1" 2>&1 | tee testrun.log)
 
 
