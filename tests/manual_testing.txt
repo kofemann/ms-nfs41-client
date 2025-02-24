@@ -245,6 +245,20 @@ rm -f symlink1_to_h_tmp ; cmd /C 'mklink /D symlink1_to_h_tmp \\derfwpc5131_ipv4
 ksh93 -c 'typeset -a a=( "/" "/usr" "/tmp" "/usr/bin" "$PWD" "/dev/null" "." ) ; for ((i=0 ; i < ${#a[@]} ; i++ )) ; do rm -f "syml$i" ; ln -sf "${a[$i]}" "syml$i" ; l="$(readlink "syml$i")" ; if [[ "$l" == "${a[$i]}" ]] ; then printf "OK test %d\n" i ; else printf "FAIL test %d\n" i ; fi ; done'
 
 #
+# Test for mkdir with UNC path
+#
+Example:
+---- snip ----
+# get UNC path for driver letterr 'L':
+$ powershell -Command 'Get-PSDrive -Name L | Select-Object -Property DisplayRoot,CurrentLocation | Format-List' | ksh93 -c 'compound c=(typeset -A ar) ; while IFS="" read -r l ; do dummy="${l/~(Elr)(.+?)[[:space:]]*:[[:space:]](.+)\015/x}" ; [[ "${.sh.match[1]-}" == "" ]] && continue ; c.ar["${.sh.match[1]}"]="${.sh.match[2]}" ; done ; cygpath -u "$(printf "%s\\\\%s\n" "${c.ar[DisplayRoot]}" "${c.ar[CurrentLocation]}")"'
+//derfwnb4966_ipv6linklocal@2049/nfs4/bigdisk/builds/bash_build1
+# tests
+mkdir -p //derfwnb4966_ipv6linklocal@2049/nfs4/bigdisk/builds/bash_build1/a1/b1/c1 || echo FAIL
+mkdir //derfwnb4966_ipv6linklocal@2049/nfs4/bigdisk/builds/bash_build1/a2 || echo FAIL
+mkdir //derfwnb4966_ipv6linklocal@2049/nfs4/bigdisk/builds/bash_build1/a2/b2 || echo FAIL
+---- snip ----
+
+#
 # Tests for groups
 # (Add groups "cygwingrp1" and "cygwingrp2" to both Linux NFSv4 server
 # and Windows machine, after that $ chgrp cygwingrp2 # should work)
