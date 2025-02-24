@@ -43,11 +43,14 @@ installdest:
 	# we need a hardlink for nfs_umount.exe, softlinks do not work
 	ln -f $(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/nfs_mount.exe	$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/nfs_umount.exe
 	# install 32bit nfs_mount.exe on 64bit Windows to assist with debugging 32bit issues
-	# we use the "Release" version to avoid issues with missing debug libraries
+	# we use the "Release" version on 64bit to avoid issues with missing debug libraries
+	# on 32bit we just create a hardlink from nfs_mount.exe to nfs_mount.i686.exe
 	if [[ "$(CYGWIN_BASEPATH)" == *64* ]] ; then \
-		cp $(VS_BUILD_DIR32)/../Release/nfs_mount.exe	$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/nfs_mount.i686.exe ; \
-		ln -f $(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/nfs_mount.i686.exe	$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/nfs_umount.i686.exe ; \
+		cp $(VS_BUILD_DIR32)/../Release/nfs_mount.exe $(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/nfs_mount.i686.exe ; \
+        else \
+		ln -f $(VS_BUILD_DIR32)/../Debug/nfs_mount.exe $(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/nfs_mount.i686.exe ; \
 	fi
+	ln -f $(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/nfs_mount.i686.exe $(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/nfs_umount.i686.exe
 	cp $(VS_BUILD_DIR)/nfsd.*		$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/.
 	cp $(VS_BUILD_DIR)/nfs_install.*	$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/.
 	cp $(VS_BUILD_DIR)/libtirpc.*	$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/.
