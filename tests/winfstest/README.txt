@@ -10,6 +10,7 @@ set -o errexit
 git clone https://github.com/kofemann/ms-nfs41-client.git
 git clone https://github.com/dimov-cz/winfstest.git
 cd winfstest/
+git config --global --add safe.directory "$PWD"
 
 # switch to commit which is known to work (with our patches)
 git checkout '525f878c06c585619eadd769c8ed9dcdf175b026'
@@ -21,6 +22,7 @@ MSBuild.exe winfstest.sln -t:Build -p:Configuration=Debug -p:Platform=x64
 
 # get testsuite binary path
 cd TestSuite
+chmod a+x winfstest.exe
 winfstest_testsuite_path="$(pwd)"
 
 # create test dir on NFSv4.1 filesystem
