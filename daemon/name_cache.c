@@ -159,7 +159,12 @@ static int attr_cache_entry_create(
     list_remove(&entry->free_entry);
 
     entry->nc_attrs = 0;
+    entry->change = 0ULL;
+    entry->size = 0ULL;
+    entry->space_used = 0ULL;
     entry->fileid = fileid;
+    entry->fsid_major = 0ULL;
+    entry->fsid_minor = 0ULL;
     entry->invalidated = FALSE;
     entry->delegated = FALSE;
     *entry_out = entry;
