@@ -147,6 +147,8 @@ function nfsclient_install
 	mkdir -p /cygdrive/c/etc
 	cp etc_netconfig /cygdrive/c/etc/netconfig
 	cp ms-nfs41-idmap.conf /cygdrive/c/etc/.
+	# help non-Windows admins find /etc/hosts by providing a symlink
+	ln -sf /cygdrive/c/Windows/System32/drivers/etc/hosts /cygdrive/c/etc/hosts
 
 	# enable symlink lookup
 	# and then print the status
