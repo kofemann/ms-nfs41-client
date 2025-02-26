@@ -58,6 +58,7 @@ out:
 static
 int query_sparsefile_datasections(nfs41_open_state *state,
     uint64_t start_offset,
+    uint64_t end_offset,
     FILE_ALLOCATED_RANGE_BUFFER *outbuffer,
     size_t out_maxrecords,
     size_t *restrict res_num_records)
@@ -175,7 +176,21 @@ int query_sparsefile_datasections(nfs41_open_state *state,
         outbuffer[i].Length.QuadPart = data_size;
         (*res_num_records)++;
 
+        if (outbuffer[i].FileOffset.QuadPart > end_offset) {
+            DPRINTF(QARLVL,
+                ("end offset reached, "
+                "outbuffer[%d].FileOffset.QuadPart(=%lld) > end_offset(=%lld)\n",
+                (int)i,
+                (long long)outbuffer[i].FileOffset.QuadPart,
+                (long long)end_offset));
+            break;
+        }
+
         if (data_seek_sr_eof || hole_seek_sr_eof) {
+            DPRINTF(QARLVL,
+                ("EOF reached (data_seek_sr_eof=%d, hole_seek_sr_eof=%d)\n",
+                (int)data_seek_sr_eof,
+                (int)hole_seek_sr_eof));
             break;
         }
     }
@@ -223,6 +238,7 @@ int handle_queryallocatedranges(void *daemon_context,
 
     status = query_sparsefile_datasections(state,
         args->inrange.FileOffset.QuadPart,
+        args->inrange.FileOffset.QuadPart+args->inrange.Length.QuadPart,
         outbuffer,
         num_records,
         &res_num_records);
