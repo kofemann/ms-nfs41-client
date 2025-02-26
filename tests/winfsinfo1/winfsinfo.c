@@ -982,6 +982,160 @@ done:
 }
 
 static
+int fsctlqueryallocatedranges(const char *progname, const char *filename)
+{
+    HANDLE hFile;
+
+    FILE_STANDARD_INFO finfo;
+    bool ok;
+
+    DWORD bytesReturned = 0;
+    size_t max_ranges_per_query = 2;
+    PFILE_ALLOCATED_RANGE_BUFFER ranges = NULL;
+    FILE_ALLOCATED_RANGE_BUFFER inputBuffer;
+    /*
+     * |lastReturnedRange| - We start counting at |1| for
+     * compatibility with "fsutil sparse queryrange"
+     */
+    size_t lastReturnedRange = 1;
+    int retval = 0;
+    size_t i;
+    size_t cycle;
+    DWORD numRangesReturned;
+    DWORD lasterr;
+
+    (void)memset(&finfo, 0, sizeof(finfo));
+
+    ranges = malloc((sizeof(FILE_ALLOCATED_RANGE_BUFFER) * max_ranges_per_query));
+    if (ranges == NULL) {
+        (void)fprintf(stderr, "%s: Error out of memory\n", progname);
+        return 1;
+    }
+
+    hFile = CreateFileA(filename,
+        GENERIC_READ,
+        FILE_SHARE_READ,
+        NULL,
+        OPEN_EXISTING,
+        FILE_ATTRIBUTE_NORMAL,
+        NULL);
+    if (hFile == INVALID_HANDLE_VALUE) {
+        (void)fprintf(stderr,
+            "%s: Error opening file '%s', lasterr=%d\n",
+            progname,
+            filename,
+            (int)GetLastError());
+        return 1;
+    }
+
+    ok = GetFileInformationByHandleEx(hFile, FileStandardInfo, &finfo,
+        sizeof(finfo));
+    if (!ok) {
+        (void)fprintf(stderr, "%s: GetFileInformationByHandleEx() "
+            "error. GetLastError()==%d.\n",
+            progname,
+            (int)GetLastError());
+        retval = 1;
+        goto out;
+    }
+
+    inputBuffer.FileOffset.QuadPart = 0ULL;
+    /*
+     * Set |inputBuffer.Length.QuadPart| to a value to query all
+     * data ranges in a file
+     *
+     * Notes:
+     * - |FILE_STANDARD_INFO.AllocationSize| can be zero on some
+     * filesystems, smaller than |FILE_STANDARD_INFO.EndOfFile|
+     * for sparse files and larger than
+     * |FILE_STANDARD_INFO.EndOfFile| for normal files, or value
+     * set by an user
+     * - Also add 1GB (0x40000000) to test the API
+     */
+    inputBuffer.Length.QuadPart =
+        max(finfo.AllocationSize.QuadPart,
+            finfo.EndOfFile.QuadPart) +
+        0x40000000;
+
+    for (cycle = 0 ; ; cycle ++) {
+retry_fsctl:
+        if (!DeviceIoControl(hFile,
+            FSCTL_QUERY_ALLOCATED_RANGES,
+            &inputBuffer,  1*sizeof(FILE_ALLOCATED_RANGE_BUFFER),
+            ranges, (sizeof(FILE_ALLOCATED_RANGE_BUFFER) * max_ranges_per_query),
+            &bytesReturned,
+            NULL)) {
+            lasterr = GetLastError();
+            if (lasterr == ERROR_MORE_DATA) {
+                /*
+                 * Windows BUG: NTFS on Win10 returns the number of
+                 * bytes we passed in, not the number of bytes which
+                 * we should allocate
+                 */
+                max_ranges_per_query+=2;
+                ranges = realloc(ranges,
+                    (sizeof(FILE_ALLOCATED_RANGE_BUFFER) * max_ranges_per_query));
+                if (ranges == NULL) {
+                    (void)fprintf(stderr, "%s: Error out of memory\n",
+                        progname);
+                    retval = 1;
+                    goto out;
+                }
+
+                /* |memset(..., 0, ...)| only here for debuging */
+                (void)memset(ranges, 0, sizeof(FILE_ALLOCATED_RANGE_BUFFER) * max_ranges_per_query);
+                goto retry_fsctl;
+            }
+
+            retval = 1;
+            goto out;
+        }
+
+        numRangesReturned = bytesReturned / sizeof(FILE_ALLOCATED_RANGE_BUFFER);
+
+        if (numRangesReturned > 0) {
+            /*
+             * If we do more than one query make sure the data range
+             * offset we used to start the next query is the same
+             * as the first returned data range (both should be
+             * identical in offset)
+             */
+            if (cycle > 0) {
+                if ((ranges[0].FileOffset.QuadPart != inputBuffer.FileOffset.QuadPart)) {
+                    (void)fprintf(stderr,
+                        "%s: Internal error: Restart query did not return "
+                        "the same data range offset\n",
+                        progname);
+                    retval = 1;
+                    goto out;
+                }
+            }
+
+            for (i = 0; i < numRangesReturned; i++) {
+                if ((i < max_ranges_per_query) &&
+                    ((cycle > 0)?(i > 0):true)) {
+                    (void)printf("Data range[%ld]: Offset: 0x%llx, Length: 0x%llx\n",
+                        (unsigned long)lastReturnedRange++,
+                        (unsigned long long)ranges[i].FileOffset.QuadPart,
+                        (unsigned long long)ranges[i].Length.QuadPart);
+                }
+            }
+
+            inputBuffer.FileOffset.QuadPart = ranges[i-1].FileOffset.QuadPart;
+        }
+
+        /* Done ? */
+        if (numRangesReturned < max_ranges_per_query)
+            break;
+    }
+
+out:
+    (void)CloseHandle(hFile);
+    return retval;
+}
+
+
+static
 void usage(void)
 {
     (void)fprintf(stderr, "winfsinfo <"
@@ -997,7 +1151,8 @@ void usage(void)
         "filecasesensitiveinfo|"
         "getfiletime|"
         "nfs3attr|"
-        "fileremoteprotocolinfo"
+        "fileremoteprotocolinfo|"
+        "fsctlqueryallocatedranges"
         "> path\n");
 }
 
@@ -1055,6 +1210,9 @@ int main(int ac, char *av[])
     }
     else if (!strcmp(subcmd, "fileremoteprotocolinfo")) {
         return get_file_remote_protocol_info(av[0], av[2]);
+    }
+    else if (!strcmp(subcmd, "fsctlqueryallocatedranges")) {
+        return fsctlqueryallocatedranges(av[0], av[2]);
     }
     else {
         (void)fprintf(stderr, "%s: Unknown subcmd '%s'\n", av[0], subcmd);
