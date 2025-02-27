@@ -726,6 +726,35 @@ function watch_kernel_debuglog
 	return 0
 }
 
+function watch_nfs_traffic
+{
+	typeset -i nfsv4port=2049
+	typeset s
+	typeset -a eth_interface_list=()
+
+	printf '# %s: Reading ethernet interface list\n' "$0"
+	while read s ; do
+		eth_interface_list+=( "${s/$'\r'/}" )
+	done < <(powershell -Command 'Get-NetAdapter -Physical | Where-Object { $_.Status -eq "Up"} | ForEach-Object {$_.Name}')
+
+	printf '# Found interface %q\n' "${eth_interface_list[@]}"
+
+	# args to watch NFSv4.x RFC traffic
+	typeset -a tshark_args=(
+		'-f' "port $nfsv4port"
+		'-d' "tcp.port==${nfsv4port},rpc"
+	)
+
+	# add ethernet interface names
+	for s in "${eth_interface_list[@]}" ; do
+		tshark_args+=( '-i' "$s" )
+	done
+
+	'/cygdrive/c/Program Files/Wireshark/tshark' "${tshark_args[@]}"
+
+	return 0
+}
+
 function nfsclient_system_mount_globaldirs
 {
 	set -o xtrace
@@ -1022,6 +1051,16 @@ function main
 			(( numerr > 0 )) && return 1
 
 			watch_kernel_debuglog
+			return $?
+			;;
+		'watch_nfs_traffic')
+			check_machine_arch || (( numerr++ ))
+			require_cmd 'powershell' || (( numerr++ ))
+			require_cmd '/cygdrive/c/Program Files/Wireshark/tshark' || (( numerr++ ))
+
+			(( numerr > 0 )) && return 1
+
+			watch_nfs_traffic
 			return $?
 			;;
 		'sys_terminal')

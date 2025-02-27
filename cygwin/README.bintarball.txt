@@ -680,10 +680,13 @@ $ mount -t drvfs '\\10.49.202.230@2049\nfs4\bigdisk' /mnt/bigdisk
   to be installed.
 
 - Watching network traffic:
-  WireShark has a command line tool called "tshark", which can be used
-  to see NFSv4 traffic. As NFSv4 uses RPC you have to filter for RPC,
-  and the RPC filter automatically identifies NFSv4 traffic on it's RPC
-  id.
+  - Use $ /sbin/msnfs41client watch_nfs_traffic # to watch the
+  NFS network traffic
+
+  - WireShark has a command line tool called "tshark", which can be
+  used to see NFSv4 traffic. As NFSv4 uses RPC you have to filter for
+  RPC, and the RPC filter automatically identifies NFSv4 traffic on
+  it's RPC id.
   Example for Windows:
   (for NFSv4 default TCP port "2049", replace "2049" with the
   desired port if you use a custom port ; use "ipconfig" to find the
