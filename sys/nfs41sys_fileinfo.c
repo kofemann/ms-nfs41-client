@@ -220,6 +220,66 @@ NTSTATUS nfs41_QueryFileInformation(
 #endif
 
     switch (InfoClass) {
+#ifdef NFS41_DRIVER_DISABLE_8DOT3_SHORTNAME_GENERATION
+    /*
+     * |FileNormalizedNameInformation| is specified to return an
+     * absolute pathname where each short name component (e.g. 8.3
+     * file name) has been replaced with the corresponding long
+     * name component, and each name component uses the exact
+     * letter casing stored on disk.
+     *
+     * So if we do not support 8.3 names (i.e.
+     * |NFS41_DRIVER_DISABLE_8DOT3_SHORTNAME_GENERATION| being
+     * defined) and the exported NFS filesystem is case-sensitive,
+     * then just handle |FileNormalizedNameInformation| like
+     * |FileNameInformation|.
+     */
+    case FileNormalizedNameInformation:
+    {
+        ULONG fsattrs = pVNetRootContext->FsAttrs.FileSystemAttributes;
+
+        /*
+         * FIXME: If the underlying filesystem is case-insensitive we
+         * would have to make an upcall to fetch the exact casing
+         * from our namecache or the NFS server.
+         */
+        if ((fsattrs & FILE_CASE_SENSITIVE_SEARCH) == 0) {
+            print_error("nfs41_QueryFileInformation: "
+                "FileNormalizedNameInformation not supported for "
+                "case-insensitive filesystems\n");
+            status = STATUS_NOT_SUPPORTED;
+            goto out;
+        }
+
+        if (RxContext->Info.LengthRemaining <
+            FIELD_OFFSET(FILE_NAME_INFORMATION, FileName)) {
+            RxContext->Info.Length = 0;
+            status = STATUS_BUFFER_OVERFLOW;
+            goto out;
+        }
+
+        PFILE_NAME_INFORMATION nameinfo =
+            (PFILE_NAME_INFORMATION)RxContext->Info.Buffer;
+        RxContext->Info.LengthRemaining -=
+            FIELD_OFFSET(FILE_NAME_INFORMATION, FileName);
+
+        RxConjureOriginalName((PFCB)RxContext->pFcb,
+            (PFOBX)RxContext->pFobx,
+            &nameinfo->FileNameLength,
+            &nameinfo->FileName[0],
+            &RxContext->Info.Length,
+            VNetRoot_As_UNC_Name);
+
+        if (RxContext->Info.LengthRemaining < 0) {
+            RxContext->Info.Length = 0;
+            status = STATUS_BUFFER_OVERFLOW;
+            goto out;
+        }
+
+        status = STATUS_SUCCESS;
+        goto out;
+    }
+#endif /* NFS41_DRIVER_DISABLE_8DOT3_SHORTNAME_GENERATION */
     case FileEaInformation:
     {
         if (RxContext->Info.LengthRemaining <
