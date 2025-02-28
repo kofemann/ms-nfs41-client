@@ -1251,6 +1251,12 @@ int nfs41_superblock_getattr(
     if (status) goto out;
 
     switch (status = openattr_res.status) {
+    default:
+        eprintf("nfs41_superblock_getattr: "
+            "Unexpected NFS error '%s' while probing named attr "
+            "support\n",
+            nfs_error_string(status));
+        /* fall-through */
     case NFS4ERR_NOTSUPP:
         *supports_named_attrs = 0;
         status = NFS4_OK;
