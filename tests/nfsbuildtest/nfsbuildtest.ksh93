@@ -174,7 +174,7 @@ function gcc_build
 		set -o xtrace
 		time ksh93 -c 'export SHELL=/bin/ksh93 ; (yes | make --load-average 32 -j12 all)'
 		printf "######## gcc build make all returned %d\n" $?
-		time ksh93 -c 'export SHELL=/bin/ksh93 ; (yes | make --load-average 32 -j12 install)'
+		time ksh93 -c 'export SHELL=/bin/ksh93 ; (yes | make --load-average 32 -j12 install DESTDIR="$PWD/install_root")'
 		printf "######## gcc build make install returned %d\n" $?
 	)
 
@@ -331,15 +331,15 @@ function bash_build
 	#
 	if $config_use_posix_ksh93_builtins ; then
 		if is_cygwin && (( (cygwin_vers.major*1000+cygwin_vers.minor) >= 3005 )) ; then
-			time ksh93 -c 'export SHELL=/bin/ksh93 ; bmake -j16 install DESTDIR=$PWD/install_root'
+			time ksh93 -c 'export SHELL=/bin/ksh93 ; bmake -j16 install DESTDIR="$PWD/install_root"'
 		else
-			time ksh93 -c 'export SHELL=/bin/ksh93 ; make -j16 install DESTDIR=$PWD/install_root'
+			time ksh93 -c 'export SHELL=/bin/ksh93 ; make -j16 install DESTDIR="$PWD/install_root"'
 		fi
 	else
 		if is_cygwin && (( (cygwin_vers.major*1000+cygwin_vers.minor) >= 3005 )) ; then
-			time bash -c 'export SHELL=/bin/bash ; bmake -j16 install DESTDIR=$PWD/install_root'
+			time bash -c 'export SHELL=/bin/bash ; bmake -j16 install DESTDIR="$PWD/install_root"'
 		else
-			time bash -c 'export SHELL=/bin/bash ; make -j16 install DESTDIR=$PWD/install_root'
+			time bash -c 'export SHELL=/bin/bash ; make -j16 install DESTDIR="$PWD/install_root"'
 		fi
 	fi
 	echo $?
