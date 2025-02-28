@@ -176,7 +176,7 @@ int query_sparsefile_datasections(nfs41_open_state *state,
         outbuffer[i].Length.QuadPart = data_size;
         (*res_num_records)++;
 
-        if (outbuffer[i].FileOffset.QuadPart > end_offset) {
+        if ((uint64_t)outbuffer[i].FileOffset.QuadPart > end_offset) {
             DPRINTF(QARLVL,
                 ("end offset reached, "
                 "outbuffer[%d].FileOffset.QuadPart(=%lld) > end_offset(=%lld)\n",
