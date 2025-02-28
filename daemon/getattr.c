@@ -178,8 +178,7 @@ static int handle_getattr(void *daemon_context, nfs41_upcall *upcall)
         }
     }
 
-    EASSERT((info.attrmask.count > 0) &&
-        (info.attrmask.arr[0] & FATTR4_WORD0_CHANGE));
+    EASSERT(bitmap_isset(&info.attrmask, 0, FATTR4_WORD0_CHANGE));
     args->ctime = info.change;
 
     switch (args->query_class) {

@@ -60,8 +60,7 @@ ULONG nfs_file_info_to_attributes(
             info->type));
     }
 
-    EASSERT((info->attrmask.count > 0) &&
-        (info->attrmask.arr[1] & FATTR4_WORD1_MODE));
+    EASSERT(bitmap_isset(&info->attrmask, 1, FATTR4_WORD1_MODE));
     if (info->mode == 0444) /* XXX: 0444 for READONLY */
         attrs |= FILE_ATTRIBUTE_READONLY;
 
@@ -137,11 +136,9 @@ void nfs_to_standard_info(
     const ULONG FileAttributes =
         nfs_file_info_to_attributes(superblock, info);
 
-    EASSERT(info->attrmask.arr[0] & FATTR4_WORD0_SIZE);
-    EASSERT((info->attrmask.count > 0) &&
-        (info->attrmask.arr[1] & FATTR4_WORD1_NUMLINKS));
-    EASSERT((info->attrmask.count > 0) &&
-        (info->attrmask.arr[1] & FATTR4_WORD1_SPACE_USED));
+    EASSERT(bitmap_isset(&info->attrmask, 0, FATTR4_WORD0_SIZE));
+    EASSERT(bitmap_isset(&info->attrmask, 1, FATTR4_WORD1_NUMLINKS));
+    EASSERT(bitmap_isset(&info->attrmask, 1, FATTR4_WORD1_SPACE_USED));
 
     std_out->EndOfFile.QuadPart = (LONGLONG)info->size;
     std_out->AllocationSize.QuadPart = (LONGLONG)info->space_used;
@@ -402,8 +399,7 @@ void nfs_to_stat_lx_info(
             break;
     }
 
-    EASSERT((info->attrmask.count > 0) &&
-        (info->attrmask.arr[1] & FATTR4_WORD1_MODE));
+    EASSERT(bitmap_isset(&info->attrmask, 1, FATTR4_WORD1_MODE));
     if (info->mode & MODE4_RUSR)
         stat_lx_out->LxMode |= LX_MODE_S_IREAD;
     if (info->mode & MODE4_WUSR)

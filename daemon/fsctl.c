@@ -355,8 +355,7 @@ int handle_setzerodata(void *daemon_context,
      }
 
     /* Update ctime on success */
-    EASSERT((info.attrmask.count > 0) &&
-        (info.attrmask.arr[0] & FATTR4_WORD0_CHANGE));
+    EASSERT(bitmap_isset(&info.attrmask, 0, FATTR4_WORD0_CHANGE));
     args->ctime = info.change;
 
     DPRINTF(SZDLVL,

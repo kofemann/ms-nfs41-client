@@ -368,17 +368,18 @@ use_nfs41_getattr:
          * (usually for new files). In this case do a full
          * roundtrip to the NFS server to get the data...
          */
-        if ((info.attrmask.arr[1] &
-            (FATTR4_WORD1_OWNER|FATTR4_WORD1_OWNER_GROUP)) != (FATTR4_WORD1_OWNER|FATTR4_WORD1_OWNER_GROUP)) {
+        if (bitmap_isset(&info.attrmask, 1, FATTR4_WORD1_OWNER) &&
+            bitmap_isset(&info.attrmask, 1, FATTR4_WORD1_OWNER_GROUP)) {
             DPRINTF(ACLLVL2, ("handle_getattr: owner/owner_group not in cache, doing full lookup...\n"));
             goto use_nfs41_getattr;
         }
     }
 
     EASSERT(info.attrmask.count > 1);
-    EASSERT((info.attrmask.arr[1] & (FATTR4_WORD1_OWNER|FATTR4_WORD1_OWNER_GROUP)) == (FATTR4_WORD1_OWNER|FATTR4_WORD1_OWNER_GROUP));
+    EASSERT(bitmap_isset(&info.attrmask, 1, FATTR4_WORD1_OWNER) &&
+        bitmap_isset(&info.attrmask, 1, FATTR4_WORD1_OWNER_GROUP));
     if (args->query & DACL_SECURITY_INFORMATION) {
-        EASSERT((info.attrmask.arr[0] & (FATTR4_WORD0_ACL)) == (FATTR4_WORD0_ACL));
+        EASSERT(bitmap_isset(&info.attrmask, 0, FATTR4_WORD0_ACL));
     }
 
     status = InitializeSecurityDescriptor(&sec_desc,
@@ -1480,8 +1481,7 @@ static int handle_setacl(void *daemon_context, nfs41_upcall *upcall)
     else {
         args->ctime = info.change;
 
-        EASSERT((info.attrmask.count > 0) &&
-            (info.attrmask.arr[0] & FATTR4_WORD0_CHANGE));
+        EASSERT(bitmap_isset(&info.attrmask, 0, FATTR4_WORD0_CHANGE));
 
         if (DPRINTF_LEVEL_ENABLED(ACLLVL1)) {
             print_nfs41_file_info("handle_setacl: nfs41_setattr() success info OUT:", &info);
