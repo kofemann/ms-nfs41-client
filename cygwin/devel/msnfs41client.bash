@@ -467,7 +467,13 @@ function nfsclient_rundeamon
 		"${nfsd_args[@]}"
 	elif false ; then
 		export _NT_ALT_SYMBOL_PATH="$(cygpath -w "$PWD");srv*https://msdl.microsoft.com/download/symbols"
-		# use '!gflag +full;g' for heap tests, eats lots of memory
+		#
+		# Useful cdb cmds:
+		# - heap tests (eats lots of memory):
+		# '-c' '!gflag +full;g' for heap tests
+		# - log all |malloc()|/|calloc()| calls:
+		# '-c' 'bp ucrtbase!malloc "kp; g" ; bp ucrtbased!_malloc_dbg "kp; g" ; bp ucrtbase!calloc "kp; g" ; bp ucrtbased!_calloc_dbg "kp; g" ; g'
+		#
 		nfsd_args=(
 			'cdb'
 			'-c' '!gflag +soe;sxe -c "kp;gn" *;.lines -e;g'
@@ -595,7 +601,11 @@ function nfsclient_system_rundeamon
 		"${nfsd_args[@]}"
 	elif false ; then
 		export _NT_ALT_SYMBOL_PATH="$(cygpath -w "$PWD");srv*https://msdl.microsoft.com/download/symbols"
-		# use '!gflag +full;g' for heap tests, eats lots of memory
+		# - heap tests (eats lots of memory):
+		# '-c' '!gflag +full;g' for heap tests
+		# - log all |malloc()|/|calloc()| calls:
+		# '-c' 'bp ucrtbase!malloc "kp; g" ; bp ucrtbased!_malloc_dbg "kp; g" ; bp ucrtbase!calloc "kp; g" ; bp ucrtbased!_calloc_dbg "kp; g" ; g'
+		#
 		nfsd_args=(
 			'cdb'
 			'-c' '!gflag +soe;sxe -c "kp;gn" *;.lines -e;g'
