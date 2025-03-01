@@ -368,8 +368,10 @@ use_nfs41_getattr:
          * (usually for new files). In this case do a full
          * roundtrip to the NFS server to get the data...
          */
-        if (bitmap_isset(&info.attrmask, 1, FATTR4_WORD1_OWNER) &&
-            bitmap_isset(&info.attrmask, 1, FATTR4_WORD1_OWNER_GROUP)) {
+        if ((bitmap_isset(&info.attrmask, 1,
+                FATTR4_WORD1_OWNER) == false) ||
+            (bitmap_isset(&info.attrmask, 1,
+                FATTR4_WORD1_OWNER_GROUP) == false)) {
             DPRINTF(ACLLVL2, ("handle_getattr: owner/owner_group not in cache, doing full lookup...\n"));
             goto use_nfs41_getattr;
         }
