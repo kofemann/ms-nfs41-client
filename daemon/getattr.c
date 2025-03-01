@@ -218,6 +218,14 @@ static int handle_getattr(void *daemon_context, nfs41_upcall *upcall)
         nfs_to_remote_protocol_info(state,
             &args->remote_protocol_info);
         break;
+    case FileIdInformation:
+        uint64_t fileid128[2] = {
+            (info.fsid.minor ^ info.fsid.major),
+            info.fileid
+        };
+        args->id_info.VolumeSerialNumber = 0xBABAFACE; /* 64bit! */
+        (void)memcpy(&args->id_info.FileId, &fileid128[0], 16);
+        break;
 #ifdef NFS41_DRIVER_WSL_SUPPORT
     case FileStatInformation:
         nfs_to_stat_info(state->file.name.name,
@@ -293,6 +301,13 @@ static int marshall_getattr(unsigned char *buffer, uint32_t *length, nfs41_upcal
         if (status) goto out;
         status = safe_write(&buffer, length,
             &args->remote_protocol_info, info_len);
+        if (status) goto out;
+        break;
+    case FileIdInformation:
+        info_len = sizeof(args->id_info);
+        status = safe_write(&buffer, length, &info_len, sizeof(info_len));
+        if (status) goto out;
+        status = safe_write(&buffer, length, &args->id_info, info_len);
         if (status) goto out;
         break;
 #ifdef NFS41_DRIVER_WSL_SUPPORT

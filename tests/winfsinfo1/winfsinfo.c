@@ -982,6 +982,61 @@ done:
 }
 
 static
+bool get_fileidinfo(const char *progname, const char *filename)
+{
+    int res = EXIT_FAILURE;
+    bool ok;
+    FILE_ID_INFO idinfo;
+    (void)memset(&idinfo, 0, sizeof(idinfo));
+
+    HANDLE fileHandle = CreateFileA(filename,
+        GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING,
+        FILE_FLAG_BACKUP_SEMANTICS, NULL);
+    if (fileHandle == INVALID_HANDLE_VALUE) {
+        (void)fprintf(stderr,
+            "%s: Error opening file '%s'. Last error was %d.\n",
+            progname,
+            filename,
+            (int)GetLastError());
+        return EXIT_FAILURE;
+    }
+
+    ok = GetFileInformationByHandleEx(fileHandle,
+        FileIdInfo,
+        &idinfo, sizeof(idinfo));
+
+    if (!ok) {
+        (void)fprintf(stderr, "%s: GetFileInformationByHandleEx() "
+            "error. GetLastError()==%d.\n",
+            progname,
+            (int)GetLastError());
+        res = EXIT_FAILURE;
+        goto done;
+    }
+
+    (void)printf("(\n");
+    (void)printf("\tfilename='%s'\n", filename);
+
+    (void)printf("\tVolumeSerialNumber=0x%llx\n",
+        idinfo.VolumeSerialNumber);
+    (void)printf("\ttypeset -a FileId=(\n");
+    int i;
+    for (i=0 ; i < 16 ; i++) {
+        (void)printf("\t\t[%d]=0x%02.2x\n",
+            i,
+            (int)idinfo.FileId.Identifier[i]);
+    }
+    (void)printf("\t)\n");
+
+    (void)printf(")\n");
+    res = EXIT_SUCCESS;
+
+done:
+    (void)CloseHandle(fileHandle);
+    return res;
+}
+
+static
 int fsctlqueryallocatedranges(const char *progname, const char *filename)
 {
     HANDLE hFile;
@@ -1152,6 +1207,7 @@ void usage(void)
         "getfiletime|"
         "nfs3attr|"
         "fileremoteprotocolinfo|"
+        "fileidinfo|"
         "fsctlqueryallocatedranges"
         "> path\n");
 }
@@ -1210,6 +1266,9 @@ int main(int ac, char *av[])
     }
     else if (!strcmp(subcmd, "fileremoteprotocolinfo")) {
         return get_file_remote_protocol_info(av[0], av[2]);
+    }
+    else if (!strcmp(subcmd, "fileidinfo")) {
+        return get_fileidinfo(av[0], av[2]);
     }
     else if (!strcmp(subcmd, "fsctlqueryallocatedranges")) {
         return fsctlqueryallocatedranges(av[0], av[2]);

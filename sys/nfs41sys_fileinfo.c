@@ -336,6 +336,7 @@ NTSTATUS nfs41_QueryFileInformation(
     case FileAttributeTagInformation:
     case FileNetworkOpenInformation:
     case FileRemoteProtocolInformation:
+    case FileIdInformation:
 #ifdef NFS41_DRIVER_WSL_SUPPORT
     case FileStatInformation:
     case FileStatLxInformation:
@@ -432,6 +433,7 @@ NTSTATUS nfs41_QueryFileInformation(
             break;
         case FileNetworkOpenInformation:
         case FileRemoteProtocolInformation:
+        case FileIdInformation:
         case FileInternalInformation:
         case FileAttributeTagInformation:
 #ifdef NFS41_DRIVER_WSL_SUPPORT

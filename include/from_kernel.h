@@ -440,6 +440,11 @@ typedef struct _FILE_INTERNAL_INFORMATION {
     LARGE_INTEGER IndexNumber;
 } FILE_INTERNAL_INFORMATION, *PFILE_INTERNAL_INFORMATION;
 
+typedef struct _FILE_ID_INFORMATION {
+    ULONGLONG VolumeSerialNumber;
+    FILE_ID_128 FileId;
+} FILE_ID_INFORMATION, *PFILE_ID_INFORMATION;
+
 /*
  * |FILE_ALLOCATED_RANGE_BUFFER| - test for
  * /usr/i686-w64-mingw32/sys-root/mingw/include/winioctl.h header

@@ -107,6 +107,7 @@ typedef struct __getattr_upcall_args {
     FILE_INTERNAL_INFORMATION intr_info;
     FILE_NETWORK_OPEN_INFORMATION network_info;
     FILE_REMOTE_PROTOCOL_INFORMATION remote_protocol_info;
+    FILE_ID_INFORMATION id_info;
 #ifdef NFS41_DRIVER_WSL_SUPPORT
     FILE_STAT_INFORMATION stat_info;
     FILE_STAT_LX_INFORMATION stat_lx_info;
