@@ -117,6 +117,10 @@ function gcc_build
 	# patch sources and configure build
 	#
 
+	# original mkinstalldirs cannot handle UNC paths
+	printf '#!/bin/sh\n# original mkinstalldirs cannot handle Cygwin UNC paths\nmkdir -p "$@"\nexit $?' >'mkinstalldirs'
+	chmod a+x 'mkinstalldirs'
+
 	# Cygwin/MSYS2: workaround for configure using cp -p where ln -s should be used
 	# (this is an automake/autoconf issue, they should trust Cygwin and not use
 	# ancient workarounds for issues which no longer exists)
@@ -281,6 +285,10 @@ function bash_build
 	#
 	# patch sources and configure build
 	#
+
+	# original mkinstalldirs cannot handle UNC paths
+	printf '#!/bin/sh\n# original mkinstalldirs cannot handle Cygwin UNC paths\nmkdir -p "$@"\nexit $?' >'support/mkinstalldirs'
+	chmod a+x 'support/mkinstalldirs'
 
 	# disable loadable plugins
 	sed -i -E 's/-\( cd \$\(LOADABLES_DIR\) && \$\(MAKE\) \$\(MFLAGS\) DESTDIR=\$\(DESTDIR\) \$@ \)//' Makefile.in
