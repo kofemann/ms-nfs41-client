@@ -288,8 +288,8 @@ test_multihole_sparsefile1 1024 2 32 false
 test_multihole_sparsefile1 1024 0 4  true
 test_multihole_sparsefile1 1024 1 4  true
 
-# 512 does not work, as Win10 fsutil can only handle 64 data sections
-# test_multihole_sparsefile1 1024 2 512 false
+# fsutil uses 64 entries per queryrange, so we test this here
+test_multihole_sparsefile1 1024 2 256 false
 
 test_sparse_punchhole1
 

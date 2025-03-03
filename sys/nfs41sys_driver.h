@@ -275,7 +275,8 @@ typedef struct _updowncall_entry {
             PMDL BufferMdl;
             ULONG BufferSize;
             PVOID Buffer;
-            LONGLONG returned_size;
+            BOOLEAN buffer_overflow;
+            ULONG returned_size;
         } QueryAllocatedRanges;
         struct {
             FILE_ZERO_DATA_INFORMATION setzerodata;

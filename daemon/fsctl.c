@@ -73,6 +73,7 @@ int query_sparsefile_datasections(nfs41_open_state *state,
     bool_t hole_seek_sr_eof;
     uint64_t hole_seek_sr_offset;
     size_t i;
+    bool error_more_data = false;
 
     stateid_arg stateid;
 
@@ -91,7 +92,7 @@ int query_sparsefile_datasections(nfs41_open_state *state,
     next_offset = start_offset;
     *res_num_records = 0;
 
-    for (i=0 ; i < out_maxrecords ; i++) {
+    for (i=0 ; ; i++) {
         data_seek_status = nfs42_seek(state->session,
             &state->file,
             &stateid,
@@ -172,16 +173,44 @@ int query_sparsefile_datasections(nfs41_open_state *state,
             (int)data_seek_sr_eof,
             (int)hole_seek_sr_eof));
 
-        outbuffer[i].FileOffset.QuadPart = data_seek_sr_offset;
-        outbuffer[i].Length.QuadPart = data_size;
+        if (i < out_maxrecords) {
+            outbuffer[i].FileOffset.QuadPart = data_seek_sr_offset;
+            outbuffer[i].Length.QuadPart = data_size;
+        }
+        else {
+            error_more_data = true;
+
+            /* Windows bug:
+             * Technically we should continue until we reach
+             * |end_offset| to return the correct size of the
+             * buffer with |DeviceIoControl(...,
+             * FSCTL_QUERY_ALLOCATED_RANGES,...)| ==
+             * |ERROR_MORE_DATA|.
+             *
+             * Unfortunaely Win10 fsutil will then return
+             * random values after the first 64 entries, so the
+             * best we can do for bug-by-bug compatibility is
+             * to do the same: Stop counting here, and
+             * therefore return
+             * |out_maxrecords*sizeof(FILE_ALLOCATED_RANGE_BUFFER)|,
+             * which is exactly the same number of bytes of the
+             * original buffer passed as argument
+             */
+#define WINDOWS_FSUTILSPARSEQUERYRANGE_MOREDATA_BUG 1
+
+#ifdef WINDOWS_FSUTILSPARSEQUERYRANGE_MOREDATA_BUG
+            break;
+#endif /* WINDOWS_FSUTILSPARSEQUERYRANGE_MOREDATA_BUG */
+        }
+
         (*res_num_records)++;
 
-        if ((uint64_t)outbuffer[i].FileOffset.QuadPart > end_offset) {
+        if (data_seek_sr_offset > end_offset) {
             DPRINTF(QARLVL,
                 ("end offset reached, "
-                "outbuffer[%d].FileOffset.QuadPart(=%lld) > end_offset(=%lld)\n",
+                "i=%d, data_seek_sr_offset(=%lld) > end_offset(=%lld)\n",
                 (int)i,
-                (long long)outbuffer[i].FileOffset.QuadPart,
+                (long long)data_seek_sr_offset,
                 (long long)end_offset));
             break;
         }
@@ -196,6 +225,12 @@ int query_sparsefile_datasections(nfs41_open_state *state,
     }
 
 out:
+    if (error_more_data) {
+        DPRINTF(QARLVL, ("returning ERROR_MORE_DATA, *res_num_records=%ld\n",
+            (long)*res_num_records));
+        status = ERROR_MORE_DATA;
+    }
+
     DPRINTF(QARLVL, ("<-- query_sparsefile_datasections(), status=0x%x\n",
         status));
     return status;
@@ -232,6 +267,7 @@ int handle_queryallocatedranges(void *daemon_context,
             "got space for %ld records\n",
             (int)num_records));
 
+    args->buffer_overflow = FALSE;
     args->returned_size = 0;
 
     size_t res_num_records = 0;
@@ -243,13 +279,23 @@ int handle_queryallocatedranges(void *daemon_context,
         num_records,
         &res_num_records);
 
-    if (!status) {
-        args->returned_size =
-            (ULONG)res_num_records*sizeof(FILE_ALLOCATED_RANGE_BUFFER);
+    /*
+     * Return buffer size, either on success, or to return the size
+     * of the buffer which would be needed.
+     */
+    args->returned_size =
+        (ULONG)res_num_records*sizeof(FILE_ALLOCATED_RANGE_BUFFER);
+
+    if (status == ERROR_MORE_DATA) {
+        status = NO_ERROR;
+        args->buffer_overflow = TRUE;
     }
 
     DPRINTF(QARLVL,
-        ("<-- handle_queryallocatedranges(), status=0x%lx\n",
+        ("<-- handle_queryallocatedranges(args->buffer_overflow=%d, args->returned_size=%ld), "
+        "status=0x%lx\n",
+        (int)args->buffer_overflow,
+        (long)args->returned_size,
         status));
     return status;
 }
@@ -260,8 +306,11 @@ static int marshall_queryallocatedranges(unsigned char *buffer,
     int status;
     queryallocatedranges_upcall_args *args = &upcall->args.queryallocatedranges;
 
+    status = safe_write(&buffer, length, &args->buffer_overflow, sizeof(args->buffer_overflow));
+    if (status) goto out;
     status = safe_write(&buffer, length, &args->returned_size, sizeof(args->returned_size));
 
+out:
     return status;
 }
 

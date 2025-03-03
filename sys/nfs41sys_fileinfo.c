@@ -487,6 +487,8 @@ NTSTATUS map_setfile_error(
     case ERROR_DISK_FULL:               return STATUS_DISK_FULL;
     case ERROR_DISK_QUOTA_EXCEEDED:     return STATUS_DISK_QUOTA_EXCEEDED;
     case ERROR_FILE_TOO_LARGE:          return STATUS_FILE_TOO_LARGE;
+    case ERROR_INSUFFICIENT_BUFFER:     return STATUS_BUFFER_TOO_SMALL;
+    case ERROR_MORE_DATA:               return STATUS_BUFFER_OVERFLOW;
     case ERROR_INTERNAL_ERROR:          return STATUS_INTERNAL_ERROR;
     default:
         print_error("map_setfile_error: "

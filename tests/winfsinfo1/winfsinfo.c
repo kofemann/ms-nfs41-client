@@ -1127,7 +1127,7 @@ retry_fsctl:
                  * bytes we passed in, not the number of bytes which
                  * we should allocate
                  */
-                max_ranges_per_query+=2;
+                max_ranges_per_query += 16;
                 ranges = realloc(ranges,
                     (sizeof(FILE_ALLOCATED_RANGE_BUFFER) * max_ranges_per_query));
                 if (ranges == NULL) {
@@ -1141,6 +1141,11 @@ retry_fsctl:
                 (void)memset(ranges, 0, sizeof(FILE_ALLOCATED_RANGE_BUFFER) * max_ranges_per_query);
                 goto retry_fsctl;
             }
+
+            (void)fprintf(stderr,
+                "%s: DeviceIoControl() failed, lasterr=%d\n",
+                progname,
+                (int)lasterr);
 
             retval = 1;
             goto out;

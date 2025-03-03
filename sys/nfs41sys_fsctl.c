@@ -181,16 +181,31 @@ NTSTATUS nfs41_QueryAllocatedRanges(
     }
     entry->psec_ctx = NULL;
 
-    if (!entry->status) {
+    if (entry->status == NO_ERROR) {
         DbgP("nfs41_QueryAllocatedRanges: SUCCESS\n");
-        RxContext->CurrentIrp->IoStatus.Status = STATUS_SUCCESS;
-        RxContext->IoStatusBlock.Information =
-            (ULONG_PTR)entry->u.QueryAllocatedRanges.returned_size;
+
+        if (entry->u.QueryAllocatedRanges.buffer_overflow) {
+            DbgP("nfs41_QueryAllocatedRanges: buffer_overflow: "
+                "need at least a buffer with %ld bytes\n",
+                (long)entry->u.QueryAllocatedRanges.returned_size);
+            status = RxContext->CurrentIrp->IoStatus.Status =
+                STATUS_BUFFER_OVERFLOW;
+            RxContext->IoStatusBlock.Information =
+                (ULONG_PTR)entry->u.QueryAllocatedRanges.returned_size;
+        }
+        else {
+            status = RxContext->CurrentIrp->IoStatus.Status =
+                STATUS_SUCCESS;
+            RxContext->IoStatusBlock.Information =
+                (ULONG_PTR)entry->u.QueryAllocatedRanges.returned_size;
+        }
     }
     else {
         DbgP("nfs41_QueryAllocatedRanges: "
             "FAILURE, entry->status=0x%lx\n", entry->status);
+
         status = map_setfile_error(entry->status);
+
         RxContext->CurrentIrp->IoStatus.Status = status;
         RxContext->IoStatusBlock.Information = 0;
     }
@@ -294,12 +309,16 @@ NTSTATUS unmarshal_nfs41_queryallocatedranges(
         goto out;
     }
 
+    RtlCopyMemory(&cur->u.QueryAllocatedRanges.buffer_overflow,
+        *buf, sizeof(BOOLEAN));
+    *buf += sizeof(BOOLEAN);
     RtlCopyMemory(&cur->u.QueryAllocatedRanges.returned_size,
         *buf, sizeof(ULONG));
     *buf += sizeof(ULONG);
 
     DbgP("unmarshal_nfs41_queryallocatedranges: "
-        "queryallocatedranges.returned_size=%llu\n",
+        "buffer_overflow=%d returned_size=%llu\n",
+        (int)cur->u.QueryAllocatedRanges.buffer_overflow,
         cur->u.QueryAllocatedRanges.returned_size);
 
 out:

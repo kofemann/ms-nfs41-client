@@ -195,6 +195,7 @@ typedef struct __queryallocatedranges_upcall_args {
     FILE_ALLOCATED_RANGE_BUFFER     inrange;
     HANDLE                          outbuffer;
     ULONG                           outbuffersize;
+    BOOLEAN                         buffer_overflow;
     ULONG                           returned_size;
 } queryallocatedranges_upcall_args;
 
