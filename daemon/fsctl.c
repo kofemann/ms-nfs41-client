@@ -178,29 +178,23 @@ int query_sparsefile_datasections(nfs41_open_state *state,
             outbuffer[i].Length.QuadPart = data_size;
         }
         else {
-            error_more_data = true;
-
-            /* Windows bug:
-             * Technically we should continue until we reach
-             * |end_offset| to return the correct size of the
-             * buffer with |DeviceIoControl(...,
-             * FSCTL_QUERY_ALLOCATED_RANGES,...)| ==
-             * |ERROR_MORE_DATA|.
+            /*
+             * Return |ERROR_MORE_DATA| if we reach end of the
+             * caller-supplied record array and still have more
+             * data sections (i.e. no EOF from
+             + |NFS4_CONTENT_HOLE|/|NFS4_CONTENT_DATA| yet).
              *
-             * Unfortunaely Win10 fsutil will then return
-             * random values after the first 64 entries, so the
-             * best we can do for bug-by-bug compatibility is
-             * to do the same: Stop counting here, and
-             * therefore return
-             * |out_maxrecords*sizeof(FILE_ALLOCATED_RANGE_BUFFER)|,
-             * which is exactly the same number of bytes of the
-             * original buffer passed as argument
+             * FIXME: We should also implement |out_maxrecords==0|,
+             * and then return the size for an array to store
+             * all records.
+             * This can still be too small if between the first
+             * FSCTL call (to get the needed size of the array)
+             * and second FSCTL call to enumerate the
+             * |FILE_ALLOCATED_RANGE_BUFFER| someone adds more
+             * data sections.
              */
-#define WINDOWS_FSUTILSPARSEQUERYRANGE_MOREDATA_BUG 1
-
-#ifdef WINDOWS_FSUTILSPARSEQUERYRANGE_MOREDATA_BUG
+            error_more_data = true;
             break;
-#endif /* WINDOWS_FSUTILSPARSEQUERYRANGE_MOREDATA_BUG */
         }
 
         (*res_num_records)++;
