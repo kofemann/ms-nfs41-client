@@ -76,8 +76,31 @@ NTSTATUS check_nfs41_queryallocatedranges_args(
     XXCTL_LOWIO_COMPONENT *FsCtl =
         &RxContext->LowIoContext.ParamsFor.FsCtl;
     const USHORT HeaderLen = sizeof(FILE_ALLOCATED_RANGE_BUFFER);
+    __notnull PFILE_ALLOCATED_RANGE_BUFFER in_range_buffer =
+        (PFILE_ALLOCATED_RANGE_BUFFER)FsCtl->pInputBuffer;
 
-    if (!FsCtl->pOutputBuffer) {
+    if (FsCtl->pInputBuffer == NULL) {
+        status = STATUS_INVALID_USER_BUFFER;
+        goto out;
+    }
+
+    if (FsCtl->InputBufferLength <
+        sizeof(FILE_ALLOCATED_RANGE_BUFFER)) {
+        DbgP("check_nfs41_queryallocatedranges_args: "
+            "in_range_buffer to small\n");
+        status = STATUS_BUFFER_TOO_SMALL;
+        goto out;
+    }
+
+    if ((in_range_buffer->FileOffset.QuadPart < 0LL) ||
+        (in_range_buffer->Length.QuadPart < 0LL) ||
+        (in_range_buffer->Length.QuadPart >
+            (MAXLONGLONG - in_range_buffer->FileOffset.QuadPart))) {
+        status = STATUS_INVALID_PARAMETER;
+        goto out;
+    }
+
+    if (FsCtl->pOutputBuffer == NULL) {
         status = STATUS_INVALID_USER_BUFFER;
         goto out;
     }
@@ -87,6 +110,7 @@ NTSTATUS check_nfs41_queryallocatedranges_args(
         status = STATUS_BUFFER_TOO_SMALL;
         goto out;
     }
+
 out:
     return status;
 }
@@ -116,18 +140,14 @@ NTSTATUS nfs41_QueryAllocatedRanges(
     RxContext->IoStatusBlock.Information = 0;
 
     status = check_nfs41_queryallocatedranges_args(RxContext);
-    if (status)
-        goto out;
-
-    if (FsCtl->InputBufferLength <
-        sizeof(FILE_ALLOCATED_RANGE_BUFFER)) {
+    if (status) {
         DbgP("nfs41_QueryAllocatedRanges: "
-            "in_range_buffer to small\n");
-        status = STATUS_BUFFER_TOO_SMALL;
+            "check_nfs41_queryallocatedranges_args() failed with status=0x%lx\n",
+            (long)status);
         goto out;
     }
 
-    DbgP("nfs41_QueryAllocatedRanges/REAL: "
+    DbgP("nfs41_QueryAllocatedRanges: "
         "in_range_buffer=(FileOffset=%lld,Length=%lld)\n",
         (long long)in_range_buffer->FileOffset.QuadPart,
         (long long)in_range_buffer->Length.QuadPart);
@@ -442,6 +462,11 @@ NTSTATUS nfs41_SetZeroData(
     status = check_nfs41_setzerodata_args(RxContext);
     if (status)
         goto out;
+
+    if (FsCtl->pInputBuffer == NULL) {
+        status = STATUS_INVALID_USER_BUFFER;
+        goto out;
+    }
 
     if (FsCtl->InputBufferLength <
         sizeof(FILE_ZERO_DATA_INFORMATION)) {
