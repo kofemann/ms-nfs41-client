@@ -47,22 +47,27 @@ function test_sparse_holeonly_dd
 
     integer fsutil_num_data_sections="$(/cygdrive/c/Windows/system32/fsutil sparse queryrange 'sparse_file_hole_only' | wc -l)"
     integer winfsinfo_num_data_sections="$(winfsinfo fsctlqueryallocatedranges 'sparse_file_hole_only' | wc -l)"
+    integer lssparse_num_data_sections="$(lssparse 'sparse_file_hole_only' | wc -l)"
 
     #
     # test whether the file is OK
     #
-    if (( (fsutil_num_data_sections != 0) || (winfsinfo_num_data_sections != 0) )) ; then
-        printf "# TEST failed, found fsutil=%d/winfsinfo=%d data sections, expected %d\n" \
+    if (( (fsutil_num_data_sections != 0) || \
+        (winfsinfo_num_data_sections != 0) || \
+        (lssparse_num_data_sections != 0) )) ; then
+        printf "# TEST failed, found fsutil=%d/winfsinfo=%d/lssparse=%d data sections, expected %d\n" \
             fsutil_num_data_sections \
             winfsinfo_num_data_sections \
+            lssparse_num_data_sections \
             0
         return 1
     fi
 
-    printf "\n#\n# TEST %q OK, found fsutil=%d/winfsinfo=%d data sections\n#\n" \
+    printf "\n#\n# TEST %q OK, found fsutil=%d/winfsinfo=%d/lssparse=%d data sections\n#\n" \
         "$0" \
         fsutil_num_data_sections \
-        winfsinfo_num_data_sections
+        winfsinfo_num_data_sections \
+        lssparse_num_data_sections
 
     return 0
 }
@@ -84,22 +89,27 @@ function test_sparse_holeonly_truncate
 
     integer fsutil_num_data_sections="$(/cygdrive/c/Windows/system32/fsutil sparse queryrange 'sparse_file_hole_only_trunc' | wc -l)"
     integer winfsinfo_num_data_sections="$(winfsinfo fsctlqueryallocatedranges 'sparse_file_hole_only_trunc' | wc -l)"
+    integer lssparse_num_data_sections="$(lssparse 'sparse_file_hole_only_trunc' | wc -l)"
 
     #
     # test whether the file is OK
     #
-    if (( (fsutil_num_data_sections != 0) || (winfsinfo_num_data_sections != 0) )) ; then
-        printf "# TEST failed, found fsutil=%d/winfsinfo=%d data sections, expected %d\n" \
+    if (( (fsutil_num_data_sections != 0) || \
+        (winfsinfo_num_data_sections != 0) || \
+        (lssparse_num_data_sections != 0) )) ; then
+        printf "# TEST failed, found fsutil=%d/winfsinfo=%d/lssparse=%d data sections, expected %d\n" \
             fsutil_num_data_sections \
             winfsinfo_num_data_sections \
+            lssparse_num_data_sections \
             0
         return 1
     fi
 
-    printf "\n#\n# TEST %q OK, found fsutil=%d/winfsinfo=%d data sections\n#\n" \
+    printf "\n#\n# TEST %q OK, found fsutil=%d/winfsinfo=%d/lssparse=%d data sections\n#\n" \
         "$0" \
         fsutil_num_data_sections \
-        winfsinfo_num_data_sections
+        winfsinfo_num_data_sections \
+        lssparse_num_data_sections
 
     return 0
 }
@@ -119,22 +129,27 @@ function test_normal_file
 
     integer fsutil_num_data_sections="$(/cygdrive/c/Windows/system32/fsutil sparse queryrange 'test_normal_file' | wc -l)"
     integer winfsinfo_num_data_sections="$(winfsinfo fsctlqueryallocatedranges 'test_normal_file' | wc -l)"
+    integer lssparse_num_data_sections="$(lssparse 'test_normal_file' | wc -l)"
 
     #
     # test whether the file is OK
     #
-    if (( (fsutil_num_data_sections != 1) || (winfsinfo_num_data_sections != 1) )) ; then
-        printf "# TEST failed, found fsutil=%d/winfsinfo=%d data sections, expected %d\n" \
+    if (( (fsutil_num_data_sections != 1) || \
+        (winfsinfo_num_data_sections != 1) || \
+        (lssparse_num_data_sections != 1) )) ; then
+        printf "# TEST failed, found fsutil=%d/winfsinfo=%d/lssparse=%d data sections, expected %d\n" \
             fsutil_num_data_sections \
             winfsinfo_num_data_sections \
+            lssparse_num_data_sections \
             1
         return 1
     fi
 
-    printf "\n#\n# TEST %q OK, found fsutil=%d/winfsinfo=%d data sections\n#\n" \
+    printf "\n#\n# TEST %q OK, found fsutil=%d/winfsinfo=%d/lssparse=%d data sections\n#\n" \
         "$0" \
         fsutil_num_data_sections \
-        winfsinfo_num_data_sections
+        winfsinfo_num_data_sections \
+        lssparse_num_data_sections
 
     return 0
 }
@@ -203,24 +218,29 @@ function test_multihole_sparsefile1
 
     integer fsutil_num_data_sections="$(/cygdrive/c/Windows/system32/fsutil sparse queryrange 'mysparsefile' | wc -l)"
     integer winfsinfo_num_data_sections="$(winfsinfo fsctlqueryallocatedranges 'mysparsefile' | wc -l)"
+    integer lssparse_num_data_sections="$(lssparse 'mysparsefile' | wc -l)"
 
 
     #
     # test whether the file is OK
     #
     if (( (fsutil_num_data_sections != (c.end_data_section-c.start_data_section)) || \
-        (winfsinfo_num_data_sections != (c.end_data_section-c.start_data_section)) )) ; then
-        printf "# TEST failed, found fsutil=%d/winfsinfo=%d data sections, expected %d\n" \
+        (winfsinfo_num_data_sections != (c.end_data_section-c.start_data_section)) || \
+        (lssparse_num_data_sections != (c.end_data_section-c.start_data_section)) )) ; then
+        printf "# TEST failed, found fsutil=%d/winfsinfo=%d/lssparse=%d data sections, expected %d\n" \
             fsutil_num_data_sections \
             winfsinfo_num_data_sections \
+            lssparse_num_data_sections \
             $((c.end_data_section-c.start_data_section))
         return 1
     fi
 
-    printf "\n#\n# TEST %q OK, found fsutil=%d/winfsinfo=%d data sections\n#\n" \
+    printf "\n#\n# TEST %q OK, found fsutil=%d/winfsinfo=%d/lssparse=%d data sections\n#\n" \
         "$0" \
         fsutil_num_data_sections \
-        winfsinfo_num_data_sections
+        winfsinfo_num_data_sections \
+        lssparse_num_data_sections
+
     return 0
 }
 
@@ -246,22 +266,27 @@ function test_sparse_punchhole1
 
     integer fsutil_num_data_sections="$(/cygdrive/c/Windows/system32/fsutil sparse queryrange 'sparse_file_punchhole' | wc -l)"
     integer winfsinfo_num_data_sections="$(winfsinfo fsctlqueryallocatedranges 'sparse_file_punchhole' | wc -l)"
+    integer lssparse_num_data_sections="$(lssparse 'sparse_file_punchhole' | wc -l)"
 
     #
     # test whether the file is OK
     #
-    if (( (fsutil_num_data_sections != 2) || (winfsinfo_num_data_sections != 2) )) ; then
-        printf "# TEST failed, found fsutil=%d/winfsinfo=%d data sections, expected %d\n" \
+    if (( (fsutil_num_data_sections != 2) || \
+        (winfsinfo_num_data_sections != 2) || \
+        (lssparse_num_data_sections != 2) )) ; then
+        printf "# TEST failed, found fsutil=%d/winfsinfo=%d/lssparse=%d data sections, expected %d\n" \
             fsutil_num_data_sections \
             winfsinfo_num_data_sections \
+            lssparse_num_data_sections \
             2
         return 1
     fi
 
-    printf "\n#\n# TEST %q OK, found fsutil=%d/winfsinfo=%d data sections\n#\n" \
+    printf "\n#\n# TEST %q OK, found fsutil=%d/winfsinfo=%d/lssparse=%d data sections\n#\n" \
         "$0" \
         fsutil_num_data_sections \
-        winfsinfo_num_data_sections
+        winfsinfo_num_data_sections \
+        lssparse_num_data_sections
 
     return 0
 }
