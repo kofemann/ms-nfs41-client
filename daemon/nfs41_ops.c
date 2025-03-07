@@ -1520,8 +1520,8 @@ int nfs41_setattr(
 
     if (((setattr_res.attrsset.count > 0) &&
             (setattr_res.attrsset.arr[0] & FATTR4_WORD0_SIZE)) ||
-        (setattr_res.attrsset.count > 1) &&
-            (setattr_res.attrsset.arr[1] & FATTR4_WORD1_SPACE_USED))
+        ((setattr_res.attrsset.count > 1) &&
+            (setattr_res.attrsset.arr[1] & FATTR4_WORD1_SPACE_USED)))
         nfs41_superblock_space_changed(file->fh.superblock);
 out:
     return status;
