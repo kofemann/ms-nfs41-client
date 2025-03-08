@@ -267,7 +267,7 @@ static DWORD StoreConnectionInfo(
     HANDLE hMutex, hMemory;
     PNFS41NP_SHARED_MEMORY pSharedMemory;
     PNFS41NP_NETRESOURCE pNfs41NetResource;
-    INT i;
+    ULONG i;
     bool FreeEntryFound = false;
 #ifdef NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE
     LUID authenticationid = { .LowPart = 0, .HighPart = 0L };
@@ -453,7 +453,7 @@ NPGetCaps(
                  WNNC_CON_ADDCONNECTION3;
             break;
         case WNNC_ENUMERATION:
-            rc = WNNC_ENUM_LOCAL;
+            rc = WNNC_ENUM_CONTEXT;
             break;
         case WNNC_START:
             rc = 1;
@@ -805,7 +805,7 @@ NPCancelConnection(
     if (Status != WN_SUCCESS)
         goto out;
 
-    INT  Index;
+    ULONG Index;
     PNFS41NP_NETRESOURCE pNetResource;
     Status = WN_NOT_CONNECTED;
 
@@ -945,7 +945,7 @@ DWORD is_unc_path_mounted(
     if (Status != WN_SUCCESS)
         goto out;
 
-    INT  Index;
+    ULONG Index;
     PNFS41NP_NETRESOURCE pNetResource;
     PNFS41NP_NETRESOURCE foundNetResource = NULL;
 #ifdef NFS41_DRIVER_SYSTEM_LUID_MOUNTS_ARE_GLOBAL
@@ -1073,7 +1073,7 @@ NPGetConnection3(
     if (Status != WN_SUCCESS)
         goto out;
 
-    INT  Index;
+    ULONG Index;
     PNFS41NP_NETRESOURCE pNetResource;
     PNFS41NP_NETRESOURCE foundNetResource = NULL;
 #ifdef NFS41_DRIVER_SYSTEM_LUID_MOUNTS_ARE_GLOBAL
@@ -1213,14 +1213,14 @@ NPEnumResource(
     HANDLE  hMutex, hMemory;
     PNFS41NP_SHARED_MEMORY  pSharedMemory;
     PNFS41NP_NETRESOURCE pNfsNetResource;
-    INT             Index = *(PULONG)hEnum;
+    ULONG           Index = *((PULONG)hEnum);
 #ifdef NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE
     LUID            authenticationid =
         { .LowPart = 0, .HighPart = 0L };
 #endif /* NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE */
 
-    DbgP((L"--> NPEnumResource(hEnum=0x%x, *lpcCount=%d)\n",
-        HANDLE2INT(hEnum), (int)*lpcCount));
+    DbgP((L"--> NPEnumResource(hEnum=0x%x, *lpcCount=%lu)\n",
+        HANDLE2INT(hEnum), (unsigned long)*lpcCount));
 
 #ifdef NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE
     (void)get_token_authenticationid(GetCurrentThreadEffectiveToken(),
@@ -1319,9 +1319,10 @@ NPEnumResource(
     CloseSharedMemory(&hMutex, &hMemory, (PVOID*)&pSharedMemory);
 out:
     *lpcCount = EntriesCopied;
-    *(PULONG) hEnum = Index;
+    *((PULONG)hEnum) = Index;
 
-    DbgP((L"<-- NPEnumResource returns: %d\n", (int)EntriesCopied));
+    DbgP((L"<-- NPEnumResource returns: %d, Index=%lu\n",
+        (int)EntriesCopied, (unsigned long)Index));
 
     return Status;
 }

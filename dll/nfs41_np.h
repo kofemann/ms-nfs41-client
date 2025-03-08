@@ -57,8 +57,8 @@ typedef struct __NFS41NP_NETRESOURCE {
 } NFS41NP_NETRESOURCE, *PNFS41NP_NETRESOURCE;
 
 typedef struct __NFS41NP_SHARED_MEMORY {
-    INT                 NextAvailableIndex;
-    INT                 NumberOfResourcesInUse;
+    ULONG               NextAvailableIndex;
+    ULONG               NumberOfResourcesInUse;
     NFS41NP_NETRESOURCE NetResources[NFS41NP_MAX_DEVICES];
 } NFS41NP_SHARED_MEMORY, *PNFS41NP_SHARED_MEMORY;
 
