@@ -262,6 +262,9 @@ DWORD EnumMounts(
         {
             for (i = 0; i < dwCount; i++)
             {
+                if (pResources[i].lpProvider == NULL)
+                    continue;
+
                 if (!wcscmp(pResources[i].lpProvider,
                     NFS41_PROVIDER_NAME_U))
                 {
