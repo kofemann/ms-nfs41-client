@@ -1194,6 +1194,79 @@ out:
     return retval;
 }
 
+typedef struct _FILE_NETWORK_PHYSICAL_NAME_INFORMATION {
+    ULONG FileNameLength;
+    WCHAR FileName[1];
+} FILE_NETWORK_PHYSICAL_NAME_INFORMATION, *PFILE_NETWORK_PHYSICAL_NAME_INFORMATION;
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+ZwQueryInformationFile(
+    _In_ HANDLE FileHandle,
+    _Out_ PIO_STATUS_BLOCK IoStatusBlock,
+    _Out_writes_bytes_(Length) PVOID FileInformation,
+    _In_ ULONG Length,
+    _In_ FILE_INFORMATION_CLASS FileInformationClass
+);
+
+static
+bool get_filenetworkphysicalnameinfo(const char *progname, const char *filename)
+{
+    int res = EXIT_FAILURE;
+    NTSTATUS status;
+    IO_STATUS_BLOCK iostatus;
+    PFILE_NETWORK_PHYSICAL_NAME_INFORMATION fnpni = NULL;
+
+    HANDLE fileHandle = CreateFileA(filename,
+        GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING,
+        FILE_FLAG_BACKUP_SEMANTICS, NULL);
+    if (fileHandle == INVALID_HANDLE_VALUE) {
+        (void)fprintf(stderr,
+            "%s: Error opening file '%s'. Last error was %d.\n",
+            progname,
+            filename,
+            (int)GetLastError());
+        return EXIT_FAILURE;
+    }
+
+#define FNPNI_MAXCHARS (16384)
+    fnpni = calloc(1,
+        sizeof(FILE_NETWORK_PHYSICAL_NAME_INFORMATION)+sizeof(wchar_t)*FNPNI_MAXCHARS);
+    if (fnpni == NULL) {
+         (void)fprintf(stderr,
+            "%s: Out of memory.\n",
+            progname);
+        return EXIT_FAILURE;
+    }
+
+    status = ZwQueryInformationFile(fileHandle,
+        &iostatus,
+        fnpni,
+        (sizeof(FILE_NETWORK_PHYSICAL_NAME_INFORMATION)+sizeof(wchar_t)*FNPNI_MAXCHARS),
+        FileNetworkPhysicalNameInformation);
+
+    if (status != STATUS_SUCCESS) {
+        (void)fprintf(stderr, "%s: GetFileInformationByHandleEx() "
+            "error. status==0x%lx.\n",
+            progname,
+            (long)status);
+        res = EXIT_FAILURE;
+        goto done;
+    }
+
+    (void)printf("(\n");
+    (void)printf("\tfilename='%s'\n", filename);
+    (void)printf("\tfnpni_FileName='%S'\n",
+        fnpni->FileName);
+    (void)printf(")\n");
+    res = EXIT_SUCCESS;
+
+done:
+    free(fnpni);
+    (void)CloseHandle(fileHandle);
+    return res;
+}
 
 static
 void usage(void)
@@ -1213,6 +1286,7 @@ void usage(void)
         "nfs3attr|"
         "fileremoteprotocolinfo|"
         "fileidinfo|"
+        "filenetworkphysicalnameinfo|"
         "fsctlqueryallocatedranges"
         "> path\n");
 }
@@ -1274,6 +1348,9 @@ int main(int ac, char *av[])
     }
     else if (!strcmp(subcmd, "fileidinfo")) {
         return get_fileidinfo(av[0], av[2]);
+    }
+    else if (!strcmp(subcmd, "filenetworkphysicalnameinfo")) {
+        return get_filenetworkphysicalnameinfo(av[0], av[2]);
     }
     else if (!strcmp(subcmd, "fsctlqueryallocatedranges")) {
         return fsctlqueryallocatedranges(av[0], av[2]);

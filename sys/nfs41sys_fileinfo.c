@@ -280,6 +280,44 @@ NTSTATUS nfs41_QueryFileInformation(
         goto out;
     }
 #endif /* NFS41_DRIVER_DISABLE_8DOT3_SHORTNAME_GENERATION */
+    /*
+     * |FileNetworkPhysicalNameInformation| - return UNC path -
+     * basically the same logic as |FileNormalizedNameInformation|
+     * above in our case (but without the 8.3 filename
+     * restrictions).
+     */
+    case FileNetworkPhysicalNameInformation:
+    {
+        if (RxContext->Info.LengthRemaining <
+            FIELD_OFFSET(FILE_NAME_INFORMATION, FileName)) {
+            RxContext->Info.Length = 0;
+            status = STATUS_BUFFER_OVERFLOW;
+            goto out;
+        }
+
+        PFILE_NETWORK_PHYSICAL_NAME_INFORMATION fnpni =
+            (PFILE_NETWORK_PHYSICAL_NAME_INFORMATION)
+                RxContext->Info.Buffer;
+        RxContext->Info.LengthRemaining -=
+            FIELD_OFFSET(FILE_NETWORK_PHYSICAL_NAME_INFORMATION,
+            FileName);
+
+        RxConjureOriginalName((PFCB)RxContext->pFcb,
+            (PFOBX)RxContext->pFobx,
+            &fnpni->FileNameLength,
+            &fnpni->FileName[0],
+            &RxContext->Info.Length,
+            VNetRoot_As_UNC_Name);
+
+        if (RxContext->Info.LengthRemaining < 0) {
+            RxContext->Info.Length = 0;
+            status = STATUS_BUFFER_OVERFLOW;
+            goto out;
+        }
+
+        status = STATUS_SUCCESS;
+        goto out;
+    }
     case FileEaInformation:
     {
         if (RxContext->Info.LengthRemaining <
