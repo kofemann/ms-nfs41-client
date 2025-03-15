@@ -423,7 +423,7 @@ retry_nfs41_exchange_id:
     if (status) {
         if (status == NFS4ERR_MINOR_VERS_MISMATCH) {
             if (nfsminorvers_autonegotiate &&
-                (root->nfsminorvers >= 1)) {
+                (root->nfsminorvers > 1)) {
                 root->nfsminorvers--;
                 goto retry_nfs41_exchange_id;
             }
