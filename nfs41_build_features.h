@@ -127,10 +127,20 @@
 /*
  * Default POSIX permission mode bits for new files
  * and directories.
- * Can be ovrriden with a "NfsV3Attributes" EA
+ * Notes:
+ * - Can be overridden with a "NfsV3Attributes" EA, which Cygwin,
+ * ServicesForUNIX, etc. do by default for all "NFS" filesystems.
+ * - NFS41_DRIVER_DEFAULT_FILE_CREATE_MODE should really be
+ * mode=0644, but in real life Windows installer software
+ * creates *.(exe|dll|com|sys) files without "GENERIC_EXECUTE" ACL
+ * entries, and without any |FILE_EXECUTE| set no binary (*.exe,
+ * and *.ddl dependicies) will start.
+ * Installers make it even worse by creating unpacked files with
+ * temporary names like "XXfoo.tmp", and then rename it "foo.exe",
+ * so there is no way to fix this at file creation time.
  */
 #define NFS41_DRIVER_DEFAULT_DIR_CREATE_MODE (0755)
-#define NFS41_DRIVER_DEFAULT_FILE_CREATE_MODE (0644)
+#define NFS41_DRIVER_DEFAULT_FILE_CREATE_MODE (0755)
 
 /*
  * NFS41_DRIVER_DEBUG_FS_NAME - define which filesystem name should
