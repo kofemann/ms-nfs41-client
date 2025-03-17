@@ -496,40 +496,6 @@ chmod a+rx setup-x86_64.exe
 #
 # Subversion checkout:
 #
-# Currently fails like this:
-# ---- snip ----
-# $ svn --version
-# svn, version 1.14.2 (r1899510)
-#   compiled May 20 2023, 11:51:30 on x86_64-pc-cygwin
-#
-# $ svn checkout https://svn.FreeBSD.org/base/head/share/man
-# A    man/man4
-# A    man/man4/tcp.4
-# A    man/man4/ndis.4
-# A    man/man4/Makefile
-# A    man/man4/altq.4
-# A    man/man4/miibus.4
-# A    man/man4/vlan.4
-# A    man/man4/ng_macfilter.4
-# A    man/man4/mn.4
-# A    man/man4/ossl.4
-# A    man/man4/ktls.4
-# A    man/man4/ftwd.4
-# A    man/man4/inet6.4
-# A    man/man4/crypto.4
-# A    man/man4/rtsx.4
-# A    man/man4/isp.4
-# svn: E200030: sqlite[S11]: database disk image is malformed
-# svn: E200042: Additional errors:
-# svn: E200030: sqlite[S11]: database disk image is malformed
-# svn: E200030: sqlite[S11]: database disk image is malformed
-# svn: E200030: sqlite[S11]: database disk image is malformed
-# ---- snip ----
-#
-# Workaround is to mount the NFS filesystem with the "writethru"
-# option, e.g.
-# $ /sbin/nfs_mount -o rw,writethru 'j' derfwpc5131:/export/home/rmainz #
-#
 # Test:
 svn checkout https://svn.FreeBSD.org/base/head/share/man
 

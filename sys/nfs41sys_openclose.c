@@ -926,6 +926,11 @@ retry_on_link:
         DbgP("nfs41_Create: received delegation %d\n", entry->u.Open.deleg_type);
 #endif
 
+        /* We always cache file size and file times locally */
+        SrvOpen->BufferingFlags |=
+            FCB_STATE_FILESIZECACHEING_ENABLED |
+            FCB_STATE_FILETIMECACHEING_ENABLED;
+
         /*
          * We cannot have a file cached on a write-only handle,
          * so we have to set |SRVOPEN_FLAG_DONTUSE_WRITE_CACHING|

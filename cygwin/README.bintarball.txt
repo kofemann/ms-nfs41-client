@@ -597,39 +597,6 @@ $ mount -t drvfs '\\10.49.202.230@2049\nfs4\bigdisk' /mnt/bigdisk
 - Win10/32bit-only: $ net use H: /delete # does not work,
   use $ nfs_umount 'H' instead #
 
-- Bug: Subversion checkout can fail with
-  "sqlite[S11]: database disk image is malformed" like this:
-  # ---- snip ----
-  $ svn --version
-  svn, version 1.14.2 (r1899510)
-    compiled May 20 2023, 11:51:30 on x86_64-pc-cygwin
-  $ svn checkout https://svn.FreeBSD.org/base/head/share/man
-  A    man/man4
-  A    man/man4/tcp.4
-  A    man/man4/ndis.4
-  A    man/man4/Makefile
-  A    man/man4/altq.4
-  A    man/man4/miibus.4
-  A    man/man4/vlan.4
-  A    man/man4/ng_macfilter.4
-  A    man/man4/mn.4
-  A    man/man4/ossl.4
-  A    man/man4/ktls.4
-  A    man/man4/ftwd.4
-  A    man/man4/inet6.4
-  A    man/man4/crypto.4
-  A    man/man4/rtsx.4
-  A    man/man4/isp.4
-  svn: E200030: sqlite[S11]: database disk image is malformed
-  svn: E200042: Additional errors:
-  svn: E200030: sqlite[S11]: database disk image is malformed
-  svn: E200030: sqlite[S11]: database disk image is malformed
-  svn: E200030: sqlite[S11]: database disk image is malformed
-  # ---- snip ----
-  Workaround is to mount the NFS filesystem with the "writethru"
-  option, e.g.
-  $ /sbin/nfs_mount -o rw,writethru 'j' derfwpc5131:/export/home/rmainz #
-
 - Windows event log can list errors like "MUP 0xc0000222"
   (|STATUS_LOST_WRITEBEHIND_DATA|) in case the disk on the NFSv4 server
   is full and outstanding writes from a memory-mapped file fail.
