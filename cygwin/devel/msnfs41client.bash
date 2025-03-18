@@ -167,6 +167,8 @@ function nfsclient_install
 	regtool -i set '/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows NT/CurrentVersion/Image File Execution Options/nfsd.exe/FrontEndHeapDebugOptions' 0x08
 	regtool add '/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows NT/CurrentVersion/Image File Execution Options/nfs_mount.exe'
 	regtool -i set '/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows NT/CurrentVersion/Image File Execution Options/nfs_mount.exe/FrontEndHeapDebugOptions' 0x08
+	regtool add '/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows NT/CurrentVersion/Image File Execution Options/nfs_umount.exe'
+	regtool -i set '/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows NT/CurrentVersion/Image File Execution Options/nfs_umount.exe/FrontEndHeapDebugOptions' 0x08
 
 	if ! $use_secureboot ; then
 		# make sure we can load the kernel driver
