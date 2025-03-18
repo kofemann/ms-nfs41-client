@@ -47,7 +47,13 @@ function test_sparse_holeonly_dd
 
     integer fsutil_num_data_sections="$(/cygdrive/c/Windows/system32/fsutil sparse queryrange 'sparse_file_hole_only' | wc -l)"
     integer winfsinfo_num_data_sections="$(winfsinfo fsctlqueryallocatedranges 'sparse_file_hole_only' | wc -l)"
-    integer lssparse_num_data_sections="$(lssparse 'sparse_file_hole_only' | wc -l)"
+    integer lssparse_num_data_sections
+    if $has_lssparse ; then
+        lssparse_num_data_sections="$(lssparse 'sparse_file_hole_only' | wc -l)"
+    else
+        # hack
+        (( lssparse_num_data_sections=winfsinfo_num_data_sections ))
+    fi
 
     #
     # test whether the file is OK
@@ -89,7 +95,13 @@ function test_sparse_holeonly_truncate
 
     integer fsutil_num_data_sections="$(/cygdrive/c/Windows/system32/fsutil sparse queryrange 'sparse_file_hole_only_trunc' | wc -l)"
     integer winfsinfo_num_data_sections="$(winfsinfo fsctlqueryallocatedranges 'sparse_file_hole_only_trunc' | wc -l)"
-    integer lssparse_num_data_sections="$(lssparse 'sparse_file_hole_only_trunc' | wc -l)"
+    integer lssparse_num_data_sections
+    if $has_lssparse ; then
+        lssparse_num_data_sections="$(lssparse 'sparse_file_hole_only_trunc' | wc -l)"
+    else
+        # hack
+        (( lssparse_num_data_sections=winfsinfo_num_data_sections ))
+    fi
 
     #
     # test whether the file is OK
@@ -129,7 +141,13 @@ function test_normal_file
 
     integer fsutil_num_data_sections="$(/cygdrive/c/Windows/system32/fsutil sparse queryrange 'test_normal_file' | wc -l)"
     integer winfsinfo_num_data_sections="$(winfsinfo fsctlqueryallocatedranges 'test_normal_file' | wc -l)"
-    integer lssparse_num_data_sections="$(lssparse 'test_normal_file' | wc -l)"
+    integer lssparse_num_data_sections
+    if $has_lssparse ; then
+        lssparse_num_data_sections="$(lssparse 'test_normal_file' | wc -l)"
+    else
+        # hack
+        (( lssparse_num_data_sections=winfsinfo_num_data_sections ))
+    fi
 
     #
     # test whether the file is OK
@@ -218,8 +236,13 @@ function test_multihole_sparsefile1
 
     integer fsutil_num_data_sections="$(/cygdrive/c/Windows/system32/fsutil sparse queryrange 'mysparsefile' | wc -l)"
     integer winfsinfo_num_data_sections="$(winfsinfo fsctlqueryallocatedranges 'mysparsefile' | wc -l)"
-    integer lssparse_num_data_sections="$(lssparse 'mysparsefile' | wc -l)"
-
+    integer lssparse_num_data_sections
+    if $has_lssparse ; then
+        lssparse_num_data_sections="$(lssparse 'mysparsefile' | wc -l)"
+    else
+        # hack
+        (( lssparse_num_data_sections=winfsinfo_num_data_sections ))
+    fi
 
     #
     # test whether the file is OK
@@ -266,7 +289,13 @@ function test_sparse_punchhole1
 
     integer fsutil_num_data_sections="$(/cygdrive/c/Windows/system32/fsutil sparse queryrange 'sparse_file_punchhole' | wc -l)"
     integer winfsinfo_num_data_sections="$(winfsinfo fsctlqueryallocatedranges 'sparse_file_punchhole' | wc -l)"
-    integer lssparse_num_data_sections="$(lssparse 'sparse_file_punchhole' | wc -l)"
+    integer lssparse_num_data_sections
+    if $has_lssparse ; then
+        lssparse_num_data_sections="$(lssparse 'sparse_file_punchhole' | wc -l)"
+    else
+        # hack
+        (( lssparse_num_data_sections=winfsinfo_num_data_sections ))
+    fi
 
     #
     # test whether the file is OK
@@ -301,6 +330,22 @@ builtin basename
 builtin rm
 builtin wc
 
+typeset has_lssparse
+typeset has_fallocate
+
+if which lssparse.exe 2>'/dev/null' ; then
+    has_lssparse=true
+else
+    printf '#\n# NOTE: Skipping lssparse tests.\n#\n'
+    has_lssparse=false
+fi
+if which fallocate.exe 2>'/dev/null' ; then
+    has_fallocate=true
+else
+    printf '#\n# NOTE: Skipping fallocate tests.\n#\n'
+    has_fallocate=false
+fi
+
 test_sparse_holeonly_dd
 test_sparse_holeonly_truncate
 test_normal_file
@@ -316,7 +361,11 @@ test_multihole_sparsefile1 1024 1 4  true
 # fsutil uses 64 entries per queryrange, so we test this here
 test_multihole_sparsefile1 1024 2 256 false
 
-test_sparse_punchhole1
+if $has_fallocate ; then
+    test_sparse_punchhole1
+else
+    printf '# NOTE: test_sparse_punchhole1 SKIPPED, no fallocate.exe\n'
+fi
 
 printf '#\n# done\n#\n\n'
 

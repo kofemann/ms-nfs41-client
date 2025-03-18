@@ -104,11 +104,8 @@ installdest:
 		(cd $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/ && ln -sf winfsinfo.i686.exe winfsinfo.exe) \
 	fi
 	cp "$(PROJECT_BASEDIR_DIR)/tests/lssparse/lssparse.x86_64.exe" $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/lssparse.x86_64.exe
-	cp "$(PROJECT_BASEDIR_DIR)/tests/lssparse/lssparse.i686.exe" $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/lssparse.i686.exe
 	if [[ "$(CYGWIN_BASEPATH)" == *64* ]] ; then \
 		(cd $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/ && ln -sf lssparse.x86_64.exe lssparse.exe) \
-	else \
-		(cd $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/ && ln -sf lssparse.i686.exe lssparse.exe) \
 	fi
 	if [[ "$(CYGWIN_BASEPATH)" == *64* ]] ; then \
 		cp "$(PROJECT_BASEDIR_DIR)/tests/winsg/winsg.x86_64.exe" $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/winsg.exe ; \
