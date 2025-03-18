@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2023-2024 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -461,7 +461,7 @@ ULONG nfs41_ExtendForCache(
         (long long)pNewFileSize->QuadPart,
         (long long)pNewAllocationSize->QuadPart);
 #endif
-    pNewAllocationSize->QuadPart = pNewFileSize->QuadPart + 8192;
+    pNewAllocationSize->QuadPart = pNewFileSize->QuadPart;
     nfs41_fcb->StandardInfo.AllocationSize.QuadPart =
         pNewAllocationSize->QuadPart;
     nfs41_fcb->StandardInfo.EndOfFile.QuadPart = pNewFileSize->QuadPart;
