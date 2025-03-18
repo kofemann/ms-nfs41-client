@@ -1115,7 +1115,9 @@ add_domain:
      */
     EASSERT(!isdigit(who_out[0]));
 
-    (void)memcpy(who_out+who_size, "@", sizeof(char));
+    char *wp;
+
+    wp = mempcpy(who_out+who_size, "@", sizeof(char));
 
 #ifdef NFS41_DRIVER_WS2022_HACKS
     /* Fixup |domain| for Windows Sever 2022 NFSv4.1 server */
@@ -1133,7 +1135,7 @@ add_domain:
             (int)who_size+1, who_out, domain));
     }
 #endif /* NFS41_DRIVER_WS2022_HACKS */
-    (void)memcpy(who_out+who_size+1, domain, strlen(domain)+1);
+    (void)memcpy(wp, domain, strlen(domain)+1);
 
 /* no_add_domain: */
     status = ERROR_SUCCESS;

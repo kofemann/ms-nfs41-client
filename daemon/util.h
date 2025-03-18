@@ -57,6 +57,13 @@ typedef ULONGLONG util_reltimestamp;
 
 char *stpcpy(char *restrict s1, const char *restrict s2);
 
+static __inline
+void *mempcpy(void *restrict dest, const void *restrict src, size_t n)
+{
+    (void)memcpy(dest, src, n);
+    return (void *)((char *)dest + n);
+}
+
 int safe_read(unsigned char **pos, uint32_t *remaining, void *dest, uint32_t dest_len);
 int safe_write(unsigned char **pos, uint32_t *remaining, void *dest, uint32_t dest_len);
 int get_name(unsigned char **pos, uint32_t *remaining, const char **out_name);
