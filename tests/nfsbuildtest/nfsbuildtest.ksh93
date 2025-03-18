@@ -302,8 +302,12 @@ function bash_build
 		(set -o xtrace ; sed -i "s/\/bin\/sh/\/bin\/ksh93/g" $(find . -name 'configure') )
 	fi
 
-	# workaround for gcc 15.0 used in Cygwin 3.6
-	export CFLAGS="-std=gnu17 -Wno-error=implicit-function-declaration -Wno-error=implicit-int"
+	if is_cygwin && (( (cygwin_vers.major*1000+cygwin_vers.minor) >= 3005 )) ; then
+		# workaround for gcc 15.0 used in Cygwin 3.6
+		export CFLAGS="-std=gnu17 -Wno-error=implicit-function-declaration -Wno-error=implicit-int"
+	else
+		export CFLAGS="-std=gnu99"
+	fi
 
 	if $config_use_posix_ksh93_builtins ; then
 		CONFIG_SHELL=/usr/bin/ksh93 ksh93 ./configure "${configure_options[@]}"
