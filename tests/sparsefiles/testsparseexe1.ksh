@@ -30,17 +30,15 @@
 # Written by Roland Mainz <roland.mainz@nrubsig.org>
 #
 
-integer nulldata_array_size=1024*1024*64
+integer nulldata_array_size=1024*1024*16
 
 function generate_test_src
 {
     printf '#include <stdio.h>\n'
     printf '#include <stdlib.h>\n'
+    printf '\n'
 
-    printf '\nint main(int ac, char *av[])\n'
-    printf '{\n'
-
-    printf 'volatile char nulldata_array[%d] = {\n' nulldata_array_size
+    printf 'volatile char __attribute__((section(".noinit"))) nulldata_array[%d] = {\n' nulldata_array_size
     for ((i = nulldata_array_size ; i >= 64 ; i-= 64 )) ; do
         printf '\t0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,\n'
         printf '\t0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,\n'
@@ -53,6 +51,12 @@ function generate_test_src
         printf '\n'
     fi
     printf '};\n'
+
+    printf '\nint main(int ac, char *av[])\n'
+    printf '{\n'
+
+    printf '\t(void)ac; /* not used */\n'
+    printf '\t(void)av; /* not used */\n'
 
     printf '\tlong long sum = 0LL;\n'
     printf '\tsize_t i;\n'
@@ -87,11 +91,23 @@ function test_sparseexe1
     generate_test_src | cat >'sparseexe.c'
 
     print '# compile source...'
-    gcc -Wl,--stack,$((1024*1024*256)) -Wall -g 'sparseexe.c' -o 'sparseexe_orig.exe'
+    gcc -Wall -g 'sparseexe.c' -o 'sparseexe_orig.exe'
 
-    print $'# copy *.exe, and turn all sections with long sequences of \'\\0\'-bytes into "holes" ...'
-    # explicitly use /usr/bin/cp and not the AST cp builtin
-    /usr/bin/cp --sparse=always 'sparseexe_orig.exe' 'sparseexe_sparse.exe'
+    #
+    # HACK: Test for fallocate.exe to determinate whether the system's
+    # /usr/bin/cp.exe has sparse file support (which depends on
+    # SEEK_HOLE+SEEK_DATA.
+    #
+    if which -a 'fallocate.exe' 2>'/dev/null' ; then
+        print $'# copy *.exe via cp --sparse=always, turn all sections with long sequences of \'\\0\'-bytes into "holes" ...'
+        # explicitly use /usr/bin/cp and not the AST cp builtin
+        /usr/bin/cp --sparse=always 'sparseexe_orig.exe' 'sparseexe_sparse.exe'
+    else
+        print $'# copy *.exe via dd conv=sparse, turn all sections with long sequences of \'\\0\'-bytes into "holes" ...'
+        # explicitly use /usr/bin/cp and not the AST cp builtin
+        dd if='sparseexe_orig.exe' of='sparseexe_sparse.exe' conv=sparse
+        chmod a+x 'sparseexe_sparse.exe'
+    fi
 
     print '# collect data...'
     integer res.sparseexe_orig_blocks=$(stat --printf '%b\n' 'sparseexe_orig.exe')
