@@ -89,9 +89,10 @@ typedef struct __multi_addr4 {
     uint32_t        count;
 } multi_addr4;
 
+#define BITMAP4_MAXCOUNT (3)
 typedef struct __bitmap4 {
     uint32_t        count;
-    uint32_t        arr[3];
+    uint32_t        arr[BITMAP4_MAXCOUNT];
 } bitmap4;
 
 typedef struct __nfstime4 {

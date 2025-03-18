@@ -54,9 +54,10 @@ bool_t xdr_bitmap4(
     uint32_t i;
 
     if (xdr->x_op == XDR_ENCODE) {
-        if (bitmap->count > 3) {
-            eprintf("encode_bitmap4: count (%d) must be <= 3\n",
-                bitmap->count);
+        if (bitmap->count > BITMAP4_MAXCOUNT) {
+            eprintf("encode_bitmap4: count (%d) must be <= %d\n",
+                bitmap->count,
+                BITMAP4_MAXCOUNT);
             return FALSE;
         }
         if (!xdr_u_int32_t(xdr, &bitmap->count))
@@ -69,9 +70,10 @@ bool_t xdr_bitmap4(
     } else if (xdr->x_op == XDR_DECODE) {
         if (!xdr_u_int32_t(xdr, &bitmap->count))
             return FALSE;
-        if (bitmap->count > 3) {
-            eprintf("decode_bitmap4: count (%d) must be <= 3\n",
-                bitmap->count);
+        if (bitmap->count > BITMAP4_MAXCOUNT) {
+            eprintf("decode_bitmap4: count (%d) must be <= %d\n",
+                bitmap->count,
+                BITMAP4_MAXCOUNT);
             return FALSE;
         }
 
