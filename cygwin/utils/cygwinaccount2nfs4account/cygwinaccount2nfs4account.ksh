@@ -3,7 +3,7 @@
 #
 # MIT License
 #
-# Copyright (c) 2024 Roland Mainz <roland.mainz@nrubsig.org>
+# Copyright (c) 2024-2025 Roland Mainz <roland.mainz@nrubsig.org>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -187,7 +187,8 @@ function accountdata2linuxscript
 {
 	set -o nounset
 
-	nameref accountdata=$1
+	typeset os="$1"
+	nameref accountdata=$2
 	typeset gidlist=''
 	typeset sidname
 
@@ -230,16 +231,35 @@ function accountdata2linuxscript
 	printf '# User data:\n'
 	printf '#\n'
 
-	printf 'mkdir -p %q\n' "${curruser.homedir}"
-	printf 'useradd -u %s -g %s -G %q -s %q %q\n' \
-		"${curruser.uid}" \
-		"${curruser.gid}" \
-		"${gidlist}" \
-		"${curruser.shell}" \
-		"${curruser.login_name}"
-	printf 'chown %q %q\n' \
-		"${curruser.uid}:${curruser.gid}" \
-		"${curruser.homedir}"
+	case "$os" in
+		'linux')
+			printf 'mkdir -p %q\n' "${curruser.homedir}"
+			printf 'useradd -u %s -g %s -G %q -s %q %q\n' \
+				"${curruser.uid}" \
+				"${curruser.gid}" \
+				"${gidlist}" \
+				"${curruser.shell}" \
+				"${curruser.login_name}"
+			printf 'chown %q %q\n' \
+				"${curruser.uid}:${curruser.gid}" \
+				"${curruser.homedir}"
+		;;
+		'solaris' | 'illumos')
+			printf 'mkdir -p %q\n' "/export/${curruser.homedir}"
+			printf 'printf "%s\\tlocalhost:/export/home/%s\\n" >>"/etc/auto_home"\n' \
+				"${curruser.login_name}" \
+				"${curruser.login_name}"
+			printf 'useradd -u %s -g %s -G %q -s %q %q\n' \
+				"${curruser.uid}" \
+				"${curruser.gid}" \
+				"${gidlist}" \
+				"${curruser.shell}" \
+				"${curruser.login_name}"
+			printf 'chown %q %q\n' \
+				"${curruser.uid}:${curruser.gid}" \
+				"/export/${curruser.homedir}"
+		;;
+	esac
 
 	return 0
 }
@@ -292,12 +312,14 @@ function convert_curruser2linuxscript
 	#
 	# Generate Linux script from collected "account_data"
 	#
-	accountdata2linuxscript account_data
+	accountdata2linuxscript "${cfg.os}" account_data
 
 	#
 	# Print NFSv4 server config
 	#
-	print_nfs4_server_config cfg
+	if [[ "${cfg.os}" == 'linux' ]] ; then
+		print_nfs4_server_config cfg
+	fi
 
 	#
 	# Done
@@ -363,7 +385,7 @@ function convert_givenuser2linuxscript
 	#
 	# Generate Linux script from collected "account_data"
 	#
-	accountdata2linuxscript account_data
+	accountdata2linuxscript "${cfg.os}" account_data
 
 	#
 	# Print NFSv4 server config
@@ -384,13 +406,15 @@ function main
 
 	# fixme: Need better text layout for $ cygwinaccount2nfs4account --man #
 	typeset -r cygwinaccount2nfs4account_usage=$'+
-	[-?\n@(#)\$Id: cygwinaccount2nfs4account (Roland Mainz) 2024-12-10 \$\n]
+	[-?\n@(#)\$Id: cygwinaccount2nfs4account (Roland Mainz) 2025-03-19 \$\n]
 	[-author?Roland Mainz <roland.mainz@nrubsig.org>]
 	[+NAME?cygwinaccount2nfs4account - convert Cygwin user/group account
 		info to Linux/UNIX NFSv4 server account data]
 	[+DESCRIPTION?\bcygwinaccount2nfs4account\b convert Cygwin user/group account
 		info to Linux/UNIX NFSv4 server account data.]
 	[D:debug?Enable debugging.]
+	[O:os?Operating system, either \blinux\b, \bsolaris\b or
+		\billumos\b).]:[os]
 
 	--man
 
@@ -413,6 +437,9 @@ function main
 			'D')
 				c.debug=true
 				;;
+                        'O')
+				typeset c.os="${OPTARG}"
+				;;
 			*)
 				usage "${progname}" "${cygwinaccount2nfs4account_usage}"
 				return $?
@@ -426,6 +453,17 @@ function main
 	for ((i=0 ; i < saved_optind_m1 ; i++)) ; do
 		unset c.args[$i]
 	done
+
+	if [[ ! -v c.os ]] ; then
+		print -u2 -f $"%s: Require -O <operating-system>\n"
+		return 1
+	fi
+
+	if [[ "${c.os}" != ~(Elr)(linux|solaris|illumos) ]] ; then
+		print -u2 -f $"%s: Unsuppoted -O value %q, supported are 'linux', 'solaris', 'illumos'\n" \
+			"${c.os}"
+		return 1
+	fi
 
 	#
 	# c.args mighth be a sparse array (e.g. "([1]=aaa [2]=bbb [4]=ccc)")
