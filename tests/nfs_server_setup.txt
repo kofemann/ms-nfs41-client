@@ -51,13 +51,19 @@ printf "server 10.49.0.5\n" >/etc/inet/ntp.conf
 svcadm enable ntp
 
 # configure&start NFS server
+svcadm enable network/nfs/mapid
 svcadm enable network/nfs/server
 sharectl set -p nfsmapid_domain=global.loc nfs
 sharectl set -p server_delegation=on nfs
+
+# prepare test share
 mkdir /nfsdata
 chmod a+rwx /nfsdata
-share -F nfs -o rw /nfsdata/
-svcs svc:/network/nfs/server:default
+share -p -F nfs -o rw /nfsdata
+
+# verify whether mapid and nfs/server are running
+svcs network/nfs/mapid
+svcs network/nfs/server
 
 # performance: disable sync/ZIL on ZFS pool which exports NFS files
 zfs set sync=disabled rpool
@@ -77,7 +83,7 @@ See https://docs.oracle.com/en/operating-systems/solaris/oracle-solaris/11.4/man
 
 #
 # Illumos NFSv4.1 server setup
-# (similar to Solaris 11)
+# (similar to Solaris 11.4)
 #
 
 ##### 1. Server setup
@@ -87,14 +93,22 @@ svcadm enable ntp
 svcadm restart ntp
 
 # configure&start NFS server
+svcadm enable network/nfs/mapid
 svcadm enable network/nfs/server
 sharectl set -p nfsmapid_domain=global.loc nfs
 sharectl set -p server_delegation=on nfs
 sharectl set -p server_versmax=4.1 nfs
+
+# prepare test share
 mkdir /nfsdata
 chmod a+rwx /nfsdata
-share -F nfs -o rw /nfsdata/
-svcs svc:/network/nfs/server:default
+share -p -F nfs -o rw /nfsdata
+
+# verify whether mapid and nfs/server are running
+svcs network/nfs/mapid
+svcs network/nfs/server
+
+# restarting network/nfs/server only restores shares in /etc/dfs/dfstab
 
 # performance: disable sync/ZIL on ZFS pool which exports NFS files
 zfs set sync=disabled rpool
