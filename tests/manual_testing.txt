@@ -1,5 +1,5 @@
 #
-# ms-nfs41-client manual testing sequence, 2025-02-24
+# ms-nfs41-client manual testing sequence, 2025-03-20
 #
 # Draft version, needs to be turned into automated tests
 # if possible
@@ -19,6 +19,7 @@
 #   make
 #   bmake
 #   netpbm
+#   attr
 #   git
 #   subversion
 #   cygport
@@ -371,6 +372,63 @@ icacls mytestfile1.txt | grep --colour -E 'cygwingrp2.+GR'
 # ./nfs_mount -p -o sec=sys T derfwnb4966_ipv6:/net_tmpfs2
 # ./nfs_mount -p -o sec=sys R derfwnb4966_ipv6:/net_tmpfs2/test2
 #
+
+
+#
+# Tests for Windows EAs (Extended Attributes)
+# Windows EAs are represented as NFSv4 extended attributes (XATTR)
+# files, with the Windows EaName prefixed with "win32.ea." to
+# avoid namespace collision with other users of NFSv4 XATTR files
+# (e.g. SUN Microsystems/Solaris/Illumos/ZFS etc. use "SUNWattr_"
+# as predix
+#
+
+1. One-liner:
+---- snip ----
+$ ksh93 -c 'set -o xtrace -o errexit ; rm -f x1 ; touch x1 ; attr -q -s "fish5" -V "hello lake world" x1 ; [[ "$(attr -q -l x1)" == *fish5* ]] || echo FAIL ; [[ "$(attr -q -g "fish5" x1)" == "hello lake world" ]] || echo "FAIL" ; attr -q -r "fish5" x1 ; echo "# Test OK"'
+---- snip ----
+
+2. Detailed test:
+---- snip ----
+# create parent file
+$ rm -f myattrfile ; touch myattrfile
+
+# list attributes for new file (should be no EAs)
+$ attr -l myattrfile
+
+# create EA attribute "chicken3"
+$ attr -s "chicken3" -V "hello world" myattrfile
+Attribute "chicken3" set to a 11 byte value for myattrfile:
+hello world
+
+# create EA attribute "fish5"
+$ attr -s "fish5" -V "hello lake world" myattrfile
+Attribute "fish5" set to a 16 byte value for myattrfile:
+hello lake world
+
+# list attributes (should be "fish5" and "chicken3"
+$ attr -l myattrfile
+Attribute "fish5" has a 16 byte value for myattrfile
+Attribute "chicken3" has a 11 byte value for myattrfile
+
+# get value of "chicken3" (should be "hello world")
+$ attr -g chicken3 myattrfile
+Attribute "chicken3" had a 11 byte value for myattrfile:
+hello world
+
+# remove attribute "chicken3", try to get it (should fail)
+$ attr -r chicken3 myattrfile
+$ attr -g chicken3 myattrfile
+attr_get: No data available
+Could not get "chicken3" for myattrfile
+---- snip ----
+
+3. Notes:
+On the NFS server side you can observe XATTR attributes like this:
+- Using runat:
+$ runat "x1" "ls -la"
+- Using bash cd(1) -@:
+$ bash -c 'cd -@ "x1" && ls -la'
 
 
 #
