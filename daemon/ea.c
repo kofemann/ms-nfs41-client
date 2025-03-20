@@ -1,5 +1,6 @@
 /* NFSv4.1 client for Windows
- * Copyright © 2012 The Regents of the University of Michigan
+ * Copyright (C) 2012 The Regents of the University of Michigan
+ * Copyright (C) 2024-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -31,6 +32,20 @@
 #include "daemon_debug.h"
 #include "nfs_ea.h"
 
+/*
+ * |WIN_NFS4_EA_NAME_PREFIX| - Prefix for Windows EA in NFSv4
+ * XATTR (extended attributes) namespace
+ *
+ * We need such a prefix to avoid colliding with other users
+ * in the NFSv4 XATTR namespace - for example SUN Microsystrems
+ * (Solaris, Illumos, ...) uses "SUNWattr_" as prefix, and setting
+ * such attributes can cause data corruption (or in case of
+ * "SUNWattr_ro" will fail, because the attribute file is
+ * read-only).
+ */
+#define WIN_NFS4_EA_NAME_PREFIX "win32.ea."
+#define WIN_NFS4_EA_NAME_PREFIX_LEN (9)
+
 
 #define EALVL 2 /* dprintf level for extended attribute logging */
 
@@ -49,6 +64,19 @@ static int set_ea_value(
     nfs41_write_verf verf;
     uint32_t bytes_written;
     int status;
+    char prefixed_name[256];
+
+    DPRINTF(EALVL,
+        ("set_ea_value: "
+            "ea->(EaName='%.*s' EaNameLength=%d)\n",
+            (int)ea->EaNameLength,
+            ea->EaName,
+            (int)ea->EaNameLength));
+
+    (void)snprintf(prefixed_name, sizeof(prefixed_name), "%s%.*s",
+        WIN_NFS4_EA_NAME_PREFIX,
+        (int)ea->EaNameLength,
+        ea->EaName);
 
     /* don't allow values larger than NFS4_EASIZE */
     if (ea->EaValueLength > NFS4_EASIZE) {
@@ -61,8 +89,8 @@ static int set_ea_value(
     /* remove the file on empty value */
     if (ea->EaValueLength == 0) {
         nfs41_component name;
-        name.name = ea->EaName;
-        name.len = ea->EaNameLength;
+        name.name = prefixed_name;
+        name.len = (USHORT)strlen(prefixed_name);
         nfs41_remove(session, parent, &name, 0);
         status = NFS4_OK;
         goto out;
@@ -70,8 +98,8 @@ static int set_ea_value(
 
     claim.claim = CLAIM_NULL;
     claim.u.null.filename = &file.name;
-    file.name.name = ea->EaName;
-    file.name.len = ea->EaNameLength; 
+    file.name.name = prefixed_name;
+    file.name.len = (USHORT)strlen(prefixed_name);
 
     createattrs.attrmask.count = 2;
     createattrs.attrmask.arr[0] = FATTR4_WORD0_SIZE;
@@ -85,9 +113,8 @@ static int set_ea_value(
         &createattrs, TRUE, &stateid.stateid, &delegation, NULL);
     if (status) {
         eprintf("set_ea_value: "
-            "nfs41_open(ea_name='%.*s') failed with '%s'\n",
-            (int)ea->EaNameLength,
-            ea->EaName,
+            "nfs41_open(ea_name='%s') failed with '%s'\n",
+            prefixed_name,
             nfs_error_string(status));
         goto out;
     }
@@ -98,9 +125,8 @@ static int set_ea_value(
         &verf, NULL);
     if (status) {
         eprintf("set_ea_value: "
-            "nfs41_write(ea_name='%.*s') failed with '%s'\n",
-            (int)ea->EaNameLength,
-            ea->EaName,
+            "nfs41_write(ea_name='%s') failed with '%s'\n",
+            prefixed_name,
             nfs_error_string(status));
         goto out_close;
     }
@@ -343,7 +369,13 @@ static uint32_t calculate_ea_list_length(
 
     while (remaining) {
         entry = (const nfs41_readdir_entry*)position;
-        length += ALIGNED_EASIZE(entry->name_len);
+
+        if ((entry->name_len > WIN_NFS4_EA_NAME_PREFIX_LEN) &&
+            (memcmp(entry->name,
+                WIN_NFS4_EA_NAME_PREFIX, WIN_NFS4_EA_NAME_PREFIX_LEN) == 0)) {
+            length +=
+                ALIGNED_EASIZE(entry->name_len-WIN_NFS4_EA_NAME_PREFIX_LEN);
+        }
 
         if (!entry->next_entry_offset)
             break;
@@ -359,21 +391,52 @@ static void populate_ea_list(
     OUT PFILE_GET_EA_INFORMATION ea_list)
 {
     const nfs41_readdir_entry *entry;
-    PFILE_GET_EA_INFORMATION ea = ea_list, prev = NULL;
+    PFILE_GET_EA_INFORMATION ea = ea_list;
+    PFILE_GET_EA_INFORMATION last_win_ea = NULL;
+    bool is_win_ea;
 
     for (;;) {
         entry = (const nfs41_readdir_entry*)position;
-        StringCchCopyA(ea->EaName, entry->name_len, entry->name);
-        ea->EaNameLength = (UCHAR)entry->name_len - 1;
+
+        if ((entry->name_len > WIN_NFS4_EA_NAME_PREFIX_LEN) &&
+            (memcmp(entry->name,
+                WIN_NFS4_EA_NAME_PREFIX, WIN_NFS4_EA_NAME_PREFIX_LEN) == 0)) {
+            is_win_ea = true;
+        }
+        else {
+            is_win_ea = false;
+        }
+
+        if (is_win_ea) {
+            ea->EaNameLength =
+                (UCHAR)(entry->name_len - WIN_NFS4_EA_NAME_PREFIX_LEN);
+            (void)memcpy(ea->EaName,
+                entry->name+WIN_NFS4_EA_NAME_PREFIX_LEN,
+                ea->EaNameLength);
+
+            DPRINTF(EALVL,
+                ("populate_ea_list: adding ea "
+                    "entry->(name='%.*s' name_len=%d) "
+                    "ea->(EaName='%.*s' EaNameLength=%d)\n",
+                    (int)entry->name_len,
+                    entry->name,
+                    (int)entry->name_len,
+                    (int)ea->EaNameLength,
+                    ea->EaName,
+                    (int)ea->EaNameLength));
+            last_win_ea = ea;
+        }
 
         if (!entry->next_entry_offset) {
-            ea->NextEntryOffset = 0;
+            (last_win_ea?last_win_ea:ea)->NextEntryOffset = 0;
             break;
         }
 
-        prev = ea;
-        ea->NextEntryOffset = ALIGNED_EASIZE(ea->EaNameLength);
-        ea = (PFILE_GET_EA_INFORMATION)NEXT_ENTRY(ea);
+        if (is_win_ea) {
+            ea->NextEntryOffset = ALIGNED_EASIZE(ea->EaNameLength);
+            ea = (PFILE_GET_EA_INFORMATION)NEXT_ENTRY(ea);
+        }
+
         position += entry->next_entry_offset;
     }
 }
@@ -442,14 +505,27 @@ static int get_ea_value(
     uint32_t diff, bytes_read;
     bool_t eof;
     int status;
+    char prefixed_name[256];
 
     if (parent->fh.len == 0) /* no named attribute directory */
         goto out_empty;
 
+    DPRINTF(EALVL,
+        ("get_ea_value: "
+            "ea->(EaName='%.*s' EaNameLength=%d)\n",
+            (int)ea->EaNameLength,
+            ea->EaName,
+            (int)ea->EaNameLength));
+
+    (void)snprintf(prefixed_name, sizeof(prefixed_name), "%s%.*s",
+        WIN_NFS4_EA_NAME_PREFIX,
+        (int)ea->EaNameLength,
+        ea->EaName);
+
     claim.claim = CLAIM_NULL;
     claim.u.null.filename = &file.name;
-    file.name.name = ea->EaName;
-    file.name.len = ea->EaNameLength;
+    file.name.name = prefixed_name;
+    file.name.len = (USHORT)strlen(prefixed_name);
 
     status = nfs41_open(session, parent, &file, owner, &claim,
         OPEN4_SHARE_ACCESS_READ | OPEN4_SHARE_ACCESS_WANT_NO_DELEG,
@@ -457,9 +533,8 @@ static int get_ea_value(
         &stateid.stateid, &delegation, &info);
     if (status) {
         eprintf("get_ea_value: "
-            "nfs41_open(ea_name='%.*s') failed with '%s'\n",
-            (int)ea->EaNameLength,
-            ea->EaName,
+            "nfs41_open(ea_name='%s') failed with '%s'\n",
+            prefixed_name,
             nfs_error_string(status));
         if (status == NFS4ERR_NOENT)
             goto out_empty;
@@ -470,7 +545,8 @@ static int get_ea_value(
         status = NFS4ERR_FBIG;
         eprintf("get_ea_value: "
             "EA value for '%s' longer than maximum %u "
-            "(%llu bytes), returning %s\n", ea->EaName, NFS4_EASIZE,
+            "(%llu bytes), returning '%s'\n",
+            prefixed_name, NFS4_EASIZE,
             info.size, nfs_error_string(status));
         goto out_close;
     }
@@ -627,7 +703,7 @@ static int handle_getexattr(void *daemon_context, nfs41_upcall *upcall)
         }
 
         ea->EaNameLength = query->EaNameLength;
-        StringCchCopyA(ea->EaName, (size_t)ea->EaNameLength + 1, query->EaName);
+        (void)memcpy(ea->EaName, query->EaName, ea->EaNameLength);
         ea->Flags = 0;
 
         /* read the value from file */
