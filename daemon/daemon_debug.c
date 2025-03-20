@@ -1464,10 +1464,6 @@ void debug_print_ea(PFILE_FULL_EA_INFORMATION ea)
     if (ea == NULL)
         goto out;
 
-#define EA_NEXT_ENTRY(ea) ((PBYTE)(ea) + (ea)->NextEntryOffset)
-#define EA_VALUE(ea) \
-    ((void *)((unsigned char*)(ea)->EaName + (ea)->EaNameLength + 1))
-
     while (1) {
         const char *ea_name = print_ea->EaName;
         size_t ea_name_len = print_ea->EaNameLength;

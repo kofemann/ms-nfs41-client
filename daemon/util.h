@@ -55,6 +55,10 @@ typedef ULONGLONG util_reltimestamp;
 #define PTR2PTRDIFF_T(p) ((ptrdiff_t)((char *)((void *)(p)) - ((char *)0)))
 #define PTRDIFF_T2PTR(d) ((void *)(((char *)0) + (d)))
 
+#define EA_NEXT_ENTRY(ea) ((PBYTE)(ea) + (ea)->NextEntryOffset)
+#define EA_VALUE(ea) \
+    ((void *)((unsigned char *)(ea)->EaName + (ea)->EaNameLength + 1))
+
 char *stpcpy(char *restrict s1, const char *restrict s2);
 
 static __inline

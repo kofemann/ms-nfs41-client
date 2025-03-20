@@ -120,7 +120,7 @@ static int set_ea_value(
     }
 
     status = nfs41_write(session, &file, &stateid,
-        (unsigned char*)ea->EaName + ea->EaNameLength + 1,
+        EA_VALUE(ea),
         ea->EaValueLength, 0, FILE_SYNC4, &bytes_written,
         &verf, NULL);
     if (status) {
@@ -149,7 +149,6 @@ static bool is_nfs_ea(
             (!strncmp(EA_NFSSYMLINKTARGETNAME, ea->EaName, ea->EaNameLength))));
 }
 
-#define NEXT_ENTRY(ea) ((PBYTE)(ea) + (ea)->NextEntryOffset)
 
 int nfs41_ea_set(
     IN nfs41_open_state *state,
@@ -172,7 +171,7 @@ int nfs41_ea_set(
 
         if (ea->NextEntryOffset == 0)
             break;
-        ea = (PFILE_FULL_EA_INFORMATION)NEXT_ENTRY(ea);
+        ea = (PFILE_FULL_EA_INFORMATION)EA_NEXT_ENTRY(ea);
     }
 out:
     return status;
@@ -434,7 +433,7 @@ static void populate_ea_list(
 
         if (is_win_ea) {
             ea->NextEntryOffset = ALIGNED_EASIZE(ea->EaNameLength);
-            ea = (PFILE_GET_EA_INFORMATION)NEXT_ENTRY(ea);
+            ea = (PFILE_GET_EA_INFORMATION)EA_NEXT_ENTRY(ea);
         }
 
         position += entry->next_entry_offset;
@@ -677,7 +676,7 @@ static int handle_getexattr(void *daemon_context, nfs41_upcall *upcall)
                     status = ERROR_NO_MORE_FILES; /* STATUS_NO_MORE_EAS */
                 goto out;
             }
-            query = (PFILE_GET_EA_INFORMATION)NEXT_ENTRY(query);
+            query = (PFILE_GET_EA_INFORMATION)EA_NEXT_ENTRY(query);
         }
     }
 
@@ -735,8 +734,8 @@ static int handle_getexattr(void *daemon_context, nfs41_upcall *upcall)
 
         prev = ea;
         ea->NextEntryOffset = needed;
-        ea = (PFILE_FULL_EA_INFORMATION)NEXT_ENTRY(ea);
-        query = (PFILE_GET_EA_INFORMATION)NEXT_ENTRY(query);
+        ea = (PFILE_FULL_EA_INFORMATION)EA_NEXT_ENTRY(ea);
+        query = (PFILE_GET_EA_INFORMATION)EA_NEXT_ENTRY(query);
     }
 
     ea->NextEntryOffset = 0;
