@@ -82,7 +82,7 @@ See https://docs.oracle.com/en/operating-systems/solaris/oracle-solaris/11.4/man
 
 
 #
-# Illumos NFSv4.1 server setup
+# Illumos NFSv4.2 server setup
 # (similar to Solaris 11.4)
 #
 
@@ -97,7 +97,7 @@ svcadm enable network/nfs/mapid
 svcadm enable network/nfs/server
 sharectl set -p nfsmapid_domain=global.loc nfs
 sharectl set -p server_delegation=on nfs
-sharectl set -p server_versmax=4.1 nfs
+sharectl set -p server_versmax=4.2 nfs
 
 # prepare test share
 mkdir /nfsdata
