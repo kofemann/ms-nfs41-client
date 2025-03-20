@@ -142,11 +142,11 @@ static bool is_nfs_ea(
     PFILE_FULL_EA_INFORMATION ea)
 {
     return (((ea->EaNameLength == EA_NFSV3ATTRIBUTES_LEN) &&
-            (!strncmp(EA_NFSV3ATTRIBUTES, ea->EaName, ea->EaNameLength)))
+            (!memcmp(EA_NFSV3ATTRIBUTES, ea->EaName, ea->EaNameLength)))
         || ((ea->EaNameLength == EA_NFSACTONLINK_LEN) &&
-            (!strncmp(EA_NFSACTONLINK, ea->EaName, ea->EaNameLength)))
+            (!memcmp(EA_NFSACTONLINK, ea->EaName, ea->EaNameLength)))
         || ((ea->EaNameLength == EA_NFSSYMLINKTARGETNAME_LEN) &&
-            (!strncmp(EA_NFSSYMLINKTARGETNAME, ea->EaName, ea->EaNameLength))));
+            (!memcmp(EA_NFSSYMLINKTARGETNAME, ea->EaName, ea->EaNameLength))));
 }
 
 
@@ -210,7 +210,7 @@ static int handle_setexattr(void *daemon_context, nfs41_upcall *upcall)
         OPEN_DELEGATE_READ, FALSE);
 
     if ((ea->EaNameLength == EA_NFSV3ATTRIBUTES_LEN) &&
-        (!strncmp(EA_NFSV3ATTRIBUTES, ea->EaName, ea->EaNameLength))) {
+        (!memcmp(EA_NFSV3ATTRIBUTES, ea->EaName, ea->EaNameLength))) {
         nfs41_file_info info;
         stateid_arg stateid;
 
