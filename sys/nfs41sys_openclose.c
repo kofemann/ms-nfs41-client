@@ -870,24 +870,64 @@ retry_on_link:
                 !pVNetRootContext->read_only) || oldDeletePending)
             nfs41_fcb->StandardInfo.DeletePending = TRUE;
 
-        RxFormInitPacket(InitPacket,
-            &entry->u.Open.binfo.FileAttributes,
-            &entry->u.Open.sinfo.NumberOfLinks,
-            &entry->u.Open.binfo.CreationTime,
-            &entry->u.Open.binfo.LastAccessTime,
-            &entry->u.Open.binfo.LastWriteTime,
-            &entry->u.Open.binfo.ChangeTime,
-            &entry->u.Open.sinfo.AllocationSize,
-            &entry->u.Open.sinfo.EndOfFile,
-            &entry->u.Open.sinfo.EndOfFile);
+        if (Fcb->OpenCount == 0) {
+            /* Init FCB attributes */
+            RxFormInitPacket(InitPacket,
+                &entry->u.Open.binfo.FileAttributes,
+                &entry->u.Open.sinfo.NumberOfLinks,
+                &entry->u.Open.binfo.CreationTime,
+                &entry->u.Open.binfo.LastAccessTime,
+                &entry->u.Open.binfo.LastWriteTime,
+                &entry->u.Open.binfo.ChangeTime,
+                &entry->u.Open.sinfo.AllocationSize,
+                &entry->u.Open.sinfo.EndOfFile,
+                &entry->u.Open.sinfo.EndOfFile);
 
-        if (entry->u.Open.sinfo.Directory)
-            StorageType = FileTypeDirectory;
-        else
-            StorageType = FileTypeFile;
+            if (entry->u.Open.sinfo.Directory)
+                StorageType = FileTypeDirectory;
+            else
+                StorageType = FileTypeFile;
 
-        RxFinishFcbInitialization(Fcb, RDBSS_STORAGE_NTC(StorageType),
-                                    &InitPacket);
+            RxFinishFcbInitialization(Fcb,
+                RDBSS_STORAGE_NTC(StorageType),
+                &InitPacket);
+        }
+        else {
+#ifndef NFS41_DRIVER_HACK_DISABLE_FCB_ATTR_UPDATE_ON_OPEN
+            /*
+             * NFS41_DRIVER_HACK_DISABLE_FCB_ATTR_UPDATE_ON_OPEN -
+             * disable updating of FCB attributes for an already
+             * opened FCB
+             * This is a hack for now, until we can figure out how
+             * to do this correctly (best guess is not to update FCB
+             * attributes if the file is opened for writing, because
+             * the kernel keeps updating the FCB data. The userland
+             * is not affected by this, they get all information from
+             * |nfs41_fcb->BasicInfo| and |nfs41_fcb->StandardInfo|).
+             *
+             * Without this hack
+             * $ '/cygdrive/c/Program Files/Git/cmd/git' clone ... #
+             * will fail with read errors.
+             *
+             */
+            PFCB pFcb = (PFCB)RxContext->pFcb;
+
+            /* Update FCB attributes */
+            pFcb->Attributes = entry->u.Open.binfo.FileAttributes;
+            pFcb->NumberOfLinks = entry->u.Open.sinfo.NumberOfLinks;
+            pFcb->CreationTime = entry->u.Open.binfo.CreationTime;
+            pFcb->LastAccessTime = entry->u.Open.binfo.LastAccessTime;
+            pFcb->LastWriteTime = entry->u.Open.binfo.LastWriteTime;
+            pFcb->LastChangeTime = entry->u.Open.binfo.ChangeTime;
+            pFcb->ActualAllocationLength =
+                entry->u.Open.sinfo.AllocationSize.QuadPart;
+            pFcb->Header.AllocationSize =
+                entry->u.Open.sinfo.AllocationSize;
+            pFcb->Header.FileSize  = entry->u.Open.sinfo.EndOfFile;
+            pFcb->Header.ValidDataLength =
+                entry->u.Open.sinfo.EndOfFile;
+#endif /* !NFS41_DRIVER_HACK_DISABLE_FCB_ATTR_UPDATE_ON_OPEN */
+        }
     }
 #ifdef DEBUG_OPEN
     else

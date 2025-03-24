@@ -1,5 +1,6 @@
 /* NFSv4.1 client for Windows
- * Copyright © 2012 The Regents of the University of Michigan
+ * Copyright (C) 2012 The Regents of the University of Michigan
+ * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -204,5 +205,26 @@
  * "/", "/." or "/.." ...
  */
 #define NFS41_DRIVER_TREAT_UNRESOLVEABLE_SYMLINKS_AS_DIRS 1
+
+/*
+ * NFS41_DRIVER_HACK_DISABLE_FCB_ATTR_UPDATE_ON_OPEN -
+ * disable updating of FCB attributes for an already
+ * opened FCB
+ * This is a hack for now, until we can figure out how
+ * to do this correctly (best guess is not to update FCB
+ * attributes if the file is opened for writing, because
+ * the kernel keeps updating the FCB data. The userland
+ * is not affected by this, they get all information from
+ * |nfs41_fcb->BasicInfo| and |nfs41_fcb->StandardInfo|).
+ *
+ * We keep this as a build flag for further testing.
+ *
+ * Without this hack
+ * $ '/cygdrive/c/Program Files/Git/cmd/git' clone ... # will
+ * fail with read errors.
+ *
+ */
+#define NFS41_DRIVER_HACK_DISABLE_FCB_ATTR_UPDATE_ON_OPEN 1
+
 
 #endif /* !_NFS41_DRIVER_BUILDFEATURES_ */
