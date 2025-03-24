@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2023-2024 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -188,6 +188,7 @@ NTSTATUS map_lock_errors(
     case ERROR_OUTOFMEMORY:         return STATUS_INSUFFICIENT_RESOURCES;
     case ERROR_SHARING_VIOLATION:   return STATUS_SHARING_VIOLATION;
     case ERROR_FILE_INVALID:        return STATUS_FILE_INVALID;
+    case ERROR_ACCESS_DENIED:       return STATUS_ACCESS_DENIED;
     /* if we return ERROR_INVALID_PARAMETER, Windows translates that to
      * success!! */
     case ERROR_INVALID_PARAMETER:   return STATUS_LOCK_NOT_GRANTED;
