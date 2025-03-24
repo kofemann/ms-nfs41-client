@@ -691,5 +691,15 @@ $ apt-get install clang gcc gdb nedit emacs vim x11-apps xterm ksh traceroute st
 #
 ksh93 tests/sparsefiles/testsparsefile1.ksh
 
+
+#
+# MSI installation from network driver
+#
+
+# cd /cygdrive/l/download/
+# from https://github.com/DynamoRIO/drmemory/releases/tag/cronbuild-2.6.20167
+wget 'https://github.com/DynamoRIO/drmemory/releases/download/cronbuild-2.6.20167/DrMemory-Windows-2.6.20167.msi'
+msiexec /i DrMemory-Windows-2.6.20167.msi
+
 #
 # EOF.

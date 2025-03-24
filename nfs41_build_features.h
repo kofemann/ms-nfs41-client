@@ -227,4 +227,22 @@
 #define NFS41_DRIVER_HACK_DISABLE_FCB_ATTR_UPDATE_ON_OPEN 1
 
 
+/*
+ * |NFS41_DRIVER_HACK_LOCKING_STORAGE32_RANGELOCK_PROBING| - handle
+ * rangelock probing for Storage32 API
+ * (see https://doxygen.reactos.org/d6/d7b/storage32_8h_source.html#l00497)
+ *
+ * The Storage32 API uses locking outside a file's size in the
+ * offset range of 0x7ffffe00 - 0x7fffffff for it's internal
+ * machinery. Since NFSv4.1 locking API will return failure for
+ * locking attempts outside a file's size we have to add a workaround
+ * here, otherwise applications using the Storage32 API can fail.
+ *
+ * Without this hack
+ * $ msiexec /i DrMemory-Windows-2.6.20167.msi # will
+ * fail with read errors.
+ *
+ */
+#define NFS41_DRIVER_HACK_LOCKING_STORAGE32_RANGELOCK_PROBING 1
+
 #endif /* !_NFS41_DRIVER_BUILDFEATURES_ */

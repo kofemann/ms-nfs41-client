@@ -56,6 +56,7 @@
 #include <rx.h>
 #include <windef.h>
 #include <winerror.h>
+#include <stdbool.h>
 
 #include <Ntstrsafe.h>
 
@@ -233,6 +234,29 @@ static void denied_lock_backoff(
         delay->QuadPart = MAX_LOCK_POLL_WAIT;
 }
 
+#ifdef NFS41_DRIVER_HACK_LOCKING_STORAGE32_RANGELOCK_PROBING
+static
+bool rangelock_hack_skiplock(
+    PLOWIO_CONTEXT LowIoContext,
+    PNFS41_FCB nfs41_fcb)
+{
+    /*
+     * Hack for |RANGELOCK_*| constants - see
+     * https://doxygen.reactos.org/d6/d7b/storage32_8h_source.html#l00497
+     *
+     * FIXME: No clue why these constants show up here as lock offsets
+     */
+    if (nfs41_fcb->StandardInfo.EndOfFile.QuadPart <= 0x7fffffff) {
+        if ((LowIoContext->ParamsFor.Locks.ByteOffset >= 0x7ffffe00) &&
+            (LowIoContext->ParamsFor.Locks.ByteOffset <= 0x7fffffff)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+#endif /* NFS41_DRIVER_HACK_LOCKING_STORAGE32_RANGELOCK_PROBING */
+
 NTSTATUS nfs41_Lock(
     IN OUT PRX_CONTEXT RxContext)
 {
@@ -245,6 +269,10 @@ NTSTATUS nfs41_Lock(
         NFS41GetVNetRootExtension(SrvOpen->pVNetRoot);
     __notnull PNFS41_NETROOT_EXTENSION pNetRootContext =
         NFS41GetNetRootExtension(SrvOpen->pVNetRoot->pNetRoot);
+#ifdef NFS41_DRIVER_HACK_LOCKING_STORAGE32_RANGELOCK_PROBING
+    __notnull PMRX_FCB Fcb = RxContext->pFcb;
+    __notnull PNFS41_FCB nfs41_fcb = (PNFS41_FCB)Fcb->Context;
+#endif /* NFS41_DRIVER_HACK_LOCKING_STORAGE32_RANGELOCK_PROBING */
     const ULONG flags = LowIoContext->ParamsFor.Locks.Flags;
     LARGE_INTEGER poll_delay = {0};
 #ifdef ENABLE_TIMINGS
@@ -261,6 +289,15 @@ NTSTATUS nfs41_Lock(
 
 /*  RxReleaseFcbResourceForThreadInMRx(RxContext, RxContext->pFcb,
         LowIoContext->ResourceThreadId); */
+
+#ifdef NFS41_DRIVER_HACK_LOCKING_STORAGE32_RANGELOCK_PROBING
+    if (rangelock_hack_skiplock(LowIoContext, nfs41_fcb)) {
+        DbgP("nfs41_Lock: RANGELOCK hack 0x%ld\n",
+            (long)LowIoContext->ParamsFor.Locks.ByteOffset);
+        status = STATUS_SUCCESS;
+        goto out;
+    }
+#endif /* NFS41_DRIVER_HACK_LOCKING_STORAGE32_RANGELOCK_PROBING */
 
     status = nfs41_UpcallCreate(NFS41_SYSOP_LOCK, &nfs41_fobx->sec_ctx,
         pVNetRootContext->session, nfs41_fobx->nfs41_open_state,
@@ -349,6 +386,10 @@ NTSTATUS nfs41_Unlock(
         NFS41GetVNetRootExtension(SrvOpen->pVNetRoot);
     __notnull PNFS41_NETROOT_EXTENSION pNetRootContext =
         NFS41GetNetRootExtension(SrvOpen->pVNetRoot->pNetRoot);
+#ifdef NFS41_DRIVER_HACK_LOCKING_STORAGE32_RANGELOCK_PROBING
+    __notnull PMRX_FCB Fcb = RxContext->pFcb;
+    __notnull PNFS41_FCB nfs41_fcb = (PNFS41_FCB)Fcb->Context;
+#endif /* NFS41_DRIVER_HACK_LOCKING_STORAGE32_RANGELOCK_PROBING */
 #ifdef ENABLE_TIMINGS
     LARGE_INTEGER t1, t2;
     t1 = KeQueryPerformanceCounter(NULL);
@@ -360,6 +401,20 @@ NTSTATUS nfs41_Unlock(
 
 /*  RxReleaseFcbResourceForThreadInMRx(RxContext, RxContext->pFcb,
         LowIoContext->ResourceThreadId); */
+
+#ifdef NFS41_DRIVER_HACK_LOCKING_STORAGE32_RANGELOCK_PROBING
+    /*
+     * FIXME: This does NOT handle |LOWIO_OP_UNLOCK_MULTIPLE|
+     * correctly, but the Storage32 API in ReactOS does not
+     * use it
+     */
+    if (rangelock_hack_skiplock(LowIoContext, nfs41_fcb)) {
+        DbgP("nfs41_Unlock: RANGELOCK hack 0x%ld\n",
+            (long)LowIoContext->ParamsFor.Locks.ByteOffset);
+        status = STATUS_SUCCESS;
+        goto out;
+    }
+#endif /* NFS41_DRIVER_HACK_LOCKING_STORAGE32_RANGELOCK_PROBING */
 
     status = nfs41_UpcallCreate(NFS41_SYSOP_UNLOCK, &nfs41_fobx->sec_ctx,
         pVNetRootContext->session, nfs41_fobx->nfs41_open_state,
