@@ -385,7 +385,7 @@ icacls mytestfile1.txt | grep --colour -E 'cygwingrp2.+GR'
 
 1. One-liner:
 ---- snip ----
-$ ksh93 -c 'set -o xtrace -o errexit ; rm -f x1 ; touch x1 ; attr -q -s "fish5" -V "hello lake world" x1 ; [[ "$(attr -q -l x1)" == *fish5* ]] || echo FAIL ; [[ "$(attr -q -g "fish5" x1)" == "hello lake world" ]] || echo "FAIL" ; attr -q -r "fish5" x1 ; echo "# Test OK"'
+ksh93 -c 'set -o xtrace -o errexit ; rm -f x1 x1_copy1 ; touch x1 ; attr -q -s "fish5" -V "hello lake world" x1 ; [[ "$(attr -q -l x1)" == *fish5* ]] || echo FAIL ; cp --preserve=xattr x1 x1_copy1 ; [[ "$(attr -q -g "fish5" x1_copy1)" == "hello lake world" ]] || echo "FAIL" ; attr -q -r "fish5" x1 ; echo "# Test OK"'
 ---- snip ----
 
 2. Detailed test:
@@ -414,6 +414,12 @@ Attribute "chicken3" has a 11 byte value for myattrfile
 # get value of "chicken3" (should be "hello world")
 $ attr -g chicken3 myattrfile
 Attribute "chicken3" had a 11 byte value for myattrfile:
+hello world
+
+# copy file with xattr, get value of "chicken3" from copied file (should be "hello world")
+$ cp --preserve=xattr myattrfile myattrfile_copy1
+$ attr -g chicken3 myattrfile_copy1
+Attribute "chicken3" had a 11 byte value for myattrfile_copy1:
 hello world
 
 # remove attribute "chicken3", try to get it (should fail)
