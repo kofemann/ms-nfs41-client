@@ -82,8 +82,12 @@ static int read_from_mds(
             status = nfs42_read_plus(session, file, stateid,
                 args->offset + reloffset, chunk,
                 p, &bytes_read, &eof);
-            if (status) {
-                DPRINTF(0, ("nfs42_read_plus() failed, status=%d\n", status));
+            if (status == NFS4ERR_IO) {
+                DPRINTF(0,
+                    ("read_from_mds: "
+                    "nfs42_read_plus() failed, status=%d, "
+                    "disabling OP_READ_PLUS\n",
+                    status));
                 session->client->root->supports_nfs42_read_plus = false;
             }
         }
