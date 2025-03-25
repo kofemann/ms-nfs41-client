@@ -57,9 +57,13 @@ sharectl set -p nfsmapid_domain=global.loc nfs
 sharectl set -p server_delegation=on nfs
 
 # prepare test share
-mkdir /nfsdata
-chmod a+rwx /nfsdata
-share -p -F nfs -o rw /nfsdata
+# (ZFS ROOT pool (e.g. "/nfsdata") cannot be used because '/'
+# in the OpenIndiana distribution is mounted without the "xattr"
+# mount option, see https://www.illumos.org/issues/17323
+# ("NFSv4.1 server refuses creation of XATTR")
+mkdir -p /export/nfsdata
+chmod a+rwxt /export/nfsdata
+share -p -F nfs -o rw /export/nfsdata
 
 # verify whether mapid and nfs/server are running
 svcs network/nfs/mapid
@@ -100,9 +104,13 @@ sharectl set -p server_delegation=on nfs
 sharectl set -p server_versmax=4.2 nfs
 
 # prepare test share
-mkdir /nfsdata
-chmod a+rwx /nfsdata
-share -p -F nfs -o rw /nfsdata
+# (ZFS ROOT pool (e.g. "/nfsdata") cannot be used because '/'
+# in the OpenIndiana distribution is mounted without the "xattr"
+# mount option, see https://www.illumos.org/issues/17323
+# ("NFSv4.1 server refuses creation of XATTR")
+mkdir -p /export/nfsdata
+chmod a+rwxt /export/nfsdata
+share -p -F nfs -o rw /export/nfsdata
 
 # verify whether mapid and nfs/server are running
 svcs network/nfs/mapid
