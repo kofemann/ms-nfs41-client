@@ -192,7 +192,7 @@ static int parse_setexattr(unsigned char *buffer, uint32_t length, nfs41_upcall 
     if (status) goto out;
     args->buf = buffer;
 
-    DPRINTF(1, ("parsing NFS41_SYSOP_EA_SET: mode=%o\n", args->mode));
+    DPRINTF(1, ("parsing NFS41_SYSOP_EA_SET: mode=0%o\n", args->mode));
 out:
     return status;
 }

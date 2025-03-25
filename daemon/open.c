@@ -417,7 +417,7 @@ static int parse_open(unsigned char *buffer, uint32_t length, nfs41_upcall *upca
 #ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES
     DPRINTF(1, ("parsing NFS41_SYSOP_OPEN: filename='%s' access mask=%d "
         "access mode=%d\n\tfile attrs=0x%x create attrs=0x%x "
-        "(kernel) disposition=%d\n\topen_owner_id=%d mode=%o "
+        "(kernel) disposition=%d\n\topen_owner_id=%d mode=0%o "
         "owner_local_uid=%u owner_group_local_gid=%u "
         "srv_open=0x%p symlink=%s ea=0x%p\n", args->path, args->access_mask,
         args->access_mode, args->file_attrs, args->create_opts,
@@ -428,7 +428,7 @@ static int parse_open(unsigned char *buffer, uint32_t length, nfs41_upcall *upca
 #else
     DPRINTF(1, ("parsing NFS41_SYSOP_OPEN: filename='%s' access mask=%d "
         "access mode=%d\n\tfile attrs=0x%x create attrs=0x%x "
-        "(kernel) disposition=%d\n\topen_owner_id=%d mode=%o "
+        "(kernel) disposition=%d\n\topen_owner_id=%d mode=0%o "
         "srv_open=0x%p symlink=%s ea=0x%p\n", args->path, args->access_mask,
         args->access_mode, args->file_attrs, args->create_opts,
         args->disposition, args->open_owner_id, args->mode,
@@ -1077,7 +1077,7 @@ supersede_retry:
         } else {
             createattrs.attrmask.arr[0] |= FATTR4_WORD0_SIZE;
             createattrs.size = 0;
-            DPRINTF(1, ("creating with mod %o\n", args->mode));
+            DPRINTF(1, ("creating with mode 0%o\n", args->mode));
             status = open_or_delegate(state, create, createhowmode, &createattrs,
                 TRUE, &info);
             if (status == NFS4_OK && state->delegation.state)
@@ -1234,7 +1234,7 @@ static int marshall_open(unsigned char *buffer, uint32_t *length, nfs41_upcall *
     DPRINTF(2, ("NFS41_SYSOP_OPEN: downcall "
         "open_state=0x%p "
         "fileid=0x%llx fsid=(0x%llx.0x%llx) "
-        "mode=0o%o changeattr=0x%llu\n",
+        "mode=0%o changeattr=0x%llu\n",
         upcall->state_ref,
         (unsigned long long)args->fileid,
         (unsigned long long)args->fsid_major,
