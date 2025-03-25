@@ -266,7 +266,7 @@ NTSTATUS nfs41_SetSymlinkReparsePoint(
     if (status) {
         DbgP("nfs41_SetSymlinkReparsePoint: "
             "check_nfs41_setsymlinkreparse_args() failed, "
-            "status=0xlx\n",
+            "status=0x%lx\n",
                 (long)status);
         goto out;
     }
@@ -572,7 +572,7 @@ NTSTATUS nfs41_GetSymlinkReparsePoint(
     if (status) {
         DbgP("nfs41_GetSymlinkReparsePoint: "
             "check_nfs41_getsymlinkreparse_args() failed, "
-            "status=0xlx\n",
+            "status=0x%lx\n",
                 (long)status);
         goto out;
     }
