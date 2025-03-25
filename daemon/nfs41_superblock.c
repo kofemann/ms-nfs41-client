@@ -203,7 +203,7 @@ void nfs41_superblock_fs_attributes(
         "case_insensitive=%u, "
         "aclsupport=%u, "
         "MaximumComponentNameLength=%u, "
-        "FileSystemAttributes=%lx\n",
+        "FileSystemAttributes=0x%lx\n",
         superblock->link_support,
         superblock->symlink_support,
         superblock->ea_support,

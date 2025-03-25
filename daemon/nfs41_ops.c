@@ -211,7 +211,7 @@ int nfs41_create_session(nfs41_client *clnt, nfs41_session *session, bool_t try_
     } else clnt->seq_id++;
 
     if (reply.csr_flags != req.csa_flags) {
-        eprintf("WARNING: requested session flags %x received %x\n",
+        eprintf("WARNING: requested session flags 0x%x received 0x%x\n",
             req.csa_flags, reply.csr_flags);
         if ((session->flags & CREATE_SESSION4_FLAG_CONN_BACK_CHAN) &&
                 !(reply.csr_flags & CREATE_SESSION4_FLAG_CONN_BACK_CHAN))
@@ -224,7 +224,7 @@ int nfs41_create_session(nfs41_client *clnt, nfs41_session *session, bool_t try_
         session->flags = reply.csr_flags;
     }
     else {
-        DPRINTF(1, ("session flags %x\n", reply.csr_flags));
+        DPRINTF(1, ("session flags 0x%x\n", reply.csr_flags));
     }
 
     DPRINTF(1, ("session fore_chan_attrs:\n"

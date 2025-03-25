@@ -278,7 +278,8 @@ static int delegation_return(
         unsigned char inbuf[sizeof(HANDLE)], *buffer = inbuf;
         DWORD inbuf_len = sizeof(HANDLE), outbuf_len, dstatus;
         uint32_t length;
-        DPRINTF(1, ("delegation_return: making a downcall for srv_open=%x\n",
+        DPRINTF(1,
+            ("delegation_return: making a downcall for srv_open=0x%x\n",
             deleg->srv_open));
         pipe = CreateFileA(NFS41_USER_DEVICE_NAME_A, GENERIC_READ|GENERIC_WRITE,
                 FILE_SHARE_READ|FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
@@ -502,7 +503,9 @@ int nfs41_delegate_open(
         stateid4_cpy(&stateid.stateid, &deleg->state.stateid);
     }
     if (!status) {
-        DPRINTF(1, ("nfs41_delegate_open: updating srv_open from %x to %x\n",
+        DPRINTF(1,
+            ("nfs41_delegate_open: "
+            "updating srv_open from 0x%x to 0x%x\n",
             deleg->srv_open, state->srv_open));
         deleg->srv_open = state->srv_open;
     }
@@ -618,7 +621,7 @@ void nfs41_delegation_remove_srvopen(
     if (delegation_find(session->client, &file->fh, deleg_file_cmp, &deleg))
         return;
     DPRINTF(1, ("nfs41_delegation_remove_srvopen: removing reference to "
-        "srv_open=%x\n", deleg->srv_open));
+        "srv_open=0x%x\n", deleg->srv_open));
     AcquireSRWLockExclusive(&deleg->lock);
     deleg->srv_open = NULL;
     ReleaseSRWLockExclusive(&deleg->lock);

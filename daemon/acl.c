@@ -1229,7 +1229,7 @@ static int map_dacl_2_nfs4acl(PACL acl, PSID sid, PSID gsid, nfsacl41 *nfs4_acl,
                 print_hexbuf_no_asci("ACE\n",
                     (const unsigned char *)ace, ace->AceSize);
             }
-            DPRINTF(ACLLVL3, ("ACE TYPE: %x\n", ace->AceType));
+            DPRINTF(ACLLVL3, ("ACE TYPE: 0x%x\n", ace->AceType));
             if (ace->AceType == ACCESS_ALLOWED_ACE_TYPE)
                 curr_nfsace->acetype = ACE4_ACCESS_ALLOWED_ACE_TYPE;
             else if (ace->AceType == ACCESS_DENIED_ACE_TYPE)

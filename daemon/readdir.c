@@ -113,7 +113,7 @@ readdir_filter(const char *filter, const char *name)
                 {
                     eprintf("readdir_filter(filter='%s',name='%s'): "
                         "bt buffer too small: "
-                        "bt_pos=%d, MAX_NUM_BACKTRACKING=%x\n",
+                        "bt_pos=%d, MAX_NUM_BACKTRACKING=0x%x\n",
                         filter,
                         name,
                         (int)bt_pos,
