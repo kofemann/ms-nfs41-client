@@ -755,11 +755,13 @@ typedef struct __nfs42_read_plus_args {
 typedef union __nfs42_read_plus_content {
     /* switch (data_content4 rpc_content) */
     data_content4   content;
-    /* case NFS4_CONTENT_DATA: */
-    data4           data;
-    /* case NFS4_CONTENT_HOLE: */
-    data_info4      hole;
-    /* default: */
+    union {
+        /* case NFS4_CONTENT_DATA: */
+        data4           data;
+        /* case NFS4_CONTENT_HOLE: */
+        data_info4      hole;
+        /* default: */
+    } u;
 } nfs42_read_plus_content;
 
 typedef struct __nfs42_read_plus_res_ok {

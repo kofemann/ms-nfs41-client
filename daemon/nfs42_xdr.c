@@ -175,33 +175,33 @@ static bool_t decode_read_plus_res_ok(
 
         switch(co) {
             case NFS4_CONTENT_DATA:
-                if (!xdr_u_hyper(xdr, &contents[i].data.offset)) {
+                if (!xdr_u_hyper(xdr, &contents[i].u.data.offset)) {
                     DPRINTF(0,
                         ("i=%d, decoding 'offset' failed\n", (int)i));
                     return FALSE;
                 }
-                if (!xdr_u_int32_t(xdr, &contents[i].data.count)) {
+                if (!xdr_u_int32_t(xdr, &contents[i].u.data.count)) {
                     DPRINTF(0,
                         ("i=%d, decoding 'count' failed\n", (int)i));
                     return FALSE;
                 }
 
-                contents[i].data.data = res->data +
-                    (contents[i].data.offset - res->args_offset);
-                contents[i].data.data_len = contents[i].data.count;
+                contents[i].u.data.data = res->data +
+                    (contents[i].u.data.offset - res->args_offset);
+                contents[i].u.data.data_len = contents[i].u.data.count;
 
-                EASSERT(((contents[i].data.data - res->data) +
-                    contents[i].data.data_len) <= res->data_len);
+                EASSERT(((contents[i].u.data.data - res->data) +
+                    contents[i].u.data.data_len) <= res->data_len);
                 if (!xdr_opaque(xdr,
-                    (char *)contents[i].data.data,
-                    contents[i].data.data_len)) {
+                    (char *)contents[i].u.data.data,
+                    contents[i].u.data.data_len)) {
                     DPRINTF(0,
                         ("i=%d, decoding 'bytes' failed\n", (int)i));
                     return FALSE;
                 }
                 read_data_len = __max(read_data_len,
-                    ((size_t)(contents[i].data.data - res->data) +
-                        contents[i].data.data_len));
+                    ((size_t)(contents[i].u.data.data - res->data) +
+                        contents[i].u.data.data_len));
                 break;
             case NFS4_CONTENT_HOLE:
                 unsigned char *hole_buff;
@@ -209,15 +209,15 @@ static bool_t decode_read_plus_res_ok(
 
                 DPRINTF(0,
                     ("i=%d, 'NFS4_CONTENT_HOLE' content\n", (int)i));
-                if (!xdr_u_hyper(xdr, &contents[i].hole.offset))
+                if (!xdr_u_hyper(xdr, &contents[i].u.hole.offset))
                     return FALSE;
-                if (!xdr_u_hyper(xdr, &contents[i].hole.length))
+                if (!xdr_u_hyper(xdr, &contents[i].u.hole.length))
                     return FALSE;
 
 
                 hole_buff = res->data +
-                    (contents[i].hole.offset - res->args_offset);
-                hole_length = contents[i].hole.length;
+                    (contents[i].u.hole.offset - res->args_offset);
+                hole_length = contents[i].u.hole.length;
 
                 /*
                  * NFSv4.2 "READ_PLUS" is required to return the
