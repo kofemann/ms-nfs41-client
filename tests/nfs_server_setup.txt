@@ -63,7 +63,9 @@ sharectl set -p server_delegation=on nfs
 # ("NFSv4.1 server refuses creation of XATTR")
 mkdir -p /export/nfsdata
 chmod a+rwxt /export/nfsdata
-share -p -F nfs -o rw /export/nfsdata
+# Note: Solaris 11.4 $ share -F nfs ... # shares are persistent across
+# reboots, Illumos needs $ share -p -F nfs ... # for that
+share -F nfs -o rw /export/nfsdata
 
 # verify whether mapid and nfs/server are running
 svcs network/nfs/mapid
@@ -110,6 +112,8 @@ sharectl set -p server_versmax=4.2 nfs
 # ("NFSv4.1 server refuses creation of XATTR")
 mkdir -p /export/nfsdata
 chmod a+rwxt /export/nfsdata
+# Note: Solaris 11.4 $ share -F nfs ... # shares are persistent across
+# reboots, Illumos needs $ share -p -F nfs ... # for that
 share -p -F nfs -o rw /export/nfsdata
 
 # verify whether mapid and nfs/server are running
