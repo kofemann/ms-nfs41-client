@@ -433,14 +433,6 @@ NTSTATUS check_nfs41_getsymlinkreparse_args(
     const USHORT HeaderLen = FIELD_OFFSET(REPARSE_DATA_BUFFER,
         SymbolicLinkReparseBuffer.PathBuffer);
 
-    /* must have a filename longer than vnetroot name,
-     * or it's trying to operate on the volume itself */
-    if (is_root_directory(RxContext)) {
-        status = STATUS_INVALID_PARAMETER;
-        DbgP("check_nfs41_getsymlinkreparse_args: "
-            "is_root_directory() == TRUE\n");
-        goto out;
-    }
     /* ifs reparse tests expect STATUS_INVALID_PARAMETER,
      * but 'dir' passes a buffer here when querying symlinks
     if (FsCtl->pInputBuffer != NULL) {
