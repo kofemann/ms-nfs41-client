@@ -401,13 +401,24 @@ static void readdir_copy_full_dir_info(
     IN PFILE_DIR_INFO_UNION info)
 {
     readdir_copy_dir_info(entry, superblock, info);
-    /* for files with the FILE_ATTRIBUTE_REPARSE_POINT attribute,
-     * EaSize is used instead to specify its reparse tag. this makes
-     * the 'dir' command to show files as <SYMLINK>, and triggers a
-     * FSCTL_GET_REPARSE_POINT to query the symlink target 
-     */
-    info->fifdi.EaSize = entry->attr_info.type == NF4LNK ?
-        IO_REPARSE_TAG_SYMLINK : 0;
+    if (entry->attr_info.type == NF4LNK) {
+        /*
+         * For files with the |FILE_ATTRIBUTE_REPARSE_POINT|
+         * attribute, |EaSize| is used instead to specify its
+         * reparse tag. This makes the cmd.exe 'dir' command to
+         * show files as <SYMLINK>/<SYMLINKD>, and triggers a
+         * |FSCTL_GET_REPARSE_POINT| to query the symlink target
+         */
+        info->fifdi.EaSize = IO_REPARSE_TAG_SYMLINK;
+    }
+    else {
+        /*
+         * Always return the maximum EA size (64k), so
+         + applications will look for EAs (a value of |0| would
+         * mean "no EAs here")
+         */
+        info->fifdi.EaSize = (64*1024)-1;
+    }
 }
 
 static void readdir_copy_both_dir_info(
