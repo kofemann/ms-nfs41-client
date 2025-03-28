@@ -256,6 +256,8 @@ typedef union _FILE_DIR_INFO_UNION {
     FILE_ID_FULL_DIR_INFORMATION fifdi;
     FILE_BOTH_DIR_INFORMATION fbdi;
     FILE_ID_BOTH_DIR_INFORMATION fibdi;
+    FILE_ID_EXTD_DIR_INFORMATION fiedi;
+    FILE_ID_EXTD_BOTH_DIR_INFORMATION fiebdi;
 } FILE_DIR_INFO_UNION, *PFILE_DIR_INFO_UNION;
 
 
@@ -303,6 +305,13 @@ static uint32_t readdir_size_for_entry(
         break;
     case FileIdFullDirectoryInformation:
         needed += FIELD_OFFSET(FILE_ID_FULL_DIR_INFORMATION, FileName);
+        break;
+    case FileIdExtdDirectoryInformation:
+        needed += FIELD_OFFSET(FILE_ID_EXTD_DIR_INFORMATION, FileName);
+        break;
+    case FileIdExtdBothDirectoryInformation:
+        needed += FIELD_OFFSET(FILE_ID_EXTD_BOTH_DIR_INFORMATION,
+            FileName);
         break;
     case FileFullDirectoryInformation:
         needed += FIELD_OFFSET(FILE_FULL_DIR_INFORMATION, FileName);
@@ -395,6 +404,17 @@ static void readdir_copy_shortname(
 }
 #endif /* !NFS41_DRIVER_DISABLE_8DOT3_SHORTNAME_GENERATION */
 
+static
+ULONG get_ea_size(void)
+{
+    /*
+     * Always return the maximum EA size (64k), so
+     + applications will look for EAs (a value of |0| would
+     * mean "no EAs here")
+     */
+    return (64*1024UL)-1;
+}
+
 static void readdir_copy_full_dir_info(
     IN nfs41_readdir_entry *entry,
     IN const nfs41_superblock *restrict superblock,
@@ -412,12 +432,7 @@ static void readdir_copy_full_dir_info(
         info->fifdi.EaSize = IO_REPARSE_TAG_SYMLINK;
     }
     else {
-        /*
-         * Always return the maximum EA size (64k), so
-         + applications will look for EAs (a value of |0| would
-         * mean "no EAs here")
-         */
-        info->fifdi.EaSize = (64*1024)-1;
+        info->fifdi.EaSize = get_ea_size();
     }
 }
 
@@ -591,6 +606,33 @@ static int readdir_copy_entry(
         info->fibdi.FileId.QuadPart = (LONGLONG)entry->attr_info.fileid;
         readdir_copy_filename(wname, wname_size,
             info->fifdi.FileName, &info->fifdi.FileNameLength);
+        break;
+    case FileIdExtdDirectoryInformation:
+        readdir_copy_dir_info(entry, superblock, info);
+        info->fiedi.EaSize = get_ea_size();
+        info->fiedi.ReparsePointTag =
+            (entry->attr_info.type == NF4LNK)?
+                IO_REPARSE_TAG_SYMLINK : 0;
+        nfs41_file_info_to_FILE_ID_128(&entry->attr_info, &info->fiedi.FileId);
+        readdir_copy_filename(wname, wname_size,
+            info->fiedi.FileName, &info->fiedi.FileNameLength);
+        break;
+    case FileIdExtdBothDirectoryInformation:
+        readdir_copy_dir_info(entry, superblock, info);
+        info->fiebdi.EaSize = get_ea_size();
+        info->fiebdi.ReparsePointTag =
+            (entry->attr_info.type == NF4LNK)?
+                IO_REPARSE_TAG_SYMLINK : 0;
+        nfs41_file_info_to_FILE_ID_128(&entry->attr_info, &info->fiebdi.FileId);
+#ifdef NFS41_DRIVER_DISABLE_8DOT3_SHORTNAME_GENERATION
+        info->fiebdi.ShortName[0] = L'\0';
+        info->fiebdi.ShortNameLength = 0;
+#else
+        readdir_copy_shortname(wname, info->fiebdi.ShortName,
+            &info->fiebdi.ShortNameLength);
+#endif /* NFS41_DRIVER_DISABLE_8DOT3_SHORTNAME_GENERATION */
+        readdir_copy_filename(wname, wname_size,
+            info->fiebdi.FileName, &info->fiebdi.FileNameLength);
         break;
     case FileBothDirectoryInformation:
         readdir_copy_both_dir_info(entry, wname, superblock, info);

@@ -33,6 +33,17 @@
 #include "nfs41_ops.h"
 #include "nfs41_driver.h" /* for |FILE_INFO_TIME_NOT_SET| */
 
+void nfs41_file_info_to_FILE_ID_128(
+    IN const nfs41_file_info *restrict info,
+    OUT FILE_ID_128 *restrict out_fid128)
+{
+    uint64_t fileid128[2] = {
+        (info->fsid.minor ^ info->fsid.major),
+        info->fileid
+    };
+    (void)memcpy(out_fid128, &fileid128[0], 16);
+}
+
 
 ULONG nfs_file_info_to_attributes(
     IN const nfs41_superblock *restrict superblock,

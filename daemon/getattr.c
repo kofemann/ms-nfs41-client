@@ -219,12 +219,8 @@ static int handle_getattr(void *daemon_context, nfs41_upcall *upcall)
             &args->remote_protocol_info);
         break;
     case FileIdInformation:
-        uint64_t fileid128[2] = {
-            (info.fsid.minor ^ info.fsid.major),
-            info.fileid
-        };
+        nfs41_file_info_to_FILE_ID_128(&info, &args->id_info.FileId);
         args->id_info.VolumeSerialNumber = 0xBABAFACE; /* 64bit! */
-        (void)memcpy(&args->id_info.FileId, &fileid128[0], 16);
         break;
 #ifdef NFS41_DRIVER_WSL_SUPPORT
     case FileStatInformation:

@@ -187,6 +187,10 @@ static __inline void open_delegation4_cpy(
     (void)memcpy(dst, src, sizeof(open_delegation4));
 }
 
+typedef struct _FILE_ID_128 FILE_ID_128, *PFILE_ID_128;
+void nfs41_file_info_to_FILE_ID_128(
+    IN const nfs41_file_info *restrict info,
+    OUT FILE_ID_128 *restrict out_fid128);
 ULONG nfs_file_info_to_attributes(
     IN const nfs41_superblock *restrict superblock,
     IN const nfs41_file_info *restrict info);

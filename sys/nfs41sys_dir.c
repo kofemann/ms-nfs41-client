@@ -249,6 +249,8 @@ NTSTATUS nfs41_QueryDirectory(
     case FileIdFullDirectoryInformation:
     case FileBothDirectoryInformation:
     case FileIdBothDirectoryInformation:
+    case FileIdExtdDirectoryInformation:
+    case FileIdExtdBothDirectoryInformation:
         break;
     default:
         print_error("nfs41_QueryDirectory: unhandled dir query class %d\n",
