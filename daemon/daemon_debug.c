@@ -369,7 +369,7 @@ void print_share_mode(int level, DWORD mode)
     fprintf(dlog_file, "\n");
 }
 
-void print_file_id_both_dir_info(int level, const FILE_ID_BOTH_DIR_INFO *pboth_dir_info)
+void print_file_id_both_dir_info(int level, const FILE_ID_BOTH_DIR_INFORMATION *pboth_dir_info)
 {
     /* printf %zd is for |size_t| */
 

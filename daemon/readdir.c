@@ -251,11 +251,11 @@ int main(int ac, char *av[])
 typedef union _FILE_DIR_INFO_UNION {
     ULONG NextEntryOffset;
     FILE_NAMES_INFORMATION fni;
-    FILE_DIRECTORY_INFO fdi;
-    FILE_FULL_DIR_INFO ffdi;
-    FILE_ID_FULL_DIR_INFO fifdi;
+    FILE_DIRECTORY_INFORMATION fdi;
+    FILE_FULL_DIR_INFORMATION ffdi;
+    FILE_ID_FULL_DIR_INFORMATION fifdi;
     FILE_BOTH_DIR_INFORMATION fbdi;
-    FILE_ID_BOTH_DIR_INFO fibdi;
+    FILE_ID_BOTH_DIR_INFORMATION fibdi;
 } FILE_DIR_INFO_UNION, *PFILE_DIR_INFO_UNION;
 
 
@@ -299,16 +299,16 @@ static uint32_t readdir_size_for_entry(
     switch (query_class)
     {
     case FileDirectoryInformation:
-        needed += FIELD_OFFSET(FILE_DIRECTORY_INFO, FileName);
+        needed += FIELD_OFFSET(FILE_DIRECTORY_INFORMATION, FileName);
         break;
     case FileIdFullDirectoryInformation:
-        needed += FIELD_OFFSET(FILE_ID_FULL_DIR_INFO, FileName);
+        needed += FIELD_OFFSET(FILE_ID_FULL_DIR_INFORMATION, FileName);
         break;
     case FileFullDirectoryInformation:
-        needed += FIELD_OFFSET(FILE_FULL_DIR_INFO, FileName);
+        needed += FIELD_OFFSET(FILE_FULL_DIR_INFORMATION, FileName);
         break;
     case FileIdBothDirectoryInformation:
-        needed += FIELD_OFFSET(FILE_ID_BOTH_DIR_INFO, FileName);
+        needed += FIELD_OFFSET(FILE_ID_BOTH_DIR_INFORMATION, FileName);
         break;
     case FileBothDirectoryInformation:
         needed += FIELD_OFFSET(FILE_BOTH_DIR_INFORMATION, FileName);
