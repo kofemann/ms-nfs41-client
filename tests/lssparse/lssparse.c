@@ -2,7 +2,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2011-2012 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (c) 2011-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -139,7 +139,8 @@ int main(int argc, char *argv[])
      * $ /cygdrive/c/Windows/system32/fsutil sparse queryrange ... #
      * output
      */
-    for (i=1 ;;) {
+#define LSSPARSE_START_INDEX 1
+    for (i=LSSPARSE_START_INDEX ;;) {
         data_start = lseek(fd, offset, SEEK_DATA);
         if (data_start == -1)
             break;
@@ -159,7 +160,8 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (print_holes && (i == 0) && (data_start > 0)) {
+        if (print_holes &&
+            (i == LSSPARSE_START_INDEX) && (data_start > 0)) {
             (void)printf((pb == pb_hex)?
                 "Hole range[%ld]: offset=0x%llx,\tlength=0x%llx\n":
                 "Hole range[%ld]: offset=%lld,\tlength=%lld\n",
@@ -215,7 +217,7 @@ int main(int argc, char *argv[])
             (void)printf((pb == pb_hex)?
                 "Hole range[%ld]: offset=0x%llx,\tlength=0x%llx\n":
                 "Hole range[%ld]: offset=%lld,\tlength=%lld\n",
-                (long)0,
+                (long)LSSPARSE_START_INDEX,
                 (long long)0LL,
                 (long long)file_size);
         }
