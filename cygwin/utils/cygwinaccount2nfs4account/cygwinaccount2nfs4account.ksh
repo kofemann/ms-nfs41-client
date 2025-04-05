@@ -406,7 +406,7 @@ function main
 
 	# fixme: Need better text layout for $ cygwinaccount2nfs4account --man #
 	typeset -r cygwinaccount2nfs4account_usage=$'+
-	[-?\n@(#)\$Id: cygwinaccount2nfs4account (Roland Mainz) 2025-03-19 \$\n]
+	[-?\n@(#)\$Id: cygwinaccount2nfs4account (Roland Mainz) 2025-04-05 \$\n]
 	[-author?Roland Mainz <roland.mainz@nrubsig.org>]
 	[+NAME?cygwinaccount2nfs4account - convert Cygwin user/group account
 		info to Linux/UNIX NFSv4 server account data]
@@ -455,12 +455,13 @@ function main
 	done
 
 	if [[ ! -v c.os ]] ; then
-		print -u2 -f $"%s: Require -O <operating-system>\n"
+		print -u2 -f $"%s: Require -O <operating-system>\n" "${progname}"
 		return 1
 	fi
 
 	if [[ "${c.os}" != ~(Elr)(linux|solaris|illumos) ]] ; then
 		print -u2 -f $"%s: Unsuppoted -O value %q, supported are 'linux', 'solaris', 'illumos'\n" \
+			"${progname}" \
 			"${c.os}"
 		return 1
 	fi
