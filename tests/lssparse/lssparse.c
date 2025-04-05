@@ -42,7 +42,7 @@
 static
 void usage(const char *progname)
 {
-    (void)fprintf(stderr, "Usage: %s [-h] <sparse_file>\n"
+    (void)fprintf(stderr, "Usage: %s [-h] [-xdH] <sparse_file>\n"
         "  -h: Display this help message\n"
         "  -x: Print offsets in hexadecimal (base 16)\n"
         "  -d: Print offsets in decimal (base 10)\n"
