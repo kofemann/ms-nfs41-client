@@ -197,6 +197,21 @@ The test should print "# test OK"
 
 
 #
+# Tests for Cycgwin/UWIN/SFU Nfs3Attr EA-based local uid/gid
+#
+# ToDO:
+# - iterate over multiple groups via newgrp(1)/winsg(1)
+# - iterate with bash/ksh93 (because it changes the pipeline process ordering)
+#
+
+# create file, and the uid/gid fro Nfs3Attr EA must match /bin/id -u+/bin/id -g
+# output should highlight uid=/gid= in colour
+---- snip ----
+ksh93 -c 'rm -f test1.txt ; command exec {n}>>test1.txt ; printf "fd=%d\n" $n ; printf "x" >&$n ; command exec {n}<&- ; /bin/winfsinfo nfs3attr test1.txt | egrep --colour "(uid=$(id -u)|gid=$(id -g))" ; true'
+---- snip ----
+
+
+#
 # Test for native mklink  && powershell New-Item -ItemType SymbolicLink
 #
 # Notes:

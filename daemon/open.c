@@ -688,6 +688,134 @@ void symlink2ntpath(
         (int)*out_target_type));
 }
 
+#ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES
+static
+void open_get_localuidgid(IN nfs41_daemon_globals *restrict nfs41dg,
+    IN nfs41_open_state *restrict state,
+    IN OUT nfs41_file_info *restrict info,
+    OUT DWORD *restrict owner_local_uid,
+    OUT DWORD *restrict owner_group_local_gid)
+{
+    int status = 0;
+    char owner[NFS4_FATTR4_OWNER_LIMIT+1];
+    char owner_group[NFS4_FATTR4_OWNER_LIMIT+1];
+    uid_t map_uid = ~0UL;
+    gid_t map_gid = ~0UL;
+    char *at_ch; /* pointer to '@' */
+
+#if 1
+    EASSERT(info->attrmask.count >= 2);
+
+    /* this should only happen for newly created files/dirs */
+    if ((info->attrmask.count < 2) ||
+        ((info->attrmask.arr[1] & FATTR4_WORD1_OWNER) == 0) ||
+        ((info->attrmask.arr[1] & FATTR4_WORD1_OWNER_GROUP) == 0)) {
+        bitmap4 og_attr_request;
+        nfs41_file_info og_info = { 0 };
+
+        og_attr_request.count = 2;
+        og_attr_request.arr[0] = 0;
+        og_attr_request.arr[1] =
+            FATTR4_WORD1_OWNER | FATTR4_WORD1_OWNER_GROUP;
+        og_info.owner = og_info.owner_buf;
+        og_info.owner_group = og_info.owner_group_buf;
+        status = nfs41_getattr(state->session, &state->file,
+            &og_attr_request, &og_info);
+        if (status) {
+            eprintf("open_get_localuidgid: nfs41_getattr('%s') "
+                "failed with %d\n",
+                state->path.path,
+                status);
+            *owner_local_uid = NFS_USER_NOBODY_UID;
+            *owner_group_local_gid = NFS_GROUP_NOGROUP_GID;
+            goto out;
+        }
+
+        info->owner = info->owner_buf;
+        (void)strcpy(info->owner, og_info.owner);
+        info->attrmask.arr[1] |= FATTR4_WORD1_OWNER;
+        info->owner_group = info->owner_group_buf;
+        (void)strcpy(info->owner_group, og_info.owner_group);
+        info->attrmask.arr[1] |= FATTR4_WORD1_OWNER_GROUP;
+    }
+#endif
+
+    EASSERT((info->attrmask.arr[1] & FATTR4_WORD1_OWNER) != 0);
+    EASSERT((info->attrmask.arr[1] & FATTR4_WORD1_OWNER_GROUP) != 0);
+    EASSERT(info->owner != NULL);
+    EASSERT(info->owner_group != NULL);
+    EASSERT(info->owner == info->owner_buf);
+    EASSERT(info->owner_group == info->owner_group_buf);
+    EASSERT(strlen(info->owner) > 0);
+    EASSERT(strlen(info->owner_group) > 0);
+
+    /* Make copies as we will modify  them */
+    (void)strcpy(owner, info->owner);
+    (void)strcpy(owner_group, info->owner_group);
+
+    /*
+     * Map owner to local uid
+     *
+     * |owner| can be numeric string ("1616"), plain username
+     *  ("gisburn") or username@domain ("gisburn@sun.com")
+     */
+    /* stomp over '@' */
+    at_ch = strchr(owner, '@');
+    if (at_ch)
+        *at_ch = '\0';
+
+    if (nfs41_idmap_name_to_uid(
+        nfs41dg->idmapper,
+        owner,
+        &map_uid) == 0) {
+         *owner_local_uid = map_uid;
+    }
+    else {
+        *owner_local_uid = NFS_USER_NOBODY_UID;
+        eprintf("open_get_localuidgid('%s'): "
+            "no username mapping for '%s', fake uid=%u\n",
+            state->path.path,
+            owner,
+            (unsigned int)*owner_local_uid);
+    }
+
+    /*
+     * Map owner_group to local gid
+     *
+     * |owner_group| can be numeric string ("1616"), plain username
+     * ("gisgrp") or username@domain ("gisgrp@sun.com")
+     */
+    /* stomp over '@' */
+    at_ch = strchr(owner_group, '@');
+    if (at_ch)
+        *at_ch = '\0';
+
+    if (nfs41_idmap_group_to_gid(
+        nfs41dg->idmapper,
+        owner_group,
+        &map_gid) == 0) {
+        *owner_group_local_gid = map_gid;
+    }
+    else {
+        *owner_group_local_gid = NFS_GROUP_NOGROUP_GID;
+        eprintf("open_get_localuidgid('%s'): "
+            "no group mapping for '%s', fake gid=%u\n",
+            state->path.path,
+            owner_group,
+            (unsigned int)*owner_group_local_gid);
+    }
+
+out:
+    DPRINTF(1,
+        ("open_get_localuidgid('%s'): "
+        "stat: owner=%u/'%s', owner_group=%u/'%s'\n",
+        state->path.path,
+        (unsigned int)*owner_local_uid, owner,
+        (unsigned int)*owner_group_local_gid,
+        owner_group));
+}
+#endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
+
 static int handle_open(void *daemon_context, nfs41_upcall *upcall)
 {
     int status = 0;
@@ -911,114 +1039,10 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
         args->mode = info.mode;
         EASSERT(bitmap_isset(&info.attrmask, 0, FATTR4_WORD0_CHANGE));
         args->changeattr = info.change;
-
-#ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES
-        char owner[NFS4_FATTR4_OWNER_LIMIT+1];
-        char owner_group[NFS4_FATTR4_OWNER_LIMIT+1];
-        uid_t map_uid = ~0UL;
-        gid_t map_gid = ~0UL;
-        char *at_ch; /* pointer to '@' */
-
-#if 1
-        /* this should only happen for newly created files/dirs */
-        if (((info.attrmask.arr[1] & FATTR4_WORD1_OWNER) == 0) ||
-            ((info.attrmask.arr[1] & FATTR4_WORD1_OWNER_GROUP) == 0)) {
-            bitmap4 og_attr_request;
-            nfs41_file_info og_info = { 0 };
-
-            og_attr_request.count = 2;
-            og_attr_request.arr[0] = 0;
-            og_attr_request.arr[1] =
-                FATTR4_WORD1_OWNER | FATTR4_WORD1_OWNER_GROUP;
-            og_info.owner = og_info.owner_buf;
-            og_info.owner_group = og_info.owner_group_buf;
-            status = nfs41_getattr(state->session, &state->file,
-                &og_attr_request, &og_info);
-            if (status) {
-                eprintf("get_stat_data: nfs41_getattr('%s') "
-                    "failed with %d\n",
-                    state->path.path,
-                    status);
-                goto out_free_state;
-            }
-
-            info.owner = info.owner_buf;
-            (void)strcpy(info.owner, og_info.owner);
-            info.attrmask.arr[1] |= FATTR4_WORD1_OWNER;
-            info.owner_group = info.owner_group_buf;
-            (void)strcpy(info.owner_group, og_info.owner_group);
-            info.attrmask.arr[1] |= FATTR4_WORD1_OWNER_GROUP;
-        }
-#endif
-
-        EASSERT((info.attrmask.arr[1] & FATTR4_WORD1_OWNER) != 0);
-        EASSERT((info.attrmask.arr[1] & FATTR4_WORD1_OWNER_GROUP) != 0);
-        EASSERT(info.owner != NULL);
-        EASSERT(info.owner_group != NULL);
-        EASSERT(info.owner == info.owner_buf);
-        EASSERT(info.owner_group == info.owner_group_buf);
-        EASSERT(strlen(info.owner) > 0);
-        EASSERT(strlen(info.owner_group) > 0);
-
-        /* Make copies as we will modify  them */
-        (void)strcpy(owner, info.owner);
-        (void)strcpy(owner_group, info.owner_group);
-
         /*
-         * Map owner to local uid
-         *
-         * |owner| can be numeric string ("1616"), plain username
-         *  ("gisburn") or username@domain ("gisburn@sun.com")
+         + |args->owner_local_uid| and |args->owner_group_local_gid|
+         * is set below
          */
-        /* stomp over '@' */
-        at_ch = strchr(owner, '@');
-        if (at_ch)
-            *at_ch = '\0';
-
-        if (nfs41_idmap_name_to_uid(
-            nfs41dg->idmapper,
-            owner,
-            &map_uid) == 0) {
-             args->owner_local_uid = map_uid;
-        }
-        else {
-            args->owner_local_uid = NFS_USER_NOBODY_UID;
-            eprintf("get_stat_data('%s'): "
-                "no username mapping for '%s', fake uid=%d\n",
-                state->path.path,
-                owner, args->owner_local_uid);
-        }
-
-        /*
-         * Map owner_group to local gid
-         *
-         * |owner_group| can be numeric string ("1616"), plain username
-         * ("gisgrp") or username@domain ("gisgrp@sun.com")
-         */
-        /* stomp over '@' */
-        at_ch = strchr(owner_group, '@');
-        if (at_ch)
-            *at_ch = '\0';
-
-        if (nfs41_idmap_group_to_gid(
-            nfs41dg->idmapper,
-            owner_group,
-            &map_gid) == 0) {
-            args->owner_group_local_gid = map_gid;
-        }
-        else {
-            args->owner_group_local_gid = NFS_GROUP_NOGROUP_GID;
-            eprintf("get_stat_data('%s'): "
-                "no group mapping for '%s', fake gid=%d\n",
-                state->path.path,
-                owner_group, args->owner_group_local_gid);
-        }
-
-        DPRINTF(1, ("handle_open('%s'): stat: owner=%u/'%s', owner_group=%u/'%s'\n",
-            state->path.path,
-            (unsigned int)args->owner_local_uid, owner,
-            (unsigned int)args->owner_group_local_gid, owner_group));
-#endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
     } else {
         nfs41_file_info createattrs;
         uint32_t create = 0, createhowmode = 0, lookup_status = status;
@@ -1166,6 +1190,16 @@ create_chgrp_out:
             status = nfs_to_windows_error(status, ERROR_FILE_NOT_FOUND);
         }
     }
+
+#ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES
+    if (status == 0) {
+        open_get_localuidgid(nfs41dg,
+            state,
+            &info,
+            &args->owner_local_uid,
+            &args->owner_group_local_gid);
+    }
+#endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
 
 #ifdef DEBUG_OPEN_SPARSE_FILES
     if ((status == 0) &&
