@@ -226,10 +226,13 @@ static bool_t decode_read_plus_res_ok(
                  */
                 if (((hole_buff - res->data) + hole_length) >
                     res->data_len) {
-                    hole_length = res->data_len;
+                    hole_length = res->data_len -
+                        (hole_buff - res->data);
                 }
 
                 EASSERT(hole_length < UINT_MAX);
+                EASSERT(((hole_buff - res->data) + hole_length) <=
+                    res->data_len);
                 (void)memset(hole_buff, 0, (size_t)hole_length);
 
                 read_data_len = __max(read_data_len,
