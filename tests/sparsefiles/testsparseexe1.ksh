@@ -114,6 +114,8 @@ function test_sparseexe1
     integer res.sparseexe_sparse_blocks=$(stat --printf '%b\n' 'sparseexe_sparse.exe')
     integer res.sparseexe_orig_filesize=$(stat --printf '%s\n' 'sparseexe_orig.exe')
     integer res.sparseexe_sparse_filesize=$(stat --printf '%s\n' 'sparseexe_sparse.exe')
+    typeset res.sparseexe_orig_md5hash=$(md5sum --total 'sparseexe_orig.exe')
+    typeset res.sparseexe_sparse_md5hash=$(md5sum --total '%s\n' 'sparseexe_sparse.exe')
 
     compound res.testrun=(
         typeset stderr=''
@@ -164,6 +166,16 @@ function test_sparseexe1
         (( res.errors++ ))
     fi
 
+    if [[ "${res.sparseexe_orig_md5hash}" == "${res.sparseexe_sparse_md5hash}" ]] ; then
+        printf 'test file MD5 hash sum: OK, both hash sums are identical (%q)\n' \
+            "${res.sparseexe_sparse_md5hash}"
+    else
+        printf '# ERROR: MD5 hash sums are NOT identical (%q != %q)\n' \
+            "${res.sparseexe_orig_md5hash}" \
+            "${res.sparseexe_sparse_md5hash}"
+        (( res.errors++ ))
+    fi
+
     if (( res.errors == 0 )) ; then
         printf '#### %s: All tests OK\n' "$0"
         exit 0
@@ -180,6 +192,7 @@ function test_sparseexe1
 #
 builtin cat
 builtin rm
+builtin md5sum || exit 1 # need AST md5sum for option --total
 
 test_sparseexe1
 
