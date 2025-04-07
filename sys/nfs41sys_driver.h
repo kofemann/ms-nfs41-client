@@ -294,7 +294,7 @@ nfs41_updowncall_list upcall, downcall;
 
 
 #define SERVER_NAME_BUFFER_SIZE         1024
-#define MOUNT_CONFIG_RW_SIZE_MIN        1024
+#define MOUNT_CONFIG_RW_SIZE_MIN        8192
 #define MOUNT_CONFIG_RW_SIZE_DEFAULT    (1*1024*1024)
 #define MOUNT_CONFIG_RW_SIZE_MAX        (16*1024*1024)
 #define MAX_SEC_FLAVOR_LEN              12
