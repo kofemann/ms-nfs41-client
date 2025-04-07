@@ -175,6 +175,7 @@ static bool_t decode_read_plus_res_ok(
 
         switch(co) {
             case NFS4_CONTENT_DATA:
+            {
                 DPRINTF(2,
                     ("i=%d, 'NFS4_CONTENT_DATA' content\n", (int)i));
 
@@ -205,8 +206,10 @@ static bool_t decode_read_plus_res_ok(
                 read_data_len = __max(read_data_len,
                     ((size_t)(contents[i].u.data.data - res->data) +
                         contents[i].u.data.data_len));
+            }
                 break;
             case NFS4_CONTENT_HOLE:
+            {
                 unsigned char *hole_buff;
                 uint64_t hole_length;
 
@@ -240,6 +243,7 @@ static bool_t decode_read_plus_res_ok(
 
                 read_data_len = __max(read_data_len,
                     ((hole_buff - res->data) + hole_length));
+            }
                 break;
             default:
                 eprintf("decode_read_plus_res_ok: unknown co=%d\n",
