@@ -175,6 +175,9 @@ static bool_t decode_read_plus_res_ok(
 
         switch(co) {
             case NFS4_CONTENT_DATA:
+                DPRINTF(2,
+                    ("i=%d, 'NFS4_CONTENT_DATA' content\n", (int)i));
+
                 if (!xdr_u_hyper(xdr, &contents[i].u.data.offset)) {
                     DPRINTF(0,
                         ("i=%d, decoding 'offset' failed\n", (int)i));
@@ -207,7 +210,7 @@ static bool_t decode_read_plus_res_ok(
                 unsigned char *hole_buff;
                 uint64_t hole_length;
 
-                DPRINTF(0,
+                DPRINTF(2,
                     ("i=%d, 'NFS4_CONTENT_HOLE' content\n", (int)i));
                 if (!xdr_u_hyper(xdr, &contents[i].u.hole.offset))
                     return FALSE;
