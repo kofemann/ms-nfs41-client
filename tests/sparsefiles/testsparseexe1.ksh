@@ -98,12 +98,12 @@ function test_sparseexe1
     # /usr/bin/cp.exe has sparse file support (which depends on
     # SEEK_HOLE+SEEK_DATA.
     #
-    if which -a 'fallocate.exe' 2>'/dev/null' ; then
-        print $'# copy *.exe via cp --sparse=always, turn all sections with long sequences of \'\\0\'-bytes into "holes" ...'
+    if which -a 'fallocate.exe' 1>'/dev/null' ; then
+        print $'# copy *.exe via cp --sparse=always, turn all sections with long sequences of 0x00-bytes into "holes" ...'
         # explicitly use /usr/bin/cp and not the AST cp builtin
         /usr/bin/cp --sparse=always 'sparseexe_orig.exe' 'sparseexe_sparse.exe'
     else
-        print $'# copy *.exe via dd conv=sparse, turn all sections with long sequences of \'\\0\'-bytes into "holes" ...'
+        print $'# copy *.exe via dd conv=sparse, turn all sections with long sequences of 0x00-bytes into "holes" ...'
         # explicitly use /usr/bin/cp and not the AST cp builtin
         dd if='sparseexe_orig.exe' of='sparseexe_sparse.exe' conv=sparse
         chmod a+x 'sparseexe_sparse.exe'
@@ -115,7 +115,7 @@ function test_sparseexe1
     integer res.sparseexe_orig_filesize=$(stat --printf '%s\n' 'sparseexe_orig.exe')
     integer res.sparseexe_sparse_filesize=$(stat --printf '%s\n' 'sparseexe_sparse.exe')
     typeset res.sparseexe_orig_md5hash=$(md5sum --total 'sparseexe_orig.exe')
-    typeset res.sparseexe_sparse_md5hash=$(md5sum --total '%s\n' 'sparseexe_sparse.exe')
+    typeset res.sparseexe_sparse_md5hash=$(md5sum --total 'sparseexe_sparse.exe')
 
     compound res.testrun=(
         typeset stderr=''
