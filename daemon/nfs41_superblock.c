@@ -170,9 +170,17 @@ void nfs41_superblock_fs_attributes(
     IN const nfs41_superblock *superblock,
     OUT PFILE_FS_ATTRIBUTE_INFORMATION FsAttrs)
 {
+    /*
+     * |FileSystemAttributes| - general filesystem attributes
+     *
+     * Notes:
+     * - |FILE_SUPPORTS_REMOTE_STORAGE| can only be set if we are on
+     * HSM storage (tape worm etc.), see
+     * https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fscc/d4bc551b-7aaf-4b4f-ba0e-3a75e7c528f0#Appendix_A_167
+     */
+
     FsAttrs->FileSystemAttributes = 0;
     FsAttrs->FileSystemAttributes |= FILE_SUPPORTS_SPARSE_FILES;
-    FsAttrs->FileSystemAttributes |= FILE_SUPPORTS_REMOTE_STORAGE;
     /* NFSv4 protocol uses Unicode by default */
     FsAttrs->FileSystemAttributes |= FILE_UNICODE_ON_DISK;
 
