@@ -34,7 +34,7 @@
 /* windows volume queries want size in 'units', so we have to
  * convert the nfs space_* attributes from bytes to units */
 #define SECTORS_PER_UNIT    8
-#define BYTES_PER_SECTOR    512
+#define BYTES_PER_SECTOR    1024
 #define BYTES_PER_UNIT      (SECTORS_PER_UNIT * BYTES_PER_SECTOR)
 
 #define TO_UNITS(bytes) (bytes / BYTES_PER_UNIT)
