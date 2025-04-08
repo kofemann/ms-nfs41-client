@@ -607,6 +607,8 @@ function main
 			is_toolkit_pkg_installed itp 'libmpc-devel' || (( errc++ ))
 			is_toolkit_pkg_installed itp 'libintl-devel' || (( errc++ ))
 			is_toolkit_pkg_installed itp 'libisl-devel' || (( errc++ ))
+			is_toolkit_pkg_installed itp 'autoconf' || (( errc++ ))
+			is_toolkit_pkg_installed itp 'automake' || (( errc++ ))
 			is_toolkit_pkg_installed itp 'gettext' || (( errc++ ))
 			is_toolkit_pkg_installed itp 'gettext-devel' || (( errc++ ))
 			(( errc > 0 )) && return 1
@@ -626,6 +628,8 @@ function main
 			is_toolkit_pkg_installed itp 'git' || (( errc++ ))
 			is_toolkit_pkg_installed itp 'gcc-core' || (( errc++ ))
 			is_toolkit_pkg_installed itp 'gcc-g++' || (( errc++ ))
+			is_toolkit_pkg_installed itp 'autoconf' || (( errc++ ))
+			is_toolkit_pkg_installed itp 'automake' || (( errc++ ))
 			if is_cygwin ; then
 				if (( (cygwin_vers.major*1000+cygwin_vers.minor) >= 3005 )) ; then
 					print '# bash_build: Using Cygwin >= 3.5 config'

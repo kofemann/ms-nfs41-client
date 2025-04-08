@@ -1,5 +1,5 @@
 #
-# ms-nfs41-client manual testing sequence, 2025-03-20
+# ms-nfs41-client manual testing sequence, 2025-04-08
 #
 # Draft version, needs to be turned into automated tests
 # if possible
@@ -18,6 +18,8 @@
 #   gdb
 #   make
 #   bmake
+#   autoconf
+#   automake
 #   netpbm
 #   attr
 #   git
@@ -54,6 +56,8 @@
 #   (install with $ pacman -S --noconfirm ${name_of_package} # (use space to separate package names)
 #   ---- snip ----
 #   base-devel
+#   autoconf
+#   automake
 #   gcc
 #   clang
 #   sed
