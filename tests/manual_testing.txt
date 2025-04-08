@@ -49,11 +49,11 @@
 # - MSYS2 environment:
 #   - Install the env with:
 #   $ mkdir -p download && cd download
-#   $ wget 'https://github.com/msys2/msys2-installer/releases/download/2024-11-16/msys2-x86_64-20241116.exe'
-#   $ chmod a+x msys2-x86_64-20241116.exe
-#   $ ./msys2-x86_64-20241116 --default-answer --root 'C:\msys64' install
+#   $ wget 'https://github.com/msys2/msys2-installer/releases/download/2025-02-21/msys2-x86_64-20250221.exe'
+#   $ chmod a+x 'msys2-x86_64-20250221'
+#   $ ./msys2-x86_64-20250221 --default-answer --root 'C:\msys64' install
 #   - The following MSYS2 packages should be installed for running the tests with MSYS2:
-#   (install with $ pacman -S --noconfirm ${name_of_package} # (use space to separate package names)
+#   (install with $ pacman -S --noconfirm ${name_of_package} # (use <space> to separate package names)
 #   ---- snip ----
 #   base-devel
 #   autoconf

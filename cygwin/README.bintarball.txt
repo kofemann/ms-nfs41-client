@@ -199,6 +199,8 @@ NFSv4.2/NFSv4.1 filesystem driver for Windows 10/11&Windows Server 2019+2022
         emacs
         gdb
         make
+        autoconf
+        automake
         gettext
         gettext-devel
         git
@@ -264,15 +266,15 @@ setup-x86.exe --allow-unsupported-windows -q --no-verify --site "http://ctm.crou
 # 1. Download&&install from Cygwin
 # ---- snip ----
 mkdir -p download && cd download
-wget 'https://github.com/msys2/msys2-installer/releases/download/2024-11-16/msys2-x86_64-20241116.exe'
-chmod a+x msys2-x86_64-20241116.exe
-./msys2-x86_64-20241116 --default-answer --root 'C:\msys64' install
+wget 'https://github.com/msys2/msys2-installer/releases/download/2025-02-21/msys2-x86_64-20250221.exe'
+chmod a+x 'msys2-x86_64-20250221'
+./msys2-x86_64-20250221 --default-answer --root 'C:\msys64' install
 # ---- snip ----
 
 # 2. Install extra packages:
 # Start MSYS2 UCRT mintty and execute this:
 # ---- snip ----
-pacman -S --noconfirm base-devel gcc clang sed time coreutils util-linux grep sed emacs gdb make gettext gettext-devel git subversion flex bison unzip pax tar libiconv-devel ncurses-devel gmp-devel mpfr-devel mpc-devel isl-devel procps-ng libiconv-devel
+pacman -S --noconfirm base-devel gcc clang sed time coreutils util-linux grep sed emacs gdb make autoconf automake gettext gettext-devel git subversion flex bison unzip pax tar libiconv-devel ncurses-devel gmp-devel mpfr-devel mpc-devel isl-devel procps-ng libiconv-devel
 # ---- snip ----
 
 
