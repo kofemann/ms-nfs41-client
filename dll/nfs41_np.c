@@ -850,7 +850,7 @@ NPCancelConnection(
                             &CopyBytes);
 
                 if (Status != WN_SUCCESS) {
-                    DbgP((L"SendToMiniRdr returned Status %lx\n",
+                    DbgP((L"SendToMiniRdr returned Status 0x%lx\n",
                         Status));
                     break;
                 }
@@ -886,7 +886,7 @@ NPCancelConnection(
                             &CopyBytes);
 
                 if (Status != WN_SUCCESS) {
-                    DbgP((L"SendToMiniRdr returned Status %lx\n",
+                    DbgP((L"SendToMiniRdr returned Status 0x%lx\n",
                         Status));
                     break;
                 }
