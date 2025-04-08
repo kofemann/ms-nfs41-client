@@ -943,7 +943,7 @@ bool get_file_remote_protocol_info(const char *progname, const char *filename)
     (void)printf("\tcompound GenericReserved=(\n");
     (void)printf("\t\ttypeset -a Reserved=(\n");
     for (i=0 ; i < 8 ; i++) {
-        (void)printf("\t\t\t[%d]=%lx\n",
+        (void)printf("\t\t\t[%d]=0x%lx\n",
             i,
             (long)frpi.GenericReserved.Reserved[i]);
     }
@@ -955,7 +955,7 @@ bool get_file_remote_protocol_info(const char *progname, const char *filename)
     (void)printf("\tcompound ProtocolSpecificReserved=(\n");
     (void)printf("\t\ttypeset -a Reserved=(\n");
     for (i=0 ; i < 16 ; i++) {
-        (void)printf("\t\t\t[%d]=%lx\n",
+        (void)printf("\t\t\t[%d]=0x%lx\n",
             i,
             (long)frpi.ProtocolSpecificReserved.Reserved[i]);
     }
@@ -966,7 +966,7 @@ bool get_file_remote_protocol_info(const char *progname, const char *filename)
     (void)printf("\tcompound ProtocolSpecific=(\n");
     (void)printf("\t\ttypeset -a Reserved=(\n");
     for (i=0 ; i < 16 ; i++) {
-        (void)printf("\t\t\t[%d]=%lx\n",
+        (void)printf("\t\t\t[%d]=0x%lx\n",
             i,
             (long)frpi.ProtocolSpecific.Reserved[i]);
     }
