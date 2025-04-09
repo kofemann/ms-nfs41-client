@@ -1,5 +1,6 @@
 /* NFSv4.1 client for Windows
- * Copyright © 2012 The Regents of the University of Michigan
+ * Copyright (C) 2012 The Regents of the University of Michigan
+ * Copyright (C) 2024-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -73,7 +74,10 @@ on_overflow:
     }
 
     while (EaBuffer) {
-        printf("%s = %.*s\n", EaBuffer->EaName, EaBuffer->EaValueLength,
+        (void)printf("'%.*s' = '%.*s'\n",
+            EaBuffer->EaNameLength,
+            EaBuffer->EaName,
+            EaBuffer->EaValueLength,
             EaBuffer->EaName + EaBuffer->EaNameLength + 1);
 
         if (EaBuffer->NextEntryOffset == 0)
@@ -148,8 +152,12 @@ static NTSTATUS ea_get(
     }
 
     while (EaBuffer) {
-        printf("%s = %.*s\n", EaBuffer->EaName, EaBuffer->EaValueLength,
+        (void)printf("'%.*s' = '%.*s'\n",
+            EaBuffer->EaNameLength,
+            EaBuffer->EaName,
+            EaBuffer->EaValueLength,
             EaBuffer->EaName + EaBuffer->EaNameLength + 1);
+
 
         if (EaBuffer->NextEntryOffset == 0)
             break;
@@ -197,7 +205,7 @@ static NTSTATUS ea_get_nfs3attr(
         goto out;
     }
 
-    (void)printf("%s:\n", EaBuffer->EaName);
+    (void)printf("%.*s:\n", EaBuffer->EaNameLength, EaBuffer->EaName);
     nfs3_attrs *n3a = (void *)(EaBuffer->EaName + EaBuffer->EaNameLength + 1);
     (void)printf("(\n"
         "\ttype=%d\n"
@@ -289,7 +297,10 @@ static NTSTATUS ea_set(
     status = ZwSetEaFile(FileHandle, &IoStatusBlock, EaBuffer, EaLength);
     switch (status) {
     case STATUS_SUCCESS:
-        printf("%s = %.*s\n", EaBuffer->EaName, EaBuffer->EaValueLength,
+        (void)printf("'%.*s' = '%.*s'\n",
+            EaBuffer->EaNameLength,
+            EaBuffer->EaName,
+            EaBuffer->EaValueLength,
             EaBuffer->EaName + EaBuffer->EaNameLength + 1);
         break;
     default:
