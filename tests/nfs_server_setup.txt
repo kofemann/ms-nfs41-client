@@ -76,8 +76,8 @@ zfs set sync=disabled rpool
 
 ##### 2. Windows ms-nfs41-client setup:
 # Add entries for groups "sys" and "nobody" used by Solaris nfsd
-printf "sys:S-1-0-3:3:\n" >>/etc/groups
-printf "nobody:S-1-0-65534:65534:\n" >>/etc/group
+printf "sys:S-1-0-3:3:\n" >>'/etc/group'
+printf "nobody:S-1-0-65534:65534:\n" >>'/etc/group'
 
 ##### 3. Misc commands:
 ls -v filename # list ACLs
