@@ -1,5 +1,6 @@
 /* NFSv4.1 client for Windows
- * Copyright © 2012 The Regents of the University of Michigan
+ * Copyright (C) 2012 The Regents of the University of Michigan
+ * Copyright (C) 2022-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -83,9 +84,21 @@
 /* "udp" "tcp" "udp6" "tcp6" */
 #define NFS41_NETWORK_ID_LEN        4
 
-/* msdn: There is a maximum of 31 reparse points (and
- * therefore symbolic links) allowed in a particular path. */
-#define NFS41_MAX_SYMLINK_DEPTH     31
+/*
+ * Symlink depth limit
+ *
+ * From
+ * https://learn.microsoft.com/en-us/windows/win32/fileio/reparse-points
+ * ---- snip ----
+ * ... There is a limit of 63 reparse points on any given path.
+ * NOTE: The limit can be reduced depending on the length of the
+ * reparse point. For example, if your reparse point targets a fully
+ * qualified path, the limit becomes 31.
+ * Windows Server 2003 and Windows XP: There is a limit of 31 reparse
+ * points on any given path.
+ * ---- snip ----
+ */
+#define NFS41_MAX_SYMLINK_DEPTH     63
 
 
 /* 424 bytes: max rpc header for reply with data */
