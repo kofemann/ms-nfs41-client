@@ -282,23 +282,6 @@ function nfsclient_install
 	sc query 'ms-nfs41-client-globalmountall-service'
 
 	#
-	# Add entries for groups "sys" and "nobody" used by
-	# Solaris/Illumos nfsd
-	#
-	if { getent group 'sys' >'/dev/null' 2>&1 ; (( $? == 2 )) ; } ; then
-		{
-			printf '# "sys" entry added by ms-nfs41-client for Solaris/Illumos nfsd\n'
-			printf "sys:S-1-0-3:3:\n"
-		} >>'/etc/group'
-	fi
-	if { getent group 'nobody' >'/dev/null' 2>&1 ; (( $? == 2 )) ; } ; then
-		{
-			printf '# "nobody" entry added by ms-nfs41-client for Solaris/Illumos nfsd\n'
-			printf "nobody:S-1-0-65534:65534:\n"
-		} >>'/etc/group'
-	fi
-
-	#
 	# check whether ksh93 works
 	# (The ms-nfs41-client cygwin idmapper uses ksh93 scripts for
 	# idmapping, and if ksh93 does not work properly nfsd*.exe

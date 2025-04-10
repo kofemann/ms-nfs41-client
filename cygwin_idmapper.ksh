@@ -178,6 +178,21 @@ compound -A localgroups=(
 		localgroupname='nogroup'
 		localgid=65534
 	)
+	#
+	# Group "sys" required for Solaris/Illumos nfsd
+	#
+	["sys"]=(
+		localgroupname='sys'
+		localgid=3
+	)
+	#
+	# Group "nobody" required for Solaris/Illumos nfsd
+	# Question is why "nobody" shows up in a "group" idmapperr lookup
+	#
+	["nobody"]=(
+		localgroupname='nobody'
+		localgid=65534
+	)
 )
 
 function getent_local_domain_passwd
