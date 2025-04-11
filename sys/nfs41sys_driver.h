@@ -867,6 +867,8 @@ NTSTATUS nfs41_QueryFileInformation(
     IN OUT PRX_CONTEXT RxContext);
 NTSTATUS nfs41_SetFileInformation(
     IN OUT PRX_CONTEXT RxContext);
+NTSTATUS nfs41_SetFileInformationAtCleanup(
+      IN OUT PRX_CONTEXT RxContext);
 
 /* nfs41sys_volinfo.c */
 NTSTATUS marshal_nfs41_volume(

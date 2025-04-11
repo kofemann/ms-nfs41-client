@@ -1168,6 +1168,8 @@ NTSTATUS nfs41_init_ops(void)
         (PMRX_CALLDOWN)nfs41_QueryFileInformation;
     nfs41_ops.MRxSetFileInfo          =
         (PMRX_CALLDOWN)nfs41_SetFileInformation;
+    nfs41_ops.MRxSetFileInfoAtCleanup =
+        (PMRX_CALLDOWN)nfs41_SetFileInformationAtCleanup;
     nfs41_ops.MRxQueryQuotaInfo       =
         (PMRX_CALLDOWN)nfs41_Unimplemented;
     nfs41_ops.MRxSetQuotaInfo         =
