@@ -77,13 +77,17 @@ function gcc_build
 	# temp dir setup
 	#
 
-	# fixme: Does not work with NFSv4.1 filesystem from exported Linux tmpfs - why ?
-	#tmpdir='/cygdrive/m/tmpdir'
-	#mkdir -p "$tmpdir"
-	#chmod a=rwxt "$tmpdir"
-	#if [[ -d "$tmpdir" && -w "$tmpdir" ]] ; then
-	#	export TMPDIR="$tmpdir"
-	#fi
+	tmpdir="$PWD/tmpdir"
+	mkdir -p "$tmpdir"
+	if [[ -d "$tmpdir" && -w "$tmpdir" ]] ; then
+		printf '#### Using temp dir %q\n' "$tmpdir"
+		export TMPDIR="$tmpdir"
+		export TEMP="$tmpdir"
+		export TMP="$tmpdir"
+	else
+		print -u2 -f "TEMPDIR %q on NFS filesystem does not work.\n" "$tmpdir"
+		return 1
+	fi
 
 	#
 	# print user info
@@ -249,13 +253,17 @@ function bash_build
 	# temp dir setup
 	#
 
-	# fixme: Does not work with NFSv4.1 filesystem from exported Linux tmpfs - why ?
-	#tmpdir='/cygdrive/m/tmpdir'
-	#mkdir -p "$tmpdir"
-	#chmod a=rwxt "$tmpdir"
-	#if [[ -d "$tmpdir" && -w "$tmpdir" ]] ; then
-	#	export TMPDIR="$tmpdir"
-	#fi
+	tmpdir="$PWD/tmpdir"
+	mkdir -p "$tmpdir"
+	if [[ -d "$tmpdir" && -w "$tmpdir" ]] ; then
+		printf '#### Using temp dir %q\n' "$tmpdir"
+		export TMPDIR="$tmpdir"
+		export TEMP="$tmpdir"
+		export TMP="$tmpdir"
+	else
+		print -u2 -f "TEMPDIR %q on NFS filesystem does not work.\n" "$tmpdir"
+		return 1
+	fi
 
 	#
 	# print user info
@@ -413,13 +421,17 @@ function msnfs41client_build
 	# temp dir setup
 	#
 
-	# fixme: Does not work with NFSv4.1 filesystem from exported Linux tmpfs - why ?
-	#tmpdir='/cygdrive/m/tmpdir'
-	#mkdir -p "$tmpdir"
-	#chmod a=rwxt "$tmpdir"
-	#if [[ -d "$tmpdir" && -w "$tmpdir" ]] ; then
-	#	export TMPDIR="$tmpdir"
-	#fi
+	tmpdir="$PWD/tmpdir"
+	mkdir -p "$tmpdir"
+	if [[ -d "$tmpdir" && -w "$tmpdir" ]] ; then
+		printf '#### Using temp dir %q\n' "$tmpdir"
+		export TMPDIR="$tmpdir"
+		export TEMP="$tmpdir"
+		export TMP="$tmpdir"
+	else
+		print -u2 -f "TEMPDIR %q on NFS filesystem does not work.\n" "$tmpdir"
+		return 1
+	fi
 
 	#
 	# print user info
