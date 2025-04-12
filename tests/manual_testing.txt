@@ -1,5 +1,5 @@
 #
-# ms-nfs41-client manual testing sequence, 2025-04-08
+# ms-nfs41-client manual testing sequence, 2025-04-12
 #
 # Draft version, needs to be turned into automated tests
 # if possible
@@ -455,6 +455,14 @@ $ runat "x1" "ls -la"
 - Using bash cd(1) -@:
 $ bash -c 'cd -@ "x1" && ls -la'
 
+
+#
+# Test whether TMPDIR, TEMP, TMP can be on a NFS filesystem
+#
+One-liner, should print two times lines with "test OK", stderr should be empty
+---- snip ----
+$ time ksh93 -c 'rm -Rf nfstmp1 gcc.x.strace.log x.c x.exe && mkdir nfstmp1 ; export TMPDIR="$PWD/nfstmp1" TEMP="$PWD/nfstmp1" TMP="$PWD/nfstmp1"; rm -f x.c x.exe && printf "#include <stdio.h>\n#include <stdlib.h>\nint main(int ac, char *av[]) { puts(\"hello world\"); return EXIT_SUCCESS;}\n" >x.c && strace -b $((512*1024)) -m syscall -o gcc.x.strace.log gcc x.c -o x.exe && ./x.exe && echo "# Compile Test OK" ; n="$(grep -E "/nfstmp1/.+\.o" gcc.x.strace.log | wc -l)" ; if (( n > 0 )) ; then echo "# Temp usage test OK: used by *.o files" ; else echo "# Test *.o FAILED" ; fi'
+---- snip ---
 
 #
 # ksh93 (ast-ksh)
