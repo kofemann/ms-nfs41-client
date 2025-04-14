@@ -79,6 +79,7 @@ function gcc_build
 
 	tmpdir="$PWD/tmpdir"
 	mkdir -p "$tmpdir"
+	chmod a+rwxt "$tmpdir"
 	if [[ -d "$tmpdir" && -w "$tmpdir" ]] ; then
 		printf '#### Using temp dir %q\n' "$tmpdir"
 		export TMPDIR="$tmpdir"
@@ -255,6 +256,7 @@ function bash_build
 
 	tmpdir="$PWD/tmpdir"
 	mkdir -p "$tmpdir"
+	chmod a+rwxt "$tmpdir"
 	if [[ -d "$tmpdir" && -w "$tmpdir" ]] ; then
 		printf '#### Using temp dir %q\n' "$tmpdir"
 		export TMPDIR="$tmpdir"
@@ -423,6 +425,7 @@ function msnfs41client_build
 
 	tmpdir="$PWD/tmpdir"
 	mkdir -p "$tmpdir"
+	chmod a+rwxt "$tmpdir"
 	if [[ -d "$tmpdir" && -w "$tmpdir" ]] ; then
 		printf '#### Using temp dir %q\n' "$tmpdir"
 		export TMPDIR="$tmpdir"
