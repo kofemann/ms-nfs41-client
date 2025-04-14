@@ -154,14 +154,15 @@ static int get_superblock_attrs(
         "maxread=%llu, maxwrite=%llu, layout_types: 0x%X, "
         "cansettime=%u, time_delta={%llu,%u}, aclsupport=%u, "
         "link_support=%u, symlink_support=%u, case_preserving=%u, "
-        "case_insensitive=%u\n",
+        "case_insensitive=%u sparse_file_support=%u\n",
         superblock->fsid.major, superblock->fsid.minor,
         superblock->maxread, superblock->maxwrite,
         superblock->layout_types, superblock->cansettime,
         superblock->time_delta.seconds, superblock->time_delta.nseconds,
         superblock->aclsupport, superblock->link_support,
         superblock->symlink_support, superblock->case_preserving,
-        superblock->case_insensitive));
+        superblock->case_insensitive,
+        superblock->sparse_file_support));
 out:
     return status;
 }
