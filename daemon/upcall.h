@@ -204,6 +204,13 @@ typedef struct __setzerodata_upcall_args {
     ULONGLONG                   ctime;
 } setzerodata_upcall_args;
 
+typedef struct __duplicatedata_upcall_args {
+    nfs41_open_state    *src_state;
+    LONGLONG            srcfileoffset;
+    LONGLONG            destfileoffset;
+    LONGLONG            bytecount;
+} duplicatedata_upcall_args;
+
 typedef union __upcall_args {
     mount_upcall_args       mount;
     open_upcall_args        open;
@@ -222,6 +229,7 @@ typedef union __upcall_args {
     setacl_upcall_args      setacl;
     queryallocatedranges_upcall_args queryallocatedranges;
     setzerodata_upcall_args setzerodata;
+    duplicatedata_upcall_args duplicatedata;
 } upcall_args;
 
 typedef enum _nfs41_opcodes nfs41_opcodes;

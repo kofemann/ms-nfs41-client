@@ -585,6 +585,251 @@ NTSTATUS unmarshal_nfs41_setzerodata(
     return status;
 }
 
+static
+NTSTATUS check_nfs41_duplicatedata_args(
+    PRX_CONTEXT RxContext)
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    __notnull PMRX_SRV_OPEN SrvOpen = RxContext->pRelevantSrvOpen;
+    __notnull PNFS41_V_NET_ROOT_EXTENSION VNetRootContext =
+        NFS41GetVNetRootExtension(SrvOpen->pVNetRoot);
+
+    /* access checks */
+    if (VNetRootContext->read_only) {
+        status = STATUS_MEDIA_WRITE_PROTECTED;
+        goto out;
+    }
+    if (!(SrvOpen->DesiredAccess &
+        (FILE_WRITE_DATA|FILE_WRITE_ATTRIBUTES))) {
+        status = STATUS_ACCESS_DENIED;
+        goto out;
+    }
+out:
+    return status;
+}
+
+static
+NTSTATUS nfs41_DuplicateData(
+    IN OUT PRX_CONTEXT RxContext)
+{
+    NTSTATUS status = STATUS_INVALID_DEVICE_REQUEST;
+    nfs41_updowncall_entry *entry = NULL;
+    __notnull PMRX_SRV_OPEN SrvOpen = RxContext->pRelevantSrvOpen;
+    __notnull PNFS41_V_NET_ROOT_EXTENSION pVNetRootContext =
+        NFS41GetVNetRootExtension(SrvOpen->pVNetRoot);
+    __notnull PNFS41_NETROOT_EXTENSION pNetRootContext =
+        NFS41GetNetRootExtension(SrvOpen->pVNetRoot->pNetRoot);
+    __notnull XXCTL_LOWIO_COMPONENT *FsCtl =
+        &RxContext->LowIoContext.ParamsFor.FsCtl;
+    __notnull PDUPLICATE_EXTENTS_DATA duplicatedatabuffer =
+        (PDUPLICATE_EXTENTS_DATA)FsCtl->pInputBuffer;
+    __notnull PNFS41_FOBX nfs41_fobx = NFS41GetFobxExtension(RxContext->pFobx);
+    PFILE_OBJECT srcfo = NULL;
+
+    DbgEn();
+
+    RxContext->IoStatusBlock.Information = 0;
+
+    status = check_nfs41_duplicatedata_args(RxContext);
+    if (status)
+        goto out;
+
+    if (FsCtl->pInputBuffer == NULL) {
+        status = STATUS_INVALID_USER_BUFFER;
+        goto out;
+    }
+
+    if (FsCtl->InputBufferLength <
+        sizeof(DUPLICATE_EXTENTS_DATA)) {
+        DbgP("nfs41_DuplicateData: "
+            "buffer to small\n");
+        status = STATUS_BUFFER_TOO_SMALL;
+        goto out;
+    }
+
+    DbgP("nfs41_DuplicateData: "
+        "duplicatedatabuffer=(FileHandle=0x%p,"
+        "SourceFileOffset=%lld,"
+        "TargetFileOffset=%lld,"
+        "ByteCount=%lld)\n",
+        (void *)duplicatedatabuffer->FileHandle,
+        (long long)duplicatedatabuffer->SourceFileOffset.QuadPart,
+        (long long)duplicatedatabuffer->TargetFileOffset.QuadPart,
+        (long long)duplicatedatabuffer->ByteCount.QuadPart);
+
+    if (duplicatedatabuffer->ByteCount.QuadPart == 0LL) {
+        status = STATUS_SUCCESS;
+        goto out;
+    }
+
+    status = ObReferenceObjectByHandle(duplicatedatabuffer->FileHandle,
+        0,
+        *IoFileObjectType,
+        RxContext->CurrentIrp->RequestorMode,
+        (void **)&srcfo,
+        NULL);
+    if (!NT_SUCCESS(status)) {
+        DbgP("nfs41_DuplicateData: "
+            "ObReferenceObjectByHandle returned 0x%lx\n",
+            status);
+        goto out;
+    }
+
+    DbgP("nfs41_DuplicateData: "
+        "srcfo=0x%p srcfo->FileName='%wZ'\n",
+        srcfo,
+        srcfo->FileName);
+
+    if (srcfo->DeviceObject !=
+        RxContext->CurrentIrpSp->FileObject->DeviceObject) {
+        DbgP("nfs41_DuplicateData: "
+            "source and destination are on different volumes\n");
+        status = STATUS_INVALID_PARAMETER;
+        goto out;
+    }
+
+    PFCB srcfcb = srcfo->FsContext;
+    PFOBX srcfox = srcfo->FsContext2;
+    PNFS41_FCB nfs41_src_fcb = NFS41GetFcbExtension(srcfcb);
+    PNFS41_FOBX nfs41_src_fobx = NFS41GetFobxExtension(srcfox);
+
+    if (!nfs41_src_fcb) {
+        DbgP("nfs41_DuplicateData: No nfs41_src_fcb\n");
+        status = STATUS_INVALID_PARAMETER;
+        goto out;
+    }
+
+    if (!nfs41_src_fobx) {
+        DbgP("nfs41_DuplicateData: No nfs41_src_fobx\n");
+        status = STATUS_INVALID_PARAMETER;
+        goto out;
+    }
+
+    /*
+     * Disable caching because NFSv4.2 DEALLOCATE is basically a
+     * "write" operation. AFAIK we should flush the cache and wait
+     * for the kernel lazy writer (which |RxChangeBufferingState()|
+     * AFAIK does) before doing the DEALLOCATE, to avoid that we
+     * have outstanding writes in the kernel cache at the same
+     * location where the DEALLOCATE should do it's work
+     */
+    ULONG flag = DISABLE_CACHING;
+    DbgP("nfs41_DuplicateData: disableing caching for file '%wZ'\n",
+        SrvOpen->pAlreadyPrefixedName);
+    RxChangeBufferingState((PSRV_OPEN)SrvOpen, ULongToPtr(flag), 1);
+
+    status = nfs41_UpcallCreate(NFS41_SYSOP_FSCTL_DUPLICATE_DATA,
+        &nfs41_fobx->sec_ctx,
+        pVNetRootContext->session,
+        nfs41_fobx->nfs41_open_state,
+        pNetRootContext->nfs41d_version,
+        SrvOpen->pAlreadyPrefixedName,
+        &entry);
+
+    if (status)
+        goto out;
+
+    entry->u.DuplicateData.src_state = nfs41_src_fobx->nfs41_open_state;
+    entry->u.DuplicateData.srcfileoffset =
+        duplicatedatabuffer->SourceFileOffset.QuadPart;
+    entry->u.DuplicateData.destfileoffset =
+        duplicatedatabuffer->TargetFileOffset.QuadPart;
+    entry->u.DuplicateData.bytecount =
+        duplicatedatabuffer->ByteCount.QuadPart;
+
+    status = nfs41_UpcallWaitForReply(entry, pVNetRootContext->timeout);
+
+    if (status) {
+        /* Timeout - |nfs41_downcall()| will free |entry|+contents */
+        goto out;
+    }
+
+    if (entry->psec_ctx == &entry->sec_ctx) {
+        SeDeleteClientSecurity(entry->psec_ctx);
+    }
+    entry->psec_ctx = NULL;
+
+    if (!entry->status) {
+        DbgP("nfs41_DuplicateData: SUCCESS\n");
+        RxContext->CurrentIrp->IoStatus.Status = STATUS_SUCCESS;
+        RxContext->IoStatusBlock.Information = 0;
+    }
+    else {
+        DbgP("nfs41_DuplicateData: "
+            "FAILURE, entry->status=0x%lx\n", entry->status);
+        status = map_setfile_error(entry->status);
+        RxContext->CurrentIrp->IoStatus.Status = status;
+        RxContext->IoStatusBlock.Information = 0;
+    }
+
+    if (entry) {
+        nfs41_UpcallDestroy(entry);
+    }
+
+out:
+    if (srcfo) {
+        ObDereferenceObject(srcfo);
+    }
+
+    DbgEx();
+    return status;
+}
+
+NTSTATUS marshal_nfs41_duplicatedata(
+    nfs41_updowncall_entry *entry,
+    unsigned char *buf,
+    ULONG buf_len,
+    ULONG *len)
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    ULONG header_len = 0;
+    unsigned char *tmp = buf;
+
+    status = marshal_nfs41_header(entry, tmp, buf_len, len);
+    if (status) goto out;
+    else tmp += *len;
+
+    header_len = *len +
+        sizeof(void *) +
+        3*sizeof(LONGLONG);
+    if (header_len > buf_len) {
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto out;
+    }
+
+    RtlCopyMemory(tmp, &entry->u.DuplicateData.src_state,
+        sizeof(entry->u.DuplicateData.src_state));
+    tmp += sizeof(entry->u.DuplicateData.src_state);
+    RtlCopyMemory(tmp, &entry->u.DuplicateData.srcfileoffset,
+        sizeof(entry->u.DuplicateData.srcfileoffset));
+    tmp += sizeof(entry->u.DuplicateData.srcfileoffset);
+    RtlCopyMemory(tmp, &entry->u.DuplicateData.destfileoffset,
+        sizeof(entry->u.DuplicateData.destfileoffset));
+    tmp += sizeof(entry->u.DuplicateData.destfileoffset);
+    RtlCopyMemory(tmp, &entry->u.DuplicateData.bytecount,
+        sizeof(entry->u.DuplicateData.bytecount));
+    tmp += sizeof(entry->u.DuplicateData.bytecount);
+    *len = header_len;
+
+    DbgP("marshal_nfs41_duplicatedata: name='%wZ'\n",
+         entry->filename);
+out:
+    return status;
+}
+
+NTSTATUS unmarshal_nfs41_duplicatedata(
+    nfs41_updowncall_entry *cur,
+    unsigned char **buf)
+{
+    NTSTATUS status = STATUS_SUCCESS;
+
+    RtlCopyMemory(&cur->ChangeTime, *buf, sizeof(ULONGLONG));
+    DbgP("unmarshal_nfs41_duplicatedata: returned ChangeTime %llu\n",
+        cur->ChangeTime);
+
+    return status;
+}
+
 NTSTATUS nfs41_FsCtl(
     IN OUT PRX_CONTEXT RxContext)
 {
@@ -611,6 +856,9 @@ NTSTATUS nfs41_FsCtl(
         break;
     case FSCTL_SET_ZERO_DATA:
         status = nfs41_SetZeroData(RxContext);
+        break;
+    case FSCTL_DUPLICATE_EXTENTS_TO_FILE:
+        status = nfs41_DuplicateData(RxContext);
         break;
     default:
         break;

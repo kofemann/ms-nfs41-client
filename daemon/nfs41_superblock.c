@@ -125,6 +125,12 @@ static int get_superblock_attrs(
     superblock->case_preserving = info.case_preserving;
     superblock->case_insensitive = info.case_insensitive;
     superblock->sparse_file_support = 1; /* always ON for now */
+    if (session->client->root->nfsminorvers >= 2) {
+        superblock->block_clone_support = 1;
+    }
+    else {
+        superblock->block_clone_support = 0;
+    }
 
     if (bitmap_isset(&info.attrmask, 0, FATTR4_WORD0_CANSETTIME))
         superblock->cansettime = info.cansettime;
@@ -154,7 +160,8 @@ static int get_superblock_attrs(
         "maxread=%llu, maxwrite=%llu, layout_types: 0x%X, "
         "cansettime=%u, time_delta={%llu,%u}, aclsupport=%u, "
         "link_support=%u, symlink_support=%u, case_preserving=%u, "
-        "case_insensitive=%u sparse_file_support=%u\n",
+        "case_insensitive=%u, sparse_file_support=%u, "
+        "block_clone_support=%u\n",
         superblock->fsid.major, superblock->fsid.minor,
         superblock->maxread, superblock->maxwrite,
         superblock->layout_types, superblock->cansettime,
@@ -162,7 +169,8 @@ static int get_superblock_attrs(
         superblock->aclsupport, superblock->link_support,
         superblock->symlink_support, superblock->case_preserving,
         superblock->case_insensitive,
-        superblock->sparse_file_support));
+        superblock->sparse_file_support,
+        superblock->block_clone_support));
 out:
     return status;
 }
@@ -197,6 +205,8 @@ void nfs41_superblock_fs_attributes(
         FsAttrs->FileSystemAttributes |= FILE_CASE_SENSITIVE_SEARCH;
     if (superblock->aclsupport)
         FsAttrs->FileSystemAttributes |= FILE_PERSISTENT_ACLS;
+    if (superblock->block_clone_support)
+        FsAttrs->FileSystemAttributes |= FILE_SUPPORTS_BLOCK_REFCOUNTING;
 
     /* gisburn: Fixme: We should someone query this (NFSv4.2 ?) */
     FsAttrs->MaximumComponentNameLength = NFS41_MAX_COMPONENT_LEN;

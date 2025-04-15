@@ -51,6 +51,7 @@ extern const nfs41_upcall_op nfs41_op_getacl;
 extern const nfs41_upcall_op nfs41_op_setacl;
 extern const nfs41_upcall_op nfs41_op_queryallocatedranges;
 extern const nfs41_upcall_op nfs41_op_setzerodata;
+extern const nfs41_upcall_op nfs41_op_duplicatedata;
 
 /* |_nfs41_opcodes| and |g_upcall_op_table| must be in sync! */
 static const nfs41_upcall_op *g_upcall_op_table[] = {
@@ -76,6 +77,7 @@ static const nfs41_upcall_op *g_upcall_op_table[] = {
     &nfs41_op_setacl,
     &nfs41_op_queryallocatedranges,
     &nfs41_op_setzerodata,
+    &nfs41_op_duplicatedata,
     NULL,
     NULL
 };

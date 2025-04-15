@@ -283,6 +283,12 @@ typedef struct _updowncall_entry {
         struct {
             FILE_ZERO_DATA_INFORMATION setzerodata;
         } SetZeroData;
+        struct {
+            void        *src_state;
+            LONGLONG    srcfileoffset;
+            LONGLONG    destfileoffset;
+            LONGLONG    bytecount;
+        } DuplicateData;
     } u;
 
 } nfs41_updowncall_entry;
@@ -663,6 +669,14 @@ NTSTATUS marshal_nfs41_setzerodata(
     ULONG buf_len,
     ULONG *len);
 NTSTATUS unmarshal_nfs41_setzerodata(
+    nfs41_updowncall_entry *cur,
+    unsigned char **buf);
+NTSTATUS marshal_nfs41_duplicatedata(
+    nfs41_updowncall_entry *entry,
+    unsigned char *buf,
+    ULONG buf_len,
+    ULONG *len);
+NTSTATUS unmarshal_nfs41_duplicatedata(
     nfs41_updowncall_entry *cur,
     unsigned char **buf);
 

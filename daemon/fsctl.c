@@ -29,6 +29,7 @@
 
 #define QARLVL 2 /* dprintf level for "query allocated ranges" logging */
 #define SZDLVL 2 /* dprintf level for "set zero data" logging */
+#define DDLVL  0 /* dprintf level for "duplicate data" logging */
 
 static int parse_queryallocatedranges(unsigned char *buffer,
     uint32_t length, nfs41_upcall *upcall)
@@ -428,4 +429,86 @@ const nfs41_upcall_op nfs41_op_setzerodata = {
     .handle = handle_setzerodata,
     .marshall = marshall_setzerodata,
     .arg_size = sizeof(setzerodata_upcall_args)
+};
+
+static int parse_duplicatedata(unsigned char *buffer,
+    uint32_t length, nfs41_upcall *upcall)
+{
+    int status;
+    duplicatedata_upcall_args *args = &upcall->args.duplicatedata;
+
+    status = safe_read(&buffer, &length, &args->src_state,
+        sizeof(args->src_state));
+    if (status) goto out;
+    status = safe_read(&buffer, &length, &args->srcfileoffset,
+        sizeof(args->srcfileoffset));
+    if (status) goto out;
+    status = safe_read(&buffer, &length, &args->destfileoffset,
+        sizeof(args->destfileoffset));
+    if (status) goto out;
+    status = safe_read(&buffer, &length, &args->bytecount,
+        sizeof(args->bytecount));
+    if (status) goto out;
+
+    DPRINTF(DDLVL, ("parse_duplicatedata: "
+        "parsing '%s' "
+        "duplicatedata=(src_state=0x%p srcfileoffset=%lld "
+        "destfileoffset=%lld bytecount=%lld)\n",
+        opcode2string(upcall->opcode),
+        (long long)args->src_state,
+        (long long)args->srcfileoffset,
+        (long long)args->destfileoffset,
+        (long long)args->bytecount));
+out:
+    return status;
+}
+
+static
+int handle_duplicatedata(void *daemon_context,
+    nfs41_upcall *upcall)
+{
+    int status = ERROR_INVALID_PARAMETER;
+    duplicatedata_upcall_args *args = &upcall->args.duplicatedata;
+    nfs41_open_state *state = upcall->state_ref;
+//    nfs41_session *session = state->session;
+//    nfs41_path_fh *file = &state->file;
+
+    DPRINTF(DDLVL,
+        ("--> handle_duplicatedata("
+            "state->path.path='%s', "
+            "src_state->path.path='%s')\n",
+            state->path.path,
+            args->src_state->path.path));
+
+    /* NFS CLONE requires NFSv4.2 */
+    if (state->session->client->root->nfsminorvers < 2) {
+        status = ERROR_NOT_SUPPORTED;
+        goto out;
+    }
+
+    /* FIXME: Cloning not implemented yet */
+    status = ERROR_NOT_SUPPORTED;
+
+out:
+    DPRINTF(0,
+        ("<-- handle_duplicatedata(), status=0x%lx\n",
+        status));
+
+    return status;
+}
+
+static int marshall_duplicatedata(unsigned char *buffer,
+    uint32_t *length, nfs41_upcall *upcall)
+{
+    setzerodata_upcall_args *args = &upcall->args.setzerodata;
+    int status;
+    status = safe_write(&buffer, length, &args->ctime, sizeof(args->ctime));
+    return status;
+}
+
+const nfs41_upcall_op nfs41_op_duplicatedata = {
+    .parse = parse_duplicatedata,
+    .handle = handle_duplicatedata,
+    .marshall = marshall_duplicatedata,
+    .arg_size = sizeof(duplicatedata_upcall_args)
 };
