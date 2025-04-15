@@ -3672,7 +3672,7 @@ static const op_table_entry g_op_table[] = {
     { encode_op_read_plus, decode_op_read_plus }, /* OP_READ_PLUS = 68, */
     { encode_op_seek, decode_op_seek }, /* OP_SEEK = 69, */
     { NULL, NULL }, /* OP_WRITE_SAME = 70, */
-    { NULL, NULL }, /* OP_CLONE = 71, */
+    { encode_op_clone, decode_op_clone }, /* OP_CLONE = 71, */
 
     /* xattr support (RFC8726) */
     { NULL, NULL }, /* OP_GETXATTR = 72, */

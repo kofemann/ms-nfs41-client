@@ -332,3 +332,45 @@ bool_t decode_op_seek(
 
     return TRUE;
 }
+
+/*
+ * OP_CLONE
+ */
+bool_t encode_op_clone(
+    XDR *xdr,
+    nfs_argop4 *argop)
+{
+    nfs42_clone_args *args = (nfs42_clone_args *)argop->arg;
+
+    if (unexpected_op(argop->op, OP_CLONE))
+        return FALSE;
+
+    if (!xdr_stateid4(xdr, &args->src_stateid->stateid))
+        return FALSE;
+
+    if (!xdr_stateid4(xdr, &args->dst_stateid->stateid))
+        return FALSE;
+
+    if (!xdr_u_hyper(xdr, &args->src_offset))
+        return FALSE;
+
+    if (!xdr_u_hyper(xdr, &args->dst_offset))
+        return FALSE;
+
+    return xdr_u_hyper(xdr, &args->count);
+}
+
+bool_t decode_op_clone(
+    XDR *xdr,
+    nfs_resop4 *resop)
+{
+    nfs42_clone_res *res = (nfs42_clone_res *)resop->res;
+
+    if (unexpected_op(resop->op, OP_CLONE))
+        return FALSE;
+
+    if (!xdr_u_int32_t(xdr, &res->status))
+        return FALSE;
+
+    return TRUE;
+}

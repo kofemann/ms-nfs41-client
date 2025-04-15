@@ -830,6 +830,19 @@ typedef struct __nfs42_seek_res {
     nfs42_seek_res_ok   resok4;
 } nfs42_seek_res;
 
+/* OP_CLONE */
+typedef struct __nfs42_clone_args {
+    stateid_arg     *src_stateid;
+    stateid_arg     *dst_stateid;
+    uint64_t        src_offset;
+    uint64_t        dst_offset;
+    uint64_t        count;
+} nfs42_clone_args;
+
+typedef struct __nfs42_clone_res {
+    uint32_t        status;
+} nfs42_clone_res;
+
 /* OP_READDIR */
 typedef struct __nfs41_readdir_args {
     nfs41_readdir_cookie    cookie;
@@ -1249,6 +1262,17 @@ int nfs42_seek(
     IN data_content4 what,
     OUT bool_t *eof_out,
     OUT uint64_t *offset_out);
+
+int nfs42_clone(
+    IN nfs41_session *session,
+    IN nfs41_path_fh *src_file,
+    IN nfs41_path_fh *dst_file,
+    IN stateid_arg *src_stateid,
+    IN stateid_arg *dst_stateid,
+    IN uint64_t src_offset,
+    IN uint64_t dst_offset,
+    IN uint64_t length,
+    OUT nfs41_file_info *cinfo);
 
 int nfs41_commit(
     IN nfs41_session *session,

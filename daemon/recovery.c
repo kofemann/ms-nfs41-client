@@ -820,6 +820,9 @@ bool_t nfs41_recover_stateid(
     } else if (argop->op == OP_SEEK) {
         nfs42_seek_args *seek = (nfs42_seek_args *)argop->arg;
         stateid = seek->stateid;
+    } else if (argop->op == OP_CLONE) {
+        nfs42_clone_args *clone = (nfs42_clone_args *)argop->arg;
+        stateid = clone->dst_stateid;
     } else if (argop->op == OP_WRITE) {
         nfs41_write_args *write = (nfs41_write_args*)argop->arg;
         stateid = write->stateid;

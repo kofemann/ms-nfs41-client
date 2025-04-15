@@ -302,3 +302,95 @@ int nfs42_seek(
 out:
     return status;
 }
+
+int nfs42_clone(
+    IN nfs41_session *session,
+    IN nfs41_path_fh *src_file,
+    IN nfs41_path_fh *dst_file,
+    IN stateid_arg *src_stateid,
+    IN stateid_arg *dst_stateid,
+    IN uint64_t src_offset,
+    IN uint64_t dst_offset,
+    IN uint64_t length,
+    OUT nfs41_file_info *cinfo)
+{
+    int status;
+    nfs41_compound compound;
+    nfs_argop4 argops[7];
+    nfs_resop4 resops[7];
+    nfs41_sequence_args sequence_args;
+    nfs41_sequence_res sequence_res;
+    nfs41_putfh_args src_putfh_args;
+    nfs41_putfh_res src_putfh_res;
+    nfs41_savefh_res savefh_res;
+    nfs41_putfh_args dst_putfh_args;
+    nfs41_putfh_res dst_putfh_res;
+    nfs42_clone_args clone_args;
+    nfs42_clone_res clone_res;
+    nfs41_getattr_args getattr_args;
+    nfs41_getattr_res getattr_res = {0};
+    bitmap4 attr_request;
+    nfs41_file_info info, *pinfo;
+
+    nfs41_superblock_getattr_mask(dst_file->fh.superblock, &attr_request);
+
+    /* FIXME: What about DS in pNFS case ? */
+    compound_init(&compound, session->client->root->nfsminorvers,
+        argops, resops, "clone");
+
+    compound_add_op(&compound, OP_SEQUENCE,
+        &sequence_args, &sequence_res);
+    nfs41_session_sequence(&sequence_args, session, 0);
+
+    compound_add_op(&compound, OP_PUTFH, &src_putfh_args, &src_putfh_res);
+    src_putfh_args.file = src_file;
+    src_putfh_args.in_recovery = 0;
+
+    compound_add_op(&compound, OP_SAVEFH, NULL, &savefh_res);
+
+    compound_add_op(&compound, OP_PUTFH, &dst_putfh_args, &dst_putfh_res);
+    dst_putfh_args.file = dst_file;
+    dst_putfh_args.in_recovery = 0;
+
+    compound_add_op(&compound, OP_CLONE, &clone_args, &clone_res);
+    clone_args.src_stateid = src_stateid;
+    clone_args.dst_stateid = dst_stateid;
+    clone_args.src_offset = src_offset;
+    clone_args.dst_offset = dst_offset;
+    clone_args.count = length;
+
+    if (cinfo) {
+        pinfo = cinfo;
+    }
+    else {
+        (void)memset(&info, 0, sizeof(info));
+        pinfo = &info;
+    }
+
+    /*
+     * NFSv4.2 CLONE is some kind of "write" operation and
+     * affects the number of physical bytes allocated, so we have
+     * to do a GETATTR after CLONE to get updates for our cache
+     */
+    compound_add_op(&compound, OP_GETATTR, &getattr_args, &getattr_res);
+    getattr_args.attr_request = &attr_request;
+    getattr_res.obj_attributes.attr_vals_len = NFS4_OPAQUE_LIMIT;
+    getattr_res.info = pinfo;
+
+    status = compound_encode_send_decode(session, &compound, TRUE);
+    if (status)
+        goto out;
+
+    if (compound_error(status = compound.res.status))
+        goto out;
+
+    /* update the attribute cache */
+    bitmap4_cpy(&pinfo->attrmask, &getattr_res.obj_attributes.attrmask);
+    nfs41_attr_cache_update(session_name_cache(session),
+        dst_file->fh.fileid, pinfo);
+
+    nfs41_superblock_space_changed(dst_file->fh.superblock);
+
+out:
+    return status;
+}

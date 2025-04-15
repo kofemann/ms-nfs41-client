@@ -42,5 +42,7 @@ bool_t encode_op_read_plus(XDR *xdr, nfs_argop4 *argop);
 bool_t decode_op_read_plus(XDR *xdr, nfs_resop4 *resop);
 bool_t encode_op_seek(XDR *xdr, nfs_argop4 *argop);
 bool_t decode_op_seek(XDR *xdr, nfs_resop4 *resop);
+bool_t encode_op_clone(XDR *xdr, nfs_argop4 *argop);
+bool_t decode_op_clone(XDR *xdr, nfs_resop4 *resop);
 
 #endif /* !__NFS41_NFS_XDR_H__ */

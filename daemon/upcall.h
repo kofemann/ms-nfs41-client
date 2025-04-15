@@ -209,6 +209,7 @@ typedef struct __duplicatedata_upcall_args {
     LONGLONG            srcfileoffset;
     LONGLONG            destfileoffset;
     LONGLONG            bytecount;
+    ULONGLONG           ctime;
 } duplicatedata_upcall_args;
 
 typedef union __upcall_args {
