@@ -377,7 +377,8 @@ int handle_setzerodata(void *daemon_context,
 
     if (len < 0) {
         status = ERROR_INVALID_PARAMETER;
-        DPRINTF(SZDLVL, ("handle_setzerodata: invalid len\b"));
+        DPRINTF(SZDLVL,
+            ("handle_setzerodata: invalid len=%lld\n", len));
         goto out;
     }
 
