@@ -523,13 +523,27 @@ int handle_duplicatedata(void *daemon_context,
     }
     src_file_size = info.size;
 
-    if (args->bytecount > src_file_size)
-        bytecount = src_file_size;
+    if ((args->srcfileoffset+args->bytecount) > src_file_size)
+        bytecount = src_file_size-args->srcfileoffset;
     else
         bytecount = args->bytecount;
 #else
     bytecount = args->bytecount;
 #endif /* CLONE_PUNCH_HOLE_IF_CLONESIZE_BIGGER_THAN_SRCFILESIZE */
+
+    EASSERT(bytecount > 0);
+    if (bytecount <= 0) {
+        DPRINTF(DDLVL,
+            ("handle_duplicatedata("
+            "src_state->path.path='%s' "
+            "dst_state->path.path='%s'): "
+            "Negative bytecount %lld\n",
+            src_state->path.path,
+            dst_state->path.path,
+            bytecount));
+        status = ERROR_INVALID_PARAMETER;
+        goto out;
+    }
 
     status = nfs42_clone(session,
         src_file,
@@ -553,19 +567,22 @@ int handle_duplicatedata(void *daemon_context,
     }
 
 #ifdef CLONE_PUNCH_HOLE_IF_CLONESIZE_BIGGER_THAN_SRCFILESIZE
-    if (args->bytecount > src_file_size) {
+    if ((args->srcfileoffset+args->bytecount) > src_file_size) {
         DPRINTF(DDLVL,
             ("handle_duplicatedata(): "
-            "Clone range (%llu) bigger than source file size "
-            "(%llu), adding hole at the end of dest file.\n",
+            "Clone range (offset(=%lld)+bytecount(=%lld)=%lld) "
+            "bigger than source file size (%lld), "
+            "adding hole at the end of dest file.\n",
+            args->srcfileoffset,
             args->bytecount,
+            (args->srcfileoffset+args->bytecount),
             src_file_size));
 
         status = nfs42_deallocate(session,
             dst_file,
             &dst_stateid,
-            src_file_size,
-            (args->bytecount - src_file_size),
+            args->destfileoffset+src_file_size,
+            ((args->srcfileoffset+args->bytecount) - src_file_size),
             &info);
         if (status) {
             DPRINTF(DDLVL,
