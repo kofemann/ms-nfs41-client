@@ -393,9 +393,10 @@ int handle_setzerodata(void *daemon_context,
          offset_start, len, &info);
      if (status) {
         DPRINTF(SZDLVL, ("handle_setzerodata(state->path.path='%s'): "
-            "DEALLOCATE failed with status=0x%x\n",
+            "DEALLOCATE failed with '%s'\n",
             state->path.path,
-            status));
+            nfs_error_string(status)));
+        status = nfs_to_windows_error(status, ERROR_BAD_NET_RESP);
         goto out;
      }
 
@@ -504,6 +505,8 @@ int handle_duplicatedata(void *daemon_context,
 
     /* NFS CLONE supported ? */
     if (session->client->root->supports_nfs42_clone == false) {
+        DPRINTF(0,
+            ("handle_duplicatedata: NFS CLONE not supported\n"));
         status = ERROR_NOT_SUPPORTED;
         goto out;
     }
@@ -511,6 +514,8 @@ int handle_duplicatedata(void *daemon_context,
 #ifdef CLONE_PUNCH_HOLE_IF_CLONESIZE_BIGGER_THAN_SRCFILESIZE
     /* NFS DEALLOCATE supported ? */
     if (session->client->root->supports_nfs42_deallocate == false) {
+        DPRINTF(0,
+            ("handle_duplicatedata: NFS DEALLOCATE not supported\n"));
         status = ERROR_NOT_SUPPORTED;
         goto out;
     }
@@ -568,10 +573,11 @@ int handle_duplicatedata(void *daemon_context,
             ("handle_duplicatedata("
             "src_state->path.path='%s' "
             "dst_state->path.path='%s'): "
-            "CLONE failed with status=0x%x\n",
+            "CLONE failed with '%s'\n",
             src_state->path.path,
             dst_state->path.path,
-            status));
+            nfs_error_string(status)));
+        status = nfs_to_windows_error(status, ERROR_BAD_NET_RESP);
         goto out;
     }
 
@@ -598,10 +604,11 @@ int handle_duplicatedata(void *daemon_context,
                 ("handle_duplicatedata("
                 "src_state->path.path='%s' "
                 "dst_state->path.path='%s'): "
-                "DEALLOCATE failed with status=0x%x\n",
+                "DEALLOCATE failed with '%s'\n",
                 src_state->path.path,
                 dst_state->path.path,
-                status));
+                nfs_error_string(status)));
+            status = nfs_to_windows_error(status, ERROR_BAD_NET_RESP);
             goto out;
         }
     }

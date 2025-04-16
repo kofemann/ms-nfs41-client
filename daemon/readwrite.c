@@ -85,9 +85,9 @@ static int read_from_mds(
             if (status == NFS4ERR_IO) {
                 DPRINTF(0,
                     ("read_from_mds: "
-                    "nfs42_read_plus() failed, status=%d, "
+                    "nfs42_read_plus() failed, error '%s', "
                     "disabling OP_READ_PLUS\n",
-                    status));
+                    nfs_error_string(status)));
                 session->client->root->supports_nfs42_read_plus = false;
             }
         }
@@ -233,9 +233,9 @@ static int write_to_mds(
             &info);
         if (status) {
             DPRINTF(0, ("write_to_mds(state->path.path='%s'): "
-                "DEALLOCATE failed with status=0x%x\n",
+                "DEALLOCATE failed with '%s'\n",
                 state->path.path,
-                status));
+                nfs_error_string(status)));
         }
         else {
             status = nfs42_allocate(session, file, stateid,
@@ -243,9 +243,9 @@ static int write_to_mds(
                 &info);
             if (status) {
                 DPRINTF(0, ("write_to_mds(state->path.path='%s'): "
-                    "ALLOCATE failed with status=0x%x\n",
+                    "ALLOCATE failed with '%s'\n",
                     state->path.path,
-                    status));
+                    nfs_error_string(status)));
             }
         }
 
