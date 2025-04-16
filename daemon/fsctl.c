@@ -29,7 +29,7 @@
 
 #define QARLVL 2 /* dprintf level for "query allocated ranges" logging */
 #define SZDLVL 2 /* dprintf level for "set zero data" logging */
-#define DDLVL  0 /* dprintf level for "duplicate data" logging */
+#define DDLVL  2 /* dprintf level for "duplicate data" logging */
 
 static int parse_queryallocatedranges(unsigned char *buffer,
     uint32_t length, nfs41_upcall *upcall)
@@ -533,7 +533,7 @@ int handle_duplicatedata(void *daemon_context,
 
     EASSERT(bytecount > 0);
     if (bytecount <= 0) {
-        DPRINTF(DDLVL,
+        DPRINTF(0/*DDLVL*/,
             ("handle_duplicatedata("
             "src_state->path.path='%s' "
             "dst_state->path.path='%s'): "
@@ -555,7 +555,7 @@ int handle_duplicatedata(void *daemon_context,
         bytecount,
         &info);
     if (status) {
-        DPRINTF(DDLVL,
+        DPRINTF(0/*DDLVL*/,
             ("handle_duplicatedata("
             "src_state->path.path='%s' "
             "dst_state->path.path='%s'): "
@@ -585,7 +585,7 @@ int handle_duplicatedata(void *daemon_context,
             ((args->srcfileoffset+args->bytecount) - src_file_size),
             &info);
         if (status) {
-            DPRINTF(DDLVL,
+            DPRINTF(0/*DDLVL*/,
                 ("handle_duplicatedata("
                 "src_state->path.path='%s' "
                 "dst_state->path.path='%s'): "
@@ -609,7 +609,7 @@ int handle_duplicatedata(void *daemon_context,
         args->ctime));
 
 out:
-    DPRINTF(0,
+    DPRINTF(DDLVL,
         ("<-- handle_duplicatedata(), status=0x%lx\n",
         status));
 
