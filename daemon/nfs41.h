@@ -304,6 +304,10 @@ typedef struct __nfs41_root {
     struct list_entry clients;
     bool use_nfspubfh;
     bool supports_nfs42_read_plus;
+    bool supports_nfs42_seek;
+    bool supports_nfs42_allocate;
+    bool supports_nfs42_deallocate;
+    bool supports_nfs42_clone;
     DWORD nfsminorvers;
     uint32_t wsize;
     uint32_t rsize;

@@ -69,7 +69,11 @@ int nfs41_root_create(
      * nfs41_root_mount_addrs() will enable NFSv4.2 features (like
      * |OP_READ_PLUS|) after NFSv4.x minor version autonegitiation
      */
-    root->supports_nfs42_read_plus = false;
+    root->supports_nfs42_read_plus  = false;
+    root->supports_nfs42_seek       = false;
+    root->supports_nfs42_allocate   = false;
+    root->supports_nfs42_deallocate = false;
+    root->supports_nfs42_clone      = false;
     if (nfsvers == NFS_VERSION_AUTONEGOTIATION) {
         /*
          * Use auto negotiation, |nfs41_root_mount_addrs()| will
@@ -445,8 +449,12 @@ retry_nfs41_exchange_id:
 
     /* Enable NFS features after NFSv4.x minor version negotiation */
     if (root->nfsminorvers >= 2) {
-        DPRINTF(0, ("nfs41_root_mount_addrs: Enabling OP_READ_PLUS\n"));
-        root->supports_nfs42_read_plus = true;
+        DPRINTF(0, ("nfs41_root_mount_addrs: Enabling NFSv4.2 OPs\n"));
+        root->supports_nfs42_read_plus  = true;
+        root->supports_nfs42_seek       = true;
+        root->supports_nfs42_allocate   = true;
+        root->supports_nfs42_deallocate = true;
+        root->supports_nfs42_clone      = true;
     }
 
     /* attempt to match existing clients by the exchangeid response */

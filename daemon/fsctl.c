@@ -65,6 +65,7 @@ int query_sparsefile_datasections(nfs41_open_state *state,
     size_t *restrict res_num_records)
 {
     int status = NO_ERROR;
+    nfs41_session *session = state->session;
     uint64_t next_offset;
     uint64_t data_size;
     int data_seek_status;
@@ -82,8 +83,8 @@ int query_sparsefile_datasections(nfs41_open_state *state,
         ("--> query_sparsefile_datasections(state->path.path='%s')\n",
         state->path.path));
 
-    /* NFS SEEK requires NFSv4.2 */
-    if (state->session->client->root->nfsminorvers < 2) {
+    /* NFS SEEK supported ? */
+    if (session->client->root->supports_nfs42_seek == false) {
         status = ERROR_NOT_SUPPORTED;
         goto out;
     }
@@ -94,7 +95,7 @@ int query_sparsefile_datasections(nfs41_open_state *state,
     *res_num_records = 0;
 
     for (i=0 ; ; i++) {
-        data_seek_status = nfs42_seek(state->session,
+        data_seek_status = nfs42_seek(session,
             &state->file,
             &stateid,
             next_offset,
@@ -143,7 +144,7 @@ int query_sparsefile_datasections(nfs41_open_state *state,
 
         next_offset = data_seek_sr_offset;
 
-        hole_seek_status = nfs42_seek(state->session,
+        hole_seek_status = nfs42_seek(session,
             &state->file,
             &stateid,
             next_offset,
@@ -368,8 +369,8 @@ int handle_setzerodata(void *daemon_context,
             offset_end,
             len));
 
-    /* NFS DEALLOCATE requires NFSv4.2 */
-    if (state->session->client->root->nfsminorvers < 2) {
+    /* NFS DEALLOCATE supported ? */
+    if (session->client->root->supports_nfs42_deallocate == false) {
         status = ERROR_NOT_SUPPORTED;
         goto out;
     }
@@ -501,11 +502,19 @@ int handle_duplicatedata(void *daemon_context,
             dst_state->path.path,
             src_state->path.path));
 
-    /* NFS CLONE requires NFSv4.2 */
-    if (dst_state->session->client->root->nfsminorvers < 2) {
+    /* NFS CLONE supported ? */
+    if (session->client->root->supports_nfs42_clone == false) {
         status = ERROR_NOT_SUPPORTED;
         goto out;
     }
+
+#ifdef CLONE_PUNCH_HOLE_IF_CLONESIZE_BIGGER_THAN_SRCFILESIZE
+    /* NFS DEALLOCATE supported ? */
+    if (session->client->root->supports_nfs42_deallocate == false) {
+        status = ERROR_NOT_SUPPORTED;
+        goto out;
+    }
+#endif /* CLONE_PUNCH_HOLE_IF_CLONESIZE_BIGGER_THAN_SRCFILESIZE */
 
     nfs41_open_stateid_arg(src_state, &src_stateid);
     nfs41_open_stateid_arg(dst_state, &dst_stateid);

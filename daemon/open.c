@@ -1204,7 +1204,7 @@ create_chgrp_out:
 #ifdef DEBUG_OPEN_SPARSE_FILES
     if ((status == 0) &&
         (info.type == NF4REG) &&
-        (state->session->client->root->nfsminorvers >= 2)) {
+        (state->session->client->root->supports_nfs42_seek)) {
         //debug_list_sparsefile_holes(state);
         debug_list_sparsefile_datasections(state);
     }
