@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2023-2024 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -1197,6 +1197,31 @@ NTSTATUS nfs41_CreateVNetRoot(
         }
     }
     pNetRootContext->nfs41d_version = nfs41d_version;
+
+    DbgP("default pNetRoot->DiskParameters=("
+        "ClusterSize=%lu, "
+        "ReadAheadGranularity=%lu, "
+        "LockThrottlingParameters=(Increment=%lu MaximumDelay=%lu)"
+        ")\n",
+        pNetRoot->DiskParameters.ClusterSize,
+        pNetRoot->DiskParameters.ReadAheadGranularity,
+        pNetRoot->DiskParameters.LockThrottlingParameters.Increment,
+        pNetRoot->DiskParameters.LockThrottlingParameters.MaximumDelay);
+
+    /*
+     * Windows bug(?!):
+     * |CcSetReadAheadGranularity()| says |ReadAheadGranularity|
+     * must be an even power of two and must be greater than
+     * or equal to PAGE_SIZE
+     * But mrxfcb.h defines |DEFAULT_READ_AHEAD_GRANULARITY| as
+     * |(0x08000)| (=32768), but |log2(32768)==15|, and |15| is an
+     * odd number, violating that rule.
+     *
+     * We now use 2**16==64k here, per |CcSetReadAheadGranularity()|
+     * spec
+     */
+    pNetRoot->DiskParameters.ReadAheadGranularity = 64*1024*1024;
+
 #ifdef DEBUG_MOUNT
     DbgP("Saving new session 0x%p\n", pVNetRootContext->session);
 #endif
