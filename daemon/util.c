@@ -1,5 +1,6 @@
 /* NFSv4.1 client for Windows
- * Copyright © 2012 The Regents of the University of Michigan
+ * Copyright (C) 2012 The Regents of the University of Michigan
+ * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -213,9 +214,22 @@ int nfs_to_windows_error(int status, int default_error)
     case NFS4ERR_BADCHAR:
     case NFS4ERR_BADNAME:       return ERROR_INVALID_NAME;
 
-    case NFS4ERR_NOTDIR:
-    case NFS4ERR_ISDIR:
-    case NFS4ERR_SYMLINK:
+    /*
+     * |NFS4ERR_NOTDIR| - The current (or saved) filehandle
+     * designates an object that is not a directory for an operation
+     * in which a directory is required.
+     * |ERROR_DIRECTORY| - The directory name is invalid.
+     */
+    case NFS4ERR_NOTDIR:        return ERROR_DIRECTORY;
+    /*
+     * |NFS4ERR_ISDIR| - The current or saved filehandle designates
+     * a directory when the current operation does not allow a
+     * directory to be accepted as the target of this operation.
+     * |ERROR_DIRECTORY_NOT_SUPPORTED| - An operation is not supported
+     * on a directory.
+     */
+    case NFS4ERR_ISDIR:         return ERROR_DIRECTORY_NOT_SUPPORTED;
+    case NFS4ERR_SYMLINK:       return ERROR_INVALID_PARAMETER;
     case NFS4ERR_WRONG_TYPE:    return ERROR_INVALID_PARAMETER;
 
     case NFS4ERR_EXPIRED:
