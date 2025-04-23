@@ -103,6 +103,13 @@ installdest:
 	else \
 		(cd $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/ && ln -sf winfsinfo.i686.exe winfsinfo.exe) \
 	fi
+	cp "$(PROJECT_BASEDIR_DIR)/tests/winclonefile/winclonefile.x86_64.exe" $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/winclonefile.x86_64.exe
+	cp "$(PROJECT_BASEDIR_DIR)/tests/winclonefile/winclonefile.i686.exe" $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/winclonefile.i686.exe
+	if [[ "$(CYGWIN_BASEPATH)" == *64* ]] ; then \
+		(cd $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/ && ln -sf winclonefile.x86_64.exe winclonefile.exe) \
+	else \
+		(cd $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/ && ln -sf winclonefile.i686.exe winclonefile.exe) \
+	fi
 	cp "$(PROJECT_BASEDIR_DIR)/tests/lssparse/lssparse.x86_64.exe" $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/lssparse.x86_64.exe
 	if [[ "$(CYGWIN_BASEPATH)" == *64* ]] ; then \
 		(cd $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/ && ln -sf lssparse.x86_64.exe lssparse.exe) \

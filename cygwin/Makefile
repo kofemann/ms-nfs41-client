@@ -22,6 +22,7 @@ VS_BUILD_DIR64:=$(PROJECT_BASEDIR_DIR)/build.vc19/x64/Debug/
 $(PROJECT_BASEDIR_DIR)/tests/ea/nfs_ea.exe \
 	$(PROJECT_BASEDIR_DIR)/tests/lssparse/lssparse.exe \
 	$(PROJECT_BASEDIR_DIR)/tests/winfsinfo1/winfsinfo.exe \
+	$(PROJECT_BASEDIR_DIR)/tests/winclonefile/winclonefile.exe \
 	$(PROJECT_BASEDIR_DIR)/tests/winsg/winsg.exe: build_testutils
 
 #
@@ -66,6 +67,7 @@ build_testutils:
 	(cd "$(PROJECT_BASEDIR_DIR)/tests/ea" && make all)
 	(cd "$(PROJECT_BASEDIR_DIR)/tests/lssparse" && make all)
 	(cd "$(PROJECT_BASEDIR_DIR)/tests/winfsinfo1" && make all)
+	(cd "$(PROJECT_BASEDIR_DIR)/tests/winclonefile" && make all)
 	(cd "$(PROJECT_BASEDIR_DIR)/tests/winsg" && make all)
 
 build: build_32bit_release build_32bit_debug build_64bit_release build_64bit_debug build_arm_64bit_debug build_testutils
@@ -100,6 +102,7 @@ clean:
 	(cd "$(PROJECT_BASEDIR_DIR)/tests/ea" && make clean)
 	(cd "$(PROJECT_BASEDIR_DIR)/tests/lssparse" && make clean)
 	(cd "$(PROJECT_BASEDIR_DIR)/tests/winfsinfo1" && make clean)
+	(cd "$(PROJECT_BASEDIR_DIR)/tests/winclonefile" && make clean)
 	(cd "$(PROJECT_BASEDIR_DIR)/tests/winsg" && make clean)
 
 installdest_util: \
@@ -109,6 +112,7 @@ installdest_util: \
 	$(PROJECT_BASEDIR_DIR)/tests/ea/nfs_ea.exe \
 	$(PROJECT_BASEDIR_DIR)/tests/lssparse/lssparse.exe \
 	$(PROJECT_BASEDIR_DIR)/tests/winfsinfo1/winfsinfo.exe \
+	$(PROJECT_BASEDIR_DIR)/tests/winclonefile/winclonefile.exe \
 	$(PROJECT_BASEDIR_DIR)/tests/winsg/winsg.exe \
 	$(CYGWIN_MAKEFILE_DIR)/devel/msnfs41client.bash
 
