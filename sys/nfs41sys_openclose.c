@@ -408,8 +408,12 @@ NTSTATUS map_open_errors(
     case ERROR_SHARING_VIOLATION:       return STATUS_SHARING_VIOLATION;
     case ERROR_REPARSE:                 return STATUS_REPARSE;
     case ERROR_TOO_MANY_LINKS:          return STATUS_TOO_MANY_LINKS;
-    case ERROR_DIRECTORY:               return STATUS_FILE_IS_A_DIRECTORY;
-    case ERROR_BAD_FILE_TYPE:           return STATUS_NOT_A_DIRECTORY;
+    case ERROR_INVALID_PARAMETER:       return STATUS_INVALID_PARAMETER;
+    /* See |handle_open()| for |ERROR_DIRECTORY| */
+    case ERROR_DIRECTORY:               return STATUS_NOT_A_DIRECTORY;
+    /* See |handle_open()| for |ERROR_DIRECTORY_NOT_SUPPORTED| */
+    case ERROR_DIRECTORY_NOT_SUPPORTED: return STATUS_FILE_IS_A_DIRECTORY;
+    case ERROR_BAD_FILE_TYPE:           return STATUS_BAD_FILE_TYPE;
     case ERROR_DISK_FULL:               return STATUS_DISK_FULL;
     case ERROR_DISK_QUOTA_EXCEEDED:     return STATUS_DISK_QUOTA_EXCEEDED;
     case ERROR_FILE_TOO_LARGE:          return STATUS_FILE_TOO_LARGE;

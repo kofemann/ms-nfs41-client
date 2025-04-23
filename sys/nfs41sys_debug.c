@@ -734,11 +734,14 @@ void print_open_error(int on, int status)
     case ERROR_TOO_MANY_LINKS:
         DbgP("[ERROR] nfs41_Create: STATUS_TOO_MANY_LINKS\n");
         break;
-    case ERROR_DIRECTORY:
+    case ERROR_DIRECTORY_NOT_SUPPORTED:
         DbgP("[ERROR] nfs41_Create: STATUS_FILE_IS_A_DIRECTORY\n");
         break;
-    case ERROR_BAD_FILE_TYPE:
+    case ERROR_DIRECTORY:
         DbgP("[ERROR] nfs41_Create: STATUS_NOT_A_DIRECTORY\n");
+        break;
+    case ERROR_BAD_FILE_TYPE:
+        DbgP("[ERROR] nfs41_Create: STATUS_BAD_FILE_TYPE\n");
         break;
     default:
         DbgP("[ERROR] nfs41_Create: STATUS_INSUFFICIENT_RESOURCES\n");

@@ -903,7 +903,13 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
             if (args->create_opts & FILE_NON_DIRECTORY_FILE) {
                 DPRINTF(1, ("trying to open directory '%s' as a file\n",
                     state->path.path));
-                status = ERROR_DIRECTORY;
+                /*
+                 * Notes:
+                 * - NTFS+SMB returns |STATUS_FILE_IS_A_DIRECTORY|
+                 * - See |map_open_errors()| for the mapping to
+                 * |STATUS_*|
+                 */
+                status = ERROR_DIRECTORY_NOT_SUPPORTED;
                 goto out_free_state;
             }
         } else if (info.type == NF4REG) {
@@ -911,7 +917,14 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
             if (args->create_opts & FILE_DIRECTORY_FILE) {
                 DPRINTF(1, ("trying to open file '%s' as a directory\n",
                     state->path.path));
-                status = ERROR_BAD_FILE_TYPE;
+                /*
+                 * Notes:
+                 * - SMB returns |STATUS_OBJECT_TYPE_MISMATCH|
+                 * while NTFS returns |STATUS_NOT_A_DIRECTORY|
+                 * - See |map_open_errors()| for the mapping to
+                 * |STATUS_*|
+                 */
+                status = ERROR_DIRECTORY;
                 goto out_free_state;
             }
         } else if (info.type == NF4LNK) {
