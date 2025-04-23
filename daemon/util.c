@@ -199,7 +199,7 @@ int nfs_to_windows_error(int status, int default_error)
     case NFS4ERR_MLINK:         return ERROR_TOO_MANY_LINKS;
     case NFS4ERR_NAMETOOLONG:   return ERROR_FILENAME_EXCED_RANGE;
     case NFS4ERR_STALE:         return ERROR_NETNAME_DELETED;
-    case NFS4ERR_NOTEMPTY:      return ERROR_NOT_EMPTY;
+    case NFS4ERR_NOTEMPTY:      return ERROR_DIR_NOT_EMPTY;
     case NFS4ERR_DENIED:        return ERROR_LOCK_FAILED;
     case NFS4ERR_NOTSUPP:       return ERROR_NOT_SUPPORTED;
     case NFS4ERR_TOOSMALL:      return ERROR_BUFFER_OVERFLOW;
@@ -255,7 +255,7 @@ int map_symlink_errors(int status)
     case NFS4ERR_BADNAME:       return ERROR_INVALID_REPARSE_DATA;
     case NFS4ERR_WRONG_TYPE:    return ERROR_NOT_A_REPARSE_POINT;
     case NFS4ERR_ACCESS:        return ERROR_ACCESS_DENIED;
-    case NFS4ERR_NOTEMPTY:      return ERROR_NOT_EMPTY;
+    case NFS4ERR_NOTEMPTY:      return ERROR_DIR_NOT_EMPTY;
     default: return nfs_to_windows_error(status, ERROR_BAD_NET_RESP);
     }
 }

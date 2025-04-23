@@ -511,7 +511,7 @@ NTSTATUS map_setfile_error(
 {
     switch (error) {
     case NO_ERROR:                      return STATUS_SUCCESS;
-    case ERROR_NOT_EMPTY:               return STATUS_DIRECTORY_NOT_EMPTY;
+    case ERROR_DIR_NOT_EMPTY:           return STATUS_DIRECTORY_NOT_EMPTY;
     case ERROR_FILE_EXISTS:             return STATUS_OBJECT_NAME_COLLISION;
     case ERROR_FILE_NOT_FOUND:          return STATUS_OBJECT_NAME_NOT_FOUND;
     case ERROR_PATH_NOT_FOUND:          return STATUS_OBJECT_PATH_NOT_FOUND;
