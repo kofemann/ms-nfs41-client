@@ -203,9 +203,9 @@ static bool_t decode_read_plus_res_ok(
                         ("i=%d, decoding 'bytes' failed\n", (int)i));
                     return FALSE;
                 }
-                read_data_len = __max(read_data_len,
+                read_data_len = __max((size_t)read_data_len,
                     ((size_t)(contents[i].u.data.data - res->data) +
-                        contents[i].u.data.data_len));
+                        (size_t)contents[i].u.data.data_len));
             }
                 break;
             case NFS4_CONTENT_HOLE:
@@ -232,7 +232,7 @@ static bool_t decode_read_plus_res_ok(
                  */
                 if (((hole_buff - res->data) + hole_length) >
                     res->data_len) {
-                    hole_length = res->data_len -
+                    hole_length = (uint64_t)res->data_len -
                         (hole_buff - res->data);
                 }
 
