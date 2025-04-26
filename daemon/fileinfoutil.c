@@ -631,6 +631,9 @@ void nfs41_file_info_cpy(
         if (attrmask->arr[2] & FATTR4_WORD2_SUPPATTR_EXCLCREAT) {
             dest->suppattr_exclcreat = src->suppattr_exclcreat;
         }
+        if (attrmask->arr[2] & FATTR4_WORD2_CLONE_BLKSIZE) {
+            dest->clone_blksize = src->clone_blksize;
+        }
     }
 
     if (flags & NFS41FILEINFOCPY_COPY_SYMLINK_DIR) {

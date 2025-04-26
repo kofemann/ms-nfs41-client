@@ -91,6 +91,7 @@ static __inline bool_t is_delegation(
 #define NC_ATTR_TIME_CREATE (1 << 12)
 #define NC_ATTR_TIME_MODIFY (1 << 13)
 #define NC_ATTR_SYSTEM      (1 << 14)
+#define NC_ATTR_CLONE_BLKSIZE (1 << 15)
 
 /* attribute cache */
 struct attr_cache_entry {
@@ -114,6 +115,7 @@ struct attr_cache_entry {
     unsigned                hidden : 1;
     unsigned                system : 1;
     unsigned                archive : 1;
+    uint32_t                clone_blksize;
     util_reltimestamp       expiration;
     unsigned                ref_count : 26;
     unsigned                type : 4;
@@ -386,6 +388,12 @@ static void attr_cache_update(
             entry->system = info->system;
         }
     }
+    if (info->attrmask.count > 2) {
+        if (info->attrmask.arr[2] & FATTR4_WORD2_CLONE_BLKSIZE) {
+            entry->nc_attrs |= NC_ATTR_CLONE_BLKSIZE;
+            entry->clone_blksize = info->clone_blksize;
+        }
+    }
 
     if (is_delegation(delegation))
         entry->delegated = TRUE;
@@ -397,6 +405,7 @@ static void copy_attrs(
 {
     dst->attrmask.arr[0] = 0;
     dst->attrmask.arr[1] = 0;
+    dst->attrmask.arr[2] = 0;
 
     dst->attrmask.arr[0] |= FATTR4_WORD0_FILEID;
     dst->fileid = src->fileid;
@@ -475,8 +484,15 @@ static void copy_attrs(
         dst->attrmask.arr[1] |= FATTR4_WORD1_SYSTEM;
         dst->system = src->system;
     }
+    if (src->nc_attrs & NC_ATTR_CLONE_BLKSIZE) {
+        dst->attrmask.arr[2] |= FATTR4_WORD2_CLONE_BLKSIZE;
+        dst->clone_blksize = src->clone_blksize;
+    }
 
-    if (dst->attrmask.arr[1] != 0) {
+    if (dst->attrmask.arr[2] != 0) {
+        dst->attrmask.count = 3;
+    }
+    else if (dst->attrmask.arr[1] != 0) {
         dst->attrmask.count = 2;
     }
     else {

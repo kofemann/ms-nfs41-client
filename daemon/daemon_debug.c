@@ -1119,6 +1119,17 @@ void print_nfs41_file_info(
             PRNFS41FI_FMT("system=%d, ", (int)info->system);
         p += snprintf(p, (sizeof(buf)-(p-buf)), "} ");
     }
+    if (info->attrmask.count >= 3) {
+        PRNFS41FI_FMT("{ attrmask.arr[2]=0x%x, ",
+            (int)info->attrmask.arr[2]);
+
+        if (info->attrmask.arr[2] & FATTR4_WORD2_CLONE_BLKSIZE) {
+            PRNFS41FI_FMT("clone_blksize=%ld, ",
+                (long)info->clone_blksize);
+        }
+
+        p += snprintf(p, (sizeof(buf)-(p-buf)), "} ");
+    }
 
     dprintf_out("%s={ %s }\n", label, buf);
 }

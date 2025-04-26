@@ -221,6 +221,7 @@ typedef struct __nfs41_file_info {
     bool_t                  hidden;
     bool_t                  system;
     bool_t                  archive;
+    uint32_t                clone_blksize;
     bool_t                  case_insensitive;
     bool_t                  case_preserving;
     bool_t                  symlink_dir;

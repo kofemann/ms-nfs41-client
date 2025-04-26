@@ -1917,6 +1917,10 @@ static bool_t decode_file_attrs(
             if (!xdr_bitmap4(xdr, info->suppattr_exclcreat))
                 return FALSE;
         }
+        if (attrs->attrmask.arr[2] & FATTR4_WORD2_CLONE_BLKSIZE) {
+            if (!xdr_u_int32_t(xdr, &info->clone_blksize))
+                return FALSE;
+        }
     }
     return TRUE;
 }

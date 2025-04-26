@@ -527,7 +527,12 @@ int handle_duplicatedata(void *daemon_context,
 
 #ifdef CLONE_PUNCH_HOLE_IF_CLONESIZE_BIGGER_THAN_SRCFILESIZE
     int64_t src_file_size;
-    bitmap4 attr_request = { .count = 1, .arr[0] = FATTR4_WORD0_SIZE };
+    bitmap4 attr_request = {
+        .count = 3,
+        .arr[0] = FATTR4_WORD0_SIZE,
+        .arr[1] = 0UL,
+        .arr[2] = FATTR4_WORD2_CLONE_BLKSIZE
+    };
     status = nfs41_getattr(session, src_file, &attr_request, &info);
     if (status) {
         eprintf("handle_duplicatedata: "
@@ -536,6 +541,21 @@ int handle_duplicatedata(void *daemon_context,
         status = nfs_to_windows_error(status, ERROR_BAD_NET_RESP);
         goto out;
     }
+
+    EASSERT(bitmap_isset(&info.attrmask, 0, FATTR4_WORD0_SIZE));
+    if (bitmap_isset(&info.attrmask, 2, FATTR4_WORD2_CLONE_BLKSIZE)) {
+        DPRINTF(DDLVL,
+            ("handle_duplicatedata: "
+            "srcfile size=%lld, clone_blksize=%lu\n",
+            (long long)info.size,
+            (unsigned long)info.clone_blksize));
+    }
+    else {
+        DPRINTF(DDLVL,
+            ("handle_duplicatedata: srcfile size=%lld\n",
+            (long long)info.size));
+    }
+
     src_file_size = info.size;
 
     if ((args->srcfileoffset+args->bytecount) > src_file_size)
@@ -543,6 +563,10 @@ int handle_duplicatedata(void *daemon_context,
     else
         bytecount = args->bytecount;
 #else
+    /*
+     * FIXME: We should validate against |FATTR4_WORD2_CLONE_BLKSIZE|
+     * (if supported by NFSv4.2 server) in this codepath
+     */
     bytecount = args->bytecount;
 #endif /* CLONE_PUNCH_HOLE_IF_CLONESIZE_BIGGER_THAN_SRCFILESIZE */
 
