@@ -147,7 +147,7 @@ function gcc_build
 	patch_gcc13_1_0_libiberty_strsignal_psignal_prototype
 
 	# original mkinstalldirs cannot handle UNC paths
-	printf '#!/bin/sh\n# original mkinstalldirs cannot handle Cygwin UNC paths\nmkdir -p "$@"\nexit $?' >'mkinstalldirs'
+	printf '#!/bin/sh\n# original mkinstalldirs cannot handle Cygwin UNC paths\nmkdir -p "$@"\nexit $?\n' >'mkinstalldirs'
 	chmod a+x 'mkinstalldirs'
 
 	# Cygwin/MSYS2: workaround for configure using cp -p where ln -s should be used
@@ -321,7 +321,7 @@ function bash_build
 	#
 
 	# original mkinstalldirs cannot handle UNC paths
-	printf '#!/bin/sh\n# original mkinstalldirs cannot handle Cygwin UNC paths\nmkdir -p "$@"\nexit $?' >'support/mkinstalldirs'
+	printf '#!/bin/sh\n# original mkinstalldirs cannot handle Cygwin UNC paths\nmkdir -p "$@"\nexit $?\n' >'mkinstalldirs'
 	chmod a+x 'support/mkinstalldirs'
 
 	# disable loadable plugins
