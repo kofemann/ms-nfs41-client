@@ -466,18 +466,177 @@ out:
     return status;
 }
 
-/*
- * CLONE_PUNCH_HOLE_IF_CLONESIZE_BIGGER_THAN_SRCFILESIZE - Punch
- * a hole at the end of the file if the clone range is larger than
- * the source file's size (Linux 6.6 nfsd will return
- * |NFS4ERR_INVAL| in such cases)
- *
- * ToDo:
- * - This should be replaced by a NFS SEEK loop to enumerate
- * data ranges and hole ranges - Data ranges are handled via NFS
- * CLONE, hole ranges via NFS DEALLOCATE
- */
-#define CLONE_PUNCH_HOLE_IF_CLONESIZE_BIGGER_THAN_SRCFILESIZE 1
+static
+int duplicate_sparsefile(nfs41_open_state *src_state,
+    nfs41_open_state *dst_state,
+    uint64_t srcfileoffset,
+    uint64_t destfileoffset,
+    uint64_t bytecount,
+    nfs41_file_info *info)
+{
+    int status = NO_ERROR;
+    nfs41_session *session = src_state->session;
+    uint64_t next_offset;
+    uint64_t end_offset;
+    uint64_t data_size;
+    int data_seek_status;
+    bool_t data_seek_sr_eof;
+    uint64_t data_seek_sr_offset;
+    int hole_seek_status;
+    bool_t hole_seek_sr_eof;
+    uint64_t hole_seek_sr_offset;
+    size_t i;
+
+    nfs41_path_fh *src_file = &src_state->file;
+    nfs41_path_fh *dst_file = &dst_state->file;
+    stateid_arg src_stateid;
+    stateid_arg dst_stateid;
+
+    (void)memset(info, 0, sizeof(info));
+
+    DPRINTF(DDLVL,
+        ("--> duplicate_sparsefile(src_state->path.path='%s')\n",
+        src_state->path.path));
+
+    nfs41_open_stateid_arg(src_state, &src_stateid);
+    nfs41_open_stateid_arg(dst_state, &dst_stateid);
+
+    /*
+     * First punch a hole into the destination to make sure that any
+     * data ranges in the destination from |destfileoffset| to
+     * |destfileoffset+bytecount| are gone
+     */
+    status = nfs42_deallocate(session,
+        dst_file,
+        &dst_stateid,
+        destfileoffset,
+        bytecount,
+        info);
+    if (status) {
+        DPRINTF(0/*DDLVL*/,
+            ("duplicate_sparsefile("
+            "src_state->path.path='%s' "
+            "dst_state->path.path='%s'): "
+            "DEALLOCATE failed with '%s'\n",
+            src_state->path.path,
+            dst_state->path.path,
+            nfs_error_string(status)));
+        status = nfs_to_windows_error(status, ERROR_BAD_NET_RESP);
+        goto out;
+    }
+
+    next_offset = srcfileoffset;
+    end_offset = srcfileoffset + bytecount;
+
+    for (i=0 ; ; i++) {
+        data_seek_status = nfs42_seek(session,
+            &src_state->file,
+            &src_stateid,
+            next_offset,
+            NFS4_CONTENT_DATA,
+            &data_seek_sr_eof,
+            &data_seek_sr_offset);
+
+#ifdef LINUX_NFSD_SEEK_NXIO_BUG_WORKAROUND
+        if (data_seek_status == NFS4ERR_NXIO) {
+            DPRINTF(QARLVL, ("SEEK_DATA failed with NFS4ERR_NXIO\n"));
+            goto out;
+        }
+#endif /* LINUX_NFSD_SEEK_NXIO_BUG_WORKAROUND */
+        if (data_seek_status) {
+            status = nfs_to_windows_error(data_seek_status,
+                ERROR_INVALID_PARAMETER);
+            DPRINTF(DDLVL,
+                ("SEEK_DATA failed "
+                "OP_SEEK(sa_offset=%llu,sa_what=SEEK_DATA) "
+                "failed with %d(='%s')\n",
+                next_offset,
+                data_seek_status,
+                nfs_error_string(data_seek_status)));
+            goto out;
+        }
+
+        next_offset = data_seek_sr_offset;
+
+        hole_seek_status = nfs42_seek(session,
+            &src_state->file,
+            &src_stateid,
+            next_offset,
+            NFS4_CONTENT_HOLE,
+            &hole_seek_sr_eof,
+            &hole_seek_sr_offset);
+        if (hole_seek_status) {
+            status = nfs_to_windows_error(hole_seek_status,
+                ERROR_INVALID_PARAMETER);
+            DPRINTF(DDLVL,
+                ("SEEK_HOLE failed "
+                "OP_SEEK(sa_offset=%llu,sa_what=SEEK_HOLE) "
+                "failed with %d(='%s')\n",
+                next_offset,
+                hole_seek_status,
+                nfs_error_string(hole_seek_status)));
+            goto out;
+        }
+
+        next_offset = hole_seek_sr_offset;
+
+        data_size = hole_seek_sr_offset - data_seek_sr_offset;
+
+        DPRINTF(DDLVL,
+            ("data_section: from "
+            "%llu to %llu, size=%llu (data_eof=%d, hole_eof=%d)\n",
+            data_seek_sr_offset,
+            hole_seek_sr_offset,
+            data_size,
+            (int)data_seek_sr_eof,
+            (int)hole_seek_sr_eof));
+
+        status = nfs42_clone(session,
+            src_file,
+            dst_file,
+            &src_stateid,
+            &dst_stateid,
+            data_seek_sr_offset,
+            destfileoffset + (data_seek_sr_offset-srcfileoffset),
+            data_size,
+            info);
+        if (status) {
+            DPRINTF(0/*DDLVL*/,
+                ("duplicate_sparsefile("
+                "src_state->path.path='%s' "
+                "dst_state->path.path='%s'): "
+                "CLONE failed with '%s'\n",
+                src_state->path.path,
+                dst_state->path.path,
+                nfs_error_string(status)));
+            status = nfs_to_windows_error(status, ERROR_BAD_NET_RESP);
+            goto out;
+        }
+
+        if (data_seek_sr_offset > end_offset) {
+            DPRINTF(DDLVL,
+                ("end offset reached, "
+                "i=%d, data_seek_sr_offset(=%lld) > end_offset(=%lld)\n",
+                (int)i,
+                (long long)data_seek_sr_offset,
+                (long long)end_offset));
+            break;
+        }
+
+        if (data_seek_sr_eof || hole_seek_sr_eof) {
+            DPRINTF(DDLVL,
+                ("EOF reached (data_seek_sr_eof=%d, hole_seek_sr_eof=%d)\n",
+                (int)data_seek_sr_eof,
+                (int)hole_seek_sr_eof));
+            break;
+        }
+    }
+
+out:
+    DPRINTF(DDLVL, ("<-- duplicate_sparsefile(), status=0x%x\n",
+        status));
+    return status;
+}
 
 static
 int handle_duplicatedata(void *daemon_context,
@@ -488,7 +647,6 @@ int handle_duplicatedata(void *daemon_context,
     nfs41_open_state *src_state = args->src_state;
     nfs41_open_state *dst_state = upcall->state_ref;
     nfs41_session *session = dst_state->session;
-    nfs41_path_fh *src_file = &src_state->file;
     nfs41_path_fh *dst_file = &dst_state->file;
     nfs41_file_info info;
     stateid_arg src_stateid;
@@ -504,36 +662,44 @@ int handle_duplicatedata(void *daemon_context,
             dst_state->path.path,
             src_state->path.path));
 
+    /* NFS SEEK supported ? */
+    if (session->client->root->supports_nfs42_seek == false) {
+        status = ERROR_NOT_SUPPORTED;
+        goto out;
+    }
     /* NFS CLONE supported ? */
     if (session->client->root->supports_nfs42_clone == false) {
-        DPRINTF(0,
-            ("handle_duplicatedata: NFS CLONE not supported\n"));
         status = ERROR_NOT_SUPPORTED;
         goto out;
     }
-
-#ifdef CLONE_PUNCH_HOLE_IF_CLONESIZE_BIGGER_THAN_SRCFILESIZE
     /* NFS DEALLOCATE supported ? */
     if (session->client->root->supports_nfs42_deallocate == false) {
-        DPRINTF(0,
-            ("handle_duplicatedata: NFS DEALLOCATE not supported\n"));
         status = ERROR_NOT_SUPPORTED;
         goto out;
     }
-#endif /* CLONE_PUNCH_HOLE_IF_CLONESIZE_BIGGER_THAN_SRCFILESIZE */
 
     nfs41_open_stateid_arg(src_state, &src_stateid);
     nfs41_open_stateid_arg(dst_state, &dst_stateid);
 
-#ifdef CLONE_PUNCH_HOLE_IF_CLONESIZE_BIGGER_THAN_SRCFILESIZE
-    int64_t src_file_size;
+    /*
+     * Get destination file size
+     * Callers will set the file size before calling
+     * |FSCTL_DUPLICATE_EXTENTS_TO_FILE| because the fsctl is
+     * not allows to allocate disk space(=increase the destination
+     * file size).
+     * But since |DUPLICATE_EXTENTS_DATA.ByteCount| might be rounded
+     * up to the filesystem's cluster size and NFSv4.2 CLONE can
+     * grow the file's size we have to get the destination file's
+     * size to clamp |args->bytecount|.
+     */
+    int64_t dst_file_size;
     bitmap4 attr_request = {
         .count = 3,
         .arr[0] = FATTR4_WORD0_SIZE,
         .arr[1] = 0UL,
         .arr[2] = FATTR4_WORD2_CLONE_BLKSIZE
     };
-    status = nfs41_getattr(session, src_file, &attr_request, &info);
+    status = nfs41_getattr(session, dst_file, &attr_request, &info);
     if (status) {
         eprintf("handle_duplicatedata: "
             "nfs41_getattr() failed with '%s'\n",
@@ -543,101 +709,62 @@ int handle_duplicatedata(void *daemon_context,
     }
 
     EASSERT(bitmap_isset(&info.attrmask, 0, FATTR4_WORD0_SIZE));
+
     if (bitmap_isset(&info.attrmask, 2, FATTR4_WORD2_CLONE_BLKSIZE)) {
         DPRINTF(DDLVL,
             ("handle_duplicatedata: "
-            "srcfile size=%lld, clone_blksize=%lu\n",
+            "dstfile size=%lld, clone_blksize=%lu\n",
             (long long)info.size,
             (unsigned long)info.clone_blksize));
     }
     else {
         DPRINTF(DDLVL,
-            ("handle_duplicatedata: srcfile size=%lld\n",
+            ("handle_duplicatedata: dstfile size=%lld\n",
             (long long)info.size));
     }
 
-    src_file_size = info.size;
+    dst_file_size = info.size;
 
-    if ((args->srcfileoffset+args->bytecount) > src_file_size)
-        bytecount = src_file_size-args->srcfileoffset;
-    else
-        bytecount = args->bytecount;
-#else
     /*
-     * FIXME: We should validate against |FATTR4_WORD2_CLONE_BLKSIZE|
-     * (if supported by NFSv4.2 server) in this codepath
+     * Clamp bytecount so everything will fit into the destination
+     * file
      */
-    bytecount = args->bytecount;
-#endif /* CLONE_PUNCH_HOLE_IF_CLONESIZE_BIGGER_THAN_SRCFILESIZE */
+    if ((args->destfileoffset+args->bytecount) > dst_file_size) {
+        bytecount = dst_file_size-args->destfileoffset;
+    }
+    else {
+        bytecount = args->bytecount;
+    }
 
-    EASSERT(bytecount > 0);
-    if (bytecount <= 0) {
-        DPRINTF(0/*DDLVL*/,
-            ("handle_duplicatedata("
+    if (bytecount == 0) {
+        DPRINTF(DDLVL,
+            ("bytecount == 0, returning ERROR_SUCCESS\n"));
+        status = ERROR_SUCCESS;
+        goto out;
+    }
+
+    if (bytecount < 0) {
+        eprintf("handle_duplicatedata("
             "src_state->path.path='%s' "
             "dst_state->path.path='%s'): "
             "Negative bytecount %lld\n",
             src_state->path.path,
             dst_state->path.path,
-            bytecount));
+            bytecount);
         status = ERROR_INVALID_PARAMETER;
         goto out;
     }
 
-    status = nfs42_clone(session,
-        src_file,
-        dst_file,
-        &src_stateid,
-        &dst_stateid,
+    (void)memset(&info, 0, sizeof(info));
+
+    status = duplicate_sparsefile(src_state,
+        dst_state,
         args->srcfileoffset,
         args->destfileoffset,
         bytecount,
         &info);
-    if (status) {
-        DPRINTF(0/*DDLVL*/,
-            ("handle_duplicatedata("
-            "src_state->path.path='%s' "
-            "dst_state->path.path='%s'): "
-            "CLONE failed with '%s'\n",
-            src_state->path.path,
-            dst_state->path.path,
-            nfs_error_string(status)));
-        status = nfs_to_windows_error(status, ERROR_BAD_NET_RESP);
+    if (status)
         goto out;
-    }
-
-#ifdef CLONE_PUNCH_HOLE_IF_CLONESIZE_BIGGER_THAN_SRCFILESIZE
-    if ((args->srcfileoffset+args->bytecount) > src_file_size) {
-        DPRINTF(DDLVL,
-            ("handle_duplicatedata(): "
-            "Clone range (offset(=%lld)+bytecount(=%lld)=%lld) "
-            "bigger than source file size (%lld), "
-            "adding hole at the end of dest file.\n",
-            args->srcfileoffset,
-            args->bytecount,
-            (args->srcfileoffset+args->bytecount),
-            src_file_size));
-
-        status = nfs42_deallocate(session,
-            dst_file,
-            &dst_stateid,
-            args->destfileoffset+src_file_size,
-            ((args->srcfileoffset+args->bytecount) - src_file_size),
-            &info);
-        if (status) {
-            DPRINTF(0/*DDLVL*/,
-                ("handle_duplicatedata("
-                "src_state->path.path='%s' "
-                "dst_state->path.path='%s'): "
-                "DEALLOCATE failed with '%s'\n",
-                src_state->path.path,
-                dst_state->path.path,
-                nfs_error_string(status)));
-            status = nfs_to_windows_error(status, ERROR_BAD_NET_RESP);
-            goto out;
-        }
-    }
-#endif /* CLONE_PUNCH_HOLE_IF_CLONESIZE_BIGGER_THAN_SRCFILESIZE */
 
     /* Update ctime on success */
     EASSERT(bitmap_isset(&info.attrmask, 0, FATTR4_WORD0_CHANGE));
