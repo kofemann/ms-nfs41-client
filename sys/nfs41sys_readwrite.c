@@ -402,8 +402,6 @@ NTSTATUS nfs41_Write(
         InterlockedIncrement(&write.sops);
         InterlockedAdd64(&write.size, entry->u.ReadWrite.len);
 #endif
-        nfs41_fcb->StandardInfo.EndOfFile.QuadPart = entry->buf_len +
-            entry->u.ReadWrite.offset;
         status = RxContext->CurrentIrp->IoStatus.Status = STATUS_SUCCESS;
         RxContext->IoStatusBlock.Information = entry->buf_len;
         nfs41_fcb->changeattr = entry->ChangeTime;
