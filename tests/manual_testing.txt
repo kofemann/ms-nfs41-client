@@ -457,6 +457,38 @@ $ bash -c 'cd -@ "x1" && ls -la'
 
 
 #
+# Test for block cloning via |FSCTL_DUPLICATE_EXTENTS_TO_FILE|+NFSv4.2 CLONE
+#
+
+# 1. Clone 5GB file via Windows 11 xcopy.exe (xcopy.exe uses |CopyFile2()|,
+# which uses |FSCTL_DUPLICATE_EXTENTS_TO_FILE| by default in Win11;
+# requires NFSv4.2 server with btrfs (XFS and ZFS should work too, not
+# tested yet)):
+---- snip ----
+# clone a 5GB file
+mkdir -p dir1 dir2
+rm -f dir1/mybigfile.bin dir2/mybigfile.bin
+time dd if=/dev/urandom of=dir1/mybigfile.bin bs=$((5*1024*1024)) count=1024
+xcopy /S /E dir1 dir2
+md5sum dir1/mybigfile.bin dir2/mybigfile.bin
+---- snip ----
+
+# 2. Clone sparse file via "winclonefile", and test whether sparse file
+# layout and hash sums are identical
+---- snip ----
+rm sparsefile2.bin sparsefile2_clone.bin
+printf "hello\n" | dd of=sparsefile2.bin seek=$((64)) bs=1024
+printf "world\n" | dd of=sparsefile2.bin seek=$((64*4)) bs=1024
+dd if=/dev/null of=sparsefile2.bin seek=$((64*8)) bs=1024
+winclonefile sparsefile2.bin sparsefile2_clone.bin
+# check whether sparse file layout is the same
+diff -u <(lssparse -H sparsefile2.bin) <(lssparse -H sparsefile2_clone.bin) && echo "# Test OK" || echo "# Test FAILED"
+# both hash sums must be identical
+md5sum --binary sparsefile2.bin sparsefile2_clone.bin
+---- snip ----
+
+
+#
 # Test whether TMPDIR, TEMP, TMP can be on a NFS filesystem
 #
 One-liner, should print two times lines with "test OK", stderr should be empty
