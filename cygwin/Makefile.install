@@ -47,7 +47,7 @@ installdest:
 	# on 32bit we just create a hardlink from nfs_mount.exe to nfs_mount.i686.exe
 	if [[ "$(CYGWIN_BASEPATH)" == *64* ]] ; then \
 		cp $(VS_BUILD_DIR32)/../Release/nfs_mount.exe $(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/nfs_mount.i686.exe ; \
-        else \
+	else \
 		ln -f $(VS_BUILD_DIR32)/../Debug/nfs_mount.exe $(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/nfs_mount.i686.exe ; \
 	fi
 	ln -f $(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/nfs_mount.i686.exe $(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/nfs_umount.i686.exe
