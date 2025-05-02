@@ -117,6 +117,7 @@ function gcc_build
 		# retry loop using delay that kills all performance
 		# benefits..."
 		'--disable-libstdcxx-pch'
+		'--enable-serial-configure'
 	)
 
 	#
