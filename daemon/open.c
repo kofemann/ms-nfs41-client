@@ -846,7 +846,9 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
 
     status = create_open_state(args->path, args->open_owner_id, &state);
     if (status) {
-        eprintf("create_open_state(%d) failed with %d\n",
+        eprintf("handle_open(args->path='%s'): "
+            "create_open_state(%d) failed with %d\n",
+            args->path,
             args->open_owner_id, status);
         goto out;
     }
@@ -876,7 +878,11 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
                 &state->parent, &state->path);
             if (status) {
                 /* can't do the reparse if we can't get the target */
-                eprintf("nfs41_symlink_target() failed with %d\n", status);
+                eprintf("handle_open(args->path='%s'): "
+                    "nfs41_symlink_target() "
+                    "failed with %d\n",
+                    args->path,
+                    status);
                 goto out_free_state;
             }
 
@@ -950,8 +956,10 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
                 status = nfs41_symlink_target(state->session,
                     &state->file, &args->symlink);
                 if (status) {
-                    eprintf("nfs41_symlink_target() for '%s' failed with %d\n",
-                        args->path, status);
+                    eprintf("handle_open(args->path='%s'): "
+                        "nfs41_symlink_target() failed with %d\n",
+                        args->path,
+                        status);
                 } else {
                     symlink2ntpath(&args->symlink, &args->symlinktarget_type);
                     /* tell the driver to call RxPrepareToReparseSymbolicLink() */
@@ -1008,8 +1016,11 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
         status = nfs41_create(state->session, NF4LNK, &createattrs,
             args->symlink.path, &state->parent, &state->file, &info);
         if (status) {
-            eprintf("nfs41_create() for symlink='%s' failed with '%s'\n",
-                args->symlink.path, nfs_error_string(status));
+            eprintf("handle_open(args->path='%s'): "
+                "nfs41_create() for symlink='%s' failed with '%s'\n",
+                args->path,
+                args->symlink.path,
+                nfs_error_string(status));
             status = map_symlink_errors(status);
             goto out_free_state;
         }
@@ -1149,23 +1160,31 @@ supersede_retry:
                 /* fixme: we should store the |owner_group| name in |upcall| */
                 if (!get_token_primarygroup_name(upcall->currentthread_token,
                     createchgrpattrs.owner_group)) {
-                    eprintf("handle_open(): OPEN4_CREATE: "
-                        "get_token_primarygroup_name() failed.\n");
+                    eprintf("handle_open(args->path='%s'): "
+                        "OPEN4_CREATE: "
+                        "get_token_primarygroup_name() failed.\n",
+                        args->path);
                     goto create_chgrp_out;
                 }
                 s = createchgrpattrs.owner_group+strlen(createchgrpattrs.owner_group);
                 s = stpcpy(s, "@");
                 (void)stpcpy(s, nfs41dg->localdomain_name);
-                DPRINTF(1, ("handle_open(): OPEN4_CREATE: owner_group='%s'\n",
+                DPRINTF(1, ("handle_open(state->file.name.name='%s'): "
+                    "OPEN4_CREATE: owner_group='%s'\n",
+                    state->file.name.name,
                     createchgrpattrs.owner_group));
 
                 nfs41_open_stateid_arg(state, &stateid);
                 chgrp_status = nfs41_setattr(state->session,
                     &state->file, &stateid, &createchgrpattrs);
                 if (chgrp_status) {
-                    eprintf("handle_open(): OPEN4_CREATE: "
-                        "nfs41_setattr(owner_group='%s') failed with error '%s'.\n",
-                        createchgrpattrs.owner_group, nfs_error_string(chgrp_status));
+                    eprintf("handle_open(args->path='%s'): "
+                        "OPEN4_CREATE: "
+                        "nfs41_setattr(owner_group='%s') "
+                        "failed with error '%s'.\n",
+                        args->path,
+                        createchgrpattrs.owner_group,
+                        nfs_error_string(chgrp_status));
                 }
 create_chgrp_out:
                 ;
