@@ -646,14 +646,14 @@ int handle_duplicatedata(void *daemon_context,
     duplicatedata_upcall_args *args = &upcall->args.duplicatedata;
     nfs41_open_state *src_state = args->src_state;
     nfs41_open_state *dst_state = upcall->state_ref;
-    nfs41_session *session = dst_state->session;
+    nfs41_session *src_session = src_state->session;
+    nfs41_session *dst_session = dst_state->session;
+    nfs41_path_fh *src_file = &src_state->file;
     nfs41_path_fh *dst_file = &dst_state->file;
     nfs41_file_info info;
     stateid_arg src_stateid;
     stateid_arg dst_stateid;
     int64_t bytecount;
-
-    (void)memset(&info, 0, sizeof(info));
 
     DPRINTF(DDLVL,
         ("--> handle_duplicatedata("
@@ -663,23 +663,48 @@ int handle_duplicatedata(void *daemon_context,
             src_state->path.path));
 
     /* NFS SEEK supported ? */
-    if (session->client->root->supports_nfs42_seek == false) {
+    if (src_session->client->root->supports_nfs42_seek == false) {
         status = ERROR_NOT_SUPPORTED;
         goto out;
     }
     /* NFS CLONE supported ? */
-    if (session->client->root->supports_nfs42_clone == false) {
+    if (src_session->client->root->supports_nfs42_clone == false) {
         status = ERROR_NOT_SUPPORTED;
         goto out;
     }
     /* NFS DEALLOCATE supported ? */
-    if (session->client->root->supports_nfs42_deallocate == false) {
+    if (src_session->client->root->supports_nfs42_deallocate == false) {
         status = ERROR_NOT_SUPPORTED;
         goto out;
     }
 
     nfs41_open_stateid_arg(src_state, &src_stateid);
     nfs41_open_stateid_arg(dst_state, &dst_stateid);
+
+    /*
+     * Get src file fsid
+     */
+    bitmap4 src_attr_request = {
+        .count = 1,
+        .arr[0] = FATTR4_WORD0_FSID,
+    };
+    (void)memset(&info, 0, sizeof(info));
+    status = nfs41_getattr(src_session, src_file, &src_attr_request,
+        &info);
+    if (status) {
+        eprintf("handle_duplicatedata: "
+            "nfs41_getattr(src_state->path.path='%s') "
+            "failed with '%s'\n",
+            src_state->path.path,
+            nfs_error_string(status));
+        status = nfs_to_windows_error(status, ERROR_BAD_NET_RESP);
+        goto out;
+    }
+
+    EASSERT(bitmap_isset(&info.attrmask, 0, FATTR4_WORD0_FSID));
+
+    nfs41_fsid src_file_fsid;
+    (void)memcpy(&src_file_fsid, &info.fsid, sizeof(src_file_fsid));
 
     /*
      * Get destination file size
@@ -693,18 +718,42 @@ int handle_duplicatedata(void *daemon_context,
      * size to clamp |args->bytecount|.
      */
     int64_t dst_file_size;
-    bitmap4 attr_request = {
+    bitmap4 dst_attr_request = {
         .count = 3,
-        .arr[0] = FATTR4_WORD0_SIZE,
+        .arr[0] = FATTR4_WORD0_SIZE|FATTR4_WORD0_FSID,
         .arr[1] = 0UL,
         .arr[2] = FATTR4_WORD2_CLONE_BLKSIZE
     };
-    status = nfs41_getattr(session, dst_file, &attr_request, &info);
+    (void)memset(&info, 0, sizeof(info));
+    status = nfs41_getattr(dst_session, dst_file, &dst_attr_request,
+        &info);
     if (status) {
         eprintf("handle_duplicatedata: "
-            "nfs41_getattr() failed with '%s'\n",
+            "nfs41_getattr(dst_state->path.path='%s') "
+            "failed with '%s'\n",
+            dst_state->path.path,
             nfs_error_string(status));
         status = nfs_to_windows_error(status, ERROR_BAD_NET_RESP);
+        goto out;
+    }
+
+    EASSERT(bitmap_isset(&info.attrmask, 0, FATTR4_WORD0_FSID));
+
+    /*
+     * Check whether source and destination files are on the same
+     * filesystem
+     */
+    if (memcmp(&src_file_fsid, &info.fsid,
+        sizeof(src_file_fsid)) != 0) {
+        DPRINTF(DDLVL,
+            ("handle_duplicatedata: "
+            "src_file_fsid(major=%llu,minor=%llu) != "
+            "dst_file_fsid(major=%llu,minor=%llu)\n",
+            (unsigned long long)src_file_fsid.major,
+            (unsigned long long)src_file_fsid.minor,
+            (unsigned long long)info.fsid.major,
+            (unsigned long long)info.fsid.minor));
+        status = ERROR_NOT_SAME_DEVICE;
         goto out;
     }
 
