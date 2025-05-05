@@ -106,6 +106,7 @@ static int get_client_for_multi_addr(
     return status;
 }
 
+static
 int create_rpcsec_auth_client(
     IN uint32_t sec_flavor,
     IN char *server_name,
