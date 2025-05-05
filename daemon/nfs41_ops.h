@@ -1022,7 +1022,7 @@ typedef struct __nfs41_secinfo_args {
     const nfs41_component   *name;
 } nfs41_secinfo_args;
 
-#define MAX_SECINFOS 6
+#define MAX_SECINFOS 7
 
 /* OP_SECINFO_NO_NAME */
 enum secinfo_no_name_type {

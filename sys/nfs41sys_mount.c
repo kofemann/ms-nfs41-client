@@ -82,10 +82,12 @@ static const char *secflavorop2name(
     DWORD sec_flavor)
 {
     switch(sec_flavor) {
-    case RPCSEC_AUTH_SYS:      return "AUTH_SYS";
-    case RPCSEC_AUTHGSS_KRB5:  return "AUTHGSS_KRB5";
-    case RPCSEC_AUTHGSS_KRB5I: return "AUTHGSS_KRB5I";
-    case RPCSEC_AUTHGSS_KRB5P: return "AUTHGSS_KRB5P";
+    case RPCSEC_AUTH_UNDEFINED: return "Undefined AUTH_*";
+    case RPCSEC_AUTH_NONE:      return "AUTH_NONE";
+    case RPCSEC_AUTH_SYS:       return "AUTH_SYS";
+    case RPCSEC_AUTHGSS_KRB5:   return "AUTHGSS_KRB5";
+    case RPCSEC_AUTHGSS_KRB5I:  return "AUTHGSS_KRB5I";
+    case RPCSEC_AUTHGSS_KRB5P:  return "AUTHGSS_KRB5P";
     }
 
     return "UNKNOWN FLAVOR";
@@ -673,7 +675,9 @@ NTSTATUS map_sec_flavor(
     IN PUNICODE_STRING sec_flavor_name,
     OUT PDWORD sec_flavor)
 {
-    if (RtlCompareUnicodeString(sec_flavor_name, &AUTH_SYS_NAME, FALSE) == 0)
+    if (RtlCompareUnicodeString(sec_flavor_name, &AUTH_NONE_NAME, FALSE) == 0)
+        *sec_flavor = RPCSEC_AUTH_NONE;
+    else if (RtlCompareUnicodeString(sec_flavor_name, &AUTH_SYS_NAME, FALSE) == 0)
         *sec_flavor = RPCSEC_AUTH_SYS;
     else if (RtlCompareUnicodeString(sec_flavor_name, &AUTHGSS_KRB5_NAME, FALSE) == 0)
         *sec_flavor = RPCSEC_AUTHGSS_KRB5;
@@ -1100,6 +1104,11 @@ NTSTATUS nfs41_CreateVNetRoot(
 #endif
                 found_existing_mount = TRUE;
                 switch(pVNetRootContext->sec_flavor) {
+                case RPCSEC_AUTH_NONE:
+                    if (existing_mount->authnone_session != INVALID_HANDLE_VALUE)
+                        pVNetRootContext->session =
+                            existing_mount->authnone_session;
+                    break;
                 case RPCSEC_AUTH_SYS:
                     if (existing_mount->authsys_session != INVALID_HANDLE_VALUE)
                         pVNetRootContext->session =
@@ -1158,9 +1167,12 @@ NTSTATUS nfs41_CreateVNetRoot(
             status = STATUS_INSUFFICIENT_RESOURCES;
             goto out_free;
         }
-        entry->authsys_session = entry->gss_session =
-            entry->gssi_session = entry->gssp_session = INVALID_HANDLE_VALUE;
+        entry->authnone_session = entry->authsys_session =
+            entry->gss_session = entry->gssi_session =
+            entry->gssp_session = INVALID_HANDLE_VALUE;
         switch (pVNetRootContext->sec_flavor) {
+        case RPCSEC_AUTH_NONE:
+            entry->authnone_session = pVNetRootContext->session; break;
         case RPCSEC_AUTH_SYS:
             entry->authsys_session = pVNetRootContext->session; break;
         case RPCSEC_AUTHGSS_KRB5:
@@ -1186,6 +1198,8 @@ NTSTATUS nfs41_CreateVNetRoot(
             (int)pVNetRootContext->sec_flavor);
 #endif
         switch (pVNetRootContext->sec_flavor) {
+        case RPCSEC_AUTH_NONE:
+            existing_mount->authnone_session = pVNetRootContext->session; break;
         case RPCSEC_AUTH_SYS:
             existing_mount->authsys_session = pVNetRootContext->session; break;
         case RPCSEC_AUTHGSS_KRB5:
@@ -1348,6 +1362,12 @@ NTSTATUS nfs41_FinalizeNetRoot(
             (long)mount_tmp->login_id.HighPart,
             (long)mount_tmp->login_id.LowPart);
 #endif
+        if (mount_tmp->authnone_session != INVALID_HANDLE_VALUE) {
+            status = nfs41_unmount(mount_tmp->authnone_session,
+                pNetRootContext->nfs41d_version, UPCALL_TIMEOUT_DEFAULT);
+            if (status)
+                print_error("nfs41_unmount AUTH_NONE failed with %d\n", status);
+        }
         if (mount_tmp->authsys_session != INVALID_HANDLE_VALUE) {
             status = nfs41_unmount(mount_tmp->authsys_session,
                 pNetRootContext->nfs41d_version, UPCALL_TIMEOUT_DEFAULT);

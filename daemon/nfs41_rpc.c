@@ -1,5 +1,6 @@
 /* NFSv4.1 client for Windows
- * Copyright © 2012 The Regents of the University of Michigan
+ * Copyright (C) 2012 The Regents of the University of Michigan
+ * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -25,7 +26,8 @@
 #include "daemon_debug.h"
 #include "nfs41_xdr.h"
 #include "nfs41_callback.h"
-#include "nfs41_driver.h" /* for AUTH_SYS, AUTHGSS_KRB5s defines */
+/* for AUTH_NONE, AUTH_SYS, AUTHGSS_KRB5s defines */
+#include "nfs41_driver.h"
 
 #include "rpc/rpc.h"
 #define SECURITY_WIN32
@@ -191,7 +193,15 @@ int nfs41_rpc_clnt_create(
     }
 
     rpc->sec_flavor = sec_flavor;
-    if (sec_flavor == RPCSEC_AUTH_SYS) {
+    if (sec_flavor == RPCSEC_AUTH_NONE) {
+        client->cl_auth = authnone_create();
+        if (client->cl_auth == NULL) {
+            eprintf("nfs41_rpc_clnt_create: failed to create rpc authnone\n");
+            status = ERROR_NETWORK_UNREACHABLE;
+            goto out_err_client;
+        }
+    }
+    else if (sec_flavor == RPCSEC_AUTH_SYS) {
         gid_t aup_gids[RPC_AUTHUNIX_AUP_MAX_NUM_GIDS];
         int num_aup_gids = 0;
 
@@ -218,6 +228,10 @@ int nfs41_rpc_clnt_create(
             goto out_err_client;
         }
     } else {
+        /*
+         * FIXME: We should test for |RPCSEC_GSS|, and the |else|
+         * branch should return an error
+         */
         status = create_rpcsec_auth_client(sec_flavor, rpc->server_name, client);
         if (status) {
             eprintf("nfs41_rpc_clnt_create: failed to establish security "
@@ -306,8 +320,10 @@ static int rpc_reconnect(
     if (status)
         goto out_unlock;
 
-    if(rpc->sec_flavor == RPCSEC_AUTH_SYS)
+    if((rpc->sec_flavor == RPCSEC_AUTH_NONE) ||
+        (rpc->sec_flavor == RPCSEC_AUTH_SYS)) {
         client->cl_auth = rpc->rpc->cl_auth;
+    }
     else {
         auth_destroy(rpc->rpc->cl_auth);
         status = create_rpcsec_auth_client(rpc->sec_flavor, rpc->server_name, client);
@@ -395,10 +411,12 @@ int nfs41_send_compound(
                 goto try_again;
             }
             rpc_renew_in_progress(rpc, &one);
-            if (rpc_status == RPC_AUTHERROR && rpc->sec_flavor != RPCSEC_AUTH_SYS) {
+            if ((rpc_status == RPC_AUTHERROR) &&
+                (rpc->sec_flavor != RPCSEC_AUTH_NONE) &&
+                (rpc->sec_flavor != RPCSEC_AUTH_SYS)) {
                 AcquireSRWLockExclusive(&rpc->lock);
                 auth_destroy(rpc->rpc->cl_auth);
-                status = create_rpcsec_auth_client(rpc->sec_flavor, 
+                status = create_rpcsec_auth_client(rpc->sec_flavor,
                             rpc->server_name, rpc->rpc);
                 ReleaseSRWLockExclusive(&rpc->lock);
                 if (status) {

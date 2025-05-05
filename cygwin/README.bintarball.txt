@@ -563,6 +563,12 @@ $ mount -t drvfs '\\10.49.202.230@2049\nfs4\bigdisk' /mnt/bigdisk
   user+groups to a small script for the NFSv4 server to set-up
   these accounts on the server side.
 
+- nfs_mount -o sec=none ... # works with Solaris 11.4 nfsd, but
+  might require Linux kernel commit
+  https://git.kernel.org/pub/scm/linux/kernel/git/cel/linux.git/patch/?id=bb4f07f2409c26c01e97e6f9b432545f353e3b66
+  ("nfsd: Fix NFSD_MAY_BYPASS_GSS and NFSD_MAY_BYPASS_GSS_ON_ROOT") to
+  work.
+
 
 #
 # 11. Known issues:

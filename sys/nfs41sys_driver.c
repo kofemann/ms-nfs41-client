@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2023-2024 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -77,6 +77,7 @@
  */
 DECLARE_CONST_UNICODE_STRING(NfsPrefix, L"\\nfs4");
 DECLARE_CONST_UNICODE_STRING(PubNfsPrefix, L"\\pubnfs4");
+DECLARE_CONST_UNICODE_STRING(AUTH_NONE_NAME, L"none");
 DECLARE_CONST_UNICODE_STRING(AUTH_SYS_NAME, L"sys");
 DECLARE_CONST_UNICODE_STRING(AUTHGSS_KRB5_NAME, L"krb5");
 DECLARE_CONST_UNICODE_STRING(AUTHGSS_KRB5I_NAME, L"krb5i");

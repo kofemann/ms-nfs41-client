@@ -104,6 +104,8 @@ typedef enum _nfs41_sysop_open_symlinktarget_type {
 } nfs41_sysop_open_symlinktarget_type;
 
 enum rpcsec_flavors {
+    RPCSEC_AUTH_UNDEFINED = 0,
+    RPCSEC_AUTH_NONE,
     RPCSEC_AUTH_SYS,
     RPCSEC_AUTHGSS_KRB5,
     RPCSEC_AUTHGSS_KRB5I,

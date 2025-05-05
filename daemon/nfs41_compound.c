@@ -111,7 +111,16 @@ static int create_new_rpc_auth(nfs41_session *session, uint32_t op,
                 continue;
             }
             sec_flavor = secinfo[i].type;
-        } else {
+        }
+        else if (secinfo[i].sec_flavor == AUTH_NONE) {
+            auth = authnone_create();
+            if (auth == NULL) {
+                eprintf("create_new_rpc_auth: authnone_create failed\n");
+                continue;
+            }
+            sec_flavor = AUTH_NONE;
+        }
+        else if (secinfo[i].sec_flavor == AUTH_SYS) {
             char machname[MAXHOSTNAMELEN + 1];
             gid_t aup_gids[RPC_AUTHUNIX_AUP_MAX_NUM_GIDS];
             int num_aup_gids = 0;
@@ -138,6 +147,14 @@ static int create_new_rpc_auth(nfs41_session *session, uint32_t op,
             }
             sec_flavor = AUTH_SYS;
         }
+        else {
+            eprintf("create_new_rpc_auth: "
+                "Unknown secinfo[i(=%d)].sec_flavor=%ld",
+                i,
+                (long)secinfo[i].sec_flavor);
+            continue;
+        }
+
         AcquireSRWLockExclusive(&session->client->rpc->lock);
         session->client->rpc->sec_flavor = sec_flavor;
         session->client->rpc->rpc->cl_auth = auth;

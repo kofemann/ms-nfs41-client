@@ -1,5 +1,6 @@
 /* NFSv4.1 client for Windows
- * Copyright © 2012 The Regents of the University of Michigan
+ * Copyright (C) 2012 The Regents of the University of Michigan
+ * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -134,7 +135,8 @@ void PrintMountUsage(LPWSTR pProcess)
             "\t\tsuitable version with the server, trying version 4.2 and then 4.1\n"
         "\trsize=#\tread buffer size in bytes\n"
         "\twsize=#\twrite buffer size in bytes\n"
-        "\tsec=sys:krb5:krb5i:krb5p\tspecify (gss) security flavor\n"
+        "\tsec=none:sys:krb5:krb5i:krb5p\tspecify (gss) security flavor "
+            "(defaults to 'sys')\n"
         "\twritethru\tturns off rdbss caching for writes\n"
         "\tnowritethru\tturns on rdbss caching for writes (default)\n"
         "\tcache\tturns on rdbss caching (default)\n"
