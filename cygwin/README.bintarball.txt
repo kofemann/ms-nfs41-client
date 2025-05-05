@@ -90,6 +90,22 @@ NFSv4.2/NFSv4.1 filesystem driver for Windows 10/11&Windows Server 2019+2022
       Requires on Win11 >= 22H2 because it relies on |CopyFile2()|
       flag |COPY_FILE_ENABLE_SPARSE_COPY|.
 
+- Block cloning support
+    - Implmenented via Win32 |FSCTL_DUPLICATE_EXTENTS_TO_FILE| to
+      clone file blocks from src to dst within the same
+      filesystem.
+    - Requires NFSv4.2 server which supports the NFSv4.2
+      operations "CLONE", "DEALLOCATE", "SEEK", and exports
+      a filesystem which supports block cloning (e.g. Linux BTRFS+XFS,
+      but NOT Linux tmpfs)
+    - Sparse files are correctly cloned, including all hole and data
+      ranges
+    - /usr/bin/winclonefile.exe can be used to clone a file
+    - Windows 11 |CopyFile2()| API uses
+      |FSCTL_DUPLICATE_EXTENTS_TO_FILE| by default
+    - Windows 11 tools like xcopy.exe, robocopy etc. all use
+      |CopyFile2()|, and therefore file cloning by default
+
 - Symlink reparse and translation support
     - Translates Win32/NT symlink syntax (e.g.
       $ mklink /D ... Y:\tmp\ #) to NFS/POSIX syntax (e.g.
