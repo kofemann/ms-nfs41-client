@@ -103,11 +103,13 @@ static int create_new_rpc_auth(nfs41_session *session, uint32_t op,
         if (!secinfo[i].sec_flavor && !secinfo[i].type)
             goto out;
         if (secinfo[i].sec_flavor == RPCSEC_GSS) {
-            auth = authsspi_create_default(session->client->rpc->rpc, 
+            auth = authsspi_create_default(session->client->rpc->rpc,
                         session->client->rpc->server_name, secinfo[i].type);
             if (auth == NULL) {
-                eprintf("handle_wrongsecinfo_noname: authsspi_create_default for "
-                        "gsstype %s failed\n", gssauth_string(secinfo[i].type));
+                eprintf("create_new_rpc_auth: "
+                    "authsspi_create_default for "
+                    "gsstype %s failed\n",
+                    gssauth_string(secinfo[i].type));
                 continue;
             }
             sec_flavor = secinfo[i].type;
@@ -115,7 +117,8 @@ static int create_new_rpc_auth(nfs41_session *session, uint32_t op,
         else if (secinfo[i].sec_flavor == AUTH_NONE) {
             auth = authnone_create();
             if (auth == NULL) {
-                eprintf("create_new_rpc_auth: authnone_create failed\n");
+                eprintf("create_new_rpc_auth: "
+                    "authnone_create failed\n");
                 continue;
             }
             sec_flavor = AUTH_NONE;
@@ -133,7 +136,7 @@ static int create_new_rpc_auth(nfs41_session *session, uint32_t op,
             }
 
             if (gethostname(machname, sizeof(machname)) == -1) {
-                eprintf("nfs41_rpc_clnt_create: gethostname failed\n");
+                eprintf("create_new_rpc_auth: gethostname failed\n");
                 continue;
             }
             machname[sizeof(machname) - 1] = '\0';
@@ -142,7 +145,8 @@ static int create_new_rpc_auth(nfs41_session *session, uint32_t op,
                 session->client->rpc->gid,
                 num_aup_gids, aup_gids);
             if (auth == NULL) {
-                eprintf("handle_wrongsecinfo_noname: authsys_create failed\n");
+                eprintf("create_new_rpc_auth: "
+                    "authsys_create failed\n");
                 continue;
             }
             sec_flavor = AUTH_SYS;
@@ -197,15 +201,18 @@ retry:
         if (seq->sr_status == NFS4_OK) {
             // returned slotid must be the same we sent
             if (seq->sr_resok4.sr_slotid != args->sa_slotid) {
-                eprintf("[session] sr_slotid=%d != sa_slotid=%d\n",
-                    seq->sr_resok4.sr_slotid, args->sa_slotid);
+                eprintf("compound_encode_send_decode: "
+                    "[session] sr_slotid=%d != sa_slotid=%d\n",
+                    seq->sr_resok4.sr_slotid,
+                    args->sa_slotid);
                 status = NFS4ERR_IO;
                 goto out_free_slot;
             }
             // returned sessionid must be the same we sent
             if (memcmp(seq->sr_resok4.sr_sessionid, args->sa_sessionid,
                     NFS4_SESSIONID_SIZE)) {
-                eprintf("[session] sr_sessionid != sa_sessionid\n");
+                eprintf("compound_encode_send_decode: "
+                    "[session] sr_sessionid != sa_sessionid\n");
                 if (DPRINTF_LEVEL_ENABLED(1)) {
                     print_hexbuf("sr_sessionid",
                         seq->sr_resok4.sr_sessionid, NFS4_SESSIONID_SIZE);
@@ -229,8 +236,11 @@ retry:
     }
 
     if (status) {
-        eprintf("nfs41_send_compound failed %d for seqid=%d, slotid=%d\n", 
-            status, args->sa_sequenceid, args->sa_slotid);
+        eprintf("compound_encode_send_decode: "
+            "nfs41_send_compound failed %d for seqid=%d, slotid=%d\n",
+            status,
+            args->sa_sequenceid,
+            args->sa_slotid);
         status = NFS4ERR_IO;
         goto out_free_slot;
     }
@@ -253,7 +263,9 @@ retry:
 
         nfs41_recovery_finish(session->client);
         if (status) {
-            eprintf("nfs41_client_renew() failed with %d\n", status);
+            eprintf("compound_encode_send_decode: "
+                "nfs41_client_renew() failed with %d\n",
+                status);
             status = ERROR_BAD_NET_RESP;
             goto out;
         }
@@ -277,7 +289,9 @@ retry:
 
         nfs41_recovery_finish(session->client);
         if (status) {
-            eprintf("nfs41_recover_session() failed with %d\n", status);
+            eprintf("compound_encode_send_decode: "
+                "nfs41_recover_session() failed with %d\n",
+                status);
             status = ERROR_BAD_NET_RESP;
             goto out;
         }
@@ -397,7 +411,8 @@ retry:
                         (argarray[1].op == OP_PUTROOTFH)) &&
                         ((argarray[2].op == OP_SECINFO_NO_NAME) ||
                         (argarray[2].op == OP_SECINFO))) {
-                    eprintf("SECINFO: BROKEN SERVER\n");
+                    eprintf("compound_encode_send_decode: "
+                        "SECINFO: BROKEN SERVER\n");
                     goto out;
                 }
                 if (!try_recovery)
@@ -436,7 +451,9 @@ retry:
                     }
                     secinfo_status = nfs41_secinfo(session, file, name, secinfo);
                     if (secinfo_status) {
-                        eprintf("nfs41_secinfo failed with %d\n", secinfo_status);
+                        eprintf("compound_encode_send_decode: "
+                            "nfs41_secinfo failed with %d\n",
+                            secinfo_status);
                         nfs41_recovery_finish(session->client);
                         if (secinfo_status == NFS4ERR_BADSESSION) {
                             if (op1 == OP_SEQUENCE)
@@ -450,10 +467,11 @@ retry:
                     if (op == OP_PUTFH) {
                         putfh = (nfs41_putfh_args *)argarray[rcount-1].arg;
                         file = putfh->file;
-                    } 
+                    }
                     secinfo_status = nfs41_secinfo_noname(session, file, secinfo);
                     if (secinfo_status) {
-                        eprintf("nfs41_secinfo_noname failed with %d\n", 
+                        eprintf("compound_encode_send_decode: "
+                            "nfs41_secinfo_noname failed with %d\n",
                             secinfo_status);
                         nfs41_recovery_finish(session->client);
                         if (op1 == OP_SEQUENCE)
