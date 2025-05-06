@@ -154,7 +154,7 @@ NFSv4.2/NFSv4.1 filesystem driver for Windows 10/11&Windows Server 2019+2022
 - Windows 10 (32bit or 64bit), Windows 11 or Windows Server 2019+2022
 - Cygwin:
     - Cygwin versions:
-        - 64bit: >= 3.5.7 (or 3.6.x-devel)
+        - 64bit: >= 3.5.7, recommended >= 3.6.1
         - 32bit: >= 3.3.6
     - Packages (required):
         cygwin
