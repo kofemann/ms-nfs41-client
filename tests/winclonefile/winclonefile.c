@@ -39,10 +39,9 @@
 
 #if 1
 /*
- * MinGW include do not define |DUPLICATE_EXTENTS_DATA| yet,
- * see https://github.com/mingw-w64/mingw-w64/issues/90
- * ("[mingw-w64/mingw-w64] No |DUPLICATE_EXTENTS_DATA|/
- * |DUPLICATE_EXTENTS_DATA_EX| in MinGW includes")
+ * MinGW include do not define |DUPLICATE_EXTENTS_DATA| yet, see
+ * https://github.com/mingw-w64/mingw-w64/issues/90 ("[mingw-w64/mingw-w64]
+ * No |DUPLICATE_EXTENTS_DATA|/ |DUPLICATE_EXTENTS_DATA_EX| in MinGW includes")
  */
 typedef struct _DUPLICATE_EXTENTS_DATA {
     HANDLE FileHandle;
@@ -77,6 +76,66 @@ PrintWin32Error(const char *functionName, DWORD lasterrCode)
     LocalFree(lpMsgBuf);
 }
 
+static
+LONGLONG getFsClusterSize(HANDLE h)
+{
+    BOOL bResult;
+    FILE_STORAGE_INFO fsi = { 0 };
+    bResult = GetFileInformationByHandleEx(h,
+        FileStorageInfo, &fsi, sizeof(fsi));
+    if (!bResult)
+        return -1LL;
+
+    return fsi.PhysicalBytesPerSectorForAtomicity;
+}
+
+static
+BOOL fsctlduplicateextentstofile(HANDLE hSrc, HANDLE hDst,
+    LONGLONG srcOffset, LONGLONG dstOffset, ULONG byteCount)
+{
+    BOOL bResult;
+    DUPLICATE_EXTENTS_DATA ded = {
+        .FileHandle = hSrc,
+        .SourceFileOffset.QuadPart = srcOffset,
+        .TargetFileOffset.QuadPart = dstOffset,
+        .ByteCount.QuadPart = byteCount
+    };
+    DWORD bytesReturnedDummy = 0; /* dummy var */
+
+    bResult = DeviceIoControl(
+        hDst,
+        FSCTL_DUPLICATE_EXTENTS_TO_FILE,
+        &ded,
+        sizeof(ded),
+        NULL,
+        0,
+        &bytesReturnedDummy,
+        NULL);
+
+    return bResult;
+}
+
+static
+LONGLONG getFileSize(HANDLE h)
+{
+    BOOL bResult;
+    LARGE_INTEGER fileSize = { .QuadPart = 0LL };
+    bResult = GetFileSizeEx(h, &fileSize);
+    if (!bResult)
+        return -1LL;
+
+    return fileSize.QuadPart;
+}
+
+
+static
+void print_usage(const char *av0)
+{
+    (void)fprintf(stderr,
+        "Usage: %s [--clonechunksize <numbytes>] <infile> <outfile>\n",
+        av0);
+}
+
 int
 main(int ac, char *av[])
 {
@@ -85,27 +144,42 @@ main(int ac, char *av[])
     HANDLE hSrc = INVALID_HANDLE_VALUE;
     HANDLE hDst = INVALID_HANDLE_VALUE;
     BOOL bResult = FALSE;
-    LARGE_INTEGER fileSize = { .QuadPart = 0LL };
-    DUPLICATE_EXTENTS_DATA ded = {
-        .FileHandle = INVALID_HANDLE_VALUE,
-        .SourceFileOffset.QuadPart = 0LL,
-        .TargetFileOffset.QuadPart = 0LL,
-        .ByteCount.QuadPart = 0LL
-    };
-    DWORD bytesReturnedDummy = 0; /* dummy var */
+    LONGLONG fileSize;
+    LONGLONG maxCloneChunkSize =
+        1024LL*1024LL*1024LL*1024LL*1024LL; /* 1PB */
 
-    if (ac != 3) {
-        (void)fprintf(stderr, "Usage: %s <infile> <outfile>\n", av[0]);
+    if (ac == 3) {
+        srcFileName = av[1];
+        dstFileName = av[2];
+    }
+    else if (ac == 5) {
+        if (strcmp(av[1], "--clonechunksize") != 0) {
+            print_usage(av[0]);
+            return (EXIT_USAGE);
+        }
+
+        maxCloneChunkSize = atoll(av[2]);
+        srcFileName = av[3];
+        dstFileName = av[4];
+    }
+    else {
+        print_usage(av[0]);
         return (EXIT_USAGE);
     }
 
-    srcFileName = av[1];
-    dstFileName = av[2];
-
-    (void)printf("# Attempting to clone existing file '%s' to '%s' "
-        "using FSCTL_DUPLICATE_EXTENTS_TO_FILE...\n",
-        srcFileName,
-        dstFileName);
+    if (ac == 3) {
+        (void)printf("# Attempting to clone existing file '%s' to '%s' using "
+            "FSCTL_DUPLICATE_EXTENTS_TO_FILE...\n",
+            srcFileName,
+            dstFileName);
+    }
+    else if (ac == 5) {
+        (void)printf("# Attempting to clone existing file '%s' to '%s' in "
+            "%lld byte chunks using FSCTL_DUPLICATE_EXTENTS_TO_FILE...\n",
+            srcFileName,
+            dstFileName,
+            maxCloneChunkSize);
+    }
 
     hSrc = CreateFileA(
         srcFileName,
@@ -124,36 +198,31 @@ main(int ac, char *av[])
     (void)printf("# Successfully opened existing source file '%s'.\n",
         srcFileName);
 
-    bResult = GetFileSizeEx(hSrc, &fileSize);
-    if (!bResult) {
+    fileSize = getFileSize(hSrc);
+    if (fileSize < 0LL) {
         PrintWin32Error("GetFileSizeEx",
             GetLastError());
         goto cleanup;
     }
 
-    if (fileSize.QuadPart == 0LL) {
-        (void)fprintf(stderr,
-            "# [NOTE] Source file '%s' is empty, "
-            "cloning will result in an empty file.\n",
+    if (fileSize == 0LL) {
+        (void)printf("# [NOTE] Source file '%s' is empty, cloning "
+            "will result in an empty file.\n",
             srcFileName);
     }
 
     (void)printf("Source file size: %lld bytes.\n",
-        fileSize.QuadPart);
+        fileSize);
 
     /* Get cluster size */
-    FILE_STORAGE_INFO fsi = { 0 };
-    bResult = GetFileInformationByHandleEx(hSrc,
-        FileStorageInfo, &fsi, sizeof(fsi));
-    if (!bResult) {
+    long long srcClusterSize =
+        getFsClusterSize(hSrc);
+    if (srcClusterSize < 0) {
         PrintWin32Error("FileStorageInfo",
             GetLastError());
         goto cleanup;
     }
-
-    unsigned long long srcClusterSize =
-        fsi.PhysicalBytesPerSectorForAtomicity;
-    (void)printf("src file cluster size=%llu\n", srcClusterSize);
+    (void)printf("src file cluster size=%lld\n", srcClusterSize);
 
     hDst = CreateFileA(
         dstFileName,
@@ -170,14 +239,18 @@ main(int ac, char *av[])
         goto cleanup;
     }
 
-    if (fileSize.QuadPart > 0LL) {
-        if (!SetFilePointerEx(hDst, fileSize, NULL, FILE_BEGIN)) {
+    if (fileSize > 0LL) {
+        LARGE_INTEGER fs = { .QuadPart = fileSize };
+        if (!SetFilePointerEx(hDst, fs, NULL, FILE_BEGIN)) {
              PrintWin32Error("SetFilePointerEx (pre-allocate)",
                 GetLastError());
              goto cleanup;
         }
 
-        /* Sets the file size to the current position of the file pointer */
+        /*
+         * Sets the file size to the current position of the file
+         * pointer
+         */
         bResult = SetEndOfFile(hDst);
         if (!bResult) {
             PrintWin32Error("SetEndOfFile (pre-allocate)",
@@ -187,44 +260,42 @@ main(int ac, char *av[])
 
         /* Reset file pointer to pos 0 */
         LARGE_INTEGER currentPos = { .QuadPart = 0LL };
-        SetFilePointerEx(hDst, currentPos, NULL, FILE_BEGIN);
+        (void)SetFilePointerEx(hDst, currentPos, NULL, FILE_BEGIN);
     }
 
-    ded.FileHandle = hSrc;
-    ded.SourceFileOffset.QuadPart = 0LL;
-    ded.TargetFileOffset.QuadPart = 0LL;
-    ded.ByteCount = fileSize;
-
     /*
-     * |FSCTL_DUPLICATE_EXTENTS_TO_FILE| spec requires that the src size
-     * is rounded to the filesytem's cluster size
+     * |FSCTL_DUPLICATE_EXTENTS_TO_FILE| spec requires that the
+     * src size is rounded to the filesytem's cluster size
      *
      * FIXME: What about the size of the destination file ?
      */
-    ded.ByteCount.QuadPart =
-        (ded.ByteCount.QuadPart+srcClusterSize) & ~(srcClusterSize-1);
+    LONGLONG byteCount =
+        (fileSize+srcClusterSize) & ~(srcClusterSize-1);
 
-    (void)printf("# DeviceIoControl(FSCTL_DUPLICATE_EXTENTS_TO_FILE)\n");
+    LONGLONG cloneOffset = 0LL;
 
-    bResult = DeviceIoControl(
-        hDst,
-        FSCTL_DUPLICATE_EXTENTS_TO_FILE,
-        &ded,
-        sizeof(ded),
-        NULL,
-        0,
-        &bytesReturnedDummy,
-        NULL);
+    while(byteCount > 0) {
+        (void)printf("# FSCTL_DUPLICATE_EXTENTS_TO_FILE: cloneOffset=%lld)\n",
+            cloneOffset);
 
-    if (!bResult) {
-        PrintWin32Error("DeviceIoControl(FSCTL_DUPLICATE_EXTENTS_TO_FILE)",
-            GetLastError());
-        goto cleanup;
+        bResult = fsctlduplicateextentstofile(hSrc,
+            hDst,
+            cloneOffset,
+            cloneOffset,
+            __min(byteCount, maxCloneChunkSize));
+
+        if (!bResult) {
+            PrintWin32Error("DeviceIoControl(FSCTL_DUPLICATE_EXTENTS_TO_FILE)",
+                GetLastError());
+            goto cleanup;
+        }
+
+        byteCount -= maxCloneChunkSize;
+        cloneOffset += maxCloneChunkSize;
     }
 
     (void)printf("# Successfully cloned '%s' to '%s'!\n",
         srcFileName, dstFileName);
-
 
 cleanup:
     if ((!bResult) && (hDst != INVALID_HANDLE_VALUE)) {

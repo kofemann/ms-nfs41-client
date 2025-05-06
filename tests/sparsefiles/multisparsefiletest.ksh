@@ -186,7 +186,8 @@ function multisparsefiletest1
         rm -f \
             'sparsefile2.bin' \
             'sparsefile2_cpsparse.bin' \
-            'sparsefile2_cloned.bin'
+            'sparsefile2_cloned_full.bin' \
+            'sparsefile2_cloned_1mbchunks.bin'
         c.testlabel=''
 
         if (( c.i == 0 )) ; then
@@ -220,7 +221,14 @@ function multisparsefiletest1
 
         typeset tstmod
 
-        for tstmod in 'plainfile' 'cp_sparseauto' 'cloned' ; do
+        typeset -a tstmodlist=(
+            'plainfile'
+            'cp_sparseauto'
+            'cloned_full'
+            'cloned_1mbchunks'
+        )
+
+        for tstmod in "${tstmodlist[@]}" ; do
             printf '# Test %d '%s' generated\n' c.i "${c.testlabel}/$tstmod"
 
             case "${tstmod}" in
@@ -231,10 +239,23 @@ function multisparsefiletest1
                     /usr/bin/cp --sparse='auto' 'sparsefile2.bin' 'sparsefile2_cpsparse.bin'
                     c.stdout="$(lssparse -H 'sparsefile2_cpsparse.bin')"
                     ;;
-                'cloned')
+                'cloned_full')
                     if $test_cloning ; then
-                        winclonefile.exe 'sparsefile2.bin' 'sparsefile2_cloned.bin' 1>'/dev/null'
-                        c.stdout="$(lssparse -H 'sparsefile2_cloned.bin')"
+                        winclonefile.exe 'sparsefile2.bin' 'sparsefile2_cloned_full.bin' 1>'/dev/null'
+                        c.stdout="$(lssparse -H 'sparsefile2_cloned_full.bin')"
+                    else
+                        printf "# Test '%s' SKIPPED\n" "${c.testlabel}/${tstmod}"
+                        (( tests_skipped++ ))
+                        continue
+                    fi
+                    ;;
+                'cloned_1mbchunks')
+                    if $test_cloning ; then
+                        winclonefile.exe \
+                            --clonechunksize $((1024*1024)) \
+                            'sparsefile2.bin' \
+                            'sparsefile2_cloned_1mbchunks.bin' 1>'/dev/null'
+                        c.stdout="$(lssparse -H 'sparsefile2_cloned_1mbchunks.bin')"
                     else
                         printf "# Test '%s' SKIPPED\n" "${c.testlabel}/${tstmod}"
                         (( tests_skipped++ ))
@@ -242,7 +263,7 @@ function multisparsefiletest1
                     fi
                     ;;
                 *)
-                    printf -u2 "Unknown test mod"
+                    print -u2 -f 'Unknown test mod\n'
                     ;;
             esac
 
@@ -269,6 +290,11 @@ function multisparsefiletest1
     return 0
 }
 
+
+#
+# main
+#
+builtin rm
 builtin wc
 
 #
@@ -276,6 +302,7 @@ builtin wc
 # - Test whether filesystem supports block cloning and
 # winclonefile.exe is available
 # - variable block size
+# - verify file sizes (original vs copy/clone)
 # - tests for sparse files >= 2GB, 4GB, 16GB
 #
 typeset test_cloning=false
