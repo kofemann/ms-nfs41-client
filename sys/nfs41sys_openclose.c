@@ -252,8 +252,10 @@ NTSTATUS unmarshal_nfs41_open(
     NTSTATUS status = STATUS_SUCCESS;
 
     __try {
-        if (cur->u.Open.EaBuffer)
+        if (cur->u.Open.EaBuffer) {
             MmUnmapLockedPages(cur->u.Open.EaBuffer, cur->u.Open.EaMdl);
+            cur->u.Open.EaBuffer = NULL;
+        }
     } __except(EXCEPTION_EXECUTE_HANDLER) {
         print_error("MmUnmapLockedPages thrown exception=0x%lx\n",
             (long)GetExceptionCode());
@@ -726,6 +728,7 @@ retry_on_link:
     if (entry->u.Open.EaMdl) {
         MmUnlockPages(entry->u.Open.EaMdl);
         IoFreeMdl(entry->u.Open.EaMdl);
+        entry->u.Open.EaMdl = NULL;
     }
 
     if (status) goto out;

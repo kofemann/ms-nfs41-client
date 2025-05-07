@@ -402,6 +402,28 @@ NTSTATUS nfs41_UpcallCreate(
         ObReferenceObject(entry->psec_ctx_clienttoken);
     }
 
+    if (entry) {
+        /* Clear fields used for memory mappings */
+        switch(entry->opcode) {
+            case NFS41_SYSOP_WRITE:
+            case NFS41_SYSOP_READ:
+                entry->buf = NULL;
+                break;
+            case NFS41_SYSOP_DIR_QUERY:
+                entry->u.QueryFile.mdl_buf = NULL;
+                entry->u.QueryFile.mdl = NULL;
+                break;
+            case NFS41_SYSOP_OPEN:
+                entry->u.Open.EaBuffer = NULL;
+                entry->u.Open.EaMdl = NULL;
+                break;
+            case NFS41_SYSOP_FSCTL_QUERYALLOCATEDRANGES:
+                entry->u.QueryAllocatedRanges.Buffer = NULL;
+                entry->u.QueryAllocatedRanges.BufferMdl = NULL;
+                break;
+        }
+    }
+
     *entry_out = entry;
 out:
     return status;
@@ -411,6 +433,52 @@ void nfs41_UpcallDestroy(nfs41_updowncall_entry *entry)
 {
     if (!entry)
         return;
+
+#if defined(_DEBUG)
+    switch(entry->opcode) {
+        case NFS41_SYSOP_WRITE:
+        case NFS41_SYSOP_READ:
+            if (entry->buf) {
+                DbgP("nfs41_UpcallDestroy: NFS41_SYSOP_RW mapping leak\n");
+                MmUnmapLockedPages(entry->buf, entry->u.ReadWrite.MdlAddress);
+                entry->buf = NULL;
+            }
+            break;
+        case NFS41_SYSOP_DIR_QUERY:
+            if (entry->u.QueryFile.mdl) {
+                DbgP("nfs41_UpcallDestroy: "
+                    "NFS41_SYSOP_DIR_QUERY mapping leak\n");
+                MmUnmapLockedPages(entry->u.QueryFile.mdl_buf,
+                    entry->u.QueryFile.mdl);
+                IoFreeMdl(entry->u.QueryFile.mdl);
+                entry->u.QueryFile.mdl_buf = NULL;
+                entry->u.QueryFile.mdl = NULL;
+            }
+            break;
+        case NFS41_SYSOP_OPEN:
+            if (entry->u.Open.EaMdl) {
+                DbgP("nfs41_UpcallDestroy: NFS41_SYSOP_OPEN mapping leak\n");
+                MmUnmapLockedPages(entry->u.Open.EaBuffer,
+                    entry->u.Open.EaMdl);
+                IoFreeMdl(entry->u.Open.EaMdl);
+                entry->u.Open.EaBuffer = NULL;
+                entry->u.Open.EaMdl = NULL;
+            }
+            break;
+        case NFS41_SYSOP_FSCTL_QUERYALLOCATEDRANGES:
+            if (entry->u.QueryAllocatedRanges.BufferMdl) {
+                DbgP("nfs41_UpcallDestroy: "
+                    "NFS41_SYSOP_FSCTL_QUERYALLOCATEDRANGES mapping leak\n");
+                MmUnmapLockedPages(
+                    entry->u.QueryAllocatedRanges.Buffer,
+                    entry->u.QueryAllocatedRanges.BufferMdl);
+                IoFreeMdl(entry->u.QueryAllocatedRanges.BufferMdl);
+                entry->u.QueryAllocatedRanges.Buffer = NULL;
+                entry->u.QueryAllocatedRanges.BufferMdl = NULL;
+            }
+            break;
+    }
+#endif /* _DEBUG */
 
     if (entry->psec_ctx_clienttoken) {
         ObDereferenceObject(entry->psec_ctx_clienttoken);
@@ -596,18 +664,27 @@ NTSTATUS nfs41_downcall(
         switch(cur->opcode) {
         case NFS41_SYSOP_WRITE:
         case NFS41_SYSOP_READ:
-            MmUnmapLockedPages(cur->buf, cur->u.ReadWrite.MdlAddress);
+            if (cur->buf) {
+                MmUnmapLockedPages(cur->buf, cur->u.ReadWrite.MdlAddress);
+                cur->buf = NULL;
+            }
             break;
         case NFS41_SYSOP_DIR_QUERY:
-            MmUnmapLockedPages(cur->u.QueryFile.mdl_buf,
+            if (cur->u.QueryFile.mdl) {
+                MmUnmapLockedPages(cur->u.QueryFile.mdl_buf,
                     cur->u.QueryFile.mdl);
-            IoFreeMdl(cur->u.QueryFile.mdl);
+                IoFreeMdl(cur->u.QueryFile.mdl);
+                cur->u.QueryFile.mdl_buf = NULL;
+                cur->u.QueryFile.mdl = NULL;
+            }
             break;
         case NFS41_SYSOP_OPEN:
             if (cur->u.Open.EaMdl) {
                 MmUnmapLockedPages(cur->u.Open.EaBuffer,
-                        cur->u.Open.EaMdl);
+                    cur->u.Open.EaMdl);
                 IoFreeMdl(cur->u.Open.EaMdl);
+                cur->u.Open.EaBuffer = NULL;
+                cur->u.Open.EaMdl = NULL;
             }
             break;
         case NFS41_SYSOP_FSCTL_QUERYALLOCATEDRANGES:
@@ -616,6 +693,7 @@ NTSTATUS nfs41_downcall(
                     cur->u.QueryAllocatedRanges.Buffer,
                     cur->u.QueryAllocatedRanges.BufferMdl);
                 IoFreeMdl(cur->u.QueryAllocatedRanges.BufferMdl);
+                cur->u.QueryAllocatedRanges.Buffer = NULL;
                 cur->u.QueryAllocatedRanges.BufferMdl = NULL;
             }
             break;

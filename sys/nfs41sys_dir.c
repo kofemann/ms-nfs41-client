@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2023-2024 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -149,6 +149,7 @@ NTSTATUS unmarshal_nfs41_dirquery(
     *buf += sizeof(ULONG);
     __try {
         MmUnmapLockedPages(cur->u.QueryFile.mdl_buf, cur->u.QueryFile.mdl);
+        cur->u.QueryFile.mdl_buf = NULL;
     } __except(EXCEPTION_EXECUTE_HANDLER) {
         NTSTATUS code;
         code = GetExceptionCode();
@@ -317,6 +318,7 @@ NTSTATUS nfs41_QueryDirectory(
         status = map_querydir_errors(entry->status);
     }
     IoFreeMdl(entry->u.QueryFile.mdl);
+    entry->u.QueryFile.mdl = NULL;
     nfs41_UpcallDestroy(entry);
 out:
 #ifdef ENABLE_TIMINGS

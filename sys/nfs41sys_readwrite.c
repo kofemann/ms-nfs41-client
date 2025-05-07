@@ -179,7 +179,10 @@ NTSTATUS unmarshal_nfs41_rw(
         * is already locked.
         */
     __try {
-        MmUnmapLockedPages(cur->buf, cur->u.ReadWrite.MdlAddress);
+        if (cur->buf) {
+            MmUnmapLockedPages(cur->buf, cur->u.ReadWrite.MdlAddress);
+            cur->buf = NULL;
+        }
     } __except(EXCEPTION_EXECUTE_HANDLER) {
         NTSTATUS code;
         code = GetExceptionCode();

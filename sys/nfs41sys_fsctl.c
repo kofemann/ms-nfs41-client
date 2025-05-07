@@ -317,10 +317,12 @@ NTSTATUS unmarshal_nfs41_queryallocatedranges(
     NTSTATUS status = STATUS_SUCCESS;
 
     __try {
-        if (cur->u.QueryAllocatedRanges.Buffer)
+        if (cur->u.QueryAllocatedRanges.Buffer) {
             MmUnmapLockedPages(
                 cur->u.QueryAllocatedRanges.Buffer,
                 cur->u.QueryAllocatedRanges.BufferMdl);
+            cur->u.QueryAllocatedRanges.Buffer = NULL;
+        }
     } __except(EXCEPTION_EXECUTE_HANDLER) {
         print_error("unmarshal_nfs41_queryallocatedranges: "
             "MmUnmapLockedPages thrown exception=0x%lx\n",
