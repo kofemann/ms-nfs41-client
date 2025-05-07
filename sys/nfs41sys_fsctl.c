@@ -193,6 +193,7 @@ NTSTATUS nfs41_QueryAllocatedRanges(
     status = nfs41_UpcallWaitForReply(entry, pVNetRootContext->timeout);
     if (status) {
         /* Timeout - |nfs41_downcall()| will free |entry|+contents */
+        entry = NULL;
         goto out;
     }
 
@@ -512,6 +513,7 @@ NTSTATUS nfs41_SetZeroData(
     status = nfs41_UpcallWaitForReply(entry, pVNetRootContext->timeout);
     if (status) {
         /* Timeout - |nfs41_downcall()| will free |entry|+contents */
+        entry = NULL;
         goto out;
     }
 
@@ -740,9 +742,9 @@ NTSTATUS nfs41_DuplicateData(
         duplicatedatabuffer->ByteCount.QuadPart;
 
     status = nfs41_UpcallWaitForReply(entry, pVNetRootContext->timeout);
-
     if (status) {
         /* Timeout - |nfs41_downcall()| will free |entry|+contents */
+        entry = NULL;
         goto out;
     }
 

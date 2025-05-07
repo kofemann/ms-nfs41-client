@@ -266,7 +266,11 @@ NTSTATUS nfs41_QuerySecurityInformation(
     entry->buf_len = RxContext->CurrentIrpSp->Parameters.QuerySecurity.Length;
 
     status = nfs41_UpcallWaitForReply(entry, pVNetRootContext->timeout);
-    if (status) goto out;
+    if (status) {
+        /* Timeout - |nfs41_downcall()| will free |entry|+contents */
+        entry = NULL;
+        goto out;
+    }
 
     if (entry->status == STATUS_BUFFER_TOO_SMALL) {
 #ifdef DEBUG_ACL_QUERY
@@ -406,7 +410,11 @@ NTSTATUS nfs41_SetSecurityInformation(
 #endif
 
     status = nfs41_UpcallWaitForReply(entry, pVNetRootContext->timeout);
-    if (status) goto out;
+    if (status) {
+        /* Timeout - |nfs41_downcall()| will free |entry|+contents */
+        entry = NULL;
+        goto out;
+    }
 
     status = map_query_acl_error(entry->status);
     if (!status) {

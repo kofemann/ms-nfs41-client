@@ -409,7 +409,11 @@ NTSTATUS nfs41_SetSymlinkReparsePoint(
     entry->u.Symlink.target = &TargetName;
 
     status = nfs41_UpcallWaitForReply(entry, VNetRootContext->timeout);
-    if (status) goto out;
+    if (status) {
+        /* Timeout - |nfs41_downcall()| will free |entry|+contents */
+        entry = NULL;
+        goto out;
+    }
 
     status = map_symlink_errors(entry->status);
 out:
@@ -588,7 +592,11 @@ NTSTATUS nfs41_GetSymlinkReparsePoint(
     entry->u.Symlink.target = &TargetName;
 
     status = nfs41_UpcallWaitForReply(entry, VNetRootContext->timeout);
-    if (status) goto out;
+    if (status) {
+        /* Timeout - |nfs41_downcall()| will free |entry|+contents */
+        entry = NULL;
+        goto out;
+    }
 
     status = map_symlink_errors(entry->status);
     if (status == STATUS_SUCCESS) {

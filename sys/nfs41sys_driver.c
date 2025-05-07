@@ -321,7 +321,11 @@ NTSTATUS nfs41_shutdown_daemon(
         SeDeleteClientSecurity(entry->psec_ctx);
     }
     entry->psec_ctx = NULL;
-    if (status) goto out;
+    if (status) {
+        /* Timeout - |nfs41_downcall()| will free |entry|+contents */
+        entry = NULL;
+        goto out;
+    }
 
     nfs41_UpcallDestroy(entry);
 out:

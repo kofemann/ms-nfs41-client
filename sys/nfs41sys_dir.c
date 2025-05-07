@@ -294,7 +294,11 @@ NTSTATUS nfs41_QueryDirectory(
 
     MmUnlockPages(entry->u.QueryFile.mdl);
 
-    if (status) goto out;
+    if (status) {
+        /* Timeout - |nfs41_downcall()| will free |entry|+contents */
+        entry = NULL;
+        goto out;
+    }
 
     if (entry->status == STATUS_BUFFER_TOO_SMALL) {
         DbgP("nfs41_QueryDirectory: buffer too small provided %d need %lu\n",

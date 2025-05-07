@@ -401,8 +401,8 @@ NTSTATUS nfs41_QueryFileInformation(
 
     status = nfs41_UpcallWaitForReply(entry, pVNetRootContext->timeout);
     if (status) {
-        print_error("nfs41_UpcallWaitForReply() failed, status=0x%lx\n",
-            (long)status);
+        /* Timeout - |nfs41_downcall()| will free |entry|+contents */
+        entry = NULL;
         goto out;
     }
 
@@ -743,7 +743,11 @@ NTSTATUS nfs41_SetFileInformation(
 #endif
 
     status = nfs41_UpcallWaitForReply(entry, pVNetRootContext->timeout);
-    if (status) goto out;
+    if (status) {
+        /* Timeout - |nfs41_downcall()| will free |entry|+contents */
+        entry = NULL;
+        goto out;
+    }
 
     status = map_setfile_error(entry->status);
     if (!status) {

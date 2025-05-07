@@ -731,7 +731,11 @@ retry_on_link:
         entry->u.Open.EaMdl = NULL;
     }
 
-    if (status) goto out;
+    if (status) {
+        /* Timeout - |nfs41_downcall()| will free |entry|+contents */
+        entry = NULL;
+        goto out;
+    }
 
     if (entry->status == NO_ERROR && entry->errno == ERROR_REPARSE) {
         /* symbolic link handling. when attempting to open a symlink when the
@@ -1164,7 +1168,11 @@ NTSTATUS nfs41_CloseSrvOpen(
         entry->u.Close.renamed = nfs41_fcb->Renamed;
 
     status = nfs41_UpcallWaitForReply(entry, pVNetRootContext->timeout);
-    if (status) goto out;
+    if (status) {
+        /* Timeout - |nfs41_downcall()| will free |entry|+contents */
+        entry = NULL;
+        goto out;
+    }
 
     /* map windows ERRORs to NTSTATUS */
     status = map_close_errors(entry->status);

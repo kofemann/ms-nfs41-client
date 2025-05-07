@@ -380,7 +380,11 @@ NTSTATUS nfs41_SetEaInformation(
     entry->buf_len = buflen;
 
     status = nfs41_UpcallWaitForReply(entry, pVNetRootContext->timeout);
-    if (status) goto out;
+    if (status) {
+        /* Timeout - |nfs41_downcall()| will free |entry|+contents */
+        entry = NULL;
+        goto out;
+    }
 #ifdef ENABLE_TIMINGS
     if (entry->status == STATUS_SUCCESS) {
         InterlockedIncrement(&setexattr.sops);
@@ -483,7 +487,11 @@ NTSTATUS QueryCygwinSymlink(
     entry->u.Symlink.target = &TargetName;
 
     status = nfs41_UpcallWaitForReply(entry, VNetRootContext->timeout);
-    if (status) goto out;
+    if (status) {
+        /* Timeout - |nfs41_downcall()| will free |entry|+contents */
+        entry = NULL;
+        goto out;
+    }
 
     status = map_setea_error(entry->status);
     if (status == STATUS_SUCCESS) {
@@ -639,7 +647,11 @@ NTSTATUS nfs41_QueryEaInformation(
     entry->u.QueryEa.ReturnSingleEntry = RxContext->QueryEa.ReturnSingleEntry;
 
     status = nfs41_UpcallWaitForReply(entry, pVNetRootContext->timeout);
-    if (status) goto out;
+    if (status) {
+        /* Timeout - |nfs41_downcall()| will free |entry|+contents */
+        entry = NULL;
+        goto out;
+    }
 
     if (entry->status == STATUS_SUCCESS) {
         switch (entry->u.QueryEa.Overflow) {

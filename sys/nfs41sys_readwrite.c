@@ -271,7 +271,11 @@ NTSTATUS nfs41_Read(
     io_delay = pVNetRootContext->timeout +
         EXTRA_TIMEOUT_PER_BYTE(entry->buf_len);
     status = nfs41_UpcallWaitForReply(entry, io_delay);
-    if (status) goto out;
+    if (status) {
+        /* Timeout - |nfs41_downcall()| will free |entry|+contents */
+        entry = NULL;
+        goto out;
+    }
 
     if (async) {
 #ifdef DEBUG_READ
@@ -389,7 +393,11 @@ NTSTATUS nfs41_Write(
     io_delay = pVNetRootContext->timeout +
         EXTRA_TIMEOUT_PER_BYTE(entry->buf_len);
     status = nfs41_UpcallWaitForReply(entry, io_delay);
-    if (status) goto out;
+    if (status) {
+        /* Timeout - |nfs41_downcall()| will free |entry|+contents */
+        entry = NULL;
+        goto out;
+    }
 
     if (async) {
 #ifdef DEBUG_WRITE

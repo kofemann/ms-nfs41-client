@@ -277,7 +277,11 @@ NTSTATUS nfs41_mount(
         SeDeleteClientSecurity(entry->psec_ctx);
     }
     entry->psec_ctx = NULL;
-    if (status) goto out;
+    if (status) {
+        /* Timeout - |nfs41_downcall()| will free |entry|+contents */
+        entry = NULL;
+        goto out;
+    }
     *session = entry->session;
     if (entry->u.Mount.lease_time > config->timeout)
         config->timeout = entry->u.Mount.lease_time;

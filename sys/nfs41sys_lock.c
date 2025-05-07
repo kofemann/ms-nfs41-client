@@ -311,7 +311,11 @@ NTSTATUS nfs41_Lock(
 
 retry_upcall:
     status = nfs41_UpcallWaitForReply(entry, pVNetRootContext->timeout);
-    if (status) goto out;
+    if (status) {
+        /* Timeout - |nfs41_downcall()| will free |entry|+contents */
+        entry = NULL;
+        goto out;
+    }
 
     /* blocking locks keep trying until it succeeds */
     if (entry->status == ERROR_LOCK_FAILED && entry->u.Lock.blocking) {
@@ -436,7 +440,11 @@ NTSTATUS nfs41_Unlock(
     }
 
     status = nfs41_UpcallWaitForReply(entry, pVNetRootContext->timeout);
-    if (status) goto out;
+    if (status) {
+        /* Timeout - |nfs41_downcall()| will free |entry|+contents */
+        entry = NULL;
+        goto out;
+    }
 
     status = map_lock_errors(entry->status);
     RxContext->CurrentIrp->IoStatus.Status = status;

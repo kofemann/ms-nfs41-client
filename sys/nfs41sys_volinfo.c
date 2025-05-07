@@ -249,7 +249,11 @@ NTSTATUS nfs41_QueryVolumeInformation(
     entry->buf_len = RxContext->Info.LengthRemaining;
 
     status = nfs41_UpcallWaitForReply(entry, pVNetRootContext->timeout);
-    if (status) goto out;
+    if (status) {
+        /* Timeout - |nfs41_downcall()| will free |entry|+contents */
+        entry = NULL;
+        goto out;
+    }
 
     if (entry->status == STATUS_BUFFER_TOO_SMALL) {
         RxContext->InformationToReturn = entry->buf_len;
