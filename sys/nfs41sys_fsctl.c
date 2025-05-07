@@ -174,7 +174,7 @@ NTSTATUS nfs41_QueryAllocatedRanges(
     if (entry->u.QueryAllocatedRanges.BufferMdl == NULL) {
         status = STATUS_INTERNAL_ERROR;
         DbgP("nfs41_QueryAllocatedRanges: IoAllocateMdl() failed\n");
-        goto out_free;
+        goto out;
     }
 
 #pragma warning( push )
@@ -231,7 +231,7 @@ NTSTATUS nfs41_QueryAllocatedRanges(
         RxContext->IoStatusBlock.Information = 0;
     }
 
-out_free:
+out:
     if (entry) {
         if (entry->u.QueryAllocatedRanges.BufferMdl) {
             MmUnlockPages(entry->u.QueryAllocatedRanges.BufferMdl);
@@ -242,7 +242,6 @@ out_free:
         nfs41_UpcallDestroy(entry);
     }
 
-out:
     DbgEx();
     return status;
 }
@@ -535,11 +534,11 @@ NTSTATUS nfs41_SetZeroData(
         RxContext->IoStatusBlock.Information = 0;
     }
 
+out:
     if (entry) {
         nfs41_UpcallDestroy(entry);
     }
 
-out:
     DbgEx();
     return status;
 }
@@ -766,11 +765,11 @@ NTSTATUS nfs41_DuplicateData(
         RxContext->IoStatusBlock.Information = 0;
     }
 
+out:
     if (entry) {
         nfs41_UpcallDestroy(entry);
     }
 
-out:
     if (srcfo) {
         ObDereferenceObject(srcfo);
     }

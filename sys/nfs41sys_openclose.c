@@ -703,8 +703,6 @@ retry_on_link:
             FALSE, FALSE, NULL);
         if (entry->u.Open.EaMdl == NULL) {
             status = STATUS_INTERNAL_ERROR;
-            nfs41_UpcallDestroy(entry);
-            entry = NULL;
             goto out;
         }
 #pragma warning( push )
@@ -771,7 +769,7 @@ retry_on_link:
             DbgP("nfs41_Create: Unknown symlinktarget_type=%d\n",
                 (int)entry->u.Open.symlinktarget_type);
             status = STATUS_INVALID_PARAMETER;
-            goto out_free;
+            goto out;
         }
         AbsPath.Length += entry->u.Open.symlink.Length;
         AbsPath.MaximumLength = AbsPath.Length + sizeof(UNICODE_NULL);
@@ -779,7 +777,7 @@ retry_on_link:
             AbsPath.MaximumLength, NFS41_MM_POOLTAG);
         if (AbsPath.Buffer == NULL) {
             status = STATUS_INSUFFICIENT_RESOURCES;
-            goto out_free;
+            goto out;
         }
 
         buf = (PCHAR)AbsPath.Buffer;
@@ -825,7 +823,7 @@ retry_on_link:
             }
             status = STATUS_REPARSE;
         }
-        goto out_free;
+        goto out;
     }
 
     status = map_open_errors(entry->status,
@@ -834,7 +832,7 @@ retry_on_link:
 #ifdef DEBUG_OPEN
         print_open_error(1, status);
 #endif
-        goto out_free;
+        goto out;
     }
 
     if (!RxIsFcbAcquiredExclusive(Fcb)) {
@@ -845,7 +843,7 @@ retry_on_link:
     RxContext->pFobx = RxCreateNetFobx(RxContext, SrvOpen);
     if (RxContext->pFobx == NULL) {
         status = STATUS_INSUFFICIENT_RESOURCES;
-        goto out_free;
+        goto out;
     }
 #ifdef DEBUG_OPEN
     DbgP("nfs41_Create: created FOBX 0x%p\n", RxContext->pFobx);
@@ -855,7 +853,7 @@ retry_on_link:
     if (nfs41_fobx->sec_ctx.ClientToken == NULL) {
         status = nfs41_get_sec_ctx(SecurityImpersonation, &nfs41_fobx->sec_ctx);
         if (status)
-            goto out_free;
+            goto out;
     }
 
     // we get attributes only for data access and file (not directories)
@@ -1033,7 +1031,7 @@ retry_on_link:
             oentry = nfs41_allocate_nfs41_fcb_list_entry();
             if (oentry == NULL) {
                 status = STATUS_INSUFFICIENT_RESOURCES;
-                goto out_free;
+                goto out;
             }
             oentry->fcb = RxContext->pFcb;
             oentry->nfs41_fobx = nfs41_fobx;
@@ -1056,10 +1054,11 @@ retry_on_link:
         RxContext->Create.ReturnedCreateInformation;
     status = RxContext->CurrentIrp->IoStatus.Status = STATUS_SUCCESS;
 
-out_free:
-    if (entry)
-        nfs41_UpcallDestroy(entry);
 out:
+    if (entry) {
+        nfs41_UpcallDestroy(entry);
+    }
+
 #ifdef ENABLE_TIMINGS
     t2 = KeQueryPerformanceCounter(NULL);
     if ((params->DesiredAccess & FILE_READ_DATA) ||
@@ -1129,7 +1128,7 @@ NTSTATUS nfs41_CloseSrvOpen(
     IN OUT PRX_CONTEXT RxContext)
 {
     NTSTATUS status = STATUS_INSUFFICIENT_RESOURCES;
-    nfs41_updowncall_entry *entry;
+    nfs41_updowncall_entry *entry = NULL;
     __notnull PMRX_SRV_OPEN SrvOpen = RxContext->pRelevantSrvOpen;
     __notnull PNFS41_V_NET_ROOT_EXTENSION pVNetRootContext =
         NFS41GetVNetRootExtension(SrvOpen->pVNetRoot);
@@ -1176,8 +1175,10 @@ NTSTATUS nfs41_CloseSrvOpen(
 
     /* map windows ERRORs to NTSTATUS */
     status = map_close_errors(entry->status);
-    nfs41_UpcallDestroy(entry);
 out:
+    if (entry) {
+        nfs41_UpcallDestroy(entry);
+    }
 #ifdef ENABLE_TIMINGS
     t2 = KeQueryPerformanceCounter(NULL);
     InterlockedIncrement(&close.tops);

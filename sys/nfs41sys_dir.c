@@ -220,7 +220,7 @@ NTSTATUS nfs41_QueryDirectory(
     IN OUT PRX_CONTEXT RxContext)
 {
     NTSTATUS status = STATUS_INVALID_PARAMETER;
-    nfs41_updowncall_entry *entry;
+    nfs41_updowncall_entry *entry = NULL;
     FILE_INFORMATION_CLASS InfoClass = RxContext->Info.FileInformationClass;
     PUNICODE_STRING Filter = &RxContext->pFobx->UnicodeQueryTemplate;
     __notnull PMRX_SRV_OPEN SrvOpen = RxContext->pRelevantSrvOpen;
@@ -271,7 +271,6 @@ NTSTATUS nfs41_QueryDirectory(
         RxContext->Info.LengthRemaining, FALSE, FALSE, NULL);
     if (entry->u.QueryFile.mdl == NULL) {
         status = STATUS_INTERNAL_ERROR;
-        nfs41_UpcallDestroy(entry);
         goto out;
     }
 #pragma warning( push )
@@ -323,8 +322,10 @@ NTSTATUS nfs41_QueryDirectory(
     }
     IoFreeMdl(entry->u.QueryFile.mdl);
     entry->u.QueryFile.mdl = NULL;
-    nfs41_UpcallDestroy(entry);
 out:
+    if (entry) {
+        nfs41_UpcallDestroy(entry);
+    }
 #ifdef ENABLE_TIMINGS
     t2 = KeQueryPerformanceCounter(NULL);
     InterlockedIncrement(&readdir.tops);

@@ -261,7 +261,7 @@ NTSTATUS nfs41_Lock(
     IN OUT PRX_CONTEXT RxContext)
 {
     NTSTATUS status = STATUS_SUCCESS;
-    nfs41_updowncall_entry *entry;
+    nfs41_updowncall_entry *entry = NULL;
     PLOWIO_CONTEXT LowIoContext = &RxContext->LowIoContext;
     __notnull PNFS41_FOBX nfs41_fobx = NFS41GetFobxExtension(RxContext->pFobx);
     __notnull PMRX_SRV_OPEN SrvOpen = RxContext->pRelevantSrvOpen;
@@ -330,8 +330,10 @@ retry_upcall:
     status = map_lock_errors(entry->status);
     RxContext->CurrentIrp->IoStatus.Status = status;
 
-    nfs41_UpcallDestroy(entry);
 out:
+    if (entry) {
+        nfs41_UpcallDestroy(entry);
+    }
 #ifdef ENABLE_TIMINGS
     t2 = KeQueryPerformanceCounter(NULL);
     InterlockedIncrement(&lock.tops);
@@ -382,7 +384,7 @@ NTSTATUS nfs41_Unlock(
     IN OUT PRX_CONTEXT RxContext)
 {
     NTSTATUS status = STATUS_SUCCESS;
-    nfs41_updowncall_entry *entry;
+    nfs41_updowncall_entry *entry = NULL;
     PLOWIO_CONTEXT LowIoContext  = &RxContext->LowIoContext;
     __notnull PNFS41_FOBX nfs41_fobx = NFS41GetFobxExtension(RxContext->pFobx);
     __notnull PMRX_SRV_OPEN SrvOpen = RxContext->pRelevantSrvOpen;
@@ -448,8 +450,10 @@ NTSTATUS nfs41_Unlock(
 
     status = map_lock_errors(entry->status);
     RxContext->CurrentIrp->IoStatus.Status = status;
-    nfs41_UpcallDestroy(entry);
 out:
+    if (entry) {
+        nfs41_UpcallDestroy(entry);
+    }
 #ifdef ENABLE_TIMINGS
     t2 = KeQueryPerformanceCounter(NULL);
     InterlockedIncrement(&unlock.tops);

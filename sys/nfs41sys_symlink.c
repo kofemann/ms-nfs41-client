@@ -417,8 +417,9 @@ NTSTATUS nfs41_SetSymlinkReparsePoint(
 
     status = map_symlink_errors(entry->status);
 out:
-    if (entry)
+    if (entry) {
         nfs41_UpcallDestroy(entry);
+    }
     if (prefixed_targetname)
         RxFreePool(prefixed_targetname);
 
@@ -896,8 +897,9 @@ NTSTATUS nfs41_GetSymlinkReparsePoint(
     }
 
 out:
-    if (entry)
+    if (entry) {
         nfs41_UpcallDestroy(entry);
+    }
     if (targetname_buffer)
         RxFreePool(targetname_buffer);
 

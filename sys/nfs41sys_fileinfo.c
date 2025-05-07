@@ -186,7 +186,7 @@ NTSTATUS nfs41_QueryFileInformation(
 {
     NTSTATUS status = STATUS_OBJECT_NAME_NOT_FOUND;
     FILE_INFORMATION_CLASS InfoClass = RxContext->Info.FileInformationClass;
-    nfs41_updowncall_entry *entry;
+    nfs41_updowncall_entry *entry = NULL;
     __notnull PMRX_SRV_OPEN SrvOpen = RxContext->pRelevantSrvOpen;
     __notnull PNFS41_V_NET_ROOT_EXTENSION pVNetRootContext =
         NFS41GetVNetRootExtension(SrvOpen->pVNetRoot);
@@ -487,8 +487,10 @@ NTSTATUS nfs41_QueryFileInformation(
         print_error("status(0x%lx) = map_queryfile_error(entry->status(0x%lx));\n",
             (long)status, (long)entry->status);
     }
-    nfs41_UpcallDestroy(entry);
 out:
+    if (entry) {
+        nfs41_UpcallDestroy(entry);
+    }
 #ifdef ENABLE_TIMINGS
     t2 = KeQueryPerformanceCounter(NULL);
     InterlockedIncrement(&getattr.tops);
@@ -634,7 +636,7 @@ NTSTATUS nfs41_SetFileInformation(
     IN OUT PRX_CONTEXT RxContext)
 {
     NTSTATUS status = STATUS_INVALID_PARAMETER;
-    nfs41_updowncall_entry *entry;
+    nfs41_updowncall_entry *entry = NULL;
     FILE_INFORMATION_CLASS InfoClass = RxContext->Info.FileInformationClass;
     FILE_RENAME_INFORMATION rinfo;
     __notnull PMRX_SRV_OPEN SrvOpen = RxContext->pRelevantSrvOpen;
@@ -757,8 +759,10 @@ NTSTATUS nfs41_SetFileInformation(
             nfs41_update_fcb_list(RxContext->pFcb, entry->ChangeTime);
         nfs41_fcb->changeattr = entry->ChangeTime;
     }
-    nfs41_UpcallDestroy(entry);
 out:
+    if (entry) {
+        nfs41_UpcallDestroy(entry);
+    }
 #ifdef ENABLE_TIMINGS
     t2 = KeQueryPerformanceCounter(NULL);
     InterlockedIncrement(&setattr.tops);

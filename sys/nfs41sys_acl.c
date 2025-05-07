@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2023-2024 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -204,7 +204,7 @@ NTSTATUS nfs41_QuerySecurityInformation(
     IN OUT PRX_CONTEXT RxContext)
 {
     NTSTATUS status = STATUS_NOT_SUPPORTED;
-    nfs41_updowncall_entry *entry;
+    nfs41_updowncall_entry *entry = NULL;
     __notnull PNFS41_FOBX nfs41_fobx = NFS41GetFobxExtension(RxContext->pFobx);
     __notnull PMRX_SRV_OPEN SrvOpen = RxContext->pRelevantSrvOpen;
     __notnull PNFS41_V_NET_ROOT_EXTENSION pVNetRootContext =
@@ -304,8 +304,10 @@ NTSTATUS nfs41_QuerySecurityInformation(
     } else {
         status = map_query_acl_error(entry->status);
     }
-    nfs41_UpcallDestroy(entry);
 out:
+    if (entry) {
+        nfs41_UpcallDestroy(entry);
+    }
 #ifdef ENABLE_TIMINGS
     t2 = KeQueryPerformanceCounter(NULL);
     /* only count getacl that we made an upcall for */
@@ -353,7 +355,7 @@ NTSTATUS nfs41_SetSecurityInformation(
     IN OUT PRX_CONTEXT RxContext)
 {
     NTSTATUS status = STATUS_NOT_SUPPORTED;
-    nfs41_updowncall_entry *entry;
+    nfs41_updowncall_entry *entry = NULL;
     __notnull PNFS41_FOBX nfs41_fobx = NFS41GetFobxExtension(RxContext->pFobx);
     __notnull PMRX_SRV_OPEN SrvOpen = RxContext->pRelevantSrvOpen;
     __notnull PNFS41_V_NET_ROOT_EXTENSION pVNetRootContext =
@@ -424,8 +426,10 @@ NTSTATUS nfs41_SetSecurityInformation(
             nfs41_update_fcb_list(RxContext->pFcb, entry->ChangeTime);
         nfs41_fcb->changeattr = entry->ChangeTime;
     }
-    nfs41_UpcallDestroy(entry);
 out:
+    if (entry) {
+        nfs41_UpcallDestroy(entry);
+    }
 #ifdef ENABLE_TIMINGS
     t2 = KeQueryPerformanceCounter(NULL);
     InterlockedIncrement(&setacl.tops);

@@ -182,7 +182,7 @@ NTSTATUS nfs41_unmount(
     DWORD timeout)
 {
     NTSTATUS status = STATUS_INSUFFICIENT_RESOURCES;
-    nfs41_updowncall_entry *entry;
+    nfs41_updowncall_entry *entry = NULL;
 
 #ifdef DEBUG_MOUNT
     DbgEn();
@@ -197,8 +197,10 @@ NTSTATUS nfs41_unmount(
         SeDeleteClientSecurity(entry->psec_ctx);
     }
     entry->psec_ctx = NULL;
-    nfs41_UpcallDestroy(entry);
 out:
+    if (entry) {
+        nfs41_UpcallDestroy(entry);
+    }
 #ifdef ENABLE_TIMINGS
     print_op_stat("lookup", &lookup, 1);
     print_op_stat("open", &open, 1);
@@ -252,7 +254,7 @@ NTSTATUS nfs41_mount(
     PFILE_FS_ATTRIBUTE_INFORMATION FsAttrs)
 {
     NTSTATUS status = STATUS_INSUFFICIENT_RESOURCES;
-    nfs41_updowncall_entry *entry;
+    nfs41_updowncall_entry *entry = NULL;
 
 #ifdef DEBUG_MOUNT
     DbgEn();
@@ -290,8 +292,10 @@ NTSTATUS nfs41_mount(
     status = map_mount_errors(entry->status);
     if (status == STATUS_SUCCESS)
         *version = entry->version;
-    nfs41_UpcallDestroy(entry);
 out:
+    if (entry) {
+        nfs41_UpcallDestroy(entry);
+    }
 #ifdef DEBUG_MOUNT
     DbgEx();
 #endif

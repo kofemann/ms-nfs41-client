@@ -230,7 +230,7 @@ NTSTATUS nfs41_Read(
     IN OUT PRX_CONTEXT RxContext)
 {
     NTSTATUS status = STATUS_INSUFFICIENT_RESOURCES;
-    nfs41_updowncall_entry *entry;
+    nfs41_updowncall_entry *entry = NULL;
     BOOLEAN async = FALSE;
     PLOWIO_CONTEXT LowIoContext  = &RxContext->LowIoContext;
     __notnull PMRX_SRV_OPEN SrvOpen = RxContext->pRelevantSrvOpen;
@@ -282,6 +282,7 @@ NTSTATUS nfs41_Read(
         DbgP("This is asynchronous read, returning control back to the user\n");
 #endif
         status = STATUS_PENDING;
+        entry = NULL; /* |entry| will be freed once async call is done */
         goto out;
     }
 
@@ -308,8 +309,10 @@ NTSTATUS nfs41_Read(
         RxContext->CurrentIrp->IoStatus.Status = status;
         RxContext->IoStatusBlock.Information = 0;
     }
-    nfs41_UpcallDestroy(entry);
 out:
+    if (entry) {
+        nfs41_UpcallDestroy(entry);
+    }
 #ifdef ENABLE_TIMINGS
     t2 = KeQueryPerformanceCounter(NULL);
     InterlockedIncrement(&read.tops);
@@ -350,7 +353,7 @@ NTSTATUS nfs41_Write(
     IN OUT PRX_CONTEXT RxContext)
 {
     NTSTATUS status = STATUS_INSUFFICIENT_RESOURCES;
-    nfs41_updowncall_entry *entry;
+    nfs41_updowncall_entry *entry = NULL;
     BOOLEAN async = FALSE;
     PLOWIO_CONTEXT LowIoContext  = &RxContext->LowIoContext;
     __notnull PMRX_SRV_OPEN SrvOpen = RxContext->pRelevantSrvOpen;
@@ -404,6 +407,7 @@ NTSTATUS nfs41_Write(
         DbgP("This is asynchronous write, returning control back to the user\n");
 #endif
         status = STATUS_PENDING;
+        entry = NULL; /* |entry| will be freed once async call is done */
         goto out;
     }
 
@@ -437,8 +441,10 @@ NTSTATUS nfs41_Write(
         RxContext->CurrentIrp->IoStatus.Status = status;
         RxContext->IoStatusBlock.Information = 0;
     }
-    nfs41_UpcallDestroy(entry);
 out:
+    if (entry) {
+        nfs41_UpcallDestroy(entry);
+    }
 #ifdef ENABLE_TIMINGS
     t2 = KeQueryPerformanceCounter(NULL);
     InterlockedIncrement(&write.tops);

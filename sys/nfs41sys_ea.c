@@ -324,7 +324,7 @@ NTSTATUS nfs41_SetEaInformation(
     IN OUT PRX_CONTEXT RxContext)
 {
     NTSTATUS status = STATUS_EAS_NOT_SUPPORTED;
-    nfs41_updowncall_entry *entry;
+    nfs41_updowncall_entry *entry = NULL;
     __notnull PFILE_FULL_EA_INFORMATION eainfo =
         (PFILE_FULL_EA_INFORMATION)RxContext->Info.Buffer;
     nfs3_attrs *attrs = NULL;
@@ -371,8 +371,6 @@ NTSTATUS nfs41_SetEaInformation(
                 "(eainfo=0x%p, buflen=%lu, &(error_offset=%d))\n",
                 (long)status, (void *)eainfo, buflen,
                 (int)error_offset);
-            nfs41_UpcallDestroy(entry);
-            entry = NULL;
             goto out;
         }
     }
@@ -400,8 +398,10 @@ NTSTATUS nfs41_SetEaInformation(
         nfs41_fcb->changeattr = entry->ChangeTime;
         nfs41_fcb->mode = entry->u.SetEa.mode;
     }
-    nfs41_UpcallDestroy(entry);
 out:
+    if (entry) {
+        nfs41_UpcallDestroy(entry);
+    }
 #ifdef ENABLE_TIMINGS
     t2 = KeQueryPerformanceCounter(NULL);
     InterlockedIncrement(&setexattr.tops);
@@ -463,7 +463,7 @@ NTSTATUS QueryCygwinSymlink(
     __notnull PNFS41_NETROOT_EXTENSION NetRootContext =
             NFS41GetNetRootExtension(SrvOpen->pVNetRoot->pNetRoot);
     __notnull PNFS41_FOBX Fobx = NFS41GetFobxExtension(RxContext->pFobx);
-    nfs41_updowncall_entry *entry;
+    nfs41_updowncall_entry *entry = NULL;
     UNICODE_STRING TargetName;
     const USHORT HeaderLen = FIELD_OFFSET(FILE_FULL_EA_INFORMATION, EaName) +
         query->EaNameLength + 1;
@@ -506,8 +506,10 @@ NTSTATUS QueryCygwinSymlink(
         RxContext->InformationToReturn = (ULONG_PTR)HeaderLen +
             entry->u.Symlink.target->Length;
     }
-    nfs41_UpcallDestroy(entry);
 out:
+    if (entry) {
+        nfs41_UpcallDestroy(entry);
+    }
     return status;
 }
 
@@ -602,7 +604,7 @@ NTSTATUS nfs41_QueryEaInformation(
     IN OUT PRX_CONTEXT RxContext)
 {
     NTSTATUS status = STATUS_EAS_NOT_SUPPORTED;
-    nfs41_updowncall_entry *entry;
+    nfs41_updowncall_entry *entry = NULL;
     PFILE_GET_EA_INFORMATION query = (PFILE_GET_EA_INFORMATION)
             RxContext->CurrentIrpSp->Parameters.QueryEa.EaList;
     ULONG buflen = RxContext->CurrentIrpSp->Parameters.QueryEa.Length;
@@ -673,8 +675,10 @@ NTSTATUS nfs41_QueryEaInformation(
     } else {
         status = map_setea_error(entry->status);
     }
-    nfs41_UpcallDestroy(entry);
 out:
+    if (entry) {
+        nfs41_UpcallDestroy(entry);
+    }
 #ifdef ENABLE_TIMINGS
     t2 = KeQueryPerformanceCounter(NULL);
     InterlockedIncrement(&getexattr.tops);
