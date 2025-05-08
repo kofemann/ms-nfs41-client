@@ -484,6 +484,11 @@ void nfs41_UpcallDestroy(nfs41_updowncall_entry *entry)
         ObDereferenceObject(entry->psec_ctx_clienttoken);
     }
 
+    if (entry->psec_ctx == &entry->sec_ctx) {
+        SeDeleteClientSecurity(entry->psec_ctx);
+    }
+    entry->psec_ctx = NULL;
+
     nfs41_upcall_free_updowncall_entry(entry);
 }
 

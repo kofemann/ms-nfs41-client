@@ -317,10 +317,6 @@ NTSTATUS nfs41_shutdown_daemon(
     if (status) goto out;
 
     status = nfs41_UpcallWaitForReply(entry, UPCALL_TIMEOUT_DEFAULT);
-    if (entry->psec_ctx == &entry->sec_ctx) {
-        SeDeleteClientSecurity(entry->psec_ctx);
-    }
-    entry->psec_ctx = NULL;
     if (status) {
         /* Timeout - |nfs41_downcall()| will free |entry|+contents */
         entry = NULL;

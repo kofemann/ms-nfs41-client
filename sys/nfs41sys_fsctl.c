@@ -197,11 +197,6 @@ NTSTATUS nfs41_QueryAllocatedRanges(
         goto out;
     }
 
-    if (entry->psec_ctx == &entry->sec_ctx) {
-        SeDeleteClientSecurity(entry->psec_ctx);
-    }
-    entry->psec_ctx = NULL;
-
     if (entry->status == NO_ERROR) {
         DbgP("nfs41_QueryAllocatedRanges: SUCCESS\n");
 
@@ -516,11 +511,6 @@ NTSTATUS nfs41_SetZeroData(
         goto out;
     }
 
-    if (entry->psec_ctx == &entry->sec_ctx) {
-        SeDeleteClientSecurity(entry->psec_ctx);
-    }
-    entry->psec_ctx = NULL;
-
     if (!entry->status) {
         DbgP("nfs41_SetZeroData: SUCCESS\n");
         RxContext->CurrentIrp->IoStatus.Status = STATUS_SUCCESS;
@@ -746,11 +736,6 @@ NTSTATUS nfs41_DuplicateData(
         entry = NULL;
         goto out;
     }
-
-    if (entry->psec_ctx == &entry->sec_ctx) {
-        SeDeleteClientSecurity(entry->psec_ctx);
-    }
-    entry->psec_ctx = NULL;
 
     if (!entry->status) {
         DbgP("nfs41_DuplicateData: SUCCESS\n");

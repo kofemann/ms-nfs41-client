@@ -193,10 +193,6 @@ NTSTATUS nfs41_unmount(
 
     nfs41_UpcallWaitForReply(entry, timeout);
 
-    if (entry->psec_ctx == &entry->sec_ctx) {
-        SeDeleteClientSecurity(entry->psec_ctx);
-    }
-    entry->psec_ctx = NULL;
 out:
     if (entry) {
         nfs41_UpcallDestroy(entry);
@@ -275,10 +271,6 @@ NTSTATUS nfs41_mount(
     entry->u.Mount.FsAttrs = FsAttrs;
 
     status = nfs41_UpcallWaitForReply(entry, config->timeout);
-    if (entry->psec_ctx == &entry->sec_ctx) {
-        SeDeleteClientSecurity(entry->psec_ctx);
-    }
-    entry->psec_ctx = NULL;
     if (status) {
         /* Timeout - |nfs41_downcall()| will free |entry|+contents */
         entry = NULL;
