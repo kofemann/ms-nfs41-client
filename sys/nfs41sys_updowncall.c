@@ -434,7 +434,13 @@ void nfs41_UpcallDestroy(nfs41_updowncall_entry *entry)
     if (!entry)
         return;
 
-#if defined(_DEBUG)
+    /*
+     * Free resources which might otherwise be leaked
+     * FIXME: Does not work yet, the |NFS41_SYSOP_READ| codepath crashes in
+     * |MmUnmapLockedPages()| when
+     * $ verifier /standard /driver nfs41_driver.sys # is active
+     */
+#ifdef XXDISABLED_FOR_NOWXX /*defined(_DEBUG) */
     switch(entry->opcode) {
         case NFS41_SYSOP_WRITE:
         case NFS41_SYSOP_READ:
