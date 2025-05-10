@@ -1,5 +1,5 @@
 #
-# ms-nfs41-client manual testing sequence, 2025-04-12
+# ms-nfs41-client manual testing sequence, 2025-05-10
 #
 # Draft version, needs to be turned into automated tests
 # if possible
@@ -147,6 +147,14 @@
 #   PATH+=':/cygdrive/c/Program Files (x86)/Windows Kits/10/Debuggers/x64/'
 #   cdb -z "${LOCALAPPDATA}\CrashDumps\link.exe.1640.dmp" -c '!analyze -v ; q'
 #   ---- snip -----
+#
+# - Testing with Windows driver verifier:
+#   1. Docs see https://learn.microsoft.com/en-us/windows-hardware/drivers/devtest/driver-verifier
+#   2. Enable verifier for "nfs41_driver.sys":
+#       $ /cygdrive/c/Windows/system32/verifier /standard /driver nfs41_driver.sys #
+#       <reboot>
+#   3. Query verifier status:
+#       $ /cygdrive/c/Windows/system32/verifier /query
 #
 
 
