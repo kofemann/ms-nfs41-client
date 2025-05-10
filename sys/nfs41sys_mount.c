@@ -107,12 +107,6 @@ NTSTATUS marshal_nfs41_mount(
     if (status) goto out;
     else tmp += *len;
 
-    /* 03/25/2011: Kernel crash to nfsd not running but mount upcall cued up */
-    if (!MmIsAddressValid(entry->u.Mount.srv_name) ||
-            !MmIsAddressValid(entry->u.Mount.root)) {
-        status = STATUS_INTERNAL_ERROR;
-        goto out;
-    }
     header_len = *len + length_as_utf8(entry->u.Mount.srv_name) +
         length_as_utf8(entry->u.Mount.root) + 5 * sizeof(DWORD);
     if (header_len > buf_len) {

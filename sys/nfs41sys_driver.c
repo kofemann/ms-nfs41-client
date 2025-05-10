@@ -243,25 +243,12 @@ NTSTATUS marshal_nfs41_header(
     RtlCopyMemory(tmp, &entry->open_state, sizeof(HANDLE));
     tmp += sizeof(HANDLE);
 
-    /*
-     * gisburn: FIXME: For currently unknown reasons we need to
-     * validate |entry->filename|+it's contents, because a heavily
-     * stressed system somehow sometimes causes garbage there
-     */
-    if (MmIsAddressValid(entry->filename) &&
-        (entry->filename != NULL) &&
-        MmIsAddressValid(entry->filename->Buffer)) {
 #ifdef DEBUG_MARSHAL_HEADER
-        DbgP("[upcall header] xid=%lld opcode='%s' filename='%wZ' version=%d "
-            "session=0x%p open_state=0x%x\n", entry->xid,
-            ENTRY_OPCODE2STRING(entry), entry->filename,
-            entry->version, entry->session, entry->open_state);
+    DbgP("[upcall header] xid=%lld opcode='%s' filename='%wZ' version=%d "
+        "session=0x%p open_state=0x%x\n", entry->xid,
+        ENTRY_OPCODE2STRING(entry), entry->filename,
+        entry->version, entry->session, entry->open_state);
 #endif /* DEBUG_MARSHAL_HEADER */
-    }
-    else {
-        DbgP("[upcall header] Invalid filename 0x%p\n", entry);
-        status = STATUS_INTERNAL_ERROR;
-    }
 out:
     return status;
 }
@@ -289,17 +276,21 @@ NTSTATUS nfs41_invalidate_cache(
     DbgP("nfs41_invalidate_cache: received srv_open=0x%p '%wZ'\n",
         srv_open, srv_open->pAlreadyPrefixedName);
 #endif
-    if (MmIsAddressValid(srv_open)) {
+    __try {
         RxIndicateChangeOfBufferingStateForSrvOpen(
             srv_open->pFcb->pNetRoot->pSrvCall, srv_open,
             srv_open->Key, ULongToPtr(flag));
         status = STATUS_SUCCESS;
-    }
-    else {
-        print_error("nfs41_invalidate_cache: "
-            "invalid ptr srv_open=0x%p file='%wZ'\n",
-            srv_open, srv_open->pAlreadyPrefixedName);
-        status = STATUS_INVALID_HANDLE;
+    } __except(EXCEPTION_EXECUTE_HANDLER) {
+        NTSTATUS code;
+        code = GetExceptionCode();
+        print_error("nfs41_invalidate_cache: srv_open=0x%p '%wZ': "
+            "RxIndicateChangeOfBufferingStateForSrvOpen() "
+            "failed due to exception 0x%lx\n",
+            srv_open,
+            srv_open->pAlreadyPrefixedName,
+            (long)code);
+        status = STATUS_INTERNAL_ERROR;
     }
 
     return status;
