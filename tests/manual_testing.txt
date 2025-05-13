@@ -758,5 +758,17 @@ ksh93 tests/sparsefiles/testsparsefile1.ksh
 wget 'https://github.com/DynamoRIO/drmemory/releases/download/cronbuild-2.6.20167/DrMemory-Windows-2.6.20167.msi'
 msiexec /i DrMemory-Windows-2.6.20167.msi
 
+
+#
+# test Cygwin 32bit on 64bit Windows on a NFS share
+# (64bit Windows only)
+#
+cd /cygdrive/l/tmp # cwd to NFS driver
+mkdir /cygdrive/l/tmp/cygwin32nfstest
+cd /cygdrive/l/tmp/cygwin32nfstest
+curl --remote-name "https://www.cygwin.com/setup-x86.exe"
+./setup-x86 -q --no-write-registry --no-admin --root "$(cygpath -w "$PWD")" --no-desktop --allow-unsupported-windows -q --no-verify --site "http://ctm.crouchingtigerhiddenfruitbat.org/pub/cygwin/circa/2022/11/23/063457"
+PATH="$PWD/bin" /cygdrive/c/Windows/system32/cmd.exe /C $'.\\bin\\bash.exe -x -c \'[[ "$(./bin/readlink.exe /proc/self/exe)" =~ $PWD/.*bin/.+ ]] && echo Test OK || echo Test failed'
+
 #
 # EOF.
