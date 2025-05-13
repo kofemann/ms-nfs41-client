@@ -91,7 +91,9 @@ DECLARE_CONST_ANSI_STRING(NfsActOnLink, EA_NFSACTONLINK);
 
 #ifdef USE_LOOKASIDELISTS_FOR_UPDOWNCALLENTRY_MEM
 NPAGED_LOOKASIDE_LIST updowncall_entry_upcall_lookasidelist;
+#ifndef USE_STACK_FOR_DOWNCALL_UPDOWNCALLENTRY_MEM
 NPAGED_LOOKASIDE_LIST updowncall_entry_downcall_lookasidelist;
+#endif /* !USE_STACK_FOR_DOWNCALL_UPDOWNCALLENTRY_MEM */
 #endif /* USE_LOOKASIDELISTS_FOR_UPDOWNCALLENTRY_MEM */
 #ifdef USE_LOOKASIDELISTS_FOR_FCBLISTENTRY_MEM
 NPAGED_LOOKASIDE_LIST fcblistentry_lookasidelist;
@@ -1404,10 +1406,12 @@ NTSTATUS DriverEntry(
         &updowncall_entry_upcall_lookasidelist, NULL, NULL,
         POOL_NX_ALLOCATION, sizeof(nfs41_updowncall_entry),
         NFS41_MM_POOLTAG_UP, 0);
+#ifndef USE_STACK_FOR_DOWNCALL_UPDOWNCALLENTRY_MEM
     ExInitializeNPagedLookasideList(
         &updowncall_entry_downcall_lookasidelist, NULL, NULL,
         POOL_NX_ALLOCATION, sizeof(nfs41_updowncall_entry),
         NFS41_MM_POOLTAG_DOWN, 0);
+#endif /* !USE_STACK_FOR_DOWNCALL_UPDOWNCALLENTRY_MEM */
 #endif /* USE_LOOKASIDELISTS_FOR_UPDOWNCALLENTRY_MEM */
 #ifdef USE_LOOKASIDELISTS_FOR_FCBLISTENTRY_MEM
     /*

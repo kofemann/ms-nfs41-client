@@ -104,6 +104,7 @@ void nfs41_upcall_free_updowncall_entry(nfs41_updowncall_entry *entry)
 #endif /* USE_LOOKASIDELISTS_FOR_UPDOWNCALLENTRY_MEM */
 }
 
+#ifndef USE_STACK_FOR_DOWNCALL_UPDOWNCALLENTRY_MEM
 static
 nfs41_updowncall_entry *nfs41_downcall_allocate_updowncall_entry(void)
 {
@@ -137,6 +138,7 @@ void nfs41_downcall_free_updowncall_entry(nfs41_updowncall_entry *entry)
     RxFreePool(entry);
 #endif /* USE_LOOKASIDELISTS_FOR_UPDOWNCALLENTRY_MEM */
 }
+#endif /* !USE_STACK_FOR_DOWNCALL_UPDOWNCALLENTRY_MEM */
 
 static void unmarshal_nfs41_header(
     nfs41_updowncall_entry *tmp,
@@ -643,8 +645,15 @@ NTSTATUS nfs41_downcall(
     print_hexbuf("downcall buffer", buf, in_len);
 #endif /* DEBUG_PRINT_DOWNCALL_HEXBUF */
 
+#ifdef USE_STACK_FOR_DOWNCALL_UPDOWNCALLENTRY_MEM
+    nfs41_updowncall_entry stacktmp;
+
+    (void)memset(&stacktmp, 0, sizeof(stacktmp));
+    tmp = &stacktmp;
+#else
     tmp = nfs41_downcall_allocate_updowncall_entry();
     if (tmp == NULL) goto out;
+#endif /* USE_STACK_FOR_DOWNCALL_UPDOWNCALLENTRY_MEM */
 
     unmarshal_nfs41_header(tmp, &buf);
 
@@ -801,7 +810,12 @@ NTSTATUS nfs41_downcall(
         KeSetEvent(&cur->cond, 0, FALSE);
 
 out_free:
+#ifdef USE_STACK_FOR_DOWNCALL_UPDOWNCALLENTRY_MEM
+    ;
+#else
     nfs41_downcall_free_updowncall_entry(tmp);
 out:
+#endif /* USE_STACK_FOR_DOWNCALL_UPDOWNCALLENTRY_MEM */
+
     return status;
 }
