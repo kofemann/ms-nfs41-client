@@ -96,6 +96,7 @@ installdest:
 	chmod a+x $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/nfsurlconv
 	/usr/bin/ksh93 $(CYGWIN_MAKEFILE_DIR)/utils/nfsurlconv/nfsurlconv.ksh --nroff 2>"$(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/man/man1/nfsurlconv.1" || true
 	@ printf "# Package tests\n"
+	cp "$(PROJECT_BASEDIR_DIR)/tests/manual_testing.txt" $(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/msnfs41client/tests/manual_testing.txt
 	cp "$(PROJECT_BASEDIR_DIR)/tests/winfsinfo1/winfsinfo.x86_64.exe" $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/winfsinfo.x86_64.exe
 	cp "$(PROJECT_BASEDIR_DIR)/tests/winfsinfo1/winfsinfo.i686.exe" $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/winfsinfo.i686.exe
 	if [[ "$(CYGWIN_BASEPATH)" == *64* ]] ; then \
