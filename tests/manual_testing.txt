@@ -155,6 +155,8 @@
 #       <reboot>
 #   3. Query verifier status:
 #       $ /cygdrive/c/Windows/system32/verifier /query
+#   4. Disable verifier:
+#       $ verifier /reset
 #
 
 
