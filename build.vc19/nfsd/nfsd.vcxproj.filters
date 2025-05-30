@@ -158,6 +158,9 @@
     <ClInclude Include="..\..\daemon\delegation.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\daemon\fileinfoutil.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\include\from_kernel.h">
       <Filter>Header Files</Filter>
     </ClInclude>

@@ -203,52 +203,6 @@ static __inline void open_delegation4_cpy(
     (void)memcpy(dst, src, sizeof(open_delegation4));
 }
 
-typedef struct _FILE_ID_128 FILE_ID_128, *PFILE_ID_128;
-void nfs41_file_info_to_FILE_ID_128(
-    IN const nfs41_file_info *restrict info,
-    OUT FILE_ID_128 *restrict out_fid128);
-ULONG nfs_file_info_to_attributes(
-    IN const nfs41_superblock *restrict superblock,
-    IN const nfs41_file_info *restrict info);
-void nfs_to_basic_info(
-    IN const char *restrict name,
-    IN const nfs41_superblock *restrict superblock,
-    IN const nfs41_file_info *restrict info,
-    OUT PFILE_BASIC_INFO restrict basic_out);
-void nfs_to_standard_info(
-    IN const nfs41_superblock *restrict superblock,
-    IN const nfs41_file_info *restrict info,
-    OUT PFILE_STANDARD_INFO restrict std_out);
-void nfs_to_network_openinfo(
-    IN const char *restrict name,
-    IN const nfs41_superblock *restrict superblock,
-    IN const nfs41_file_info *restrict info,
-    OUT PFILE_NETWORK_OPEN_INFORMATION restrict std_out);
-typedef struct __nfs41_open_state nfs41_open_state;
-void nfs_to_remote_protocol_info(
-    IN nfs41_open_state *state,
-    OUT PFILE_REMOTE_PROTOCOL_INFORMATION restrict rpi_out);
-#ifdef NFS41_DRIVER_WSL_SUPPORT
-void nfs_to_stat_info(
-    IN const char *restrict name,
-    IN const nfs41_superblock *restrict superblock,
-    IN const nfs41_file_info *restrict info,
-    OUT PFILE_STAT_INFORMATION restrict stat_out);
-void nfs_to_stat_lx_info(
-    IN void *daemon_context,
-    IN const char *restrict name,
-    IN const nfs41_superblock *restrict superblock,
-    IN const nfs41_file_info *restrict info,
-    OUT PFILE_STAT_LX_INFORMATION restrict stat_lx_out);
-#endif /* NFS41_DRIVER_WSL_SUPPORT */
-
-/* Copy |info->symlink_dir| */
-#define NFS41FILEINFOCPY_COPY_SYMLINK_DIR (1 << 0)
-void nfs41_file_info_cpy(
-    OUT nfs41_file_info *restrict dest,
-    IN const nfs41_file_info *restrict src,
-    IN int flags);
-
 /* http://msdn.microsoft.com/en-us/library/ms724290%28VS.85%29.aspx:
  * A file time is a 64-bit value that represents the number of
  * 100-nanosecond intervals that have elapsed since 12:00 A.M.

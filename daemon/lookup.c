@@ -28,6 +28,7 @@
 #include "nfs41_compound.h"
 #include "nfs41_ops.h"
 #include "name_cache.h"
+#include "fileinfoutil.h"
 #include "util.h"
 #include "daemon_debug.h"
 

@@ -33,6 +33,7 @@
 #include "nfs41_ops.h"
 #include "daemon_debug.h"
 #include "upcall.h"
+#include "fileinfoutil.h"
 #include "util.h"
 
 

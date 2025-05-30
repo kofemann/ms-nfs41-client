@@ -29,6 +29,7 @@
 #include "nfs41_build_features.h"
 #include "daemon_debug.h"
 #include "nfs41_daemon.h"
+#include "fileinfoutil.h"
 #include "util.h"
 #include "nfs41_ops.h"
 #include "nfs41_driver.h" /* for |FILE_INFO_TIME_NOT_SET| */

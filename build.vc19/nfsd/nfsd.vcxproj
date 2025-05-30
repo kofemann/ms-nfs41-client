@@ -331,6 +331,7 @@
     <ClInclude Include="..\..\daemon\cpvparser1.h" />
     <ClInclude Include="..\..\daemon\daemon_debug.h" />
     <ClInclude Include="..\..\daemon\delegation.h" />
+    <ClInclude Include="..\..\daemon\fileinfoutil.h" />
     <ClInclude Include="..\..\daemon\idmap.h" />
     <ClInclude Include="..\..\daemon\list.h" />
     <ClInclude Include="..\..\daemon\name_cache.h" />

@@ -30,6 +30,7 @@
 #include "name_cache.h"
 #include "nfs41_driver.h" /* only for |NFS41_SYSOP_FILE_QUERY*| */
 #include "upcall.h"
+#include "fileinfoutil.h"
 #include "daemon_debug.h"
 
 
