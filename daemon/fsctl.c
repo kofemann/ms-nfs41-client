@@ -743,8 +743,7 @@ int handle_duplicatedata(void *daemon_context,
      * Check whether source and destination files are on the same
      * filesystem
      */
-    if (memcmp(&src_file_fsid, &info.fsid,
-        sizeof(src_file_fsid)) != 0) {
+    if (nfs41_fsid_cmp(&src_file_fsid, &info.fsid) != 0) {
         DPRINTF(DDLVL,
             ("handle_duplicatedata: "
             "src_file_fsid(major=%llu,minor=%llu) != "

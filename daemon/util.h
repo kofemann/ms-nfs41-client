@@ -180,6 +180,22 @@ static __inline int stateid4_cmp(
         return memcmp(s1->other, s2->other, NFS4_STATEID_OTHER);
 }
 
+static __inline int nfs41_fsid_cmp(
+    IN const nfs41_fsid *restrict s1,
+    IN const nfs41_fsid *restrict s2)
+{
+    if (s1->major > s2->major)
+        return 1;
+    else if (s1->major < s2->major)
+        return -1;
+    else if (s1->minor > s2->minor)
+        return 1;
+    else if (s1->minor < s2->minor)
+        return -1;
+    else
+        return 0;
+}
+
 static __inline void open_delegation4_cpy(
     OUT open_delegation4 *restrict dst,
     IN  const open_delegation4 *restrict src)
