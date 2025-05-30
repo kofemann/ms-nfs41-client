@@ -1,149 +1,981 @@
+---
+title: Windows NFS 4.2 FileSystem Client Instructions
+---
 
-# Windows NFS 4.2 Client Instructions
+- [What is this ?](#what-is-this)
+- [Features](#features)
+- [Requirements](#requirements)
+- [Installation](#installation)
+  - [Download and install Cygwin (if not installed
+    yet)](#download-install-cygwin)
+  - [Download and install MSYS2/64bit
+    \[OPTIONAL\]](#download-install-msys2)
+  - [Download "ms-nfs41-client" installation
+    tarball](#download-msnfs41client-tarball)
+  - [Installation (as "Administrator")](#installation-via-cygwin)
+  - [Deinstallation](#deinstallation)
+- [Usage](#usage)
+  - [Preparing the NFS server](#prep_nfs_server)
+    - [NFS server config](#nfs_server_config)
+    - [User/group accounts on the NFS server](#nfs_server_accounts)
+  - [Starting the NFS client daemon](#starting_nfs_daemon)
+    - [Run as Windows Service](#run_as_windows_service)
+    - [Manual starting the daemon](#manual_start)
+  - [Mounting and using NFS filesystems](#mounting_and_using)
+    - [Basic usage](#basic_usage)
+    - [Global/System-wide mounts](#global-system-wide-mounts)
+    - [WSL usage](#wsl-usage)
+- [Notes](#notes)
+- [Known issues](#known-issues)
+- [Troubleshooting && finding
+  bugs/debugging](#troubleshooting-debugging)
+- [Development](#development)
+  - [Source code](#source-code)
+  - [Building ms-nfs41-client](#building_msnfs41client)
+    - [Building ms-nfs41-client using
+      Cygwin+Makefile](#building-cygwin-makefile)
+    - [Testing](#testing)
+- [Mailing list](#mailinglist)
 
-1.  [Building from Source](#build)
-2.  [Installing Binaries](#install)
-3.  [Disable the DFS Client](#dfs)
-4.  [Ldap Configuration](#ldap)
-5.  [Starting the Client](#startup)
-6.  [Mounting](#mount)
-7.  [Connectation](#cthon)
-8.  [Known Issues](#issues)
+# What is this ?
 
+NFSv4.2/NFSv4.1 filesystem driver for Windows 10/11 & Windows Server
+2019+2022
 
-## 1\. <a name="build">Building from Source</a>
+# Features
 
-### Requirements
+- Full NFSv4.2/NFSv4.1 protocol support
 
-*   Windows Vista, Windows Server 2008 R2, or Windows 7 (Windows XP and previous versions are not supported)
-*   Microsoft Visual Studio 2010
-*   Windows Driver Development Kit (WinDDK 6000 or later)
-*   ms-nfs41-client source code:   
-    `> https://github.com/kofemann/ms-nfs41-client.git`
+- idmapper (mapping usernames and uid/gid values between server and
+  client)
 
-### Building the rpc library and nfs client daemon
+- Support for custom ports (NFSv4 defaults to TCP port 2049, this client
+  can use different ports per mount)
 
-*   WinDDK does not include the ldap library, so we build the rpc library and nfs client daemon with Visual Studio 2010.
+- Support for `nfs://`-URLs
 
-1.  Open Windows Explorer and navigate to **ms-nfs41-client\build.vc10**.
-2.  Make a copy of **env.props.example**, and rename it to **env.props**.
-3.  Open **env.props** in a text editor, and verify that the value in `<WDKPATH>C:\WinDDK\7600.16385.0</WDKPATH>` points to your WinDDK installation.
-4.  Open the solution file **ms-nfs41-client.sln** in Visual Studio 2010.
-5.  Select the desired configuration and platform (accessible via Build->Configuration Manager).
-6.  Right-click on the **daemon** project and select Build. The project and its dependencies should build without errors. The resulting binaries, **nfsd.exe** and **libtirpc.dll**, can be found under **ms-nfs41-client\build.vc10\x64\Debug\**.
+  - Why? `nfs://`-URLs are cross-platform, portable and
+    Character-Encoding independent descriptions of NFSv4 server
+    resources (exports).
 
-### Building the driver and utilities
+  - including custom ports and raw IPv6 addresses
 
-1.  From the Start menu, open the WinDDK 'Checked Build Environment' for the target platform.
-2.  Change directory to **ms-nfs41-client** and type `build`. All projects should build without errors.
+  - `nfs://`-URL conversion utility (`/usr/bin/nfsurlconv`) to convert
+    URLs, including non-ASCII/Unicode characters in mount path
 
-### Signing the driver
+- Support ssh forwarding, e.g., mounting NFSv4 filesystems via ssh
+  tunnel
 
-1.  Open a WinDDK 'Checked Build Environment' as Administrator in this directory (right click and 'Run as administrator').
-2.  Create a certificate for test-signing the driver ([Creating Test Certificates](http://msdn.microsoft.com/en-us/library/ff540213%28VS.85%29.aspx "msdn.microsoft.com")):   
-    `> makecert /pe /ss PrivateCertStore /n CN=nfs41_driver nfs41_driver.cer`
-3.  Use the certificate to sign **nfs41_driver.sys** ([Test-Signing a Driver File](http://msdn.microsoft.com/en-us/library/ff553467%28VS.85%29.aspx "msdn.microsoft.com")):   
-    `> signtool sign /v /s PrivateCertStore /n nfs41_driver /t http://timestamp.verisign.com/scripts/timestamp.dll path\to\nfs41_driver.sys`
+- Support for long paths (up to 4096 bytes), no Windows MAXPATH limit
 
-## 2\. <a name="install">Installing Binaries</a>
+- Unicode support
 
-### Requirements
+  - File names can use any Unicode character supported by the NFS
+    server's filesystem.
 
-*   ms-nfs41-client binaries: **nfs41_driver.sys**, **nfs41_np.dll**, **libtirpc.dll**, **nfs_install.exe**, **nfsd.exe**, **nfs_mount.exe**
-*   ms-nfs41-client configuration files: **nfs41_driver.cer**, **nfs41rdr.inf**, **install.bat**, **uninstall.bat**, **etc_netconfig**, **ms-nfs41-idmap.conf**
-*   Microsoft Visual Studio 2010, or Microsoft Visual C++ 2010 Redistributable Libraries ([x86](https://www.microsoft.com/download/en/details.aspx?id=8328) or [x64](https://www.microsoft.com/download/en/details.aspx?id=13523)). An installer for the redistributable libraries are included with binary releases.
+  - `nfs://`-URLs can be used to mount filesystems with non-ASCII
+    characters in the mount path, independent of current locale.
 
-### Instructions
+- UNC paths
 
-1.  Copy or extract all ms-nfs41-client binaries and configuration files into a directory that's convenient for testing.
-2.  Run **vcredist_x*.exe** to install the Visual C++ Redistributable Libraries.
-3.  Double-click on **nfs41_driver.cer** and select 'Install Certificate', then place it in the 'Trusted Root Certificate Authorities' store.
-4.  Open a command prompt as Administrator in this directory.
-5.  Install the driver and update the registry:   
-    `> install.bat`
-6.  Copy configuration files:   
-    `> mkdir C:\etc`   
-    `> copy etc_netconfig C:\etc\netconfig`   
-    `> copy ms-nfs41-idmap.conf C:\etc\`
-7.  Allow windows to load test-signed drivers:   
-    `> bcdedit /set testsigning on`
-8.  Reboot.
+  - Mounting UNC paths without DOS drive letter
 
-## 3\. <a name="dfs">Disable the DFS Client</a>
+  - IPv6 support in UNC paths
 
-*   The Windows DFS client interferes with some requests, indicated by long delays during operation. See [http://support.microsoft.com/kb/171386](http://support.microsoft.com/kb/171386) for more information.
+  - `/sbin/nfs_mount` prints UNC paths in Win32+Cygwin/MSYS2 formats
 
-### Instructions
+  - Cygwin/MSYS2 bash+ksh93 support UNC paths, e.g.,
+    `cd //derfwnb4966@2049/nfs4/bigdisk/mysqldb4/`
 
-1.  Open **regedit.exe** and navigate to `HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\Mup`.
-2.  Add a DWORD value named `DisableDfs` with a value of 1.
+  - Symlinks on NFS can redirect to other filesystems via UNC syntax and
+    work with Cygwin, MSYS2, cmd.exe, powershell etc., e.g.:
 
-## 4\. <a name="ldap">Ldap Configuration</a>
+        mklink /D symlnk1_to_h_tmp \\lab17@2049\nfs4\export\home\rsm\tmp
 
-### Requirements:
+- WSL support
 
-*   **C:\etc\ms-nfs41-idmap.conf** from [Installation](#install) step 7.
+  - Mount Windows NFSv4.2 shares via drive letter or UNC path in WSL via
+    `mount -t drvfs`
 
-### Instructions
+  - Supports NFS owner/group to WSL uid/gid mapping
 
-1.  Open **C:\etc\ms-nfs41-idmap.conf** in a text editor.
-2.  Uncomment the `ldap_hostname` and `ldap_base` lines, and configure as appropriate to match your ldap server configuration (we'll add suggestions later).
+- IPv6 support
 
-## 5\. <a name="startup">Starting the Client</a>
+  - IPv6 address within '\[', '\]' (will be converted to
+    \*.ipv6-literal.net)
 
-*   If you've installed the binary distribution, you'll find two versions of the nfs client daemon: **nfsd.exe** and **nfsd_debug.exe**. **nfsd.exe** is built to run as a service, and does not provide easy access to debug output. We strongly recommend trying **nfsd_debug.exe** first (using the Instructions below) to verify that you can start the daemon and mount/unmount an nfs share. You can then close **nfsd_debug.exe** and start running **nfsd.exe** as a service with:  
-    `> nfsd.exe -install`.
+- Windows ACLs \<---\> NFSv4 ACL translation
 
-### Instructions
+  - Win32 `C:\Windows\system32\icacls.exe`
 
-1.  From a Windows command prompt, run **nfsd.exe** to start the nfs client daemon. Leave this running in the background until all mapped drives are unmounted.   
-    Usage:   
-    `> nfsd.exe -d <debug level> [--noldap]`
-    *   `<debug level>` determines the log verbosity (1, 2, 3 or 0 to disable)
-    *   `--noldap` disables id mapping and uses a default uid=666 and gid=777
-    *   `--uid, --gid` changes the default uid/gid when no mapping is available (must be nonzero)
+  - Cygwin `/usr/bin/setfacl`+`/usr/bin/getfacl`
 
-## 6\. <a name="mount">Mounting</a>
+  - Windows Explorer ACL dialog
 
-### Instructions
+- Sparse file support
 
-1.  From a Windows command prompt run **nfs_mount.exe** to mount a share:   
-    `> nfs_mount.exe Z: <server_name>:\`
-2.  To specify the security flavor, add the 'sec=' mount option with sys, krb5, krb5i, or krb5p:   
-    `> nfs_mount.exe -o sec=<flavor> Z: <server_name>:\`
-3.  You can later unmount with:   
-    `> nfs_mount.exe -d Z`
+  - Requires NFSv4.2 server which supports the NFSv4.2 operations
+    "ALLOCATE", "DEALLOCATE", "SEEK", and the
+    `|FATTR4_WORD1_SPACE_USED|` attribute.
 
-## 7\. <a name="cthon">Connectathon</a>
+  - Full Win32 sparse file API support, including creation, punching
+    holes, enumeration of hole&data ranges etc.
 
-### Requirements
+  - Supports Win32 APIs `|FSCTL_QUERY_ALLOCATED_RANGES|`,
+    `|FSCTL_SET_SPARSE|`, `|FSCTL_SET_ZERO_DATA|`; and
+    `|NfsV3Attributes.used|` EA
 
-*   [Cygwin](http://www.cygwin.com "www.cygwin.com"), including packages gcc-core, make, time, tirpc, git
-*   [Connectathon Test Suite](https://git.linux-nfs.org/?p=steved/cthon04.git;a=summary "git.linux-nfs.org")
-*   ms-nfs41-client source code (patches for connectathon are located in **ms-nfs41-client\tests**)
+  - Cygwin sparse file support requires \>= Cygwin 3.6 to support
+    POSIX-1.2024 `|lseek(...,SEEK_HOLE/SEEK_DATA,...)|`, which is needed
+    for coreutils `/usr/bin/fallocate` and
+    `$ /usr/bin/cp --sparse=auto src dest #`
 
-### Instructions
+  - `/cygdrive/c/Windows/system32/fsutil sparse queryrange myfile.dat`
+    can be used to enumerate ranges where data are allocated (BUG:
+    Win10+Win11 fsutil only support 64 data ranges, the filesystem
+    itself supports an unlimited number of data ranges)
 
-1.  Extract **nfstests.zip** into a directory that's convenient for testing (i.e. **cthon04**).
-2.  Open a Cygwin shell, and change directory to **cthon04**.
-3.  Create a git repository to track changes:   
-    `> git init`   
-    `> git add *`   
-    `> git commit -m "files from nfstests.zip"`
-4.  Apply all cthon patches:   
-    `> git am /path/to/ms-nfs41-client/tests/*.patch`
-5.  Build the tests:   
-    `> make`
-6.  Run the test suite on a mounted directory:   
-    `> ./runtests -a -t z:/testdir`
+  - `/cygdrive/c/Windows/system32/xcopy /sparse` can be used to copy
+    sparse files. Requires on Win11 \>= 22H2 because it relies on
+    `|CopyFile2()|` flag `|COPY_FILE_ENABLE_SPARSE_COPY|`.
 
-## 8\. <a name="issues">Known Issues</a>
+- Block cloning support
 
-*   krb5p security with AES keys do not work against the linux server, as it does not support gss krb5 v2 tokens with rotated data.
-*   When recovering opens and locks outside of the server's grace period, client does not check whether the file has been modified by another client.
-*   If nfsd.exe is restarted while a drive is mapped, that drive needs to be remounted before further use.
-*   Symbolic links are not supported in Cygwin. Connectathon's basic test8 and special test nfsidem have been commented out.
-*   Does not allow renaming a file on top of an existing open file. Connectathon's special test op_ren has been commented out.
-*   Extended attributes are supported with some limitations: a) the server must support [NFS Named Attributes](https://tools.ietf.org/html/rfc5661#section-5.3 "RFC 5661: 5.3\. Named Attributes"), b) the order of listings cannot be guaranteed by NFS, and c) the EaSize field cannot be reported for directory queries of FileBothDirInformation, FileFullDirInfo, or FileIdFullDirInfo.
+  - Implemented via Win32 `|FSCTL_DUPLICATE_EXTENTS_TO_FILE|` to clone
+    file blocks from src to dst within the same filesystem.
 
-Please direct any questions to [ms-nfs41-client-devel@lists.sourceforge.net](mailto:ms-nfs41-client-devel@lists.sourceforge.net).
+  - Requires NFSv4.2 server which supports the NFSv4.2 operations
+    "CLONE", "DEALLOCATE", "SEEK", and exports a filesystem which
+    supports block cloning (e.g. Linux BTRFS+XFS, but NOT Linux tmpfs)
+
+  - Sparse files are correctly cloned, including all hole and data
+    ranges
+
+  - `/usr/bin/winclonefile.exe` can be used to clone a file
+
+  - Windows 11 `|CopyFile2()|` API uses
+    `|FSCTL_DUPLICATE_EXTENTS_TO_FILE|` by default
+
+  - Windows 11 tools like xcopy.exe, robocopy etc. all use
+    `|CopyFile2()|`, and therefore file cloning by default
+
+- Symlink reparse and translation support
+
+  - Translates Win32/NT symlink syntax (e.g.
+    `$ mklink /D ... Y:\tmp\ #`) to NFS/POSIX syntax (e.g.
+    "`/cygdrive/y/tmp/`") and back
+
+  - Translates Cygwin `/cygdrive/<devletter>` symlinks on NFS to Win32
+    `<devletter>:\` and back
+
+  - Pass-through for NFS `/dev-Symlinks` (e.g. `/dev/null`) to Cygwin
+
+  - Interoperability for symlinks between Cygwin, powershell, cmd.exe
+    and other POSIX-compatible NFSv4.2/NFSv4.1 clients.
+
+- Support for NFSv4 public mounts (i.e., use the NFSv4 public file
+  handle lookup protocol via `$ nfs_mount -o public ... #`)
+
+- Support for NFSv4 referrals
+
+  - See Linux `export(5) refer=` option, `nfsref(5)` or
+    <https://docs.oracle.com/cd/E86824_01/html/E54764/nfsref-1m.html>
+
+- SFU/Cygwin/MSYS2 support, including:
+
+  - POSIX uid/gid+mode
+
+  - Backwards compatibility to Microsoft's NFSv3 driver
+
+  - Cygwin ACLs, e.g., `setfacl`/`getfacl`
+
+  - Cygwin/MSYS2 symlinks
+
+- Custom primary group support
+
+  - Supports primary group changes in the calling process/thread (via
+    `|SetTokenInformation(..., TokenPrimaryGroup,...)|`), e.g., if the
+    calling process/threads switches the primary group in its access
+    token then the NFSv4.2 client will use that group as GID for file
+    creation.
+
+  - `newgrp(1)`/`sg(1)`-style "winsg" utility to run cmd.exe with
+    different primary group, e.g.,
+    `$ winsg [-] -g group [-c command | /C command] #`
+
+- Software compatibility:
+
+  - Any NFSv4.2/NFSv4.1 server (Linux, Solaris, Illumos, FreeBSD, nfs4j,
+    ...)
+
+  - All tools from Cygwin/MSYS2/MinGW
+
+  - Visual Studio
+
+  - VMware Workstation (can use VMs hosted on NFSv4.2/NFSv4.1
+    filesystem)
+
+# Requirements
+
+- Windows 10 (32bit or 64bit), Windows 11 or Windows Server 2019+2022
+
+- Cygwin:
+
+  - Cygwin versions:
+
+    - 64bit: \>= 3.5.7, recommended \>= 3.6.1
+
+    - 32bit: \>= 3.3.6
+
+  - Packages (required):
+
+    - `cygwin`
+
+    - `cygrunsrv`
+
+    - `cygutils`
+
+    - `cygutils-extra`
+
+    - `libiconv`
+
+    - `libiconv2`
+
+    - `procps-ng`
+
+    - `util-linux`
+
+  - Packages (optional, recommended, required to build ms-nf41-client):
+
+    - `bison`
+
+    - `cygport`
+
+    - `cygwin-devel`
+
+    - `clang`
+
+    - `dos2unix`
+
+    - `pax`
+
+    - `pbzip2`
+
+    - `libnfs-utils` (for `/usr/bin/nfs-ls`)
+
+    - `libiconv-devel`
+
+    - `make`
+
+    - `bmake`
+
+    - `git`
+
+    - `gcc-core`
+
+    - `gcc-g++`
+
+    - `gdb`
+
+    - `mingw64-i686-clang`
+
+    - `mingw64-x86_64-clang`
+
+    - `unzip`
+
+    - `time`
+
+    - `docbook-utils`
+
+    - `docbook-xml45`
+
+    - `docbook-xsl`
+
+    - `docbook-xsl-ns`
+
+    - `libxslt`
+
+    - `w3m`
+
+  - Packages (only-CI):
+
+    - \# required packages, but part of Cygwin default installation
+
+    - \# listed here for CI package list ONLY
+
+    - `bash`
+
+    - `bzip2`
+
+    - `coreutils`
+
+    - `getent`
+
+    - `grep`
+
+    - `hostname`
+
+    - `less`
+
+    - `sed`
+
+    - `tar`
+
+    - `wget`
+
+- MSYS2 (64bit, optional):
+
+  - Packages (recommended):
+
+    - `base-devel`
+
+    - `gcc`
+
+    - `clang`
+
+    - `sed`
+
+    - `time`
+
+    - `coreutils`
+
+    - `util-linux`
+
+    - `grep`
+
+    - `sed`
+
+    - `emacs`
+
+    - `gdb`
+
+    - `make`
+
+    - `autoconf`
+
+    - `automake`
+
+    - `gettext`
+
+    - `gettext-devel`
+
+    - `git`
+
+    - `subversion`
+
+    - `flex`
+
+    - `bison`
+
+    - `unzip`
+
+    - `pax`
+
+    - `tar`
+
+    - `libiconv-devel`
+
+    - `ncurses-devel`
+
+    - `gmp-devel`
+
+    - `mpfr-devel`
+
+    - `mpc-devel`
+
+    - `isl-devel`
+
+    - `procps-ng`
+
+    - `libiconv-devel`
+
+# Installation
+
+## Download and install Cygwin (if not installed yet)
+
+Windows 32bit-vs.-64bit can be tested from Windows `cmd.exe` console:
+
+Run this command:
+
+    echo %PROCESSOR_ARCHITECTURE%
+
+If this returns "AMD64" then you have a Windows 64bit kernel, and if it
+returns "x86" then you have Windows 32bit kernel. If you get any other
+value then this is a (documentation) bug.
+
+Cygwin 64bit can be installed like this:
+
+**Install Cygwin 64bit on Windows 64bit with packages required by
+"ms-nfs41-client" (Windows NFSv4.2 client):**
+
+1.  Create subdir
+
+        mkdir download
+        cd download
+
+2.  Get installer from <https://cygwin.com/setup-x86_64.exe>
+
+        curl --remote-name "https://www.cygwin.com/setup-x86_64.exe"
+
+3.  Run installer with these arguments:
+
+        setup-x86_64.exe -q --site "https://mirrors.kernel.org/sourceware/cygwin" -P cygwin,cygwin-devel,cygrunsrv,cygutils,cygutils-extra,bash,bzip2,coreutils,getent,gdb,grep,hostname,less,libiconv,libiconv2,pax,pbzip2,procps-ng,sed,tar,time,util-linux,wget,libnfs-utils,make,bmake,git,dos2unix,unzip
+
+Cygwin 32bit can be installed like this:
+
+**Install Cygwin 32bit on Windows 32bit with packages required by
+"ms-nfs41-client" (Windows NFSv4.2 client):**
+
+1.  Create subdir
+
+        mkdir download
+        cd download
+
+2.  Get installer from <https://www.cygwin.com/setup-x86.exe>
+
+        curl --remote-name "https://www.cygwin.com/setup-x86.exe"
+
+3.  Run installer with these arguments:
+
+        setup-x86.exe --allow-unsupported-windows -q --no-verify --site "http://ctm.crouchingtigerhiddenfruitbat.org/pub/cygwin/circa/2022/11/23/063457" -P cygwin,cygwin-devel,cygrunsrv,cygutils,cygutils-extra,bash,bzip2,coreutils,getent,gdb,grep,hostname,less,libiconv,libiconv2,pax,pbzip2,procps-ng,sed,tar,time,util-linux,wget,libnfs-utils,make,bmake,git,dos2unix,unzip
+
+## Download and install MSYS2/64bit \[OPTIONAL\]
+
+1.  Download & install from Cygwin
+
+        mkdir -p download && cd download
+        wget 'https://github.com/msys2/msys2-installer/releases/download/2025-02-21/msys2-x86_64-20250221.exe'
+        chmod a+x 'msys2-x86_64-20250221'
+        ./msys2-x86_64-20250221 --default-answer --root 'C:\msys64' install
+
+2.  Install extra packages:
+
+    Start MSYS2 UCRT mintty and execute this:
+
+        pacman -S --noconfirm base-devel gcc clang sed time coreutils util-linux grep sed emacs gdb make autoconf automake gettext gettext-devel git subversion flex bison unzip pax tar libiconv-devel ncurses-devel gmp-devel mpfr-devel mpc-devel isl-devel procps-ng libiconv-devel
+
+## Download "ms-nfs41-client" installation tarball
+
+(from a Cygwin terminal)
+
+    $ mkdir -p ~/download
+    $ cd ~/download
+    $ wget 'http://www.nrubsig.org/people/gisburn/work/msnfs41client/releases/testing/${bintarball.base_filename}.tar.bz2'
+    $ openssl sha256 "${bintarball.base_filename}.tar.bz2"
+    SHA2-256(${bintarball.base_filename}.tar.bz2)= ${bintarball.archive_sha256hash}
+
+## Installation (as "Administrator")
+
+    $ (cd / && tar -xf ~/download/${bintarball.base_filename}.tar.bz2 )
+    $ /sbin/msnfs41client install
+    <REBOOT>
+
+## Deinstallation
+
+    $ (set -o xtrace ; cd / && tar -tf ~/download/${bintarball.base_filename}.tar.bz2 | while read i ; do [[ -f "$i" ]] && rm "$i" ; done)
+    <REBOOT>
+
+# Usage
+
+## Preparing the NFS server
+
+### NFS server config
+
+- Make sure the NFS client can access the NFS server
+
+- The NFS server should send owner and owner_group information as
+  user@domain and group@domain, and not as numeric uid/gid information
+
+### User/group accounts on the NFS server
+
+It is required that all Windows users and groups used by the Windows NFS
+client have user/group accounts on the server side.
+
+If no central user&group management between NFS server and NFS clients
+exists the `/sbin/cygwinaccount2nfs4account` script can be used to
+manually create matching `/etc/group` and `/etc/passwd` entries on the
+NFS server side.
+
+## Starting the NFS client daemon
+
+### Run as Windows Service
+
+- Start NFSv4 client daemon as Windows service (requires "Administrator"
+  account):
+
+      $ sc start ms-nfs41-client-service
+
+- Notes:
+
+  - requires "Administrator" account, and one nfsd client daemon is used
+    for all users on a machine.
+
+  - The "ms-nfs41-client-service" service is installed by default as
+    "disabled" and therefore always requires a "manual" start (e.g.,
+    `$ sc start ms-nfs41-client-service #`)
+
+  - DOS devices are virtualised per LSA Logon, so each Logon needs to do
+    a separate `nfs_mount.exe` to mount a NFSv4 share. The exception are
+    mounts created by user "SYSTEM", such mounts are available to all
+    users/logons. (see `PsExec` or function "su_system" in
+    `msnfs41client.bash` how to run a process as user "SYSTEM")
+
+  - `nfsd_debug.exe` will run as user "SYSTEM", but will do user
+    impersonation for each request
+
+  - stopping the service will NOT unmount filesystems, and due to a bug
+    a reboot is required to restart and mount any NFSv4 filesystems
+    again
+
+- Administration:
+
+  - Follow new log messages:
+
+        $ tail -f '/var/log/ms-nfs41-client-service.log'
+
+  - Query service status:
+
+        $ sc queryex ms-nfs41-client-service
+
+  - Query service config:
+
+        $ sc qc ms-nfs41-client-service
+
+  - Start service automatically:
+
+    (`nfsd_debug.exe` will be started automagically, but mounts are not
+    restored):
+
+        $ sc config ms-nfs41-client-service start=auto
+
+  - Start service manually (default):
+
+        $ sc config ms-nfs41-client-service start=disabled
+
+### Manual starting the daemon
+
+Run the NFSv4 client daemon manually:
+
+- run this preferably as "Administrator", but this is not a requirement
+
+- requires separate terminal
+
+<!-- -->
+
+    $ /sbin/msnfs41client run_daemon
+
+## Mounting and using NFS filesystems
+
+### Basic usage
+
+Mount a filesystem to drive N: and use it
+
+    $ /sbin/nfs_mount -o rw N 10.49.202.230:/net_tmpfs2
+    Successfully mounted '10.49.202.230@2049' to drive 'N:'
+    $ cd /cygdrive/n/
+    $ ls -la
+    total 4
+    drwxrwxrwt 5 Unix_User+0      Unix_Group+0      100 Dec  7 14:17 .
+    dr-xr-xr-x 1 roland_mainz     Kein                0 Dec 14 13:48 ..
+    drwxr-xr-x 3 Unix_User+197608 Unix_Group+197121  80 Dec 12 16:24 10492030
+    drwxr-xr-x 3 Unix_User+197608 Unix_Group+197121  60 Dec 13 17:58 directory_t
+    drwxr-xr-x 3 Unix_User+197608 Unix_Group+197121  60 Dec  7 11:01 test2
+
+Unmount filesystem:
+
+    $ cd ~ && /sbin/nfs_umount N:
+    # OR
+    $ cd ~
+    $ net use N: /delete
+
+Mount a filesystem WITHOUT a dos drive assigned and use it via UNC path
+
+    $ /sbin/nfs_mount -o rw 10.49.202.230:/net_tmpfs2
+    Successfully mounted '10.49.202.230@2049' to drive '\\10.49.202.230@2049\nfs4\net_tmpfs2'
+    $ cygpath -u '\\10.49.202.230@2049\nfs4\net_tmpfs2'
+    //10.49.202.230@2049/nfs4/net_tmpfs2
+    $ cd '//10.49.202.230@2049/nfs4/net_tmpfs2'
+    $ ls -la
+    total 4
+    drwxrwxrwt 5 Unix_User+0      Unix_Group+0      100 Dec  7 14:17 .
+    dr-xr-xr-x 1 roland_mainz     Kein                0 Dec 14 13:48 ..
+    drwxr-xr-x 3 Unix_User+197608 Unix_Group+197121  80 Dec 12 16:24 10492030
+    drwxr-xr-x 3 Unix_User+197608 Unix_Group+197121  60 Dec 13 17:58 directory_t
+    drwxr-xr-x 3 Unix_User+197608 Unix_Group+197121  60 Dec  7 11:01 test2
+
+Unmount filesystem:
+
+    $ cd ~ && /sbin/nfs_umount '\\10.49.202.230@2049\nfs4\net_tmpfs2'
+    # OR
+    $ cd ~
+    $ net use '\\10.49.202.230@2049\nfs4\net_tmpfs2' /delete
+
+List mounted NFSv4.2 filesystems:
+
+    $ /sbin/nfs_mount
+
+### Global/System-wide mounts
+
+Mounts created by user "SYSTEM" are usable by all users in a system.
+Example usage:
+
+    # Create a file /etc/fstab.msnfs41client, which list the mounts
+    # which should be available system-wide
+    $ cat /etc/fstab.msnfs41client
+    nfs://[fe80::21b:1bff:fec3:7713]//bigdisk       V       nfs     rw      0       0
+    # run "ms-nfs41-client-globalmountall-service", which runs
+    # /sbin/mountall_msnfs41client as user "SYSTEM" to read
+    # /etc/fstab.msnfs41client and mount the matching filesystems
+    sc start ms-nfs41-client-globalmountall-service
+
+BUG: "ms-nfs41-client-globalmountall-service" currently does not wait
+until `nfsd*.exe` is available for accepting mounts.
+
+### WSL usage
+
+Example 1: Mount Windows NFSv4.2 share via Windows drive letter
+
+Mount NFSv4.2 share in Windows to drive letter 'N':
+
+    $ /sbin/nfs_mount -o rw 'N' nfs://10.49.202.230//bigdisk
+    Successfully mounted '10.49.202.230@2049' to drive 'N:'
+
+Within WSL mount drive letter 'N' to `/mnt/n`
+
+    $ sudo bash
+    $ mkdir /mnt/n
+    $ mount -t drvfs N: /mnt/n
+
+Example 2: Mount Windows NFSv4.2 share via UNC path:
+
+Mount NFSv4.2 share in Windows
+
+    $ /sbin/nfs_mount -o rw nfs://10.49.202.230//bigdisk
+    Successfully mounted '10.49.202.230@2049' to drive '\\10.49.202.230@2049\nfs4\bigdisk'
+
+Within WSL mount UNC path returned by `/sbin/nfs_mount`
+
+    $ sudo bash
+    $ mkdir /mnt/bigdisk
+    $ mount -t drvfs '\\10.49.202.230@2049\nfs4\bigdisk' /mnt/bigdisk
+
+**Known issues with WSL:**
+
+- Softlinks do not work yet
+
+- Creating a hard link returns "Invalid Argument", maybe drvfs
+  limitation
+
+- Not all POSIX file types (e.g. block devices) etc. are supported
+
+# Notes
+
+- Idmapping (including uid/gid mapping) between NFSv4 client and NFSv4
+  server works via `/lib/msnfs41client/cygwin_idmapper.ksh`, which
+  either uses builtin static data, or `/usr/bin/getent passwd` and
+  `/usr/bin/getent group`. As `getent` uses the configured name services
+  it should work with LDAP too. This is still work-in-progress, with the
+  goal that both NFSv4 client and server can use different uid/gid
+  numeric values for client and server side.
+
+- UNC paths are supported, after successful mounting `/sbin/nfs_mount`
+  will list the paths in Cygwin/MSYS2 UNC format.
+
+- SIDs work, users with valid Windows accounts (see Cygwin idmapping
+  above get their SIDs, unknown users with valid uid/gid values get
+  Unix_User+id/Unix_Group+id SIDs, and all others are mapped to
+  nobody/nogroup SIDs.
+
+- Workflow for `nfs://`-URLs:
+
+  - Create `nfs://`-URLs with `nfsurlconv`, read `$ nfsurlconv --man #`
+    for usage
+
+  - pass URL to `nfs_mount.exe` like this:
+    `$ nfs_mount -o sec=sys,rw 'L' nfs://derfwnb4966_ipv4//bigdisk #`
+
+- Cygwin/MSYS2 symlinks are supported, but might require
+  `$ fsutil behavior set SymlinkEvaluation L2L:1 R2R:1 L2R:1 R2L:1 #`.
+  This includes symlinks to UNC paths, e.g., as Administrator
+  `$ cmd /c 'mklink /d c:\home\rmainz \\derfwpc5131_ipv6@2049\nfs4\export\home2\rmainz' #`
+  and then `$ cd /cygdrive/c/home/rmainz/ #` should work
+
+- performance: All binaries are built without any optimisation, so the
+  filesystem is much slower than it could be.
+
+- bad performance due to Windows Defender AntiVirus:
+
+  - Option 1: disable Windows defender realtime monitoring (requires
+    Administrator shell)
+
+        powershell -Command 'Set-MpPreference -DisableRealtimeMonitoring 1'
+
+  - Option 2: Add "`nfsd.exe`", "`nfsd_debug.exe`", "`ksh93.exe`",
+    "`bash.exe`", "`git.exe`" and other offending commands to the
+    process name whitelist.
+
+- performance: Use `vmxnet3` in VMware to improve performance
+
+- ACLs are supported via the normal Windows ACL tools, but on Linux
+  require the `nfs4_getfacl`/`nfs4_setfacl` utilities to see the data.
+
+  **Example 1** (assuming that Windows, Linux NFSv4 client and NFSv4
+  server have a user "siegfried_wulsch"):
+
+  - On Windows on a NFSv4 filesystem:
+
+        $ icacls myhorribledata.txt /grant "siegfried_wulsch:WD" #
+
+  - On Linux NFSv4 clients you will then see this:
+
+        $ nfs4_getfacl myhorribledata.txt
+        A::OWNER@:rwatTcCy
+        A::siegfried_wulsch@global.loc:rwatcy
+        A::GROUP@:rtcy
+        A::EVERYONE@:rtcy
+
+  **Example 2** (assuming that Windows, Linux NFSv4 client and NFSv4
+  server have a group "cygwingrp2"):
+
+  - On Windows on a NFSv4 filesystem:
+
+        $ icacls myhorribledata.txt /grant "cygwingrp2:(WDAC)" /t /c #
+
+  - On Linux NFSv4 clients you will then see this:
+
+        $ nfs4_getfacl myhorribledata.txt
+        A::OWNER@:rwatTcCy
+        A::GROUP@:rtcy
+        A:g:cygwingrp2@global.loc:rtcy
+        A::EVERYONE@:rtcy
+
+- `nfs_mount.exe` vs. reserved ports: By default the NFSv4 server on
+  Solaris, Illumos, Linux etc. only accepts connections if the NFSv4
+  client uses a "privileged (TCP) port", i.e., using a TCP port number
+  \< 1024. If `nfsd.exe`/`nfsd_debug.exe` is started without the Windows
+  privilege to use reserved ports, then a mount attempt can fail. This
+  can be worked around on the NFSv4 server side - on Linux using the
+  "insecure" export option in `/etc/exports` and on Solaris/Illumos
+  using export option "resvport" (see `nfs(5)`).
+
+- Accessing mounts from a VMware/QEMU/VirtualBox VM using NAT requires
+  the the "insecure" export option in `/etc/exports` and on
+  Solaris/Illumos using export option "resvport" (see `nfs(5)`), as the
+  NFSv4 client source TCP port will be \>= 1024.
+
+- Install: Adding Windows accounts+groups to the NFSv4 server:
+  `ms-nfs41-client` comes with `/sbin/cygwinaccount2nfs4account` to
+  convert the Win32/Cygwin account information of the (current)
+  user+groups to a small script for the NFSv4 server to set-up these
+  accounts on the server side.
+
+- `nfs_mount -o sec=none ... #` works with Solaris 11.4 nfsd, but might
+  require Linux kernel commit
+  <https://git.kernel.org/pub/scm/linux/kernel/git/cel/linux.git/patch/?id=bb4f07f2409c26c01e97e6f9b432545f353e3b66>
+  ("nfsd: Fix NFSD_MAY_BYPASS_GSS and NFSD_MAY_BYPASS_GSS_ON_ROOT") to
+  work.
+
+# Known issues
+
+- The kernel driver ("`nfs41_driver.sys`") does not yet have a
+  cryptographic signature for SecureBoot - which means it will only work
+  if SecureBoot is turned off (otherwise
+  `$ /sbin/msnfs41client install #` will FAIL!)
+
+- If `nfsd_debug.exe` crashes or gets killed, the only safe way to run
+  it again requires a reboot
+
+- LDAP support does not work yet
+
+- Attribute caching is too aggressive
+
+- Caching in the kernel does not always work. For example
+  `$ tail -f ... #` does not not see new data. Workaround: Use GNU
+  tail'S `$ tail --follow=name ... #` Working theory is that this is
+  related to FCB caching, see `|FCB_STATE_FILESIZECACHEING_ENABLED|`, as
+  the `nfs41_driver.sys` kernel module does not see the `|stat()|`
+  syscalls. But `$ tail -f ... #` always works for a moment if something
+  else opens the same file.
+
+- Unmounting and then mounting the same filesystem causes issues as the
+  name cache in `nfsd*.exe` is not flushed on unmount, including
+  leftover delegations.
+
+- `krb5p` security with AES keys do not work against the linux server,
+  as it does not support gss krb5 v2 tokens with rotated data.
+
+- When recovering opens and locks outside of the server's grace period,
+  client does not check whether the file has been modified by another
+  client.
+
+- If `nfsd.exe` is restarted while a drive is mapped, that drive needs
+  to be remounted before further use.
+
+- Does not allow renaming a file on top of an existing open file.
+  Connectathon's special test `op_ren` has been commented out.
+
+- File access timestamps might be wrong for delegations.
+
+- Extended attributes are supported with some limitations:
+
+  - a\) the server must support NFS Named Attributes,
+
+  - b\) the order of listings cannot be guaranteed by NFS, and
+
+  - c\) the EaSize field cannot be reported for directory queries of
+    `FileBothDirInformation`, `FileFullDirInfo`, or `FileIdFullDirInfo`.
+
+- Win10/32bit-only: `$ net use H: /delete #` does not work, use
+  `$ nfs_umount 'H'` instead \#
+
+- Windows event log can list errors like "MUP 0xc0000222"
+  (`|STATUS_LOST_WRITEBEHIND_DATA|`) in case the disk on the NFSv4
+  server is full and outstanding writes from a memory-mapped file fail.
+  Example:
+
+      {Fehler beim verzoegerten Schreibvorgang} Nicht alle Daten fuer die
+      Datei "\\34.159.25.153@2049\nfs4\export\nfs4export\gcc\lto-dump.exe"
+      konnten gespeichert werden. Daten gingen verloren.
+      Dieser Fehler wurde von dem Server zurueckgegeben, auf dem sich die
+      Datei befindet. Versuchen Sie, die Datei woanders zu speichern.
+
+# Troubleshooting && finding bugs/debugging
+
+- `nfsd_debug.exe` has the `-d` option to set a level for debug output.
+  Edit `/sbin/msnfs41client` to set the `"-d"` option.
+
+- The "msnfs41client" script has the option "`watch_kernel_debuglog`" to
+  get the debug output of the kernel module.
+
+  Run as Administrator: `$ /sbin/msnfs41client watch_kernel_debuglog #`
+
+  Currently requires DebugView
+  (<https://learn.microsoft.com/en-gb/sysinternals/downloads/debugview>)
+  to be installed.
+
+- Watching network traffic:
+
+  - Use `$ /sbin/msnfs41client watch_nfs_traffic #` to watch the NFS
+    network traffic
+
+  - WireShark has a command line tool called "`tshark`", which can be
+    used to see NFSv4 traffic. As NFSv4 uses RPC you have to filter for
+    RPC, and the RPC filter automatically identifies NFSv4 traffic on
+    its RPC id. Example for Windows: (for NFSv4 default TCP port "2049",
+    replace "2049" with the desired port if you use a custom port; use
+    "ipconfig" to find the correct interface name, in this case
+    "Ethernet0"):
+
+        $ nfsv4port=2049 ; /cygdrive/c/Program\ Files/Wireshark/tshark \
+          -f "port $nfsv4port" -d "tcp.port==${nfsv4port},rpc" -i Ethernet0
+
+  - If you are running inside a VMware VM on a Linux host it might
+    require `$ chmod a+rw /dev/vmnet0 #` on VMware host, so that the VM
+    can use "Promiscuous Mode".
+
+# Development
+
+## Source code
+
+Source code can be obtained from
+<https://github.com/kofemann/ms-nfs41-client> or as git bundle from
+`/usr/src/msnfs41client/msnfs41client_git.bundle`
+
+## Building ms-nfs41-client
+
+### Building ms-nfs41-client using Cygwin+Makefile
+
+#### Required Software
+
+- **Option 1:** Windows 10 with Visual Studio 2019
+
+  - Start Visual Studio 2019 installer and import the installer config
+    file `ms-nfs41-client/build.vc19/ms-nfs41-client_vs2019.vsconfig`,
+    and then install Visual Studio.
+
+    > [!NOTE]
+    > Due to a bug in the VS installer, it is sometimes required to
+    > manually add another (random) component to be installed;
+    > otherwise, the imported config might be ignored.
+
+  - WDK for Windows 10, version 2004, from
+    <https://go.microsoft.com/fwlink/?linkid=2128854>
+
+  - Cygwin 64bit \>= 3.5.0 (see
+    `ms-nfs41-clientcygwin/README.bintarball.txt` for Cygwin 32bit and
+    64bit installation instructions)
+
+  - PanDoc document converter, from
+    <https://github.com/jgm/pandoc/releases/download/3.7.0.1/pandoc-3.7.0.1-windows-x86_64.msi>
+
+- **Option 2:** Windows 10/11 with Visual Studio 2022
+
+  - Start Visual Studio 2022 installer and import the installer config
+    file `ms-nfs41-client/build.vc19/ms-nfs41-client_vs2022.vsconfig`,
+    and then install Visual Studio.
+
+    > [!NOTE]
+    > Due to a bug in the VS installer, it is sometimes required to
+    > manually add another (random) component to be installed;
+    > otherwise, the imported config might be ignored.
+
+  - WDK for Windows 11, version 1591, from
+    <https://go.microsoft.com/fwlink/?linkid=2286137>
+
+  - Cygwin 64bit \>= 3.5.0 (see
+    `ms-nfs41-clientcygwin/README.bintarball.txt` for Cygwin 32bit and
+    64bit installation instructions)
+
+  - PanDoc document converter, from
+    <https://github.com/jgm/pandoc/releases/download/3.7.0.1/pandoc-3.7.0.1-windows-x86_64.msi>
+
+#### Build the Project
+
+- **Using Visual Studio 2019+Cygwin command line (bash/ksh93):**
+
+      # this creates a 32bit+kernel+64bit-kernel build for Windows 10+11
+      export PATH="/cygdrive/c/Program Files (x86)/Microsoft Visual Studio/2019/Community/MSBuild/Current/Bin/:$PATH"
+      git clone https://github.com/kofemann/ms-nfs41-client.git
+      cd ms-nfs41-client
+      cd cygwin
+      make build
+      make installdest
+      make bintarball
+
+- **Using Visual Studio 2022+Cygwin command line (bash/ksh93):**
+
+      # this creates a 64bit-kernel only build for Windows 11
+      export PATH="/cygdrive/c/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/:$PATH"
+      git clone https://github.com/kofemann/ms-nfs41-client.git
+      cd ms-nfs41-client
+      # "retarget" VS platform toolset to "v143"
+      # ("v142" should remain the default when comitting)
+      sed -i -E 's/<PlatformToolset>v142<\/PlatformToolset>/<PlatformToolset>v143<\/PlatformToolset>/g' $(find 'build.vc19' -name \*.vcxproj)
+      cd cygwin
+      make build64
+      make installdest64
+      make bintarball64
+
+> [!NOTE]
+> `make installdest` or `make installdest64` can fail on SMB/NFSv4.1
+> filesystems with a "link.exe" crash. The workaround is to disable
+> incremental linking before building, e.g., do:
+>
+>     cd ms-nfs41-client
+>     sed -i -E 's/<LinkIncremental>true<\/LinkIncremental>/<LinkIncremental>false<\/LinkIncremental>/g' $(find build.vc19 -name \*.vcxproj)
+>
+> This Visual Studio bug is tracked as
+> <https://developercommunity.visualstudio.com/t/Visual-Studio-link.exe-crashes-on-networ/10735424>
+> ("Visual Studio link.exe crashes on network filesystem").
+
+### Testing
+
+See `tests/manual_testing.txt`
+
+# Mailing list
+
+Please direct any questions to
+<ms-nfs41-client-devel@lists.sourceforge.net> (list
+[archive](https://sourceforge.net/p/ms-nfs41-client/mailman/ms-nfs41-client-devel/))
+
+\#EOF.

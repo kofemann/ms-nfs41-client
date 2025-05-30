@@ -1,0 +1,963 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<article xmlns="http://docbook.org/ns/docbook" xmlns:xi="http://www.w3.org/2001/XInclude" xmlns:xl="http://www.w3.org/1999/xlink" version="5.1" xml:id="articlemain">
+
+  <!--
+    DocBook XML: Compile to HTML via
+    $ xsltproc -xinclude -o README.html /usr/share/sgml/docbook/xsl-ns-stylesheets/xhtml-1_1/docbook.xsl README.xml #
+  -->
+
+  <title xml:id="articletitle">Windows NFS 4.2 FileSystem Client Instructions</title>
+
+  <section xml:id="what-is-this">
+    <title>What is this ?</title>
+    <para>NFSv4.2/NFSv4.1 filesystem driver for Windows 10/11 &amp; Windows Server 2019+2022</para>
+  </section>
+
+  <section xml:id="features">
+    <title>Features</title>
+    <itemizedlist>
+      <listitem>
+        <para>Full NFSv4.2/NFSv4.1 protocol support</para>
+      </listitem>
+      <listitem>
+        <para>idmapper (mapping usernames and uid/gid values between server and client)</para>
+      </listitem>
+      <listitem>
+        <para>Support for custom ports (NFSv4 defaults to TCP port 2049, this client can use different ports per mount)</para>
+      </listitem>
+      <listitem>
+        <para>Support for <literal>nfs://</literal>-URLs
+          <itemizedlist>
+            <listitem>
+              <para>Why? <literal>nfs://</literal>-URLs are cross-platform, portable and Character-Encoding independent descriptions of NFSv4 server resources (exports).</para>
+            </listitem>
+            <listitem>
+              <para>including custom ports and raw IPv6 addresses</para>
+            </listitem>
+            <listitem>
+              <para><literal>nfs://</literal>-URL conversion utility (<filename>/usr/bin/nfsurlconv</filename>) to convert URLs, including non-ASCII/Unicode characters in mount path</para>
+            </listitem>
+          </itemizedlist>
+        </para>
+      </listitem>
+      <listitem>
+        <para>Support ssh forwarding, e.g., mounting NFSv4 filesystems via ssh tunnel</para>
+      </listitem>
+      <listitem>
+        <para>Support for long paths (up to 4096 bytes), no Windows MAXPATH limit</para>
+      </listitem>
+      <listitem>
+        <para>Unicode support
+          <itemizedlist>
+            <listitem>
+              <para>File names can use any Unicode character supported by the NFS server's filesystem.</para>
+            </listitem>
+            <listitem>
+              <para><literal>nfs://</literal>-URLs can be used to mount filesystems with non-ASCII characters in the mount path, independent of current locale.</para>
+            </listitem>
+          </itemizedlist>
+        </para>
+      </listitem>
+      <listitem>
+        <para>UNC paths
+          <itemizedlist>
+            <listitem>
+              <para>Mounting UNC paths without DOS drive letter</para>
+            </listitem>
+            <listitem>
+              <para>IPv6 support in UNC paths</para>
+            </listitem>
+            <listitem>
+              <para><filename>/sbin/nfs_mount</filename> prints UNC paths in Win32+Cygwin/MSYS2 formats</para>
+            </listitem>
+            <listitem>
+              <para>Cygwin/MSYS2 bash+ksh93 support UNC paths, e.g., <command>cd //derfwnb4966@2049/nfs4/bigdisk/mysqldb4/</command></para>
+            </listitem>
+            <listitem>
+              <para>Symlinks on NFS can redirect to other filesystems via UNC syntax and work with Cygwin, MSYS2, cmd.exe, powershell etc., e.g.:
+                <programlisting>mklink /D symlnk1_to_h_tmp \\lab17@2049\nfs4\export\home\rsm\tmp</programlisting>
+              </para>
+            </listitem>
+          </itemizedlist>
+        </para>
+      </listitem>
+      <listitem>
+        <para>WSL support
+          <itemizedlist>
+            <listitem>
+              <para>Mount Windows NFSv4.2 shares via drive letter or UNC path in WSL via <command>mount -t drvfs</command></para>
+            </listitem>
+            <listitem>
+              <para>Supports NFS owner/group to WSL uid/gid mapping</para>
+            </listitem>
+          </itemizedlist>
+        </para>
+      </listitem>
+      <listitem>
+        <para>IPv6 support
+          <itemizedlist>
+            <listitem>
+              <para>IPv6 address within '[', ']' (will be converted to *.ipv6-literal.net)</para>
+            </listitem>
+          </itemizedlist>
+        </para>
+      </listitem>
+      <listitem>
+        <para>Windows ACLs &lt;---&gt; NFSv4 ACL translation
+          <itemizedlist>
+            <listitem>
+              <para>Win32 <filename>C:\Windows\system32\icacls.exe</filename></para>
+            </listitem>
+            <listitem>
+              <para>Cygwin <filename>/usr/bin/setfacl</filename>+<filename>/usr/bin/getfacl</filename></para>
+            </listitem>
+            <listitem>
+              <para>Windows Explorer ACL dialog</para>
+            </listitem>
+          </itemizedlist>
+        </para>
+      </listitem>
+      <listitem>
+        <para>Sparse file support
+          <itemizedlist>
+            <listitem>
+              <para>Requires NFSv4.2 server which supports the NFSv4.2 operations "ALLOCATE", "DEALLOCATE", "SEEK", and the <literal>|FATTR4_WORD1_SPACE_USED|</literal> attribute.</para>
+            </listitem>
+            <listitem>
+              <para>Full Win32 sparse file API support, including creation, punching holes, enumeration of hole&amp;data ranges etc.</para>
+            </listitem>
+            <listitem>
+              <para>Supports Win32 APIs <literal>|FSCTL_QUERY_ALLOCATED_RANGES|</literal>, <literal>|FSCTL_SET_SPARSE|</literal>, <literal>|FSCTL_SET_ZERO_DATA|</literal>; and <literal>|NfsV3Attributes.used|</literal> EA</para>
+            </listitem>
+            <listitem>
+              <para>Cygwin sparse file support requires &gt;= Cygwin 3.6 to support POSIX-1.2024 <literal>|lseek(...,SEEK_HOLE/SEEK_DATA,...)|</literal>, which is needed for coreutils <filename>/usr/bin/fallocate</filename> and <command>$ /usr/bin/cp --sparse=auto src dest #</command></para>
+            </listitem>
+            <listitem>
+              <para><filename>/cygdrive/c/Windows/system32/fsutil sparse queryrange myfile.dat</filename> can be used to enumerate ranges where data are allocated (BUG: Win10+Win11 fsutil only support 64 data ranges, the filesystem itself supports an unlimited number of data ranges)</para>
+            </listitem>
+            <listitem>
+              <para><filename>/cygdrive/c/Windows/system32/xcopy /sparse</filename> can be used to copy sparse files. Requires on Win11 &gt;= 22H2 because it relies on <literal>|CopyFile2()|</literal> flag <literal>|COPY_FILE_ENABLE_SPARSE_COPY|</literal>.</para>
+            </listitem>
+          </itemizedlist>
+        </para>
+      </listitem>
+      <listitem>
+        <para>Block cloning support
+          <itemizedlist>
+            <listitem>
+              <para>Implemented via Win32 <literal>|FSCTL_DUPLICATE_EXTENTS_TO_FILE|</literal> to clone file blocks from src to dst within the same filesystem.</para>
+            </listitem>
+            <listitem>
+              <para>Requires NFSv4.2 server which supports the NFSv4.2 operations "CLONE", "DEALLOCATE", "SEEK", and exports a filesystem which supports block cloning (e.g. Linux BTRFS+XFS, but NOT Linux tmpfs)</para>
+            </listitem>
+            <listitem>
+              <para>Sparse files are correctly cloned, including all hole and data ranges</para>
+            </listitem>
+            <listitem>
+              <para><filename>/usr/bin/winclonefile.exe</filename> can be used to clone a file</para>
+            </listitem>
+            <listitem>
+              <para>Windows 11 <literal>|CopyFile2()|</literal> API uses <literal>|FSCTL_DUPLICATE_EXTENTS_TO_FILE|</literal> by default</para>
+            </listitem>
+            <listitem>
+              <para>Windows 11 tools like xcopy.exe, robocopy etc. all use <literal>|CopyFile2()|</literal>, and therefore file cloning by default</para>
+            </listitem>
+          </itemizedlist>
+        </para>
+      </listitem>
+      <listitem>
+        <para>Symlink reparse and translation support
+          <itemizedlist>
+            <listitem>
+              <para>Translates Win32/NT symlink syntax (e.g. <command>$ mklink /D ... Y:\tmp\ #</command>) to NFS/POSIX syntax (e.g. "<filename>/cygdrive/y/tmp/</filename>") and back</para>
+            </listitem>
+            <listitem>
+              <para>Translates Cygwin <filename>/cygdrive/&lt;devletter&gt;</filename> symlinks on NFS to Win32 <filename>&lt;devletter&gt;:\</filename> and back</para>
+            </listitem>
+            <listitem>
+              <para>Pass-through for NFS <filename>/dev-Symlinks</filename> (e.g. <filename>/dev/null</filename>) to Cygwin</para>
+            </listitem>
+            <listitem>
+              <para>Interoperability for symlinks between Cygwin, powershell, cmd.exe and other POSIX-compatible NFSv4.2/NFSv4.1 clients.</para>
+            </listitem>
+          </itemizedlist>
+        </para>
+      </listitem>
+      <listitem>
+        <para>Support for NFSv4 public mounts (i.e., use the NFSv4 public file handle lookup protocol via <command>$ nfs_mount -o public ... #</command>)</para>
+      </listitem>
+      <listitem>
+        <para>Support for NFSv4 referrals
+          <itemizedlist>
+            <listitem>
+              <para>See Linux <command>export(5) refer=</command> option, <command>nfsref(5)</command> or <link xl:href="https://docs.oracle.com/cd/E86824_01/html/E54764/nfsref-1m.html">https://docs.oracle.com/cd/E86824_01/html/E54764/nfsref-1m.html</link></para>
+            </listitem>
+          </itemizedlist>
+        </para>
+      </listitem>
+      <listitem>
+        <para>SFU/Cygwin/MSYS2 support, including:
+          <itemizedlist>
+            <listitem>
+              <para>POSIX uid/gid+mode</para>
+            </listitem>
+            <listitem>
+              <para>Backwards compatibility to Microsoft's NFSv3 driver</para>
+            </listitem>
+            <listitem>
+              <para>Cygwin ACLs, e.g., <command>setfacl</command>/<command>getfacl</command></para>
+            </listitem>
+            <listitem>
+              <para>Cygwin/MSYS2 symlinks</para>
+            </listitem>
+          </itemizedlist>
+        </para>
+      </listitem>
+      <listitem>
+        <para>Custom primary group support
+          <itemizedlist>
+            <listitem>
+              <para>Supports primary group changes in the calling process/thread (via <literal>|SetTokenInformation(..., TokenPrimaryGroup,...)|</literal>), e.g., if the calling process/threads switches the primary group in its access token then the NFSv4.2 client will use that group as GID for file creation.</para>
+            </listitem>
+            <listitem>
+              <para><command>newgrp(1)</command>/<command>sg(1)</command>-style "winsg" utility to run cmd.exe with different primary group, e.g., <command>$ winsg [-] -g group [-c command | /C command] #</command></para>
+            </listitem>
+          </itemizedlist>
+        </para>
+      </listitem>
+      <listitem>
+        <para>Software compatibility:
+          <itemizedlist>
+            <listitem>
+              <para>Any NFSv4.2/NFSv4.1 server (Linux, Solaris, Illumos, FreeBSD, nfs4j, ...)</para>
+            </listitem>
+            <listitem>
+              <para>All tools from Cygwin/MSYS2/MinGW</para>
+            </listitem>
+            <listitem>
+              <para>Visual Studio</para>
+            </listitem>
+            <listitem>
+              <para>VMware Workstation (can use VMs hosted on NFSv4.2/NFSv4.1 filesystem)</para>
+            </listitem>
+          </itemizedlist>
+        </para>
+      </listitem>
+    </itemizedlist>
+  </section>
+
+  <section xml:id="requirements">
+    <title>Requirements</title>
+    <itemizedlist>
+      <listitem>
+        <para>Windows 10 (32bit or 64bit), Windows 11 or Windows Server 2019+2022</para>
+      </listitem>
+      <listitem>
+        <para>Cygwin:
+          <itemizedlist>
+            <listitem>
+              <para>Cygwin versions:
+                <itemizedlist>
+                  <listitem>
+                    <para>64bit: &gt;= 3.5.7, recommended &gt;= 3.6.1</para>
+                  </listitem>
+                  <listitem>
+                    <para>32bit: &gt;= 3.3.6</para>
+                  </listitem>
+                </itemizedlist>
+              </para>
+            </listitem>
+            <listitem>
+              <para>Packages (required):
+                <itemizedlist>
+                  <listitem><para><literal>cygwin</literal></para></listitem>
+                  <listitem><para><literal>cygrunsrv</literal></para></listitem>
+                  <listitem><para><literal>cygutils</literal></para></listitem>
+                  <listitem><para><literal>cygutils-extra</literal></para></listitem>
+                  <listitem><para><literal>libiconv</literal></para></listitem>
+                  <listitem><para><literal>libiconv2</literal></para></listitem>
+                  <listitem><para><literal>procps-ng</literal></para></listitem>
+                  <listitem><para><literal>util-linux</literal></para></listitem>
+                </itemizedlist>
+              </para>
+            </listitem>
+            <listitem>
+              <para>Packages (optional, recommended, required to build ms-nf41-client):
+                <itemizedlist>
+                  <listitem><para><literal>bison</literal></para></listitem>
+                  <listitem><para><literal>cygport</literal></para></listitem>
+                  <listitem><para><literal>cygwin-devel</literal></para></listitem>
+                  <listitem><para><literal>clang</literal></para></listitem>
+                  <listitem><para><literal>dos2unix</literal></para></listitem>
+                  <listitem><para><literal>pax</literal></para></listitem>
+                  <listitem><para><literal>pbzip2</literal></para></listitem>
+                  <listitem><para><literal>libnfs-utils</literal> (for <filename>/usr/bin/nfs-ls</filename>)</para></listitem>
+                  <listitem><para><literal>libiconv-devel</literal></para></listitem>
+                  <listitem><para><literal>make</literal></para></listitem>
+                  <listitem><para><literal>bmake</literal></para></listitem>
+                  <listitem><para><literal>git</literal></para></listitem>
+                  <listitem><para><literal>gcc-core</literal></para></listitem>
+                  <listitem><para><literal>gcc-g++</literal></para></listitem>
+                  <listitem><para><literal>gdb</literal></para></listitem>
+                  <listitem><para><literal>mingw64-i686-clang</literal></para></listitem>
+                  <listitem><para><literal>mingw64-x86_64-clang</literal></para></listitem>
+                  <listitem><para><literal>unzip</literal></para></listitem>
+                  <listitem><para><literal>time</literal></para></listitem>
+                  <listitem><para><literal>docbook-utils</literal></para></listitem>
+                  <listitem><para><literal>docbook-xml45</literal></para></listitem>
+                  <listitem><para><literal>docbook-xsl</literal></para></listitem>
+                  <listitem><para><literal>docbook-xsl-ns</literal></para></listitem>
+                  <listitem><para><literal>libxslt</literal></para></listitem>
+                  <listitem><para><literal>w3m</literal></para></listitem>
+                </itemizedlist>
+              </para>
+            </listitem>
+            <listitem>
+              <para>Packages (only-CI):
+                <itemizedlist>
+                  <listitem><para># required packages, but part of Cygwin default installation</para></listitem>
+                  <listitem><para># listed here for CI package list ONLY</para></listitem>
+                  <listitem><para><literal>bash</literal></para></listitem>
+                  <listitem><para><literal>bzip2</literal></para></listitem>
+                  <listitem><para><literal>coreutils</literal></para></listitem>
+                  <listitem><para><literal>getent</literal></para></listitem>
+                  <listitem><para><literal>grep</literal></para></listitem>
+                  <listitem><para><literal>hostname</literal></para></listitem>
+                  <listitem><para><literal>less</literal></para></listitem>
+                  <listitem><para><literal>sed</literal></para></listitem>
+                  <listitem><para><literal>tar</literal></para></listitem>
+                  <listitem><para><literal>wget</literal></para></listitem>
+                </itemizedlist>
+              </para>
+            </listitem>
+          </itemizedlist>
+        </para>
+      </listitem>
+      <listitem>
+        <para>MSYS2 (64bit, optional):
+          <itemizedlist>
+            <listitem>
+              <para>Packages (recommended):
+                <itemizedlist>
+                  <listitem><para><literal>base-devel</literal></para></listitem>
+                  <listitem><para><literal>gcc</literal></para></listitem>
+                  <listitem><para><literal>clang</literal></para></listitem>
+                  <listitem><para><literal>sed</literal></para></listitem>
+                  <listitem><para><literal>time</literal></para></listitem>
+                  <listitem><para><literal>coreutils</literal></para></listitem>
+                  <listitem><para><literal>util-linux</literal></para></listitem>
+                  <listitem><para><literal>grep</literal></para></listitem>
+                  <listitem><para><literal>sed</literal></para></listitem>
+                  <listitem><para><literal>emacs</literal></para></listitem>
+                  <listitem><para><literal>gdb</literal></para></listitem>
+                  <listitem><para><literal>make</literal></para></listitem>
+                  <listitem><para><literal>autoconf</literal></para></listitem>
+                  <listitem><para><literal>automake</literal></para></listitem>
+                  <listitem><para><literal>gettext</literal></para></listitem>
+                  <listitem><para><literal>gettext-devel</literal></para></listitem>
+                  <listitem><para><literal>git</literal></para></listitem>
+                  <listitem><para><literal>subversion</literal></para></listitem>
+                  <listitem><para><literal>flex</literal></para></listitem>
+                  <listitem><para><literal>bison</literal></para></listitem>
+                  <listitem><para><literal>unzip</literal></para></listitem>
+                  <listitem><para><literal>pax</literal></para></listitem>
+                  <listitem><para><literal>tar</literal></para></listitem>
+                  <listitem><para><literal>libiconv-devel</literal></para></listitem>
+                  <listitem><para><literal>ncurses-devel</literal></para></listitem>
+                  <listitem><para><literal>gmp-devel</literal></para></listitem>
+                  <listitem><para><literal>mpfr-devel</literal></para></listitem>
+                  <listitem><para><literal>mpc-devel</literal></para></listitem>
+                  <listitem><para><literal>isl-devel</literal></para></listitem>
+                  <listitem><para><literal>procps-ng</literal></para></listitem>
+                  <listitem><para><literal>libiconv-devel</literal></para></listitem>
+                </itemizedlist>
+              </para>
+            </listitem>
+          </itemizedlist>
+        </para>
+      </listitem>
+    </itemizedlist>
+  </section>
+
+  <section xml:id="installation">
+    <title>Installation</title>
+
+  <section xml:id="download-install-cygwin">
+    <title>Download and install Cygwin (if not installed yet)</title>
+    <para>Windows 32bit-vs.-64bit can be tested from Windows <command>cmd.exe</command> console:</para>
+    <para>Run this command:</para>
+    <programlisting>echo %PROCESSOR_ARCHITECTURE%</programlisting>
+    <para>If this returns "AMD64" then you have a Windows 64bit kernel, and if it returns "x86" then you have Windows 32bit kernel. If you get any other value then this is a (documentation) bug.</para>
+
+    <para>Cygwin 64bit can be installed like this:</para>
+    <para>
+      <emphasis role="strong">Install Cygwin 64bit on Windows 64bit with packages required by "ms-nfs41-client" (Windows NFSv4.2 client):</emphasis>
+    </para>
+    <orderedlist>
+      <listitem>
+        <para>Create subdir</para>
+        <programlisting>mkdir download
+cd download</programlisting>
+      </listitem>
+      <listitem>
+        <para>Get installer from <link xl:href="https://cygwin.com/setup-x86_64.exe">https://cygwin.com/setup-x86_64.exe</link></para>
+        <programlisting>curl --remote-name "https://www.cygwin.com/setup-x86_64.exe"</programlisting>
+      </listitem>
+      <listitem>
+        <para>Run installer with these arguments:</para>
+        <programlisting>setup-x86_64.exe -q --site "https://mirrors.kernel.org/sourceware/cygwin" -P cygwin,cygwin-devel,cygrunsrv,cygutils,cygutils-extra,bash,bzip2,coreutils,getent,gdb,grep,hostname,less,libiconv,libiconv2,pax,pbzip2,procps-ng,sed,tar,time,util-linux,wget,libnfs-utils,make,bmake,git,dos2unix,unzip</programlisting>
+      </listitem>
+    </orderedlist>
+
+    <para>Cygwin 32bit can be installed like this:</para>
+    <para>
+      <emphasis role="strong">Install Cygwin 32bit on Windows 32bit with packages required by "ms-nfs41-client" (Windows NFSv4.2 client):</emphasis>
+    </para>
+    <orderedlist>
+      <listitem>
+        <para>Create subdir</para>
+        <programlisting>mkdir download
+cd download</programlisting>
+      </listitem>
+      <listitem>
+        <para>Get installer from <link xl:href="https://www.cygwin.com/setup-x86.exe">https://www.cygwin.com/setup-x86.exe</link></para>
+        <programlisting>curl --remote-name "https://www.cygwin.com/setup-x86.exe"</programlisting>
+      </listitem>
+      <listitem>
+        <para>Run installer with these arguments:</para>
+        <programlisting>setup-x86.exe --allow-unsupported-windows -q --no-verify --site "http://ctm.crouchingtigerhiddenfruitbat.org/pub/cygwin/circa/2022/11/23/063457" -P cygwin,cygwin-devel,cygrunsrv,cygutils,cygutils-extra,bash,bzip2,coreutils,getent,gdb,grep,hostname,less,libiconv,libiconv2,pax,pbzip2,procps-ng,sed,tar,time,util-linux,wget,libnfs-utils,make,bmake,git,dos2unix,unzip</programlisting>
+      </listitem>
+    </orderedlist>
+  </section>
+
+  <section xml:id="download-install-msys2">
+    <title>Download and install MSYS2/64bit [OPTIONAL]</title>
+    <orderedlist>
+      <listitem>
+        <para>Download &amp; install from Cygwin</para>
+        <programlisting>mkdir -p download &amp;&amp; cd download
+wget 'https://github.com/msys2/msys2-installer/releases/download/2025-02-21/msys2-x86_64-20250221.exe'
+chmod a+x 'msys2-x86_64-20250221'
+./msys2-x86_64-20250221 --default-answer --root 'C:\msys64' install</programlisting>
+      </listitem>
+      <listitem>
+        <para>Install extra packages:</para>
+        <para>Start MSYS2 UCRT mintty and execute this:</para>
+        <programlisting>pacman -S --noconfirm base-devel gcc clang sed time coreutils util-linux grep sed emacs gdb make autoconf automake gettext gettext-devel git subversion flex bison unzip pax tar libiconv-devel ncurses-devel gmp-devel mpfr-devel mpc-devel isl-devel procps-ng libiconv-devel</programlisting>
+      </listitem>
+    </orderedlist>
+  </section>
+
+  <section xml:id="download-msnfs41client-tarball">
+    <title>Download "ms-nfs41-client" installation tarball</title>
+    <para>(from a Cygwin terminal)</para>
+    <programlisting>$ mkdir -p ~/download
+$ cd ~/download
+$ wget 'http://www.nrubsig.org/people/gisburn/work/msnfs41client/releases/testing/${bintarball.base_filename}.tar.bz2'
+$ openssl sha256 "${bintarball.base_filename}.tar.bz2"
+SHA2-256(${bintarball.base_filename}.tar.bz2)= ${bintarball.archive_sha256hash}</programlisting>
+  </section>
+
+  <section xml:id="installation-via-cygwin">
+    <title>Installation (as "Administrator")</title>
+    <programlisting>$ (cd / &amp;&amp; tar -xf ~/download/${bintarball.base_filename}.tar.bz2 )
+$ /sbin/msnfs41client install
+&lt;REBOOT&gt;</programlisting>
+  </section>
+
+  <section xml:id="deinstallation">
+    <title>Deinstallation</title>
+    <programlisting>$ (set -o xtrace ; cd / &amp;&amp; tar -tf ~/download/${bintarball.base_filename}.tar.bz2 | while read i ; do [[ -f "$i" ]] &amp;&amp; rm "$i" ; done)
+&lt;REBOOT&gt;</programlisting>
+  </section>
+
+  </section>
+
+  <section xml:id="usage">
+    <title>Usage</title>
+
+    <section xml:id="prep_nfs_server">
+      <title>Preparing the NFS server</title>
+
+      <section xml:id="nfs_server_config">
+        <title>NFS server config</title>
+        <itemizedlist>
+          <listitem><para>Make sure the NFS client can access the NFS server</para></listitem>
+          <listitem><para>The NFS server should send owner and owner_group information as user@domain and group@domain, and not as numeric uid/gid information</para></listitem>
+        </itemizedlist>
+      </section>
+
+      <section xml:id="nfs_server_accounts">
+        <title>User/group accounts on the NFS server</title>
+        <para>It is required that all Windows users and groups used by the
+        Windows NFS client have user/group accounts on the server
+        side.</para>
+        <para>If no central user&amp;group management between NFS server
+        and NFS clients exists the
+        <filename>/sbin/cygwinaccount2nfs4account</filename> script can be
+        used to manually create matching <filename>/etc/group</filename> and
+        <filename>/etc/passwd</filename> entries on the NFS server side.</para>
+      </section>
+    </section>
+
+    <section xml:id="starting_nfs_daemon">
+      <title>Starting the NFS client daemon</title>
+
+      <section xml:id="run_as_windows_service">
+        <title>Run as Windows Service</title>
+        <para>
+          <itemizedlist>
+            <listitem>
+              <para>Start NFSv4 client daemon as Windows service (requires "Administrator" account):</para>
+              <programlisting>$ sc start ms-nfs41-client-service</programlisting>
+            </listitem>
+            <listitem>
+              <para>Notes:
+                <itemizedlist>
+                  <listitem>
+                    <para>requires "Administrator" account, and one nfsd client daemon is used for all users on a machine.</para>
+                  </listitem>
+                  <listitem>
+                    <para>The "ms-nfs41-client-service" service is installed by default as "disabled" and therefore always requires a "manual" start (e.g., <command>$ sc start ms-nfs41-client-service #</command>)</para>
+                  </listitem>
+                  <listitem>
+                    <para>DOS devices are virtualised per LSA Logon, so each Logon needs to do a separate <command>nfs_mount.exe</command> to mount a NFSv4 share. The exception are mounts created by user "SYSTEM", such mounts are available to all users/logons. (see <command>PsExec</command> or function "su_system" in <filename>msnfs41client.bash</filename> how to run a process as user "SYSTEM")</para>
+                  </listitem>
+                  <listitem>
+                    <para><command>nfsd_debug.exe</command> will run as user "SYSTEM", but will do user impersonation for each request</para>
+                  </listitem>
+                  <listitem>
+                    <para>stopping the service will NOT unmount filesystems, and due to a bug a reboot is required to restart and mount any NFSv4 filesystems again</para>
+                  </listitem>
+                </itemizedlist>
+              </para>
+            </listitem>
+            <listitem>
+              <para>Administration:
+                <itemizedlist>
+                  <listitem>
+                    <para>Follow new log messages:</para>
+                    <programlisting>$ tail -f '/var/log/ms-nfs41-client-service.log'</programlisting>
+                  </listitem>
+                  <listitem>
+                    <para>Query service status:</para>
+                    <programlisting>$ sc queryex ms-nfs41-client-service</programlisting>
+                  </listitem>
+                  <listitem>
+                    <para>Query service config:</para>
+                    <programlisting>$ sc qc ms-nfs41-client-service</programlisting>
+                  </listitem>
+                  <listitem>
+                    <para>Start service automatically:</para>
+                    <para>(<command>nfsd_debug.exe</command> will be started automagically, but mounts are not restored):</para>
+                    <programlisting>$ sc config ms-nfs41-client-service start=auto</programlisting>
+                  </listitem>
+                  <listitem>
+                    <para>Start service manually (default):</para>
+                    <programlisting>$ sc config ms-nfs41-client-service start=disabled</programlisting>
+                  </listitem>
+                </itemizedlist>
+              </para>
+            </listitem>
+          </itemizedlist>
+        </para>
+      </section>
+
+      <section xml:id="manual_start">
+        <title>Manual starting the daemon</title>
+        <para>Run the NFSv4 client daemon manually:</para>
+        <itemizedlist>
+          <listitem>
+            <para>run this preferably as "Administrator", but this is not a requirement</para>
+          </listitem>
+          <listitem>
+            <para>requires separate terminal</para>
+          </listitem>
+        </itemizedlist>
+        <programlisting>$ /sbin/msnfs41client run_daemon</programlisting>
+      </section>
+
+    </section>
+
+    <section xml:id="mounting_and_using">
+      <title>Mounting and using NFS filesystems</title>
+
+      <section xml:id="basic_usage">
+        <title>Basic usage</title>
+        <para>Mount a filesystem to drive N: and use it</para>
+        <programlisting>$ /sbin/nfs_mount -o rw N 10.49.202.230:/net_tmpfs2
+Successfully mounted '10.49.202.230@2049' to drive 'N:'
+$ cd /cygdrive/n/
+$ ls -la
+total 4
+drwxrwxrwt 5 Unix_User+0      Unix_Group+0      100 Dec  7 14:17 .
+dr-xr-xr-x 1 roland_mainz     Kein                0 Dec 14 13:48 ..
+drwxr-xr-x 3 Unix_User+197608 Unix_Group+197121  80 Dec 12 16:24 10492030
+drwxr-xr-x 3 Unix_User+197608 Unix_Group+197121  60 Dec 13 17:58 directory_t
+drwxr-xr-x 3 Unix_User+197608 Unix_Group+197121  60 Dec  7 11:01 test2</programlisting>
+
+        <para>Unmount filesystem:</para>
+        <programlisting>$ cd ~ &amp;&amp; /sbin/nfs_umount N:
+# OR
+$ cd ~
+$ net use N: /delete</programlisting>
+
+        <para>Mount a filesystem WITHOUT a dos drive assigned and use it via UNC path</para>
+        <programlisting>$ /sbin/nfs_mount -o rw 10.49.202.230:/net_tmpfs2
+Successfully mounted '10.49.202.230@2049' to drive '\\10.49.202.230@2049\nfs4\net_tmpfs2'
+$ cygpath -u '\\10.49.202.230@2049\nfs4\net_tmpfs2'
+//10.49.202.230@2049/nfs4/net_tmpfs2
+$ cd '//10.49.202.230@2049/nfs4/net_tmpfs2'
+$ ls -la
+total 4
+drwxrwxrwt 5 Unix_User+0      Unix_Group+0      100 Dec  7 14:17 .
+dr-xr-xr-x 1 roland_mainz     Kein                0 Dec 14 13:48 ..
+drwxr-xr-x 3 Unix_User+197608 Unix_Group+197121  80 Dec 12 16:24 10492030
+drwxr-xr-x 3 Unix_User+197608 Unix_Group+197121  60 Dec 13 17:58 directory_t
+drwxr-xr-x 3 Unix_User+197608 Unix_Group+197121  60 Dec  7 11:01 test2</programlisting>
+        <para>Unmount filesystem:</para>
+        <programlisting>$ cd ~ &amp;&amp; /sbin/nfs_umount '\\10.49.202.230@2049\nfs4\net_tmpfs2'
+# OR
+$ cd ~
+$ net use '\\10.49.202.230@2049\nfs4\net_tmpfs2' /delete</programlisting>
+        <para>List mounted NFSv4.2 filesystems:</para>
+        <programlisting>$ /sbin/nfs_mount</programlisting>
+      </section>
+
+      <section xml:id="global-system-wide-mounts">
+        <title>Global/System-wide mounts</title>
+        <para>Mounts created by user "SYSTEM" are usable by all users in a system. Example usage:</para>
+        <programlisting># Create a file /etc/fstab.msnfs41client, which list the mounts
+# which should be available system-wide
+$ cat /etc/fstab.msnfs41client
+nfs://[fe80::21b:1bff:fec3:7713]//bigdisk       V       nfs     rw      0       0
+# run "ms-nfs41-client-globalmountall-service", which runs
+# /sbin/mountall_msnfs41client as user "SYSTEM" to read
+# /etc/fstab.msnfs41client and mount the matching filesystems
+sc start ms-nfs41-client-globalmountall-service</programlisting>
+        <para>BUG: "ms-nfs41-client-globalmountall-service" currently does not wait until <command>nfsd*.exe</command> is available for accepting mounts.</para>
+      </section>
+
+      <section xml:id="wsl-usage">
+        <title>WSL usage</title>
+        <para>Example 1: Mount Windows NFSv4.2 share via Windows drive letter</para>
+        <para>Mount NFSv4.2 share in Windows to drive letter 'N':</para>
+        <programlisting>$ /sbin/nfs_mount -o rw 'N' nfs://10.49.202.230//bigdisk
+Successfully mounted '10.49.202.230@2049' to drive 'N:'</programlisting>
+        <para>Within WSL mount drive letter 'N' to <filename>/mnt/n</filename></para>
+        <programlisting>$ sudo bash
+$ mkdir /mnt/n
+$ mount -t drvfs N: /mnt/n</programlisting>
+
+        <para>Example 2: Mount Windows NFSv4.2 share via UNC path:</para>
+        <para>Mount NFSv4.2 share in Windows</para>
+        <programlisting>$ /sbin/nfs_mount -o rw nfs://10.49.202.230//bigdisk
+Successfully mounted '10.49.202.230@2049' to drive '\\10.49.202.230@2049\nfs4\bigdisk'</programlisting>
+        <para>Within WSL mount UNC path returned by <filename>/sbin/nfs_mount</filename></para>
+        <programlisting>$ sudo bash
+$ mkdir /mnt/bigdisk
+$ mount -t drvfs '\\10.49.202.230@2049\nfs4\bigdisk' /mnt/bigdisk</programlisting>
+
+        <para><emphasis role="strong">Known issues with WSL:</emphasis></para>
+        <itemizedlist>
+          <listitem><para>Softlinks do not work yet</para></listitem>
+          <listitem><para>Creating a hard link returns "Invalid Argument", maybe drvfs limitation</para></listitem>
+          <listitem><para>Not all POSIX file types (e.g. block devices) etc. are supported</para></listitem>
+        </itemizedlist>
+      </section>
+    </section>
+  </section>
+
+  <section xml:id="notes">
+    <title>Notes</title>
+    <itemizedlist>
+      <listitem>
+        <para>Idmapping (including uid/gid mapping) between NFSv4 client and NFSv4 server works via <filename>/lib/msnfs41client/cygwin_idmapper.ksh</filename>, which either uses builtin static data, or <filename>/usr/bin/getent passwd</filename> and <filename>/usr/bin/getent group</filename>. As <command>getent</command> uses the configured name services it should work with LDAP too. This is still work-in-progress, with the goal that both NFSv4 client and server can use different uid/gid numeric values for client and server side.</para>
+      </listitem>
+      <listitem>
+        <para>UNC paths are supported, after successful mounting <filename>/sbin/nfs_mount</filename> will list the paths in Cygwin/MSYS2 UNC format.</para>
+      </listitem>
+      <listitem>
+        <para>SIDs work, users with valid Windows accounts (see Cygwin idmapping above get their SIDs, unknown users with valid uid/gid values get Unix_User+id/Unix_Group+id SIDs, and all others are mapped to nobody/nogroup SIDs.</para>
+      </listitem>
+      <listitem>
+        <para>Workflow for <literal>nfs://</literal>-URLs:
+          <itemizedlist>
+            <listitem><para>Create <literal>nfs://</literal>-URLs with <command>nfsurlconv</command>, read <command>$ nfsurlconv --man #</command> for usage</para></listitem>
+            <listitem><para>pass URL to <filename>nfs_mount.exe</filename> like this: <command>$ nfs_mount -o sec=sys,rw 'L' nfs://derfwnb4966_ipv4//bigdisk #</command></para></listitem>
+          </itemizedlist>
+        </para>
+      </listitem>
+      <listitem>
+        <para>Cygwin/MSYS2 symlinks are supported, but might require <command>$ fsutil behavior set SymlinkEvaluation L2L:1 R2R:1 L2R:1 R2L:1 #</command>. This includes symlinks to UNC paths, e.g., as Administrator <command>$ cmd /c 'mklink /d c:\home\rmainz \\derfwpc5131_ipv6@2049\nfs4\export\home2\rmainz' #</command> and then <command>$ cd /cygdrive/c/home/rmainz/ #</command> should work</para>
+      </listitem>
+      <listitem>
+        <para>performance: All binaries are built without any optimisation, so the filesystem is much slower than it could be.</para>
+      </listitem>
+      <listitem>
+        <para>bad performance due to Windows Defender AntiVirus:
+          <itemizedlist>
+            <listitem>
+              <para>Option 1: disable Windows defender realtime monitoring (requires Administrator shell)</para>
+              <programlisting>powershell -Command 'Set-MpPreference -DisableRealtimeMonitoring 1'</programlisting>
+            </listitem>
+            <listitem>
+              <para>Option 2: Add "<filename>nfsd.exe</filename>", "<filename>nfsd_debug.exe</filename>", "<filename>ksh93.exe</filename>", "<filename>bash.exe</filename>", "<filename>git.exe</filename>" and other offending commands to the process name whitelist.</para>
+            </listitem>
+          </itemizedlist>
+        </para>
+      </listitem>
+      <listitem>
+        <para>performance: Use <literal>vmxnet3</literal> in VMware to improve performance</para>
+      </listitem>
+      <listitem>
+        <para>ACLs are supported via the normal Windows ACL tools, but on Linux require the <command>nfs4_getfacl</command>/<command>nfs4_setfacl</command> utilities to see the data.</para>
+        <para><emphasis role="strong">Example 1</emphasis> (assuming that Windows, Linux NFSv4 client and NFSv4 server have a user "siegfried_wulsch"):</para>
+        <itemizedlist>
+          <listitem>
+            <para>On Windows on a NFSv4 filesystem:</para>
+            <programlisting>$ icacls myhorribledata.txt /grant "siegfried_wulsch:WD" #</programlisting>
+          </listitem>
+          <listitem>
+            <para>On Linux NFSv4 clients you will then see this:</para>
+            <programlisting>$ nfs4_getfacl myhorribledata.txt
+A::OWNER@:rwatTcCy
+A::siegfried_wulsch@global.loc:rwatcy
+A::GROUP@:rtcy
+A::EVERYONE@:rtcy</programlisting>
+          </listitem>
+        </itemizedlist>
+        <para><emphasis role="strong">Example 2</emphasis> (assuming that Windows, Linux NFSv4 client and NFSv4 server have a group "cygwingrp2"):</para>
+        <itemizedlist>
+          <listitem>
+            <para>On Windows on a NFSv4 filesystem:</para>
+            <programlisting>$ icacls myhorribledata.txt /grant "cygwingrp2:(WDAC)" /t /c #</programlisting>
+          </listitem>
+          <listitem>
+            <para>On Linux NFSv4 clients you will then see this:</para>
+            <programlisting>$ nfs4_getfacl myhorribledata.txt
+A::OWNER@:rwatTcCy
+A::GROUP@:rtcy
+A:g:cygwingrp2@global.loc:rtcy
+A::EVERYONE@:rtcy</programlisting>
+          </listitem>
+        </itemizedlist>
+      </listitem>
+      <listitem>
+        <para><filename>nfs_mount.exe</filename> vs. reserved ports: By default the NFSv4 server on Solaris, Illumos, Linux etc. only accepts connections if the NFSv4 client uses a "privileged (TCP) port", i.e., using a TCP port number &lt; 1024. If <filename>nfsd.exe</filename>/<filename>nfsd_debug.exe</filename> is started without the Windows privilege to use reserved ports, then a mount attempt can fail. This can be worked around on the NFSv4 server side - on Linux using the "insecure" export option in <filename>/etc/exports</filename> and on Solaris/Illumos using export option "resvport" (see <command>nfs(5)</command>).</para>
+      </listitem>
+      <listitem>
+        <para>Accessing mounts from a VMware/QEMU/VirtualBox VM using NAT requires the the "insecure" export option in <filename>/etc/exports</filename> and on Solaris/Illumos using export option "resvport" (see <command>nfs(5)</command>), as the NFSv4 client source TCP port will be &gt;= 1024.</para>
+      </listitem>
+      <listitem>
+        <para>Install: Adding Windows accounts+groups to the NFSv4 server: <literal>ms-nfs41-client</literal> comes with <filename>/sbin/cygwinaccount2nfs4account</filename> to convert the Win32/Cygwin account information of the (current) user+groups to a small script for the NFSv4 server to set-up these accounts on the server side.</para>
+      </listitem>
+      <listitem>
+        <para><command>nfs_mount -o sec=none ... #</command> works with Solaris 11.4 nfsd, but might require Linux kernel commit <link xl:href="https://git.kernel.org/pub/scm/linux/kernel/git/cel/linux.git/patch/?id=bb4f07f2409c26c01e97e6f9b432545f353e3b66">https://git.kernel.org/pub/scm/linux/kernel/git/cel/linux.git/patch/?id=bb4f07f2409c26c01e97e6f9b432545f353e3b66</link> ("nfsd: Fix NFSD_MAY_BYPASS_GSS and NFSD_MAY_BYPASS_GSS_ON_ROOT") to work.</para>
+      </listitem>
+    </itemizedlist>
+  </section>
+
+  <section xml:id="known-issues">
+    <title>Known issues</title>
+    <itemizedlist>
+      <listitem>
+        <para>The kernel driver ("<filename>nfs41_driver.sys</filename>") does not yet have a cryptographic signature for SecureBoot - which means it will only work if SecureBoot is turned off (otherwise <command>$ /sbin/msnfs41client install #</command> will FAIL!)</para>
+      </listitem>
+      <listitem>
+        <para>If <filename>nfsd_debug.exe</filename> crashes or gets killed, the only safe way to run it again requires a reboot</para>
+      </listitem>
+      <listitem>
+        <para>LDAP support does not work yet</para>
+      </listitem>
+      <listitem>
+        <para>Attribute caching is too aggressive</para>
+      </listitem>
+      <listitem>
+        <para>Caching in the kernel does not always work. For example <command>$ tail -f ... #</command> does not not see new data. Workaround: Use GNU tail'S <command>$ tail --follow=name ... #</command> Working theory is that this is related to FCB caching, see <literal>|FCB_STATE_FILESIZECACHEING_ENABLED|</literal>, as the <filename>nfs41_driver.sys</filename> kernel module does not see the <literal>|stat()|</literal> syscalls. But <command>$ tail -f ... #</command> always works for a moment if something else opens the same file.</para>
+      </listitem>
+      <listitem>
+        <para>Unmounting and then mounting the same filesystem causes issues as the name cache in <command>nfsd*.exe</command> is not flushed on unmount, including leftover delegations.</para>
+      </listitem>
+      <listitem>
+        <para><literal>krb5p</literal> security with AES keys do not work against the linux server, as it does not support gss krb5 v2 tokens with rotated data.</para>
+      </listitem>
+      <listitem>
+        <para>When recovering opens and locks outside of the server's grace period, client does not check whether the file has been modified by another client.</para>
+      </listitem>
+      <listitem>
+        <para>If <filename>nfsd.exe</filename> is restarted while a drive is mapped, that drive needs to be remounted before further use.</para>
+      </listitem>
+      <listitem>
+        <para>Does not allow renaming a file on top of an existing open file. Connectathon's special test <literal>op_ren</literal> has been commented out.</para>
+      </listitem>
+      <listitem>
+        <para>File access timestamps might be wrong for delegations.</para>
+      </listitem>
+      <listitem>
+        <para>Extended attributes are supported with some limitations:
+          <itemizedlist>
+            <listitem><para>a) the server must support NFS Named Attributes,</para></listitem>
+            <listitem><para>b) the order of listings cannot be guaranteed by NFS, and</para></listitem>
+            <listitem><para>c) the EaSize field cannot be reported for directory queries of <literal>FileBothDirInformation</literal>, <literal>FileFullDirInfo</literal>, or <literal>FileIdFullDirInfo</literal>.</para></listitem>
+          </itemizedlist>
+        </para>
+      </listitem>
+      <listitem>
+        <para>Win10/32bit-only: <command>$ net use H: /delete #</command> does not work, use <command>$ nfs_umount 'H'</command> instead #</para>
+      </listitem>
+      <listitem>
+        <para>Windows event log can list errors like "MUP 0xc0000222" (<literal>|STATUS_LOST_WRITEBEHIND_DATA|</literal>) in case the disk on the NFSv4 server is full and outstanding writes from a memory-mapped file fail. Example:</para>
+        <programlisting>{Fehler beim verzoegerten Schreibvorgang} Nicht alle Daten fuer die
+Datei "\\34.159.25.153@2049\nfs4\export\nfs4export\gcc\lto-dump.exe"
+konnten gespeichert werden. Daten gingen verloren.
+Dieser Fehler wurde von dem Server zurueckgegeben, auf dem sich die
+Datei befindet. Versuchen Sie, die Datei woanders zu speichern.</programlisting>
+      </listitem>
+    </itemizedlist>
+  </section>
+
+  <section xml:id="troubleshooting-debugging">
+    <title>Troubleshooting &amp;&amp; finding bugs/debugging</title>
+    <itemizedlist>
+      <listitem>
+        <para><filename>nfsd_debug.exe</filename> has the <literal>-d</literal> option to set a level for debug output. Edit <filename>/sbin/msnfs41client</filename> to set the <literal>"-d"</literal> option.</para>
+      </listitem>
+      <listitem>
+        <para>The "msnfs41client" script has the option "<literal>watch_kernel_debuglog</literal>" to get the debug output of the kernel module.</para>
+        <para>Run as Administrator: <command>$ /sbin/msnfs41client watch_kernel_debuglog #</command></para>
+        <para>Currently requires DebugView (<link xl:href="https://learn.microsoft.com/en-gb/sysinternals/downloads/debugview">https://learn.microsoft.com/en-gb/sysinternals/downloads/debugview</link>) to be installed.</para>
+      </listitem>
+      <listitem>
+        <para>Watching network traffic:
+          <itemizedlist>
+            <listitem><para>Use <command>$ /sbin/msnfs41client watch_nfs_traffic #</command> to watch the NFS network traffic</para></listitem>
+            <listitem>
+              <para>WireShark has a command line tool called "<command>tshark</command>", which can be used to see NFSv4 traffic. As NFSv4 uses RPC you have to filter for RPC, and the RPC filter automatically identifies NFSv4 traffic on its RPC id. Example for Windows: (for NFSv4 default TCP port "2049", replace "2049" with the desired port if you use a custom port; use "ipconfig" to find the correct interface name, in this case "Ethernet0"):</para>
+              <programlisting>$ nfsv4port=2049 ; /cygdrive/c/Program\ Files/Wireshark/tshark \
+  -f "port $nfsv4port" -d "tcp.port==${nfsv4port},rpc" -i Ethernet0</programlisting>
+            </listitem>
+            <listitem>
+              <para>If you are running inside a VMware VM on a Linux host it might require <command>$ chmod a+rw /dev/vmnet0 #</command> on VMware host, so that the VM can use "Promiscuous Mode".</para>
+            </listitem>
+          </itemizedlist>
+        </para>
+      </listitem>
+    </itemizedlist>
+  </section>
+
+  <section xml:id="development">
+    <title>Development</title>
+
+    <section xml:id="source-code">
+      <title>Source code</title>
+      <para>Source code can be obtained from <link xl:href="https://github.com/kofemann/ms-nfs41-client">https://github.com/kofemann/ms-nfs41-client</link> or as git bundle from <filename>/usr/src/msnfs41client/msnfs41client_git.bundle</filename></para>
+    </section>
+
+    <section xml:id="building_msnfs41client">
+    <title>Building ms-nfs41-client</title>
+
+    <section xml:id="building-cygwin-makefile">
+      <title>Building ms-nfs41-client using Cygwin+Makefile</title>
+
+      <section xml:id="required-software-makefile">
+        <title>Required Software</title>
+        <itemizedlist>
+          <listitem>
+            <para><emphasis role="bold">Option 1:</emphasis> Windows 10 with Visual Studio 2019</para>
+            <itemizedlist>
+              <listitem>
+                <para>Start Visual Studio 2019 installer and import the installer config file
+                <filename>ms-nfs41-client/build.vc19/ms-nfs41-client_vs2019.vsconfig</filename>, and then install Visual Studio.</para>
+                <note>
+                  <para>Due to a bug in the VS installer, it is sometimes required to manually add another (random) component to be installed; otherwise, the imported config might be ignored.</para>
+                </note>
+              </listitem>
+              <listitem>
+                <para>WDK for Windows 10, version 2004, from <link xl:href="https://go.microsoft.com/fwlink/?linkid=2128854">https://go.microsoft.com/fwlink/?linkid=2128854</link></para>
+              </listitem>
+              <listitem>
+                <para>Cygwin 64bit &gt;= 3.5.0 (see <filename>ms-nfs41-clientcygwin/README.bintarball.txt</filename> for Cygwin 32bit and 64bit installation instructions)</para>
+              </listitem>
+              <listitem>
+                <para>PanDoc document converter, from <link xl:href="https://github.com/jgm/pandoc/releases/download/3.7.0.1/pandoc-3.7.0.1-windows-x86_64.msi">https://github.com/jgm/pandoc/releases/download/3.7.0.1/pandoc-3.7.0.1-windows-x86_64.msi</link></para>
+              </listitem>
+            </itemizedlist>
+          </listitem>
+          <listitem>
+            <para><emphasis role="bold">Option 2:</emphasis> Windows 10/11 with Visual Studio 2022</para>
+            <itemizedlist>
+              <listitem>
+                <para>Start Visual Studio 2022 installer and import the installer config file
+                <filename>ms-nfs41-client/build.vc19/ms-nfs41-client_vs2022.vsconfig</filename>, and then install Visual Studio.</para>
+                <note>
+                  <para>Due to a bug in the VS installer, it is sometimes required to manually add another (random) component to be installed; otherwise, the imported config might be ignored.</para>
+                </note>
+              </listitem>
+              <listitem>
+                <para>WDK for Windows 11, version 1591, from <link xl:href="https://go.microsoft.com/fwlink/?linkid=2286137">https://go.microsoft.com/fwlink/?linkid=2286137</link></para>
+              </listitem>
+              <listitem>
+                <para>Cygwin 64bit &gt;= 3.5.0 (see <filename>ms-nfs41-clientcygwin/README.bintarball.txt</filename> for Cygwin 32bit and 64bit installation instructions)</para>
+              </listitem>
+              <listitem>
+                <para>PanDoc document converter, from <link xl:href="https://github.com/jgm/pandoc/releases/download/3.7.0.1/pandoc-3.7.0.1-windows-x86_64.msi">https://github.com/jgm/pandoc/releases/download/3.7.0.1/pandoc-3.7.0.1-windows-x86_64.msi</link></para>
+              </listitem>
+            </itemizedlist>
+          </listitem>
+        </itemizedlist>
+      </section>
+
+      <section xml:id="build-project-makefile">
+        <title>Build the Project</title>
+        <itemizedlist>
+          <listitem>
+            <para><emphasis role="bold">Using Visual Studio 2019+Cygwin command line (bash/ksh93):</emphasis></para>
+            <programlisting># this creates a 32bit+kernel+64bit-kernel build for Windows 10+11
+export PATH="/cygdrive/c/Program Files (x86)/Microsoft Visual Studio/2019/Community/MSBuild/Current/Bin/:$PATH"
+git clone https://github.com/kofemann/ms-nfs41-client.git
+cd ms-nfs41-client
+cd cygwin
+make build
+make installdest
+make bintarball</programlisting>
+          </listitem>
+          <listitem>
+            <para><emphasis role="bold">Using Visual Studio 2022+Cygwin command line (bash/ksh93):</emphasis></para>
+            <programlisting># this creates a 64bit-kernel only build for Windows 11
+export PATH="/cygdrive/c/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/:$PATH"
+git clone https://github.com/kofemann/ms-nfs41-client.git
+cd ms-nfs41-client
+# "retarget" VS platform toolset to "v143"
+# ("v142" should remain the default when comitting)
+sed -i -E 's/&lt;PlatformToolset&gt;v142&lt;\/PlatformToolset&gt;/&lt;PlatformToolset&gt;v143&lt;\/PlatformToolset&gt;/g' $(find 'build.vc19' -name \*.vcxproj)
+cd cygwin
+make build64
+make installdest64
+make bintarball64</programlisting>
+          </listitem>
+        </itemizedlist>
+        <note>
+          <para><command>make installdest</command> or <command>make installdest64</command> can fail on SMB/NFSv4.1 filesystems with a "link.exe" crash. The workaround is to disable incremental linking before building, e.g., do:</para>
+          <programlisting>cd ms-nfs41-client
+sed -i -E 's/&lt;LinkIncremental&gt;true&lt;\/LinkIncremental&gt;/&lt;LinkIncremental&gt;false&lt;\/LinkIncremental&gt;/g' $(find build.vc19 -name \*.vcxproj)</programlisting>
+            <para>This Visual Studio bug is tracked as <link xl:href="https://developercommunity.visualstudio.com/t/Visual-Studio-link.exe-crashes-on-networ/10735424">https://developercommunity.visualstudio.com/t/Visual-Studio-link.exe-crashes-on-networ/10735424</link> ("Visual Studio link.exe crashes on network filesystem").</para>
+          </note>
+        </section>
+      </section>
+
+      <section xml:id="testing">
+        <title>Testing</title>
+        <para>See <filename>tests/manual_testing.txt</filename></para>
+      </section>
+    </section>
+  </section>
+
+  <section xml:id="mailinglist">
+    <title>Mailing list</title>
+    <para>Please direct any questions to <email>ms-nfs41-client-devel@lists.sourceforge.net</email>
+    (list <link xl:href="https://sourceforge.net/p/ms-nfs41-client/mailman/ms-nfs41-client-devel/">archive</link>)</para>
+  </section>
+
+  <para>#EOF.</para>
+</article>

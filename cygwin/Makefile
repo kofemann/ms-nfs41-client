@@ -154,7 +154,7 @@ installdest64: \
 # in parallel
 installdest: installdest_util installdest32 .WAIT installdest64
 
-bintarball: installdest
+bintarball: installdest $(PROJECT_BASEDIR_DIR)/README.txt $(PROJECT_BASEDIR_DIR)/README.md
 	set -o errexit ; set -o xtrace ; \
 	base_filename="msnfs41client_cygwin_64bit32bit_binaries_$$(date +%Y%m%d_%Hh%Mm)_git$$(git rev-parse --short HEAD)" ; \
 	( \
@@ -167,7 +167,7 @@ bintarball: installdest
 		| \
 			bzip2 -9 >"$${base_filename}.tar.bz2" ; \
 	archive_sha256hash="$$(openssl sha256 -r "$${base_filename}.tar.bz2" | while read a dummy ; do printf "%s\n" "$$a" ; done)" ; \
-		sed -E <"../cygwin/README.bintarball.txt" \
+		sed -E <"../README.txt" \
 			-e "s/\\$$\{bintarball.base_filename\}/$${base_filename}/g" \
 			-e "s/\\$$\{bintarball.archive_sha256hash\}/$${archive_sha256hash}/g" >"$${base_filename}.readme" \
 	) ; \
@@ -176,7 +176,7 @@ bintarball: installdest
 	ls -l "$(DESTDIR)/$${base_filename}.readme"
 	sync
 
-bintarball32: installdest32
+bintarball32: installdest32 $(PROJECT_BASEDIR_DIR)/README.txt $(PROJECT_BASEDIR_DIR)/README.md
 	set -o errexit ; set -o xtrace ; \
 	base_filename="msnfs41client_cygwin_32bit_binaries_$$(date +%Y%m%d_%Hh%Mm)_git$$(git rev-parse --short HEAD)" ; \
 	( \
@@ -188,7 +188,7 @@ bintarball32: installdest32
 		| \
 			bzip2 -9 >"$${base_filename}.tar.bz2" ; \
 	archive_sha256hash="$$(openssl sha256 -r "$${base_filename}.tar.bz2" | while read a dummy ; do printf "%s\n" "$$a" ; done)" ; \
-		sed -E <"../cygwin/README.bintarball.txt" \
+		sed -E <"../README.txt" \
 			-e "s/\\$$\{bintarball.base_filename\}/$${base_filename}/g" \
 			-e "s/\\$$\{bintarball.archive_sha256hash\}/$${archive_sha256hash}/g" >"$${base_filename}.readme" \
 	) ; \
@@ -197,7 +197,7 @@ bintarball32: installdest32
 	ls -l "$(DESTDIR)/$${base_filename}.readme"
 	sync
 
-bintarball64: installdest64
+bintarball64: installdest64 $(PROJECT_BASEDIR_DIR)/README.txt $(PROJECT_BASEDIR_DIR)/README.md
 	set -o errexit ; set -o xtrace ; \
 	base_filename="msnfs41client_cygwin_64bit_binaries_$$(date +%Y%m%d_%Hh%Mm)_git$$(git rev-parse --short HEAD)" ; \
 	( \
@@ -209,7 +209,7 @@ bintarball64: installdest64
 		| \
 			bzip2 -9 >"$${base_filename}.tar.bz2" ; \
 	archive_sha256hash="$$(openssl sha256 -r "$${base_filename}.tar.bz2" | while read a dummy ; do printf "%s\n" "$$a" ; done)" ; \
-		sed -E <"../cygwin/README.bintarball.txt" \
+		sed -E <"../README.txt" \
 			-e "s/\\$$\{bintarball.base_filename\}/$${base_filename}/g" \
 			-e "s/\\$$\{bintarball.archive_sha256hash\}/$${archive_sha256hash}/g" >"$${base_filename}.readme" \
 	) ; \
@@ -217,6 +217,34 @@ bintarball64: installdest64
 	ls -l "$(DESTDIR)/$${base_filename}.tar.bz2" ; \
 	ls -l "$(DESTDIR)/$${base_filename}.readme"
 	sync
+
+$(PROJECT_BASEDIR_DIR)/README.html: $(PROJECT_BASEDIR_DIR)/docs/README.xml
+	xsltproc \
+		-xinclude \
+		-o "$(PROJECT_BASEDIR_DIR)/README.html" \
+		/usr/share/sgml/docbook/xsl-ns-stylesheets/xhtml-1_1/docbook.xsl \
+		$(PROJECT_BASEDIR_DIR)/docs/README.xml
+
+# README.md rule is not part of the default build as Cygwin does not have a pandoc package
+$(PROJECT_BASEDIR_DIR)/README.md: $(PROJECT_BASEDIR_DIR)/docs/README.xml
+	pandoc \
+		-f docbook \
+		-t gfm \
+		--table-of-contents=true \
+		-s "$$(cygpath -w "$(PROJECT_BASEDIR_DIR)/docs/README.xml")" \
+		-o "$$(cygpath -w "$(PROJECT_BASEDIR_DIR)/README.md")"
+	# make sure we always use UNIX line endings
+	dos2unix "$(PROJECT_BASEDIR_DIR)/README.md"
+	# Remove bogus -x flag set by Windows PanDoc
+	chmod a-x "$(PROJECT_BASEDIR_DIR)/README.md"
+
+$(PROJECT_BASEDIR_DIR)/README.txt: $(PROJECT_BASEDIR_DIR)/README.html
+	w3m \
+		-O UTF8 \
+		-graph \
+		-cols 80 \
+		-dump \
+		"README.html" >"$(PROJECT_BASEDIR_DIR)/README.txt"
 
 #
 # clean destdir/, but only if nfsd*.exe does not use it right now
