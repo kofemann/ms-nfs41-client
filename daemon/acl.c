@@ -1121,14 +1121,14 @@ add_domain:
 
 #ifdef NFS41_DRIVER_WS2022_HACKS
     /* Fixup |domain| for Windows Sever 2022 NFSv4.1 server */
-    if ((!strncmp(who_out, "Users@", who_size+1)) ||
-        (!strncmp(who_out, "Administrators@", who_size+1))) {
+    if ((!strncmp(who_out, "Users@", (size_t)who_size+1)) ||
+        (!strncmp(who_out, "Administrators@", (size_t)who_size+1))) {
         domain = "BUILTIN";
         DPRINTF(1,
             ("map_sid2nfs4ace_who: Fixup '%.*s' domain='%s'\n",
             (int)who_size+1, who_out, domain));
     }
-    else if (!strncmp(who_out, "SYSTEM@", who_size+1)) {
+    else if (!strncmp(who_out, "SYSTEM@", (size_t)who_size+1)) {
         domain = "NT AUTHORITY";
         DPRINTF(1,
             ("map_sid2nfs4ace_who: Fixup '%.*s' domain='%s'\n",
