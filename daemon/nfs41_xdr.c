@@ -60,15 +60,15 @@ bool_t xdr_bitmap4(
                 BITMAP4_MAXCOUNT);
             return FALSE;
         }
-        if (!xdr_u_int32_t(xdr, &bitmap->count))
+        if (!xdr_uint32_t(xdr, &bitmap->count))
             return FALSE;
 
         for (i = 0; i < bitmap->count; i++)
-            if (!xdr_u_int32_t(xdr, &bitmap->arr[i]))
+            if (!xdr_uint32_t(xdr, &bitmap->arr[i]))
                 return FALSE;
 
     } else if (xdr->x_op == XDR_DECODE) {
-        if (!xdr_u_int32_t(xdr, &bitmap->count))
+        if (!xdr_uint32_t(xdr, &bitmap->count))
             return FALSE;
         if (bitmap->count > BITMAP4_MAXCOUNT) {
             eprintf("decode_bitmap4: count (%d) must be <= %d\n",
@@ -78,9 +78,9 @@ bool_t xdr_bitmap4(
         }
 
         for (i = 0; i < bitmap->count; i++)
-            if (!xdr_u_int32_t(xdr, &bitmap->arr[i]))
+            if (!xdr_uint32_t(xdr, &bitmap->arr[i]))
                 return FALSE;
-    } else 
+    } else
         return FALSE;
 
     return TRUE;
@@ -91,10 +91,10 @@ static bool_t xdr_nfstime4(
     XDR *xdr,
     nfstime4 *nt)
 {
-    if (!xdr_hyper(xdr, &nt->seconds))
+    if (!xdr_int64_t(xdr, &nt->seconds))
         return FALSE;
 
-    return xdr_u_int32_t(xdr, &nt->nseconds);
+    return xdr_uint32_t(xdr, &nt->nseconds);
 }
 
 
@@ -124,7 +124,7 @@ static bool_t xdr_settime4(
     if (xdr->x_op != XDR_ENCODE) /* not used for decode */
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &how))
+    if (!xdr_uint32_t(xdr, &how))
         return FALSE;
 
     if (how == SET_TO_CLIENT_TIME4)
@@ -138,7 +138,7 @@ bool_t xdr_stateid4(
     XDR *xdr,
     stateid4 *si)
 {
-    if (!xdr_u_int32_t(xdr, &si->seqid))
+    if (!xdr_uint32_t(xdr, &si->seqid))
         return FALSE;
 
     return xdr_opaque(xdr, (char *)si->other, NFS4_STATEID_OTHER);
@@ -171,10 +171,10 @@ static bool_t xdr_fsid(
     XDR *xdr,
     nfs41_fsid *fsid)
 {
-    if (!xdr_u_hyper(xdr, &fsid->major))
+    if (!xdr_uint64_t(xdr, &fsid->major))
         return FALSE;
 
-    return xdr_u_hyper(xdr, &fsid->minor);
+    return xdr_uint64_t(xdr, &fsid->minor);
 }
 
 
@@ -213,10 +213,10 @@ static bool_t xdr_state_owner4(
      * client ID from the session ID of the SEQUENCE operation of the
      * COMPOUND request. */
     if (xdr->x_op == XDR_ENCODE) {
-        if (!xdr_u_hyper(xdr, &clientid)) /* clientid = 0 */
+        if (!xdr_uint64_t(xdr, &clientid)) /* clientid = 0 */
             return FALSE;
     } else if (xdr->x_op == XDR_DECODE) {
-        if (!xdr_u_hyper(xdr, &clientid))
+        if (!xdr_uint64_t(xdr, &clientid))
             return FALSE;
     } else return FALSE;
 
@@ -237,11 +237,11 @@ static bool_t xdr_layout_types(
 
     *layout_type = 0;
 
-    if (!xdr_u_int32_t(xdr, &count))
+    if (!xdr_uint32_t(xdr, &count))
         return FALSE;
 
     for (i = 0; i < count; i++) {
-        if (!xdr_u_int32_t(xdr, &type))
+        if (!xdr_uint32_t(xdr, &type))
             return FALSE;
 
         *layout_type |= 1 << (type - 1);
@@ -255,23 +255,23 @@ static bool_t xdr_threshold_item(
 {
     bitmap4 bitmap;
 
-    if (!xdr_u_int32_t(xdr, &item->type))
+    if (!xdr_uint32_t(xdr, &item->type))
         return FALSE;
 
     if (!xdr_bitmap4(xdr, &bitmap))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &bitmap.count))
+    if (!xdr_uint32_t(xdr, &bitmap.count))
         return FALSE;
 
     if (bitmap.count) {
-        if (bitmap.arr[0] & 0x1 && !xdr_u_hyper(xdr, &item->hints[0]))
+        if (bitmap.arr[0] & 0x1 && !xdr_uint64_t(xdr, &item->hints[0]))
             return FALSE;
-        if (bitmap.arr[0] & 0x2 && !xdr_u_hyper(xdr, &item->hints[1]))
+        if (bitmap.arr[0] & 0x2 && !xdr_uint64_t(xdr, &item->hints[1]))
             return FALSE;
-        if (bitmap.arr[0] & 0x4 && !xdr_u_hyper(xdr, &item->hints[2]))
+        if (bitmap.arr[0] & 0x4 && !xdr_uint64_t(xdr, &item->hints[2]))
             return FALSE;
-        if (bitmap.arr[0] & 0x8 && !xdr_u_hyper(xdr, &item->hints[3]))
+        if (bitmap.arr[0] & 0x8 && !xdr_uint64_t(xdr, &item->hints[3]))
             return FALSE;
     }
     return TRUE;
@@ -283,7 +283,7 @@ static bool_t xdr_mdsthreshold(
 {
     uint32_t i;
 
-    if (!xdr_u_int32_t(xdr, &mdsthreshold->count))
+    if (!xdr_uint32_t(xdr, &mdsthreshold->count))
         return FALSE;
 
     if (mdsthreshold->count > MAX_MDSTHRESHOLD_ITEMS)
@@ -301,13 +301,13 @@ static bool_t xdr_nfsace4(
 {
     char *who = ace->who;
 
-    if (!xdr_u_int32_t(xdr, &ace->acetype))
+    if (!xdr_uint32_t(xdr, &ace->acetype))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &ace->aceflag))
+    if (!xdr_uint32_t(xdr, &ace->aceflag))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &ace->acemask))
+    if (!xdr_uint32_t(xdr, &ace->acemask))
         return FALSE;
 
     /* 'who' is a static array, so don't try to free it */
@@ -321,7 +321,7 @@ static bool_t xdr_nfsdacl41(
     XDR *xdr,
     nfsacl41 *acl)
 {
-    if (!xdr_u_int32_t(xdr, &acl->flag))
+    if (!xdr_uint32_t(xdr, &acl->flag))
         return FALSE;
 
     return xdr_array(xdr, (char**)&acl->aces, &acl->count,
@@ -352,7 +352,7 @@ static bool_t decode_pathname4(
     u_int32_t i, count, len, remaining;
 
     /* decode the number of components */
-    if (!xdr_u_int32_t(xdr, &count))
+    if (!xdr_uint32_t(xdr, &count))
         return FALSE;
 
     pos = (char *)path->path;
@@ -387,7 +387,7 @@ static bool_t decode_fs_location4(
     u_int32_t i, count, len;
 
     /* decode the number of servers */
-    if (!xdr_u_int32_t(xdr, &count))
+    if (!xdr_uint32_t(xdr, &count))
         return FALSE;
 
     /* allocate the fs_location_server array */
@@ -430,7 +430,7 @@ static bool_t decode_fs_locations4(
     if (!decode_pathname4(xdr, &locations->path))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &count))
+    if (!xdr_uint32_t(xdr, &count))
         return FALSE;
 
     /* allocate the fs_location array */
@@ -498,10 +498,10 @@ static bool_t encode_ssv_sp_parms4(
         &spp->ssp_encr_algs_len, NFS4_OPAQUE_LIMIT))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &spp->ssp_window))
+    if (!xdr_uint32_t(xdr, &spp->ssp_window))
         return FALSE;
 
-    return xdr_u_int32_t(xdr, &spp->ssp_num_gss_handles);
+    return xdr_uint32_t(xdr, &spp->ssp_num_gss_handles);
 }
 #endif
 
@@ -511,7 +511,7 @@ static bool_t xdr_state_protect4_a(
 {
     bool_t result = TRUE;
 
-    if (!xdr_u_int32_t(xdr, (u_int32_t *)&spa->spa_how))
+    if (!xdr_uint32_t(xdr, (u_int32_t *)&spa->spa_how))
         return FALSE;
 
     switch (spa->spa_how)
@@ -567,7 +567,7 @@ static bool_t encode_op_exchange_id(
     if (!xdr_client_owner4(xdr, args->eia_clientowner))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &args->eia_flags))
+    if (!xdr_uint32_t(xdr, &args->eia_flags))
         return FALSE;
 
     if (!xdr_state_protect4_a(xdr, &args->eia_state_protect))
@@ -575,12 +575,12 @@ static bool_t encode_op_exchange_id(
 
     if (args->eia_client_impl_id)
     {
-        if (!xdr_u_int32_t(xdr, &one))
+        if (!xdr_uint32_t(xdr, &one))
             return FALSE;
         return xdr_nfs_impl_id4(xdr, args->eia_client_impl_id);
     }
     else
-        return xdr_u_int32_t(xdr, &zero);
+        return xdr_uint32_t(xdr, &zero);
 }
 
 #if 0
@@ -604,22 +604,22 @@ static bool_t decode_ssv_prot_info4(
     if (!decode_state_protect_ops4(xdr, &spi->spi_ops))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &spi->spi_hash_alg))
+    if (!xdr_uint32_t(xdr, &spi->spi_hash_alg))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &spi->spi_encr_alg))
+    if (!xdr_uint32_t(xdr, &spi->spi_encr_alg))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &spi->spi_ssv_len))
+    if (!xdr_uint32_t(xdr, &spi->spi_ssv_len))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &spi->spi_window))
+    if (!xdr_uint32_t(xdr, &spi->spi_window))
         return FALSE;
 
 /* TODO: spi->spi_handles */
-    return xdr_u_int32_t(xdr, 0);
+    return xdr_uint32_t(xdr, 0);
     /*
-    if (!xdr_u_int32_t(xdr, &spi->spi_handles.count))
+    if (!xdr_uint32_t(xdr, &spi->spi_handles.count))
         return FALSE;
 
     for (i = 0; i < spi->spi_handles.count; i++)
@@ -636,7 +636,7 @@ static bool_t xdr_state_protect4_r(
 {
     bool_t result = TRUE;
 
-    if (!xdr_u_int32_t(xdr, (uint32_t *)&spr->spr_how))
+    if (!xdr_uint32_t(xdr, (uint32_t *)&spr->spr_how))
         return FALSE;
 
     switch (spr->spr_how)
@@ -666,7 +666,7 @@ static bool_t xdr_server_owner4(
 {
     char *so_major_id = so->so_major_id;
 
-    if (!xdr_u_hyper(xdr, &so->so_minor_id))
+    if (!xdr_uint64_t(xdr, &so->so_minor_id))
         return FALSE;
 
     return xdr_bytes(xdr, (char **)&so_major_id,
@@ -683,19 +683,19 @@ static bool_t decode_op_exchange_id(
     if (unexpected_op(resop->op, OP_EXCHANGE_ID))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &res->status))
+    if (!xdr_uint32_t(xdr, &res->status))
         return FALSE;
 
     if (res->status != NFS4_OK)
         return TRUE;
 
-    if (!xdr_u_hyper(xdr, &res->clientid))
+    if (!xdr_uint64_t(xdr, &res->clientid))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &res->sequenceid))
+    if (!xdr_uint32_t(xdr, &res->sequenceid))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &res->flags))
+    if (!xdr_uint32_t(xdr, &res->flags))
         return FALSE;
 
     if (!xdr_state_protect4_r(xdr, &res->state_protect))
@@ -719,51 +719,51 @@ static bool_t xdr_channel_attrs4(
     uint32_t one = 1;
 
     /* count4 ca_headerpadsize */
-    if (!xdr_u_int32_t(xdr, &attrs->ca_headerpadsize))
+    if (!xdr_uint32_t(xdr, &attrs->ca_headerpadsize))
         return FALSE;
 
     /* count4 ca_maxrequestsize */
-    if (!xdr_u_int32_t(xdr, &attrs->ca_maxrequestsize))
+    if (!xdr_uint32_t(xdr, &attrs->ca_maxrequestsize))
         return FALSE;
 
     /* count4 ca_maxresponsesize */
-    if (!xdr_u_int32_t(xdr, &attrs->ca_maxresponsesize))
+    if (!xdr_uint32_t(xdr, &attrs->ca_maxresponsesize))
         return FALSE;
 
     /* count4 ca_maxresponsesize_cached */
-    if (!xdr_u_int32_t(xdr, &attrs->ca_maxresponsesize_cached))
+    if (!xdr_uint32_t(xdr, &attrs->ca_maxresponsesize_cached))
         return FALSE;
 
     /* count4 ca_maxoperations */
-    if (!xdr_u_int32_t(xdr, &attrs->ca_maxoperations))
+    if (!xdr_uint32_t(xdr, &attrs->ca_maxoperations))
         return FALSE;
 
     /* count4 ca_maxrequests */
-    if (!xdr_u_int32_t(xdr, &attrs->ca_maxrequests))
+    if (!xdr_uint32_t(xdr, &attrs->ca_maxrequests))
         return FALSE;
 
     if (xdr->x_op == XDR_ENCODE) {
         /* uint32_t ca_rdma_ird<1> */
         if (attrs->ca_rdma_ird)
         {
-            if (!xdr_u_int32_t(xdr, &one))
+            if (!xdr_uint32_t(xdr, &one))
                 return FALSE;
-            return xdr_u_int32_t(xdr, attrs->ca_rdma_ird);
+            return xdr_uint32_t(xdr, attrs->ca_rdma_ird);
         }
         else {
-            return xdr_u_int32_t(xdr, &zero);
+            return xdr_uint32_t(xdr, &zero);
         }
     }
     else if (xdr->x_op == XDR_DECODE) {
 #if 0
         u_int32_t count;
         /* uint32_t ca_rdma_ird<1> */
-        if (!xdr_u_int32_t(xdr, &count))
+        if (!xdr_uint32_t(xdr, &count))
             return FALSE;
         if (count > 1)
             return FALSE;
         if (count)
-            return xdr_u_int32_t(xdr, attrs->ca_rdma_ird);
+            return xdr_uint32_t(xdr, attrs->ca_rdma_ird);
         else
 #endif
             return TRUE;
@@ -781,18 +781,18 @@ static bool_t encode_backchannel_sec_parms(
 {
     uint32_t zero = 0;
 
-    if (!xdr_u_int32_t(xdr, &args->type))
+    if (!xdr_uint32_t(xdr, &args->type))
         return FALSE;
 
     switch (args->type)  {
     case AUTH_NONE: return TRUE;
     case AUTH_SYS:
-        if (!xdr_u_int32_t(xdr, &args->u.auth_sys.stamp))
+        if (!xdr_uint32_t(xdr, &args->u.auth_sys.stamp))
             return FALSE;
         if (!xdr_string(xdr, &args->u.auth_sys.machinename, NI_MAXHOST))
             return FALSE;
-        return xdr_u_int32_t(xdr, &zero) && xdr_u_int32_t(xdr, &zero) && 
-                xdr_u_int32_t(xdr, &zero);
+        return xdr_uint32_t(xdr, &zero) && xdr_uint32_t(xdr, &zero) &&
+                xdr_uint32_t(xdr, &zero);
     case RPCSEC_GSS:
     default:
         return FALSE;
@@ -811,15 +811,15 @@ static bool_t encode_op_create_session(
         return FALSE;
 
     /* clientid4 csa_clientid */
-    if (!xdr_u_hyper(xdr, &args->csa_clientid))
+    if (!xdr_uint64_t(xdr, &args->csa_clientid))
         return FALSE;
 
     /* sequenceid4 csa_sequence */
-    if (!xdr_u_int32_t(xdr, &args->csa_sequence))
+    if (!xdr_uint32_t(xdr, &args->csa_sequence))
         return FALSE;
 
     /* TODO: uint32_t csa_flags = 0 */
-    if (!xdr_u_int32_t(xdr, &args->csa_flags))
+    if (!xdr_uint32_t(xdr, &args->csa_flags))
         return FALSE;
 
     /* channel_attrs4 csa_fore_chan_attrs */
@@ -831,7 +831,7 @@ static bool_t encode_op_create_session(
         return FALSE;
 
     /* TODO: uint32_t csa_cb_program = 1234 */
-    if (!xdr_u_int32_t(xdr, &args->csa_cb_program))
+    if (!xdr_uint32_t(xdr, &args->csa_cb_program))
         return FALSE;
 
     return xdr_array(xdr, (char **)&cb_secparams, &cb_count,
@@ -848,7 +848,7 @@ static bool_t decode_op_create_session(
     if (unexpected_op(resop->op, OP_CREATE_SESSION))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &opstatus))
+    if (!xdr_uint32_t(xdr, &opstatus))
         return FALSE;
 
     if (opstatus != NFS4_OK)
@@ -858,11 +858,11 @@ static bool_t decode_op_create_session(
         return FALSE;
 
     /* sequenceid4 csr_sequence */
-    if (!xdr_u_int32_t(xdr, &res->csr_sequence))
+    if (!xdr_uint32_t(xdr, &res->csr_sequence))
         return FALSE;
 
     /* uint32_t csr_flags */
-    if (!xdr_u_int32_t(xdr, &res->csr_flags))
+    if (!xdr_uint32_t(xdr, &res->csr_flags))
         return FALSE;
 
     /* channel_attrs4 csr_fore_chan_attrs */
@@ -895,7 +895,7 @@ static bool_t encode_op_bind_conn_to_session(
     if (!xdr_enum(xdr, (enum_t *)&args->dir))
         return FALSE;
 
-    return xdr_u_int32_t(xdr, &zero); /* bctsa_use_conn_in_rdma_mode = false */
+    return xdr_uint32_t(xdr, &zero); /* bctsa_use_conn_in_rdma_mode = false */
 }
 
 static bool_t decode_op_bind_conn_to_session(
@@ -950,7 +950,7 @@ static bool_t decode_op_destroy_session(
     if (unexpected_op(resop->op, OP_DESTROY_SESSION))
         return FALSE;
 
-    return xdr_u_int32_t(xdr, &res->dsr_status);
+    return xdr_uint32_t(xdr, &res->dsr_status);
 }
 
 /*
@@ -965,7 +965,7 @@ static bool_t encode_op_destroy_clientid(
     if (unexpected_op(argop->op, OP_DESTROY_CLIENTID))
         return FALSE;
 
-    return xdr_u_hyper(xdr, &args->dca_clientid);
+    return xdr_uint64_t(xdr, &args->dca_clientid);
 }
 
 static bool_t decode_op_destroy_clientid(
@@ -977,7 +977,7 @@ static bool_t decode_op_destroy_clientid(
     if (unexpected_op(resop->op, OP_DESTROY_CLIENTID))
         return FALSE;
 
-    return xdr_u_int32_t(xdr, &res->dcr_status);
+    return xdr_uint32_t(xdr, &res->dcr_status);
 }
 
 
@@ -996,13 +996,13 @@ static bool_t encode_op_sequence(
     if (!xdr_opaque(xdr, (char *)args->sa_sessionid, NFS4_SESSIONID_SIZE))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &args->sa_sequenceid))
+    if (!xdr_uint32_t(xdr, &args->sa_sequenceid))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &args->sa_slotid))
+    if (!xdr_uint32_t(xdr, &args->sa_slotid))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &args->sa_highest_slotid))
+    if (!xdr_uint32_t(xdr, &args->sa_highest_slotid))
         return FALSE;
 
     return xdr_bool(xdr, &args->sa_cachethis);
@@ -1015,19 +1015,19 @@ static bool_t xdr_sequence_res_ok(
     if (!xdr_opaque(xdr, (char *)res->sr_sessionid, NFS4_SESSIONID_SIZE))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &res->sr_sequenceid))
+    if (!xdr_uint32_t(xdr, &res->sr_sequenceid))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &res->sr_slotid))
+    if (!xdr_uint32_t(xdr, &res->sr_slotid))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &res->sr_highest_slotid))
+    if (!xdr_uint32_t(xdr, &res->sr_highest_slotid))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &res->sr_target_highest_slotid))
+    if (!xdr_uint32_t(xdr, &res->sr_target_highest_slotid))
         return FALSE;
 
-    return xdr_u_int32_t(xdr, &res->sr_status_flags);
+    return xdr_uint32_t(xdr, &res->sr_status_flags);
 }
 
 static bool_t decode_op_sequence(
@@ -1039,7 +1039,7 @@ static bool_t decode_op_sequence(
     if (unexpected_op(resop->op, OP_SEQUENCE))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &res->sr_status))
+    if (!xdr_uint32_t(xdr, &res->sr_status))
         return FALSE;
 
     if (res->sr_status == NFS4_OK)
@@ -1102,7 +1102,7 @@ static bool_t decode_op_putfh(
     if (unexpected_op(resop->op, OP_PUTFH))
         return FALSE;
 
-    return xdr_u_int32_t(xdr, &res->status);
+    return xdr_uint32_t(xdr, &res->status);
 }
 
 
@@ -1128,7 +1128,7 @@ static bool_t decode_op_putpubfh(
     if (unexpected_op(resop->op, OP_PUTPUBFH))
         return FALSE;
 
-    return xdr_u_int32_t(xdr, &res->status);
+    return xdr_uint32_t(xdr, &res->status);
 }
 
 
@@ -1154,7 +1154,7 @@ static bool_t decode_op_putrootfh(
     if (unexpected_op(resop->op, OP_PUTROOTFH))
         return FALSE;
 
-    return xdr_u_int32_t(xdr, &res->status);
+    return xdr_uint32_t(xdr, &res->status);
 }
 
 
@@ -1181,7 +1181,7 @@ static bool_t decode_op_getfh(
     if (unexpected_op(resop->op, OP_GETFH))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &res->status))
+    if (!xdr_uint32_t(xdr, &res->status))
         return FALSE;
 
     if (res->status == NFS4_OK)
@@ -1215,7 +1215,7 @@ static bool_t decode_op_lookup(
     if (unexpected_op(resop->op, OP_LOOKUP))
         return FALSE;
 
-    return xdr_u_int32_t(xdr, &res->status);
+    return xdr_uint32_t(xdr, &res->status);
 }
 
 
@@ -1231,7 +1231,7 @@ static bool_t encode_op_access(
     if (unexpected_op(argop->op, OP_ACCESS))
         return FALSE;
 
-    return xdr_u_int32_t(xdr, &args->access);
+    return xdr_uint32_t(xdr, &args->access);
 }
 
 static bool_t decode_op_access(
@@ -1243,15 +1243,15 @@ static bool_t decode_op_access(
     if (unexpected_op(resop->op, OP_ACCESS))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &res->status))
+    if (!xdr_uint32_t(xdr, &res->status))
         return FALSE;
 
     if (res->status == NFS4_OK)
     {
-        if (!xdr_u_int32_t(xdr, &res->supported))
+        if (!xdr_uint32_t(xdr, &res->supported))
             return FALSE;
 
-        return xdr_u_int32_t(xdr, &res->access);
+        return xdr_uint32_t(xdr, &res->access);
     }
     return TRUE;
 }
@@ -1270,7 +1270,7 @@ static bool_t encode_op_close(
     if (unexpected_op(argop->op, OP_CLOSE))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &zero)) // This should be ignored by server
+    if (!xdr_uint32_t(xdr, &zero)) // This should be ignored by server
         return FALSE;
 
     return xdr_stateid4(xdr, &args->stateid->stateid);
@@ -1286,7 +1286,7 @@ static bool_t decode_op_close(
     if (unexpected_op(resop->op, OP_CLOSE))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &res->status))
+    if (!xdr_uint32_t(xdr, &res->status))
         return FALSE;
 
     if (res->status == NFS4_OK)
@@ -1308,10 +1308,10 @@ static bool_t encode_op_commit(
     if (unexpected_op(argop->op, OP_COMMIT))
         return FALSE;
 
-    if (!xdr_u_hyper(xdr, &args->offset))
+    if (!xdr_uint64_t(xdr, &args->offset))
         return FALSE;
 
-    return xdr_u_int32_t(xdr, &args->count);
+    return xdr_uint32_t(xdr, &args->count);
 }
 
 static bool_t decode_op_commit(
@@ -1323,7 +1323,7 @@ static bool_t decode_op_commit(
     if (unexpected_op(resop->op, OP_COMMIT))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &res->status))
+    if (!xdr_uint32_t(xdr, &res->status))
         return FALSE;
 
     if (res->status == NFS4_OK)
@@ -1343,7 +1343,7 @@ static bool_t encode_createtype4(
     bool_t result = TRUE;
     const char *linkdata;
 
-    if (!xdr_u_int32_t(xdr, &ct->type))
+    if (!xdr_uint32_t(xdr, &ct->type))
         return FALSE;
 
     switch (ct->type)
@@ -1355,9 +1355,9 @@ static bool_t encode_createtype4(
         break;
     case NF4BLK:
     case NF4CHR:
-        result = xdr_u_int32_t(xdr, &ct->u.devdata.specdata1);
+        result = xdr_uint32_t(xdr, &ct->u.devdata.specdata1);
         if (result == TRUE)
-            result = xdr_u_int32_t(xdr, &ct->u.devdata.specdata2);
+            result = xdr_uint32_t(xdr, &ct->u.devdata.specdata2);
         break;
     default:
         // Some types need no further action
@@ -1405,10 +1405,10 @@ static bool_t xdr_change_info4(
     if (!xdr_bool(xdr, &cinfo->atomic))
         return FALSE;
 
-    if (!xdr_u_hyper(xdr, &cinfo->before))
+    if (!xdr_uint64_t(xdr, &cinfo->before))
         return FALSE;
 
-    return xdr_u_hyper(xdr, &cinfo->after);
+    return xdr_uint64_t(xdr, &cinfo->after);
 }
 
 static bool_t decode_op_create(
@@ -1420,7 +1420,7 @@ static bool_t decode_op_create(
     if (unexpected_op(resop->op, OP_CREATE))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &res->status))
+    if (!xdr_uint32_t(xdr, &res->status))
         return FALSE;
 
     if (res->status == NFS4_OK)
@@ -1457,7 +1457,7 @@ static bool_t decode_op_link(
     if (unexpected_op(resop->op, OP_LINK))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &res->status))
+    if (!xdr_uint32_t(xdr, &res->status))
         return FALSE;
 
     if (res->status == NFS4_OK)
@@ -1485,13 +1485,13 @@ static bool_t xdr_locker4(
 
     if (locker->new_lock_owner) {
         /* open_to_lock_owner4 open_owner */
-        if (!xdr_u_int32_t(xdr, &locker->u.open_owner.open_seqid))
+        if (!xdr_uint32_t(xdr, &locker->u.open_owner.open_seqid))
             return FALSE;
 
         if (!xdr_stateid4(xdr, &locker->u.open_owner.open_stateid->stateid))
             return FALSE;
 
-        if (!xdr_u_int32_t(xdr, &locker->u.open_owner.lock_seqid))
+        if (!xdr_uint32_t(xdr, &locker->u.open_owner.lock_seqid))
             return FALSE;
 
         return xdr_state_owner4(xdr, locker->u.open_owner.lock_owner);
@@ -1500,7 +1500,7 @@ static bool_t xdr_locker4(
         if (!xdr_stateid4(xdr, &locker->u.lock_owner.lock_stateid->stateid))
             return FALSE;
 
-        return xdr_u_int32_t(xdr, &locker->u.lock_owner.lock_seqid);
+        return xdr_uint32_t(xdr, &locker->u.lock_owner.lock_seqid);
     }
 }
 
@@ -1513,16 +1513,16 @@ static bool_t encode_op_lock(
     if (unexpected_op(argop->op, OP_LOCK))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &args->locktype))
+    if (!xdr_uint32_t(xdr, &args->locktype))
         return FALSE;
 
     if (!xdr_bool(xdr, &args->reclaim))
         return FALSE;
 
-    if (!xdr_u_hyper(xdr, &args->offset))
+    if (!xdr_uint64_t(xdr, &args->offset))
         return FALSE;
 
-    if (!xdr_u_hyper(xdr, &args->length))
+    if (!xdr_uint64_t(xdr, &args->length))
         return FALSE;
 
     return xdr_locker4(xdr, &args->locker);
@@ -1532,13 +1532,13 @@ static bool_t decode_lock_res_denied(
     XDR *xdr,
     lock_res_denied *denied)
 {
-    if (!xdr_u_hyper(xdr, &denied->offset))
+    if (!xdr_uint64_t(xdr, &denied->offset))
         return FALSE;
 
-    if (!xdr_u_hyper(xdr, &denied->length))
+    if (!xdr_uint64_t(xdr, &denied->length))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &denied->locktype))
+    if (!xdr_uint32_t(xdr, &denied->locktype))
         return FALSE;
 
     return xdr_state_owner4(xdr, &denied->owner);
@@ -1553,7 +1553,7 @@ static bool_t decode_op_lock(
     if (unexpected_op(resop->op, OP_LOCK))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &res->status))
+    if (!xdr_uint32_t(xdr, &res->status))
         return FALSE;
 
     switch (res->status) {
@@ -1583,13 +1583,13 @@ static bool_t encode_op_lockt(
     if (unexpected_op(argop->op, OP_LOCKT))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &args->locktype))
+    if (!xdr_uint32_t(xdr, &args->locktype))
         return FALSE;
 
-    if (!xdr_u_hyper(xdr, &args->offset))
+    if (!xdr_uint64_t(xdr, &args->offset))
         return FALSE;
 
-    if (!xdr_u_hyper(xdr, &args->length))
+    if (!xdr_uint64_t(xdr, &args->length))
         return FALSE;
 
     return xdr_state_owner4(xdr, args->owner);
@@ -1604,7 +1604,7 @@ static bool_t decode_op_lockt(
     if (unexpected_op(resop->op, OP_LOCKT))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &res->status))
+    if (!xdr_uint32_t(xdr, &res->status))
         return FALSE;
 
     if (res->status == NFS4ERR_DENIED)
@@ -1626,19 +1626,19 @@ static bool_t encode_op_locku(
     if (unexpected_op(argop->op, OP_LOCKU))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &args->locktype))
+    if (!xdr_uint32_t(xdr, &args->locktype))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &args->seqid))
+    if (!xdr_uint32_t(xdr, &args->seqid))
         return FALSE;
 
     if (!xdr_stateid4(xdr, &args->lock_stateid->stateid))
         return FALSE;
 
-    if (!xdr_u_hyper(xdr, &args->offset))
+    if (!xdr_uint64_t(xdr, &args->offset))
         return FALSE;
 
-    return xdr_u_hyper(xdr, &args->length);
+    return xdr_uint64_t(xdr, &args->length);
 }
 
 static bool_t decode_op_locku(
@@ -1650,7 +1650,7 @@ static bool_t decode_op_locku(
     if (unexpected_op(resop->op, OP_LOCKU))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &res->status))
+    if (!xdr_uint32_t(xdr, &res->status))
         return FALSE;
 
     if (res->status == NFS4_OK)
@@ -1674,7 +1674,7 @@ static bool_t encode_op_delegpurge(
 
     /* The client SHOULD set the client field to zero,
      * and the server MUST ignore the clientid field. */
-    return xdr_u_int64_t(xdr, &zero);
+    return xdr_uint64_t(xdr, &zero);
 }
 
 static bool_t decode_op_delegpurge(
@@ -1686,7 +1686,7 @@ static bool_t decode_op_delegpurge(
     if (unexpected_op(resop->op, OP_DELEGPURGE))
         return FALSE;
 
-    return xdr_u_int32_t(xdr, &res->status);
+    return xdr_uint32_t(xdr, &res->status);
 }
 
 
@@ -1714,7 +1714,7 @@ static bool_t decode_op_delegreturn(
     if (unexpected_op(resop->op, OP_DELEGRETURN))
         return FALSE;
 
-    return xdr_u_int32_t(xdr, &res->status);
+    return xdr_uint32_t(xdr, &res->status);
 }
 
 
@@ -1744,15 +1744,15 @@ static bool_t decode_file_attrs(
                 return FALSE;
         }
         if (attrs->attrmask.arr[0] & FATTR4_WORD0_TYPE) {
-            if (!xdr_u_int32_t(xdr, &info->type))
+            if (!xdr_uint32_t(xdr, &info->type))
                 return FALSE;
         }
         if (attrs->attrmask.arr[0] & FATTR4_WORD0_CHANGE) {
-            if (!xdr_u_hyper(xdr, &info->change))
+            if (!xdr_uint64_t(xdr, &info->change))
                 return FALSE;
         }
         if (attrs->attrmask.arr[0] & FATTR4_WORD0_SIZE) {
-            if (!xdr_u_hyper(xdr, &info->size))
+            if (!xdr_uint64_t(xdr, &info->size))
                 return FALSE;
         }
         if (attrs->attrmask.arr[0] & FATTR4_WORD0_LINK_SUPPORT) {
@@ -1768,11 +1768,11 @@ static bool_t decode_file_attrs(
                 return FALSE;
         }
         if (attrs->attrmask.arr[0] & FATTR4_WORD0_LEASE_TIME) {
-            if (!xdr_u_int32_t(xdr, &info->lease_time))
+            if (!xdr_uint32_t(xdr, &info->lease_time))
                 return FALSE;
         }
         if (attrs->attrmask.arr[0] & FATTR4_WORD0_RDATTR_ERROR) {
-            if (!xdr_u_int32_t(xdr, &info->rdattr_error))
+            if (!xdr_uint32_t(xdr, &info->rdattr_error))
                 return FALSE;
         }
         if (attrs->attrmask.arr[0] & FATTR4_WORD0_ACL) {
@@ -1782,7 +1782,7 @@ static bool_t decode_file_attrs(
                 return FALSE;
         }
         if (attrs->attrmask.arr[0] & FATTR4_WORD0_ACLSUPPORT) {
-            if (!xdr_u_int32_t(xdr, &info->aclsupport))
+            if (!xdr_uint32_t(xdr, &info->aclsupport))
                 return FALSE;
         }
         if (attrs->attrmask.arr[0] & FATTR4_WORD0_ARCHIVE) {
@@ -1802,7 +1802,7 @@ static bool_t decode_file_attrs(
                 return FALSE;
         }
         if (attrs->attrmask.arr[0] & FATTR4_WORD0_FILEID) {
-            if (!xdr_u_hyper(xdr, &info->fileid))
+            if (!xdr_uint64_t(xdr, &info->fileid))
                 return FALSE;
         }
         if (attrs->attrmask.arr[0] & FATTR4_WORD0_FS_LOCATIONS) {
@@ -1814,21 +1814,21 @@ static bool_t decode_file_attrs(
                 return FALSE;
         }
         if (attrs->attrmask.arr[0] & FATTR4_WORD0_MAXREAD) {
-            if (!xdr_u_hyper(xdr, &info->maxread))
+            if (!xdr_uint64_t(xdr, &info->maxread))
                 return FALSE;
         }
         if (attrs->attrmask.arr[0] & FATTR4_WORD0_MAXWRITE) {
-            if (!xdr_u_hyper(xdr, &info->maxwrite))
+            if (!xdr_uint64_t(xdr, &info->maxwrite))
                 return FALSE;
         }
     }
     if (attrs->attrmask.count > 1) {
         if (attrs->attrmask.arr[1] & FATTR4_WORD1_MODE) {
-            if (!xdr_u_int32_t(xdr, &info->mode))
+            if (!xdr_uint32_t(xdr, &info->mode))
                 return FALSE;
         }
         if (attrs->attrmask.arr[1] & FATTR4_WORD1_NUMLINKS) {
-            if (!xdr_u_int32_t(xdr, &info->numlinks))
+            if (!xdr_uint32_t(xdr, &info->numlinks))
                 return FALSE;
         }
         if (attrs->attrmask.arr[1] & FATTR4_WORD1_OWNER) {
@@ -1864,19 +1864,19 @@ static bool_t decode_file_attrs(
             EASSERT(info->owner_group[0] != '\0');
         }
         if (attrs->attrmask.arr[1] & FATTR4_WORD1_SPACE_AVAIL) {
-            if (!xdr_u_hyper(xdr, &info->space_avail))
+            if (!xdr_uint64_t(xdr, &info->space_avail))
                 return FALSE;
         }
         if (attrs->attrmask.arr[1] & FATTR4_WORD1_SPACE_FREE) {
-            if (!xdr_u_hyper(xdr, &info->space_free))
+            if (!xdr_uint64_t(xdr, &info->space_free))
                 return FALSE;
         }
         if (attrs->attrmask.arr[1] & FATTR4_WORD1_SPACE_TOTAL) {
-            if (!xdr_u_hyper(xdr, &info->space_total))
+            if (!xdr_uint64_t(xdr, &info->space_total))
                 return FALSE;
         }
         if (attrs->attrmask.arr[1] & FATTR4_WORD1_SPACE_USED) {
-            if (!xdr_u_hyper(xdr, &info->space_used))
+            if (!xdr_uint64_t(xdr, &info->space_used))
                 return FALSE;
         }
         if (attrs->attrmask.arr[1] & FATTR4_WORD1_SYSTEM) {
@@ -1918,7 +1918,7 @@ static bool_t decode_file_attrs(
                 return FALSE;
         }
         if (attrs->attrmask.arr[2] & FATTR4_WORD2_CLONE_BLKSIZE) {
-            if (!xdr_u_int32_t(xdr, &info->clone_blksize))
+            if (!xdr_uint32_t(xdr, &info->clone_blksize))
                 return FALSE;
         }
     }
@@ -1934,7 +1934,7 @@ static bool_t decode_op_getattr(
     if (unexpected_op(resop->op, OP_GETATTR))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &res->status))
+    if (!xdr_uint32_t(xdr, &res->status))
         return FALSE;
 
     if (res->status == NFS4_OK)
@@ -1959,7 +1959,7 @@ static bool_t encode_createhow4(
 {
     bool_t result = TRUE;
 
-    if (!xdr_u_int32_t(xdr, &ch->mode))
+    if (!xdr_uint32_t(xdr, &ch->mode))
         return FALSE;
 
     switch (ch->mode)
@@ -1987,7 +1987,7 @@ static bool_t encode_openflag4(
 {
     bool_t result = TRUE;
 
-    if (!xdr_u_int32_t(xdr, &of->opentype))
+    if (!xdr_uint32_t(xdr, &of->opentype))
         return FALSE;
 
     switch (of->opentype)
@@ -2015,7 +2015,7 @@ static bool_t encode_open_claim4(
     XDR *xdr,
     open_claim4 *oc)
 {
-    if (!xdr_u_int32_t(xdr, &oc->claim))
+    if (!xdr_uint32_t(xdr, &oc->claim))
         return FALSE;
 
     switch (oc->claim)
@@ -2023,7 +2023,7 @@ static bool_t encode_open_claim4(
     case CLAIM_NULL:
         return encode_component(xdr, oc->u.null.filename);
     case CLAIM_PREVIOUS:
-        return xdr_u_int32_t(xdr, &oc->u.prev.delegate_type);
+        return xdr_uint32_t(xdr, &oc->u.prev.delegate_type);
     case CLAIM_FH:
         return TRUE; /* use current file handle */
     case CLAIM_DELEGATE_CUR:
@@ -2053,13 +2053,13 @@ static bool_t encode_op_open(
     if (unexpected_op(argop->op, OP_OPEN))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &args->seqid))
+    if (!xdr_uint32_t(xdr, &args->seqid))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &args->share_access))
+    if (!xdr_uint32_t(xdr, &args->share_access))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &args->share_deny))
+    if (!xdr_uint32_t(xdr, &args->share_deny))
         return FALSE;
 
     if (!xdr_state_owner4(xdr, args->owner))
@@ -2110,10 +2110,10 @@ static bool_t decode_modified_limit4(
 {
     uint32_t blocks, bytes_per_block;
 
-    if (!xdr_u_int32_t(xdr, &blocks))
+    if (!xdr_uint32_t(xdr, &blocks))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &bytes_per_block))
+    if (!xdr_uint32_t(xdr, &bytes_per_block))
         return FALSE;
 
     *filesize = (uint64_t)blocks * bytes_per_block;
@@ -2131,13 +2131,13 @@ static bool_t decode_space_limit4(
 {
     uint32_t limitby;
 
-    if (!xdr_u_int32_t(xdr, &limitby))
+    if (!xdr_uint32_t(xdr, &limitby))
         return FALSE;
 
     switch (limitby)
     {
     case NFS_LIMIT_SIZE:
-        return xdr_u_hyper(xdr, filesize);
+        return xdr_uint64_t(xdr, filesize);
     case NFS_LIMIT_BLOCKS:
         return decode_modified_limit4(xdr, filesize);
     default:
@@ -2174,7 +2174,7 @@ static bool_t decode_open_res_ok(
     if (!xdr_change_info4(xdr, &res->cinfo))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &res->rflags))
+    if (!xdr_uint32_t(xdr, &res->rflags))
         return FALSE;
 
     if (!xdr_bitmap4(xdr, &res->attrset))
@@ -2209,7 +2209,7 @@ static bool_t decode_op_open(
     if (unexpected_op(resop->op, OP_OPEN))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &res->status))
+    if (!xdr_uint32_t(xdr, &res->status))
         return FALSE;
 
     if (res->status == NFS4_OK)
@@ -2243,7 +2243,7 @@ static bool_t decode_op_openattr(
     if (unexpected_op(resop->op, OP_OPENATTR))
         return FALSE;
 
-    return xdr_u_int32_t(xdr, &res->status);
+    return xdr_uint32_t(xdr, &res->status);
 }
 
 
@@ -2262,10 +2262,10 @@ static bool_t encode_op_read(
     if (!xdr_stateid4(xdr, &args->stateid->stateid))
         return FALSE;
 
-    if (!xdr_u_hyper(xdr, &args->offset))
+    if (!xdr_uint64_t(xdr, &args->offset))
         return FALSE;
 
-    return xdr_u_int32_t(xdr, &args->count);
+    return xdr_uint32_t(xdr, &args->count);
 }
 
 static bool_t decode_read_res_ok(
@@ -2279,7 +2279,7 @@ static bool_t decode_read_res_ok(
     if (!xdr_bool(xdr, &res->eof))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &count)) {
+    if (!xdr_uint32_t(xdr, &count)) {
         DPRINTF(0, ("decode_read_res_ok: decoding 'count' failed\n"));
         return FALSE;
     }
@@ -2310,7 +2310,7 @@ static bool_t decode_op_read(
     if (unexpected_op(resop->op, OP_READ))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &res->status))
+    if (!xdr_uint32_t(xdr, &res->status))
         return FALSE;
 
     if (res->status == NFS4_OK)
@@ -2332,16 +2332,16 @@ static bool_t encode_op_readdir(
     if (unexpected_op(argop->op, OP_READDIR))
         return FALSE;
 
-    if (!xdr_u_hyper(xdr, &args->cookie.cookie))
+    if (!xdr_uint64_t(xdr, &args->cookie.cookie))
         return FALSE;
 
     if (!xdr_opaque(xdr, (char *)args->cookie.verf, NFS4_VERIFIER_SIZE))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &args->dircount))
+    if (!xdr_uint32_t(xdr, &args->dircount))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &args->maxcount))
+    if (!xdr_uint32_t(xdr, &args->maxcount))
         return FALSE;
 
     return xdr_bitmap4(xdr, args->attr_request);
@@ -2372,7 +2372,7 @@ static bool_t decode_readdir_entry(
     entry_len = (uint32_t)FIELD_OFFSET(nfs41_readdir_entry, name);
     attrs.attr_vals_len = NFS4_OPAQUE_LIMIT;
 
-    if (!xdr_u_hyper(xdr, &cookie))
+    if (!xdr_uint64_t(xdr, &cookie))
         return FALSE;
 
     if (!xdr_bytes(xdr, (char **)&nameptr, &name_len, NFS4_OPAQUE_LIMIT))
@@ -2464,7 +2464,7 @@ static bool_t decode_op_readdir(
     if (unexpected_op(resop->op, OP_READDIR))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &res->status))
+    if (!xdr_uint32_t(xdr, &res->status))
         return FALSE;
 
     if (res->status == NFS4_OK) {
@@ -2499,7 +2499,7 @@ static bool_t decode_op_readlink(
     if (unexpected_op(resop->op, OP_READLINK))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &res->status))
+    if (!xdr_uint32_t(xdr, &res->status))
         return FALSE;
 
     if (res->status == NFS4_OK) {
@@ -2535,7 +2535,7 @@ static bool_t decode_op_remove(
     if (unexpected_op(resop->op, OP_REMOVE))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &res->status))
+    if (!xdr_uint32_t(xdr, &res->status))
         return FALSE;
 
     if (res->status == NFS4_OK)
@@ -2572,7 +2572,7 @@ static bool_t decode_op_rename(
     if (unexpected_op(resop->op, OP_RENAME))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &res->status))
+    if (!xdr_uint32_t(xdr, &res->status))
         return FALSE;
 
     if (res->status == NFS4_OK)
@@ -2608,7 +2608,7 @@ static bool_t decode_op_restorefh(
     if (unexpected_op(resop->op, OP_RESTOREFH))
         return FALSE;
 
-    return xdr_u_int32_t(xdr, &res->status);
+    return xdr_uint32_t(xdr, &res->status);
 }
 
 
@@ -2635,7 +2635,7 @@ static bool_t decode_op_savefh(
     if (unexpected_op(resop->op, OP_SAVEFH))
         return FALSE;
 
-    return xdr_u_int32_t(xdr, &res->status);
+    return xdr_uint32_t(xdr, &res->status);
 }
 
 
@@ -2657,7 +2657,7 @@ static bool_t encode_file_attrs(
 
     if (info->attrmask.count > 0) {
         if (info->attrmask.arr[0] & FATTR4_WORD0_SIZE) {
-            if (!xdr_u_hyper(&localxdr, &info->size))
+            if (!xdr_uint64_t(&localxdr, &info->size))
                 return FALSE;
             attrs->attrmask.arr[0] |= FATTR4_WORD0_SIZE;
         }
@@ -2679,7 +2679,7 @@ static bool_t encode_file_attrs(
     }
     if (info->attrmask.count > 1) {
         if (info->attrmask.arr[1] & FATTR4_WORD1_MODE) {
-            if (!xdr_u_int32_t(&localxdr, &info->mode))
+            if (!xdr_uint32_t(&localxdr, &info->mode))
                 return FALSE;
             attrs->attrmask.arr[1] |= FATTR4_WORD1_MODE;
         }
@@ -2722,9 +2722,9 @@ static bool_t encode_file_attrs(
     }
     if (info->attrmask.count > 2) {
         if (info->attrmask.arr[2] & FATTR4_WORD2_MODE_SET_MASKED) {
-            if (!xdr_u_int32_t(&localxdr, &info->mode))
+            if (!xdr_uint32_t(&localxdr, &info->mode))
                 return FALSE;
-            if (!xdr_u_int32_t(&localxdr, &info->mode_mask))
+            if (!xdr_uint32_t(&localxdr, &info->mode_mask))
                 return FALSE;
             attrs->attrmask.arr[2] |= FATTR4_WORD2_MODE_SET_MASKED;
         }
@@ -2771,7 +2771,7 @@ static bool_t decode_op_setattr(
     if (unexpected_op(resop->op, OP_SETATTR))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &res->status))
+    if (!xdr_uint32_t(xdr, &res->status))
         return FALSE;
 
     if (res->status == NFS4_OK)
@@ -2793,14 +2793,14 @@ static bool_t encode_op_want_delegation(
     if (unexpected_op(argop->op, OP_WANT_DELEGATION))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &args->want))
+    if (!xdr_uint32_t(xdr, &args->want))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &args->claim->claim))
+    if (!xdr_uint32_t(xdr, &args->claim->claim))
         return FALSE;
 
     return args->claim->claim != CLAIM_PREVIOUS ||
-        xdr_u_int32_t(xdr, &args->claim->prev_delegate_type);
+        xdr_uint32_t(xdr, &args->claim->prev_delegate_type);
 }
 
 static bool_t decode_op_want_delegation(
@@ -2812,7 +2812,7 @@ static bool_t decode_op_want_delegation(
     if (unexpected_op(resop->op, OP_WANT_DELEGATION))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &res->status))
+    if (!xdr_uint32_t(xdr, &res->status))
         return FALSE;
 
     if (res->status)
@@ -2863,7 +2863,7 @@ static bool_t decode_op_free_stateid(
     if (unexpected_op(resop->op, OP_FREE_STATEID))
         return FALSE;
 
-    return xdr_u_int32_t(xdr, &res->status);
+    return xdr_uint32_t(xdr, &res->status);
 }
 
 
@@ -2892,12 +2892,12 @@ static bool_t decode_op_test_stateid(
     if (unexpected_op(resop->op, OP_TEST_STATEID))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &res->status))
+    if (!xdr_uint32_t(xdr, &res->status))
         return FALSE;
 
     if (res->status == NFS4_OK) {
         return xdr_array(xdr, (char**)&res->resok.status, &res->resok.count,
-            res->resok.count, sizeof(uint32_t), (xdrproc_t)xdr_u_int32_t);
+            res->resok.count, sizeof(uint32_t), (xdrproc_t)xdr_uint32_t);
     }
     return TRUE;
 }
@@ -2919,13 +2919,13 @@ static bool_t encode_op_write(
     if (!xdr_stateid4(xdr, &args->stateid->stateid))
         return FALSE;
 
-    if (!xdr_u_hyper(xdr, &args->offset))
+    if (!xdr_uint64_t(xdr, &args->offset))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &args->stable))
+    if (!xdr_uint32_t(xdr, &args->stable))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &args->data_len))
+    if (!xdr_uint32_t(xdr, &args->data_len))
         return FALSE;
 
     return xdr_opaque(xdr, (char *)data, args->data_len);
@@ -2945,7 +2945,7 @@ static bool_t xdr_write_res_ok(
     XDR *xdr,
     nfs41_write_res_ok *res)
 {
-    if (!xdr_u_int32_t(xdr, &res->count))
+    if (!xdr_uint32_t(xdr, &res->count))
         return FALSE;
 
     return xdr_write_verf(xdr, res->verf);
@@ -2960,7 +2960,7 @@ static bool_t decode_op_write(
     if (unexpected_op(resop->op, OP_WRITE))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &res->status))
+    if (!xdr_uint32_t(xdr, &res->status))
         return FALSE;
 
     if (res->status == NFS4_OK)
@@ -2969,20 +2969,20 @@ static bool_t decode_op_write(
     return TRUE;
 }
 
-/* 
+/*
  * OP_SECINFO_NO_NAME
  */
 static bool_t xdr_secinfo(
     XDR *xdr,
     nfs41_secinfo_info *secinfo)
 {
-    if (!xdr_u_int32_t(xdr, &secinfo->sec_flavor))
+    if (!xdr_uint32_t(xdr, &secinfo->sec_flavor))
         return FALSE;
     if (secinfo->sec_flavor == RPCSEC_GSS) {
         char *p = secinfo->oid;
         if (!xdr_bytes(xdr, (char **)&p, &secinfo->oid_len, MAX_OID_LEN))
             return FALSE;
-        if (!xdr_u_int32_t(xdr, &secinfo->qop))
+        if (!xdr_uint32_t(xdr, &secinfo->qop))
             return FALSE;
         if (!xdr_enum(xdr, (enum_t *)&secinfo->type))
             return FALSE;
@@ -3014,7 +3014,7 @@ static bool_t decode_op_secinfo_noname(
     if (unexpected_op(resop->op, OP_SECINFO_NO_NAME))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &res->status))
+    if (!xdr_uint32_t(xdr, &res->status))
         return FALSE;
 
     if (res->status == NFS4_OK)
@@ -3024,7 +3024,7 @@ static bool_t decode_op_secinfo_noname(
     return TRUE;
 }
 
-/* 
+/*
  * OP_SECINFO
  */
 static bool_t encode_op_secinfo(
@@ -3052,7 +3052,7 @@ static bool_t decode_op_secinfo(
     if (unexpected_op(resop->op, OP_SECINFO))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &res->status))
+    if (!xdr_uint32_t(xdr, &res->status))
         return FALSE;
 
     if (res->status == NFS4_OK)
@@ -3079,7 +3079,7 @@ static bool_t encode_op_getdeviceinfo(
     if (!xdr_enum(xdr, (enum_t *)&args->layout_type))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &args->maxcount))
+    if (!xdr_uint32_t(xdr, &args->maxcount))
         return FALSE;
 
     return xdr_bitmap4(xdr, &args->notify_types);
@@ -3091,7 +3091,7 @@ static bool_t xdr_stripe_indices(
 {
     uint32_t i, count;
 
-    if (!xdr_u_int32_t(xdr, &count))
+    if (!xdr_uint32_t(xdr, &count))
         return FALSE;
 
     if (count && count != indices->count) {
@@ -3103,9 +3103,9 @@ static bool_t xdr_stripe_indices(
         ZeroMemory(indices->arr, count * sizeof(uint32_t));
         indices->count = count;
     }
-    
+
     for (i = 0; i < indices->count; i++) {
-        if (!xdr_u_int32_t(xdr, &indices->arr[i]))
+        if (!xdr_uint32_t(xdr, &indices->arr[i]))
             return FALSE;
     }
     return TRUE;
@@ -3153,7 +3153,7 @@ static bool_t xdr_multi_addr(
     netaddr4 dummy, *dest;
     uint32_t i;
 
-    if (!xdr_u_int32_t(xdr, &list->count))
+    if (!xdr_uint32_t(xdr, &list->count))
         return FALSE;
 
     for (i = 0; i < list->count; i++) {
@@ -3172,7 +3172,7 @@ static bool_t xdr_data_server_list(
 {
     uint32_t i, count;
 
-    if (!xdr_u_int32_t(xdr, &count))
+    if (!xdr_uint32_t(xdr, &count))
         return FALSE;
 
     if (count && count != servers->count) {
@@ -3183,7 +3183,7 @@ static bool_t xdr_data_server_list(
             servers->arr[i].client = NULL;
 
         tmp = realloc(servers->arr, count * sizeof(pnfs_data_server));
-        if (tmp == NULL) 
+        if (tmp == NULL)
             return FALSE;
         servers->arr = tmp;
         ZeroMemory(servers->arr, count * sizeof(pnfs_data_server));
@@ -3221,7 +3221,7 @@ static bool_t decode_getdeviceinfo_ok(
     if (res_ok->device->device.type != PNFS_LAYOUTTYPE_FILE)
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &len_ignored))
+    if (!xdr_uint32_t(xdr, &len_ignored))
         return FALSE;
 
     if (!xdr_file_device(xdr, res_ok->device))
@@ -3239,7 +3239,7 @@ static bool_t decode_op_getdeviceinfo(
     if (unexpected_op(resop->op, OP_GETDEVICEINFO))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, (uint32_t *)&res->status))
+    if (!xdr_uint32_t(xdr, (uint32_t *)&res->status))
         return FALSE;
 
     switch (res->status) {
@@ -3249,7 +3249,7 @@ static bool_t decode_op_getdeviceinfo(
     case NFS4ERR_TOOSMALL:
         {
             uint32_t ignored;
-            return xdr_u_int32_t(xdr, &ignored);
+            return xdr_uint32_t(xdr, &ignored);
         }
         break;
     default:
@@ -3277,10 +3277,10 @@ static bool_t encode_op_layoutcommit(
     if (unexpected_op(argop->op, OP_LAYOUTCOMMIT))
         return FALSE;
 
-    if (!xdr_u_hyper(xdr, &args->offset))
+    if (!xdr_uint64_t(xdr, &args->offset))
         return FALSE;
 
-    if (!xdr_u_hyper(xdr, &args->length))
+    if (!xdr_uint64_t(xdr, &args->length))
         return FALSE;
 
     if (!xdr_bool(xdr, &false_bool)) /* loca_reclaim = 0 */
@@ -3294,7 +3294,7 @@ static bool_t encode_op_layoutcommit(
         if (!xdr_bool(xdr, &true_bool))
             return FALSE;
 
-        if (!xdr_u_hyper(xdr, args->new_offset))
+        if (!xdr_uint64_t(xdr, args->new_offset))
             return FALSE;
     } else {
         if (!xdr_bool(xdr, &false_bool))
@@ -3317,7 +3317,7 @@ static bool_t encode_op_layoutcommit(
     if (!xdr_enum(xdr, &pnfs_layout))
         return FALSE;
 
-    return xdr_u_int32_t(xdr, &zero);
+    return xdr_uint32_t(xdr, &zero);
 }
 
 static bool_t decode_op_layoutcommit(
@@ -3329,7 +3329,7 @@ static bool_t decode_op_layoutcommit(
     if (unexpected_op(resop->op, OP_LAYOUTCOMMIT))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &res->status))
+    if (!xdr_uint32_t(xdr, &res->status))
         return FALSE;
 
     if (res->status == NFS4_OK) {
@@ -3337,7 +3337,7 @@ static bool_t decode_op_layoutcommit(
             return FALSE;
 
         if (res->has_new_size)
-            if (!xdr_u_hyper(xdr, &res->new_size))
+            if (!xdr_uint64_t(xdr, &res->new_size))
                 return FALSE;
     }
     return TRUE;
@@ -3358,25 +3358,25 @@ static bool_t encode_op_layoutget(
     if (!xdr_bool(xdr, &args->signal_layout_avail))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, (u_int32_t *)&args->layout_type))
+    if (!xdr_uint32_t(xdr, (u_int32_t *)&args->layout_type))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, (u_int32_t *)&args->iomode))
+    if (!xdr_uint32_t(xdr, (u_int32_t *)&args->iomode))
         return FALSE;
 
-    if (!xdr_u_hyper(xdr, &args->offset))
+    if (!xdr_uint64_t(xdr, &args->offset))
         return FALSE;
 
-    if (!xdr_u_hyper(xdr, &args->length))
+    if (!xdr_uint64_t(xdr, &args->length))
         return FALSE;
 
-    if (!xdr_u_hyper(xdr, &args->minlength))
+    if (!xdr_uint64_t(xdr, &args->minlength))
         return FALSE;
 
     if (!xdr_stateid4(xdr, &args->stateid->stateid))
         return FALSE;
 
-    return xdr_u_int32_t(xdr, &args->maxcount);
+    return xdr_uint32_t(xdr, &args->maxcount);
 }
 
 static bool_t decode_file_layout_handles(
@@ -3385,7 +3385,7 @@ static bool_t decode_file_layout_handles(
 {
     uint32_t i, count;
 
-    if (!xdr_u_int32_t(xdr, &count))
+    if (!xdr_uint32_t(xdr, &count))
         return FALSE;
 
     if (count && count != handles->count) {
@@ -3397,7 +3397,7 @@ static bool_t decode_file_layout_handles(
         ZeroMemory(handles->arr, count * sizeof(nfs41_path_fh));
         handles->count = count;
     }
-    
+
     for (i = 0; i < handles->count; i++) {
         if (!xdr_fh(xdr, &handles->arr[i].fh))
             return FALSE;
@@ -3413,7 +3413,7 @@ static bool_t decode_file_layout(
     pnfs_file_layout *layout;
     u_int32_t len_ignored;
 
-    if (!xdr_u_int32_t(xdr, &len_ignored))
+    if (!xdr_uint32_t(xdr, &len_ignored))
         return FALSE;
 
     layout = calloc(1, sizeof(pnfs_file_layout));
@@ -3429,13 +3429,13 @@ static bool_t decode_file_layout(
     if (!xdr_opaque(xdr, (char *)layout->deviceid, PNFS_DEVICEID_SIZE))
         goto out_error;
 
-    if (!xdr_u_int32_t(xdr, &layout->util))
+    if (!xdr_uint32_t(xdr, &layout->util))
         goto out_error;
 
-    if (!xdr_u_int32_t(xdr, &layout->first_index))
+    if (!xdr_uint32_t(xdr, &layout->first_index))
         goto out_error;
 
-    if (!xdr_u_hyper(xdr, &layout->pattern_offset))
+    if (!xdr_uint64_t(xdr, &layout->pattern_offset))
         goto out_error;
 
     if (!decode_file_layout_handles(xdr, &layout->filehandles))
@@ -3455,10 +3455,10 @@ static bool_t decode_layout(
 {
     pnfs_layout layout;
 
-    if (!xdr_u_hyper(xdr, &layout.offset))
+    if (!xdr_uint64_t(xdr, &layout.offset))
         return FALSE;
 
-    if (!xdr_u_hyper(xdr, &layout.length))
+    if (!xdr_uint64_t(xdr, &layout.length))
         return FALSE;
 
     if (!xdr_enum(xdr, (enum_t *)&layout.iomode))
@@ -3490,7 +3490,7 @@ static bool_t decode_layout_res_ok(
     if (!xdr_stateid4(xdr, &res->stateid))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &res->count))
+    if (!xdr_uint32_t(xdr, &res->count))
         return FALSE;
 
     for (i = 0; i < res->count; i++)
@@ -3508,7 +3508,7 @@ static bool_t decode_op_layoutget(
     if (unexpected_op(resop->op, OP_LAYOUTGET))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, (uint32_t *)&res->status))
+    if (!xdr_uint32_t(xdr, (uint32_t *)&res->status))
         return FALSE;
 
     switch (res->status) {
@@ -3552,16 +3552,16 @@ static bool_t encode_op_layoutreturn(
     if (args->return_type == PNFS_RETURN_FILE) {
         u_int32_t zero = 0;
 
-        if (!xdr_u_hyper(xdr, &args->offset))
+        if (!xdr_uint64_t(xdr, &args->offset))
             return FALSE;
 
-        if (!xdr_u_hyper(xdr, &args->length))
+        if (!xdr_uint64_t(xdr, &args->length))
             return FALSE;
 
         if (!xdr_stateid4(xdr, args->stateid))
             return FALSE;
 
-        return xdr_u_int32_t(xdr, &zero); /* size of lrf_body is 0 */
+        return xdr_uint32_t(xdr, &zero); /* size of lrf_body is 0 */
     } else {
         eprintf("'%s': layout type (%d) is not PNFS_RETURN_FILE!\n",
             "encode_op_layoutreturn", args->return_type);
@@ -3578,7 +3578,7 @@ static bool_t decode_op_layoutreturn(
     if (unexpected_op(resop->op, OP_LAYOUTRETURN))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, (uint32_t *)&res->status))
+    if (!xdr_uint32_t(xdr, (uint32_t *)&res->status))
         return FALSE;
 
     if (res->status == NFS4_OK) {
@@ -3709,10 +3709,10 @@ bool_t nfs_encode_compound(
     if (!xdr_bytes(xdr, (char **)&tag, &args->tag_len, NFS4_OPAQUE_LIMIT))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &args->minorversion))
+    if (!xdr_uint32_t(xdr, &args->minorversion))
         return FALSE;
 
-    if (!xdr_u_int32_t(xdr, &args->argarray_count))
+    if (!xdr_uint32_t(xdr, &args->argarray_count))
         return FALSE;
 
     for (i = 0; i < args->argarray_count; i++)
@@ -3721,7 +3721,7 @@ bool_t nfs_encode_compound(
         if (entry == NULL || entry->encode == NULL)
             return FALSE;
 
-        if (!xdr_u_int32_t(xdr, &args->argarray[i].op))
+        if (!xdr_uint32_t(xdr, &args->argarray[i].op))
             return FALSE;
         if (!entry->encode(xdr, &args->argarray[i]))
             return FALSE;
@@ -3738,14 +3738,14 @@ bool_t nfs_decode_compound(
     const op_table_entry *entry;
     unsigned char *tag = res->tag;
 
-    if (!xdr_u_int32_t(xdr, &res->status))
+    if (!xdr_uint32_t(xdr, &res->status))
         return FALSE;
 
     if (!xdr_bytes(xdr, (char **)&tag, &res->tag_len, NFS4_OPAQUE_LIMIT))
         return FALSE;
 
     expected_count = res->resarray_count;
-    if (!xdr_u_int32_t(xdr, &res->resarray_count))
+    if (!xdr_uint32_t(xdr, &res->resarray_count))
         return FALSE;
 
     /* validate the number of operations against what we sent */
@@ -3765,7 +3765,7 @@ bool_t nfs_decode_compound(
     for (i = 0; i < res->resarray_count; i++)
     {
         expected_op = res->resarray[i].op;
-        if (!xdr_u_int32_t(xdr, &res->resarray[i].op))
+        if (!xdr_uint32_t(xdr, &res->resarray[i].op))
             return FALSE;
 
         /* validate each operation number against what we sent */

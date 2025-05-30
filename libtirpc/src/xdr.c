@@ -26,7 +26,6 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-//#include <sys/cdefs.h>
 
 /*
  * xdr.c, Generic XDR routines implementation.
@@ -44,14 +43,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-#ifdef _WIN32 // CVE-2017-8779
 #include <rpc/rpc.h>
-#endif
 #include <rpc/types.h>
 #include <rpc/xdr.h>
-#ifdef _WIN32 // CVE-2017-8779
 #include <rpc/rpc_com.h>
-#endif
 
 typedef quad_t          longlong_t;     /* ANSI long long type */
 typedef u_quad_t        u_longlong_t;   /* ANSI unsigned long long type */
@@ -61,9 +56,6 @@ typedef u_quad_t        u_longlong_t;   /* ANSI unsigned long long type */
  */
 #define XDR_FALSE	((long) 0)
 #define XDR_TRUE	((long) 1)
-#ifndef _WIN32 // CVE-2017-8779
-#define LASTUNSIGNED	((u_int) 0-1)
-#endif
 
 /*
  * for unit alignment
@@ -264,6 +256,18 @@ xdr_u_int32_t(xdrs, u_int32_p)
 
 
 /*
+ * XDR unsigned 32-bit integers
+ */
+bool_t
+xdr_uint32_t(xdrs, uint32_p)
+	XDR *xdrs;
+	uint32_t *uint32_p;
+{
+	return (xdr_u_int32_t(xdrs, (u_int32_t *)uint32_p));
+}
+
+
+/*
  * XDR short integers
  */
 bool_t
@@ -386,6 +390,92 @@ xdr_u_int16_t(xdrs, u_int16_p)
 
 
 /*
+ * XDR unsigned 16-bit integers
+ */
+bool_t
+xdr_uint16_t(xdrs, uint16_p)
+	XDR *xdrs;
+	uint16_t *uint16_p;
+{
+	return (xdr_u_int16_t(xdrs, (u_int16_t *)uint16_p));
+}
+
+
+/*
+ * XDR 8-bit integers
+ */
+bool_t
+xdr_int8_t(xdrs, int8_p)
+	XDR *xdrs;
+	int8_t *int8_p;
+{
+	long l;
+
+	switch (xdrs->x_op) {
+
+	case XDR_ENCODE:
+		l = (long) *int8_p;
+		return (XDR_PUTLONG(xdrs, &l));
+
+	case XDR_DECODE:
+		if (!XDR_GETLONG(xdrs, &l)) {
+			return (FALSE);
+		}
+		*int8_p = (int8_t) l;
+		return (TRUE);
+
+	case XDR_FREE:
+		return (TRUE);
+	}
+	/* NOTREACHED */
+	return (FALSE);
+}
+
+
+/*
+ * XDR unsigned 8-bit integers
+ */
+bool_t
+xdr_u_int8_t(xdrs, uint8_p)
+	XDR *xdrs;
+	uint8_t *uint8_p;
+{
+	u_long l;
+
+	switch (xdrs->x_op) {
+
+	case XDR_ENCODE:
+		l = (u_long) *uint8_p;
+		return (XDR_PUTLONG(xdrs, (long *)&l));
+
+	case XDR_DECODE:
+		if (!XDR_GETLONG(xdrs, (long *)&l)) {
+			return (FALSE);
+		}
+		*uint8_p = (uint8_t) l;
+		return (TRUE);
+
+	case XDR_FREE:
+		return (TRUE);
+	}
+	/* NOTREACHED */
+	return (FALSE);
+}
+
+
+/*
+ * XDR unsigned 8-bit integers
+ */
+bool_t
+xdr_uint8_t(xdrs, uint8_p)
+	XDR *xdrs;
+	uint8_t *uint8_p;
+{
+	return (xdr_u_int8_t(xdrs, (uint8_t *)uint8_p));
+}
+
+
+/*
  * XDR a char
  */
 bool_t
@@ -461,16 +551,16 @@ xdr_enum(xdrs, ep)
 {
 	enum sizecheck { SIZEVAL };	/* used to find the size of an enum */
 
+#ifdef _WIN32
+#pragma warning( push )
+/*
+ * warning C4127: conditional expression is constant
+ */
+#pragma warning (disable : 4127)
+#endif /* _WIN32 */
 	/*
 	 * enums are treated as ints
 	 */
-
-
-#ifdef _WIN32
-#pragma warning( push )
-/* Disable "warning C4127: conditional expression is constant" */
-#pragma warning (disable : 4127)
-#endif
 	/* LINTED */ if (sizeof (enum sizecheck) == sizeof (long)) {
 		return (xdr_long(xdrs, (long *)(void *)ep));
 	} else /* LINTED */ if (sizeof (enum sizecheck) == sizeof (int)) {
@@ -482,7 +572,7 @@ xdr_enum(xdrs, ep)
 	}
 #ifdef _WIN32
 #pragma warning( pop )
-#endif
+#endif /* _WIN32 */
 }
 
 /*
@@ -551,9 +641,7 @@ xdr_bytes(xdrs, cpp, sizep, maxsize)
 {
 	char *sp = *cpp;  /* sp is the actual string pointer */
 	u_int nodesize;
-#ifdef _WIN32 // CVE-2017-8779
 	bool_t ret, allocated = FALSE;
-#endif
 
 	/*
 	 * first deal with the length since xdr bytes are counted
@@ -577,9 +665,7 @@ xdr_bytes(xdrs, cpp, sizep, maxsize)
 		}
 		if (sp == NULL) {
 			*cpp = sp = mem_alloc(nodesize);
-#ifdef _WIN32 // CVE-2017-8779
 			allocated = TRUE;
-#endif
 		}
 		if (sp == NULL) {
 			warnx("xdr_bytes: out of memory");
@@ -588,9 +674,6 @@ xdr_bytes(xdrs, cpp, sizep, maxsize)
 		/* FALLTHROUGH */
 
 	case XDR_ENCODE:
-#ifndef _WIN32 // CVE-2017-8779
-		return (xdr_opaque(xdrs, sp, nodesize));
-#else
 		ret = xdr_opaque(xdrs, sp, nodesize);
 		if ((xdrs->x_op == XDR_DECODE) && (ret == FALSE)) {
 			if (allocated == TRUE) {
@@ -599,7 +682,6 @@ xdr_bytes(xdrs, cpp, sizep, maxsize)
 			}
 		}
 		return (ret);
-#endif
 
 	case XDR_FREE:
 		if (sp != NULL) {
@@ -693,9 +775,7 @@ xdr_string(xdrs, cpp, maxsize)
 	char *sp = *cpp;  /* sp is the actual string pointer */
 	u_int size;
 	u_int nodesize;
-#ifdef _WIN32 // CVE-2017-8779
 	bool_t ret, allocated = FALSE;
-#endif
 
 	/*
 	 * first deal with the length since xdr strings are counted-strings
@@ -735,15 +815,10 @@ xdr_string(xdrs, cpp, maxsize)
 	switch (xdrs->x_op) {
 
 	case XDR_DECODE:
-#ifndef _WIN32 // CVE-2017-8779
-		if (sp == NULL)
-			*cpp = sp = mem_alloc(nodesize);
-#else
 		if (sp == NULL) {
 			*cpp = sp = mem_alloc(nodesize);
 			allocated = TRUE;
 		}
-#endif
 		if (sp == NULL) {
 			warnx("xdr_string: out of memory");
 			return (FALSE);
@@ -752,9 +827,6 @@ xdr_string(xdrs, cpp, maxsize)
 		/* FALLTHROUGH */
 
 	case XDR_ENCODE:
-#ifndef _WIN32 // CVE-2017-8779
-		return (xdr_opaque(xdrs, sp, size));
-#else
 		ret = xdr_opaque(xdrs, sp, size);
 		if ((xdrs->x_op == XDR_DECODE) && (ret == FALSE)) {
 			if (allocated == TRUE) {
@@ -763,7 +835,6 @@ xdr_string(xdrs, cpp, maxsize)
 			}
 		}
 		return (ret);
-#endif
 
 	case XDR_FREE:
 		mem_free(sp, nodesize);
@@ -774,8 +845,8 @@ xdr_string(xdrs, cpp, maxsize)
 	return (FALSE);
 }
 
-/* 
- * Wrapper for xdr_string that can be called directly from 
+/*
+ * Wrapper for xdr_string that can be called directly from
  * routines like clnt_call
  */
 bool_t
@@ -783,11 +854,7 @@ xdr_wrapstring(xdrs, cpp)
 	XDR *xdrs;
 	char **cpp;
 {
-#ifdef _WIN32 // CVE-2017-8779
 	return xdr_string(xdrs, cpp, RPC_MAXDATASIZE);
-#else
-	return xdr_string(xdrs, cpp, LASTUNSIGNED);
-#endif
 }
 
 /*
@@ -821,7 +888,8 @@ xdr_int64_t(xdrs, llp)
 		if (XDR_GETLONG(xdrs, (long *)&ul[1]) == FALSE)
 			return (FALSE);
 		*llp = (int64_t)
-		    (((u_int64_t)ul[0] << 32) | ((u_int64_t)ul[1]));
+		    (((u_int64_t)ul[0] << 32) |
+		     ((u_int64_t)(ul[1]) & 0xffffffff));
 		return (TRUE);
 	case XDR_FREE:
 		return (TRUE);
@@ -854,13 +922,26 @@ xdr_u_int64_t(xdrs, ullp)
 		if (XDR_GETLONG(xdrs, (long *)&ul[1]) == FALSE)
 			return (FALSE);
 		*ullp = (u_int64_t)
-		    (((u_int64_t)ul[0] << 32) | ((u_int64_t)ul[1]));
+		    (((u_int64_t)ul[0] << 32) |
+		     ((u_int64_t)(ul[1]) & 0xffffffff));
 		return (TRUE);
 	case XDR_FREE:
 		return (TRUE);
 	}
 	/* NOTREACHED */
 	return (FALSE);
+}
+
+
+/*
+ * XDR unsigned 64-bit integers
+ */
+bool_t
+xdr_uint64_t(xdrs, ullp)
+	XDR *xdrs;
+	uint64_t *ullp;
+{
+	return (xdr_u_int64_t(xdrs, (u_int64_t *)ullp));
 }
 
 
@@ -928,5 +1009,28 @@ xdr_u_longlong_t(xdrs, ullp)
 	 * Don't bother open-coding this; it's a fair amount of code.  Just
 	 * call xdr_u_int64_t().
 	 */
+	return (xdr_u_int64_t(xdrs, (u_int64_t *)ullp));
+}
+
+/*
+ * XDR quad_t
+ */
+bool_t
+xdr_quad_t(xdrs, llp)
+	XDR *xdrs;
+	int64_t *llp;
+{
+	return (xdr_int64_t(xdrs, (int64_t *)llp));
+}
+
+
+/*
+ * XDR u_quad_t
+ */
+bool_t
+xdr_u_quad_t(xdrs, ullp)
+	XDR *xdrs;
+	u_int64_t *ullp;
+{
 	return (xdr_u_int64_t(xdrs, (u_int64_t *)ullp));
 }

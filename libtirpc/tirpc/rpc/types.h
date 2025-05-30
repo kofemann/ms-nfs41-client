@@ -33,10 +33,12 @@
  */
 
 /* NFSv4.1 client for Windows
- * Copyright © 2012 The Regents of the University of Michigan
+ * Copyright (C) 2012 The Regents of the University of Michigan
+ * Copyright (C) 2024-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
+ * Roland Mainz <roland.mainz@nrubsig.org>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -60,13 +62,20 @@
 #define _TIRPC_TYPES_H
 
 #include <sys/types.h>
-//#include <sys/_null.h>
+#ifndef _WIN32
+#include <sys/_null.h>
+#endif /* !_WIN32 */
 
+#ifdef _WIN32
 // Windows mappings of data types
 // Fixed size things
-typedef INT16      int16_t;
+typedef signed char int8_t;
+typedef signed short int16_t;
 typedef INT32      int32_t;
 typedef INT64      int64_t;
+typedef unsigned char uint8_t;
+typedef unsigned char u_int8_t;
+typedef UINT16   uint16_t;
 typedef UINT16   u_int16_t;
 typedef UINT32   u_int32_t;
 typedef UINT32	 uint32_t;
@@ -88,7 +97,7 @@ typedef DWORD    pid_t;
 
 //typedef SIZE_T  size_t;  //This is causing a "benign redefinition error"
 typedef SSIZE_T ssize_t;
-// End of Windows...
+#endif /* _WIN32 */
 
 typedef int32_t bool_t;
 typedef int32_t enum_t;
@@ -150,7 +159,7 @@ struct t_bind {
  * not use.
  */
 struct __rpc_sockinfo {
-	ADDRESS_FAMILY si_af; 
+	ADDRESS_FAMILY si_af;
 	int si_proto;
 	int si_socktype;
 	int si_alen;

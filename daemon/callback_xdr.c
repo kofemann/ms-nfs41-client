@@ -1,9 +1,10 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2024-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
+ * Roland Mainz <roland.mainz@nrubsig.org>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -36,21 +37,21 @@ bool_t xdr_fattr4(XDR *xdr, fattr4 *fattr);
 
 static bool_t common_stateid(XDR *xdr, stateid4 *stateid)
 {
-    return xdr_u_int32_t(xdr, &stateid->seqid)
+    return xdr_uint32_t(xdr, &stateid->seqid)
         && xdr_opaque(xdr, (char*)stateid->other, NFS4_STATEID_OTHER);
 }
 
 static bool_t common_fh(XDR *xdr, nfs41_fh *fh)
 {
-    return xdr_u_int32_t(xdr, &fh->len)
+    return xdr_uint32_t(xdr, &fh->len)
         && fh->len <= NFS4_FHSIZE
         && xdr_opaque(xdr, (char*)fh->fh, fh->len);
 }
 
 static bool_t common_fsid(XDR *xdr, nfs41_fsid *fsid)
 {
-    return xdr_u_int64_t(xdr, &fsid->major)
-        && xdr_u_int64_t(xdr, &fsid->minor);
+    return xdr_uint64_t(xdr, &fsid->major)
+        && xdr_uint64_t(xdr, &fsid->minor);
 }
 
 static bool_t common_notify4(XDR *xdr, struct notify4 *notify)
@@ -67,10 +68,10 @@ static bool_t op_cb_layoutrecall_file(XDR *xdr, struct cb_recall_file *args)
     result = common_fh(xdr, &args->fh);
     if (!result) { CBX_ERR("layoutrecall_file.fh"); goto out; }
 
-    result = xdr_u_int64_t(xdr, &args->offset);
+    result = xdr_uint64_t(xdr, &args->offset);
     if (!result) { CBX_ERR("layoutrecall_file.offset"); goto out; }
 
-    result = xdr_u_int64_t(xdr, &args->length);
+    result = xdr_uint64_t(xdr, &args->length);
     if (!result) { CBX_ERR("layoutrecall_file.length"); goto out; }
 
     result = common_stateid(xdr, &args->stateid);
@@ -132,7 +133,7 @@ static bool_t op_cb_recall_slot_args(XDR *xdr, struct cb_recall_slot_args *res)
 {
     bool_t result;
 
-    result = xdr_u_int32_t(xdr, &res->target_highest_slotid);
+    result = xdr_uint32_t(xdr, &res->target_highest_slotid);
     if (!result) { CBX_ERR("recall_slot.target_highest_slotid"); goto out; }
 out:
     return result;
@@ -154,10 +155,10 @@ static bool_t op_cb_sequence_ref(XDR *xdr, struct cb_sequence_ref *args)
 {
     bool_t result;
 
-    result = xdr_u_int32_t(xdr, &args->sequenceid);
+    result = xdr_uint32_t(xdr, &args->sequenceid);
     if (!result) { CBX_ERR("sequence_ref.sequenceid"); goto out; }
 
-    result = xdr_u_int32_t(xdr, &args->slotid);
+    result = xdr_uint32_t(xdr, &args->slotid);
     if (!result) { CBX_ERR("sequence_ref.slotid"); goto out; }
 out:
     return result;
@@ -184,13 +185,13 @@ static bool_t op_cb_sequence_args(XDR *xdr, struct cb_sequence_args *args)
     result = xdr_opaque(xdr, args->sessionid, NFS4_SESSIONID_SIZE);
     if (!result) { CBX_ERR("sequence_args.sessionid"); goto out; }
 
-    result = xdr_u_int32_t(xdr, &args->sequenceid);
+    result = xdr_uint32_t(xdr, &args->sequenceid);
     if (!result) { CBX_ERR("sequence_args.sequenceid"); goto out; }
 
-    result = xdr_u_int32_t(xdr, &args->slotid);
+    result = xdr_uint32_t(xdr, &args->slotid);
     if (!result) { CBX_ERR("sequence_args.slotid"); goto out; }
 
-    result = xdr_u_int32_t(xdr, &args->highest_slotid);
+    result = xdr_uint32_t(xdr, &args->highest_slotid);
     if (!result) { CBX_ERR("sequence_args.highest_slotid"); goto out; }
 
     result = xdr_bool(xdr, &args->cachethis);
@@ -211,16 +212,16 @@ static bool_t op_cb_sequence_res_ok(XDR *xdr, struct cb_sequence_res_ok *res)
     result = xdr_opaque(xdr, res->sessionid, NFS4_SESSIONID_SIZE);
     if (!result) { CBX_ERR("sequence_res.sessionid"); goto out; }
 
-    result = xdr_u_int32_t(xdr, &res->sequenceid);
+    result = xdr_uint32_t(xdr, &res->sequenceid);
     if (!result) { CBX_ERR("sequence_res.sequenceid"); goto out; }
 
-    result = xdr_u_int32_t(xdr, &res->slotid);
+    result = xdr_uint32_t(xdr, &res->slotid);
     if (!result) { CBX_ERR("sequence_res.slotid"); goto out; }
 
-    result = xdr_u_int32_t(xdr, &res->highest_slotid);
+    result = xdr_uint32_t(xdr, &res->highest_slotid);
     if (!result) { CBX_ERR("sequence_res.highest_slotid"); goto out; }
 
-    result = xdr_u_int32_t(xdr, &res->target_highest_slotid);
+    result = xdr_uint32_t(xdr, &res->target_highest_slotid);
     if (!result) { CBX_ERR("sequence_res.target_highest_slotid"); goto out; }
 out:
     return result;
@@ -270,12 +271,12 @@ static bool_t info_to_fattr4(nfs41_file_info *info, fattr4 *fattr)
      * FIXME: What about |FATTR4_WORD1_SPACE_USED| ?
      */
     if (bitmap_isset(&info->attrmask, 0, FATTR4_WORD0_CHANGE)) {
-        result = xdr_u_hyper(&fattr_xdr, &info->change);
+        result = xdr_uint64_t(&fattr_xdr, &info->change);
         if (!result) { CBX_ERR("getattr.info.change"); goto out; }
         bitmap_set(&fattr->attrmask, 0, FATTR4_WORD0_CHANGE);
     }
     if (bitmap_isset(&info->attrmask, 0, FATTR4_WORD0_SIZE)) {
-        result = xdr_u_hyper(&fattr_xdr, &info->size);
+        result = xdr_uint64_t(&fattr_xdr, &info->size);
         if (!result) { CBX_ERR("getattr.info.size"); goto out; }
         bitmap_set(&fattr->attrmask, 0, FATTR4_WORD0_SIZE);
     }
@@ -336,7 +337,7 @@ static bool_t op_cb_notify_args(XDR *xdr, struct cb_notify_args *res)
 {
     bool_t result;
 
-    result = xdr_u_int32_t(xdr, &res->target_highest_slotid);
+    result = xdr_uint32_t(xdr, &res->target_highest_slotid);
     if (!result) { CBX_ERR("notify.target_highest_slotid"); goto out; }
 out:
     return result;
@@ -357,7 +358,7 @@ static bool_t op_cb_push_deleg_args(XDR *xdr, struct cb_push_deleg_args *res)
 {
     bool_t result;
 
-    result = xdr_u_int32_t(xdr, &res->target_highest_slotid);
+    result = xdr_uint32_t(xdr, &res->target_highest_slotid);
     if (!result) { CBX_ERR("push_deleg.target_highest_slotid"); goto out; }
 out:
     return result;
@@ -378,7 +379,7 @@ static bool_t op_cb_recall_any_args(XDR *xdr, struct cb_recall_any_args *res)
 {
     bool_t result;
 
-    result = xdr_u_int32_t(xdr, &res->target_highest_slotid);
+    result = xdr_uint32_t(xdr, &res->target_highest_slotid);
     if (!result) { CBX_ERR("recall_any.target_highest_slotid"); goto out; }
 out:
     return result;
@@ -399,7 +400,7 @@ static bool_t op_cb_recallable_obj_avail_args(XDR *xdr, struct cb_recallable_obj
 {
     bool_t result;
 
-    result = xdr_u_int32_t(xdr, &res->target_highest_slotid);
+    result = xdr_uint32_t(xdr, &res->target_highest_slotid);
     if (!result) { CBX_ERR("recallable_obj_avail.target_highest_slotid"); goto out; }
 out:
     return result;
@@ -420,7 +421,7 @@ static bool_t op_cb_wants_cancelled_args(XDR *xdr, struct cb_wants_cancelled_arg
 {
     bool_t result;
 
-    result = xdr_u_int32_t(xdr, &res->target_highest_slotid);
+    result = xdr_uint32_t(xdr, &res->target_highest_slotid);
     if (!result) { CBX_ERR("wants_cancelled.target_highest_slotid"); goto out; }
 out:
     return result;
@@ -441,7 +442,7 @@ static bool_t op_cb_notify_lock_args(XDR *xdr, struct cb_notify_lock_args *res)
 {
     bool_t result;
 
-    result = xdr_u_int32_t(xdr, &res->target_highest_slotid);
+    result = xdr_uint32_t(xdr, &res->target_highest_slotid);
     if (!result) { CBX_ERR("notify_lock.target_highest_slotid"); goto out; }
 out:
     return result;
@@ -462,7 +463,7 @@ static bool_t cb_notify_deviceid_change(XDR *xdr, struct notify_deviceid4 *chang
 {
     bool_t result;
 
-    result = xdr_u_int32_t(xdr, (uint32_t*)&change->layouttype);
+    result = xdr_uint32_t(xdr, (uint32_t*)&change->layouttype);
     if (!result) { CBX_ERR("notify_deviceid.change.layouttype"); goto out; }
 
     result = xdr_opaque(xdr, (char*)change->deviceid, PNFS_DEVICEID_SIZE);
@@ -478,7 +479,7 @@ static bool_t cb_notify_deviceid_delete(XDR *xdr, struct notify_deviceid4 *chang
 {
     bool_t result;
 
-    result = xdr_u_int32_t(xdr, (uint32_t*)&change->layouttype);
+    result = xdr_uint32_t(xdr, (uint32_t*)&change->layouttype);
     if (!result) { CBX_ERR("notify_deviceid.delete.layouttype"); goto out; }
 
     result = xdr_opaque(xdr, (char*)change->deviceid, PNFS_DEVICEID_SIZE);
@@ -559,7 +560,7 @@ out:
 /* CB_COMPOUND */
 static bool_t cb_compound_tag(XDR *xdr, struct cb_compound_tag *args)
 {
-    return xdr_u_int32_t(xdr, &args->len)
+    return xdr_uint32_t(xdr, &args->len)
         && args->len <= CB_COMPOUND_MAX_TAG
         && xdr_opaque(xdr, args->str, args->len);
 }
@@ -599,11 +600,11 @@ bool_t proc_cb_compound_args(XDR *xdr, struct cb_compound_args *args)
     result = cb_compound_tag(xdr, &args->tag);
     if (!result) { CBX_ERR("compound.tag"); goto out; }
 
-    result = xdr_u_int32_t(xdr, &args->minorversion);
+    result = xdr_uint32_t(xdr, &args->minorversion);
     if (!result) { CBX_ERR("compound.minorversion"); goto out; }
 
     /* "superfluous in NFSv4.1 and MUST be ignored by the client" */
-    result = xdr_u_int32_t(xdr, &args->callback_ident);
+    result = xdr_uint32_t(xdr, &args->callback_ident);
     if (!result) { CBX_ERR("compound.callback_ident"); goto out; }
 
     result = xdr_array(xdr, (char**)&args->argarray,
