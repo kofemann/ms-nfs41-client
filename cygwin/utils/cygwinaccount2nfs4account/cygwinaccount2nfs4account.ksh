@@ -216,7 +216,18 @@ function accountdata2linuxscript
 			fi
 		fi
 
-		printf 'groupadd -g %s %q\n' "${currgrp.gid}" "${currgrp.group_name}"
+		# FIXME: sssd replaces <space> with '-', maybe we should handle this here, too
+		if [[ ${currgrp.group_name} != ~(Elri)[a-z_][a-z0-9_-]* ]] || \
+			(( ${#currgrp.group_name} > 31 )) ; then
+			printf '# WARNING: name not valid Solaris/Linux group name, $ groupadd groupadd -g %s %q # would not work, manually using printf\n' \
+				"${currgrp.gid}" "${currgrp.group_name}"
+			# /etc/group format is described in https://docs.oracle.com/cd/E36784_01/html/E36882/group-4.html
+			printf 'printf "%s:x:%s:\\n" >>"/etc/group"\n' \
+				"${currgrp.group_name}" "${currgrp.gid}"
+		else
+			printf 'groupadd -g %d %q\n' \
+				"${currgrp.gid}" "${currgrp.group_name}"
+		fi
 
 		[[ "$gidlist" != '' ]] && gidlist+=','
 		gidlist+="${currgrp.gid}"
