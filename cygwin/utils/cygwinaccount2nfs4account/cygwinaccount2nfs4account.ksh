@@ -187,7 +187,7 @@ function accountdata2linuxscript
 {
 	set -o nounset
 
-	typeset os="$1"
+	typeset nfsdserveros="$1"
 	nameref accountdata=$2
 	typeset gidlist=''
 	typeset sidname
@@ -231,7 +231,7 @@ function accountdata2linuxscript
 	printf '# User data:\n'
 	printf '#\n'
 
-	case "$os" in
+	case "$nfsdserveros" in
 		'linux')
 			printf 'mkdir -p %q\n' "${curruser.homedir}"
 			printf 'useradd -u %s -g %s -G %q -s %q %q\n' \
@@ -312,12 +312,12 @@ function convert_curruser2linuxscript
 	#
 	# Generate Linux script from collected "account_data"
 	#
-	accountdata2linuxscript "${cfg.os}" account_data
+	accountdata2linuxscript "${cfg.nfsdserveros}" account_data
 
 	#
 	# Print NFSv4 server config
 	#
-	if [[ "${cfg.os}" == 'linux' ]] ; then
+	if [[ "${cfg.nfsdserveros}" == 'linux' ]] ; then
 		print_nfs4_server_config cfg
 	fi
 
@@ -385,7 +385,7 @@ function convert_givenuser2linuxscript
 	#
 	# Generate Linux script from collected "account_data"
 	#
-	accountdata2linuxscript "${cfg.os}" account_data
+	accountdata2linuxscript "${cfg.nfsdserveros}" account_data
 
 	#
 	# Print NFSv4 server config
@@ -406,14 +406,14 @@ function main
 
 	# fixme: Need better text layout for $ cygwinaccount2nfs4account --man #
 	typeset -r cygwinaccount2nfs4account_usage=$'+
-	[-?\n@(#)\$Id: cygwinaccount2nfs4account (Roland Mainz) 2025-04-05 \$\n]
+	[-?\n@(#)\$Id: cygwinaccount2nfs4account (Roland Mainz) 2025-06-02 \$\n]
 	[-author?Roland Mainz <roland.mainz@nrubsig.org>]
 	[+NAME?cygwinaccount2nfs4account - convert Cygwin user/group account
 		info to Linux/UNIX NFSv4 server account data]
 	[+DESCRIPTION?\bcygwinaccount2nfs4account\b convert Cygwin user/group account
 		info to Linux/UNIX NFSv4 server account data.]
 	[D:debug?Enable debugging.]
-	[O:os?Operating system, either \blinux\b, \bsolaris\b or
+	[O:nfsserveros?NFS server operating system, either \blinux\b, \bsolaris\b or
 		\billumos\b).]:[os]
 
 	--man
@@ -438,7 +438,7 @@ function main
 				c.debug=true
 				;;
                         'O')
-				typeset c.os="${OPTARG}"
+				typeset c.nfsdserveros="${OPTARG}"
 				;;
 			*)
 				usage "${progname}" "${cygwinaccount2nfs4account_usage}"
@@ -454,15 +454,15 @@ function main
 		unset c.args[$i]
 	done
 
-	if [[ ! -v c.os ]] ; then
+	if [[ ! -v c.nfsdserveros ]] ; then
 		print -u2 -f $"%s: Require -O <operating-system>\n" "${progname}"
 		return 1
 	fi
 
-	if [[ "${c.os}" != ~(Elr)(linux|solaris|illumos) ]] ; then
+	if [[ "${c.nfsdserveros}" != ~(Elr)(linux|solaris|illumos) ]] ; then
 		print -u2 -f $"%s: Unsuppoted -O value %q, supported are 'linux', 'solaris', 'illumos'\n" \
 			"${progname}" \
-			"${c.os}"
+			"${c.nfsdserveros}"
 		return 1
 	fi
 
