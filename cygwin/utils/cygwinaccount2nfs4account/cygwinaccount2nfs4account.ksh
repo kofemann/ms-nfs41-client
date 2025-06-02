@@ -502,7 +502,7 @@ function main
 		convert_givenuser2linuxscript c "$@"
 	fi
 
-	return 2
+	return 0
 }
 
 #
