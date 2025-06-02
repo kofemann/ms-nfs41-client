@@ -190,6 +190,8 @@ function accountdata2linuxscript
 	typeset nfsdserveros="$1"
 	nameref accountdata=$2
 	typeset gidlist=''
+	typeset -a groupnamelist
+	typeset gnli # groupnamelist index
 	typeset sidname
 
 	#
@@ -230,6 +232,7 @@ function accountdata2linuxscript
 		fi
 
 		[[ "$gidlist" != '' ]] && gidlist+=','
+		groupnamelist+=( "${currgrp.group_name}" )
 		gidlist+="${currgrp.gid}"
 	done
 
@@ -245,12 +248,38 @@ function accountdata2linuxscript
 	case "$nfsdserveros" in
 		'linux')
 			printf 'mkdir -p %q\n' "${curruser.homedir}"
-			printf 'useradd -u %s -g %s -G %q -s %q %q\n' \
-				"${curruser.uid}" \
-				"${curruser.gid}" \
-				"${gidlist}" \
-				"${curruser.shell}" \
-				"${curruser.login_name}"
+			# FIXME: sssd replaces <space> with '-', maybe we should handle this here, too
+			if [[ "${curruser.login_name}" != ~(Elri)[a-z_][a-z0-9._-]* ]] || \
+				(( ${#curruser.login_name} > 31 )) ; then
+				printf '# WARNING: name not valid Linux passwd name, $ useradd -u %s -g %s -G %q -s %q %q # would not work, manually using printf\n' \
+					"${curruser.uid}" \
+					"${curruser.gid}" \
+					"${gidlist}" \
+					"${curruser.shell}" \
+					"${curruser.login_name}"
+				# format "username:password:uid:gid:gecos-field:home-dir:login-shell"
+				printf 'printf "%s:%s:%s:%s:%s:%s:%s\\n" >>"/etc/passwd"\n' \
+					"${curruser.login_name}" \
+					"x" \
+					"${curruser.uid}" \
+					"${curruser.gid}" \
+					"Windows account" \
+					"${curruser.homedir}" \
+					"${curruser.shell}"
+				# generate awk scripts to add the user to the groups
+				for gnli in "${groupnamelist[@]}" ; do
+					printf $'awk -F: -v user="%s" -v group="%s" \'($1 == group) {if ($4 !~ "(^|,)" user "(,|$)") {if ($4 == "") $4 = user; else $4 = $4 "," user} print $1":"$2":"$3":"$4; next} {print}\' /etc/group\n' \
+						"${curruser.login_name}" "$gnli"
+				done
+			else
+				printf 'useradd -u %s -g %s -G %q -c %q -s %q %q\n' \
+					"${curruser.uid}" \
+					"${curruser.gid}" \
+					"${gidlist}" \
+					"Windows account" \
+					"${curruser.shell}" \
+					"${curruser.login_name}"
+			fi
 			printf 'chown %q %q\n' \
 				"${curruser.uid}:${curruser.gid}" \
 				"${curruser.homedir}"
@@ -260,12 +289,38 @@ function accountdata2linuxscript
 			printf 'printf "%s\\tlocalhost:/export/home/%s\\n" >>"/etc/auto_home"\n' \
 				"${curruser.login_name}" \
 				"${curruser.login_name}"
-			printf 'useradd -u %s -g %s -G %q -s %q %q\n' \
-				"${curruser.uid}" \
-				"${curruser.gid}" \
-				"${gidlist}" \
-				"${curruser.shell}" \
-				"${curruser.login_name}"
+			if [[ "${curruser.login_name}" != ~(Elri)[a-z_][a-z0-9._-]* ]] || \
+				(( ${#curruser.login_name} > 31 )) ; then
+				printf '# WARNING: name not valid Solaris passwd name, $ useradd -u %s -g %s -G %q -s %q %q # would not work, manually using printf\n' \
+					"${curruser.uid}" \
+					"${curruser.gid}" \
+					"${gidlist}" \
+					"${curruser.shell}" \
+					"${curruser.login_name}"
+				# format "username:password:uid:gid:gecos-field:home-dir:login-shell"
+				printf 'printf "%s:%s:%s:%s:%s:%s:%s\\n" >>"/etc/passwd"\n' \
+					"${curruser.login_name}" \
+					"x" \
+					"${curruser.uid}" \
+					"${curruser.gid}" \
+					"Windows account" \
+					"${curruser.homedir}" \
+					"${curruser.shell}"
+				# generate nawk scripts to add the user to the groups
+				for gnli in "${groupnamelist[@]}" ; do
+					printf $'nawk -F: -v user="%s" -v group="%s" \'($1 == group) {if ($4 !~ "(^|,)" user "(,|$)") {if ($4 == "") $4 = user; else $4 = $4 "," user} print $1":"$2":"$3":"$4; next} {print}\' /etc/group\n' \
+						"${curruser.login_name}" "$gnli"
+				done
+			else
+				printf 'useradd -u %s -g %s -G %q -c %q -s %q %q\n' \
+					"${curruser.uid}" \
+					"${curruser.gid}" \
+					"${gidlist}" \
+					"Windows account" \
+					"${curruser.shell}" \
+					"${curruser.login_name}"
+			fi
+			# fixme: How can we add this user to /etc/group ?
 			printf 'chown %q %q\n' \
 				"${curruser.uid}:${curruser.gid}" \
 				"/export/${curruser.homedir}"
