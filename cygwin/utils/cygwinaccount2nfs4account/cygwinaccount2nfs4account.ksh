@@ -219,7 +219,7 @@ function accountdata2linuxscript
 		fi
 
 		# FIXME: sssd replaces <space> with '-', maybe we should handle this here, too
-		if [[ ${currgrp.group_name} != ~(Elri)[a-z_][a-z0-9_-]* ]] || \
+		if [[ "${currgrp.group_name}" != ~(Elri)[a-z_][a-z0-9._-]* ]] || \
 			(( ${#currgrp.group_name} > 31 )) ; then
 			printf '# WARNING: name not valid Solaris/Linux group name, $ groupadd groupadd -g %s %q # would not work, manually using printf\n' \
 				"${currgrp.gid}" "${currgrp.group_name}"
