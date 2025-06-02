@@ -496,10 +496,10 @@ function main
 
 	if (( ${#c.args[@]} == 0 )) ; then
 		print -u2 -f $"# Converting current user\n"
-		convert_curruser2linuxscript c "$@"
+		convert_curruser2linuxscript c "${c.args[@]}"
 	else
 		print -u2 -f $"# Converting given user\n"
-		convert_givenuser2linuxscript c "$@"
+		convert_givenuser2linuxscript c "${c.args[@]}"
 	fi
 
 	return 0
