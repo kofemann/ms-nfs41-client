@@ -561,9 +561,6 @@ void nfs41_open_state_ref(
 
 void nfs41_open_state_deref(
     IN nfs41_open_state *state);
-#ifdef NFS41_DRIVER_WORKAROUND_FOR_GETATTR_AFTER_CLOSE_HACKS
-bool isvalidnfs41_open_state_ptr(nfs41_open_state *state_ref);
-#endif /* NFS41_DRIVER_WORKAROUND_FOR_GETATTR_AFTER_CLOSE_HACKS */
 struct __stateid_arg;
 void nfs41_open_stateid_arg(
     IN nfs41_open_state *state,

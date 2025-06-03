@@ -66,55 +66,6 @@ static int parse_getattr(unsigned char *buffer, uint32_t length, nfs41_upcall *u
 {
     int status;
 
-#ifdef NFS41_DRIVER_WORKAROUND_FOR_GETATTR_AFTER_CLOSE_HACKS
-    EASSERT(length > 4);
-    if (length <= 4) {
-        eprintf("parse_getattr: "
-            "upcall->opcode='%s' upcall->state_ref(=0x%p) "
-            "length(=%d) < 4\n",
-            opcode2string(upcall->opcode), upcall->state_ref,
-            (int)length);
-        status = ERROR_INVALID_PARAMETER;
-        goto out;
-    }
-
-    if (debug_ptr_was_recently_deleted(upcall->state_ref)) {
-        eprintf("parse_getattr: "
-            "upcall->opcode='%s' upcall->state_ref(=0x%p) was "
-            "recently deleted\n",
-            opcode2string(upcall->opcode), upcall->state_ref);
-        status = ERROR_INVALID_PARAMETER;
-        goto out;
-    }
-
-    EASSERT_IS_VALID_NON_NULL_PTR(upcall->state_ref);
-    if (!DEBUG_IS_VALID_NON_NULL_PTR(upcall->state_ref)) {
-        eprintf("parse_getattr: "
-            "upcall->opcode='%s' upcall->state_ref(=0x%p) not valid\n",
-            opcode2string(upcall->opcode), upcall->state_ref);
-        status = ERROR_INVALID_PARAMETER;
-        goto out;
-    }
-
-    if (!isvalidnfs41_open_state_ptr(upcall->state_ref)) {
-        eprintf("parse_getattr: upcall->opcode='%s': Error accessing "
-            "upcall->state_ref(=0x%p)->session->client\n",
-            opcode2string(upcall->opcode),
-            upcall->state_ref);
-        status = ERROR_INVALID_PARAMETER;
-        goto out;
-    }
-    EASSERT(upcall->state_ref->ref_count > 0);
-    if (upcall->state_ref->ref_count == 0) {
-        eprintf("parse_getattr: upcall->opcode='%s': "
-            "upcall->state_ref(=0x%p) ref_count==0\n",
-            opcode2string(upcall->opcode),
-            upcall->state_ref);
-        status = ERROR_INVALID_PARAMETER;
-        goto out;
-    }
-#endif /* NFS41_DRIVER_WORKAROUND_FOR_GETATTR_AFTER_CLOSE_HACKS */
-
     getattr_upcall_args *args = &upcall->args.getattr;
     status = safe_read(&buffer, &length, &args->query_class, sizeof(args->query_class));
     if (status) goto out;
@@ -136,23 +87,6 @@ static int handle_getattr(void *daemon_context, nfs41_upcall *upcall)
     getattr_upcall_args *args = &upcall->args.getattr;
     nfs41_open_state *state = upcall->state_ref;
     nfs41_file_info info = { 0 };
-
-#ifdef NFS41_DRIVER_WORKAROUND_FOR_GETATTR_AFTER_CLOSE_HACKS
-    if (!DEBUG_IS_VALID_NON_NULL_PTR(state->session)) {
-        eprintf("handle_getattr: Invalid session ptr=0x%p\n",
-            (void *)state->session);
-        status = ERROR_INVALID_PARAMETER;
-        goto out;
-    }
-
-    if (!DEBUG_IS_VALID_NON_NULL_PTR(state->file.fh.superblock)) {
-        eprintf("handle_getattr: Invalid state->file.fh.superblock ptr=0x%p\n",
-            (void *)state->file.fh.superblock);
-        /* gisburn: fixme: maybe this should be |ERROR_INTERNAL_ERROR| ? */
-        status = ERROR_INVALID_PARAMETER;
-        goto out;
-    }
-#endif /* NFS41_DRIVER_WORKAROUND_FOR_GETATTR_AFTER_CLOSE_HACKS */
 
     status = nfs41_cached_getattr(state->session, &state->file, &info);
     if (status) {

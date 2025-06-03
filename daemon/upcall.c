@@ -148,37 +148,6 @@ int upcall_parse(
     if (upcall->root_ref != INVALID_HANDLE_VALUE)
         nfs41_root_ref(upcall->root_ref);
 
-#ifdef NFS41_DRIVER_WORKAROUND_FOR_GETATTR_AFTER_CLOSE_HACKS
-    if (upcall->state_ref != INVALID_HANDLE_VALUE) {
-        if (!isvalidnfs41_open_state_ptr(upcall->state_ref)) {
-            eprintf("upcall_parse: Error accessing "
-                "upcall->state_ref(=0x%p), opcode %u; "
-                "returning ERROR_INVALID_PARAMETER\n",
-                upcall->state_ref, (unsigned int)upcall_upcode);
-            /*
-             * Set |upcall->state_ref| to |INVALID_HANDLE_VALUE|
-             * so that we do not try to dereference it
-             */
-            upcall->state_ref = INVALID_HANDLE_VALUE;
-            status = ERROR_INVALID_PARAMETER;
-            goto out;
-        }
-
-        if (upcall->state_ref->ref_count == 0) {
-            eprintf("upcall_parse: upcall->state_ref(=0x%p).ref_count == 0, "
-                "opcode %u; returning ERROR_INVALID_PARAMETER\n",
-                upcall->state_ref, (unsigned int)upcall_upcode);
-            /*
-             * Set |upcall->state_ref| to |INVALID_HANDLE_VALUE|
-             * so that we do not try to dereference it
-             */
-            upcall->state_ref = INVALID_HANDLE_VALUE;
-            status = ERROR_INVALID_PARAMETER;
-            goto out;
-        }
-    }
-#endif /* NFS41_DRIVER_WORKAROUND_FOR_GETATTR_AFTER_CLOSE_HACKS */
-
     if (upcall->state_ref != INVALID_HANDLE_VALUE)
         nfs41_open_state_ref(upcall->state_ref);
 

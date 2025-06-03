@@ -173,11 +173,6 @@ const char* pnfs_iomode_string(enum pnfs_iomode iomode);
 void dprint_layout(int level, const struct __pnfs_file_layout *layout);
 void dprint_device(int level, const struct __pnfs_file_device *device);
 
-bool debug_ptr_was_recently_deleted(void *in_ptr);
-void debug_ptr_add_recently_deleted(void *in_ptr);
-
-void debug_delayed_free(void *in_ptr);
-
 typedef struct _FILE_FULL_EA_INFORMATION FILE_FULL_EA_INFORMATION, *PFILE_FULL_EA_INFORMATION;
 void debug_print_ea(PFILE_FULL_EA_INFORMATION ea);
 

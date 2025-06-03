@@ -1410,66 +1410,6 @@ out:
     dprintf_out("<-- debug_list_sparsefile_datasections()\n");
 }
 
-#define NUM_RECENTLY_DELETED 128
-static struct
-{
-    SRWLOCK lock;
-    void *deleted_ptrs[NUM_RECENTLY_DELETED];
-    size_t deleted_index;
-} ptr_recently_deleted_data = {
-    .lock = SRWLOCK_INIT,
-};
-
-bool debug_ptr_was_recently_deleted(void *in_ptr)
-{
-    size_t i;
-    bool_t res = false;
-
-    AcquireSRWLockShared(&ptr_recently_deleted_data.lock);
-    for (i=0 ; i < NUM_RECENTLY_DELETED ; i++) {
-        if (ptr_recently_deleted_data.deleted_ptrs[i] == in_ptr) {
-            res = true;
-            break;
-        }
-    }
-    ReleaseSRWLockShared(&ptr_recently_deleted_data.lock);
-    return res;
-}
-
-void debug_ptr_add_recently_deleted(void *in_ptr)
-{
-    size_t i;
-
-    AcquireSRWLockExclusive(&ptr_recently_deleted_data.lock);
-    i = ptr_recently_deleted_data.deleted_index++ % NUM_RECENTLY_DELETED;
-    ptr_recently_deleted_data.deleted_ptrs[i] = in_ptr;
-    ReleaseSRWLockExclusive(&ptr_recently_deleted_data.lock);
-}
-
-#define NUM_DELAY_FREE 2048
-static struct
-{
-    SRWLOCK lock;
-    void *free_ptrs[NUM_DELAY_FREE];
-    size_t free_ptrs_index;
-} debug_delay_free_data = {
-    .lock = SRWLOCK_INIT,
-};
-
-void debug_delayed_free(void *in_ptr)
-{
-    size_t i;
-
-    AcquireSRWLockExclusive(&debug_delay_free_data.lock);
-    i = debug_delay_free_data.free_ptrs_index++ % NUM_DELAY_FREE;
-
-    if (debug_delay_free_data.free_ptrs[i])
-        free(debug_delay_free_data.free_ptrs[i]);
-
-    debug_delay_free_data.free_ptrs[i] = in_ptr;
-    ReleaseSRWLockExclusive(&debug_delay_free_data.lock);
-}
-
 void debug_print_ea(PFILE_FULL_EA_INFORMATION ea)
 {
     PFILE_FULL_EA_INFORMATION print_ea = ea;

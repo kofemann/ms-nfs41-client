@@ -101,14 +101,6 @@ static void open_state_free(
 {
     struct list_entry *entry, *tmp;
 
-#ifdef NFS41_DRIVER_WORKAROUND_FOR_GETATTR_AFTER_CLOSE_HACKS
-    /*
-     * Remember the pointer here so we can reject it
-     * later in |parse_getattr()|
-     */
-    debug_ptr_add_recently_deleted(state);
-#endif /* NFS41_DRIVER_WORKAROUND_FOR_GETATTR_AFTER_CLOSE_HACKS */
-
     EASSERT(waitcriticalsection(&state->ea.lock) == TRUE);
     EASSERT(waitcriticalsection(&state->locks.lock) == TRUE);
 
@@ -128,77 +120,13 @@ static void open_state_free(
 
     EASSERT(state->ref_count == 0);
 
-#ifdef NFS41_DRIVER_WORKAROUND_FOR_GETATTR_AFTER_CLOSE_HACKS
-    (void)memset(state, 0, sizeof(nfs41_open_state));
-    debug_delayed_free(state);
-#else
     free(state);
-#endif /* NFS41_DRIVER_WORKAROUND_FOR_GETATTR_AFTER_CLOSE_HACKS */
 }
-
-#ifdef NFS41_DRIVER_WORKAROUND_FOR_GETATTR_AFTER_CLOSE_HACKS
-bool isvalidnfs41_open_state_ptr(nfs41_open_state *state_ref)
-{
-    /*
-     * If |>state_ref| is garbage, then this should trigger
-     * an exception
-     */
-    volatile int mark = 0;
-    __try {
-        if (state_ref != NULL) {
-            mark++;
-            if (DEBUG_IS_VALID_NON_NULL_PTR(state_ref)) {
-                mark++;
-                if (state_ref->session != NULL) {
-                    mark++;
-                    if (DEBUG_IS_VALID_NON_NULL_PTR(state_ref->session)) {
-                        mark++;
-                        if (state_ref->session->client != NULL) {
-                            mark++;
-                            if (DEBUG_IS_VALID_NON_NULL_PTR(state_ref->session->client)) {
-                                mark++;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    } __except(EXCEPTION_EXECUTE_HANDLER) {
-        eprintf("isvalidnfs41_open_state_ptr: Exception accessing "
-            "state_ref(=0x%p)->session->client, mark=%d\n",
-            state_ref, mark);
-    }
-
-    if (mark == 6) {
-        return true;
-    }
-
-    return false;
-}
-#endif /* NFS41_DRIVER_WORKAROUND_FOR_GETATTR_AFTER_CLOSE_HACKS */
 
 /* open state reference counting */
 void nfs41_open_state_ref(
     IN nfs41_open_state *state)
 {
-#ifdef NFS41_DRIVER_WORKAROUND_FOR_GETATTR_AFTER_CLOSE_HACKS
-    /*
-     * gisburn: fixme: sometimes this happens under high parallel
-     * usage with multiple mounts - but why ?
-     * 0:038> kp
-     * Child-SP          RetAddr           Call Site
-     * 0000006d`431fde10 00007ff7`32f7d905 nfsd!nfs41_open_state_ref(struct __nfs41_open_state * state = 0x00000000`00000000)+0x31
-     * 0000006d`431fdf30 00007ff7`32f4d284 nfsd!upcall_parse(unsigned char * buffer = 0x0000006d`431fe180 "???", unsigned int length = 8, struct __nfs41_upcall * upcall = 0x0000006d`431ff1e0)+0x2e5
-     * 0000006d`431fe0b0 00007ffc`1ca24c7c nfsd!thread_main(void * args = 0x00007ff7`32fb6080)+0x144
-     * 0000006d`431ffe00 00007ffc`4d4b7344 ucrtbased!thread_start<unsigned int (void * parameter = 0x0000025d`a9c6def0)+0x9c
-     * 0000006d`431ffe60 00007ffc`4efc26b1 KERNEL32!BaseThreadInitThunk+0x14
-     * 0000006d`431ffe90 00000000`00000000 ntdll!RtlUserThreadStart+0x21
-     */
-    EASSERT_IS_VALID_NON_NULL_PTR(state);
-    if (!DEBUG_IS_VALID_NON_NULL_PTR(state))
-        return;
-#endif /* NFS41_DRIVER_WORKAROUND_FOR_GETATTR_AFTER_CLOSE_HACKS */
-
     EASSERT(state->ref_count > 0);
 
     const LONG count = InterlockedIncrement(&state->ref_count);
@@ -1466,13 +1394,6 @@ out:
 
 static void cleanup_close(nfs41_upcall *upcall)
 {
-#ifdef NFS41_DRIVER_WORKAROUND_FOR_GETATTR_AFTER_CLOSE_HACKS
-    EASSERT(upcall->state_ref != INVALID_HANDLE_VALUE);
-    if (upcall->state_ref == INVALID_HANDLE_VALUE) {
-        return;
-    }
-#endif /* NFS41_DRIVER_WORKAROUND_FOR_GETATTR_AFTER_CLOSE_HACKS */
-
     /* release the initial reference from create_open_state() */
     nfs41_open_state_deref(upcall->state_ref);
 }
