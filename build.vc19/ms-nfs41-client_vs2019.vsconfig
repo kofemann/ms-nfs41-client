@@ -13,6 +13,7 @@
     "Microsoft.VisualStudio.Component.JavaScript.TypeScript",
     "Microsoft.Component.MSBuild",
     "Microsoft.VisualStudio.Component.TextTemplating",
+    "Microsoft.VisualStudio.Component.Common.Azure.Tools",
     "Microsoft.VisualStudio.Component.Debugger.JustInTime",
     "Component.Microsoft.VisualStudio.LiveShare",
     "Microsoft.VisualStudio.Component.IntelliCode",
@@ -52,6 +53,8 @@
     "Microsoft.VisualStudio.Component.VC.MFC.ARM",
     "Microsoft.VisualStudio.Component.VC.MFC.ARM64",
     "Microsoft.VisualStudio.Component.VC.MFC.ARM64EC",
+    "Microsoft.Component.ClickOnce",
     "Microsoft.VisualStudio.Component.Windows10SDK.20348"
-  ]
+  ],
+  "extensions": []
 }

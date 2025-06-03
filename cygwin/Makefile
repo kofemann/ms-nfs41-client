@@ -31,37 +31,37 @@ $(PROJECT_BASEDIR_DIR)/tests/ea/nfs_ea.exe \
 build_64bit_release:
 	@printf '#\n# PATH is %q\n#\n' '$(PATH)'
 	which MSBuild.exe
-	MSBuild.exe '$(shell cygpath -w "$(PROJECT_BASEDIR_DIR)/build.vc19/nfs41-client.sln")' -t:Build  -p:Configuration=Release -p:Platform=x64
+	MSBuild.exe '$(shell cygpath -w "$(PROJECT_BASEDIR_DIR)/build.vc19/nfs41-client.sln")' -t:Build  -p:Configuration=Release -p:Platform=x64 /p:CERTIFICATE_THUMBPRINT=$$CERTIFICATE_THUMBPRINT
 
 build_64bit_debug:
 	@printf '#\n# PATH is %q\n#\n' '$(PATH)'
 	which MSBuild.exe
-	MSBuild.exe '$(shell cygpath -w "$(PROJECT_BASEDIR_DIR)/build.vc19/nfs41-client.sln")' -t:Build  -p:Configuration=Debug -p:Platform=x64
+	MSBuild.exe '$(shell cygpath -w "$(PROJECT_BASEDIR_DIR)/build.vc19/nfs41-client.sln")' -t:Build  -p:Configuration=Debug -p:Platform=x64 /p:CERTIFICATE_THUMBPRINT=$$CERTIFICATE_THUMBPRINT
 
 build_32bit_release:
 	@printf '#\n# PATH is %q\n#\n' '$(PATH)'
 	which MSBuild.exe
-	MSBuild.exe '$(shell cygpath -w "$(PROJECT_BASEDIR_DIR)/build.vc19/nfs41-client.sln")' -t:Build  -p:Configuration=Release -p:Platform=x86
+	MSBuild.exe '$(shell cygpath -w "$(PROJECT_BASEDIR_DIR)/build.vc19/nfs41-client.sln")' -t:Build  -p:Configuration=Release -p:Platform=x86 /p:CERTIFICATE_THUMBPRINT=$$CERTIFICATE_THUMBPRINT
 
 build_32bit_debug:
 	@printf '#\n# PATH is %q\n#\n' '$(PATH)'
 	which MSBuild.exe
-	MSBuild.exe '$(shell cygpath -w "$(PROJECT_BASEDIR_DIR)/build.vc19/nfs41-client.sln")' -t:Build  -p:Configuration=Debug -p:Platform=x86
+	MSBuild.exe '$(shell cygpath -w "$(PROJECT_BASEDIR_DIR)/build.vc19/nfs41-client.sln")' -t:Build  -p:Configuration=Debug -p:Platform=x86 /p:CERTIFICATE_THUMBPRINT=$$CERTIFICATE_THUMBPRINT
 
 build_32bit_release_clientutils:
 	@printf '#\n# PATH is %q\n#\n' '$(PATH)'
 	which MSBuild.exe
-	MSBuild.exe '$(shell cygpath -w "$(PROJECT_BASEDIR_DIR)/build.vc19/nfs41-client.sln")' -t:nfs41_np,nfs_mount  -p:Configuration=Release -p:Platform=x86
+	MSBuild.exe '$(shell cygpath -w "$(PROJECT_BASEDIR_DIR)/build.vc19/nfs41-client.sln")' -t:nfs41_np,nfs_mount  -p:Configuration=Release -p:Platform=x86 /p:CERTIFICATE_THUMBPRINT=$$CERTIFICATE_THUMBPRINT
 
 build_32bit_debug_clientutils:
 	@printf '#\n# PATH is %q\n#\n' '$(PATH)'
 	which MSBuild.exe
-	MSBuild.exe '$(shell cygpath -w "$(PROJECT_BASEDIR_DIR)/build.vc19/nfs41-client.sln")' -t:nfs41_np,nfs_mount  -p:Configuration=Debug -p:Platform=x86
+	MSBuild.exe '$(shell cygpath -w "$(PROJECT_BASEDIR_DIR)/build.vc19/nfs41-client.sln")' -t:nfs41_np,nfs_mount  -p:Configuration=Debug -p:Platform=x86 /p:CERTIFICATE_THUMBPRINT=$$CERTIFICATE_THUMBPRINT
 
 build_arm_64bit_debug:
 	@printf '#\n# PATH is %q\n#\n' '$(PATH)'
 	which MSBuild.exe
-	MSBuild.exe '$(shell cygpath -w "$(PROJECT_BASEDIR_DIR)/build.vc19/nfs41-client.sln")' -t:Build  -p:Configuration=Debug -p:Platform=ARM64
+	MSBuild.exe '$(shell cygpath -w "$(PROJECT_BASEDIR_DIR)/build.vc19/nfs41-client.sln")' -t:Build  -p:Configuration=Debug -p:Platform=ARM64 /p:CERTIFICATE_THUMBPRINT=$$CERTIFICATE_THUMBPRINT
 
 build_testutils:
 	(cd "$(PROJECT_BASEDIR_DIR)/tests/ea" && make all)

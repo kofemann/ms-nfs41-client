@@ -1,5 +1,11 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Target Name="Sign" AfterTargets="Build">
+    <SignFile
+      CertificateThumbprint="$(CERTIFICATE_THUMBPRINT)"
+      SigningTarget="$(OutputPath)\nfsd.exe"
+      TargetFrameworkVersion="v4.5" />
+  </Target>
   <Target Name="generate_git_version_header" BeforeTargets="ClCompile">
     <Exec Command="git describe --long --always --dirty --exclude=* --abbrev=8" ConsoleToMSBuild="True" IgnoreExitCode="False">
       <Output TaskParameter="ConsoleOutput" PropertyName="git_version_string" />

@@ -938,6 +938,8 @@ Source code can be obtained from
       git clone https://github.com/kofemann/ms-nfs41-client.git
       cd ms-nfs41-client
       cd cygwin
+      # get default WDK Test Certificate SHA1 ThumbPrint value for code signing
+      export CERTIFICATE_THUMBPRINT="$(powershell -c 'Get-ChildItem -Path Cert:\CurrentUser\My | Where-Object {$_.Subject -like "*WDKTestCert*"} | Select-Object -ExpandProperty Thumbprint')"
       make build
       make installdest
       make bintarball
@@ -952,6 +954,8 @@ Source code can be obtained from
       # ("v142" should remain the default when comitting)
       sed -i -E 's/<PlatformToolset>v142<\/PlatformToolset>/<PlatformToolset>v143<\/PlatformToolset>/g' $(find 'build.vc19' -name \*.vcxproj)
       cd cygwin
+      # get default WDK Test Certificate SHA1 ThumbPrint value for code signing
+      export CERTIFICATE_THUMBPRINT="$(powershell -c 'Get-ChildItem -Path Cert:\CurrentUser\My | Where-Object {$_.Subject -like "*WDKTestCert*"} | Select-Object -ExpandProperty Thumbprint')"
       make build64
       make installdest64
       make bintarball64

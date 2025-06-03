@@ -12,6 +12,7 @@
     "Microsoft.Component.MSBuild",
     "Microsoft.VisualStudio.Component.Roslyn.LanguageServices",
     "Microsoft.VisualStudio.Component.TextTemplating",
+    "Microsoft.VisualStudio.Component.Common.Azure.Tools",
     "Microsoft.VisualStudio.Component.NuGet",
     "Microsoft.VisualStudio.Component.Debugger.JustInTime",
     "Microsoft.VisualStudio.Component.IntelliCode",
@@ -56,6 +57,7 @@
     "Microsoft.VisualStudio.Component.VC.Runtimes.x86.x64.Spectre",
     "Microsoft.VisualStudio.Component.VC.MFC.ARM",
     "Microsoft.VisualStudio.Component.VC.MFC.ARM64",
+    "Microsoft.Component.ClickOnce",
     "Microsoft.Net.Component.4.6.1.TargetingPack",
     "Component.Microsoft.Windows.DriverKit"
   ],
