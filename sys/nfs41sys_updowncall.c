@@ -503,7 +503,7 @@ void nfs41_UpcallDestroy(nfs41_updowncall_entry *entry)
 
 NTSTATUS nfs41_UpcallWaitForReply(
     IN nfs41_updowncall_entry *entry,
-    IN DWORD secs)
+    IN LONGLONG secs)
 {
     NTSTATUS status = STATUS_SUCCESS;
 

@@ -148,10 +148,10 @@ extern nfs41_timings getexattr;
 #endif /* ENABLE_TIMINGS */
 
 #define RELATIVE(wait) (-(wait))
-#define NANOSECONDS(nanos) (((signed __int64)(nanos)) / 100L)
-#define MICROSECONDS(micros) (((signed __int64)(micros)) * NANOSECONDS(1000L))
-#define MILLISECONDS(milli) (((signed __int64)(milli)) * MICROSECONDS(1000L))
-#define SECONDS(seconds) (((signed __int64)(seconds)) * MILLISECONDS(1000L))
+#define NANOSECONDS(nanos) (((signed __int64)(nanos)) / 100LL)
+#define MICROSECONDS(micros) (((signed __int64)(micros)) * NANOSECONDS(1000LL))
+#define MILLISECONDS(milli) (((signed __int64)(milli)) * MICROSECONDS(1000LL))
+#define SECONDS(seconds) (((signed __int64)(seconds)) * MILLISECONDS(1000LL))
 
 typedef enum _nfs41_updowncall_state {
     NFS41_WAITING_FOR_UPCALL,
@@ -857,7 +857,7 @@ NTSTATUS nfs41_UpcallCreate(
 void nfs41_UpcallDestroy(nfs41_updowncall_entry *entry);
 NTSTATUS nfs41_UpcallWaitForReply(
     IN nfs41_updowncall_entry *entry,
-    IN DWORD secs);
+    IN LONGLONG secs);
 NTSTATUS nfs41_upcall(
     IN PRX_CONTEXT RxContext);
 NTSTATUS nfs41_downcall(

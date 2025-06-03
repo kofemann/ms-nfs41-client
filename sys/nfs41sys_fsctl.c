@@ -618,7 +618,7 @@ NTSTATUS nfs41_DuplicateData(
         (PDUPLICATE_EXTENTS_DATA)FsCtl->pInputBuffer;
     __notnull PNFS41_FOBX nfs41_fobx = NFS41GetFobxExtension(RxContext->pFobx);
     PFILE_OBJECT srcfo = NULL;
-    DWORD io_delay;
+    LONGLONG io_delay;
 
     DbgEn();
 
@@ -732,8 +732,8 @@ NTSTATUS nfs41_DuplicateData(
         duplicatedatabuffer->ByteCount.QuadPart;
 
     /* Add extra timeout depending on file size */
-    io_delay = (DWORD)(pVNetRootContext->timeout +
-        EXTRA_TIMEOUT_PER_BYTE(entry->u.DuplicateData.bytecount));
+    io_delay = pVNetRootContext->timeout +
+        EXTRA_TIMEOUT_PER_BYTE(entry->u.DuplicateData.bytecount);
 
     status = nfs41_UpcallWaitForReply(entry, io_delay);
     if (status) {
