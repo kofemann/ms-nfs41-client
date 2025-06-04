@@ -1,6 +1,6 @@
 /*
  * NFSv4.1 client for Windows
- * Copyright (C) 2024 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2024-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Roland Mainz <roland.mainz@nrubsig.org>
  *
@@ -218,6 +218,23 @@ bool get_token_groups_names(HANDLE tok,
 
     for (i = 0 ; i < ptgroups->GroupCount ; i++) {
         if (!(ptgroups->Groups[i].Attributes & SE_GROUP_ENABLED)) {
+            continue;
+        }
+
+        /*
+         * Filter out groups which cannot be used as normal user or
+         * group account names (e.g. cannot be mapped by the idmapper)
+         */
+        if (IsWellKnownSid(ptgroups->Groups[i].Sid, WinNullSid)) {
+            DPRINTF(1, ("get_token_groups_names: rejecting WinNullSid\n"));
+            continue;
+        }
+        if (IsWellKnownSid(ptgroups->Groups[i].Sid, WinWorldSid)) {
+            DPRINTF(1, ("get_token_groups_names: rejecting WinWorldSid\n"));
+            continue;
+        }
+        if (IsWellKnownSid(ptgroups->Groups[i].Sid, WinLogonIdsSid)) {
+            DPRINTF(1, ("get_token_groups_names: rejecting WinLogonIdsSid\n"));
             continue;
         }
 
