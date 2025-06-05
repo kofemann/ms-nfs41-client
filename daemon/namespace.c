@@ -414,7 +414,7 @@ int nfs41_root_mount_addrs(
 
 retry_nfs41_exchange_id:
     if (nfsminorvers_autonegotiate) {
-        DPRINTF(0, ("nfs41_root_mount_addrs: "
+        DPRINTF(1, ("nfs41_root_mount_addrs: "
             "Autonegotiating NFS version, "
             "trying NFSv4.%d\n",
             (int)root->nfsminorvers));
@@ -449,7 +449,7 @@ retry_nfs41_exchange_id:
 
     /* Enable NFS features after NFSv4.x minor version negotiation */
     if (root->nfsminorvers >= 2) {
-        DPRINTF(0, ("nfs41_root_mount_addrs: Enabling NFSv4.2 OPs\n"));
+        DPRINTF(1, ("nfs41_root_mount_addrs: Enabling NFSv4.2 OPs\n"));
         root->supports_nfs42_read_plus  = true;
         root->supports_nfs42_seek       = true;
         root->supports_nfs42_allocate   = true;

@@ -1,5 +1,6 @@
 /* NFSv4.1 client for Windows
- * Copyright © 2012 The Regents of the University of Michigan
+ * Copyright (C) 2012 The Regents of the University of Michigan
+ * Copyright (C) 2024-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -199,20 +200,22 @@ out:
     if (status == 0) {
 #ifdef NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE
         logprintf("mount(hostport='%s', use_nfspubfh=%d, path='%s', "
-            "authid=(0x%lx.0x%lx)) success, root=0x%p\n",
+            "authid=(0x%lx.0x%lx)) success, root=0x%p, NFS version=4.%d\n",
             args->hostport?args->hostport:"<NULL>",
             (int)args->use_nfspubfh,
             args->path?args->path:"<NULL>",
             (long)authenticationid.HighPart,
             (long)authenticationid.LowPart,
-            root);
+            root,
+            (int)root->nfsminorvers);
 #else
         logprintf("mount(hostport='%s', use_nfspubfh=%d, path='%s') success, "
-            "root=0x%p\n",
+            "root=0x%p, NFS version=4.%d\n",
             args->hostport?args->hostport:"<NULL>",
             (int)args->use_nfspubfh,
             args->path?args->path:"<NULL>",
-            root);
+            root,
+            (int)root->nfsminorvers);
 #endif /* NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE */
     }
     else {
