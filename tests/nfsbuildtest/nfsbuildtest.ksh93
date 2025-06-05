@@ -522,6 +522,9 @@ function msnfs41client_build
 		sed -i -E 's/<LinkIncremental>true<\/LinkIncremental>/<LinkIncremental>false<\/LinkIncremental>/g' $(find 'build.vc19' -name \*.vcxproj)
 	fi
 
+	# Use WDK test certificate to sign *.(exe|dll) files
+	export CERTIFICATE_THUMBPRINT="$(powershell -c 'Get-ChildItem -Path Cert:\CurrentUser\My | Where-Object {$_.Subject -like "*WDKTestCert*"} | Select-Object -ExpandProperty Thumbprint')"
+
 	#
 	# build ms-nfs41-client
 	#
