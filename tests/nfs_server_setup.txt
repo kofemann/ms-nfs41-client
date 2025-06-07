@@ -4,11 +4,62 @@
 
 #
 # TODO:
-# - Debian Linux NFSv4.2 server setup
-# - Solaris 11.4 NFSv4.1 server setup
-# - Illumos 11.4 NFSv4.1 server setup
 # - FreeBSD NFSv4.1 server setup
 #
+
+
+#
+# Debian Linux "Bullseye" NFSv4.2 server setup
+#
+
+##### 1. Setup
+---- snip ----
+# install packages
+apt-get install nfs-kernel-server nfs-common nfs4-acl-tools autofs
+
+# turn idmapper on, even for AUTH_SYS
+{
+        printf "[General]\n"
+        printf "Domain = GLOBAL.LOC\n"
+} >>'/etc/idmapd.conf'
+printf "options nfsd nfs4_disable_idmapping=N\noptions nfs nfs4_disable_idmapping=N\n" >>'/etc/modprobe.d/nfs.conf'
+printf "NEED_IDMAPD=yes\n" >>'/etc/default/nfs-common'
+
+# put an export in '/etc/exports'
+
+# start NFS server
+service nfs-server start
+---- snip ----
+
+
+##### 2. Setup a 16GB XFS filesystem with block cloning support
+---- snip ----
+time dd if=/dev/zero of=/bigdisk/xfstestfs001.img bs=$((1024*1024)) count=$((16*1024))
+mkfs.xfs -m reflink=1 /bigdisk/xfstestfs001.img
+mkdir /xfstestfs001
+chmod a+rwxt /xfstestfs001
+echo '/bigdisk/xfstestfs001.img /xfstestfs001 xfs loop 0 0' >>'/etc/fstab'
+#mount -o loop /bigdisk/xfstestfs001.img /xfstestfs001
+echo '/xfstestfs001 *(sec=sys,rw,async,insecure,no_root_squash,fsid=2172423)' >>'/etc/exports'
+mount /xfstestfs001
+service nfs-server restart
+---- snip ----
+
+
+##### 3. Setup a 16GB DOS FAT32 filesystem for testing:
+---- snip ----
+dd if='/dev/zero' of='/bigdisk/fat32_image.img' bs=$((1024*1024)) count=$((16*1024))
+mkfs.fat -F 32 '/bigdisk/fat32_image.img'
+mkdir /fat32_mount
+chmod -R a+rwx /fat32_mount
+chown 65534:65534 /fat32_mount
+#mount -o loop,uid=65534,gid=65534 /bigdisk/fat32_image.img /fat32_mount
+echo '/bigdisk/fat32_image.img /fat32_mount fat loop,uid=65534,gid=65534 0 0' >>'/etc/fstab'
+mount /fat32_mount
+echo '/fat32_mount *(sec=sys,rw,async,insecure,all_squash,anonuid=65534,anongid=65534,fsid=5272429)' >>'/etc/exports'
+service nfs-server restart
+---- snip ----
+
 
 #
 # Windows Server 2019 NFSv4.1 server setup
