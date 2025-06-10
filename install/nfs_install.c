@@ -101,7 +101,7 @@ int main(int ac, char *av[])
     DPRINTF(1, ("# RegQueryValueExA(), result=%d, dataSize=%d\n",
         (int)result, (int)dataSize));
 
-    originalValue = malloc(dataSize+1);
+    originalValue = malloc((size_t)dataSize+1);
 
     if (!originalValue) {
         (void)fprintf(stderr, "%s: Out of memory\n", av[0]);
