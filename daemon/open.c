@@ -1075,8 +1075,14 @@ supersede_retry:
              * Hack: Support |setgid()|/newgrp(1)/sg(1)/winsg(1) by
              * fetching groupname from auth token for new files and
              * do a "manual" chgrp on the new file
+             *
+             * Note that |RPCSEC_AUTH_NONE| does not have any
+             * user/group information, therefore newgrp will be a
+             * NOP here.
              */
-            if (create == OPEN4_CREATE) {
+            if ((create == OPEN4_CREATE) &&
+                (state->session->client->rpc->sec_flavor !=
+                    RPCSEC_AUTH_NONE)) {
                 char *s;
                 int chgrp_status;
                 stateid_arg stateid;
