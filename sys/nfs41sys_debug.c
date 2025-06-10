@@ -79,7 +79,8 @@ ULONG __cdecl DbgP(IN PCCH fmt, ...)
         RtlTimeToTimeFields(&local_time, &time_fields);
 
         DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL,
-            "[%ld].[%02u:%02u:%02u.%u] %s", IoGetCurrentProcess(),
+            "[%04x].[%02u:%02u:%02u.%u] %s",
+            PsGetCurrentProcessShortDebugId(),
             time_fields.Hour, time_fields.Minute, time_fields.Second,
             time_fields.Milliseconds, msg);
 #else
@@ -111,7 +112,8 @@ ULONG __cdecl print_error(IN PCCH fmt, ...)
         RtlTimeToTimeFields(&local_time, &time_fields);
 
         DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL,
-            "[%ld].[%02u:%02u:%02u.%u] %s", IoGetCurrentProcess(),
+            "[%04x].[%02u:%02u:%02u.%u] %s",
+            PsGetCurrentProcessShortDebugId(),
             time_fields.Hour, time_fields.Minute, time_fields.Second,
             time_fields.Milliseconds, msg);
 #else
@@ -135,7 +137,8 @@ void print_hexbuf(const char *title, unsigned char *buf, int len)
     RtlTimeToTimeFields(&local_time, &time_fields);
 
     DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL,
-        "[%ld].[%02u:%02u:%02u.%u] %s\n", IoGetCurrentProcess(),
+        "[%04x].[%02u:%02u:%02u.%u] %s\n",
+        PsGetCurrentProcessShortDebugId(),
         time_fields.Hour, time_fields.Minute, time_fields.Second,
         time_fields.Milliseconds, title);
     for(j = 0, k = 0; j < len; j++, k++) {
