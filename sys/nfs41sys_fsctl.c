@@ -614,13 +614,26 @@ NTSTATUS nfs41_DuplicateData(
         NFS41GetNetRootExtension(SrvOpen->pVNetRoot->pNetRoot);
     __notnull XXCTL_LOWIO_COMPONENT *FsCtl =
         &RxContext->LowIoContext.ParamsFor.FsCtl;
-    __notnull PDUPLICATE_EXTENTS_DATA duplicatedatabuffer =
-        (PDUPLICATE_EXTENTS_DATA)FsCtl->pInputBuffer;
     __notnull PNFS41_FOBX nfs41_fobx = NFS41GetFobxExtension(RxContext->pFobx);
-    PFILE_OBJECT srcfo = NULL;
-    LONGLONG io_delay;
+
+    /*
+     * Temporary store |FSCTL_DUPLICATE_EXTENTS_TO_FILE| data here, which
+     * can be either |DUPLICATE_EXTENTS_DATA32| for 32bit processes on a
+     * 64bit kernel, |DUPLICATE_EXTENTS_DATA| for 64bit processes on a
+     * 64bit kernel, or |DUPLICATE_EXTENTS_DATA| for 32bit processes on
+     * a 32bit kernel
+     */
+    struct {
+        HANDLE      handle;
+        LONGLONG    srcfileoffset;
+        LONGLONG    destfileoffset;
+        LONGLONG    bytecount;
+    } dd;
 
     DbgEn();
+
+    PFILE_OBJECT srcfo = NULL;
+    LONGLONG io_delay;
 
     RxContext->IoStatusBlock.Information = 0;
 
@@ -633,30 +646,60 @@ NTSTATUS nfs41_DuplicateData(
         goto out;
     }
 
-    if (FsCtl->InputBufferLength <
-        sizeof(DUPLICATE_EXTENTS_DATA)) {
-        DbgP("nfs41_DuplicateData: "
-            "buffer to small\n");
-        status = STATUS_BUFFER_TOO_SMALL;
-        goto out;
+#if defined(_WIN64)
+    if (IoIs32bitProcess(RxContext->CurrentIrp)) {
+        if (FsCtl->InputBufferLength <
+            sizeof(DUPLICATE_EXTENTS_DATA32)) {
+            DbgP("nfs41_DuplicateData: "
+                "buffer too small for DUPLICATE_EXTENTS_DATA32\n");
+            status = STATUS_BUFFER_TOO_SMALL;
+            goto out;
+        }
+
+        PDUPLICATE_EXTENTS_DATA32 ded32bit =
+            (PDUPLICATE_EXTENTS_DATA32)FsCtl->pInputBuffer;
+
+        dd.handle           = (HANDLE)ded32bit->FileHandle;
+        dd.srcfileoffset    = ded32bit->SourceFileOffset.QuadPart;
+        dd.destfileoffset   = ded32bit->TargetFileOffset.QuadPart;
+        dd.bytecount        = ded32bit->ByteCount.QuadPart;
+    }
+    else
+#endif /* defined(_WIN64) */
+    {
+        if (FsCtl->InputBufferLength <
+            sizeof(DUPLICATE_EXTENTS_DATA)) {
+            DbgP("nfs41_DuplicateData: "
+                "buffer too small for DUPLICATE_EXTENTS_DATA\n");
+            status = STATUS_BUFFER_TOO_SMALL;
+            goto out;
+        }
+
+        PDUPLICATE_EXTENTS_DATA ded =
+            (PDUPLICATE_EXTENTS_DATA)FsCtl->pInputBuffer;
+
+        dd.handle           = ded->FileHandle;
+        dd.srcfileoffset    = ded->SourceFileOffset.QuadPart;
+        dd.destfileoffset   = ded->TargetFileOffset.QuadPart;
+        dd.bytecount        = ded->ByteCount.QuadPart;
     }
 
     DbgP("nfs41_DuplicateData: "
-        "duplicatedatabuffer=(FileHandle=0x%p,"
-        "SourceFileOffset=%lld,"
-        "TargetFileOffset=%lld,"
-        "ByteCount=%lld)\n",
-        (void *)duplicatedatabuffer->FileHandle,
-        (long long)duplicatedatabuffer->SourceFileOffset.QuadPart,
-        (long long)duplicatedatabuffer->TargetFileOffset.QuadPart,
-        (long long)duplicatedatabuffer->ByteCount.QuadPart);
+        "dd=(handle=0x%p,"
+        "srcfileoffset=%lld,"
+        "destfileoffset=%lld,"
+        "bytecount=%lld)\n",
+        (void *)dd.handle,
+        (long long)dd.srcfileoffset,
+        (long long)dd.destfileoffset,
+        (long long)dd.bytecount);
 
-    if (duplicatedatabuffer->ByteCount.QuadPart == 0LL) {
+    if (dd.bytecount == 0LL) {
         status = STATUS_SUCCESS;
         goto out;
     }
 
-    status = ObReferenceObjectByHandle(duplicatedatabuffer->FileHandle,
+    status = ObReferenceObjectByHandle(dd.handle,
         0,
         *IoFileObjectType,
         RxContext->CurrentIrp->RequestorMode,
@@ -724,12 +767,9 @@ NTSTATUS nfs41_DuplicateData(
         goto out;
 
     entry->u.DuplicateData.src_state = nfs41_src_fobx->nfs41_open_state;
-    entry->u.DuplicateData.srcfileoffset =
-        duplicatedatabuffer->SourceFileOffset.QuadPart;
-    entry->u.DuplicateData.destfileoffset =
-        duplicatedatabuffer->TargetFileOffset.QuadPart;
-    entry->u.DuplicateData.bytecount =
-        duplicatedatabuffer->ByteCount.QuadPart;
+    entry->u.DuplicateData.srcfileoffset = dd.srcfileoffset;
+    entry->u.DuplicateData.destfileoffset = dd.destfileoffset;
+    entry->u.DuplicateData.bytecount = dd.bytecount;
 
     /* Add extra timeout depending on file size */
     io_delay = pVNetRootContext->timeout +

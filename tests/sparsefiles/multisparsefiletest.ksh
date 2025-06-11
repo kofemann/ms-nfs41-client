@@ -221,15 +221,39 @@ function multisparsefiletest1
 
         typeset tstmod
 
-        typeset -a tstmodlist=(
-            'plainfile'
-            'cp_sparseauto'
-            'cloned_full'
-            'cloned_1mbchunks'
-        )
+        case "$(getconf LONG_BIT)" in
+            '64')
+                typeset -a tstmodlist=(
+                    'plainfile'
+                    'cp_sparseauto'
+                    'cloned_full_64bit'
+                    'cloned_1mbchunks_64bit'
+                    'cloned_full_32bit'
+                    'cloned_1mbchunks_32bit'
+                )
+                ;;
+            '32')
+                typeset -a tstmodlist=(
+                    'plainfile'
+                    'cp_sparseauto'
+                    'cloned_full'
+                    'cloned_1mbchunks'
+                )
+                ;;
+            *)
+                print -u2 -f 'ERROR: unknown getconf LONG_BIT result\n'
+                return 8
+                ;;
+        esac
 
         for tstmod in "${tstmodlist[@]}" ; do
             printf '# Test %d '%s' generated\n' c.i "${c.testlabel}/$tstmod"
+
+            if [[ "${tstmod}" == *32bit ]] ; then
+                winclonefilecmd='winclonefile.i686.exe'
+            else
+                winclonefilecmd='winclonefile.exe'
+            fi
 
             case "${tstmod}" in
                 'plainfile')
@@ -239,9 +263,9 @@ function multisparsefiletest1
                     /usr/bin/cp --sparse='auto' 'sparsefile2.bin' 'sparsefile2_cpsparse.bin'
                     c.stdout="$(lssparse -H 'sparsefile2_cpsparse.bin')"
                     ;;
-                'cloned_full')
+                'cloned_full' | 'cloned_full_64bit' | 'cloned_full_32bit')
                     if $test_cloning ; then
-                        winclonefile.exe 'sparsefile2.bin' 'sparsefile2_cloned_full.bin' 1>'/dev/null'
+                        ${winclonefilecmd} 'sparsefile2.bin' 'sparsefile2_cloned_full.bin' 1>'/dev/null'
                         c.stdout="$(lssparse -H 'sparsefile2_cloned_full.bin')"
                     else
                         printf "# Test '%s' SKIPPED\n" "${c.testlabel}/${tstmod}"
@@ -249,9 +273,9 @@ function multisparsefiletest1
                         continue
                     fi
                     ;;
-                'cloned_1mbchunks')
+                'cloned_1mbchunks' | 'cloned_1mbchunks_64bit' | 'cloned_1mbchunks_32bit')
                     if $test_cloning ; then
-                        winclonefile.exe \
+                        ${winclonefilecmd} \
                             --clonechunksize $((1024*1024)) \
                             'sparsefile2.bin' \
                             'sparsefile2_cloned_1mbchunks.bin' 1>'/dev/null'
