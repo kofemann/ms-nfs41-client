@@ -19,5 +19,5 @@ clean:
 	rm -fv \
 		winfsinfo.i686.exe \
 		winfsinfo.x86_64.exe \
-		winfsinfo.exe \
+		winfsinfo.exe
 # EOF.

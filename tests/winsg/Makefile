@@ -19,5 +19,5 @@ clean:
 	rm -fv \
 		winsg.i686.exe \
 		winsg.x86_64.exe \
-		winsg.exe \
+		winsg.exe
 # EOF.

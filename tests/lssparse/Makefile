@@ -19,5 +19,5 @@ lssparse.exe: lssparse.x86_64.exe
 clean:
 	rm -fv \
 		lssparse.x86_64.exe \
-		lssparse.exe \
+		lssparse.exe
 # EOF.

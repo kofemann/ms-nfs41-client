@@ -19,5 +19,5 @@ clean:
 	rm -fv \
 		winclonefile.i686.exe \
 		winclonefile.x86_64.exe \
-		winclonefile.exe \
+		winclonefile.exe
 # EOF.

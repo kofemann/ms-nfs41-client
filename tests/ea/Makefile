@@ -20,5 +20,5 @@ clean:
 	rm -fv \
 		nfs_ea.i686.exe \
 		nfs_ea.x86_64.exe \
-		nfs_ea.exe \
+		nfs_ea.exe
 # EOF.
