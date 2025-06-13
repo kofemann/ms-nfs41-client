@@ -377,11 +377,18 @@ ksh93 -c 'rm -f test1.txt test2.txt aclspec.icacls aclspec2.icacls ; touch test1
 -------- snip --------
 
 #
-# Test for "Generic Write" ACL:
+# Test for file "Generic Write" ACL:
 #
 $ ksh93 -c 'set -o xtrace ; rm -f test1.txt ; touch test1.txt ; icacls test1.txt /grant "siegfried_wulsch:(GW)" ; icacls test1.txt | grep --colour -E "siegfried_wulsch.+GW"'
 # Expectation:
-The ACL entry for user "siegfried_wulsch" should have the "GW" flag set
+# The ACL entry for user "siegfried_wulsch" should have the "GW" flag set
+
+#
+# Test for directory "X" ACL:
+#
+$ ksh93 -c 'set -o xtrace ; rm -rf test1.dir ; mkdir test1.dir ; icacls test1.dir /grant "siegfried_wulsch:(W,X)" ; icacls test1.dir | grep --colour -E "siegfried_wulsch.+X"'
+# Expectation:
+# The ACL entry for user "siegfried_wulsch" should have the "X" flag set
 
 #
 # Test for default (inheritance) ACLs:
