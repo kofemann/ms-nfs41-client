@@ -1,5 +1,6 @@
 /* NFSv4.1 client for Windows
- * Copyright © 2012 The Regents of the University of Michigan
+ * Copyright (C) 2012 The Regents of the University of Michigan
+ * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -987,8 +988,8 @@ int map_sid2nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid,
         goto out;
     }
 
-    status = LookupAccountSidA(NULL, sid, who_buf, &who_size, domain_buf,
-                                &domain_size, &sid_type);
+    status = lookupaccountsidutf8(NULL, sid, who_buf, &who_size, domain_buf,
+        &domain_size, &sid_type);
     lasterr = GetLastError();
 
     if (status) {
@@ -1074,14 +1075,15 @@ int map_sid2nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid,
                     goto err_none_mapped;
                 }
 
-                eprintf("map_sid2nfs4ace_who: LookupAccountSidA() "
+                eprintf("map_sid2nfs4ace_who: lookupaccountsidutf8() "
                     "returned ERROR_NONE_MAPPED+no "
                     "Unix_@(User|Group)+ mapping for sidstr='%s'\n",
                     sidstr);
 err_none_mapped:
                 status = ERROR_NONE_MAPPED;
 #else
-                DPRINTF(ACLLVL2, ("map_sid2nfs4ace_who: LookupAccountSidA() "
+                DPRINTF(ACLLVL2,
+                    ("map_sid2nfs4ace_who: lookupaccountsidutf8() "
                     "returned ERROR_NONE_MAPPED for sidstr='%s'\n",
                     sidstr));
                 status = lasterr;
@@ -1091,7 +1093,7 @@ err_none_mapped:
             /* Catch other cases */
             case ERROR_NO_SUCH_USER:
             case ERROR_NO_SUCH_GROUP:
-                eprintf("map_sid2nfs4ace_who: LookupAccountSidA() "
+                eprintf("map_sid2nfs4ace_who: lookupaccountsidutf8() "
                     "returned ERROR_NO_SUCH_@(USER|GROUP) for "
                     "sidstr='%s'\n",
                     sidstr);
@@ -1099,7 +1101,7 @@ err_none_mapped:
                 goto out;
             default:
                 eprintf("map_sid2nfs4ace_who: Internal error, "
-                    "LookupAccountSidA() returned unexpected ERROR_%d "
+                    "lookupaccountsidutf8() returned unexpected ERROR_%d "
                     "for sidstr='%s'\n",
                     status, sidstr);
                 status = ERROR_INTERNAL_ERROR;

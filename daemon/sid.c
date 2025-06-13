@@ -1,5 +1,6 @@
 /* NFSv4.1 client for Windows
- * Copyright © 2012 The Regents of the University of Michigan
+ * Copyright (C) 2012 The Regents of the University of Michigan
+ * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -327,7 +328,8 @@ void sidcache_addwithalias(sidcache *cache, const char *win32name, const char *a
     /* Replace the cache entry */
     sidcache_entry *e = &cache->entries[freeEntryIndex];
     DWORD sid_len = GetLengthSid(value);
-    EASSERT(sid_len <= SECURITY_MAX_SID_SIZE);
+    EASSERT_MSG((sid_len <= SECURITY_MAX_SID_SIZE),
+        ("sid_len=%ld\n", (long)sid_len));
     e->sid = (PSID)e->sid_buffer;
     if (!CopySid(sid_len, e->sid, value)) {
         e->sid = NULL;
@@ -506,15 +508,15 @@ int map_nfs4servername_2_sid(nfs41_daemon_globals *nfs41dg, int query, DWORD *si
     *sid_len = SECURITY_MAX_SID_SIZE;
     domain_len = sizeof(domain_buff);
 
-    status = LookupAccountNameA(NULL, nfsname, *sid, sid_len,
+    status = lookupaccountnameutf8(NULL, nfsname, *sid, sid_len,
         domain_buff, &domain_len, &sid_type);
 
     if (status) {
-        /* |LookupAccountNameA()| success */
+        /* |lookupaccountnameutf8()| success */
 
         DPRINTF(ACLLVL,
             ("map_nfs4servername_2_sid(query=0x%x,nfsname='%s'): "
-            "LookupAccountNameA() returned status=%d "
+            "lookupaccountnameutf8() returned status=%d "
             "GetLastError=%d *sid_len=%d domain_buff='%s' domain_len=%d\n",
             query, nfsname, status, GetLastError(), *sid_len, domain_buff,
             domain_len));
@@ -524,10 +526,10 @@ int map_nfs4servername_2_sid(nfs41_daemon_globals *nfs41dg, int query, DWORD *si
         goto out_cache;
     }
 
-    /* |LookupAccountNameA()| failed... */
+    /* |lookupaccountnameutf8()| failed... */
     DPRINTF(ACLLVL,
         ("map_nfs4servername_2_sid(query=0x%x,nfsname='%s'): "
-        "LookupAccountNameA() returned status=%d "
+        "lookupaccountnameutf8() returned status=%d "
         "GetLastError=%d\n",
         query, nfsname, status, GetLastError()));
 
@@ -648,7 +650,7 @@ out_cache:
             /*
              * Treat |SidTypeAlias| as (local) group
              *
-             * It seems that |LookupAccountNameA()| will always return
+             * It seems that |lookupaccountnameutf8()| will always return
              * |SidTypeAlias| for local groups created with
              * $ net localgroup cygwingrp1 /add #
              *
@@ -742,4 +744,342 @@ out_free_sid:
     free(*sid);
     *sid = NULL;
     goto out;
+}
+
+
+/* Maximum number of bytes required to store one |wchar_t| as UTF-8 */
+#define MAX_UTF8_BYTES_PER_WCHAR_T (5)
+
+/*
+ * |lookupaccountnameutf8()| - UTF-8 version of |LookupAccountNameA()|
+ *
+ * We need this because Windows user+group names can contain Unicode
+ * characters, and |*A()| functions depend on the current code page,
+ * which might not cover all code points needed
+ */
+BOOL lookupaccountnameutf8(
+    const char *restrict pSystemNameUTF8,
+    const char *restrict pAccountNameUTF8,
+    PSID restrict pSid,
+    LPDWORD restrict pSidSize,
+    char *restrict pReferencedDomainNameUTF8,
+    LPDWORD restrict pReferencedDomainNameUTF8size,
+    PSID_NAME_USE restrict peUse)
+{
+#ifdef NO_UTF8_ACCOUNT_CONV
+    return LookupAccountNameA(
+        pSystemNameUTF8,
+        pAccountNameUTF8,
+        pSid,
+        pSidSize,
+        pReferencedDomainNameUTF8,
+        pReferencedDomainNameUTF8size,
+        peUse);
+#else
+    if ((pAccountNameUTF8 == NULL) ||
+        (pReferencedDomainNameUTF8size == NULL) ||
+        (pSidSize == NULL) || (peUse == NULL)) {
+        SetLastError(ERROR_INVALID_PARAMETER);
+        return FALSE;
+    }
+
+    LPWSTR pSystemNameW;
+
+    if (pSystemNameUTF8) {
+        DWORD systemNameWsize;
+
+        /*
+         * Use |strlen()| here as optimisation, saving one around of
+         * |MultiByteToWideChar()|
+         */
+        systemNameWsize = (DWORD)strlen(pSystemNameUTF8)+1;
+        pSystemNameW = (LPWSTR)_alloca(systemNameWsize * sizeof(wchar_t));
+
+        if (MultiByteToWideChar(CP_UTF8,
+            0,
+            pSystemNameUTF8,
+            -1,
+            pSystemNameW,
+            systemNameWsize) == 0) {
+            if (GetLastError() == ERROR_SUCCESS) {
+                SetLastError(ERROR_INVALID_DATA);
+            }
+            return FALSE;
+        }
+    }
+    else {
+        pSystemNameW = NULL;
+    }
+
+    LPWSTR pAccountNameW;
+    DWORD accountNameWsize;
+
+    /*
+     * Use |strlen()| here as optimisation, saving one around of
+     * |MultiByteToWideChar()|
+     */
+    accountNameWsize = (DWORD)strlen(pAccountNameUTF8)+1;
+    pAccountNameW = (LPWSTR)_alloca(accountNameWsize * sizeof(wchar_t));
+
+    if (MultiByteToWideChar(CP_UTF8,
+        0,
+        pAccountNameUTF8,
+        -1,
+        pAccountNameW,
+        accountNameWsize) == 0) {
+        if (GetLastError() == ERROR_SUCCESS) {
+            SetLastError(ERROR_INVALID_DATA);
+        }
+        return FALSE;
+    }
+
+    DWORD referencedDomainNameWsize =
+        (DWORD)*pReferencedDomainNameUTF8size / sizeof(wchar_t);
+    LPWSTR pReferencedDomainNameW = NULL;
+
+    if ((pReferencedDomainNameUTF8 == NULL) ||
+        (*pReferencedDomainNameUTF8size == 0)) {
+        referencedDomainNameWsize = 256;
+    }
+
+    pReferencedDomainNameW =
+        (LPWSTR)_alloca(referencedDomainNameWsize * sizeof(wchar_t));
+
+    BOOL success = LookupAccountNameW(
+        pSystemNameW,
+        pAccountNameW,
+        pSid,
+        pSidSize,
+        pReferencedDomainNameW,
+        &referencedDomainNameWsize,
+        peUse);
+
+    if (!success) {
+        DWORD lastError = GetLastError();
+
+        if (lastError == ERROR_INSUFFICIENT_BUFFER) {
+            int requiredDomainNameUTF8Size = WideCharToMultiByte(CP_UTF8,
+                0,
+                pReferencedDomainNameW,
+                referencedDomainNameWsize+1,
+                NULL,
+                0,
+                NULL,
+                NULL);
+            if (requiredDomainNameUTF8Size == 0) {
+                if (GetLastError() == ERROR_SUCCESS) {
+                    SetLastError(ERROR_INVALID_DATA);
+                }
+                return FALSE;
+            }
+
+            *pReferencedDomainNameUTF8size =
+                (size_t)requiredDomainNameUTF8Size+1;
+        } else if (lastError == ERROR_NONE_MAPPED) {
+            *pReferencedDomainNameUTF8size = 0;
+            *pSidSize = 0;
+            *peUse = SidTypeUnknown;
+        } else {
+            *pReferencedDomainNameUTF8size = 0;
+            *pSidSize = 0;
+            *peUse = SidTypeUnknown;
+        }
+
+        return FALSE;
+    }
+
+    int domainNameUTF8size = WideCharToMultiByte(CP_UTF8,
+        0,
+        pReferencedDomainNameW,
+        referencedDomainNameWsize+1,
+        NULL,
+        0,
+        NULL,
+        NULL);
+    if (domainNameUTF8size == 0) {
+        if (GetLastError() == ERROR_SUCCESS) {
+            SetLastError(ERROR_INVALID_DATA);
+        }
+        return FALSE;
+    }
+
+    if (*pReferencedDomainNameUTF8size < (size_t)domainNameUTF8size) {
+        *pReferencedDomainNameUTF8size = (size_t)domainNameUTF8size;
+        SetLastError(ERROR_INSUFFICIENT_BUFFER);
+        return FALSE;
+    }
+
+    (void)WideCharToMultiByte(CP_UTF8,
+        0,
+        pReferencedDomainNameW,
+        referencedDomainNameWsize+1,
+        pReferencedDomainNameUTF8,
+        domainNameUTF8size,
+        NULL,
+        NULL);
+    *pReferencedDomainNameUTF8size = (size_t)domainNameUTF8size-1;
+
+    SetLastError(ERROR_SUCCESS);
+    return TRUE;
+#endif /* NO_UTF8_ACCOUNT_CONV */
+}
+
+
+/*
+ * |lookupaccountsidutf8()| - UTF-8 version of |LookupAccountSidA()|
+ *
+ * We need this because Windows user+group names can contain Unicode
+ * characters, and |*A()| functions depend on the current code page,
+ * which might not cover all code points needed
+ */
+BOOL lookupaccountsidutf8(
+    const char *restrict pSystemNameUTF8,
+    PSID restrict Sid,
+    char *restrict pNameUTF8,
+    LPDWORD restrict pNameSize,
+    char *restrict pReferencedDomainNameUTF8,
+    LPDWORD restrict pReferencedDomainNameUTF8Size,
+    PSID_NAME_USE restrict peUse)
+{
+#ifdef NO_UTF8_ACCOUNT_CONV
+    return LookupAccountSidA(pSystemNameUTF8,
+        Sid, pNameUTF8, pNameSize,
+        pReferencedDomainNameUTF8, pReferencedDomainNameUTF8Size,
+        peUse);
+#else
+    if ((Sid == NULL) ||
+        (pNameUTF8 == NULL) ||
+        (pNameSize == NULL) ||
+        (pReferencedDomainNameUTF8 == NULL) ||
+        (pReferencedDomainNameUTF8Size == NULL) ||
+        (peUse == NULL)) {
+        SetLastError(ERROR_INVALID_PARAMETER);
+        return FALSE;
+    }
+
+    wchar_t *systemNameW;
+    wchar_t *nameW;
+    wchar_t *referencedDomainNameW;
+
+    if (pSystemNameUTF8) {
+        DWORD wide_len = (DWORD)strlen(pSystemNameUTF8)+1;
+
+        systemNameW = (wchar_t *)_alloca(wide_len * sizeof(wchar_t));
+
+        if (MultiByteToWideChar(CP_UTF8,
+            0,
+            pSystemNameUTF8,
+            -1,
+            systemNameW,
+            wide_len) == 0) {
+            if (GetLastError() == ERROR_SUCCESS) {
+                SetLastError(ERROR_INVALID_DATA);
+            }
+            return FALSE;
+        }
+    }
+    else {
+        systemNameW = NULL;
+    }
+
+    nameW = (wchar_t *)_alloca(((size_t)*pNameSize+1) * sizeof(wchar_t));
+    referencedDomainNameW =
+        (wchar_t *)_alloca(((size_t)*pReferencedDomainNameUTF8Size+1) *
+            sizeof(wchar_t));
+
+    DWORD nameSizeW = *pNameSize;
+    DWORD referencedDomainNameSizeW =
+        *pReferencedDomainNameUTF8Size;
+
+    if (!LookupAccountSidW(
+        systemNameW,
+        Sid,
+        nameW,
+        &nameSizeW,
+        referencedDomainNameW,
+        &referencedDomainNameSizeW,
+        peUse))
+    {
+        if (GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
+            /* Assume that each |wchar_t| needs a maximum of 5 bytes */
+            *pNameSize = nameSizeW * MAX_UTF8_BYTES_PER_WCHAR_T;
+            *pReferencedDomainNameUTF8Size =
+                referencedDomainNameSizeW * MAX_UTF8_BYTES_PER_WCHAR_T;
+        }
+        return FALSE;
+    }
+
+    int required_name_utf8_bytes = WideCharToMultiByte(CP_UTF8,
+        0,
+        nameW,
+        nameSizeW+1,
+        NULL,
+        0,
+        NULL,
+        NULL);
+    if (required_name_utf8_bytes == 0) {
+        if (GetLastError() == ERROR_SUCCESS) {
+            SetLastError(ERROR_INVALID_DATA);
+        }
+        return FALSE;
+    }
+
+    int required_domain_utf8_bytes = WideCharToMultiByte(CP_UTF8,
+        0,
+        referencedDomainNameW,
+        referencedDomainNameSizeW+1,
+        NULL,
+        0,
+        NULL,
+        NULL);
+    if (required_domain_utf8_bytes == 0) {
+        if (GetLastError() == ERROR_SUCCESS) {
+            SetLastError(ERROR_INVALID_DATA);
+        }
+        return FALSE;
+    }
+
+    if ((*pNameSize < (DWORD)required_name_utf8_bytes) ||
+        (*pReferencedDomainNameUTF8Size < (DWORD)required_domain_utf8_bytes)) {
+        *pNameSize = (DWORD)required_name_utf8_bytes;
+        *pReferencedDomainNameUTF8Size = (DWORD)required_domain_utf8_bytes;
+        SetLastError(ERROR_INSUFFICIENT_BUFFER);
+        return FALSE;
+    }
+
+    int bytes_written_name = WideCharToMultiByte(CP_UTF8,
+        0,
+        nameW,
+        nameSizeW+1,
+        pNameUTF8,
+        *pNameSize,
+        NULL,
+        NULL);
+    if (bytes_written_name == 0) {
+        if (GetLastError() == ERROR_SUCCESS) {
+            SetLastError(ERROR_INVALID_DATA);
+        }
+        return FALSE;
+    }
+
+    int bytes_written_domain = WideCharToMultiByte(CP_UTF8,
+        0,
+        referencedDomainNameW,
+        referencedDomainNameSizeW+1,
+        pReferencedDomainNameUTF8,
+        *pReferencedDomainNameUTF8Size,
+        NULL,
+        NULL);
+    if (bytes_written_domain == 0) {
+        if (GetLastError() == ERROR_SUCCESS) {
+            SetLastError(ERROR_INVALID_DATA);
+        }
+        return FALSE;
+    }
+
+    *pReferencedDomainNameUTF8Size = (DWORD)bytes_written_domain-1;
+    *pNameSize = (DWORD)bytes_written_name-1;
+
+    return TRUE;
+#endif /* NO_UTF8_ACCOUNT_CONV */
 }

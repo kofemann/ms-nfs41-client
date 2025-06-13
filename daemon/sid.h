@@ -1,6 +1,7 @@
 
 /* NFSv4.1 client for Windows
- * Copyright © 2012 The Regents of the University of Michigan
+ * Copyright (C) 2012 The Regents of the University of Michigan
+ * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -63,5 +64,24 @@ PSID *sidcache_getcached_byname(sidcache *cache, const char *win32name);
 bool sidcache_getcached_bysid(sidcache *cache, PSID sid, char *out_win32name);
 
 int map_nfs4servername_2_sid(nfs41_daemon_globals *nfs41dg, int query, DWORD *sid_len, PSID *sid, LPCSTR name);
+
+/* UTF-8 version of |LookupAccountNameA()| */
+BOOL lookupaccountnameutf8(
+    const char *restrict pSystemNameUTF8,
+    const char *restrict pAccountNameUTF8,
+    PSID restrict pSid,
+    LPDWORD restrict pSidSize,
+    char *restrict pReferencedDomainNameUTF8,
+    LPDWORD restrict pReferencedDomainNameUTF8size,
+    PSID_NAME_USE restrict peUse);
+/* UTF-8 version of |LookupAccountSidA()| */
+BOOL lookupaccountsidutf8(
+    const char *restrict pSystemNameUTF8,
+    PSID restrict Sid,
+    char *restrict pNameUTF8,
+    LPDWORD restrict pNameSize,
+    char *restrict pReferencedDomainNameUTF8,
+    LPDWORD restrict pReferencedDomainNameSize,
+    PSID_NAME_USE restrict peUse);
 
 #endif /* !__NFS41_DAEMON_SID_H */

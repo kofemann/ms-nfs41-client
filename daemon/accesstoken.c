@@ -72,10 +72,10 @@ bool get_token_user_name(HANDLE tok, char *out_buffer)
     }
 #endif /* NFS41_DRIVER_SID_CACHE */
 
-    if (!LookupAccountSidA(NULL, pusid, out_buffer, &namesize,
+    if (!lookupaccountsidutf8(NULL, pusid, out_buffer, &namesize,
         domainbuffer, &domainbuffer_size, &name_use)) {
         eprintf("get_token_user_name: "
-            "LookupAccountSidA() failed, status=%d\n",
+            "lookupaccountsidutf8() failed, status=%d\n",
             (int)GetLastError());
         return false;
     }
@@ -116,10 +116,10 @@ bool get_token_primarygroup_name(HANDLE tok, char *out_buffer)
     }
 #endif /* NFS41_DRIVER_SID_CACHE */
 
-    if (!LookupAccountSidA(NULL, pgsid, out_buffer, &namesize,
+    if (!lookupaccountsidutf8(NULL, pgsid, out_buffer, &namesize,
         domainbuffer, &domainbuffer_size, &name_use)) {
         eprintf("get_token_primarygroup_name: "
-            "LookupAccountSidA() failed, status=%d\n",
+            "lookupaccountsidutf8() failed, status=%d\n",
             (int)GetLastError());
         return false;
     }
@@ -241,10 +241,14 @@ bool get_token_groups_names(HANDLE tok,
         namesize = sizeof(namebuffer)-1;
         domainbuffer_size = sizeof(domainbuffer)-1;
 
-        if (!LookupAccountSidA(NULL, ptgroups->Groups[i].Sid,
-            namebuffer, &namesize, domainbuffer, &domainbuffer_size, &name_use)) {
+        if (!lookupaccountsidutf8(NULL, ptgroups->Groups[i].Sid,
+            namebuffer,
+            &namesize,
+            domainbuffer,
+            &domainbuffer_size,
+            &name_use)) {
             DPRINTF(0, ("get_token_groups_names: "
-                "LookupAccountSidA() failed, status=%d.\n",
+                "lookupaccountsidutf8() failed, status=%d.\n",
                 (int)GetLastError()));
             continue;
         }
