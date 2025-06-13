@@ -46,7 +46,7 @@ typeset -A c.localised_groupnames
 # versions use different values
 typeset machine_sid="$(mkgroup -l | sed -n 's/[^:]*:\(S-[-0-9]*\)-513:.*$/\1/p')"
 if [[ "$machine_sid" != ~(El)S-1-5-21- ]] ; then
-	print -u2 -f "%s: Unexpected machine SID '%q'\n" \
+	print -u2 -f "%s: Unexpected machine SID %q\n" \
 		"$0" "$machine_sid"
 	exit 1
 fi
@@ -302,7 +302,7 @@ case "${c.mode}" in
 			fi
 		fi
 
-		print -u2 -f "cygwin_idmapper.ksh: Account '%q' not found.\n" "${c.name}"
+		print -u2 -f "cygwin_idmapper.ksh: Account %q not found.\n" "${c.name}"
 		exit 1
 		;;
 	'nfsserver_owner_group2localgroup')
@@ -341,7 +341,7 @@ case "${c.mode}" in
 			fi
 		fi
 
-		print -u2 -f "cygwin_idmapper.ksh: Group '%q' not found.\n" "${c.name}"
+		print -u2 -f "cygwin_idmapper.ksh: Group %q not found.\n" "${c.name}"
 		exit 1
 		;;
 	*)
