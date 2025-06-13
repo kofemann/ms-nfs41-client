@@ -37,7 +37,17 @@
 
 #define EXIT_USAGE (2)
 
-#if 1
+#ifdef DUPLICATE_EXTENTS_DATA_EX_SOURCE_ATOMIC
+/*
+ * MinGW commit
+ * https://github.com/mingw-w64/mingw-w64/commit/dd725c39e8eace4bfaa76e30e648b2bf7e7541e3
+ * added |DUPLICATE_EXTENTS_DATA| and |DUPLICATE_EXTENTS_DATA_EX_SOURCE_ATOMIC|
+ */
+#define WIN32_HEADERS_HAVE_DUPLICATE_EXTENTS_DATA 1
+#endif /* WIN32_HEADERS_HAVE_DUPLICATE_EXTENTS_DATA */
+
+
+#ifndef WIN32_HEADERS_HAVE_DUPLICATE_EXTENTS_DATA
 /*
  * MinGW include do not define |DUPLICATE_EXTENTS_DATA| yet, see
  * https://github.com/mingw-w64/mingw-w64/issues/90 ("[mingw-w64/mingw-w64]
@@ -49,7 +59,7 @@ typedef struct _DUPLICATE_EXTENTS_DATA {
     LARGE_INTEGER TargetFileOffset;
     LARGE_INTEGER ByteCount;
 } DUPLICATE_EXTENTS_DATA, *PDUPLICATE_EXTENTS_DATA;
-#endif
+#endif /* WIN32_HEADERS_HAVE_DUPLICATE_EXTENTS_DATA */
 
 
 void
