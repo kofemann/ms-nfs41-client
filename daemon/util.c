@@ -424,7 +424,7 @@ out:
 subcmd_popen_context *subcmd_popen(const char *command)
 {
     subcmd_popen_context *pinfo;
-    STARTUPINFOA si;
+    STARTUPINFOW si;
     SECURITY_ATTRIBUTES sa = { 0 };
 
     if (!command) {
@@ -483,8 +483,24 @@ subcmd_popen_context *subcmd_popen(const char *command)
     si.hStdError = GetStdHandle(STD_ERROR_HANDLE);
     si.dwFlags |= STARTF_USESTDHANDLES;
 
-    if (!CreateProcessA(NULL,
-        (LPSTR)command, NULL, NULL, TRUE, 0, NULL, NULL, &si,
+    size_t commandWSize = strlen(command)+1;
+    wchar_t *commandW = _alloca(commandWSize * sizeof(wchar_t));
+
+    if (MultiByteToWideChar(CP_UTF8,
+        0,
+        command,
+        -1,
+        commandW,
+        (int)commandWSize) == 0) {
+        if (GetLastError() == ERROR_SUCCESS) {
+            SetLastError(ERROR_INVALID_DATA);
+        }
+        DPRINTF(0, ("subcmd_popen: cannot convert cmdline to widechar\n"));
+        goto fail;
+    }
+
+    if (!CreateProcessW(NULL,
+        commandW, NULL, NULL, TRUE, 0, NULL, NULL, &si,
         &pinfo->pi)) {
         DPRINTF(0, ("subcmd_popen: cannot create process\n"));
         goto fail;
