@@ -1,5 +1,5 @@
 #
-# ms-nfs41-client manual testing sequence, 2025-05-10
+# ms-nfs41-client manual testing sequence, 2025-06-14
 #
 # Draft version, needs to be turned into automated tests
 # if possible
@@ -194,6 +194,9 @@ ksh93 -c 'builtin cp ; rm -f x y ; touch x ; cp -p x y && print OK ; true'
 ksh93 -c 'builtin cp ; rm -f x y ; touch x ; /usr/bin/cp -p x y && print OK ; true'
 ksh93 -c 'builtin id ; rm -f x ; touch x ; chown "$(id -u -n):$(id -g -n)" x && print OK'
 ksh93 -c 'builtin id ; rm -f x ; touch x ; chgrp "$(id -g -n)" x && print OK'
+# Extra tests if the cygwingrp*-groups exist on a test system:
+ksh93 -c 'builtin chgrp; rm -f x ; touch x ; chgrp "cygwingrp2" x && print OK'
+ksh93 -c 'builtin chgrp; rm -f x ; touch x ; chgrp "$(printf "cygwingrp_\u00F6\u00E4\u00FC_4")" x && print OK'
 ---- snip ----
 
 
@@ -290,33 +293,41 @@ mkdir //derfwnb4966_ipv6linklocal@2049/nfs4/bigdisk/builds/bash_build1/a2/b2 || 
 
 #
 # Tests for groups
-# (Add groups "cygwingrp1" and "cygwingrp2" to both Linux NFSv4 server
-# and Windows machine, after that $ chgrp cygwingrp2 # should work)
+# (Add groups "cygwingrp1", "cygwingrp2" and "cygwingrp_<oe><ae<ue>_4"
+# to both Linux NFSv4 server and Windows machine, after that
+# $ chgrp cygwingrp2 filename # and
+# $ chgrp $'cygwingrp_\u00F6\u00E4\u00FC_4' filename # should work)
 #
 ---- snip ----
 # "WINHOST1" is the Windows machine,
 # "DERFWNB4966" is the Linux NFSv4 server:
 
-# create two groups on the Windows machine
+# create three groups on the Windows machine
 WINHOST1:~$ net localgroup cygwingrp1 /add
 WINHOST1:~$ net localgroup cygwingrp2 /add
+WINHOST1:~$ powershell -Command 'New-LocalGroup -Name "cygwingrp_$([char]0x00F6)$([char]0x00E4)$([char]0x00FC)_4" -Description "Cygwin test group with non-ASCII chars in name"'
 
 # add user "roland_mainz" to both new groups
 WINHOST1:~$ net localgroup cygwingrp1 roland_mainz /add
 WINHOST1:~$ net localgroup cygwingrp2 roland_mainz /add
+WINHOST1:~$ powershell -Command 'Add-LocalGroupMember -Group "cygwingrp_$([char]0x00F6)$([char]0x00E4)$([char]0x00FC)_4" -Member roland_mainz'
 
 # get gid from both groups
 WINHOST1:~$ getent group cygwingrp1
 cygwingrp1:S-1-5-21-3286904461-661230000-4220857270-1003:197611:
 WINHOST1:~$ getent group cygwingrp2
 cygwingrp2:S-1-5-21-3286904461-661230000-4220857270-1004:197612:
+WINHOST1:~$ getent group $'cygwingrp_\u00F6\u00E4\u00FC_4'
+cygwingrp_<oe><ae<ue>_4:S-1-5-21-1849874161-1103376535-3295315891-1008:197616:
 
 # add the two groups to the Linux NFSv4 server, including the gids
-("197611" and "197612"):
+("197611", "197612" and "197616"):
 root@DERFWNB4966:~# groupadd -g 197611 cygwingrp1
 root@DERFWNB4966:~# groupadd -g 197612 cygwingrp2
+root@DERFWNB4966:~# printf "cygwingrp_\u00F6\u00E4\u00FC_4:x:197616:\n" >>'/etc/group'
 root@DERFWNB4966:~# usermod -a -G cygwingrp1 roland_mainz
 root@DERFWNB4966:~# usermod -a -G cygwingrp2 roland_mainz
+# user "roland_mainz" must be manually added to group "cygwingrp2_<oe><ae<ue>_4"
 ---- snip ---
 
 #
