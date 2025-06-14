@@ -2,7 +2,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2023 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (c) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -37,7 +37,7 @@
  *
  * ToDo:
  * - arrays (indexed, sparse indexed and associative)
- * - multibyte characters
+ * - multibyte characters (e.g. use |wchar_t| API)
  *
  * Written by Roland Mainz <roland.mainz@nrubsig.org>
  */
@@ -52,7 +52,24 @@
 
 #ifdef _WIN32
 #define strdup(s) _strdup(s)
-#endif
+#ifdef _MSC_VER
+/*
+ * Hack to avoid UCRT assertion
+ * "minkernel\crts\ucrt\src\appcrt\convert\isctype.cpp(36) :
+ * Assertion failed: c >= -1 && c <= 255"
+ * This hack works for UTF-8 because UTF-8 and ASCII are identical for code
+ * codepoints between 0 and 127 (i.e. UTF-8 is intentionally
+ * backwards-compatible to ASCII).
+ * Permanent fix would be to switch over to the |wchar_t| API.
+ */
+#undef isspace
+#define isspace(c) isspace((((c) >= 0) && ((c) < 127))?(c):0)
+#undef isalpha
+#define isalpha(c) isalpha((((c) >= 0) && ((c) < 127))?(c):0)
+#undef isalnum
+#define isalnum(c) isalnum((((c) >= 0) && ((c) < 127))?(c):0)
+#endif /* _MSC_VER */
+#endif /* _WIN32 */
 
 /* private data! */
 typedef struct cpv_parse_context {
