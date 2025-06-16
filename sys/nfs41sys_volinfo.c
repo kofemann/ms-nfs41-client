@@ -199,9 +199,6 @@ NTSTATUS nfs41_QueryVolumeInformation(
         status = STATUS_SUCCESS;
         goto out;
     }
-    case FileAccessInformation:
-        status = STATUS_NOT_SUPPORTED;
-        goto out;
 
     case FileFsAttributeInformation:
         if (RxContext->Info.LengthRemaining < FS_ATTR_LEN) {
