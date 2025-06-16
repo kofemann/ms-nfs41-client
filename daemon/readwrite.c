@@ -268,8 +268,8 @@ retry_write:
     committed = FILE_SYNC4;
 
     if (to_send > maxwritesize) {
-        DPRINTF(1, ("handle_nfs41_write: writing %d in chunks of %d\n",
-            to_send, maxwritesize));
+        DPRINTF(1, ("handle_nfs41_write: writing %lu in chunks of %lu\n",
+            (unsigned long)to_send, (unsigned long)maxwritesize));
     }
 
     while(to_send > 0) {
@@ -293,7 +293,9 @@ retry_write:
         }
     }
     if (committed != FILE_SYNC4) {
-        DPRINTF(1, ("sending COMMIT for offset=%d and len=%d\n", args->offset, len));
+        DPRINTF(1, ("sending COMMIT for offset=%llu and len=%d\n",
+            (unsigned long long)args->offset,
+            (unsigned long)len));
         status = nfs41_commit(session, file, args->offset, len, 1, &verf, &info);
         if (status)
             goto out;

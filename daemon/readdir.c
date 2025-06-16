@@ -871,13 +871,14 @@ fetch_entries:
             entry = (nfs41_readdir_entry*)entry_pos;
             offset = (PULONG)dst_pos; /* ULONG NextEntryOffset */
 
-            DPRINTF(2, ("filter '%s' looking at '%s' with cookie %d\n",
-                args->filter, entry->name, entry->cookie));
+            DPRINTF(2, ("filter '%s' looking at '%s' with cookie %lld\n",
+                args->filter, entry->name, (long long)entry->cookie));
             if (readdir_filter((const char*)args->filter, entry->name)) {
                 if (readdir_copy_entry(args, entry, &dst_pos, &dst_len)) {
                     eof = 0;
-                    DPRINTF(2, ("not enough space to copy entry '%s' (cookie %d)\n",
-                        entry->name, entry->cookie));
+                    DPRINTF(2,
+                        ("not enough space to copy entry '%s' (cookie %lld)\n",
+                        entry->name, (long long)entry->cookie));
                     break;
                 }
                 last_offset = offset;

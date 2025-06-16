@@ -1,5 +1,6 @@
 /* NFSv4.1 client for Windows
- * Copyright © 2012 The Regents of the University of Michigan
+ * Copyright (C) 2012 The Regents of the University of Michigan
+ * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -534,7 +535,8 @@ static int getdomainname()
                 else {
                     size_t i, len = strlen(hostname);
                     char *p = hostname;
-                    DPRINTF(1, ("getdomainname: hostname '%s' %d\n", hostname, len));
+                    DPRINTF(1, ("getdomainname: hostname '%s' %ld\n",
+                        hostname, (long)len));
                     for (i = 0; i < len; i++)
                         if (p[i] == '.')
                             break;
@@ -542,8 +544,9 @@ static int getdomainname()
                         break;
                     flag = TRUE;
                     memcpy(nfs41_dg.localdomain_name, &hostname[i+1], len-i);
-                    DPRINTF(1, ("getdomainname: domainname '%s' %d\n",
-                            nfs41_dg.localdomain_name, strlen(nfs41_dg.localdomain_name)));
+                    DPRINTF(1, ("getdomainname: domainname '%s' %ld\n",
+                            nfs41_dg.localdomain_name,
+                            (long)strlen(nfs41_dg.localdomain_name)));
                     goto out_loop;
                 }
                 break;

@@ -251,7 +251,7 @@ static int do_open(
     if (deleg_state) {
         deleg_state->srv_open = state->srv_open;
         DPRINTF(1, ("do_open: "
-            "received delegation: saving srv_open = 0x%x\n",
+            "received delegation: saving srv_open = 0x%p\n",
             state->srv_open));
     }
 
@@ -1310,7 +1310,7 @@ static int parse_close(unsigned char *buffer, uint32_t length, nfs41_upcall *upc
 
     DPRINTF(1,
         ("parsing NFS41_SYSOP_CLOSE: "
-        "remove=%d srv_open=0x%x renamed=%d "
+        "remove=%d srv_open=0x%p renamed=%d "
         "filename='%s'\n",
         args->remove, args->srv_open, args->renamed,
         args->remove ? args->path : ""));

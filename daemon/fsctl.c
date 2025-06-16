@@ -458,7 +458,7 @@ static int parse_duplicatedata(unsigned char *buffer,
         "duplicatedata=(src_state=0x%p srcfileoffset=%lld "
         "destfileoffset=%lld bytecount=%lld)\n",
         opcode2string(upcall->opcode),
-        (long long)args->src_state,
+        args->src_state,
         (long long)args->srcfileoffset,
         (long long)args->destfileoffset,
         (long long)args->bytecount));

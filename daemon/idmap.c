@@ -1,5 +1,6 @@
 /* NFSv4.1 client for Windows
- * Copyright © 2012 The Regents of the University of Michigan
+ * Copyright (C) 2012 The Regents of the University of Michigan
+ * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -266,8 +267,8 @@ static int config_defaults(
             if (FAILED(StringCchCopyA(dst, option->max_len, option->def))) {
                 status = ERROR_BUFFER_OVERFLOW;
                 eprintf("failed to parse default value of '%s'=\"%s\": "
-                    "buffer overflow > %u\n", option->key, option->def,
-                    option->max_len);
+                    "buffer overflow > %lu\n", option->key, option->def,
+                    (unsigned long)option->max_len);
                 break;
             }
         }
@@ -584,7 +585,7 @@ static int idmap_filter(
                 config->attributes[lookup->attr], (const char *)lookup->value))) {
             status = ERROR_BUFFER_OVERFLOW;
             eprintf("ldap filter buffer overflow: '%s=%s'\n",
-                config->attributes[lookup->attr], lookup->value);
+                config->attributes[lookup->attr], (const char *)lookup->value);
         }
         break;
 
@@ -727,8 +728,11 @@ static int idmap_lookup_user(
 
         if (!cygwin_getent_passwd(lookup->value, NULL, &cy_uid, &cy_gid)) {
             DPRINTF(CYGWINIDLVL,
-                ("# ATTR_USER_NAME: cygwin_getent_passwd: returned '%s', uid=%u, gid=%u\n",
-                lookup->value, (unsigned int)cy_uid, (unsigned int)cy_gid));
+                ("# ATTR_USER_NAME: cygwin_getent_passwd: "
+                "returned '%s', uid=%u, gid=%u\n",
+                (const char *)lookup->value,
+                (unsigned int)cy_uid,
+                (unsigned int)cy_gid));
             (void)snprintf(principal_name, sizeof(principal_name),
                 "%s@%s", (const char *)lookup->value,
                 context->config.localdomain_name);
@@ -758,8 +762,11 @@ static int idmap_lookup_user(
 
         if (!cygwin_getent_passwd(search_name, NULL, &cy_uid, &cy_gid)) {
             DPRINTF(CYGWINIDLVL,
-                ("# ATTR_PRINCIPAL: cygwin_getent_passwd: returned '%s', uid=%u, gid=%u\n",
-                lookup->value, (unsigned int)cy_uid, (unsigned int)cy_gid));
+                ("# ATTR_PRINCIPAL: cygwin_getent_passwd: "
+                "returned '%s', uid=%u, gid=%u\n",
+                (const char *)lookup->value,
+                (unsigned int)cy_uid,
+                (unsigned int)cy_gid));
             (void)snprintf(principal_name, sizeof(principal_name),
                 "%s@%s", (const char *)lookup->value,
                 context->config.localdomain_name);
@@ -787,8 +794,11 @@ static int idmap_lookup_user(
 
         if (!cygwin_getent_passwd(search_name, res_username, &cy_uid, &cy_gid)) {
             DPRINTF(CYGWINIDLVL,
-                ("# ATTR_UID: cygwin_getent_passwd: returned '%s', uid=%u, gid=%u\n",
-                res_username, (unsigned int)cy_uid, (unsigned int)cy_gid));
+                ("# ATTR_UID: cygwin_getent_passwd: "
+                "returned '%s', uid=%u, gid=%u\n",
+                res_username,
+                (unsigned int)cy_uid,
+                (unsigned int)cy_gid));
             (void)snprintf(principal_name, sizeof(principal_name),
                 "%s@%s", res_username, context->config.localdomain_name);
 
@@ -881,7 +891,8 @@ static int idmap_lookup_group(
             DPRINTF(CYGWINIDLVL,
                 ("# ATTR_GROUP_NAME: cygwin_getent_group: "
                 "returned '%s', gid=%u\n",
-                lookup->value, (unsigned int)cy_gid));
+                (const char *)lookup->value,
+                (unsigned int)cy_gid));
             StringCchCopyA(group->name, VAL_LEN, lookup->value);
             group->gid = cy_gid;
             status = 0;

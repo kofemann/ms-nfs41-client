@@ -1,5 +1,6 @@
 /* NFSv4.1 client for Windows
- * Copyright © 2012 The Regents of the University of Michigan
+ * Copyright (C) 2012 The Regents of the University of Michigan
+ * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -120,10 +121,19 @@ extern int g_debug_level;
 
 /* daemon_debug.h */
 void set_debug_level(int level);
-void logprintf(LPCSTR format, ...);
-void dprintf_out(LPCSTR format, ...);
-void eprintf_out(LPCSTR format, ...);
-void eprintf(LPCSTR format, ...);
+#ifdef _MSC_VER
+void logprintf(_In_z_ _Printf_format_string_ const char *restrict format, ...);
+void dprintf_out(_In_z_ _Printf_format_string_ const char *restrict format,
+    ...);
+void eprintf_out(_In_z_ _Printf_format_string_ const char *restrict format,
+    ...);
+void eprintf(_In_z_ _Printf_format_string_ const char *restrict format, ...);
+#else
+void logprintf(const char *restrict format, ...);
+void dprintf_out(const char *restrict format, ...);
+void eprintf_out(const char *restrict format, ...);
+void eprintf(const char *restrict format, ...);
+#endif /* _MSC_VER */
 
 const char *map_nfs_ftype2str(int ftype);
 const char *map_nfs_acetype2str(uint32_t ace_type);

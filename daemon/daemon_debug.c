@@ -98,7 +98,11 @@ void open_log_files()
 
 #define DPRINTF_PRINT_IMPERSONATION_USER 1
 
-void dprintf_out(LPCSTR format, ...)
+#ifdef _MSC_VER
+void dprintf_out(_In_z_ _Printf_format_string_ const char *restrict format, ...)
+#else
+void dprintf_out(const char *restrict format, ...)
+#endif /* _MSC_VER */
 {
     va_list args;
     va_start(args, format);
@@ -160,7 +164,11 @@ void dprintf_out(LPCSTR format, ...)
 }
 
 /* log events (mount, umount, auth, ...) */
-void logprintf(LPCSTR format, ...)
+#ifdef _MSC_VER
+void logprintf(_In_z_ _Printf_format_string_ const char *restrict format, ...)
+#else
+void logprintf(const char *restrict format, ...)
+#endif /* _MSC_VER */
 {
     SYSTEMTIME stime;
     char username[UNLEN+1];
@@ -214,7 +222,11 @@ void logprintf(LPCSTR format, ...)
     }
 }
 
-void eprintf_out(LPCSTR format, ...)
+#ifdef _MSC_VER
+void eprintf_out(_In_z_ _Printf_format_string_ const char *restrict format, ...)
+#else
+void eprintf_out(const char *restrict format, ...)
+#endif /* _MSC_VER */
 {
     va_list args;
     va_start(args, format);
@@ -223,7 +235,11 @@ void eprintf_out(LPCSTR format, ...)
     va_end(args);
 }
 
-void eprintf(LPCSTR format, ...)
+#ifdef _MSC_VER
+void eprintf(_In_z_ _Printf_format_string_ const char *restrict format, ...)
+#else
+void eprintf(const char *restrict format, ...)
+#endif /* _MSC_VER */
 {
     va_list args;
     va_start(args, format);
@@ -1166,7 +1182,7 @@ void debug_list_sparsefile_holes(nfs41_open_state *state)
         dprintf_out("initial SEEK_HOLE failed "
         "OP_SEEK(sa_offset=%llu,sa_what=SEEK_HOLE) "
         "failed with %d(='%s')\n",
-        0,
+        0ULL,
         seek_status,
         nfs_error_string(seek_status));
         goto out;
@@ -1216,7 +1232,7 @@ void debug_list_sparsefile_holes(nfs41_open_state *state)
         dprintf_out("initial SEEL_DATA failed "
         "OP_SEEK(sa_offset=%llu,sa_what=SEEK_DATA) "
         "failed with %d(='%s')\n",
-        0,
+        0ULL,
         seek_status,
         nfs_error_string(seek_status));
         goto out;
