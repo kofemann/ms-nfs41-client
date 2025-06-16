@@ -2,7 +2,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2024 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (c) 2024-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -289,7 +289,7 @@ int usage(void)
         "\t\twinsg /g abc1 /C\n"
         "\n"
         "\t2. Run new Cygwin shell (bash) with primary group 'abc2':\n"
-        "\t\twinsg -g abc2 -g\n"
+        "\t\twinsg -g abc2 -c\n"
         "\n"
         "\t3. Start /bin/id from cmd.exe with primary group 'abc3':\n"
         "\t\twinsg /g abc3 /C 'C:\\cygwin64\\bin\\id.exe -a'\n"
