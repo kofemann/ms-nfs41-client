@@ -12,10 +12,14 @@ export LC_ALL='en_US.UTF-8'
 # (stored in compound variable so we
 # can do a $ print -u2 -v c # for debugging)
 #
-compound c=(
-	mode="$1"
-	name="${2-}"
-)
+compound c
+
+c.mode="$1"
+if (( $# > 1 )) ; then
+	# strip '"' characters (for Cygwin 3.3 compatibility)
+	# note that "${2-//..." does NOT work!
+	c.name="${2//\"/}"
+fi
 
 #
 # Windows uses localised user and group names,
