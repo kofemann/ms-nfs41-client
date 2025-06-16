@@ -31,7 +31,8 @@
 
 /*
  * Compile with:
- * $ clang -target x86_64-pc-windows-gnu -Wall -g winsg.c -o winsg.exe #
+ * $ clang -target x86_64-pc-windows-gnu -municode -Wall -Wextra \
+ *      -DUNICODE=1 -D_UNICODE=1 -g winsg.c -o winsg.x86_64.exe #
  */
 
 #define UNICODE 1
@@ -40,6 +41,8 @@
 #include <windows.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <locale.h>
+#include <fcntl.h>
 #include <assert.h>
 #include <Lmcons.h>
 #include <process.h>
@@ -51,11 +54,11 @@
 #endif
 
 #ifdef _WIN64
-#define CYGWIN_BASH_PATH "C:\\cygwin64\\bin\\bash.exe"
+#define CYGWIN_BASH_PATH L"C:\\cygwin64\\bin\\bash.exe"
 #else
-#define CYGWIN_BASH_PATH "C:\\cygwin\\bin\\bash.exe"
+#define CYGWIN_BASH_PATH L"C:\\cygwin\\bin\\bash.exe"
 #endif /* _WIN64 */
-#define WIN32_CMDEXE_PATH "C:\\Windows\\system32\\cmd.exe"
+#define WIN32_CMDEXE_PATH L"C:\\Windows\\system32\\cmd.exe"
 
 /*
  * DECLARE_SID_BUFFER - declare a buffer for a SID value
@@ -87,13 +90,13 @@
 
 D(
 static
-bool get_token_primarygroup_name(HANDLE tok, char *out_buffer)
+bool get_token_primarygroup_name(HANDLE tok, wchar_t *out_buffer)
 {
     DWORD tokdatalen;
     PTOKEN_PRIMARY_GROUP ptpgroup;
     PSID pgsid;
     DWORD namesize = GNLEN+1;
-    char domainbuffer[UNLEN+1];
+    wchar_t domainbuffer[UNLEN+1];
     DWORD domainbuffer_size = sizeof(domainbuffer);
     SID_NAME_USE name_use;
 
@@ -101,19 +104,19 @@ bool get_token_primarygroup_name(HANDLE tok, char *out_buffer)
     ptpgroup = _alloca(tokdatalen);
     if (!GetTokenInformation(tok, TokenPrimaryGroup, ptpgroup,
         tokdatalen, &tokdatalen)) {
-        D((void)fprintf(stderr, "get_token_primarygroup_name: "
-            "GetTokenInformation(tok=0x%p, TokenPrimaryGroup) failed, "
-            "status=%d.\n",
+        D((void)fwprintf(stderr, L"get_token_primarygroup_name: "
+            L"GetTokenInformation(tok=0x%p, TokenPrimaryGroup) failed, "
+            L"status=%d.\n",
             (void *)tok, (int)GetLastError()));
         return false;
     }
 
     pgsid = ptpgroup->PrimaryGroup;
 
-    if (!LookupAccountSidA(NULL, pgsid, out_buffer, &namesize,
+    if (!LookupAccountSidW(NULL, pgsid, out_buffer, &namesize,
         domainbuffer, &domainbuffer_size, &name_use)) {
-        D((void)fprintf(stderr, "get_token_primarygroup_name: "
-            "LookupAccountSidA() failed, status=%d.\n",
+        D((void)fwprintf(stderr, L"get_token_primarygroup_name: "
+            L"LookupAccountSidW() failed, status=%d.\n",
             (int)GetLastError()));
         return false;
     }
@@ -132,16 +135,16 @@ bool is_group_in_token(HANDLE tok, PSID qsid)
     ptgroups = _alloca(tokdatalen);
     if (!GetTokenInformation(tok, TokenGroups, ptgroups,
         tokdatalen, &tokdatalen)) {
-        D((void)fprintf(stderr, "is_group_in_token: "
-            "GetTokenInformation(tok=0x%p, TokenGroups) failed, "
-            "status=%d.\n",
+        D((void)fwprintf(stderr, L"is_group_in_token: "
+            L"GetTokenInformation(tok=0x%p, TokenGroups) failed, "
+            L"status=%d.\n",
             (void *)tok, (int)GetLastError()));
         return false;
     }
 
-    int i;
+    DWORD i;
     D(
-        (void)fprintf(stderr, "is_group_in_token: got %d groups\n",
+        (void)fwprintf(stderr, L"is_group_in_token: got %d groups\n",
             (int)ptgroups->GroupCount)
     );
     for (i = 0 ; i < ptgroups->GroupCount ; i++) {
@@ -162,9 +165,9 @@ int print_groups_in_token(HANDLE tok)
 {
     DWORD tokdatalen;
     PTOKEN_GROUPS ptgroups;
-    char namebuffer[GNLEN+1];
+    wchar_t namebuffer[GNLEN+1];
     DWORD namesize;
-    char domainbuffer[UNLEN+1];
+    wchar_t domainbuffer[UNLEN+1];
     DWORD domainbuffer_size;
     SID_NAME_USE name_use;
 
@@ -172,16 +175,16 @@ int print_groups_in_token(HANDLE tok)
     ptgroups = _alloca(tokdatalen);
     if (!GetTokenInformation(tok, TokenGroups, ptgroups,
         tokdatalen, &tokdatalen)) {
-        D((void)fprintf(stderr, "print_groups_in_token: "
-            "GetTokenInformation(tok=0x%p, TokenGroups) failed, "
-            "status=%d.\n",
+        D((void)fwprintf(stderr, L"print_groups_in_token: "
+            L"GetTokenInformation(tok=0x%p, TokenGroups) failed, "
+            L"status=%d.\n",
             (void *)tok, (int)GetLastError()));
         return 1;
     }
 
-    int i;
+    DWORD i;
     D(
-        (void)fprintf(stderr, "print_groups_in_token: got %d groups\n",
+        (void)fwprintf(stderr, L"print_groups_in_token: got %d groups\n",
             (int)ptgroups->GroupCount)
     );
     for (i = 0 ; i < ptgroups->GroupCount ; i++) {
@@ -192,33 +195,33 @@ int print_groups_in_token(HANDLE tok)
         namesize = sizeof(namebuffer)-1;
         domainbuffer_size = sizeof(domainbuffer)-1;
 
-        if (!LookupAccountSidA(NULL, ptgroups->Groups[i].Sid,
+        if (!LookupAccountSidW(NULL, ptgroups->Groups[i].Sid,
             namebuffer, &namesize, domainbuffer, &domainbuffer_size, &name_use)) {
-            D((void)fprintf(stderr, "print_groups_in_token: "
-                "LookupAccountSidA() failed, status=%d.\n",
+            D((void)fwprintf(stderr, L"print_groups_in_token: "
+                "LookupAccountSidW() failed, status=%d.\n",
                 (int)GetLastError()));
             continue;
         }
 
-        (void)printf("group='%s'\n", namebuffer);
+        (void)fwprintf(stdout, L"group='%ls'\n", namebuffer);
     }
 
-    D((void)puts("is_group_in_token: #no match"));
+    D((void)fwprintf(stdout, L"is_group_in_token: #no match\n"));
 
     return 0;
 }
 
 static
-bool get_group_sid(const char *groupname, PSID pgsid, PDWORD pgsid_size)
+bool get_group_sid(const wchar_t *groupname, PSID pgsid, PDWORD pgsid_size)
 {
-    char domainbuffer[UNLEN+1];
+    wchar_t domainbuffer[UNLEN+1];
     DWORD domainbuffer_size = sizeof(domainbuffer);
     SID_NAME_USE name_use;
 
-    if (!LookupAccountNameA(NULL, groupname,
+    if (!LookupAccountNameW(NULL, groupname,
         pgsid, pgsid_size, domainbuffer, &domainbuffer_size, &name_use)) {
-        D((void)fprintf(stderr, "get_group_sid: "
-            "LookupAccountNameA() failed.\n"));
+        D((void)fwprintf(stderr, L"get_group_sid: "
+            L"LookupAccountNameW() failed.\n"));
         return false;
     }
 
@@ -235,9 +238,9 @@ bool set_token_primarygroup_sid(HANDLE tok, PSID pgsid)
     tpgroup.PrimaryGroup = pgsid;
     if (!SetTokenInformation(tok, TokenPrimaryGroup,
         &tpgroup, tokdatalen)) {
-        D((void)fprintf(stderr, "set_token_primarygroup_sid: "
-            "SetTokenInformation(tok=0x%p, TokenPrimaryGroup) failed, "
-            "status=%d\n",
+        D((void)fwprintf(stderr, L"set_token_primarygroup_sid: "
+            L"SetTokenInformation(tok=0x%p, TokenPrimaryGroup) failed, "
+            L"status=%d\n",
             (void *)tok, (int)GetLastError()));
         return false;
     }
@@ -246,21 +249,22 @@ bool set_token_primarygroup_sid(HANDLE tok, PSID pgsid)
 }
 
 static
-char *stpcpy (char *restrict s1, const char *restrict s2)
+wchar_t *wcpcpy(wchar_t *restrict s1, const wchar_t *restrict s2)
 {
-    size_t l = strlen(s2);
-    return memcpy(s1, s2, l+1) + l;
+    size_t l = wcslen(s2);
+    return memcpy(s1, s2, (l+1)*sizeof(wchar_t)) + l*sizeof(wchar_t);
 }
 
 static
-void win32cmd_quotearg(char *s1, const char *s2)
+void win32cmd_quotearg(wchar_t *s1, const wchar_t *s2)
 {
-    int c;
-    *s1++ = '"';
-    while ((c = *s2) != '\0') {
+    wchar_t c;
+
+    *s1++ = L'"';
+    while ((c = *s2) != L'\0') {
         switch(c) {
-            case '"':
-                *s1++='\\';
+            case L'"':
+                *s1++=L'\\';
                 *s1 = c;
                 break;
             default:
@@ -270,38 +274,38 @@ void win32cmd_quotearg(char *s1, const char *s2)
         s1++;
         s2++;
     }
-    *s1++ = '"';
-    *s1 = '\0';
+    *s1++ = L'"';
+    *s1 = L'\0';
 }
 
 static
 int usage(void)
 {
-    (void)fprintf(stderr,
-        "Usage: winsg [-] -g group [-c command]\n"
-        "Usage: winsg [-] /g group [/C command]\n"
-        "Usage: winsg -L\n"
-        "Usage: winsg /? | -h | --help\n"
-        "Execute command as different primary group ID\n"
-        "\n"
-        "Examples:\n"
-        "\t1. Run new cmd.exe with primary group 'abc1':\n"
-        "\t\twinsg /g abc1 /C\n"
-        "\n"
-        "\t2. Run new Cygwin shell (bash) with primary group 'abc2':\n"
-        "\t\twinsg -g abc2 -c\n"
-        "\n"
-        "\t3. Start /bin/id from cmd.exe with primary group 'abc3':\n"
-        "\t\twinsg /g abc3 /C 'C:\\cygwin64\\bin\\id.exe -a'\n"
-        "\n"
-        "\t4. Start /bin/id from Cygwin shell (bash) with primary "
-            "group 'abc4':\n"
-        "\t\twinsg -g abc4 -c '/bin/id.exe -a'\n"
-        "\n"
-        "\t5. List currently available groups which can be passed to "
-            "winsg -g ...\n"
-        "\t\twinsg -L\n"
-        "\n"
+    (void)fwprintf(stderr,
+        L"Usage: winsg [-] -g group [-c command]\n"
+        L"Usage: winsg [-] /g group [/C command]\n"
+        L"Usage: winsg -L\n"
+        L"Usage: winsg /? | -h | --help\n"
+        L"Execute command as different primary group ID\n"
+        L"\n"
+        L"Examples:\n"
+        L"\t1. Run new cmd.exe with primary group 'abc1':\n"
+        L"\t\twinsg /g abc1 /C\n"
+        L"\n"
+        L"\t2. Run new Cygwin shell (bash) with primary group 'abc2':\n"
+        L"\t\twinsg -g abc2 -c\n"
+        L"\n"
+        L"\t3. Start /bin/id from cmd.exe with primary group 'abc3':\n"
+        L"\t\twinsg /g abc3 /C 'C:\\cygwin64\\bin\\id.exe -a'\n"
+        L"\n"
+        L"\t4. Start /bin/id from Cygwin shell (bash) with primary "
+            L"group 'abc4':\n"
+        L"\t\twinsg -g abc4 -c '/bin/id.exe -a'\n"
+        L"\n"
+        L"\t5. List currently available groups which can be passed to "
+            L"winsg -g ...\n"
+        L"\t\twinsg -L\n"
+        L"\n"
         "Please report bugs to "
         "Roland Mainz <roland.mainz@nrubsig.org>.\n");
 
@@ -316,11 +320,11 @@ enum shelltype {
     SHELLTYPE_SYSTEM
 };
 
-int main(int ac, char *av[])
+int wmain(int ac, wchar_t *av[])
 {
     enum shelltype st = SHELLTYPE_NOT_SET;
     int cmd_arg_index = -1;
-    const char *newgrpname = NULL;
+    const wchar_t *newgrpname = NULL;
     HANDLE tok = INVALID_HANDLE_VALUE;
     int subcmdret = EXIT_FAILURE;
     int retval = 1;
@@ -328,20 +332,26 @@ int main(int ac, char *av[])
     bool cmd_runasgroup = false;
     bool cmd_list_token = false;
 
-    for (i=1 ; i < ac ; i++) {
-        D((void)fprintf(stderr, "# i=%d, av[i]='%s'\n", i, av[i]));
+    (void)setlocale(LC_CTYPE, ".UTF-8");
 
-        if (!strcmp(av[i], "-")) {
-            (void)fprintf(stderr, "%s: "
-                "Run in new login not supported yet.\n", av[0]);
+    (void)_setmode(fileno(stdin), _O_U8TEXT);
+    (void)_setmode(fileno(stdout), _O_U8TEXT);
+    (void)_setmode(fileno(stderr), _O_U8TEXT);
+
+    for (i=1 ; i < ac ; i++) {
+        D((void)fwprintf(stderr, L"# i=%d, av[i]='%ls'\n", i, av[i]));
+
+        if (!wcscmp(av[i], L"-")) {
+            (void)fwprintf(stderr,
+                L"%ls: Run in new login not supported yet.\n", av[0]);
             retval = 1;
             goto done;
         }
-        else if (!strcmp(av[i], "-c")) {
+        else if (!wcscmp(av[i], L"-c")) {
             /* -c can take zero or one argument */
             if ((ac-i) > 2) {
-                (void)fprintf(stderr, "%s: "
-                    "Too many arguments for -c.\n", av[0]);
+                (void)fwprintf(stderr,
+                    L"%ls: Too many arguments for -c.\n", av[0]);
                 retval = 1;
                 goto done;
             }
@@ -351,11 +361,11 @@ int main(int ac, char *av[])
             cmd_arg_index = i+1;
             break;
         }
-        else if (!strcmp(av[i], "/C")) {
+        else if (!wcscmp(av[i], L"/C")) {
             /* /C can take zero or one argument */
             if ((ac-i) > 2) {
-                (void)fprintf(stderr, "%s: "
-                    "Too many arguments for /C.\n", av[0]);
+                (void)fwprintf(stderr,
+                    L"%ls: Too many arguments for /C.\n", av[0]);
                 retval = 1;
                 goto done;
             }
@@ -365,30 +375,30 @@ int main(int ac, char *av[])
             cmd_arg_index = i+1;
             break;
         }
-        else if ((!strcmp(av[i], "-g")) ||
-            (!strcmp(av[i], "/g"))) {
+        else if ((!wcscmp(av[i], L"-g")) ||
+            (!wcscmp(av[i], L"/g"))) {
             newgrpname = av[i+1];
             i++;
             cmd_runasgroup = true;
         }
-        else if ((!strcmp(av[i], "/?")) ||
-                (!strcmp(av[i], "-h")) ||
-                (!strcmp(av[i], "--help")) ||
-                (!strcmp(av[i], "--usage"))) {
+        else if ((!wcscmp(av[i], L"/?")) ||
+                (!wcscmp(av[i], L"-h")) ||
+                (!wcscmp(av[i], L"--help")) ||
+                (!wcscmp(av[i], L"--usage"))) {
             retval = usage();
             goto done;
         }
-        else if (!strcmp(av[i], "-L")) {
+        else if (!wcscmp(av[i], L"-L")) {
             cmd_list_token = true;
         }
-        else if ((av[i][0] == '-') || (av[i][0] == '/')) {
-            (void)fprintf(stderr, "%s: "
-                "Unsupported option '%s'.\n", av[0], av[i]);
+        else if ((av[i][0] == L'-') || (av[i][0] == L'/')) {
+            (void)fwprintf(stderr,
+                L"%ls: Unsupported option '%ls'.\n", av[0], av[i]);
             retval = usage();
             goto done;
         }
         else {
-            if ((i == 1) && (*av[i] != '-')) {
+            if ((i == 1) && (*av[i] != L'-')) {
                 cmd_runasgroup = true;
                 newgrpname = av[i];
                 continue;
@@ -402,7 +412,7 @@ int main(int ac, char *av[])
     }
 
     if (((int)cmd_runasgroup+(int)cmd_list_token) > 1) {
-        (void)fprintf(stderr, "%s: Incompatible option combination\n",
+        (void)fwprintf(stderr, L"%ls: Incompatible option combination\n",
             av[0]);
         retval = 1;
         goto done;
@@ -422,24 +432,24 @@ int main(int ac, char *av[])
     }
 
     if ((!cmd_list_token) && (!newgrpname)) {
-        (void)fprintf(stderr, "%s: No group name given.\n", av[0]);
+        (void)fwprintf(stderr, L"%ls: No group name given.\n", av[0]);
         retval = 1;
         goto done;
     }
 
-    D((void)fprintf(stderr,
-        "# shelltype=%d, cmd_arg_index=%d, "
-        "av[cmd_arg_index]='%s', "
-        "new group name '%s'\n",
+    D((void)fwprintf(stderr,
+        L"# shelltype=%d, cmd_arg_index=%d, "
+        L"av[cmd_arg_index]='%ls', "
+        L"new group name '%ls'\n",
         (int)st,
         cmd_arg_index,
-        ((cmd_arg_index >= 0)?av[cmd_arg_index]:"<negative-av-idx>"),
+        ((cmd_arg_index >= 0)?av[cmd_arg_index]:L"<negative-av-idx>"),
         newgrpname));
 
     if (!OpenProcessToken(GetCurrentProcess(),
         TOKEN_QUERY|TOKEN_ADJUST_DEFAULT|TOKEN_DUPLICATE,
         &tok)) {
-        (void)fprintf(stderr, "%s: Cannot open token.\n", av[0]);
+        (void)fwprintf(stderr, L"%ls: Cannot open token.\n", av[0]);
         retval = 1;
         goto done;
     }
@@ -450,10 +460,10 @@ int main(int ac, char *av[])
     }
 
     D(
-        char pgroupname[GNLEN+1];
+        wchar_t pgroupname[GNLEN+1];
 
         get_token_primarygroup_name(tok, pgroupname);
-        (void)printf("primary group name '%s'\n", pgroupname);
+        (void)printf("primary group name '%ls'\n", pgroupname);
     )
 
     DECLARE_SID_BUFFER(sidbuff);
@@ -461,23 +471,23 @@ int main(int ac, char *av[])
     DWORD pgsid_size = SECURITY_MAX_SID_SIZE;
 
     if (!get_group_sid(newgrpname, pgsid, &pgsid_size)) {
-        (void)fprintf(stderr, "%s: Could not find group '%s'.\n",
+        (void)fwprintf(stderr, L"%ls: Could not find group '%ls'.\n",
             av[0], newgrpname);
         retval = 1;
         goto done;
     }
 
     if (!is_group_in_token(tok, pgsid)) {
-        (void)fprintf(stderr, "%s: "
-            "Current user is not a member of group '%s'.\n",
+        (void)fwprintf(stderr,
+            L"%ls: Current user is not a member of group '%ls'.\n",
             av[0], newgrpname);
         retval = 1;
         goto done;
     }
 
     if (!set_token_primarygroup_sid(tok, pgsid)) {
-        (void)fprintf(stderr,
-            "%s: Could not switch to new primary group '%s'.\n",
+        (void)fwprintf(stderr,
+            L"%ls: Could not switch to new primary group '%ls'.\n",
             av[0], newgrpname);
         retval = 1;
         goto done;
@@ -485,7 +495,7 @@ int main(int ac, char *av[])
 
     D(
         get_token_primarygroup_name(tok, pgroupname);
-        (void)printf("primary group name '%s'\n", pgroupname);
+        (void)printf("primary group name '%ls'\n", pgroupname);
     )
 
     (void)_flushall();
@@ -495,35 +505,35 @@ int main(int ac, char *av[])
     switch(st) {
         case SHELLTYPE_SYSTEM:
             if (av[cmd_arg_index] != NULL) {
-                size_t cmdbuff_size = strlen(CYGWIN_BASH_PATH)+
-                    16+
-                    strlen(av[cmd_arg_index])*2;
-                char *cmdbuff = alloca(cmdbuff_size);
-                char *s = cmdbuff;
-                s = stpcpy(s, CYGWIN_BASH_PATH);
-                s = stpcpy(s, " -c ");
+                size_t cmdbuff_size = wcslen(CYGWIN_BASH_PATH)*sizeof(wchar_t)+
+                    16*sizeof(wchar_t)+
+                    wcslen(av[cmd_arg_index])*sizeof(wchar_t)*2;
+                wchar_t *cmdbuff = alloca(cmdbuff_size);
+                wchar_t *s = cmdbuff;
+                s = wcpcpy(s, CYGWIN_BASH_PATH);
+                s = wcpcpy(s, L" -c ");
 
                 win32cmd_quotearg(s, av[cmd_arg_index]);
-                D((void)fprintf(stderr, "# executing '%s'\n", cmdbuff));
-                subcmdret = system(cmdbuff);
+                D((void)fwprintf(stderr, L"# executing '%ls'\n", cmdbuff));
+                subcmdret = _wsystem(cmdbuff);
             }
             else {
-                subcmdret = system(CYGWIN_BASH_PATH);
+                subcmdret = _wsystem(CYGWIN_BASH_PATH);
             }
             break;
         case SHELLTYPE_CMD:
             if (av[cmd_arg_index] != NULL) {
-                subcmdret = _spawnl(_P_WAIT,
+                subcmdret = _wspawnl(_P_WAIT,
                     WIN32_CMDEXE_PATH, WIN32_CMDEXE_PATH,
                     "/C", av[cmd_arg_index], NULL);
             }
             else {
-                subcmdret = _spawnl(_P_WAIT,
+                subcmdret = _wspawnl(_P_WAIT,
                     WIN32_CMDEXE_PATH, WIN32_CMDEXE_PATH, NULL);
             }
             break;
         case SHELLTYPE_NONE:
-            subcmdret = _spawnl(_P_WAIT,
+            subcmdret = _wspawnl(_P_WAIT,
                 WIN32_CMDEXE_PATH, WIN32_CMDEXE_PATH, NULL);
             break;
         default:
@@ -531,7 +541,7 @@ int main(int ac, char *av[])
             break;
     }
 
-    D((void)fprintf(stdout, "#mark winsg done, subcmdret=%d\n",
+    D((void)fwprintf(stdout, L"#mark winsg done, subcmdret=%d\n",
         (int)subcmdret));
 
 done:
