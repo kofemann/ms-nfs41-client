@@ -130,11 +130,18 @@ int upcall_parse(
     status = safe_read(&buffer, &length, &upcall->state_ref, sizeof(HANDLE));
     if (status) goto out;
 
-    DPRINTF(2, ("time=%ld version=%d xid=%d opcode='%s' session=0x%x open_state=0x%x\n",
-        time(NULL), version, upcall->xid, opcode2string(upcall_upcode), upcall->root_ref,
+    DPRINTF(2,
+        ("time=%lld version=%ld xid=%lld opcode='%s' "
+        "root_ref=0x%p state_ref=0x%p\n",
+        (long long)time(NULL),
+        (long)version,
+        (long long)upcall->xid,
+        opcode2string(upcall_upcode),
+        upcall->root_ref,
         upcall->state_ref));
     if (version != NFS41D_VERSION) {
-        eprintf("received version %d expecting version %d\n", version, NFS41D_VERSION);
+        eprintf("received version %ld expecting version %ld\n",
+            (long)version, (long)NFS41D_VERSION);
         upcall->status = status = NFSD_VERSION_MISMATCH;
         goto out;
     }
