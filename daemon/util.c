@@ -36,7 +36,7 @@
 char *stpcpy(char *restrict s1, const char *restrict s2)
 {
     size_t l = strlen(s2);
-    return ((char *)memcpy(s1, s2, l+1)) + l;
+    return ((char *)memcpy(s1, s2, (l+1)*sizeof(char))) + l*sizeof(char);
 }
 
 int safe_read(unsigned char **pos, uint32_t *remaining, void *dest, uint32_t dest_len)
