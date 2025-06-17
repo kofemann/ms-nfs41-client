@@ -525,7 +525,7 @@ int wmain(int ac, wchar_t *av[])
             if (av[cmd_arg_index] != NULL) {
                 subcmdret = _wspawnl(_P_WAIT,
                     WIN32_CMDEXE_PATH, WIN32_CMDEXE_PATH,
-                    "/C", av[cmd_arg_index], NULL);
+                    L"/C", av[cmd_arg_index], NULL);
             }
             else {
                 subcmdret = _wspawnl(_P_WAIT,
