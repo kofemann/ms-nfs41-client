@@ -115,15 +115,19 @@ installdest:
 	if [[ "$(CYGWIN_BASEPATH)" == *64* ]] ; then \
 		(cd $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/ && ln -sf lssparse.x86_64.exe lssparse.exe) \
 	fi
+	cp "$(PROJECT_BASEDIR_DIR)/tests/winsg/winsg.x86_64.exe" $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/winsg.x86_64.exe
+	cp "$(PROJECT_BASEDIR_DIR)/tests/winsg/winsg.i686.exe" $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/winsg.i686.exe
 	if [[ "$(CYGWIN_BASEPATH)" == *64* ]] ; then \
-		cp "$(PROJECT_BASEDIR_DIR)/tests/winsg/winsg.x86_64.exe" $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/winsg.exe ; \
+		(cd $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/ && ln -sf winsg.x86_64.exe winsg.exe) \
 	else \
-		cp "$(PROJECT_BASEDIR_DIR)/tests/winsg/winsg.i686.exe" $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/winsg.exe ; \
+		(cd $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/ && ln -sf winsg.i686.exe winsg.exe) \
 	fi
+	cp "$(PROJECT_BASEDIR_DIR)/tests/ea/nfs_ea.x86_64.exe" $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/nfs_ea.x86_64.exe
+	cp "$(PROJECT_BASEDIR_DIR)/tests/ea/nfs_ea.i686.exe" $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/nfs_ea.i686.exe
 	if [[ "$(CYGWIN_BASEPATH)" == *64* ]] ; then \
-		cp "$(PROJECT_BASEDIR_DIR)/tests/ea/nfs_ea.x86_64.exe" $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/nfs_ea.exe ; \
+		(cd $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/ && ln -sf nfs_ea.x86_64.exe nfs_ea.exe) \
 	else \
-		cp "$(PROJECT_BASEDIR_DIR)/tests/ea/nfs_ea.i686.exe" $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/nfs_ea.exe ; \
+		(cd $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/ && ln -sf nfs_ea.i686.exe nfs_ea.exe) \
 	fi
 	cp $(PROJECT_BASEDIR_DIR)/tests/nfsbuildtest/nfsbuildtest.ksh93 $(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/msnfs41client/tests/misc/nfsbuildtest.ksh93
 	cp $(PROJECT_BASEDIR_DIR)/tests/sparsefiles/testsparsefile1.ksh $(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/msnfs41client/tests/sparsefiles/testsparsefile1.ksh
