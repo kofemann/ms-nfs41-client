@@ -150,12 +150,12 @@ bool is_group_in_token(HANDLE tok, PSID qsid)
     for (i = 0 ; i < ptgroups->GroupCount ; i++) {
         if (EqualSid(qsid, ptgroups->Groups[i].Sid) &&
             (ptgroups->Groups[i].Attributes & SE_GROUP_ENABLED)) {
-            D((void)puts("is_group_in_token: #match"));
+            D((void)fwprintf(stdout, L"is_group_in_token: #match\n"));
             return true;
         }
     }
 
-    D((void)puts("is_group_in_token: #no match"));
+    D((void)fwprintf(stdout, L"is_group_in_token: #no match\n"));
 
     return false;
 }
@@ -198,7 +198,7 @@ int print_groups_in_token(HANDLE tok)
         if (!LookupAccountSidW(NULL, ptgroups->Groups[i].Sid,
             namebuffer, &namesize, domainbuffer, &domainbuffer_size, &name_use)) {
             D((void)fwprintf(stderr, L"print_groups_in_token: "
-                "LookupAccountSidW() failed, status=%d.\n",
+                L"LookupAccountSidW() failed, status=%d.\n",
                 (int)GetLastError()));
             continue;
         }
@@ -306,8 +306,8 @@ int usage(void)
             L"winsg -g ...\n"
         L"\t\twinsg -L\n"
         L"\n"
-        "Please report bugs to "
-        "Roland Mainz <roland.mainz@nrubsig.org>.\n");
+        L"Please report bugs to "
+        L"Roland Mainz <roland.mainz@nrubsig.org>.\n");
 
     return 2;
 }
@@ -463,7 +463,7 @@ int wmain(int ac, wchar_t *av[])
         wchar_t pgroupname[GNLEN+1];
 
         get_token_primarygroup_name(tok, pgroupname);
-        (void)printf("primary group name '%ls'\n", pgroupname);
+        (void)fwprintf(stdout, L"primary group name '%ls'\n", pgroupname);
     )
 
     DECLARE_SID_BUFFER(sidbuff);
@@ -495,7 +495,7 @@ int wmain(int ac, wchar_t *av[])
 
     D(
         get_token_primarygroup_name(tok, pgroupname);
-        (void)printf("primary group name '%ls'\n", pgroupname);
+        (void)fwprintf(stdout, L"primary group name '%ls'\n", pgroupname);
     )
 
     (void)_flushall();
