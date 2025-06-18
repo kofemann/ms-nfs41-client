@@ -168,7 +168,9 @@ static unsigned int nfsd_worker_thread_main(void *args)
         status = DeviceIoControl(pipe, IOCTL_NFS41_READ, NULL, 0,
             outbuf, UPCALL_BUF_SIZE, (LPDWORD)&outbuf_len, NULL);
         if (!status) {
-            eprintf("IOCTL_NFS41_READ failed %d\n", GetLastError());
+            eprintf("nfsd_worker_thread_main: "
+                "IOCTL_NFS41_READ failed, status=0x%x, lasterr=%d\n",
+                status, (int)GetLastError());
             continue;
         }
 

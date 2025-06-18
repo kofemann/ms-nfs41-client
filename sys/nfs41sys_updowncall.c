@@ -590,13 +590,6 @@ process_upcall:
             RxContext->InformationToReturn = len;
     }
     else {
-/*
- * gisburn: |NFSV41_UPCALL_RETRY_WAIT| disabled for now because it
- * causes nfsd_debug.exe to hang on <CTRL-C>
- */
-#ifdef NFSV41_UPCALL_RETRY_WAIT
-retry_wait:
-#endif /* NFSV41_UPCALL_RETRY_WAIT */
         status = KeWaitForSingleObject(&upcallEvent, Executive, UserMode, TRUE,
             (PLARGE_INTEGER) NULL);
         print_wait_status(0, "[upcall]", status, NULL, NULL, 0);
@@ -606,17 +599,9 @@ retry_wait:
             case STATUS_USER_APC:
             case STATUS_ALERTED:
                 DbgP("nfs41_upcall: KeWaitForSingleObject() "
-                    "returned status(=0x%lx)"
-#ifdef NFSV41_UPCALL_RETRY_WAIT
-                    ", retry waiting"
-#endif /* NFSV41_UPCALL_RETRY_WAIT */
-                    "\n",
+                    "returned status(=0x%lx)\n",
                     (long)status);
-#ifdef NFSV41_UPCALL_RETRY_WAIT
-                goto retry_wait;
-#else
-                /* fall-through */
-#endif /* NFSV41_UPCALL_RETRY_WAIT */
+                goto out;
             default:
                 DbgP("nfs41_upcall: KeWaitForSingleObject() "
                     "returned UNEXPECTED status(=0x%lx)\n",
@@ -652,7 +637,10 @@ NTSTATUS nfs41_downcall(
     tmp = &stacktmp;
 #else
     tmp = nfs41_downcall_allocate_updowncall_entry();
-    if (tmp == NULL) goto out;
+    if (tmp == NULL) {
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto out;
+    }
 #endif /* USE_STACK_FOR_DOWNCALL_UPDOWNCALLENTRY_MEM */
 
     unmarshal_nfs41_header(tmp, &buf);
@@ -675,6 +663,7 @@ NTSTATUS nfs41_downcall(
     SeStopImpersonatingClient();
     if (!found) {
         print_error("Didn't find xid=%lld entry\n", tmp->xid);
+        status = STATUS_NOT_FOUND;
         goto out_free;
     }
 
