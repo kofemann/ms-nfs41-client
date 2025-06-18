@@ -418,9 +418,10 @@ static int recover_delegation_open(
 
     /* construct a temporary open owner by concatenating the time
      * in seconds with the delegation pointer */
-    time((time_t*)owner.owner);
-    memcpy(owner.owner + sizeof(time_t), deleg, sizeof(deleg));
-    owner.owner_len = sizeof(time_t) + sizeof(deleg);
+    void *dp = deleg;
+    (void)time((time_t*)owner.owner);
+    (void)memcpy(owner.owner + sizeof(time_t), dp, sizeof(dp));
+    owner.owner_len = sizeof(time_t) + sizeof(dp);
 
     if (*grace) {
         status = recover_open_grace(session, &deleg->parent, &deleg->file,
