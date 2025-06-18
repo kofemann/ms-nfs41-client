@@ -13,6 +13,12 @@ PROJECT_BASEDIR_DIR := $(shell dirname $(realpath $(CYGWIN_MAKEFILE_DIR)/))
 
 DESTDIR := $(PROJECT_BASEDIR_DIR)/destdir
 
+# link *.exe
+# We have to use hardlinks here, because cygwin defaults to use <JUNCTION>s,
+# which neither cmd.exe nor powershell can follow. <SYMLINK>s are not an option,
+# because it woulld required the "SeCreateSymbolicLinkPrivilege", which by default
+# not even the Adminstrator has
+LINKEXE = ln -f
 
 # install in DESTDIR
 installdest:
@@ -70,7 +76,8 @@ installdest:
 	cp $(PROJECT_BASEDIR_DIR)/ms-nfs41-idmap.conf		$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/.
 	cp $(CYGWIN_MAKEFILE_DIR)/devel/msnfs41client.bash	$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/msnfs41client
 	chmod a+x "$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/msnfs41client"
-	(cd "$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/" && ln -sf ../lib/msnfs41client/msnfs41client .)
+	# this must be a symlink, so msnfs41client can find it's real location
+	(cd "$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/" && ln -s -f ../lib/msnfs41client/msnfs41client .)
 	cp $(PROJECT_BASEDIR_DIR)/cygwin_idmapper.ksh		$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/.
 	@ printf "# Package sources and diffs\n"
 	git config --global --add safe.directory "$(PROJECT_BASEDIR_DIR)"
@@ -100,34 +107,34 @@ installdest:
 	cp "$(PROJECT_BASEDIR_DIR)/tests/winfsinfo1/winfsinfo.x86_64.exe" $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/winfsinfo.x86_64.exe
 	cp "$(PROJECT_BASEDIR_DIR)/tests/winfsinfo1/winfsinfo.i686.exe" $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/winfsinfo.i686.exe
 	if [[ "$(CYGWIN_BASEPATH)" == *64* ]] ; then \
-		(cd $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/ && ln -sf winfsinfo.x86_64.exe winfsinfo.exe) \
+		(cd $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/ && $(LINKEXE) winfsinfo.x86_64.exe winfsinfo.exe) \
 	else \
-		(cd $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/ && ln -sf winfsinfo.i686.exe winfsinfo.exe) \
+		(cd $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/ && $(LINKEXE) winfsinfo.i686.exe winfsinfo.exe) \
 	fi
 	cp "$(PROJECT_BASEDIR_DIR)/tests/winclonefile/winclonefile.x86_64.exe" $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/winclonefile.x86_64.exe
 	cp "$(PROJECT_BASEDIR_DIR)/tests/winclonefile/winclonefile.i686.exe" $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/winclonefile.i686.exe
 	if [[ "$(CYGWIN_BASEPATH)" == *64* ]] ; then \
-		(cd $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/ && ln -sf winclonefile.x86_64.exe winclonefile.exe) \
+		(cd $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/ && $(LINKEXE) winclonefile.x86_64.exe winclonefile.exe) \
 	else \
-		(cd $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/ && ln -sf winclonefile.i686.exe winclonefile.exe) \
+		(cd $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/ && $(LINKEXE) winclonefile.i686.exe winclonefile.exe) \
 	fi
 	cp "$(PROJECT_BASEDIR_DIR)/tests/lssparse/lssparse.x86_64.exe" $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/lssparse.x86_64.exe
 	if [[ "$(CYGWIN_BASEPATH)" == *64* ]] ; then \
-		(cd $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/ && ln -sf lssparse.x86_64.exe lssparse.exe) \
+		(cd $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/ && $(LINKEXE) lssparse.x86_64.exe lssparse.exe) \
 	fi
 	cp "$(PROJECT_BASEDIR_DIR)/tests/winsg/winsg.x86_64.exe" $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/winsg.x86_64.exe
 	cp "$(PROJECT_BASEDIR_DIR)/tests/winsg/winsg.i686.exe" $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/winsg.i686.exe
 	if [[ "$(CYGWIN_BASEPATH)" == *64* ]] ; then \
-		(cd $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/ && ln -sf winsg.x86_64.exe winsg.exe) \
+		(cd $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/ && $(LINKEXE) winsg.x86_64.exe winsg.exe) \
 	else \
-		(cd $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/ && ln -sf winsg.i686.exe winsg.exe) \
+		(cd $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/ && $(LINKEXE) winsg.i686.exe winsg.exe) \
 	fi
 	cp "$(PROJECT_BASEDIR_DIR)/tests/ea/nfs_ea.x86_64.exe" $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/nfs_ea.x86_64.exe
 	cp "$(PROJECT_BASEDIR_DIR)/tests/ea/nfs_ea.i686.exe" $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/nfs_ea.i686.exe
 	if [[ "$(CYGWIN_BASEPATH)" == *64* ]] ; then \
-		(cd $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/ && ln -sf nfs_ea.x86_64.exe nfs_ea.exe) \
+		(cd $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/ && $(LINKEXE) nfs_ea.x86_64.exe nfs_ea.exe) \
 	else \
-		(cd $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/ && ln -sf nfs_ea.i686.exe nfs_ea.exe) \
+		(cd $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/ && $(LINKEXE) nfs_ea.i686.exe nfs_ea.exe) \
 	fi
 	cp $(PROJECT_BASEDIR_DIR)/tests/nfsbuildtest/nfsbuildtest.ksh93 $(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/msnfs41client/tests/misc/nfsbuildtest.ksh93
 	cp $(PROJECT_BASEDIR_DIR)/tests/sparsefiles/testsparsefile1.ksh $(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/msnfs41client/tests/sparsefiles/testsparsefile1.ksh
