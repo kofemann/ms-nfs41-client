@@ -492,7 +492,7 @@ int duplicate_sparsefile(nfs41_open_state *src_state,
     stateid_arg src_stateid;
     stateid_arg dst_stateid;
 
-    (void)memset(info, 0, sizeof(info));
+    (void)memset(info, 0, sizeof(*info));
 
     DPRINTF(DDLVL,
         ("--> duplicate_sparsefile(src_state->path.path='%s')\n",
