@@ -1,5 +1,6 @@
 /* NFSv4.1 client for Windows
- * Copyright © 2012 The Regents of the University of Michigan
+ * Copyright (C) 2012 The Regents of the University of Michigan
+ * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -34,6 +35,7 @@
 #include "daemon_debug.h"
 #include "nfs41_ops.h"
 #include "accesstoken.h"
+#include "sid.h"
 
 
 uint32_t nfs41_exchange_id_flags(
@@ -374,7 +376,7 @@ int nfs41_client_owner(
     DWORD length;
     const ULONGLONG time_created = GetTickCount64();
     int status;
-    char username[UNLEN+1];
+    char username[UTF8_UNLEN+1];
     HANDLE thrtoken = GetCurrentThreadEffectiveToken();
 #ifdef NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE
     LUID authenticationid;

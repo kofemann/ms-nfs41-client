@@ -28,11 +28,24 @@
 #include "nfs41_build_features.h"
 #include "nfs41_daemon.h"
 #include <stdbool.h>
+#include <Lmcons.h> /* for |UNLEN| and |GNLEN| */
 
 typedef struct _sidcache sidcache;
 
 extern sidcache user_sidcache;
 extern sidcache group_sidcache;
+
+/* Maximum number of bytes required to store one |wchar_t| as UTF-8 */
+#define MAX_UTF8_BYTES_PER_WCHAR_T (5)
+
+/*
+ * |UNLEN|+|GNLEN| count in codepage characters, but since we store
+ * our user and group names as UTF-8 we need buffer sizes which can
+ * hold the maximum length in UTF-8
+ */
+#define UTF8_UNLEN (UNLEN*MAX_UTF8_BYTES_PER_WCHAR_T)
+#define UTF8_GNLEN (GNLEN*MAX_UTF8_BYTES_PER_WCHAR_T)
+
 
 /*
  * DECLARE_SID_BUFFER - declare a buffer for a SID value

@@ -30,7 +30,6 @@
 #include <stdio.h>
 
 #include <devioctl.h>
-#include <lmcons.h> /* UNLEN for GetUserName() */
 #include <iphlpapi.h> /* for GetNetworkParam() */
 #include "nfs41_build_features.h"
 #include "nfs41_driver.h" /* for NFS41_USER_DEVICE_NAME_A */
@@ -76,8 +75,8 @@ typedef struct _nfs41_process_thread {
 static int map_current_user_to_ids(nfs41_idmapper *idmapper,
     HANDLE impersonation_tok, uid_t *puid, gid_t *pgid)
 {
-    char username[UNLEN+1];
-    char pgroupname[GNLEN+1];
+    char username[UTF8_UNLEN+1];
+    char pgroupname[UTF8_GNLEN+1];
     int status = NO_ERROR;
 
     if (!get_token_user_name(impersonation_tok, username)) {

@@ -27,7 +27,6 @@
 #include <time.h>
 #include <strsafe.h>
 #include <sddl.h>
-#include <Lmcons.h>
 
 #include "nfs41_ops.h"
 #include "nfs41_build_features.h"
@@ -226,7 +225,7 @@ bool unixgroup_sid2gid(PSID psid, gid_t *pgid)
 
 typedef struct _sidcache_entry
 {
-#define SIDCACHE_ENTRY_NAME_SIZE (UNLEN + 1)
+#define SIDCACHE_ENTRY_NAME_SIZE (UTF8_UNLEN + 1)
     char    win32name[SIDCACHE_ENTRY_NAME_SIZE]; /* must fit something like "user@domain" */
     char    aliasname[SIDCACHE_ENTRY_NAME_SIZE];
     PSID    sid;
@@ -426,8 +425,8 @@ int map_nfs4servername_2_sid(nfs41_daemon_globals *nfs41dg, int query, DWORD *si
 
     int status = ERROR_INTERNAL_ERROR;
     SID_NAME_USE sid_type = 0;
-    char nfsname_buff[UNLEN+1];
-    char domain_buff[UNLEN+1];
+    char nfsname_buff[UTF8_UNLEN+1];
+    char domain_buff[UTF8_UNLEN+1];
     DWORD domain_len = 0;
 #ifdef NFS41_DRIVER_FEATURE_MAP_UNMAPPED_USER_TO_UNIXUSER_SID
     signed long user_uid = -1;
@@ -746,9 +745,6 @@ out_free_sid:
     goto out;
 }
 
-
-/* Maximum number of bytes required to store one |wchar_t| as UTF-8 */
-#define MAX_UTF8_BYTES_PER_WCHAR_T (5)
 
 /*
  * |lookupaccountnameutf8()| - UTF-8 version of |LookupAccountNameA()|

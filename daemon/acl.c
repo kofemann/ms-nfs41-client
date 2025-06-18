@@ -25,7 +25,6 @@
 #include <stdio.h>
 #include <strsafe.h>
 #include <sddl.h>
-#include <Lmcons.h>
 
 #include "nfs41_ops.h"
 #include "nfs41_build_features.h"
@@ -930,9 +929,9 @@ int map_sid2nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid,
 {
     int status, lasterr;
     SID_NAME_USE sid_type = 0;
-    /* |(UNLEN+sizeof('\0'))*2| so we have space for user+domain */
-    char who_buf[(UNLEN+1)*2];
-    char domain_buf[UNLEN+1];
+    /* |(UTF8_UNLEN+sizeof('\0'))*2| so we have space for user+domain */
+    char who_buf[(UTF8_UNLEN+1)*2];
+    char domain_buf[UTF8_UNLEN+1];
     DWORD who_size = sizeof(who_buf), domain_size = sizeof(domain_buf);
     LPSTR sidstr = NULL;
 
@@ -1035,7 +1034,7 @@ int map_sid2nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid,
 
                 if (unixuser_sid2uid(sid, &unixuser_uid)) {
                     if (!nfs41_idmap_uid_to_name(nfs41_dg.idmapper,
-                        unixuser_uid, who_out, UNLEN)) {
+                        unixuser_uid, who_out, UTF8_UNLEN)) {
                         who_size = (DWORD)strlen(who_out);
                         sid_type = SidTypeUser;
                         status = ERROR_SUCCESS;
@@ -1056,7 +1055,7 @@ int map_sid2nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid,
 
                 if (unixgroup_sid2gid(sid, &unixgroup_gid)) {
                     if (!nfs41_idmap_gid_to_group(nfs41_dg.idmapper,
-                        unixgroup_gid, who_out, GNLEN)) {
+                        unixgroup_gid, who_out, UTF8_GNLEN)) {
                         who_size = (DWORD)strlen(who_out);
                         sid_type = SidTypeGroup;
                         status = ERROR_SUCCESS;

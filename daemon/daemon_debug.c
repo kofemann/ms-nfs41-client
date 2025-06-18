@@ -24,7 +24,6 @@
 #include <windows.h>
 #include <stdio.h>
 #include <sddl.h>
-#include <lmcons.h>
 #include <direct.h> /* for |_getcwd()| */
 
 #include "daemon_debug.h"
@@ -35,6 +34,7 @@
 #include "rpc/rpc.h"
 #include "rpc/auth_sspi.h"
 #include "accesstoken.h"
+#include "sid.h"
 
 int g_debug_level = DEFAULT_DEBUG_LEVEL;
 
@@ -107,8 +107,8 @@ void dprintf_out(const char *restrict format, ...)
     va_list args;
     va_start(args, format);
 #ifdef DPRINTF_PRINT_IMPERSONATION_USER
-    char username[UNLEN+1];
-    char groupname[GNLEN+1];
+    char username[UTF8_UNLEN+1];
+    char groupname[UTF8_GNLEN+1];
     HANDLE tok;
     const char *tok_src;
     bool free_tok = false;
@@ -171,8 +171,8 @@ void logprintf(const char *restrict format, ...)
 #endif /* _MSC_VER */
 {
     SYSTEMTIME stime;
-    char username[UNLEN+1];
-    char groupname[GNLEN+1];
+    char username[UTF8_UNLEN+1];
+    char groupname[UTF8_GNLEN+1];
     HANDLE tok;
     const char *tok_src;
     bool free_tok = false;

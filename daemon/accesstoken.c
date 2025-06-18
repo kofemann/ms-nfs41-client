@@ -24,7 +24,6 @@
 #include "sid.h"
 #include "daemon_debug.h"
 #include "nfs41_daemon.h"
-#include <Lmcons.h>
 
 #ifndef _NFS41_DRIVER_BUILDFEATURES_
 #error NFS41 build config not included
@@ -48,8 +47,8 @@ bool get_token_user_name(HANDLE tok, char *out_buffer)
     DWORD tokdatalen;
     PTOKEN_USER ptuser;
     PSID pusid;
-    DWORD namesize = UNLEN+1;
-    char domainbuffer[UNLEN+1];
+    DWORD namesize = UTF8_UNLEN+1;
+    char domainbuffer[UTF8_UNLEN+1];
     DWORD domainbuffer_size = sizeof(domainbuffer);
     SID_NAME_USE name_use;
 
@@ -92,8 +91,8 @@ bool get_token_primarygroup_name(HANDLE tok, char *out_buffer)
     DWORD tokdatalen;
     PTOKEN_PRIMARY_GROUP ptpgroup;
     PSID pgsid;
-    DWORD namesize = GNLEN+1;
-    char domainbuffer[UNLEN+1];
+    DWORD namesize = UTF8_GNLEN+1;
+    char domainbuffer[UTF8_UNLEN+1];
     DWORD domainbuffer_size = sizeof(domainbuffer);
     SID_NAME_USE name_use;
 
@@ -134,7 +133,7 @@ bool get_token_primarygroup_name(HANDLE tok, char *out_buffer)
 bool fill_auth_unix_aup_gids(HANDLE tok,
     gid_t *aup_gids, int *num_aup_gids)
 {
-    char group_names_buff[RPC_AUTHUNIX_AUP_MAX_NUM_GIDS*(GNLEN+1)];
+    char group_names_buff[RPC_AUTHUNIX_AUP_MAX_NUM_GIDS*(UTF8_GNLEN+1)];
     char *group_names[RPC_AUTHUNIX_AUP_MAX_NUM_GIDS];
     char *s;
     int i;
@@ -149,7 +148,7 @@ bool fill_auth_unix_aup_gids(HANDLE tok,
      */
     for (s=group_names_buff,i=0 ; i < RPC_AUTHUNIX_AUP_MAX_NUM_GIDS ; i++) {
         group_names[i] = s;
-        s += GNLEN+1;
+        s += UTF8_GNLEN+1;
     }
 
     if (!get_token_groups_names(tok,
@@ -186,9 +185,9 @@ bool get_token_groups_names(HANDLE tok,
 {
     DWORD tokdatalen;
     PTOKEN_GROUPS ptgroups;
-    char namebuffer[GNLEN+1];
+    char namebuffer[UTF8_GNLEN+1];
     DWORD namesize;
-    char domainbuffer[UNLEN+1];
+    char domainbuffer[UTF8_UNLEN+1];
     DWORD domainbuffer_size;
     SID_NAME_USE name_use;
     bool retval = false;
