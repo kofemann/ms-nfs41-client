@@ -59,6 +59,8 @@
 #define CYGWIN_BASH_PATH L"C:\\cygwin\\bin\\bash.exe"
 #endif /* _WIN64 */
 #define WIN32_CMDEXE_PATH L"C:\\Windows\\system32\\cmd.exe"
+#define WIN32_POWERSHELLEXE_PATH \
+    L"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"
 
 /*
  * DECLARE_SID_BUFFER - declare a buffer for a SID value
@@ -284,6 +286,7 @@ int usage(void)
     (void)fwprintf(stderr,
         L"Usage: winsg [-] -g group [-c command]\n"
         L"Usage: winsg [-] /g group [/C command]\n"
+        L"Usage: winsg [-] /g group [/P command]\n"
         L"Usage: winsg -L\n"
         L"Usage: winsg /? | -h | --help\n"
         L"Execute command as different primary group ID\n"
@@ -292,17 +295,23 @@ int usage(void)
         L"\t1. Run new cmd.exe with primary group 'abc1':\n"
         L"\t\twinsg /g abc1 /C\n"
         L"\n"
-        L"\t2. Run new Cygwin shell (bash) with primary group 'abc2':\n"
+        L"\t2. Run new powershell.exe with primary group 'abc1':\n"
+        L"\t\twinsg /p abc1 /P\n"
+        L"\n"
+        L"\t3. Run new Cygwin shell (bash) with primary group 'abc2':\n"
         L"\t\twinsg -g abc2 -c\n"
         L"\n"
-        L"\t3. Start /bin/id from cmd.exe with primary group 'abc3':\n"
+        L"\t4. Start /bin/id from cmd.exe with primary group 'abc3':\n"
         L"\t\twinsg /g abc3 /C 'C:\\cygwin64\\bin\\id.exe -a'\n"
         L"\n"
-        L"\t4. Start /bin/id from Cygwin shell (bash) with primary "
+        L"\t5. Start /bin/id from powershell.exe with primary group 'abc3':\n"
+        L"\t\twinsg /g abc3 /P 'C:\\cygwin64\\bin\\id.exe -a'\n"
+        L"\n"
+        L"\t6. Start /bin/id from Cygwin shell (bash) with primary "
             L"group 'abc4':\n"
         L"\t\twinsg -g abc4 -c '/bin/id.exe -a'\n"
         L"\n"
-        L"\t5. List currently available groups which can be passed to "
+        L"\t7. List currently available groups which can be passed to "
             L"winsg -g ...\n"
         L"\t\twinsg -L\n"
         L"\n"
@@ -317,7 +326,8 @@ enum shelltype {
     SHELLTYPE_NOT_SET = 0,
     SHELLTYPE_NONE,
     SHELLTYPE_CMD,
-    SHELLTYPE_SYSTEM
+    SHELLTYPE_SYSTEM,
+    SHELLTYPE_POWERSHELL
 };
 
 int wmain(int ac, wchar_t *av[])
@@ -372,6 +382,20 @@ int wmain(int ac, wchar_t *av[])
 
             cmd_runasgroup = true;
             st = SHELLTYPE_CMD;
+            cmd_arg_index = i+1;
+            break;
+        }
+        else if (!wcscmp(av[i], L"/P")) {
+            /* /P can take zero or one argument */
+            if ((ac-i) > 2) {
+                (void)fwprintf(stderr,
+                    L"%ls: Too many arguments for /P.\n", av[0]);
+                retval = 1;
+                goto done;
+            }
+
+            cmd_runasgroup = true;
+            st = SHELLTYPE_POWERSHELL;
             cmd_arg_index = i+1;
             break;
         }
@@ -530,6 +554,17 @@ int wmain(int ac, wchar_t *av[])
             else {
                 subcmdret = _wspawnl(_P_WAIT,
                     WIN32_CMDEXE_PATH, WIN32_CMDEXE_PATH, NULL);
+            }
+            break;
+        case SHELLTYPE_POWERSHELL:
+            if (av[cmd_arg_index] != NULL) {
+                subcmdret = _wspawnl(_P_WAIT,
+                    WIN32_POWERSHELLEXE_PATH, WIN32_POWERSHELLEXE_PATH,
+                    L"-Command", av[cmd_arg_index], NULL);
+            }
+            else {
+                subcmdret = _wspawnl(_P_WAIT,
+                    WIN32_POWERSHELLEXE_PATH, WIN32_POWERSHELLEXE_PATH, NULL);
             }
             break;
         case SHELLTYPE_NONE:
