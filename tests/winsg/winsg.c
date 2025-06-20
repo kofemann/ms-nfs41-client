@@ -545,7 +545,7 @@ int wmain(int ac, wchar_t *av[])
         (int)subcmdret));
 
 done:
-    if (tok == INVALID_HANDLE_VALUE) {
+    if (tok != INVALID_HANDLE_VALUE) {
         (void)CloseHandle(tok);
     }
 

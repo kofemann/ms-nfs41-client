@@ -435,7 +435,7 @@ subcmd_popen_context *subcmd_popen(const char *command)
     if (!pinfo)
         return NULL;
 
-    pinfo->hReadPipe = pinfo->hWritePipe = NULL;
+    pinfo->hReadPipe = pinfo->hWritePipe = INVALID_HANDLE_VALUE;
 
 #ifdef NOT_WORKING_YET
     /*
@@ -507,13 +507,14 @@ subcmd_popen_context *subcmd_popen(const char *command)
     }
 
     (void)CloseHandle(pinfo->hWritePipe);
+    pinfo->hWritePipe = INVALID_HANDLE_VALUE;
 
     return pinfo;
 fail:
     if (pinfo) {
-        if (pinfo->hReadPipe)
+        if (pinfo->hReadPipe != INVALID_HANDLE_VALUE)
             (void)CloseHandle(pinfo->hReadPipe);
-        if (pinfo->hWritePipe)
+        if (pinfo->hWritePipe != INVALID_HANDLE_VALUE)
             (void)CloseHandle(pinfo->hWritePipe);
 
         free(pinfo);
