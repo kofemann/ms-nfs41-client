@@ -547,7 +547,7 @@ int nfs41_delegation_to_open(
     IN nfs41_open_state *open,
     IN bool_t try_recovery)
 {
-    open_delegation4 ignore;
+    open_delegation4 ignore = { 0 };
     open_claim4 claim;
     stateid4 open_stateid = { 0 };
     stateid_arg deleg_stateid;
