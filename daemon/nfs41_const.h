@@ -48,6 +48,9 @@
  */
 #define NFS4_FATTR4_OWNER_LIMIT (256)
 
+/* Maximum number of ACLs per file/dir */
+#define NFS41_ACL_MAX_ACE_ENTRIES (32)
+
 #define NFS41_MAX_SERVER_CACHE  1024
 #define NFS41_MAX_RPC_REQS      128
 

@@ -325,7 +325,8 @@ static bool_t xdr_nfsdacl41(
         return FALSE;
 
     return xdr_array(xdr, (char**)&acl->aces, &acl->count,
-        32, sizeof(nfsace4), (xdrproc_t)xdr_nfsace4);
+        NFS41_ACL_MAX_ACE_ENTRIES, sizeof(nfsace4),
+        (xdrproc_t)xdr_nfsace4);
 }
 
 static bool_t xdr_nfsacl41(
@@ -333,7 +334,8 @@ static bool_t xdr_nfsacl41(
     nfsacl41 *acl)
 {
     return xdr_array(xdr, (char**)&acl->aces, &acl->count,
-        32, sizeof(nfsace4), (xdrproc_t)xdr_nfsace4);
+        NFS41_ACL_MAX_ACE_ENTRIES, sizeof(nfsace4),
+        (xdrproc_t)xdr_nfsace4);
 }
 
 void nfsacl41_free(nfsacl41 *acl)
@@ -1778,7 +1780,8 @@ static bool_t decode_file_attrs(
         if (attrs->attrmask.arr[0] & FATTR4_WORD0_ACL) {
             nfsacl41 *acl = info->acl;
             if (!xdr_array(xdr, (char**)&acl->aces, &acl->count,
-                32, sizeof(nfsace4), (xdrproc_t)xdr_nfsace4))
+                NFS41_ACL_MAX_ACE_ENTRIES, sizeof(nfsace4),
+                (xdrproc_t)xdr_nfsace4))
                 return FALSE;
         }
         if (attrs->attrmask.arr[0] & FATTR4_WORD0_ACLSUPPORT) {
