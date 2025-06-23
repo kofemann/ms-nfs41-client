@@ -220,8 +220,19 @@ bool unixgroup_sid2gid(PSID psid, gid_t *pgid)
 
 
 #ifdef NFS41_DRIVER_SID_CACHE
-#define SIDCACHE_SIZE 20
+/*
+ * |SIDCACHE_SIZE| - size of SID cache
+ * We should at least use the maximum size of ACL entries plus { owner,
+ * owner_group, other, nobody, world, ... } entries multiplied by two to
+ * make sure two concurrent icacls queries cannot trash the whole cache
+ */
+#define SIDCACHE_SIZE 128
 #define SIDCACHE_TTL 600
+
+/* Safety/performance checks */
+#if SIDCACHE_SIZE < ((NFS41_ACL_MAX_ACE_ENTRIES+8)*2)
+#error SIDCACHE_SIZE should be at least ((NFS41_ACL_MAX_ACE_ENTRIES+8)*2)
+#endif
 
 typedef struct _sidcache_entry
 {
