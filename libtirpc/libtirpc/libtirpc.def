@@ -46,6 +46,8 @@ svcudp_create
 taddr2uaddr
 tsd_key_delete
 uaddr2taddr
+wintirpc_mem_alloc
+wintirpc_mem_free
 xdr_array
 xdr_authunix_parms
 xdr_bool

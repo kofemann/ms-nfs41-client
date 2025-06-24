@@ -163,6 +163,8 @@ int wintirpc_setsockopt(int socket, int level, int option_name,
 void wintirpc_setnfsclientsockopts(int sock);
 void wintirpc_syslog(int prio, const char *format, ...);
 void wintirpc_warnx(const char *format, ...);
+void *wintirpc_mem_alloc(size_t s);
+void wintirpc_mem_free(void *p);
 void wintirpc_register_osfhandle_fd(SOCKET handle, int fd);
 void wintirpc_unregister_osfhandle(SOCKET handle);
 void wintirpc_unregister_osf_fd(int fd);

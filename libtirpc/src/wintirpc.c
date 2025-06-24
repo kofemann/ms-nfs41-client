@@ -536,6 +536,26 @@ void wintirpc_warnx(const char *format, ...)
     va_end(args);
 }
 
+/*
+ * Windows allows DLLs and EXE to have their own memory allocators, so we
+ * have to provide an API to allocate and free memofy using this allocator
+ *
+ * FIXME: This should really be part of the libtirpc API
+ */
+void *wintirpc_mem_alloc(size_t s)
+{
+    /*
+     * |mem_alloc()| is a macro which uses |calloc()|, therefore we
+     * use |malloc()| here directly
+     */
+    return malloc(s);
+}
+
+void wintirpc_mem_free(void *p)
+{
+    free(p);
+}
+
 int tirpc_exit(void)
 {
 	if (init == 0 || --init > 0)
