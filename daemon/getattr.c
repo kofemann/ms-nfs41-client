@@ -37,18 +37,39 @@
 int nfs41_cached_getattr(
     IN nfs41_session *session,
     IN nfs41_path_fh *file,
+    IN OPTIONAL bitmap4 *extra_attr_request,
     OUT nfs41_file_info *info)
 {
     int status;
+    bool bits_missing = false;
 
     /* first look for cached attributes */
     status = nfs41_attr_cache_lookup(session_name_cache(session),
         file->fh.fileid, info);
 
-    if (status) {
+    if ((status == 0) && extra_attr_request) {
+        uint32_t i;
+
+        /* Check if bits are missing... */
+        for (i=0 ; i < extra_attr_request->count ; i++) {
+            if ((extra_attr_request->arr[i] != 0) &&
+                ((((i < info->attrmask.count)?(info->attrmask.arr[i]):0) &
+                    extra_attr_request->arr[i]) == 0)) {
+                bits_missing = true;
+                DPRINTF(1, ("nfs41_cached_getattr: bits missing %d\n", i));
+                break;
+            }
+        }
+    }
+
+    if (status || bits_missing) {
         /* fetch attributes from the server */
         bitmap4 attr_request;
         nfs41_superblock_getattr_mask(file->fh.superblock, &attr_request);
+
+        if (extra_attr_request) {
+            bitmap_or(&attr_request, extra_attr_request);
+        }
 
         status = nfs41_getattr(session, file, &attr_request, info);
         if (status) {
@@ -88,7 +109,7 @@ static int handle_getattr(void *daemon_context, nfs41_upcall *upcall)
     nfs41_open_state *state = upcall->state_ref;
     nfs41_file_info info = { 0 };
 
-    status = nfs41_cached_getattr(state->session, &state->file, &info);
+    status = nfs41_cached_getattr(state->session, &state->file, NULL, &info);
     if (status) {
         eprintf("handle_getattr(state->path.path='%s'): "
             "nfs41_cached_getattr() failed with %d\n",
@@ -98,7 +119,7 @@ static int handle_getattr(void *daemon_context, nfs41_upcall *upcall)
     }
 
     if (info.type == NF4LNK) {
-        nfs41_file_info target_info;
+        nfs41_file_info target_info = { 0 };
         int target_status = nfs41_symlink_follow(upcall->root_ref,
             state->session, &state->file, &target_info);
         if (target_status == NO_ERROR) {

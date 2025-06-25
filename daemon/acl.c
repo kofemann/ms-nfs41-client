@@ -326,62 +326,47 @@ static int handle_getacl(void *daemon_context, nfs41_upcall *upcall)
     PSID osid = NULL, gsid = NULL;
     DWORD sid_len;
     char owner[NFS4_FATTR4_OWNER_LIMIT+1], group[NFS4_FATTR4_OWNER_LIMIT+1];
+    bitmap4 owner_group_acl_bitmap = {
+        .count = 2,
+        .arr[0] = 0,
+        .arr[1] = FATTR4_WORD1_OWNER|FATTR4_WORD1_OWNER_GROUP
+    };
     nfsacl41 acl = { 0 };
 
     DPRINTF(ACLLVL1, ("--> handle_getacl(state->path.path='%s')\n",
         state->path.path));
 
     if (args->query & DACL_SECURITY_INFORMATION) {
-use_nfs41_getattr:
-        bitmap4 attr_request = { 0 };
-        (void)memset(&info, 0, sizeof(nfs41_file_info));
-        info.owner = owner;
-        info.owner_group = group;
-
-        attr_request.count = 2;
-        attr_request.arr[0] = FATTR4_WORD0_ACL;
-        attr_request.arr[1] = FATTR4_WORD1_OWNER | FATTR4_WORD1_OWNER_GROUP;
-        info.acl = &acl;
-        status = nfs41_getattr(state->session, &state->file, &attr_request, &info);
-        if (status) {
-            eprintf("handle_getacl: nfs41_getattr() failed with %d\n",
-                status);
-            goto out;
-        }
+        owner_group_acl_bitmap.arr[0] |= FATTR4_WORD0_ACL;
     }
-    else {
-        (void)memset(&info, 0, sizeof(nfs41_file_info));
-        info.owner = owner;
-        info.owner_group = group;
 
-        status = nfs41_cached_getattr(state->session, &state->file, &info);
-        if (status) {
-            eprintf("handle_getacl: nfs41_cached_getattr() failed with %d\n",
-                status);
-            goto out;
-        }
+    (void)memset(&info, 0, sizeof(nfs41_file_info));
+    info.owner = owner;
+    info.owner_group = group;
+    info.acl = &acl;
 
-        EASSERT(info.attrmask.count > 1);
-
-        /*
-         * In rare cases owner/owner_group are not in the cache
-         * (usually for new files). In this case do a full
-         * roundtrip to the NFS server to get the data...
-         */
-        if ((bitmap_isset(&info.attrmask, 1,
-                FATTR4_WORD1_OWNER) == false) ||
-            (bitmap_isset(&info.attrmask, 1,
-                FATTR4_WORD1_OWNER_GROUP) == false)) {
-            DPRINTF(ACLLVL2, ("handle_getattr: owner/owner_group not in cache, doing full lookup...\n"));
-            goto use_nfs41_getattr;
-        }
+    /*
+     * |nfs41_cached_getattr()| will first try to get all information from
+     * the cache. But if bits are missing (e.g. |FATTR4_WORD0_ACL|, then
+     * this will do a server roundtrip to get the missing data
+     */
+    status = nfs41_cached_getattr(state->session,
+        &state->file, &owner_group_acl_bitmap, &info);
+    if (status) {
+        eprintf("handle_getacl: nfs41_cached_getattr() failed with %d\n",
+            status);
+        goto out;
     }
 
     EASSERT(info.attrmask.count > 1);
-    EASSERT(bitmap_isset(&info.attrmask, 1, FATTR4_WORD1_OWNER) &&
-        bitmap_isset(&info.attrmask, 1, FATTR4_WORD1_OWNER_GROUP));
     if (args->query & DACL_SECURITY_INFORMATION) {
-        EASSERT(bitmap_isset(&info.attrmask, 0, FATTR4_WORD0_ACL));
+        EASSERT(bitmap_isset(&info.attrmask, 0, FATTR4_WORD0_ACL) == true);
+    }
+    if (args->query & OWNER_SECURITY_INFORMATION) {
+        EASSERT(bitmap_isset(&info.attrmask, 1, FATTR4_WORD1_OWNER) == true);
+    }
+    if (args->query & GROUP_SECURITY_INFORMATION) {
+        EASSERT(bitmap_isset(&info.attrmask, 1, FATTR4_WORD1_OWNER_GROUP) == true);
     }
 
     status = InitializeSecurityDescriptor(&sec_desc,
@@ -433,6 +418,7 @@ use_nfs41_getattr:
             goto out;
         }
     }
+
     if (args->query & DACL_SECURITY_INFORMATION) {
         DPRINTF(ACLLVL2, ("handle_getacl: DACL_SECURITY_INFORMATION\n"));
         status = convert_nfs4acl_2_dacl(nfs41dg,

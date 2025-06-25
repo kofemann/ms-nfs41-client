@@ -867,7 +867,7 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
             if (args->create_opts & FILE_OPEN_REPARSE_POINT) {
                 /* continue and open the symlink itself, but we need to
                  * know if the target is a regular file or directory */
-                nfs41_file_info target_info;
+                nfs41_file_info target_info = { 0 };
                 int target_status = nfs41_symlink_follow(upcall->root_ref,
                     state->session, &state->file, &target_info);
                 if (target_status == NO_ERROR) {

@@ -71,7 +71,7 @@ static int handle_nfs41_setattr_basicinfo(void *daemon_context, setattr_upcall_a
     (void)memset(&old_info, 0, sizeof(old_info));
 
     getattr_status = nfs41_cached_getattr(state->session,
-        &state->file, &old_info);
+        &state->file, NULL, &old_info);
     if (getattr_status) {
         DPRINTF(0, ("handle_nfs41_setattr_basicinfo(args->path='%s'): "
             "nfs41_cached_getattr() failed with error %d.\n",

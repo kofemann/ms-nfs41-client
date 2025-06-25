@@ -1331,6 +1331,7 @@ int nfs41_superblock_getattr(
 int nfs41_cached_getattr(
     IN nfs41_session *session,
     IN nfs41_path_fh *file,
+    IN OPTIONAL bitmap4 *extra_attr_request,
     OUT nfs41_file_info *info);
 
 int nfs41_remove(

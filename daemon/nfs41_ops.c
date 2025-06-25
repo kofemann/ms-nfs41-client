@@ -1478,28 +1478,26 @@ int nfs41_setattr(
 
     nfs41_superblock_getattr_mask(file->fh.superblock, &attr_request);
 
-    if (info->attrmask.count >= 2) {
-        /*
-         * If we set owner and/or owner_group make sure we ask
-         * the server to send the values back for two reasons:
-         * 1, Handle cases like "all_squash" (e.g. nfsd turns
-         * owner/owner_group always into "nobody"/"nogroup")
-         * 2. Make sure we update the name cache with the new
-         * owner/owner_group
-         *
-         * Note that this can be a bit tricky as we might pass
-         * a "name@domain" string to the server, but get a numeric
-         * uid/gid as strings back, which means the name cache
-         * might have both representations.
-         */
-        if (info->attrmask.arr[1] & FATTR4_WORD1_OWNER) {
-            attr_request.count = 2;
-            attr_request.arr[1] |= FATTR4_WORD1_OWNER;
-        }
-        if (info->attrmask.arr[1] & FATTR4_WORD1_OWNER_GROUP) {
-            attr_request.count = 2;
-            attr_request.arr[1] |= FATTR4_WORD1_OWNER_GROUP;
-        }
+    /*
+     * If we set owner and/or owner_group make sure we ask
+     * the server to send the values back for two reasons:
+     * 1, Handle cases like "all_squash" (e.g. nfsd turns
+     * owner/owner_group always into "nobody"/"nogroup")
+     * 2. Make sure we update the name cache with the new
+     * owner/owner_group
+     *
+     * Note that this can be a bit tricky as we might pass
+     * a "name@domain" string to the server, but get a numeric
+     * uid/gid as strings back, which means the name cache
+     * might have both representations.
+     */
+    if (bitmap_isset(&info->attrmask, 1, FATTR4_WORD1_OWNER)) {
+        attr_request.count = __max(attr_request.count, 2);
+        attr_request.arr[1] |= FATTR4_WORD1_OWNER;
+    }
+    if (bitmap_isset(&info->attrmask, 1, FATTR4_WORD1_OWNER_GROUP)) {
+        attr_request.count = __max(attr_request.count, 2);
+        attr_request.arr[1] |= FATTR4_WORD1_OWNER_GROUP;
     }
 
     compound_add_op(&compound, OP_GETATTR, &getattr_args, &getattr_res);

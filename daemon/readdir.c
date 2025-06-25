@@ -515,7 +515,7 @@ static int lookup_symlink(
 {
     nfs41_abs_path path;
     nfs41_path_fh file;
-    nfs41_file_info info;
+    nfs41_file_info info = { 0 };
     int status;
 
     status = format_abs_path(parent->path, name, &path);
@@ -686,7 +686,7 @@ static int readdir_add_dots(
         ZeroMemory(&entry->attr_info, sizeof(nfs41_file_info));
 
         status = nfs41_cached_getattr(state->session,
-            &state->file, &entry->attr_info);
+            &state->file, NULL, &entry->attr_info);
         if (status) {
             DPRINTF(0, ("readdir_add_dots: failed to add '.' entry.\n"));
             goto out;
@@ -719,7 +719,7 @@ static int readdir_add_dots(
         ZeroMemory(&entry->attr_info, sizeof(nfs41_file_info));
 
         status = nfs41_cached_getattr(state->session,
-            &state->parent, &entry->attr_info);
+            &state->parent, NULL, &entry->attr_info);
         if (status) {
             status = ERROR_FILE_NOT_FOUND;
             DPRINTF(0, ("readdir_add_dots: failed to add '..' entry.\n"));
