@@ -1457,7 +1457,7 @@ int nfs41_setattr(
     nfs41_putfh_args putfh_args;
     nfs41_putfh_res putfh_res;
     nfs41_setattr_args setattr_args;
-    nfs41_setattr_res setattr_res;
+    nfs41_setattr_res setattr_res = { 0 };
     nfs41_getattr_args getattr_args;
     nfs41_getattr_res getattr_res NDSH(= { 0 });
     bitmap4 attr_request;
@@ -1516,11 +1516,10 @@ int nfs41_setattr(
     nfs41_attr_cache_update(session_name_cache(session),
         file->fh.fileid, info);
 
-    if (((setattr_res.attrsset.count > 0) &&
-            (setattr_res.attrsset.arr[0] & FATTR4_WORD0_SIZE)) ||
-        ((setattr_res.attrsset.count > 1) &&
-            (setattr_res.attrsset.arr[1] & FATTR4_WORD1_SPACE_USED)))
+    if (bitmap_isset(&setattr_res.attrsset, 0, FATTR4_WORD0_SIZE) ||
+        bitmap_isset(&setattr_res.attrsset, 1, FATTR4_WORD1_SPACE_USED)) {
         nfs41_superblock_space_changed(file->fh.superblock);
+    }
 out:
     return status;
 }
