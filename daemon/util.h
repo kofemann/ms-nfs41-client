@@ -132,6 +132,18 @@ static __inline void bitmap_intersect(
     }
     dst->count = min(dst->count, count);
 }
+static __inline void bitmap_or(
+    IN bitmap4 *restrict dst,
+    IN const bitmap4 *restrict src)
+{
+    uint32_t i, count = 0;
+    for (i = 0; i < 3; i++) {
+        dst->arr[i] = ((i < dst->count)?dst->arr[i]:0) | ((i < src->count)?src->arr[i]:0);
+        if (dst->arr[i])
+            count = i+1;
+    }
+    dst->count = min(dst->count, count);
+}
 
 static __inline void bitmap4_cpy(
     OUT bitmap4 *restrict dst,
