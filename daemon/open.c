@@ -875,9 +875,9 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
                 }
                 else {
 #ifdef NFS41_DRIVER_TREAT_UNRESOLVEABLE_SYMLINKS_AS_DIRS
-                    target_info.type = TRUE;
+                    info.symlink_dir = TRUE;
 #else
-                    target_info.type = FALSE;
+                    info.symlink_dir = FALSE;
 #endif /* NFS41_DRIVER_TREAT_UNRESOLVEABLE_SYMLINKS_AS_DIRS */
                 }
             } else {
