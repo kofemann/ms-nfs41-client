@@ -125,7 +125,7 @@ static __inline void bitmap_intersect(
     IN const bitmap4 *restrict src)
 {
     uint32_t i, count = 0;
-    for (i = 0; i < 3; i++) {
+    for (i = 0; i < BITMAP4_MAXCOUNT; i++) {
         dst->arr[i] = ((i < dst->count)?dst->arr[i]:0) & ((i < src->count)?src->arr[i]:0);
         if (dst->arr[i])
             count = i+1;
@@ -137,7 +137,7 @@ static __inline void bitmap_or(
     IN const bitmap4 *restrict src)
 {
     uint32_t i, count = 0;
-    for (i = 0; i < 3; i++) {
+    for (i = 0; i < BITMAP4_MAXCOUNT; i++) {
         dst->arr[i] = ((i < dst->count)?dst->arr[i]:0) | ((i < src->count)?src->arr[i]:0);
         if (dst->arr[i])
             count = i+1;
