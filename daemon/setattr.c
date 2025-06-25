@@ -87,15 +87,15 @@ static int handle_nfs41_setattr_basicinfo(void *daemon_context, setattr_upcall_a
 
         if (info.hidden != old_info.hidden) {
             info.attrmask.arr[0] |= FATTR4_WORD0_HIDDEN;
-            info.attrmask.count = 1;
+            info.attrmask.count = __max(info.attrmask.count, 1);
         }
         if (info.archive != old_info.archive) {
             info.attrmask.arr[0] |= FATTR4_WORD0_ARCHIVE;
-            info.attrmask.count = 1;
+            info.attrmask.count = __max(info.attrmask.count, 1);
         }
         if (info.system != old_info.system) {
             info.attrmask.arr[1] |= FATTR4_WORD1_SYSTEM;
-            info.attrmask.count = 2;
+            info.attrmask.count = __max(info.attrmask.count, 2);
         }
 
         EASSERT_MSG(((basic_info->FileAttributes & FILE_ATTRIBUTE_EA) == 0),
@@ -112,13 +112,13 @@ static int handle_nfs41_setattr_basicinfo(void *daemon_context, setattr_upcall_a
     if (basic_info->FileAttributes & FILE_ATTRIBUTE_READONLY) {
         info.mode = 0444;
         info.attrmask.arr[1] |= FATTR4_WORD1_MODE;
-        info.attrmask.count = 2;
+        info.attrmask.count = __max(info.attrmask.count, 2);
     }
     else {
         if (old_info.mode == 0444) {
             info.mode = 0644;
             info.attrmask.arr[1] |= FATTR4_WORD1_MODE;
-            info.attrmask.count = 2;
+            info.attrmask.count = __max(info.attrmask.count, 2);
         }
     }
 
@@ -132,28 +132,28 @@ static int handle_nfs41_setattr_basicinfo(void *daemon_context, setattr_upcall_a
             file_time_to_nfs_time(&basic_info->CreationTime,
                 &info.time_create);
             info.attrmask.arr[1] |= FATTR4_WORD1_TIME_CREATE;
-            info.attrmask.count = 2;
+            info.attrmask.count = __max(info.attrmask.count, 2);
         }
         /* time_access_set */
         if (basic_info->LastAccessTime.QuadPart > 0) {
             file_time_to_nfs_time(&basic_info->LastAccessTime,
                 &info.time_access);
             info.attrmask.arr[1] |= FATTR4_WORD1_TIME_ACCESS_SET;
-            info.attrmask.count = 2;
+            info.attrmask.count = __max(info.attrmask.count, 2);
         }
         /* time_modify_set */
         if (basic_info->LastWriteTime.QuadPart > 0) {
             file_time_to_nfs_time(&basic_info->LastWriteTime,
                 &info.time_modify);
             info.attrmask.arr[1] |= FATTR4_WORD1_TIME_MODIFY_SET;
-            info.attrmask.count = 2;
+            info.attrmask.count = __max(info.attrmask.count, 2);
         }
     }
 
     /* mask out unsupported attributes */
     nfs41_superblock_supported_attrs(superblock, &info.attrmask);
 
-    if (!info.attrmask.count)
+    if (info.attrmask.count == 0)
         goto out;
 
     /* break read delegations before SETATTR */

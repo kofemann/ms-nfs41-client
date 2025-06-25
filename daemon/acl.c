@@ -1391,7 +1391,7 @@ static int handle_setacl(void *daemon_context, nfs41_upcall *upcall)
 
         info.owner = ownerbuf;
         info.attrmask.arr[1] |= FATTR4_WORD1_OWNER;
-        info.attrmask.count = 2;
+        info.attrmask.count = __max(info.attrmask.count, 2);
 
         EASSERT_MSG(info.owner[0] != '\0',
             ("info.owner='%s'\n", info.owner));
@@ -1413,7 +1413,7 @@ static int handle_setacl(void *daemon_context, nfs41_upcall *upcall)
 
         info.owner_group = groupbuf;
         info.attrmask.arr[1] |= FATTR4_WORD1_OWNER_GROUP;
-        info.attrmask.count = 2;
+        info.attrmask.count = __max(info.attrmask.count, 2);
 
         EASSERT_MSG(info.owner_group[0] != '\0',
             ("info.owner_group='%s'\n", info.owner_group));
@@ -1451,8 +1451,7 @@ static int handle_setacl(void *daemon_context, nfs41_upcall *upcall)
 
         info.acl = &nfs4_acl;
         info.attrmask.arr[0] |= FATTR4_WORD0_ACL;
-        if (!info.attrmask.count)
-            info.attrmask.count = 1;
+        info.attrmask.count = __max(info.attrmask.count, 1);
     }
 
     /* break read delegations before SETATTR */
