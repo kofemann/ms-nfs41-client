@@ -47,7 +47,7 @@ enum stable_how4;
  * so hibernation longer than |NAME_CACHE_EXPIRATION| will
  * automagically invalidate the cache
  */
-#define UTIL_GETRELTIME() (GetTickCount64()/1000UL)
+#define UTIL_GETRELTIME() (GetTickCount64()/1000ULL)
 #define UTIL_DIFFRELTIME(t1, t2) \
     (((signed long long)(t1))-((signed long long)(t2)))
 typedef ULONGLONG util_reltimestamp;
