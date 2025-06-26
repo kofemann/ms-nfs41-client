@@ -30,6 +30,9 @@
 #include "util.h"
 #include "daemon_debug.h"
 
+/* |DPRINTF()| levels for acl logging */
+#define SYMLLVL1 1
+#define SYMLLVL2 2
 
 static int abs_path_link(
     OUT nfs41_abs_path *path,
@@ -43,7 +46,7 @@ static int abs_path_link(
     const char *link_end = link + link_len;
     int status = NO_ERROR;
 
-    DPRINTF(2,
+    DPRINTF(SYMLLVL2,
         ("--> abs_path_link(path_pos='%s', link='%.*s', link_len=%d)\n",
         path_pos, (int)link_len, link, (int)link_len));
 
@@ -103,12 +106,12 @@ out:
     path->len = (unsigned short)(path_pos - path->path);
 
     if (status) {
-        DPRINTF(2,
+        DPRINTF(SYMLLVL2,
             ("<-- abs_path_link(), status=%d\n",
             status));
     }
     else {
-        DPRINTF(2,
+        DPRINTF(SYMLLVL2,
             ("<-- abs_path_link(path='%.*s'), status=%d\n",
             (int)path->len, path->path, status));
     }
@@ -136,7 +139,7 @@ int nfs41_symlink_target(
         goto out;
     }
 
-    DPRINTF(2, ("--> nfs41_symlink_target('%s', '%s')\n", path->path, link));
+    DPRINTF(SYMLLVL2, ("--> nfs41_symlink_target('%s', '%s')\n", path->path, link));
 
     /* append any components after the symlink */
     if (FAILED(StringCchCatA(link, NFS41_MAX_PATH_LEN,
@@ -165,7 +168,7 @@ int nfs41_symlink_target(
         goto out;
     }
 out:
-    DPRINTF(2, ("<-- nfs41_symlink_target('%s') returning %d\n",
+    DPRINTF(SYMLLVL2, ("<-- nfs41_symlink_target('%s') returning %d\n",
         target->path, status));
     return status;
 }
@@ -184,7 +187,7 @@ int nfs41_symlink_follow(
     file.path = &path;
     InitializeSRWLock(&path.lock);
 
-    DPRINTF(2, ("--> nfs41_symlink_follow('%s')\n", symlink->path->path));
+    DPRINTF(SYMLLVL2, ("--> nfs41_symlink_follow('%s')\n", symlink->path->path));
 
     do {
         if (++depth > NFS41_MAX_SYMLINK_DEPTH) {
@@ -196,7 +199,7 @@ int nfs41_symlink_follow(
         status = nfs41_symlink_target(session, symlink, &path);
         if (status) goto out;
 
-        DPRINTF(2, ("looking up '%s'\n", path.path));
+        DPRINTF(SYMLLVL2, ("looking up '%s'\n", path.path));
 
         last_component(path.path, path.path + path.len, &file.name);
 
@@ -208,7 +211,7 @@ int nfs41_symlink_follow(
         symlink = &file;
     } while (info->type == NF4LNK);
 out:
-    DPRINTF(2, ("<-- nfs41_symlink_follow() returning %d\n", status));
+    DPRINTF(SYMLLVL2, ("<-- nfs41_symlink_follow() returning %d\n", status));
     return status;
 }
 
@@ -226,7 +229,7 @@ static int parse_symlink_get(unsigned char *buffer, uint32_t length,
 
     args->target_set = NULL;
 
-    DPRINTF(1,
+    DPRINTF(SYMLLVL1,
         ("parse_symlink_get: parsing NFS41_SYSOP_SYMLINK_GET: "
         "path='%s' target='%s'\n",
         args->path, args->target_set));
@@ -254,7 +257,7 @@ static int handle_symlink_get(void *daemon_context, nfs41_upcall *upcall)
         goto out;
     }
     args->target_get.len = (unsigned short)len;
-    DPRINTF(2,
+    DPRINTF(SYMLLVL2,
         ("returning symlink target '%s'\n", args->target_get.path));
 
 out:
@@ -316,7 +319,7 @@ static int parse_symlink_set(unsigned char *buffer, uint32_t length,
     status = get_name(&buffer, &length,
         (const char **)(&args->target_set));
 
-    DPRINTF(1,
+    DPRINTF(SYMLLVL1,
         ("parse_symlink_set: parsing NFS41_SYSOP_SYMLINK_SET: "
         "path='%s' target='%s'\n",
         args->path, args->target_set));
