@@ -153,6 +153,69 @@ done:
     return res;
 }
 
+static
+bool getfinalpath(const char *progname, const char *filename)
+{
+    int res = EXIT_FAILURE;
+    bool ok;
+    wchar_t buffer[4096];
+
+    HANDLE fileHandle = CreateFileA(filename,
+        GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING,
+        FILE_FLAG_BACKUP_SEMANTICS, NULL);
+    if (fileHandle == INVALID_HANDLE_VALUE) {
+        (void)fprintf(stderr,
+            "%s: Error opening file '%s'. Last error was %d.\n",
+            progname,
+            filename,
+            (int)GetLastError());
+        return EXIT_FAILURE;
+    }
+
+    typedef struct _gfpn_ops{
+        const char *name;
+        DWORD flags;
+    } gfpn_ops;
+
+    gfpn_ops opts[] ={
+        { .name = "normalized_volume_name_dos",     .flags = FILE_NAME_NORMALIZED|VOLUME_NAME_DOS },
+        { .name = "normalized_volume_name_guid",    .flags = FILE_NAME_NORMALIZED|VOLUME_NAME_GUID },
+        { .name = "normalized_volume_name_none",    .flags = FILE_NAME_NORMALIZED|VOLUME_NAME_NONE },
+        { .name = "normalized_volume_name_nt",      .flags = FILE_NAME_NORMALIZED|VOLUME_NAME_NT },
+        { .name = "opened_volume_name_dos",         .flags = FILE_NAME_OPENED|VOLUME_NAME_DOS },
+        { .name = "opened_volume_name_guid",        .flags = FILE_NAME_OPENED|VOLUME_NAME_GUID },
+        { .name = "opened_volume_name_none",        .flags = FILE_NAME_OPENED|VOLUME_NAME_NONE },
+        { .name = "opened_volume_name_nt",          .flags = FILE_NAME_OPENED|VOLUME_NAME_NT },
+        { .name = NULL,                             .flags = 0 }
+    };
+
+    (void)printf("(\n");
+    (void)printf("\tfilename='%s'\n", filename);
+
+    (void)printf("\ttypeset -A paths=(\n");
+
+    for (gfpn_ops *o = opts ; o->name != NULL ; o++) {
+        ok = GetFinalPathNameByHandleW(fileHandle, buffer, 4096, o->flags);
+        if (ok) {
+            (void)printf("\t\t['%s']='%ls'\n", o->name, buffer);
+        }
+        else {
+            (void)fprintf(stderr, "%s: GetFinalPathNameByHandleW(%s) "
+                "error. GetLastError()==%d.\n",
+                progname,
+                o->name,
+                (int)GetLastError());
+        }
+    }
+
+    (void)printf("\t)\n");
+    (void)printf(")\n");
+    res = EXIT_SUCCESS;
+
+    (void)CloseHandle(fileHandle);
+    return res;
+}
+
 typedef struct _IO_STATUS_BLOCK {
     union {
         NTSTATUS Status;
@@ -1273,6 +1336,7 @@ void usage(void)
 {
     (void)fprintf(stderr, "winfsinfo <"
         "getvolumeinfo|"
+        "getfinalpath|"
 #ifdef NTDLL_HAS_ZWQUERYVOLUMEINFORMATIONFILE
         "getfilefssectorsizeinformation|"
 #endif /* NTDLL_HAS_ZWQUERYVOLUMEINFORMATIONFILE */
@@ -1313,6 +1377,9 @@ int main(int ac, char *av[])
 
     if (!strcmp(subcmd, "getvolumeinfo")) {
         return getvolumeinfo(av[0], av[2]);
+    }
+    if (!strcmp(subcmd, "getfinalpath")) {
+        return getfinalpath(av[0], av[2]);
     }
 #ifdef NTDLL_HAS_ZWQUERYVOLUMEINFORMATIONFILE
     if (!strcmp(subcmd, "getfilefssectorsizeinformation")) {
