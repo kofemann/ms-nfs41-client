@@ -59,7 +59,25 @@ static int abs_path_link(
     }
     /* if link is an absolute path, start path_pos at the beginning */
     else if (is_delimiter(*link)) {
-        path_pos = path->path;
+        if (link_len == 0) {
+            /* This should never happen... */
+            eprintf("abs_path_link(path_pos='%s', link='%.*s', link_len=%d): "
+                "Invalid path, link_len==0\n",
+                path_pos, (int)link_len, link, (int)link_len);
+            status = ERROR_BAD_NETPATH;
+            goto out;
+        }
+        else if (link_len == 1) {
+            /* Special case for $ ln -s '/' mysymlinktoroot # */
+            path_pos = path->path+1;
+            path->path[0] = '\\';
+            path->path[1] = '\0';
+            goto out;
+        }
+        else {
+            /* Normal absolute path... */
+            path_pos = path->path;
+        }
     }
 
     /* copy each component of link into the path */
