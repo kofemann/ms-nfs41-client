@@ -61,6 +61,10 @@ bool getvolumeinfo(const char *progname, const char *filename)
 {
     int res = EXIT_FAILURE;
     bool ok;
+    wchar_t volumeNameBuffer[MAX_PATH+1];
+    wchar_t fileSystemNameBuffer[MAX_PATH+1];
+    DWORD volumeSerialNumber = 0ULL;
+    DWORD maximumComponentLength = 0ULL;
 
     HANDLE fileHandle = CreateFileA(filename,
         GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING,
@@ -75,8 +79,14 @@ bool getvolumeinfo(const char *progname, const char *filename)
     }
 
     DWORD volumeFlags = 0;
-    ok = GetVolumeInformationByHandleW(fileHandle, NULL, 0,
-        NULL, NULL, &volumeFlags, NULL, 0);
+    ok = GetVolumeInformationByHandleW(fileHandle,
+        volumeNameBuffer,
+        sizeof(volumeNameBuffer),
+        &volumeSerialNumber,
+        &maximumComponentLength,
+        &volumeFlags,
+        fileSystemNameBuffer,
+        sizeof(fileSystemNameBuffer));
 
     if (!ok) {
         (void)fprintf(stderr, "%s: GetVolumeInformationByHandleW() "
@@ -89,6 +99,11 @@ bool getvolumeinfo(const char *progname, const char *filename)
 
     (void)printf("(\n");
     (void)printf("\tfilename='%s'\n", filename);
+    (void)printf("\tvolumename='%ls'\n", volumeNameBuffer);
+    (void)printf("\tvolumeserialnumber=0x%lx\n", (long)volumeSerialNumber);
+    (void)printf("\tmaximumcomponentlength='%lu'\n", (long)maximumComponentLength);
+    (void)printf("\tfilesystemname='%ls'\n", fileSystemNameBuffer);
+
     (void)printf("\ttypeset -A volumeflags=(\n");
 
 #define TESTVOLFLAG(s) \
