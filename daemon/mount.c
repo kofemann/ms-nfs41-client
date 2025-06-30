@@ -84,9 +84,12 @@ static int handle_mount(void *daemon_context, nfs41_upcall *upcall)
     LUID authenticationid = { .LowPart = 0, .HighPart = 0L };
 #endif /* NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE */
 
-    EASSERT(args->hostport != NULL);
-
-    if (args->use_nfspubfh) {
+    /*
+     * Handle relative paths for public NFS
+     * (|args->path==NULL| should be logged below, but we bail out with
+     * an error immediately after that)
+     */
+    if (args->path && args->use_nfspubfh) {
         if (args->path[0] != '\\') {
             eprintf("handle_mount: "
                 "public mount ('%s') root passed without backslash\n",
@@ -130,8 +133,14 @@ static int handle_mount(void *daemon_context, nfs41_upcall *upcall)
         goto out;
     }
 
+    if (args->hostport == NULL) {
+        eprintf("handle_mount: hostport==NULL\n");
+        status = ERROR_BAD_NETPATH;
+        goto out;
+    }
+
     if ((args->path == NULL) || (strlen(args->path) == 0)) {
-        DPRINTF(1, ("handle_mount: empty mount root\n"));
+        eprintf("handle_mount: empty mount root\n");
         status = ERROR_BAD_NETPATH;
         goto out;
     }
