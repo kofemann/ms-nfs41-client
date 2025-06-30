@@ -59,7 +59,7 @@
  * This must fit at least twice the maximum path length
  * (for rename) plus header
  */
-#define UPCALL_BUF_SIZE         8192
+#define UPCALL_BUF_SIZE         ((2*4096)+1024)
 
 /*
  * NFS41_MAX_COMPONENT_LEN - MaximumComponentNameLength
