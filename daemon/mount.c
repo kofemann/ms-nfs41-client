@@ -80,27 +80,47 @@ static int handle_mount(void *daemon_context, nfs41_upcall *upcall)
     nfs41_root *root = NULL;
     nfs41_client *client;
     nfs41_path_fh file;
+#ifdef NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE
+    LUID authenticationid = { .LowPart = 0, .HighPart = 0L };
+#endif /* NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE */
 
     EASSERT(args->hostport != NULL);
 
-#ifdef NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE
-    LUID authenticationid = { .LowPart = 0, .HighPart = 0L };
+    if (args->use_nfspubfh) {
+        if (args->path[0] != '\\') {
+            eprintf("handle_mount: "
+                "public mount ('%s') root passed without backslash\n",
+                args->path);
+            status = ERROR_BAD_NETPATH;
+            goto out;
+        }
 
+        /*
+         * public mounts should be relative to the pubfh. nfs_mount.exe
+         * added the slash in front do the Win32 API can handle the path,
+         * but for the NFS protocol only relative paths are allowed
+         */
+        args->path++;
+    }
+
+#ifdef NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE
     /* We ignore errors here since this is for logging only */
     (void)get_token_authenticationid(upcall->currentthread_token,
         &authenticationid);
 
     logprintf("mount(hostport='%s', "
-        "use_nfspubfh=%d, path='%s', "
+        "use_nfspubfh=%d, %s='%s', "
         "authid=(0x%lx.0x%lx)) request\n",
         args->hostport?args->hostport:"<NULL>",
         (int)args->use_nfspubfh,
+        (args->use_nfspubfh?"relative_path":"path"),
         args->path?args->path:"<NULL>",
         (long)authenticationid.HighPart,
         (long)authenticationid.LowPart);
 #else
-    logprintf("mount(hostport='%s', path='%s') request\n",
+    logprintf("mount(hostport='%s', %s='%s') request\n",
         args->hostport?args->hostport:"<NULL>",
+        (args->use_nfspubfh?"relative_path":"path"),
         args->path?args->path:"<NULL>");
 #endif /* NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE */
 
@@ -199,20 +219,22 @@ static int handle_mount(void *daemon_context, nfs41_upcall *upcall)
 out:
     if (status == 0) {
 #ifdef NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE
-        logprintf("mount(hostport='%s', use_nfspubfh=%d, path='%s', "
+        logprintf("mount(hostport='%s', use_nfspubfh=%d, %s='%s', "
             "authid=(0x%lx.0x%lx)) success, root=0x%p, NFS version=4.%d\n",
             args->hostport?args->hostport:"<NULL>",
             (int)args->use_nfspubfh,
+            (args->use_nfspubfh?"relative_path":"path"),
             args->path?args->path:"<NULL>",
             (long)authenticationid.HighPart,
             (long)authenticationid.LowPart,
             root,
             (int)root->nfsminorvers);
 #else
-        logprintf("mount(hostport='%s', use_nfspubfh=%d, path='%s') success, "
+        logprintf("mount(hostport='%s', use_nfspubfh=%d, %s='%s') success, "
             "root=0x%p, NFS version=4.%d\n",
             args->hostport?args->hostport:"<NULL>",
             (int)args->use_nfspubfh,
+            (args->use_nfspubfh?"relative_path":"path"),
             args->path?args->path:"<NULL>",
             root,
             (int)root->nfsminorvers);
@@ -220,19 +242,21 @@ out:
     }
     else {
 #ifdef NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE
-        logprintf("mount(hostport='%s', use_nfspubfh=%d, path='%s', "
+        logprintf("mount(hostport='%s', use_nfspubfh=%d, %s='%s', "
             "authid=(0x%lx.0x%lx))) failed, status=%d\n",
             args->hostport?args->hostport:"<NULL>",
             (int)args->use_nfspubfh,
+            (args->use_nfspubfh?"relative_path":"path"),
             args->path?args->path:"<NULL>",
             (long)authenticationid.HighPart,
             (long)authenticationid.LowPart,
             (int)status);
 #else
-        logprintf("mount(hostport='%s', use_nfspubfh=%d, path='%s') "
+        logprintf("mount(hostport='%s', use_nfspubfh=%d, %s='%s') "
             "failed, status=%d\n",
             args->hostport?args->hostport:"<NULL>",
             (int)args->use_nfspubfh,
+            (args->use_nfspubfh?"relative_path":"path"),
             args->path?args->path:"<NULL>",
             (int)status);
 #endif /* NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE */

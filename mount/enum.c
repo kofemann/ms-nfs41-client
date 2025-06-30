@@ -159,19 +159,25 @@ void PrintMountLine(
          */
         if (slash_counter == 1) {
             *us++ = uc;
-            if (*utf8unc_p == 'p') {
-                /* Skip "pubnfs4" */
-                utf8unc_p += 7;
+            if (strncmp(utf8unc_p, "pubnfs4/", 8) == 0) {
+                /*
+                 * Skip "pubnfs4/", the trailing slash is skipped
+                 * because public nfs://-URLs must be relative to
+                 * the pubfh
+                 */
+                utf8unc_p += 8;
+                slash_counter++;
                 is_pubfh = true;
             }
-            else if (*utf8unc_p == 'n') {
+            else if (strncmp(utf8unc_p, "nfs4/", 5) == 0) {
                 /* Skip "nfs4" */
                 utf8unc_p += 4;
             }
             else {
                 (void)fwprintf(stderr,
                     L"PrintMountLine: ## Internal error, "
-                    "unknown provider prefix\n");
+                    "unknown provider prefix, utf8unc_p='%s'\n",
+                    utf8unc_p);
                 return;
             }
 

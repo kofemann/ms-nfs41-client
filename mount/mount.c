@@ -191,7 +191,8 @@ void PrintMountUsage(LPWSTR pProcess)
         "\tnfs_mount.exe -o sec=sys,rw nfs://myhost1//dirwithspace/dir%%20space/test2\n"
         "\tnfs_mount.exe -o sec=sys,rw S nfs://myhost1//dirwithspace/dir+space/test2\n"
         "\tnfs_mount.exe -o sec=sys S nfs://myhost1//dirwithspace/dir+space/test2?rw=1\n"
-        "\tnfs_mount.exe -o sec=sys nfs://myhost1//dirwithspace/dir+space/test2?rw=1\n",
+        "\tnfs_mount.exe -o sec=sys nfs://myhost1//dirwithspace/dir+space/test2?rw=1\n"
+        "\tnfs_mount.exe -o public,sec=sys P nfs://myhost1/net_tmpfs2/test2\n",
         pProcess, pProcess, pProcess, pProcess,
         (int)NFS41_DRIVER_DEFAULT_DIR_CREATE_MODE,
         (int)NFS41_DRIVER_DEFAULT_FILE_CREATE_MODE,
@@ -915,13 +916,33 @@ static DWORD ParseRemoteName(
             goto out;
         }
 
-        if (uctx->path[0] != '/') {
-            result = ERROR_BAD_ARGUMENTS;
-            (void)fwprintf(stderr, L"Relative nfs://-URLs are not supported\n");
-            goto out;
+        if (use_nfspubfh) {
+            if (uctx->path[0] == '/') {
+                result = ERROR_BAD_ARGUMENTS;
+                (void)fwprintf(stderr, L"Absolute nfs://-URLs are not permitted for public mounts\n");
+                goto out;
+            }
+
+            /*
+             * Put '/' in front of the path to make sure the Network Provider
+             * API&co can handle it, the daemon code will treat the
+             * path as relative
+             */
+            char *tmppathbuff = _alloca(strlen(uctx->path)+2);
+            (void)sprintf(tmppathbuff, "/%s", uctx->path);
+
+            pEnd = mountstrmem = utf8str2wcs(tmppathbuff);
+        }
+        else {
+            if (uctx->path[0] != '/') {
+                result = ERROR_BAD_ARGUMENTS;
+                (void)fwprintf(stderr, L"Relative nfs://-URLs are not permitted for non-public mounts\n");
+                goto out;
+            }
+
+            pEnd = mountstrmem = utf8str2wcs(uctx->path);
         }
 
-        pEnd = mountstrmem = utf8str2wcs(uctx->path);
         if (!mountstrmem) {
             result = GetLastError();
             (void)fwprintf(stderr, L"Cannot convert URL path '%s', lasterr=%d\n",

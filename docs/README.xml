@@ -184,7 +184,7 @@
         </para>
       </listitem>
       <listitem>
-        <para>Support for NFSv4 public mounts (i.e., use the NFSv4 public file handle lookup protocol via <command>$ nfs_mount -o public ... #</command>)</para>
+        <para>Support for NFSv4 public mounts (i.e., use the NFSv4 public file handle lookup protocol via <command>$ nfs_mount -o public ... relative-path-or-url#</command>)</para>
       </listitem>
       <listitem>
         <para>Support for NFSv4 referrals
