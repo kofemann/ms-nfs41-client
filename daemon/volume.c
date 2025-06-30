@@ -1,8 +1,10 @@
 /* NFSv4.1 client for Windows
- * Copyright © 2012 The Regents of the University of Michigan
+ * Copyright (C) 2012 The Regents of the University of Michigan
+ * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
+ * Roland Mainz <roland.mainz@nrubsig.org>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -115,9 +117,46 @@ out:
 static int handle_volume(void *daemon_context, nfs41_upcall *upcall)
 {
     volume_upcall_args *args = &upcall->args.volume;
+    nfs41_session *session = upcall->state_ref->session;
     int status = NO_ERROR;
 
     switch (args->query) {
+    case FileFsVolumeInformation:
+        PFILE_FS_VOLUME_INFORMATION vi = &args->info.volume_info;
+
+        vi->VolumeCreationTime.QuadPart = 0LL;
+        vi->VolumeSerialNumber = 0xBABAFACE;
+        vi->SupportsObjects = FALSE;
+
+        /*
+         * |VolumeLabel| should be unique per volume, so we construct
+         * a nfs://-URL (without path)
+         *
+         * FIXME:
+         * - We should really work on |session->client->rpc->addrs| to
+         * peel-off the port number
+         */
+        (void)swprintf(vi->VolumeLabel,
+#if 1
+            /*
+             * Windows bug:
+             * Windows Explorer can only handle up to 31 characters per label
+             * FIXME:
+             * Maybe a "workaround" would be to get the "naked" IPv4/IPv6 address
+             * from libtirpc's universal address
+             */
+            31,
+#else
+            (MAX_PATH*sizeof(wchar_t)),
+#endif
+            L"nfs://%s:%d/%s",
+            session->client->rpc->server_name,
+            2049,
+            (session->client->root->use_nfspubfh?"":""));
+        vi->VolumeLabelLength = (ULONG)(wcslen(vi->VolumeLabel)*sizeof(wchar_t));
+        args->len = sizeof(args->info.volume_info) + vi->VolumeLabelLength;
+        break;
+
     case FileFsSizeInformation:
         args->len = sizeof(args->info.size);
         args->info.size.SectorsPerAllocationUnit = SECTORS_PER_UNIT;

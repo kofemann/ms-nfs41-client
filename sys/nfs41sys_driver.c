@@ -1377,8 +1377,6 @@ NTSTATUS DriverEntry(
 
     RxDefineNode(dev_exts, NFS41_DEVICE_EXTENSION);
     dev_exts->DeviceObject = nfs41_dev;
-    nfs41_create_volume_info((PFILE_FS_VOLUME_INFORMATION)dev_exts->VolAttrs,
-        &dev_exts->VolAttrsLen);
 
     RtlInitUnicodeString(&user_dev_name, NFS41_SHADOW_DEVICE_NAME);
     DbgP("calling IoCreateSymbolicLink '%wZ' '%wZ'\n", &user_dev_name, &dev_name);

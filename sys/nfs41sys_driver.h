@@ -410,11 +410,6 @@ typedef struct _NFS41_NETROOT_EXTENSION {
 #define FS_NAME_LEN (sizeof(FS_NAME) - sizeof(WCHAR))
 #define FS_ATTR_LEN (sizeof(FILE_FS_ATTRIBUTE_INFORMATION) + FS_NAME_LEN)
 
-/* FileSystemName as reported by FileFsAttributeInfo query */
-#define VOL_NAME     L"PnfsVolume"
-#define VOL_NAME_LEN (sizeof(VOL_NAME) - sizeof(WCHAR))
-#define VOL_ATTR_LEN (sizeof(FILE_FS_VOLUME_INFORMATION) + VOL_NAME_LEN)
-
 typedef struct _NFS41_V_NET_ROOT_EXTENSION {
     NODE_TYPE_CODE          NodeTypeCode;
     NODE_BYTE_SIZE          NodeByteSize;
@@ -484,8 +479,6 @@ typedef struct _NFS41_DEVICE_EXTENSION {
     ULONG                   ActiveNodes;
     HANDLE                  SharedMemorySection;
     DWORD                   nfs41d_version;
-    BYTE                    VolAttrs[VOL_ATTR_LEN];
-    DWORD                   VolAttrsLen;
     HANDLE                  openlistHandle;
 } NFS41_DEVICE_EXTENSION, *PNFS41_DEVICE_EXTENSION;
 
@@ -896,7 +889,5 @@ NTSTATUS marshal_nfs41_volume(
     ULONG *len);
 NTSTATUS nfs41_QueryVolumeInformation(
     IN OUT PRX_CONTEXT RxContext);
-void nfs41_create_volume_info(
-    PFILE_FS_VOLUME_INFORMATION pVolInfo, DWORD *len);
 
 #endif /* !_NFS41SYS_DRIVER_H_ */

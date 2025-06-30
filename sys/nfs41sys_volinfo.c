@@ -128,18 +128,6 @@ NTSTATUS map_volume_errors(
     }
 }
 
-void nfs41_create_volume_info(PFILE_FS_VOLUME_INFORMATION pVolInfo, DWORD *len)
-{
-    DECLARE_CONST_UNICODE_STRING(VolName, VOL_NAME);
-
-    RtlZeroMemory(pVolInfo, sizeof(FILE_FS_VOLUME_INFORMATION));
-    pVolInfo->VolumeSerialNumber = 0xBABAFACE;
-    pVolInfo->VolumeLabelLength = VolName.Length;
-    RtlCopyMemory(&pVolInfo->VolumeLabel[0], (PVOID)VolName.Buffer,
-        VolName.MaximumLength);
-    *len = sizeof(FILE_FS_VOLUME_INFORMATION) + VolName.Length;
-}
-
 NTSTATUS nfs41_QueryVolumeInformation(
     IN OUT PRX_CONTEXT RxContext)
 {
@@ -153,7 +141,6 @@ NTSTATUS nfs41_QueryVolumeInformation(
     __notnull PNFS41_NETROOT_EXTENSION pNetRootContext =
         NFS41GetNetRootExtension(SrvOpen->pVNetRoot->pNetRoot);
     __notnull PNFS41_FOBX nfs41_fobx = NFS41GetFobxExtension(RxContext->pFobx);
-    NFS41GetDeviceExtension(RxContext, DevExt);
 
 #ifdef ENABLE_TIMINGS
     LARGE_INTEGER t1, t2;
@@ -171,18 +158,6 @@ NTSTATUS nfs41_QueryVolumeInformation(
     RtlZeroMemory(RxContext->Info.Buffer, RxContext->Info.LengthRemaining);
 
     switch (InfoClass) {
-    case FileFsVolumeInformation:
-        if ((ULONG)RxContext->Info.LengthRemaining >= DevExt->VolAttrsLen) {
-            RtlCopyMemory(RxContext->Info.Buffer, DevExt->VolAttrs,
-                DevExt->VolAttrsLen);
-            RxContext->Info.LengthRemaining -= DevExt->VolAttrsLen;
-            status = STATUS_SUCCESS;
-        } else {
-            RtlCopyMemory(RxContext->Info.Buffer, DevExt->VolAttrs,
-                RxContext->Info.LengthRemaining);
-            status = STATUS_BUFFER_OVERFLOW;
-        }
-        goto out;
     case FileFsDeviceInformation:
     {
         PFILE_FS_DEVICE_INFORMATION pDevInfo = RxContext->Info.Buffer;
@@ -229,6 +204,7 @@ NTSTATUS nfs41_QueryVolumeInformation(
     case FileFsSizeInformation:
     case FileFsFullSizeInformation:
     case FileFsSectorSizeInformation:
+    case FileFsVolumeInformation:
         break;
 
     default:

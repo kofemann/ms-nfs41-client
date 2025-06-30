@@ -172,6 +172,14 @@ typedef struct __volume_upcall_args {
     FS_INFORMATION_CLASS query;
     int len;
     union {
+#pragma warning( push )
+/* Disable warning C4201 ("nonstandard extension used: nameless struct/union") */
+#pragma warning (disable : 4201)
+        struct {
+            FILE_FS_VOLUME_INFORMATION volume_info;
+            wchar_t volumelabelbuffer[MAX_PATH+1];
+        };
+#pragma warning( pop )
         FILE_FS_SIZE_INFORMATION size;
         FILE_FS_ATTRIBUTE_INFORMATION attribute;
         FILE_FS_FULL_SIZE_INFORMATION fullsize;

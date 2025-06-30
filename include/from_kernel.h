@@ -456,6 +456,14 @@ typedef struct _FILE_FS_ATTRIBUTE_INFORMATION {
 } FILE_FS_ATTRIBUTE_INFORMATION, *PFILE_FS_ATTRIBUTE_INFORMATION;
 
 /* ntddk.h */
+typedef struct _FILE_FS_VOLUME_INFORMATION {
+    LARGE_INTEGER VolumeCreationTime;
+    ULONG VolumeSerialNumber;
+    ULONG VolumeLabelLength;
+    BOOLEAN SupportsObjects;
+    WCHAR VolumeLabel[1];
+} FILE_FS_VOLUME_INFORMATION, *PFILE_FS_VOLUME_INFORMATION;
+
 typedef struct _FILE_FS_SIZE_INFORMATION {
     LARGE_INTEGER TotalAllocationUnits;
     LARGE_INTEGER AvailableAllocationUnits;
