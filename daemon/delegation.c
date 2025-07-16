@@ -754,7 +754,12 @@ int nfs41_delegation_recall(
     args->truncate = truncate;
 
     /* the callback thread can't make rpc calls, so spawn a separate thread */
-    if (_beginthreadex(NULL, 0, delegation_recall_thread, args, 0, NULL) == 0) {
+    if (_beginthreadex(NULL,
+        NFSD_THREAD_STACK_SIZE,
+        delegation_recall_thread,
+        args,
+        0,
+        NULL) == 0) {
         status = NFS4ERR_SERVERFAULT;
         eprintf("nfs41_delegation_recall() failed to start thread\n");
         goto out_args;

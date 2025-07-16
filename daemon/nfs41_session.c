@@ -420,7 +420,7 @@ int nfs41_session_set_lease(
         goto out;
     }
     session->renew.thread_handle = (HANDLE)_beginthreadex(NULL,
-        0, renew_session_thread, session, 0, &thread_id);
+        NFSD_THREAD_STACK_SIZE, renew_session_thread, session, 0, &thread_id);
     if (!valid_handle(session->renew.thread_handle)) {
         status = GetLastError();
         eprintf("nfs41_session_set_lease: _beginthreadex() failed %d\n",

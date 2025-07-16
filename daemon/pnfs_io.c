@@ -409,7 +409,7 @@ static enum pnfs_status pattern_fork(
     }
 
     for (i = 0; i < pattern->count; i++) {
-        threads[i] = (HANDLE)_beginthreadex(NULL, 0,
+        threads[i] = (HANDLE)_beginthreadex(NULL, NFSD_THREAD_STACK_SIZE,
             thread_fn, &pattern->threads[i], 0, NULL);
         if (threads[i] == NULL) {
             eprintf("_beginthreadex() failed with %d\n", GetLastError());

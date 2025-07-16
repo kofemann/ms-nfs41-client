@@ -878,8 +878,12 @@ VOID ServiceStart(DWORD argc, LPTSTR *argv)
     DPRINTF(1, ("Starting %d worker threads...\n",
         (int)nfs41_dg.num_worker_threads));
     for (i = 0; i < nfs41_dg.num_worker_threads; i++) {
-        tids[i].handle = (HANDLE)_beginthreadex(NULL, 0, nfsd_thread_main,
-                &nfs41_dg, 0, &tids[i].tid);
+        tids[i].handle = (HANDLE)_beginthreadex(NULL,
+            NFSD_THREAD_STACK_SIZE,
+            nfsd_thread_main,
+            &nfs41_dg,
+            0,
+            &tids[i].tid);
         if (tids[i].handle == INVALID_HANDLE_VALUE) {
             status = GetLastError();
             eprintf("_beginthreadex failed %d\n", status);

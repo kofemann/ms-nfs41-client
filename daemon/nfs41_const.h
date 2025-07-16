@@ -36,6 +36,8 @@
 #define NFS4_EASIZE             2048
 #define NFS4_EANAME_SIZE        128
 
+#define NFSD_THREAD_STACK_SIZE (4*1024*1024)
+
 /* Maximum number of AUP GIDs for |AUTH_UNIX| */
 #define RPC_AUTHUNIX_AUP_MAX_NUM_GIDS 16
 
