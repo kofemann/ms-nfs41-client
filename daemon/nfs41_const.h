@@ -31,6 +31,15 @@
 #define NFS4_FHSIZE             128
 #define NFS4_VERIFIER_SIZE      8
 #define NFS4_OPAQUE_LIMIT       1024
+/*
+ * |NFS4_OPAQUE_LIMIT_ATTR| for getattr/setattr
+ *
+ * Notes:
+ * - larger values consume more stack, a value of 8192 triggers a stack
+ * consumption which will not fit into the Win32 default stack size of 1MB
+ *
+ */
+#define NFS4_OPAQUE_LIMIT_ATTR  (8192)
 #define NFS4_SESSIONID_SIZE     16
 #define NFS4_STATEID_OTHER      12
 #define NFS4_EASIZE             2048
@@ -50,8 +59,13 @@
  */
 #define NFS4_FATTR4_OWNER_LIMIT (256)
 
-/* Maximum number of ACLs per file/dir */
-#define NFS41_ACL_MAX_ACE_ENTRIES (32)
+/*
+ * |NFS41_ACL_MAX_ACE_ENTRIES| - Maximum number of ACLs per file/dir
+ *
+ * This value is limited by |UPCALL_BUF_SIZE| and |NFS4_OPAQUE_LIMIT_ATTR|,
+ * a bigger value requirs adjustments of both variables
+ */
+#define NFS41_ACL_MAX_ACE_ENTRIES (128)
 
 #define NFS41_MAX_SERVER_CACHE  1024
 #define NFS41_MAX_RPC_REQS      128
@@ -62,6 +76,7 @@
  * Size requirements:
  * - This must fit at least twice (for rename) the maximum path length
  * (see |NFS41_MAX_PATH_LEN| below) plus header
+ * - This must fit at least |NFS41_ACL_MAX_ACE_ENTRIES| ACE entries
  */
 #define UPCALL_BUF_SIZE     (16384)
 

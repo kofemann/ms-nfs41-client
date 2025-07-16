@@ -226,7 +226,7 @@ bool unixgroup_sid2gid(PSID psid, gid_t *pgid)
  * owner_group, other, nobody, world, ... } entries multiplied by two to
  * make sure two concurrent icacls queries cannot trash the whole cache
  */
-#define SIDCACHE_SIZE 128
+#define SIDCACHE_SIZE 384
 #define SIDCACHE_TTL 600
 
 /* Safety/performance checks */

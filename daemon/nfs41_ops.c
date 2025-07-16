@@ -557,7 +557,7 @@ int nfs41_open(
 
     compound_add_op(&compound, OP_GETATTR, &getattr_args, &getattr_res);
     getattr_args.attr_request = &attr_request;
-    getattr_res.obj_attributes.attr_vals_len = NFS4_OPAQUE_LIMIT;
+    getattr_res.obj_attributes.attr_vals_len = NFS4_OPAQUE_LIMIT_ATTR;
     getattr_res.info = info;
 
     if (current_fh_is_dir) {
@@ -570,7 +570,7 @@ int nfs41_open(
 
     compound_add_op(&compound, OP_GETATTR, &getattr_args, &pgetattr_res);
     getattr_args.attr_request = &attr_request;
-    pgetattr_res.obj_attributes.attr_vals_len = NFS4_OPAQUE_LIMIT;
+    pgetattr_res.obj_attributes.attr_vals_len = NFS4_OPAQUE_LIMIT_ATTR;
     pgetattr_res.info = &dir_info;
 
     status = compound_encode_send_decode(session, &compound, try_recovery);
@@ -658,14 +658,14 @@ int nfs41_create(
 
     compound_add_op(&compound, OP_GETATTR, &getattr_args, &getattr_res);
     getattr_args.attr_request = &attr_request;
-    getattr_res.obj_attributes.attr_vals_len = NFS4_OPAQUE_LIMIT;
+    getattr_res.obj_attributes.attr_vals_len = NFS4_OPAQUE_LIMIT_ATTR;
     getattr_res.info = info;
 
     compound_add_op(&compound, OP_RESTOREFH, NULL, &restorefh_res);
 
     compound_add_op(&compound, OP_GETATTR, &getattr_args, &pgetattr_res);
     getattr_args.attr_request = &attr_request;
-    pgetattr_res.obj_attributes.attr_vals_len = NFS4_OPAQUE_LIMIT;
+    pgetattr_res.obj_attributes.attr_vals_len = NFS4_OPAQUE_LIMIT_ATTR;
     pgetattr_res.info = &dir_info;
 
     status = compound_encode_send_decode(session, &compound, TRUE);
@@ -734,7 +734,7 @@ int nfs41_close(
 
     compound_add_op(&compound, OP_GETATTR, &getattr_args, &getattr_res);
     getattr_args.attr_request = &attr_request;
-    getattr_res.obj_attributes.attr_vals_len = NFS4_OPAQUE_LIMIT;
+    getattr_res.obj_attributes.attr_vals_len = NFS4_OPAQUE_LIMIT_ATTR;
     getattr_res.info = &info;
 
     status = compound_encode_send_decode(session, &compound, TRUE);
@@ -816,7 +816,7 @@ int nfs41_write(
          * the attribute cache, so we do the GETATTR here */
         compound_add_op(&compound, OP_GETATTR, &getattr_args, &getattr_res);
         getattr_args.attr_request = &attr_request;
-        getattr_res.obj_attributes.attr_vals_len = NFS4_OPAQUE_LIMIT;
+        getattr_res.obj_attributes.attr_vals_len = NFS4_OPAQUE_LIMIT_ATTR;
         getattr_res.info = pinfo;
     }
 
@@ -959,7 +959,7 @@ int nfs41_commit(
 
         compound_add_op(&compound, OP_GETATTR, &getattr_args, &getattr_res);
         getattr_args.attr_request = &attr_request;
-        getattr_res.obj_attributes.attr_vals_len = NFS4_OPAQUE_LIMIT;
+        getattr_res.obj_attributes.attr_vals_len = NFS4_OPAQUE_LIMIT_ATTR;
         getattr_res.info = pinfo;
     }
 
@@ -1181,7 +1181,7 @@ int nfs41_getattr(
 
     compound_add_op(&compound, OP_GETATTR, &getattr_args, &getattr_res);
     getattr_args.attr_request = attr_request;
-    getattr_res.obj_attributes.attr_vals_len = NFS4_OPAQUE_LIMIT;
+    getattr_res.obj_attributes.attr_vals_len = NFS4_OPAQUE_LIMIT_ATTR;
     getattr_res.info = info;
 
     status = compound_encode_send_decode(session, &compound, TRUE);
@@ -1233,7 +1233,7 @@ int nfs41_superblock_getattr(
 
     compound_add_op(&compound, OP_GETATTR, &getattr_args, &getattr_res);
     getattr_args.attr_request = attr_request;
-    getattr_res.obj_attributes.attr_vals_len = NFS4_OPAQUE_LIMIT;
+    getattr_res.obj_attributes.attr_vals_len = NFS4_OPAQUE_LIMIT_ATTR;
     getattr_res.info = info;
 
     compound_add_op(&compound, OP_OPENATTR, &openattr_args, &openattr_res);
@@ -1310,7 +1310,7 @@ int nfs41_remove(
 
     compound_add_op(&compound, OP_GETATTR, &getattr_args, &getattr_res);
     getattr_args.attr_request = &attr_request;
-    getattr_res.obj_attributes.attr_vals_len = NFS4_OPAQUE_LIMIT;
+    getattr_res.obj_attributes.attr_vals_len = NFS4_OPAQUE_LIMIT_ATTR;
     getattr_res.info = &info;
 
     status = compound_encode_send_decode(session, &compound, TRUE);
@@ -1386,16 +1386,16 @@ int nfs41_rename(
     compound_add_op(&compound, OP_RENAME, &rename_args, &rename_res);
     rename_args.oldname = src_name;
     rename_args.newname = dst_name;
-    
+
     compound_add_op(&compound, OP_GETATTR, &getattr_args, &dst_getattr_res);
     getattr_args.attr_request = &attr_request;
-    dst_getattr_res.obj_attributes.attr_vals_len = NFS4_OPAQUE_LIMIT;
+    dst_getattr_res.obj_attributes.attr_vals_len = NFS4_OPAQUE_LIMIT_ATTR;
     dst_getattr_res.info = &dst_info;
 
     compound_add_op(&compound, OP_RESTOREFH, NULL, &restorefh_res);
 
     compound_add_op(&compound, OP_GETATTR, &getattr_args, &src_getattr_res);
-    src_getattr_res.obj_attributes.attr_vals_len = NFS4_OPAQUE_LIMIT;
+    src_getattr_res.obj_attributes.attr_vals_len = NFS4_OPAQUE_LIMIT_ATTR;
     src_getattr_res.info = &src_info;
 
     status = compound_encode_send_decode(session, &compound, TRUE);
@@ -1502,7 +1502,7 @@ int nfs41_setattr(
 
     compound_add_op(&compound, OP_GETATTR, &getattr_args, &getattr_res);
     getattr_args.attr_request = &attr_request;
-    getattr_res.obj_attributes.attr_vals_len = NFS4_OPAQUE_LIMIT;
+    getattr_res.obj_attributes.attr_vals_len = NFS4_OPAQUE_LIMIT_ATTR;
     getattr_res.info = info;
 
     status = compound_encode_send_decode(session, &compound, TRUE);
@@ -1583,7 +1583,7 @@ int nfs41_link(
     /* GETATTR(dst_dir) */
     compound_add_op(&compound, OP_GETATTR, &getattr_args[0], &getattr_res[0]);
     getattr_args[0].attr_request = &info.attrmask;
-    getattr_res[0].obj_attributes.attr_vals_len = NFS4_OPAQUE_LIMIT;
+    getattr_res[0].obj_attributes.attr_vals_len = NFS4_OPAQUE_LIMIT_ATTR;
     getattr_res[0].info = &info;
 
     /* LOOKUP(target) */
@@ -1593,7 +1593,7 @@ int nfs41_link(
     /* GETATTR(target) */
     compound_add_op(&compound, OP_GETATTR, &getattr_args[1], &getattr_res[1]);
     getattr_args[1].attr_request = &cinfo->attrmask;
-    getattr_res[1].obj_attributes.attr_vals_len = NFS4_OPAQUE_LIMIT;
+    getattr_res[1].obj_attributes.attr_vals_len = NFS4_OPAQUE_LIMIT_ATTR;
     getattr_res[1].info = cinfo;
 
     /* GETFH(target) */
@@ -1901,7 +1901,7 @@ enum nfsstat4 nfs41_fs_locations(
     compound_add_op(&compound, OP_GETATTR, &getattr_args, &getattr_res);
     getattr_args.attr_request = &attr_request;
     info.fs_locations = locations;
-    getattr_res.obj_attributes.attr_vals_len = NFS4_OPAQUE_LIMIT;
+    getattr_res.obj_attributes.attr_vals_len = NFS4_OPAQUE_LIMIT_ATTR;
     getattr_res.info = &info;
 
     status = compound_encode_send_decode(session, &compound, TRUE);
@@ -2189,7 +2189,7 @@ enum nfsstat4 pnfs_rpc_layoutcommit(
 
     compound_add_op(&compound, OP_GETATTR, &getattr_args, &getattr_res);
     getattr_args.attr_request = &attr_request;
-    getattr_res.obj_attributes.attr_vals_len = NFS4_OPAQUE_LIMIT;
+    getattr_res.obj_attributes.attr_vals_len = NFS4_OPAQUE_LIMIT_ATTR;
     getattr_res.info = info;
 
     status = compound_encode_send_decode(session, &compound, TRUE);

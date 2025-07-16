@@ -153,7 +153,7 @@ typedef struct __open_delegation4 {
 typedef struct __fattr4 {
     bitmap4         attrmask;
     uint32_t        attr_vals_len;
-    unsigned char   attr_vals[NFS4_OPAQUE_LIMIT];
+    unsigned char   attr_vals[NFS4_OPAQUE_LIMIT_ATTR];
 } fattr4;
 
 typedef struct __change_info4 {

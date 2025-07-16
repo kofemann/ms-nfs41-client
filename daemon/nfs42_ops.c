@@ -92,7 +92,7 @@ int nfs42_allocate(
      */
     compound_add_op(&compound, OP_GETATTR, &getattr_args, &getattr_res);
     getattr_args.attr_request = &attr_request;
-    getattr_res.obj_attributes.attr_vals_len = NFS4_OPAQUE_LIMIT;
+    getattr_res.obj_attributes.attr_vals_len = NFS4_OPAQUE_LIMIT_ATTR;
     getattr_res.info = pinfo;
 
     status = compound_encode_send_decode(session, &compound, TRUE);
@@ -171,7 +171,7 @@ int nfs42_deallocate(
      */
     compound_add_op(&compound, OP_GETATTR, &getattr_args, &getattr_res);
     getattr_args.attr_request = &attr_request;
-    getattr_res.obj_attributes.attr_vals_len = NFS4_OPAQUE_LIMIT;
+    getattr_res.obj_attributes.attr_vals_len = NFS4_OPAQUE_LIMIT_ATTR;
     getattr_res.info = pinfo;
 
     status = compound_encode_send_decode(session, &compound, TRUE);
@@ -374,7 +374,7 @@ int nfs42_clone(
      */
     compound_add_op(&compound, OP_GETATTR, &getattr_args, &getattr_res);
     getattr_args.attr_request = &attr_request;
-    getattr_res.obj_attributes.attr_vals_len = NFS4_OPAQUE_LIMIT;
+    getattr_res.obj_attributes.attr_vals_len = NFS4_OPAQUE_LIMIT_ATTR;
     getattr_res.info = pinfo;
 
     status = compound_encode_send_decode(session, &compound, TRUE);

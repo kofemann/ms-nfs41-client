@@ -112,7 +112,7 @@ static void init_component_args(
     res->root.path = path;
     res->getrootfh.fh = &res->root.fh;
     res->getrootattr.info = &res->rootinfo;
-    res->getrootattr.obj_attributes.attr_vals_len = NFS4_OPAQUE_LIMIT;
+    res->getrootattr.obj_attributes.attr_vals_len = NFS4_OPAQUE_LIMIT_ATTR;
     res->referral = referral;
 
     for (i = 0; i < MAX_LOOKUP_COMPONENTS; i++) {
@@ -121,7 +121,7 @@ static void init_component_args(
         args->lookup[i].name = &res->file[i].name;
         res->getfh[i].fh = &res->file[i].fh;
         res->getattr[i].info = &res->info[i];
-        res->getattr[i].obj_attributes.attr_vals_len = NFS4_OPAQUE_LIMIT;
+        res->getattr[i].obj_attributes.attr_vals_len = NFS4_OPAQUE_LIMIT_ATTR;
     }
 }
 

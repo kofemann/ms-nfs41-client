@@ -154,7 +154,10 @@ bool_t xdr_fattr4(
     if (!xdr_bitmap4(xdr, &fattr->attrmask))
         return FALSE;
 
-    return xdr_bytes(xdr, (char **)&attr_vals, &fattr->attr_vals_len, NFS4_OPAQUE_LIMIT);
+    return xdr_bytes(xdr,
+        (char **)&attr_vals,
+        &fattr->attr_vals_len,
+        NFS4_OPAQUE_LIMIT_ATTR);
 }
 
 /* nfs41_fh */
@@ -1375,7 +1378,7 @@ static bool_t encode_createattrs4(
     fattr4 attrs;
 
     /* encode attribute values from createattrs->info into attrs.attr_vals */
-    attrs.attr_vals_len = NFS4_OPAQUE_LIMIT;
+    attrs.attr_vals_len = NFS4_OPAQUE_LIMIT_ATTR;
     if (!encode_file_attrs(&attrs, createattrs))
         return FALSE;
 
@@ -2652,7 +2655,10 @@ static bool_t encode_file_attrs(
     uint32_t i;
     XDR localxdr;
 
-    xdrmem_create(&localxdr, (char *)attrs->attr_vals, NFS4_OPAQUE_LIMIT, XDR_ENCODE);
+    xdrmem_create(&localxdr,
+        (char *)attrs->attr_vals,
+        NFS4_OPAQUE_LIMIT_ATTR,
+        XDR_ENCODE);
 
     attrs->attr_vals_len = 0;
     bitmap4_clear(&attrs->attrmask);
@@ -2758,7 +2764,7 @@ static bool_t encode_op_setattr(
         return FALSE;
 
     /* encode attribute values from args->info into attrs.attr_vals */
-    attrs.attr_vals_len = NFS4_OPAQUE_LIMIT;
+    attrs.attr_vals_len = NFS4_OPAQUE_LIMIT_ATTR;
     if (!encode_file_attrs(&attrs, args->info))
         return FALSE;
 
