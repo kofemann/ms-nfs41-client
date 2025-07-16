@@ -56,10 +56,12 @@
 
 /*
  * UPCALL_BUF_SIZE - buffer size for |DeviceIoControl()|
- * This must fit at least twice the maximum path length
- * (for rename) plus header
+ *
+ * Size requirements:
+ * - This must fit at least twice (for rename) the maximum path length
+ * (see |NFS41_MAX_PATH_LEN| below) plus header
  */
-#define UPCALL_BUF_SIZE         ((2*4096)+1024)
+#define UPCALL_BUF_SIZE     (16384)
 
 /*
  * NFS41_MAX_COMPONENT_LEN - MaximumComponentNameLength

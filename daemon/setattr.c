@@ -33,6 +33,14 @@
 #include "util.h"
 #include "daemon_debug.h"
 
+/*
+ * |UPCALL_BUF_SIZE| must fit at least twice (for rename) the
+ * maximum path length plus header
+ */
+#if UPCALL_BUF_SIZE < ((NFS41_MAX_PATH_LEN*2)+2048)
+#error UPCALL_BUF_SIZE too small for rename ((NFS41_MAX_PATH_LEN*2)+2048)
+#endif
+
 
 /* NFS41_SYSOP_FILE_SET */
 static int parse_setattr(unsigned char *buffer, uint32_t length, nfs41_upcall *upcall)
