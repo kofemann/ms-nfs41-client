@@ -73,7 +73,7 @@ BOOLEAN isFilenameTooLong(
     PUNICODE_STRING name,
     PNFS41_V_NET_ROOT_EXTENSION pVNetRootContext)
 {
-    PFILE_FS_ATTRIBUTE_INFORMATION attrs = &pVNetRootContext->FsAttrs;
+    NFS41_FILE_FS_ATTRIBUTE_INFORMATION *attrs = &pVNetRootContext->FsAttrs;
     LONG len = attrs->MaximumComponentNameLength, count = 1, i;
     PWCH p = name->Buffer;
     for (i = 0; i < name->Length / 2; i++) {

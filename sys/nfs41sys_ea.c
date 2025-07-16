@@ -284,7 +284,7 @@ NTSTATUS check_nfs41_setea_args(
     NTSTATUS status;
     __notnull PNFS41_V_NET_ROOT_EXTENSION pVNetRootContext =
         NFS41GetVNetRootExtension(RxContext->pRelevantSrvOpen->pVNetRoot);
-    __notnull PFILE_FS_ATTRIBUTE_INFORMATION FsAttrs =
+    __notnull NFS41_FILE_FS_ATTRIBUTE_INFORMATION *FsAttrs =
         &pVNetRootContext->FsAttrs;
     __notnull PFILE_FULL_EA_INFORMATION ea =
         (PFILE_FULL_EA_INFORMATION)RxContext->Info.Buffer;
@@ -423,7 +423,7 @@ NTSTATUS check_nfs41_queryea_args(
     NTSTATUS status;
     __notnull PNFS41_V_NET_ROOT_EXTENSION pVNetRootContext =
         NFS41GetVNetRootExtension(RxContext->pRelevantSrvOpen->pVNetRoot);
-    __notnull PFILE_FS_ATTRIBUTE_INFORMATION FsAttrs =
+    __notnull NFS41_FILE_FS_ATTRIBUTE_INFORMATION *FsAttrs =
         &pVNetRootContext->FsAttrs;
     PFILE_GET_EA_INFORMATION ea = (PFILE_GET_EA_INFORMATION)
             RxContext->CurrentIrpSp->Parameters.QueryEa.EaList;

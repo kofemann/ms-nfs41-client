@@ -162,7 +162,8 @@ void unmarshal_nfs41_mount(
     *buf += sizeof(DWORD);
     RtlCopyMemory(&cur->u.Mount.lease_time, *buf, sizeof(DWORD));
     *buf += sizeof(DWORD);
-    RtlCopyMemory(cur->u.Mount.FsAttrs, *buf, sizeof(FILE_FS_ATTRIBUTE_INFORMATION));
+    RtlCopyMemory(cur->u.Mount.FsAttrs, *buf,
+        sizeof(NFS41_FILE_FS_ATTRIBUTE_INFORMATION));
 #ifdef DEBUG_MARSHAL_DETAIL
     DbgP("unmarshal_nfs41_mount: session=0x%p version=%d lease_time "
          "%d\n",
@@ -241,7 +242,7 @@ NTSTATUS nfs41_mount(
     DWORD sec_flavor,
     PHANDLE session,
     DWORD *version,
-    PFILE_FS_ATTRIBUTE_INFORMATION FsAttrs)
+    NFS41_FILE_FS_ATTRIBUTE_INFORMATION *FsAttrs)
 {
     NTSTATUS status = STATUS_INSUFFICIENT_RESOURCES;
     nfs41_updowncall_entry *entry = NULL;

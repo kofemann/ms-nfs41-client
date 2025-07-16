@@ -24,10 +24,12 @@
 #include <Windows.h>
 #include <stdio.h>
 
+#include "nfs41_build_features.h"
 #include "daemon_debug.h"
 #include "nfs41.h"
 #include "nfs41_ops.h"
 #include "from_kernel.h"
+#include "nfs41_driver.h"
 #include "util.h"
 
 
@@ -176,8 +178,8 @@ out:
 }
 
 void nfs41_superblock_fs_attributes(
-    IN const nfs41_superblock *superblock,
-    OUT PFILE_FS_ATTRIBUTE_INFORMATION FsAttrs)
+    IN const nfs41_superblock *restrict superblock,
+    OUT NFS41_FILE_FS_ATTRIBUTE_INFORMATION *restrict FsAttrs)
 {
     /*
      * |FileSystemAttributes| - general filesystem attributes
@@ -212,7 +214,15 @@ void nfs41_superblock_fs_attributes(
     FsAttrs->MaximumComponentNameLength = NFS41_MAX_COMPONENT_LEN;
 
     /* let the driver fill in FileSystemName */
-    FsAttrs->FileSystemNameLength = 0;
+#if ((NFS41_DRIVER_DEBUG_FS_NAME) == 1)
+    (void)wcscpy(FsAttrs->FileSystemName, L"NFS");
+    FsAttrs->FileSystemNameLength = 3*sizeof(wchar_t);
+#elif  ((NFS41_DRIVER_DEBUG_FS_NAME) == 2)
+    (void)wcscpy(FsAttrs->FileSystemName, L"DEBUG-NFS41");
+    FsAttrs->FileSystemNameLength = 11*sizeof(wchar_t);
+#else
+#error NFS41_DRIVER_DEBUG_FS_NAME not defined
+#endif
 
     DPRINTF(SBLVL, ("FileFsAttributeInformation: "
         "link_support=%u, "

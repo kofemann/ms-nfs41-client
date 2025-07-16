@@ -90,6 +90,17 @@ typedef enum _nfs41_opcodes {
 } nfs41_opcodes;
 
 /*
+ * Same as |FILE_FS_ATTRIBUTE_INFORMATION| but with inline buffer
+ * for 32 characters
+ */
+typedef struct _NFS41_FILE_FS_ATTRIBUTE_INFORMATION {
+    ULONG FileSystemAttributes;
+    LONG MaximumComponentNameLength;
+    ULONG FileSystemNameLength;
+    WCHAR FileSystemName[32];
+} NFS41_FILE_FS_ATTRIBUTE_INFORMATION;
+
+/*
  * Symlink target path types returned by the |NFS41_SYSOP_OPEN|
  * downcall
  */

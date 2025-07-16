@@ -474,7 +474,7 @@ NTSTATUS check_nfs41_create_args(
     __notnull PMRX_SRV_OPEN SrvOpen = RxContext->pRelevantSrvOpen;
     __notnull PNFS41_V_NET_ROOT_EXTENSION pVNetRootContext =
         NFS41GetVNetRootExtension(SrvOpen->pVNetRoot);
-    __notnull PFILE_FS_ATTRIBUTE_INFORMATION FsAttrs =
+    __notnull NFS41_FILE_FS_ATTRIBUTE_INFORMATION *FsAttrs =
         &pVNetRootContext->FsAttrs;
     __notnull PNFS41_NETROOT_EXTENSION pNetRootContext =
         NFS41GetNetRootExtension(SrvOpen->pVNetRoot->pNetRoot);

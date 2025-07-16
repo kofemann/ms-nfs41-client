@@ -41,7 +41,7 @@ typedef struct __mount_upcall_args {
     DWORD       use_nfspubfh;
     DWORD       nfsvers;
     DWORD       lease_time;
-    FILE_FS_ATTRIBUTE_INFORMATION FsAttrs;
+    NFS41_FILE_FS_ATTRIBUTE_INFORMATION FsAttrs;
 } mount_upcall_args;
 
 typedef struct __open_upcall_args {
@@ -181,7 +181,7 @@ typedef struct __volume_upcall_args {
         };
 #pragma warning( pop )
         FILE_FS_SIZE_INFORMATION size;
-        FILE_FS_ATTRIBUTE_INFORMATION attribute;
+        NFS41_FILE_FS_ATTRIBUTE_INFORMATION attribute;
         FILE_FS_FULL_SIZE_INFORMATION fullsize;
         FILE_FS_SECTOR_SIZE_INFORMATION sector_size;
     } info;

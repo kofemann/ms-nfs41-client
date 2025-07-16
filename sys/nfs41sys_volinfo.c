@@ -176,31 +176,6 @@ NTSTATUS nfs41_QueryVolumeInformation(
     }
 
     case FileFsAttributeInformation:
-        if (RxContext->Info.LengthRemaining < FS_ATTR_LEN) {
-            RxContext->InformationToReturn = FS_ATTR_LEN;
-            status = STATUS_BUFFER_TOO_SMALL;
-            goto out;
-        }
-
-        /* on attribute queries for the root directory,
-         * use cached volume attributes from mount */
-        if (is_root_directory(RxContext)) {
-            PFILE_FS_ATTRIBUTE_INFORMATION attrs =
-                (PFILE_FS_ATTRIBUTE_INFORMATION)RxContext->Info.Buffer;
-            DECLARE_CONST_UNICODE_STRING(FsName, FS_NAME);
-
-            RtlCopyMemory(attrs, &pVNetRootContext->FsAttrs,
-                sizeof(pVNetRootContext->FsAttrs));
-
-            /* fill in the FileSystemName */
-            RtlCopyMemory(attrs->FileSystemName, FsName.Buffer,
-                FsName.MaximumLength); /* 'MaximumLength' to include null */
-            attrs->FileSystemNameLength = FsName.Length;
-
-            RxContext->Info.LengthRemaining -= FS_ATTR_LEN;
-            goto out;
-        }
-        /* else fall through and send the upcall */
     case FileFsSizeInformation:
     case FileFsFullSizeInformation:
     case FileFsSectorSizeInformation:
@@ -232,18 +207,6 @@ NTSTATUS nfs41_QueryVolumeInformation(
         RxContext->InformationToReturn = entry->buf_len;
         status = STATUS_BUFFER_TOO_SMALL;
     } else if (entry->status == STATUS_SUCCESS) {
-        if (InfoClass == FileFsAttributeInformation) {
-            /* fill in the FileSystemName */
-            PFILE_FS_ATTRIBUTE_INFORMATION attrs =
-                (PFILE_FS_ATTRIBUTE_INFORMATION)RxContext->Info.Buffer;
-            DECLARE_CONST_UNICODE_STRING(FsName, FS_NAME);
-
-            RtlCopyMemory(attrs->FileSystemName, FsName.Buffer,
-                FsName.MaximumLength); /* 'MaximumLength' to include null */
-            attrs->FileSystemNameLength = FsName.Length;
-
-            entry->buf_len = FS_ATTR_LEN;
-        }
 #ifdef ENABLE_TIMINGS
         InterlockedIncrement(&volume.sops);
         InterlockedAdd64(&volume.size, entry->u.Volume.buf_len);

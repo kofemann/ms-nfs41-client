@@ -190,7 +190,7 @@ typedef struct _updowncall_entry {
         struct {
             PUNICODE_STRING srv_name; /* hostname, or hostname@port */
             PUNICODE_STRING root;
-            PFILE_FS_ATTRIBUTE_INFORMATION FsAttrs;
+            NFS41_FILE_FS_ATTRIBUTE_INFORMATION *FsAttrs;
             DWORD sec_flavor;
             DWORD rsize;
             DWORD wsize;
@@ -399,22 +399,11 @@ typedef struct _NFS41_NETROOT_EXTENSION {
         (((pNetRoot) == NULL) ? NULL :          \
         (PNFS41_NETROOT_EXTENSION)((pNetRoot)->Context))
 
-/* FileSystemName as reported by FileFsAttributeInfo query */
-#if ((NFS41_DRIVER_DEBUG_FS_NAME) == 1)
-#define FS_NAME     L"NFS"
-#elif  ((NFS41_DRIVER_DEBUG_FS_NAME) == 2)
-#define FS_NAME     L"DEBUG-NFS41"
-#else
-#error NFS41_DRIVER_DEBUG_FS_NAME not defined
-#endif
-#define FS_NAME_LEN (sizeof(FS_NAME) - sizeof(WCHAR))
-#define FS_ATTR_LEN (sizeof(FILE_FS_ATTRIBUTE_INFORMATION) + FS_NAME_LEN)
-
 typedef struct _NFS41_V_NET_ROOT_EXTENSION {
     NODE_TYPE_CODE          NodeTypeCode;
     NODE_BYTE_SIZE          NodeByteSize;
     HANDLE                  session;
-    FILE_FS_ATTRIBUTE_INFORMATION FsAttrs;
+    NFS41_FILE_FS_ATTRIBUTE_INFORMATION FsAttrs;
     DWORD                   sec_flavor;
     DWORD                   timeout;
     NFS41_MOUNT_CREATEMODE  dir_createmode;
@@ -727,7 +716,7 @@ NTSTATUS nfs41_mount(
     DWORD sec_flavor,
     PHANDLE session,
     DWORD *version,
-    PFILE_FS_ATTRIBUTE_INFORMATION FsAttrs);
+    NFS41_FILE_FS_ATTRIBUTE_INFORMATION *FsAttrs);
 void nfs41_MountConfig_InitDefaults(
     OUT PNFS41_MOUNT_CONFIG Config);
 NTSTATUS nfs41_MountConfig_ParseOptions(
