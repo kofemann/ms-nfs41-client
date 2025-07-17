@@ -152,7 +152,7 @@ static int handle_volume(void *daemon_context, nfs41_upcall *upcall)
             L"nfs://%s:%d/%s",
             session->client->rpc->server_name,
             2049,
-            (session->client->root->use_nfspubfh?"":""));
+            (session->client->root->use_nfspubfh?"public=1":""));
         vi->VolumeLabelLength = (ULONG)(wcslen(vi->VolumeLabel)*sizeof(wchar_t));
         args->len = sizeof(args->info.volume_info) +
             vi->VolumeLabelLength - 1*sizeof(wchar_t);
