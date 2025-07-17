@@ -34,6 +34,7 @@
 extern DWORD NFS41D_VERSION;
 struct __nfs41_session;
 struct __nfs41_write_verf;
+typedef struct __nfs41_open_state nfs41_open_state;
 typedef struct __nfs41_file_info nfs41_file_info;
 typedef struct __nfs41_superblock nfs41_superblock;
 enum stable_how4;
@@ -375,5 +376,7 @@ bool_t waitSRWlock(PSRWLOCK srwlock);
 bool_t waitcriticalsection(LPCRITICAL_SECTION cs);
 
 bool getwinntversionnnumbers(DWORD *MajorVersionPtr, DWORD *MinorVersionPtr, DWORD *BuildNumberPtr);
+
+int nfs41_cached_getchangeattr(nfs41_open_state *state, nfs41_file_info *restrict info);
 
 #endif /* !__NFS41_DAEMON_UTIL_H__ */

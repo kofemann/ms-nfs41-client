@@ -638,3 +638,16 @@ bool getwinntversionnnumbers(
     return false;
 #endif /* _WIN64 */
 }
+
+int nfs41_cached_getchangeattr(nfs41_open_state *state, nfs41_file_info *restrict info)
+{
+    int status;
+    bitmap4 change_bitmap = {
+        .count = 1,
+        .arr[0] = FATTR4_WORD0_CHANGE,
+    };
+
+    status = nfs41_cached_getattr(state->session,
+        &state->file, &change_bitmap, info);
+    return status;
+}

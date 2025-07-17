@@ -41,7 +41,6 @@
 #error UPCALL_BUF_SIZE too small for rename ((NFS41_MAX_PATH_LEN*2)+2048)
 #endif
 
-
 /* NFS41_SYSOP_FILE_SET */
 static int parse_setattr(unsigned char *buffer, uint32_t length, nfs41_upcall *upcall)
 {
@@ -515,7 +514,9 @@ static int handle_nfs41_set_size(void *daemon_context, setattr_upcall_args *args
      * automagically
      */
     if (args->set_class == FileAllocationInformation) {
-        status = NO_ERROR;
+        status = nfs41_cached_getchangeattr(state, &info);
+        EASSERT(bitmap_isset(&info.attrmask, 0, FATTR4_WORD0_CHANGE));
+        args->ctime = info.change;
         goto out;
     }
 
