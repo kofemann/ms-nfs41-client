@@ -154,7 +154,8 @@ static int handle_volume(void *daemon_context, nfs41_upcall *upcall)
             2049,
             (session->client->root->use_nfspubfh?"":""));
         vi->VolumeLabelLength = (ULONG)(wcslen(vi->VolumeLabel)*sizeof(wchar_t));
-        args->len = sizeof(args->info.volume_info) + vi->VolumeLabelLength;
+        args->len = sizeof(args->info.volume_info) +
+            vi->VolumeLabelLength - 1*sizeof(wchar_t);
         break;
 
     case FileFsSizeInformation:
@@ -182,9 +183,10 @@ static int handle_volume(void *daemon_context, nfs41_upcall *upcall)
         break;
 
     case FileFsAttributeInformation:
-        args->len = sizeof(args->info.attribute);
         nfs41_superblock_fs_attributes(upcall->state_ref->file.fh.superblock,
             &args->info.attribute);
+        args->len = sizeof(FILE_FS_ATTRIBUTE_INFORMATION) +
+            args->info.attribute.FileSystemNameLength-1*sizeof(wchar_t);
         break;
 
     case FileFsSectorSizeInformation:
