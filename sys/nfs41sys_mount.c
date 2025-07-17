@@ -475,8 +475,8 @@ NTSTATUS nfs41_MountConfig_ParseOptions(
         }
         else if (wcsncmp(L"timeout", Name, NameLen) == 0) {
             status = nfs41_MountConfig_ParseDword(Option, &usValue,
-                &Config->timeout, UPCALL_TIMEOUT_DEFAULT,
-                UPCALL_TIMEOUT_DEFAULT);
+                &Config->timeout, 15,
+                3600);
         }
         else if (wcsncmp(L"rsize", Name, NameLen) == 0) {
             status = nfs41_MountConfig_ParseDword(Option, &usValue,
