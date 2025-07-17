@@ -147,7 +147,7 @@ static int handle_volume(void *daemon_context, nfs41_upcall *upcall)
              */
             31,
 #else
-            (MAX_PATH*sizeof(wchar_t)),
+            MAX_PATH,
 #endif
             L"nfs://%s:%d/%s",
             session->client->rpc->server_name,
