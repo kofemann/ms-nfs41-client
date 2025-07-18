@@ -203,10 +203,14 @@ NTSTATUS nfs41_QueryVolumeInformation(
         goto out;
     }
 
-    if (entry->status == STATUS_BUFFER_TOO_SMALL) {
-        RxContext->InformationToReturn = entry->buf_len;
-        status = STATUS_BUFFER_TOO_SMALL;
-    } else if (entry->status == STATUS_SUCCESS) {
+    if (entry->status == STATUS_BUFFER_OVERFLOW) {
+        /*
+         * Supplied buffer was too small, so we copied only part of
+         * the data into the buffer
+         */
+        status = STATUS_BUFFER_OVERFLOW;
+    }
+    else if (entry->status == STATUS_SUCCESS) {
 #ifdef ENABLE_TIMINGS
         InterlockedIncrement(&volume.sops);
         InterlockedAdd64(&volume.size, entry->u.Volume.buf_len);

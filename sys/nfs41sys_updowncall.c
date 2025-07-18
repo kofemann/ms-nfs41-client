@@ -166,14 +166,24 @@ void unmarshal_nfs41_attrget(
     nfs41_updowncall_entry *cur,
     PVOID attr_value,
     ULONG *attr_len,
-    unsigned char **buf)
+    unsigned char **buf,
+    BOOL copy_partial)
 {
     ULONG buf_len;
     RtlCopyMemory(&buf_len, *buf, sizeof(ULONG));
-    if (buf_len > *attr_len) {
-        cur->status = STATUS_BUFFER_TOO_SMALL;
-        return;
+    if (copy_partial) {
+        if (buf_len > *attr_len) {
+            cur->status = STATUS_BUFFER_OVERFLOW;
+            buf_len = *attr_len;
+        }
     }
+    else {
+        if (buf_len > *attr_len) {
+            cur->status = STATUS_BUFFER_TOO_SMALL;
+            return;
+        }
+    }
+
     *buf += sizeof(ULONG);
     *attr_len = buf_len;
     RtlCopyMemory(attr_value, *buf, buf_len);
@@ -745,7 +755,7 @@ NTSTATUS nfs41_downcall(
             unmarshal_nfs41_symlink(cur, &buf);
             break;
         case NFS41_SYSOP_VOLUME_QUERY:
-            unmarshal_nfs41_attrget(cur, cur->buf, &cur->buf_len, &buf);
+            unmarshal_nfs41_attrget(cur, cur->buf, &cur->buf_len, &buf, TRUE);
             break;
         case NFS41_SYSOP_ACL_QUERY:
             status = unmarshal_nfs41_getacl(cur, &buf);

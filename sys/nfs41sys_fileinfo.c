@@ -156,7 +156,7 @@ void unmarshal_nfs41_getattr(
     nfs41_updowncall_entry *cur,
     unsigned char **buf)
 {
-    unmarshal_nfs41_attrget(cur, cur->buf, &cur->buf_len, buf);
+    unmarshal_nfs41_attrget(cur, cur->buf, &cur->buf_len, buf, FALSE);
     RtlCopyMemory(&cur->ChangeTime, *buf, sizeof(ULONGLONG));
 #ifdef DEBUG_MARSHAL_DETAIL
     if (cur->u.QueryFile.InfoClass == FileBasicInformation)

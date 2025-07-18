@@ -827,7 +827,8 @@ void unmarshal_nfs41_attrget(
     nfs41_updowncall_entry *cur,
     PVOID attr_value,
     ULONG *attr_len,
-    unsigned char **buf);
+    unsigned char **buf,
+    BOOL copy_partial);
 NTSTATUS nfs41_UpcallCreate(
     IN DWORD opcode,
     IN PSECURITY_CLIENT_CONTEXT clnt_sec_ctx,
