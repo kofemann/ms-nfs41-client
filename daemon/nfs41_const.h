@@ -42,7 +42,7 @@
 #define NFS4_OPAQUE_LIMIT_ATTR  (8192)
 #define NFS4_SESSIONID_SIZE     16
 #define NFS4_STATEID_OTHER      12
-#define NFS4_EASIZE             2048
+#define NFS4_EASIZE             8192
 #define NFS4_EANAME_SIZE        128
 
 #define NFSD_THREAD_STACK_SIZE (4*1024*1024)

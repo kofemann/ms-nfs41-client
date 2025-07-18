@@ -33,6 +33,14 @@
 #include "nfs_ea.h"
 
 /*
+ * Compile safeguard to see whether |NFS4_EASIZE+header| will still fit into
+ * |UPCALL_BUF_SIZE|
+ */
+#if (NFS4_EASIZE+1024) > UPCALL_BUF_SIZE
+#error NFS4_EASIZE does not fit into UPCALL_BUF_SIZE
+#endif
+
+/*
  * |WIN_NFS4_EA_NAME_PREFIX| - Prefix for Windows EA in NFSv4
  * XATTR (extended attributes) namespace
  *
