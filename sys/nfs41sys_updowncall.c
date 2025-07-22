@@ -755,7 +755,7 @@ NTSTATUS nfs41_downcall(
             unmarshal_nfs41_symlink(cur, &buf);
             break;
         case NFS41_SYSOP_VOLUME_QUERY:
-            unmarshal_nfs41_attrget(cur, cur->buf, &cur->buf_len, &buf, TRUE);
+            unmarshal_nfs41_volume(cur, &buf);
             break;
         case NFS41_SYSOP_ACL_QUERY:
             status = unmarshal_nfs41_getacl(cur, &buf);

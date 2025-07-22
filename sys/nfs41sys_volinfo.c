@@ -99,6 +99,13 @@ out:
     return status;
 }
 
+void unmarshal_nfs41_volume(
+    nfs41_updowncall_entry *cur,
+    unsigned char **buf)
+{
+    unmarshal_nfs41_attrget(cur, cur->buf, &cur->buf_len, buf, TRUE);
+}
+
 static void print_queryvolume_args(
     PRX_CONTEXT RxContext)
 {

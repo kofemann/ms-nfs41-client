@@ -877,6 +877,9 @@ NTSTATUS marshal_nfs41_volume(
     unsigned char *buf,
     ULONG buf_len,
     ULONG *len);
+void unmarshal_nfs41_volume(
+    nfs41_updowncall_entry *cur,
+    unsigned char **buf);
 NTSTATUS nfs41_QueryVolumeInformation(
     IN OUT PRX_CONTEXT RxContext);
 
