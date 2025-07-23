@@ -517,6 +517,8 @@ NTSTATUS nfs41_UpcallWaitForReply(
 {
     NTSTATUS status = STATUS_SUCCESS;
 
+    FsRtlEnterFileSystem();
+
     nfs41_AddEntry(upcallLock, upcall, entry);
     KeSetEvent(&upcallEvent, 0, FALSE);
 
@@ -567,7 +569,10 @@ retry_wait:
         goto out;
     }
     nfs41_RemoveEntry(downcallLock, entry);
+
 out:
+    FsRtlExitFileSystem();
+
     return status;
 }
 
