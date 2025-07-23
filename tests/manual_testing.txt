@@ -796,5 +796,90 @@ curl --remote-name "https://www.cygwin.com/setup-x86.exe"
 ./setup-x86 -q --no-write-registry --no-admin --root "$(cygpath -w "$PWD")" --no-desktop --allow-unsupported-windows -q --no-verify --site "http://ctm.crouchingtigerhiddenfruitbat.org/pub/cygwin/circa/2022/11/23/063457"
 PATH="$PWD/bin" /cygdrive/c/Windows/system32/cmd.exe /C $'.\\bin\\bash.exe -x -c \'[[ "$(./bin/readlink.exe /proc/self/exe)" =~ $PWD/.*bin/.+ ]] && echo Test OK || echo Test failed'
 
+
+#
+# MariaDB testing
+#
+
+#### Setup:
+1. Install MariaDB from https://archive.mariadb.org//mariadb-11.8.2/winx64-packages/mariadb-11.8.2-winx64.msi
+
+2. Create user "MariaDB" and group "MariaDB entries in Cygwin /etc/passwd and /etc/group.
+This is needed because the current ms-nfs41-client idmapper cannot lookup accounts from the "NT SERVICE" domain
+$ getent passwd "NT SERVICE+MariaDB" | sed -E 's/NT SERVICE\+//' >>'/etc/passwd'
+$ getent group "NT SERVICE+MariaDB" | sed -E 's/NT SERVICE\+// '>>'/etc/group'
+
+3. Create user "MariaDB" and group "MariaDB" on the NFS server, based on the Cygwin /etc/passwd and /etc/group entries
+
+4. Create GLOBAL mount N: (e.g. via $ msnfs41client sys_terminal #)
+
+5. Create MariaDB data dir on the NFSv4.2 share
+$ mkdir '/cygdrive/n/mariadbtest'
+
+6. Edit '/cygdrive/c/Program Files/MariaDB 11.8/data/my.ini' and change "datadir" to "L:\mariadbtest".
+Example:
+---- snip ----
+[mysqld]
+datadir=N:\mariadbtest
+port=3306
+innodb_buffer_pool_size=1535M
+character-set-server=utf8mb4
+[client]
+port=3306
+plugin-dir=C:\Program Files\MariaDB 11.8/lib/plugin
+---- snip ----
+
+7. Copy contents of '/cygdrive/c/Program Files/MariaDB 11.8/data' to '/cygdrive/n/mariadbtest'
+$ (cd '/cygdrive/c/Program Files/MariaDB 11.8/data' && tar --sparse -cvf - .) | (cd '/cygdrive/n/mariadbtest' && tar -xf -)
+
+8. $ chown -R "MariaDB:MariaDB" mariadbtest # on the NFS server!!
+
+#### Testing sparse database file:
+1. Test script
+---- snip ----
+$ cat testdbsparse1.ksh
+integer line_num=0
+typeset line
+typeset escaped_line
+
+cat <<EOF
+SELECT VERSION();
+
+DROP DATABASE IF EXISTS alphabet_test4;
+CREATE DATABASE alphabet_test4;
+USE alphabet_test4;
+
+# create table using InnoDB with PAGE_COMPRESSED=1 (which will use punch hole to free space)
+CREATE TABLE file_data (
+    line_number INT PRIMARY KEY,
+    line_text TEXT
+) ENGINE=InnoDB PAGE_COMPRESSED=1;
+EOF
+
+while IFS= read -r line ; do
+    (( line_num++ ))
+    # Escape single quotes in the line to prevent SQL injection issues
+    # This is a basic escape, for more complex data, consider prepared statements
+    escaped_line="${line//\'/\'\'}"
+
+    # Insert the line number and text into the table
+    printf $'INSERT INTO file_data (line_number, line_text) VALUES (%d, \'%s\');\n' line_num "$escaped_line"
+done
+
+# force rebuild, including punching holes
+printf 'OPTIMIZE TABLE file_data;'
+
+print -u2 '#Done;\n#Verify with\nUSE alphabet_test4; SELECT * FROM file_data ORDER BY line_number;\n'
+# EOF.
+---- snip ----
+
+2. Run this test script with a large text file as input:
+---- snip ----
+time ksh93 -c 'for ((i=0 ; i < 10 ; i++ )) ; do cat /usr/share/doc/mingw64-x86_64-gcc/NEWS ; done | ksh93 testdbsparse1.ksh | /cygdrive/c/Program\ Files/MariaDB\ 11.8/bin/mariadb -u root -p'
+---- snip ----
+
+3. Check whether the database file now has holes:
+$ lssparse -H /cygdrive/n/mariadbtest/alphabet_test4/file_data.ibd
+
 #
 # EOF.
