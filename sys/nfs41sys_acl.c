@@ -225,6 +225,7 @@ NTSTATUS nfs41_QuerySecurityInformation(
     print_debug_header(RxContext);
     print_acl_args(info_class);
 #endif
+    FsRtlEnterFileSystem();
 
     status = check_nfs41_getacl_args(RxContext);
     if (status) goto out;
@@ -355,6 +356,7 @@ out:
         t2.QuadPart - t1.QuadPart, getacl.tops, getacl.ticks);
 #endif
 #endif
+    FsRtlExitFileSystem();
 #ifdef DEBUG_ACL_QUERY
     DbgEx();
 #endif
@@ -412,6 +414,7 @@ NTSTATUS nfs41_SetSecurityInformation(
     print_debug_header(RxContext);
     print_acl_args(info_class);
 #endif
+    FsRtlEnterFileSystem();
 
     status = check_nfs41_setacl_args(RxContext);
     if (status) goto out;
@@ -481,6 +484,7 @@ out:
         t2.QuadPart - t1.QuadPart, setacl.tops, setacl.ticks);
 #endif
 #endif
+    FsRtlExitFileSystem();
 #ifdef DEBUG_ACL_SET
     DbgEx();
 #endif

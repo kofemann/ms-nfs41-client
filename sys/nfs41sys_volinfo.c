@@ -158,6 +158,7 @@ NTSTATUS nfs41_QueryVolumeInformation(
     DbgEn();
     print_queryvolume_args(RxContext);
 #endif
+    FsRtlEnterFileSystem();
 
     status = check_nfs41_dirquery_args(RxContext);
     if (status) goto out;
@@ -240,6 +241,7 @@ out:
         t2.QuadPart - t1.QuadPart, volume.tops, volume.ticks);
 #endif
 #endif
+    FsRtlExitFileSystem();
 #ifdef DEBUG_VOLUME_QUERY
     DbgEx();
 #endif

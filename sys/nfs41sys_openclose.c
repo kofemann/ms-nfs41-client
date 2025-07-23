@@ -617,6 +617,7 @@ NTSTATUS nfs41_Create(
     print_nt_create_params(1, RxContext->Create.NtCreateParameters);
     // if (ea) print_ea_info(ea);
 #endif
+    FsRtlEnterFileSystem();
 
     status = check_nfs41_create_args(RxContext);
     if (status) goto out;
@@ -1075,6 +1076,7 @@ out:
 #endif
     }
 #endif
+    FsRtlExitFileSystem();
 #ifdef DEBUG_OPEN
     DbgEx();
 #endif
@@ -1086,6 +1088,8 @@ NTSTATUS nfs41_CollapseOpen(
 {
     NTSTATUS status = STATUS_MORE_PROCESSING_REQUIRED;
     DbgEn();
+    FsRtlEnterFileSystem();
+    FsRtlExitFileSystem();
     DbgEx();
     return status;
 }
@@ -1140,6 +1144,7 @@ NTSTATUS nfs41_CloseSrvOpen(
     DbgEn();
     print_debug_header(RxContext);
 #endif
+    FsRtlEnterFileSystem();
 
     if (!nfs41_fobx->deleg_type && !nfs41_fcb->StandardInfo.Directory &&
             !RxContext->pFcb->OpenCount) {
@@ -1183,6 +1188,7 @@ out:
         t2.QuadPart - t1.QuadPart, close.tops, close.ticks);
 #endif
 #endif
+    FsRtlExitFileSystem();
 #ifdef DEBUG_CLOSE
     DbgEx();
 #endif

@@ -205,6 +205,7 @@ NTSTATUS nfs41_QueryFileInformation(
     DbgP("--> nfs41_QueryFileInformation, RxContext->Info.LengthRemaining=%ld\n",
         (long)RxContext->Info.LengthRemaining);
 #endif
+    FsRtlEnterFileSystem();
 
     status = check_nfs41_dirquery_args(RxContext);
     if (status) {
@@ -500,6 +501,7 @@ out:
         t2.QuadPart - t1.QuadPart, getattr.tops, getattr.ticks);
 #endif
 #endif
+    FsRtlExitFileSystem();
 #ifdef DEBUG_FILE_QUERY
     DbgEx();
     DbgP("<-- nfs41_QueryFileInformation, status=0x%lx\n",
@@ -655,6 +657,7 @@ NTSTATUS nfs41_SetFileInformation(
     DbgEn();
     print_debug_filedirquery_header(RxContext);
 #endif
+    FsRtlEnterFileSystem();
 
     status = check_nfs41_setattr_args(RxContext);
     if (status) goto out;
@@ -772,6 +775,7 @@ out:
         t2.QuadPart - t1.QuadPart, setattr.tops, setattr.ticks);
 #endif
 #endif
+    FsRtlExitFileSystem();
 #ifdef DEBUG_FILE_SET
     DbgEx();
 #endif

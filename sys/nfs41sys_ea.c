@@ -346,6 +346,7 @@ NTSTATUS nfs41_SetEaInformation(
     print_debug_header(RxContext);
     print_ea_info(eainfo);
 #endif
+    FsRtlEnterFileSystem();
 
     status = check_nfs41_setea_args(RxContext);
     if (status) goto out;
@@ -411,6 +412,7 @@ out:
         t2.QuadPart - t1.QuadPart, setexattr.tops, setexattr.ticks);
 #endif
 #endif
+    FsRtlExitFileSystem();
 #ifdef DEBUG_EA_SET
     DbgEx();
 #endif
@@ -624,6 +626,8 @@ NTSTATUS nfs41_QueryEaInformation(
     print_debug_header(RxContext);
     print_get_ea(1, query);
 #endif
+    FsRtlEnterFileSystem();
+
     status = check_nfs41_queryea_args(RxContext);
     if (status) goto out;
 
@@ -688,6 +692,7 @@ out:
         t2.QuadPart - t1.QuadPart, getexattr.tops, getexattr.ticks);
 #endif
 #endif
+    FsRtlExitFileSystem();
 #ifdef DEBUG_EA_QUERY
     DbgEx();
 #endif

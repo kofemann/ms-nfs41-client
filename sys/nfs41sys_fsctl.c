@@ -871,6 +871,8 @@ NTSTATUS nfs41_FsCtl(
     DbgEn();
     print_debug_header(RxContext);
 #endif
+    FsRtlEnterFileSystem();
+
     const ULONG fscontrolcode =
         RxContext->LowIoContext.ParamsFor.FsCtl.FsControlCode;
 
@@ -910,6 +912,7 @@ NTSTATUS nfs41_FsCtl(
     }
 #endif /* DEBUG_FSCTL */
 
+    FsRtlExitFileSystem();
 #ifdef DEBUG_FSCTL
     DbgEx();
 #endif

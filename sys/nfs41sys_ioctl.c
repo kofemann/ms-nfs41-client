@@ -77,12 +77,15 @@ NTSTATUS nfs41_IoCtl(
     DbgEn();
     print_debug_header(RxContext);
 #endif /* DEBUG_IOCTL */
+    FsRtlEnterFileSystem();
+
     const ULONG iocontrolcode =
         RxContext->LowIoContext.ParamsFor.IoCtl.IoControlCode;
 
     DbgP("nfs41_IoCtl: IoControlCode=0x%lx, status=0x%lx\n",
         (unsigned long)iocontrolcode, (long)status);
 
+    FsRtlExitFileSystem();
 #ifdef DEBUG_IOCTL
     DbgEx();
 #endif

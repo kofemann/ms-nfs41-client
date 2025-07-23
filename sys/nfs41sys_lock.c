@@ -166,11 +166,13 @@ NTSTATUS nfs41_IsLockRealizable(
         BooleanFlagOn(LowIoLockFlags, SL_EXCLUSIVE_LOCK),
         !BooleanFlagOn(LowIoLockFlags, SL_FAIL_IMMEDIATELY));
 #endif
+    FsRtlEnterFileSystem();
 
     /* NFS lock operations with length=0 MUST fail with NFS4ERR_INVAL */
     if (Length->QuadPart == 0)
         status = STATUS_NOT_SUPPORTED;
 
+    FsRtlExitFileSystem();
 #ifdef DEBUG_LOCK
     DbgEx();
 #endif
@@ -286,6 +288,7 @@ NTSTATUS nfs41_Lock(
     DbgEn();
     print_lock_args(RxContext);
 #endif
+    FsRtlEnterFileSystem();
 
 /*  RxReleaseFcbResourceForThreadInMRx(RxContext, RxContext->pFcb,
         LowIoContext->ResourceThreadId); */
@@ -343,6 +346,7 @@ out:
         lock.tops, lock.ticks);
 #endif
 #endif
+    FsRtlExitFileSystem();
 #ifdef DEBUG_LOCK
     DbgEx();
 #endif
@@ -404,6 +408,7 @@ NTSTATUS nfs41_Unlock(
     DbgEn();
     print_lock_args(RxContext);
 #endif
+    FsRtlEnterFileSystem();
 
 /*  RxReleaseFcbResourceForThreadInMRx(RxContext, RxContext->pFcb,
         LowIoContext->ResourceThreadId); */
@@ -463,6 +468,7 @@ out:
         unlock.tops, unlock.ticks);
 #endif
 #endif
+    FsRtlExitFileSystem();
 #ifdef DEBUG_LOCK
     DbgEx();
 #endif

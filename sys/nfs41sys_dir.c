@@ -238,6 +238,7 @@ NTSTATUS nfs41_QueryDirectory(
     DbgEn();
     print_querydir_args(RxContext);
 #endif
+    FsRtlEnterFileSystem();
 
     status = check_nfs41_dirquery_args(RxContext);
     if (status) goto out;
@@ -335,6 +336,7 @@ out:
         t2.QuadPart - t1.QuadPart, readdir.tops, readdir.ticks);
 #endif
 #endif
+    FsRtlExitFileSystem();
 #ifdef DEBUG_DIR_QUERY
     DbgEx();
 #endif

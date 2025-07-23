@@ -565,6 +565,8 @@ NTSTATUS nfs41_GetSymlinkReparsePoint(
 #ifdef DEBUG_SYMLINK
     DbgEn();
 #endif
+    FsRtlEnterFileSystem();
+
     status = check_nfs41_getsymlinkreparse_args(RxContext);
     if (status) {
         DbgP("nfs41_GetSymlinkReparsePoint: "
@@ -903,6 +905,7 @@ out:
     if (targetname_buffer)
         RxFreePool(targetname_buffer);
 
+    FsRtlExitFileSystem();
 #ifdef DEBUG_SYMLINK
     DbgEx();
 #endif

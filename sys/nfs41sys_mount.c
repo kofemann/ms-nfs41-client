@@ -841,6 +841,7 @@ NTSTATUS nfs41_CreateVNetRoot(
         pCreateNetRootContext->VirtualNetRootStatus,
         (long)pCreateNetRootContext->NetRootStatus);
 #endif
+    FsRtlEnterFileSystem();
 
     if (pNetRoot->Type != NET_ROOT_DISK && pNetRoot->Type != NET_ROOT_WILD) {
         print_error("nfs41_CreateVNetRoot: Unsupported NetRoot Type %u\n",
@@ -1246,6 +1247,8 @@ out:
     /* RDBSS expects that MRxCreateVNetRoot returns STATUS_PENDING
      * on success or failure */
     status = STATUS_PENDING;
+
+    FsRtlExitFileSystem();
 #ifdef DEBUG_MOUNT
     DbgEx();
 #endif
@@ -1299,6 +1302,8 @@ NTSTATUS nfs41_FinalizeSrvCall(
 #ifdef DEBUG_MOUNT
     DbgEn();
 #endif
+    FsRtlEnterFileSystem();
+
     // print_srv_call(pSrvCall);
 
     if (pSrvCall->Context == NULL)
@@ -1310,6 +1315,7 @@ NTSTATUS nfs41_FinalizeSrvCall(
 
     pSrvCall->Context = NULL;
 out:
+    FsRtlExitFileSystem();
 #ifdef DEBUG_MOUNT
     DbgEx();
 #endif
@@ -1330,6 +1336,7 @@ NTSTATUS nfs41_FinalizeNetRoot(
     DbgEn();
     print_net_root(pNetRoot);
 #endif
+    FsRtlEnterFileSystem();
 
     if (pNetRoot->Type != NET_ROOT_DISK && pNetRoot->Type != NET_ROOT_WILD) {
         status = STATUS_NOT_SUPPORTED;
@@ -1420,6 +1427,7 @@ NTSTATUS nfs41_FinalizeNetRoot(
             break;
     } while (1);
 out:
+    FsRtlExitFileSystem();
 #ifdef DEBUG_MOUNT
     DbgEx();
 #endif
@@ -1435,9 +1443,13 @@ NTSTATUS nfs41_FinalizeVNetRoot(
     DbgEn();
     print_v_net_root(pVNetRoot);
 #endif
+    FsRtlEnterFileSystem();
+
     if (pVNetRoot->pNetRoot->Type != NET_ROOT_DISK &&
             pVNetRoot->pNetRoot->Type != NET_ROOT_WILD)
         status = STATUS_NOT_SUPPORTED;
+
+    FsRtlExitFileSystem();
 #ifdef DEBUG_MOUNT
     DbgEx();
 #endif
@@ -1457,6 +1469,8 @@ NTSTATUS GetConnectionHandle(
 #ifdef DEBUG_MOUNT
     DbgEn();
 #endif
+    FsRtlEnterFileSystem();
+
     InitializeObjectAttributes(&ObjectAttributes, ConnectionName,
         OBJ_CASE_INSENSITIVE|OBJ_KERNEL_HANDLE, NULL, NULL);
 
@@ -1467,6 +1481,7 @@ NTSTATUS GetConnectionHandle(
         FILE_CREATE_TREE_CONNECTION | FILE_SYNCHRONOUS_IO_NONALERT,
         EaBuffer, EaLength);
 
+    FsRtlExitFileSystem();
 #ifdef DEBUG_MOUNT
     DbgEx();
 #endif
@@ -1545,6 +1560,7 @@ NTSTATUS nfs41_CreateConnection(
 #ifdef DEBUG_MOUNT
     DbgEn();
 #endif
+    FsRtlEnterFileSystem();
 
     if (!Wait) {
         //just post right now!
@@ -1563,6 +1579,7 @@ NTSTATUS nfs41_CreateConnection(
     if (!status && Handle != INVALID_HANDLE_VALUE)
         ZwClose(Handle);
 out:
+    FsRtlExitFileSystem();
 #ifdef DEBUG_MOUNT
     DbgEx();
 #endif
@@ -1585,6 +1602,7 @@ NTSTATUS nfs41_DeleteConnection(
 #ifdef DEBUG_MOUNT
     DbgEn();
 #endif
+    FsRtlEnterFileSystem();
 
     if (!Wait) {
         //just post right now!
@@ -1625,6 +1643,7 @@ NTSTATUS nfs41_DeleteConnection(
     }
     ZwClose(Handle);
 out:
+    FsRtlExitFileSystem();
 #ifdef DEBUG_MOUNT
     DbgEx();
 #endif

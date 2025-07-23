@@ -250,6 +250,8 @@ NTSTATUS nfs41_Read(
     DbgEn();
     print_readwrite_args(RxContext);
 #endif
+    FsRtlEnterFileSystem();
+
     status = check_nfs41_read_args(RxContext);
     if (status) goto out;
 
@@ -322,6 +324,7 @@ out:
         read.tops, read.ticks);
 #endif
 #endif
+    FsRtlExitFileSystem();
 #ifdef DEBUG_READ
     DbgEx();
 #endif
@@ -373,6 +376,7 @@ NTSTATUS nfs41_Write(
     DbgEn();
     print_readwrite_args(RxContext);
 #endif
+    FsRtlEnterFileSystem();
 
     status = check_nfs41_write_args(RxContext);
     if (status) goto out;
@@ -454,6 +458,7 @@ out:
         write.tops, write.ticks);
 #endif
 #endif
+    FsRtlExitFileSystem();
 #ifdef DEBUG_WRITE
     DbgEx();
 #endif
@@ -476,6 +481,8 @@ ULONG nfs41_ExtendForCache(
         (long long)pNewFileSize->QuadPart,
         (long long)pNewAllocationSize->QuadPart);
 #endif
+    FsRtlEnterFileSystem();
+
     pNewAllocationSize->QuadPart = pNewFileSize->QuadPart;
     nfs41_fcb->StandardInfo.AllocationSize.QuadPart =
         pNewAllocationSize->QuadPart;
@@ -485,6 +492,7 @@ ULONG nfs41_ExtendForCache(
         (long long)pNewFileSize->QuadPart,
         (long long)pNewAllocationSize->QuadPart);
 #endif
+    FsRtlExitFileSystem();
 #ifdef DEBUG_CACHE
     DbgEx();
 #endif

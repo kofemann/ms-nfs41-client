@@ -80,6 +80,7 @@ NTSTATUS nfs41_SetReparsePoint(
     __notnull PREPARSE_DATA_BUFFER Reparse = (PREPARSE_DATA_BUFFER)FsCtl->pInputBuffer;
 
     DbgEn();
+    FsRtlEnterFileSystem();
 
     DbgP("nfs41_SetReparsePoint: ReparseTag: '%s'/0x%04lx\n",
         reparsetag2string(Reparse->ReparseTag),
@@ -98,6 +99,7 @@ NTSTATUS nfs41_SetReparsePoint(
             break;
     }
 
+    FsRtlExitFileSystem();
     DbgEx();
     return status;
 }
@@ -109,9 +111,11 @@ NTSTATUS nfs41_GetReparsePoint(
     NTSTATUS status;
 
     DbgEn();
+    FsRtlEnterFileSystem();
 
     status = nfs41_GetSymlinkReparsePoint(RxContext);
 
+    FsRtlExitFileSystem();
     DbgEx();
     return status;
 }
