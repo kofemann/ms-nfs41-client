@@ -465,9 +465,17 @@ static int handle_nfs41_rename(void *daemon_context, setattr_upcall_args *args)
         /* AGLO: 03/21/2011: we can't handle rename of a file with a filename
          * that is currently opened by this client
          */
-        eprintf("handle_nfs41_rename: '%s' is opened\n", dst_path.path);
+        eprintf("handle_nfs41_rename: destination '%s' is opened\n",
+            dst_path.path);
+/*
+ * gisburn: HACK: We have disabled this check to get MariaDB working,
+ * but we have to figure out what is the correct solution compared
+ * to NTFS and SMBFS
+ */
+#ifdef DISABLED_FOR_NOW
         status = ERROR_FILE_EXISTS;
         goto out;
+#endif
     }
 
     /* break any delegations on the source file */
