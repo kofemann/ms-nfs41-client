@@ -1,5 +1,5 @@
 #
-# ms-nfs41-client manual testing sequence, 2025-06-14
+# ms-nfs41-client manual testing sequence, 2025-07-23
 #
 # Draft version, needs to be turned into automated tests
 # if possible
@@ -850,6 +850,7 @@ CREATE DATABASE alphabet_test4;
 USE alphabet_test4;
 
 # create table using InnoDB with PAGE_COMPRESSED=1 (which will use punch hole to free space)
+# see https://dev.mysql.com/doc/refman/8.4/en/innodb-page-compression.html
 CREATE TABLE file_data (
     line_number INT PRIMARY KEY,
     line_text TEXT
@@ -880,6 +881,12 @@ time ksh93 -c 'for ((i=0 ; i < 10 ; i++ )) ; do cat /usr/share/doc/mingw64-x86_6
 
 3. Check whether the database file now has holes:
 $ lssparse -H /cygdrive/n/mariadbtest/alphabet_test4/file_data.ibd
+
+#### Notes:
+- MariaDB runs in a Windows "NT Service" account ("NT SERVICE\MariaDB"), which neither Cygwin
+  $ /usrbin/getent passwd # nor $ net localusers # will list
+- Thanks to MariaDB's Kristian Nielsen <knielsen@knielsen-hq.org> for helping with this
+
 
 #
 # EOF.
