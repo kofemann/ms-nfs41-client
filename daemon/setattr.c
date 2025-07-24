@@ -66,7 +66,7 @@ out:
 
 static int handle_nfs41_setattr_basicinfo(void *daemon_context, setattr_upcall_args *args)
 {
-    PFILE_BASIC_INFO basic_info = (PFILE_BASIC_INFO)args->buf;
+    PFILE_BASIC_INFORMATION basic_info = (PFILE_BASIC_INFORMATION)args->buf;
     nfs41_open_state *state = args->state;
     nfs41_superblock *superblock = state->file.fh.superblock;
     stateid_arg stateid;
@@ -301,7 +301,7 @@ static int handle_nfs41_rename(void *daemon_context, setattr_upcall_args *args)
 {
     nfs41_open_state *state = args->state;
     nfs41_session *dst_session;
-    PFILE_RENAME_INFO rename = (PFILE_RENAME_INFO)args->buf;
+    PFILE_RENAME_INFORMATION rename = (PFILE_RENAME_INFORMATION)args->buf;
     nfs41_abs_path dst_path = { 0 };
     nfs41_path_fh dst_dir, dst;
     nfs41_component dst_name, *src_name;

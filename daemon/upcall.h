@@ -46,8 +46,8 @@ typedef struct __mount_upcall_args {
 
 typedef struct __open_upcall_args {
     nfs41_abs_path symlink;
-    FILE_BASIC_INFO basic_info;
-    FILE_STANDARD_INFO std_info;
+    FILE_BASIC_INFORMATION basic_info;
+    FILE_STANDARD_INFORMATION std_info;
     ULONGLONG fileid;
     ULONGLONG fsid_major, fsid_minor;
     const char *path;
@@ -101,9 +101,9 @@ typedef struct __unlock_upcall_args {
 } unlock_upcall_args;
 
 typedef struct __getattr_upcall_args {
-    FILE_BASIC_INFO basic_info;
-    FILE_STANDARD_INFO std_info;
-    FILE_ATTRIBUTE_TAG_INFO tag_info;
+    FILE_BASIC_INFORMATION basic_info;
+    FILE_STANDARD_INFORMATION std_info;
+    FILE_ATTRIBUTE_TAG_INFORMATION tag_info;
     FILE_INTERNAL_INFORMATION intr_info;
     FILE_NETWORK_OPEN_INFORMATION network_info;
     FILE_REMOTE_PROTOCOL_INFORMATION remote_protocol_info;

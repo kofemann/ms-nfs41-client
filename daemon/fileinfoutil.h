@@ -42,11 +42,11 @@ void nfs_to_basic_info(
     IN const char *restrict name,
     IN const nfs41_superblock *restrict superblock,
     IN const nfs41_file_info *restrict info,
-    OUT PFILE_BASIC_INFO restrict basic_out);
+    OUT PFILE_BASIC_INFORMATION restrict basic_out);
 void nfs_to_standard_info(
     IN const nfs41_superblock *restrict superblock,
     IN const nfs41_file_info *restrict info,
-    OUT PFILE_STANDARD_INFO restrict std_out);
+    OUT PFILE_STANDARD_INFORMATION restrict std_out);
 void nfs_to_network_openinfo(
     IN const char *restrict name,
     IN const nfs41_superblock *restrict superblock,

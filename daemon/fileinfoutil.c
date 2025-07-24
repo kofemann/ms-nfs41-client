@@ -97,7 +97,7 @@ void nfs_to_basic_info(
     IN const char *restrict name,
     IN const nfs41_superblock *restrict superblock,
     IN const nfs41_file_info *restrict info,
-    OUT PFILE_BASIC_INFO basic_out)
+    OUT PFILE_BASIC_INFORMATION basic_out)
 {
     EASSERT(info->attrmask.count > 0);
 
@@ -145,7 +145,7 @@ void nfs_to_basic_info(
 void nfs_to_standard_info(
     IN const nfs41_superblock *restrict superblock,
     IN const nfs41_file_info *restrict info,
-    OUT PFILE_STANDARD_INFO restrict std_out)
+    OUT PFILE_STANDARD_INFORMATION restrict std_out)
 {
     const ULONG FileAttributes =
         nfs_file_info_to_attributes(superblock, info);

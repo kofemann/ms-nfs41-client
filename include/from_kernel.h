@@ -144,6 +144,54 @@ typedef enum _FILE_INFORMATION_CLASS {
     FileMaximumInformation
 } FILE_INFORMATION_CLASS, *PFILE_INFORMATION_CLASS;
 
+/* FileBasicInformation==4 */
+typedef struct _FILE_BASIC_INFORMATION {
+    LARGE_INTEGER CreationTime;
+    LARGE_INTEGER LastAccessTime;
+    LARGE_INTEGER LastWriteTime;
+    LARGE_INTEGER ChangeTime;
+    ULONG FileAttributes;
+} FILE_BASIC_INFORMATION, *PFILE_BASIC_INFORMATION;
+
+/* FileStandardInformation==5 */
+typedef struct _FILE_STANDARD_INFORMATION {
+    LARGE_INTEGER AllocationSize;
+    LARGE_INTEGER EndOfFile;
+    ULONG NumberOfLinks;
+    BOOLEAN DeletePending;
+    BOOLEAN Directory;
+} FILE_STANDARD_INFORMATION, *PFILE_STANDARD_INFORMATION;
+
+typedef struct _FILE_STANDARD_INFORMATION_EX {
+    LARGE_INTEGER AllocationSize;
+    LARGE_INTEGER EndOfFile;
+    ULONG NumberOfLinks;
+    BOOLEAN DeletePending;
+    BOOLEAN Directory;
+    BOOLEAN AlternateStream;
+    BOOLEAN MetadataAttribute;
+} FILE_STANDARD_INFORMATION_EX, *PFILE_STANDARD_INFORMATION_EX;
+
+/* FileRenameInformation==10 */
+typedef struct _FILE_RENAME_INFORMATION {
+#pragma warning( push )
+/* Disable warning C4201 ("nonstandard extension used: nameless struct/union") */
+#pragma warning (disable : 4201)
+    union {
+        BOOLEAN ReplaceIfExists;  /* class==FileRenameInformation */
+        ULONG Flags;              /* class==FileRenameInformationEx */
+    };
+#pragma warning( pop )
+    HANDLE RootDirectory;
+    ULONG FileNameLength;
+    WCHAR FileName[1];
+} FILE_RENAME_INFORMATION, *PFILE_RENAME_INFORMATION;
+
+/* FileAttributeTagInformation==35 */
+typedef struct _FILE_ATTRIBUTE_TAG_INFORMATION {
+    ULONG FileAttributes;
+    ULONG ReparseTag;
+} FILE_ATTRIBUTE_TAG_INFORMATION, *PFILE_ATTRIBUTE_TAG_INFORMATION;
 
 /* kernel structures for QueryDirectory results */
 typedef struct _FILE_NAMES_INFORMATION {
