@@ -333,12 +333,6 @@ static int parse_open(unsigned char *buffer, uint32_t length, nfs41_upcall *upca
     if (status) goto out;
     status = safe_read(&buffer, &length, &args->mode, sizeof(DWORD));
     if (status) goto out;
-#ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES
-    status = safe_read(&buffer, &length, &args->owner_local_uid, sizeof(DWORD));
-    if (status) goto out;
-    status = safe_read(&buffer, &length, &args->owner_group_local_gid, sizeof(DWORD));
-    if (status) goto out;
-#endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
     status = safe_read(&buffer, &length, &args->srv_open, sizeof(HANDLE));
     if (status) goto out;
     status = parse_abs_path(&buffer, &length, &args->symlink);
@@ -346,20 +340,6 @@ static int parse_open(unsigned char *buffer, uint32_t length, nfs41_upcall *upca
     status = safe_read(&buffer, &length, &args->ea, sizeof(HANDLE));
     if (status) goto out;
 
-#ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES
-    DPRINTF(1, ("parsing NFS41_SYSOP_OPEN: filename='%s' "
-        "isvolumemntpt=%d access mask=%d "
-        "access mode=%d\n\tfile attrs=0x%x create attrs=0x%x "
-        "(kernel) disposition=%d\n\topen_owner_id=%d mode=0%o "
-        "owner_local_uid=%u owner_group_local_gid=%u "
-        "srv_open=0x%p symlink=%s ea=0x%p\n",
-        args->path, (int)args->isvolumemntpt, args->access_mask,
-        args->access_mode, args->file_attrs, args->create_opts,
-        args->disposition, args->open_owner_id, args->mode,
-        (unsigned int)args->owner_local_uid, (unsigned int)args->owner_group_local_gid,
-        args->srv_open,
-        args->symlink.path, args->ea));
-#else
     DPRINTF(1, ("parsing NFS41_SYSOP_OPEN: filename='%s' "
         "isvolumemntpt=%d access mask=%d "
         "access mode=%d\n\tfile attrs=0x%x create attrs=0x%x "
@@ -370,7 +350,6 @@ static int parse_open(unsigned char *buffer, uint32_t length, nfs41_upcall *upca
         args->disposition, args->open_owner_id, args->mode,
         args->srv_open,
         args->symlink.path, args->ea));
-#endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
 
     if (DPRINTF_LEVEL_ENABLED(2)) {
         print_disposition(2, args->disposition);

@@ -120,9 +120,6 @@ NTSTATUS marshal_nfs41_open(
 
     header_len = *len + length_as_utf8(entry->filename) +
         7 * sizeof(ULONG) +
-#ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES
-        2 * sizeof(DWORD) +
-#endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
         1 * sizeof(BOOLEAN) +
         2 * sizeof(HANDLE) +
         length_as_utf8(&entry->u.Open.symlink);
@@ -152,12 +149,6 @@ NTSTATUS marshal_nfs41_open(
     tmp += sizeof(entry->u.Open.open_owner_id);
     RtlCopyMemory(tmp, &entry->u.Open.mode, sizeof(DWORD));
     tmp += sizeof(DWORD);
-#ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES
-    RtlCopyMemory(tmp, &entry->u.Open.owner_local_uid, sizeof(DWORD));
-    tmp += sizeof(DWORD);
-    RtlCopyMemory(tmp, &entry->u.Open.owner_group_local_gid, sizeof(DWORD));
-    tmp += sizeof(DWORD);
-#endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
     RtlCopyMemory(tmp, &entry->u.Open.srv_open, sizeof(HANDLE));
     tmp += sizeof(HANDLE);
     status = marshall_unicode_as_utf8(&tmp, &entry->u.Open.symlink);
@@ -190,16 +181,10 @@ NTSTATUS marshal_nfs41_open(
 #ifdef DEBUG_MARSHAL_DETAIL
     DbgP("marshal_nfs41_open: name='%wZ' mask=0x%x access=0x%x attrs=0x%x "
          "opts=0x%x dispo=0x%x open_owner_id=0x%x mode=0%o "
-#ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES
-         "owner_local_uid=%lu owner_group_local_gid=%lu "
-#endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
          "srv_open=0x%p ea=0x%p\n",
          entry->filename, entry->u.Open.access_mask,
          entry->u.Open.access_mode, entry->u.Open.attrs, entry->u.Open.copts,
          entry->u.Open.disp, entry->u.Open.open_owner_id, entry->u.Open.mode,
-#ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES
-         entry->u.Open.owner_local_uid,entry->u.Open.owner_group_local_gid,
-#endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
          entry->u.Open.srv_open, entry->u.Open.EaBuffer);
 #endif
 out:
