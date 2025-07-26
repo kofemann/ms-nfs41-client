@@ -918,8 +918,11 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
                 }
                 goto out_free_state;
             }
-        } else
-            DPRINTF(2, ("handle_open(): unsupported type=%d\n", info.type));
+        } else {
+            DPRINTF(0,
+                ("handle_open(args->path='%s'): unsupported info.type=%d\n",
+                args->path, info.type));
+        }
         state->type = info.type;
     } else if (status != ERROR_FILE_NOT_FOUND)
         goto out_free_state;
