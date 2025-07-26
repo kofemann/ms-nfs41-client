@@ -174,7 +174,8 @@ NFSv4.2/NFSv4.1 filesystem driver for Windows 10/11 & Windows Server
     and other POSIX-compatible NFSv4.2/NFSv4.1 clients.
 
 - Support for NFSv4 public mounts (i.e., use the NFSv4 public file
-  handle lookup protocol via `$ nfs_mount -o public ... #`)
+  handle lookup protocol via
+  `$ nfs_mount -o public ... relative-path-or-url#`)
 
 - Support for NFSv4 referrals
 
@@ -210,10 +211,15 @@ NFSv4.2/NFSv4.1 filesystem driver for Windows 10/11 & Windows Server
 
   - All tools from Cygwin/MSYS2/MinGW
 
-  - Visual Studio
+  - Visual Studio (tested: VS2019, VS2022)
 
   - VMware Workstation (can use VMs hosted on NFSv4.2/NFSv4.1
     filesystem)
+
+  - MariaDB (including sparse file support for [page
+    compression](https://dev.mysql.com/doc/refman/8.4/en/innodb-page-compression.html))
+
+  - Microsoft Office (tested: Office 2016)
 
 # Requirements
 

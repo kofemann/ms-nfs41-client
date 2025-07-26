@@ -235,10 +235,16 @@
               <para>All tools from Cygwin/MSYS2/MinGW</para>
             </listitem>
             <listitem>
-              <para>Visual Studio</para>
+              <para>Visual Studio (tested: VS2019, VS2022)</para>
             </listitem>
             <listitem>
               <para>VMware Workstation (can use VMs hosted on NFSv4.2/NFSv4.1 filesystem)</para>
+            </listitem>
+            <listitem>
+              <para>MariaDB (including sparse file support for <link xl:href="https://dev.mysql.com/doc/refman/8.4/en/innodb-page-compression.html">page compression</link>)</para>
+            </listitem>
+            <listitem>
+              <para>Microsoft Office (tested: Office 2016)</para>
             </listitem>
           </itemizedlist>
         </para>
