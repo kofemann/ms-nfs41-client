@@ -1051,7 +1051,10 @@ NTSTATUS nfs41_CreateVNetRoot(
         Config->file_createmode.use_nfsv3attrsea_mode?1:0,
         Config->file_createmode.mode);
 
-    pVNetRootContext->MountPathLen = Config->MntPt.Length;
+    pVNetRootContext->MntPt.Buffer = pVNetRootContext->mntpt_buffer;
+    pVNetRootContext->MntPt.Length = Config->MntPt.Length;
+    pVNetRootContext->MntPt.MaximumLength = Config->MntPt.MaximumLength;
+    RtlCopyUnicodeString(&pVNetRootContext->MntPt, &Config->MntPt);
     pVNetRootContext->timeout = Config->timeout;
     pVNetRootContext->dir_createmode.use_nfsv3attrsea_mode =
         Config->dir_createmode.use_nfsv3attrsea_mode;

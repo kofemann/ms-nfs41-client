@@ -112,7 +112,7 @@ BOOLEAN is_root_directory(
     /* calculate the root directory's length, including vnetroot prefix,
      * mount path, and a trailing \ */
     const USHORT RootPathLen = VNetRoot->PrefixEntry.Prefix.Length +
-            pVNetRootContext->MountPathLen + sizeof(WCHAR);
+            pVNetRootContext->MntPt.Length + sizeof(WCHAR);
 
     return RxContext->CurrentIrpSp->FileObject->FileName.Length <= RootPathLen;
 }

@@ -428,6 +428,17 @@ icacls mytestfile1.txt | grep --colour -E 'cygwingrp2.+GR'
 
 
 #
+# Test whether opening the mount point (e.g. L:) as a plain file works
+# (see https://learn.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntcreatefile
+# section "FILE_NON_DIRECTORY_FILE": "... The file being opened must not be a directory file
+# or this call fails. The file object being opened can represent a data file, a logical,
+# virtual, or physical device, or a *VOLUME*. ...")
+#
+$ fsutil.exe fsinfo volumeinfo L:
+<Should print info about that filesystem>
+
+
+#
 # Tests for Windows EAs (Extended Attributes)
 # Windows EAs are represented as NFSv4 extended attributes (XATTR)
 # files, with the Windows EaName prefixed with "win32.ea." to

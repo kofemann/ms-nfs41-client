@@ -123,6 +123,7 @@ NTSTATUS marshal_nfs41_open(
 #ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES
         2 * sizeof(DWORD) +
 #endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
+        1 * sizeof(BOOLEAN) +
         2 * sizeof(HANDLE) +
         length_as_utf8(&entry->u.Open.symlink);
     if (header_len > buf_len) {
@@ -131,6 +132,9 @@ NTSTATUS marshal_nfs41_open(
     }
     status = marshall_unicode_as_utf8(&tmp, entry->filename);
     if (status) goto out;
+    RtlCopyMemory(tmp, &entry->u.Open.isvolumemntpt,
+        sizeof(entry->u.Open.isvolumemntpt));
+    tmp += sizeof(entry->u.Open.isvolumemntpt);
     RtlCopyMemory(tmp, &entry->u.Open.access_mask,
         sizeof(entry->u.Open.access_mask));
     tmp += sizeof(entry->u.Open.access_mask);
@@ -389,6 +393,18 @@ static BOOLEAN areOpenParamsValid(NT_CREATE_PARAMETERS *params)
     return TRUE;
 }
 
+static BOOLEAN isFileNameTheVolumeMountPoint(PUNICODE_STRING fileName,
+    PNFS41_V_NET_ROOT_EXTENSION pVNetRootContext) {
+    /* Check whether this is the mount point for this volume */
+    if ((fileName->Length == pVNetRootContext->MntPt.Length) &&
+        (memcmp(fileName->Buffer,
+            pVNetRootContext->MntPt.Buffer,
+            pVNetRootContext->MntPt.Length) == 0)) {
+        return TRUE;
+    }
+    return FALSE;
+}
+
 NTSTATUS map_open_errors(
     DWORD status,
     USHORT len)
@@ -627,6 +643,11 @@ NTSTATUS nfs41_Create(
         pNetRootContext->nfs41d_version,
         SrvOpen->pAlreadyPrefixedName, &entry);
     if (status) goto out;
+
+    /* Check whether this is the mount point for this volume */
+    entry->u.Open.isvolumemntpt =
+        isFileNameTheVolumeMountPoint(SrvOpen->pAlreadyPrefixedName,
+            pVNetRootContext);
 
     entry->u.Open.access_mask = params->DesiredAccess;
     entry->u.Open.access_mode = params->ShareAccess;

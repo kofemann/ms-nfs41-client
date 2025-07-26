@@ -317,6 +317,8 @@ static int parse_open(unsigned char *buffer, uint32_t length, nfs41_upcall *upca
 
     status = get_name(&buffer, &length, &args->path);
     if (status) goto out;
+    status = safe_read(&buffer, &length, &args->isvolumemntpt, sizeof(BOOLEAN));
+    if (status) goto out;
     status = safe_read(&buffer, &length, &args->access_mask, sizeof(ULONG));
     if (status) goto out;
     status = safe_read(&buffer, &length, &args->access_mode, sizeof(ULONG));
@@ -345,21 +347,25 @@ static int parse_open(unsigned char *buffer, uint32_t length, nfs41_upcall *upca
     if (status) goto out;
 
 #ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES
-    DPRINTF(1, ("parsing NFS41_SYSOP_OPEN: filename='%s' access mask=%d "
+    DPRINTF(1, ("parsing NFS41_SYSOP_OPEN: filename='%s' "
+        "isvolumemntpt=%d access mask=%d "
         "access mode=%d\n\tfile attrs=0x%x create attrs=0x%x "
         "(kernel) disposition=%d\n\topen_owner_id=%d mode=0%o "
         "owner_local_uid=%u owner_group_local_gid=%u "
-        "srv_open=0x%p symlink=%s ea=0x%p\n", args->path, args->access_mask,
+        "srv_open=0x%p symlink=%s ea=0x%p\n",
+        args->path, (int)args->isvolumemntpt, args->access_mask,
         args->access_mode, args->file_attrs, args->create_opts,
         args->disposition, args->open_owner_id, args->mode,
         (unsigned int)args->owner_local_uid, (unsigned int)args->owner_group_local_gid,
         args->srv_open,
         args->symlink.path, args->ea));
 #else
-    DPRINTF(1, ("parsing NFS41_SYSOP_OPEN: filename='%s' access mask=%d "
+    DPRINTF(1, ("parsing NFS41_SYSOP_OPEN: filename='%s' "
+        "isvolumemntpt=%d access mask=%d "
         "access mode=%d\n\tfile attrs=0x%x create attrs=0x%x "
         "(kernel) disposition=%d\n\topen_owner_id=%d mode=0%o "
-        "srv_open=0x%p symlink=%s ea=0x%p\n", args->path, args->access_mask,
+        "srv_open=0x%p symlink=%s ea=0x%p\n",
+        args->path, (int)args->isvolumemntpt, args->access_mask,
         args->access_mode, args->file_attrs, args->create_opts,
         args->disposition, args->open_owner_id, args->mode,
         args->srv_open,
@@ -836,16 +842,31 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
         if (info.type == NF4DIR) {
             DPRINTF(2, ("handle_nfs41_open: DIRECTORY\n"));
             if (args->create_opts & FILE_NON_DIRECTORY_FILE) {
-                DPRINTF(1, ("trying to open directory '%s' as a file\n",
-                    state->path.path));
-                /*
-                 * Notes:
-                 * - NTFS+SMB returns |STATUS_FILE_IS_A_DIRECTORY|
-                 * - See |map_open_errors()| for the mapping to
-                 * |STATUS_*|
-                 */
-                status = ERROR_DIRECTORY_NOT_SUPPORTED;
-                goto out_free_state;
+                if (args->isvolumemntpt) {
+                    /*
+                     * Open directry as volume
+                     * (see https://learn.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntcreatefile
+                     * section "FILE_NON_DIRECTORY_FILE":
+                     * "... The file being opened must not be a directory file
+                     * or this call fails. The file object being opened can
+                     * represent a data file, a logical, virtual, or physical
+                     * device, or a *VOLUME* ...")
+                     */
+                    DPRINTF(1, ("open directory '%s' as a volume\n",
+                        state->path.path));
+                }
+                else {
+                    DPRINTF(1, ("trying to open directory '%s' as a file\n",
+                        state->path.path));
+                    /*
+                     * Notes:
+                     * - NTFS+SMB returns |STATUS_FILE_IS_A_DIRECTORY|
+                     * - See |map_open_errors()| for the mapping to
+                     * |STATUS_*|
+                     */
+                    status = ERROR_DIRECTORY_NOT_SUPPORTED;
+                    goto out_free_state;
+                }
             }
         } else if (info.type == NF4REG) {
             DPRINTF(2, ("handle nfs41_open: FILE\n"));

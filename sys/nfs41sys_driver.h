@@ -219,6 +219,7 @@ typedef struct _updowncall_entry {
             ULONGLONG fileid;
             ULONGLONG fsid_major, fsid_minor;
             UNICODE_STRING symlink;
+            BOOLEAN isvolumemntpt;
             ULONG access_mask;
             ULONG access_mode;
             ULONG attrs;
@@ -408,7 +409,8 @@ typedef struct _NFS41_V_NET_ROOT_EXTENSION {
     DWORD                   timeout;
     NFS41_MOUNT_CREATEMODE  dir_createmode;
     NFS41_MOUNT_CREATEMODE  file_createmode;
-    USHORT                  MountPathLen;
+    WCHAR                   mntpt_buffer[NFS41_SYS_MAX_PATH_LEN];
+    UNICODE_STRING          MntPt;
     DWORD                   nfsvers;
     BOOLEAN                 read_only;
     BOOLEAN                 write_thru;

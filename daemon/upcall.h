@@ -51,6 +51,7 @@ typedef struct __open_upcall_args {
     ULONGLONG fileid;
     ULONGLONG fsid_major, fsid_minor;
     const char *path;
+    BOOLEAN isvolumemntpt;
     ULONG access_mask;
     ULONG access_mode;
     ULONG file_attrs;
