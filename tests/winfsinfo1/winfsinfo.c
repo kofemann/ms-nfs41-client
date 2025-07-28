@@ -1452,11 +1452,11 @@ int main(int ac, char *av[])
     else if (!strcmp(subcmd, "getvolumeinfo")) {
         return getvolumeinfo(av[0], av[2]);
     }
-    if (!strcmp(subcmd, "getfinalpath")) {
+    else if (!strcmp(subcmd, "getfinalpath")) {
         return getfinalpath(av[0], av[2]);
     }
 #ifdef NTDLL_HAS_ZWQUERYVOLUMEINFORMATIONFILE
-    if (!strcmp(subcmd, "getfilefssectorsizeinformation")) {
+    else if (!strcmp(subcmd, "getfilefssectorsizeinformation")) {
         return getfilefssectorsizeinformation(av[0], av[2]);
     }
 #endif /* NTDLL_HAS_ZWQUERYVOLUMEINFORMATIONFILE */
