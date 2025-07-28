@@ -57,7 +57,7 @@ bool filetime2localsystemtime(const FILETIME *ft, SYSTEMTIME *st)
 }
 
 static
-bool getuniversalname(const char *progname, const char *filename, DWORD dwInfoLevel)
+int getuniversalname(const char *progname, const char *filename, DWORD dwInfoLevel)
 {
     wchar_t wfilename[4096];
     char buffer[4096];
@@ -75,7 +75,7 @@ bool getuniversalname(const char *progname, const char *filename, DWORD dwInfoLe
             "%s: WNetGetUniversalName() failed with error=0x%lx\n",
             progname,
             np_res);
-        return false;
+        return EXIT_FAILURE;
     }
 
     if (dwInfoLevel == UNIVERSAL_NAME_INFO_LEVEL) {
@@ -101,14 +101,14 @@ bool getuniversalname(const char *progname, const char *filename, DWORD dwInfoLe
             "%s: unsupported dwInfoLevel=%ld\n",
             progname,
             (long)dwInfoLevel);
-        return false;
+        return EXIT_FAILURE;
     }
 
-    return true;
+    return EXIT_SUCCESS;
 }
 
 static
-bool getvolumeinfo(const char *progname, const char *filename)
+int getvolumeinfo(const char *progname, const char *filename)
 {
     int res = EXIT_FAILURE;
     bool ok;
@@ -220,7 +220,7 @@ done:
 }
 
 static
-bool getfinalpath(const char *progname, const char *filename)
+int getfinalpath(const char *progname, const char *filename)
 {
     int res = EXIT_FAILURE;
     bool ok;
@@ -309,7 +309,7 @@ ZwQueryVolumeInformationFile(
 );
 
 static
-bool getfilefssectorsizeinformation(const char *progname, const char *filename)
+int getfilefssectorsizeinformation(const char *progname, const char *filename)
 {
     int res = EXIT_FAILURE;
 
@@ -396,7 +396,7 @@ done:
 
 
 static
-bool get_file_basic_info(const char *progname, const char *filename)
+int get_file_basic_info(const char *progname, const char *filename)
 {
     int res = EXIT_FAILURE;
     bool ok;
@@ -490,7 +490,7 @@ done:
  * for |GetFileExInfoStandard|
  */
 static
-bool get_fileexinfostandard(const char *progname, const char *filename)
+int get_fileexinfostandard(const char *progname, const char *filename)
 {
     int res = EXIT_FAILURE;
     bool ok;
@@ -584,7 +584,7 @@ done:
 
 
 static
-bool get_file_standard_info(const char *progname, const char *filename)
+int get_file_standard_info(const char *progname, const char *filename)
 {
     int res = EXIT_FAILURE;
     bool ok;
@@ -646,7 +646,7 @@ typedef struct _FILE_NAME_INFORMATION4096 {
  * links resolved
  */
 static
-bool get_filenameinfo(const char *progname, const char *filename)
+int get_filenameinfo(const char *progname, const char *filename)
 {
     int res = EXIT_FAILURE;
     bool ok;
@@ -694,7 +694,7 @@ done:
 
 
 static
-bool get_filenormalizednameinfo(const char *progname, const char *filename)
+int get_filenormalizednameinfo(const char *progname, const char *filename)
 {
     int res = EXIT_FAILURE;
     bool ok;
@@ -753,7 +753,7 @@ done:
 
 
 static
-bool get_filecasesensitiveinfo(const char *progname, const char *filename)
+int get_filecasesensitiveinfo(const char *progname, const char *filename)
 {
     int res = EXIT_FAILURE;
     bool ok;
@@ -818,7 +818,7 @@ done:
 }
 
 static
-bool get_getfiletime(const char *progname, const char *filename)
+int get_getfiletime(const char *progname, const char *filename)
 {
     int res = EXIT_FAILURE;
     bool ok;
@@ -892,7 +892,7 @@ ZwQueryEaFile(
   IN BOOLEAN RestartScan);
 
 static
-bool get_nfs3attr(const char *progname, const char *filename)
+int get_nfs3attr(const char *progname, const char *filename)
 {
     int res = EXIT_FAILURE;
 
@@ -992,7 +992,7 @@ done:
 }
 
 static
-bool get_file_remote_protocol_info(const char *progname, const char *filename)
+int get_file_remote_protocol_info(const char *progname, const char *filename)
 {
     int res = EXIT_FAILURE;
     bool ok;
@@ -1111,7 +1111,7 @@ done:
 }
 
 static
-bool get_fileidinfo(const char *progname, const char *filename)
+int get_fileidinfo(const char *progname, const char *filename)
 {
     int res = EXIT_FAILURE;
     bool ok;
@@ -1340,7 +1340,7 @@ ZwQueryInformationFile(
 );
 
 static
-bool get_filenetworkphysicalnameinfo(const char *progname, const char *filename)
+int get_filenetworkphysicalnameinfo(const char *progname, const char *filename)
 {
     int res = EXIT_FAILURE;
     NTSTATUS status;
