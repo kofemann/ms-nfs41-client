@@ -1,5 +1,6 @@
 /* NFSv4.1 client for Windows
- * Copyright © 2012 The Regents of the University of Michigan
+ * Copyright (C) 2012 The Regents of the University of Michigan
+ * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -1359,13 +1360,183 @@ NPGetResourceInformation(
 
 DWORD APIENTRY
 NPGetUniversalName(
-    LPCWSTR lpLocalPath,
-    DWORD   dwInfoLevel,
-    LPVOID  lpBuffer,
-    LPDWORD lpBufferSize )
+    __in LPCWSTR LocalPath,
+    __in DWORD   dwInfoLevel,
+    __out LPVOID  Buffer,
+    __in __out LPDWORD BufferSize)
 {
-    DbgP((L"NPGetUniversalName(lpLocalPath='%s', dwInfoLevel=%d): "
-        "WN_NOT_SUPPORTED\n",
-        lpLocalPath, (int)dwInfoLevel));
-    return WN_NOT_SUPPORTED;
+    DWORD           dwStatus;
+    DWORD           BufferRequired = 0;
+    DWORD           RemoteNameLength = 0;
+    DWORD           RemainingPathLength = 0;
+    wchar_t         LocalDrive[3];
+    const wchar_t  *lpRemainingPath;
+    wchar_t        *lpString = NULL;
+
+    DbgP((L"--> NPGetUniversalName(LocalPath='%s',"
+        L"dwInfoLevel=%d,"
+        L"*BufferSize=%d)\n",
+        LocalPath,
+        dwInfoLevel,
+        (int)*BufferSize));
+
+    /* Spec says |LocalPath| is a drive-based path (no UNC) */
+    if ((LocalPath == NULL) ||
+        (LocalPath[0] == L'\0') ||
+        (LocalPath[1] != L':')) {
+        DbgP((L"unsupported LocalPath.\n"));
+        dwStatus = WN_BAD_LOCALNAME;
+        goto out;
+    }
+
+    LocalDrive[0] = LocalPath[0];
+    LocalDrive[1] = LocalPath[1];
+    LocalDrive[2] = L'\0';
+
+    lpRemainingPath = &LocalPath[2];
+    RemainingPathLength =
+        (DWORD)((wcslen(lpRemainingPath) + 1) * sizeof(wchar_t));
+
+    if (dwInfoLevel == UNIVERSAL_NAME_INFO_LEVEL) {
+        UNIVERSAL_NAME_INFOW *pUniversalNameInfo =
+            (UNIVERSAL_NAME_INFOW *)Buffer;
+
+        BufferRequired = sizeof(UNIVERSAL_NAME_INFOW);
+
+        if (*BufferSize >= BufferRequired) {
+            pUniversalNameInfo->lpUniversalName =
+                (wchar_t *)((PBYTE)Buffer + sizeof(UNIVERSAL_NAME_INFOW));
+
+            RemoteNameLength = *BufferSize - BufferRequired;
+        }
+        else {
+            RemoteNameLength = 0;
+        }
+
+        dwStatus = NPGetConnection(LocalDrive,
+            (RemoteNameLength?pUniversalNameInfo->lpUniversalName:NULL),
+            &RemoteNameLength);
+
+        if ((dwStatus != WN_SUCCESS) && (dwStatus != WN_MORE_DATA)) {
+            DbgP((L"UNIVERSAL_NAME_INFO: NPGetConnection() error=0x%lx\n",
+                (long)dwStatus));
+            goto out;
+        }
+
+        if (RemoteNameLength < (1*sizeof(wchar_t))) {
+            DbgP((L"UNIVERSAL_NAME_INFO: Remote name is empty.\n"));
+            dwStatus = WN_NO_NETWORK;
+            goto out;
+        }
+
+        BufferRequired += RemoteNameLength + RemainingPathLength;
+
+        if (*BufferSize < BufferRequired) {
+            DbgP((L"UNIVERSAL_NAME_INFO: buffer too small, requires=%ld\n",
+                (long)BufferRequired));
+            *BufferSize = BufferRequired;
+            dwStatus = WN_MORE_DATA;
+            goto out;
+        }
+
+        lpString =
+            &pUniversalNameInfo->lpUniversalName[RemoteNameLength/sizeof(wchar_t)];
+        lpString--;
+
+        (void)memcpy(lpString, lpRemainingPath, RemainingPathLength);
+
+        DbgP((L"returning pUniversalNameInfo->lpUniversalName='%ls'\n",
+            pUniversalNameInfo->lpUniversalName));
+        dwStatus = WN_SUCCESS;
+    }
+    else if (dwInfoLevel == REMOTE_NAME_INFO_LEVEL) {
+        REMOTE_NAME_INFOW *pRemoteNameInfo = (LPREMOTE_NAME_INFOW)Buffer;
+        wchar_t *lpDelimiter;
+
+        BufferRequired = sizeof(REMOTE_NAME_INFOW);
+
+        if (*BufferSize >= BufferRequired) {
+            pRemoteNameInfo->lpUniversalName =
+                (wchar_t *)((PBYTE)Buffer + sizeof(REMOTE_NAME_INFOW));
+            pRemoteNameInfo->lpConnectionName = NULL;
+            pRemoteNameInfo->lpRemainingPath = NULL;
+
+            RemoteNameLength = *BufferSize - BufferRequired;
+        }
+        else {
+            RemoteNameLength = 0;
+        }
+
+        dwStatus = NPGetConnection(LocalDrive,
+            (RemoteNameLength?pRemoteNameInfo->lpUniversalName:NULL),
+            &RemoteNameLength);
+
+        if ((dwStatus != WN_SUCCESS) && (dwStatus != WN_MORE_DATA)) {
+            DbgP((L"REMOTE_NAME_INFO: NPGetConnection() error=0x%lx\n",
+                (long)dwStatus));
+            goto out;
+        }
+
+        if (RemoteNameLength < 1*sizeof(wchar_t)) {
+            DbgP((L"REMOTE_NAME_INFO: remote name is empty.\n"));
+                dwStatus = WN_NO_NETWORK;
+            goto out;
+        }
+
+        BufferRequired +=
+            RemoteNameLength +
+            RemainingPathLength +
+            RemoteNameLength +
+            RemainingPathLength;
+
+        if (*BufferSize < BufferRequired) {
+            DbgP((L"REMOTE_NAME_INFO: buffer too small, required=%ld\n",
+            (long)BufferRequired));
+            *BufferSize = BufferRequired;
+            dwStatus = WN_MORE_DATA;
+            goto out;
+        }
+
+        lpString =
+            &pRemoteNameInfo->lpUniversalName[RemoteNameLength/sizeof(wchar_t)];
+        lpString--;
+
+        lpDelimiter = lpString;
+        (void)memcpy(lpString, lpRemainingPath, RemainingPathLength);
+        lpString += RemainingPathLength / sizeof(wchar_t);
+        *lpDelimiter = L'\0';
+
+        pRemoteNameInfo->lpConnectionName = lpString;
+        (void)memcpy(lpString,
+            pRemoteNameInfo->lpUniversalName, RemoteNameLength);
+        lpString += RemoteNameLength / sizeof(wchar_t);
+
+        pRemoteNameInfo->lpRemainingPath = lpString;
+        (void)memcpy(lpString, lpRemainingPath, RemainingPathLength);
+
+        if (RemainingPathLength > 1*sizeof(wchar_t)) {
+            *lpDelimiter = L'\\';
+        }
+
+        DbgP((L"returning pRemoteNameInfo->("
+            L"lpUniversalName='%ls',"
+            L"lpConnectionName='%ls',"
+            L"lpRemainingPath='%ls'"
+            L")\n",
+            pRemoteNameInfo->lpUniversalName,
+            pRemoteNameInfo->lpConnectionName,
+            pRemoteNameInfo->lpRemainingPath));
+        dwStatus = WN_SUCCESS;
+    }
+    else {
+        DbgP((L"unsupported dwInfoLevel=%d\n",
+            dwInfoLevel));
+        dwStatus = WN_BAD_LEVEL;
+        goto out;
+    }
+
+out:
+    DbgP((L"<-- NPGetUniversalName(), status=0x%lx\n", (long)dwStatus));
+
+    return dwStatus;
 }

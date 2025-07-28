@@ -36,6 +36,7 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <windows.h>
+#include <npapi.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -55,6 +56,56 @@ bool filetime2localsystemtime(const FILETIME *ft, SYSTEMTIME *st)
     return true;
 }
 
+static
+bool getuniversalname(const char *progname, const char *filename, DWORD dwInfoLevel)
+{
+    wchar_t wfilename[4096];
+    char buffer[4096];
+    DWORD buffersize = 4096;
+    DWORD np_res;
+
+    (void)swprintf(wfilename, 4096, L"%s", filename);
+
+    np_res = WNetGetUniversalName(wfilename,
+        dwInfoLevel,
+        buffer,
+        &buffersize);
+    if (np_res != WN_SUCCESS) {
+        (void)fprintf(stderr,
+            "%s: WNetGetUniversalName() failed with error=0x%lx\n",
+            progname,
+            np_res);
+        return false;
+    }
+
+    if (dwInfoLevel == UNIVERSAL_NAME_INFO_LEVEL) {
+        UNIVERSAL_NAME_INFOW *uni = (UNIVERSAL_NAME_INFOW *)buffer;
+
+        (void)printf("(\n");
+        (void)printf("\tfilename='%ls'\n", wfilename);
+        (void)printf("\tlpUniversalName='%ls'\n", uni->lpUniversalName);
+        (void)printf(")\n");
+    }
+    else if (dwInfoLevel == REMOTE_NAME_INFO_LEVEL) {
+        REMOTE_NAME_INFOW *rni = (REMOTE_NAME_INFOW *)buffer;
+
+        (void)printf("(\n");
+        (void)printf("\tfilename='%ls'\n", wfilename);
+        (void)printf("\tlpUniversalName='%ls'\n", rni->lpUniversalName);
+        (void)printf("\tlpConnectionName='%ls'\n", rni->lpConnectionName);
+        (void)printf("\tlpRemainingPath='%ls'\n", rni->lpRemainingPath);
+        (void)printf(")\n");
+    }
+    else {
+        (void)fprintf(stderr,
+            "%s: unsupported dwInfoLevel=%ld\n",
+            progname,
+            (long)dwInfoLevel);
+        return false;
+    }
+
+    return true;
+}
 
 static
 bool getvolumeinfo(const char *progname, const char *filename)
@@ -1350,6 +1401,8 @@ static
 void usage(void)
 {
     (void)fprintf(stderr, "winfsinfo <"
+        "getuniversalname_universalnameinfo|"
+        "getuniversalname_remotenameinfo|"
         "getvolumeinfo|"
         "getfinalpath|"
 #ifdef NTDLL_HAS_ZWQUERYVOLUMEINFORMATIONFILE
@@ -1390,7 +1443,13 @@ int main(int ac, char *av[])
 
     subcmd = av[1];
 
-    if (!strcmp(subcmd, "getvolumeinfo")) {
+    if (!strcmp(subcmd, "getuniversalname_universalnameinfo")) {
+        return getuniversalname(av[0], av[2], UNIVERSAL_NAME_INFO_LEVEL);
+    }
+    else if (!strcmp(subcmd, "getuniversalname_remotenameinfo")) {
+        return getuniversalname(av[0], av[2], REMOTE_NAME_INFO_LEVEL);
+    }
+    else if (!strcmp(subcmd, "getvolumeinfo")) {
         return getvolumeinfo(av[0], av[2]);
     }
     if (!strcmp(subcmd, "getfinalpath")) {
