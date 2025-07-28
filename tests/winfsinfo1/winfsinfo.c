@@ -683,7 +683,7 @@ int get_filenameinfo(const char *progname, const char *filename)
 
     (void)printf("\tFileNameLength=%ld\n",
         (long)finfo.FileNameLength);
-    (void)printf("\tFileName='%S'\n",   finfo.FileName);
+    (void)printf("\tFileName='%ls'\n",   finfo.FileName);
     (void)printf(")\n");
     res = EXIT_SUCCESS;
 
@@ -742,7 +742,7 @@ int get_filenormalizednameinfo(const char *progname, const char *filename)
 
     (void)printf("\tFileNameLength=%ld\n",
         (long)finfo.FileNameLength);
-    (void)printf("\tFileName='%S'\n",   finfo.FileName);
+    (void)printf("\tFileName='%ls'\n", finfo.FileName);
     (void)printf(")\n");
     res = EXIT_SUCCESS;
 
@@ -1386,7 +1386,7 @@ int get_filenetworkphysicalnameinfo(const char *progname, const char *filename)
 
     (void)printf("(\n");
     (void)printf("\tfilename='%s'\n", filename);
-    (void)printf("\tfnpni_FileName='%S'\n",
+    (void)printf("\tfnpni_FileName='%ls'\n",
         fnpni->FileName);
     (void)printf(")\n");
     res = EXIT_SUCCESS;
