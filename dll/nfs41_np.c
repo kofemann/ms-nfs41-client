@@ -532,9 +532,9 @@ NPAddConnection3(
     DWORD i;
     LPWSTR  lpLocalName = lpNetResource->lpLocalName;
 
-    DbgP((L"-->  NPAddConnection3(lpNetResource->lpLocalName='%s', "
-        L"lpNetResource->lpRemoteName='%s', "
-        L"username='%s', passwd='%s')\n",
+    DbgP((L"-->  NPAddConnection3(lpNetResource->lpLocalName='%ls', "
+        L"lpNetResource->lpRemoteName='%ls', "
+        L"username='%ls', passwd='%ls')\n",
         lpLocalName,
         lpNetResource->lpRemoteName,lpUserName,
         lpPassword));
@@ -558,7 +558,7 @@ NPAddConnection3(
     // local name, must start with "X:"
     if (wcslen(lpLocalName) < 2 ||
         lpLocalName[1] != L':') {
-        DbgP((L"lpLocalName(='%s') "
+        DbgP((L"lpLocalName(='%ls') "
             "is not a device letter\n",
             lpLocalName));
         Status = WN_BAD_LOCALNAME;
@@ -664,7 +664,7 @@ NPAddConnection3(
 #ifdef NFS41_DRIVER_MOUNT_DOES_NFS4_PREFIX
     if (wcsncmp(&p[i], L"\\nfs4", 5) &&
         wcsncmp(&p[i], L"\\pubnfs4", 8)) {
-        DbgP((L"Connection name '%s' not prefixed with "
+        DbgP((L"Connection name '%ls' not prefixed with "
             "'\\nfs41' or '\\pubnfs41'\n",
             &p[i]));
         Status = WN_BAD_NETNAME;
@@ -674,7 +674,7 @@ NPAddConnection3(
 
     (void)StringCchCatW(ConnectionName,
         NFS41_SYS_MAX_PATH_LEN, &p[i]);
-    DbgP((L"Full Connect Name: '%s'\n", ConnectionName));
+    DbgP((L"Full Connect Name: '%ls'\n", ConnectionName));
     DbgP((L"Full Connect Name Length: %d %d\n",
         (wcslen(ConnectionName) + 1) * sizeof(WCHAR),
         (wcslen(ConnectionName) + 1) * sizeof(WCHAR)));
@@ -684,7 +684,7 @@ NPAddConnection3(
 
         gc_status = is_unc_path_mounted(lpNetResource->lpRemoteName);
         DbgP((L"lpNetResource->lpLocalName == NULL, "
-            "is_unc_path_mounted(lpNetResource->lpRemoteName='%s') "
+            "is_unc_path_mounted(lpNetResource->lpRemoteName='%ls') "
             "returned gc_status=%d\n",
             lpNetResource->lpRemoteName,
             (int)gc_status));
@@ -706,7 +706,7 @@ NPAddConnection3(
         wszScratch[0] = L'\0';
         Status = QueryDosDeviceW(LocalName, wszScratch, 1024);
         lasterr = GetLastError();
-        DbgP((L"QueryDosDeviceW(lpDeviceName='%s',lpTargetPath='%s') "
+        DbgP((L"QueryDosDeviceW(lpDeviceName='%ls',lpTargetPath='%ls') "
             L"returned %d/GetLastError()=%d\n",
             LocalName, wszScratch, Status, (int)lasterr));
 
@@ -727,16 +727,16 @@ NPAddConnection3(
     }
 
     if (lpNetResource->lpLocalName != NULL) {
-        DbgP((L"DefineDosDeviceW(lpLocalName='%s', "
-            L"ConnectionName='%s')\n",
+        DbgP((L"DefineDosDeviceW(lpLocalName='%ls', "
+            L"ConnectionName='%ls')\n",
             lpLocalName, ConnectionName));
         if (!DefineDosDeviceW(DDD_RAW_TARGET_PATH |
             DDD_NO_BROADCAST_SYSTEM,
             lpLocalName,
             ConnectionName)) {
             Status = GetLastError();
-            DbgP((L"DefineDosDeviceW(lpLocalName='%s',"
-                L"ConnectionName='%s') failed with %d\n",
+            DbgP((L"DefineDosDeviceW(lpLocalName='%ls',"
+                L"ConnectionName='%ls') failed with %d\n",
                 lpLocalName, ConnectionName, Status));
             goto out_delconn;
         }
@@ -782,7 +782,7 @@ NPCancelConnection(
 #endif /* NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE */
     bool is_unc_path;
 
-    DbgP((L"--> NPCancelConnection(lpName='%s', fForce=%d)\n",
+    DbgP((L"--> NPCancelConnection(lpName='%ls', fForce=%d)\n",
         lpName, (int)fForce));
 
     if (lpName && (lpName[0] == L'\\') && (lpName[1] == L'\\')) {
@@ -820,7 +820,7 @@ NPCancelConnection(
         if (!pNetResource->InUse)
             continue;
 
-        DbgP((L"Name '%s' EntryName '%s'\n",
+        DbgP((L"Name '%ls' EntryName '%ls'\n",
             lpName, pNetResource->LocalName));
 
         if (is_unc_path) {
@@ -933,7 +933,7 @@ DWORD is_unc_path_mounted(
 #endif /* NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE */
     LPWSTR lpLocalName = NFS41NP_LOCALNAME_UNC_MARKER;
 
-    DbgP((L"--> is_unc_path_mounted(lpRemoteName='%s')\n", lpRemoteName));
+    DbgP((L"--> is_unc_path_mounted(lpRemoteName='%ls')\n", lpRemoteName));
 
 #ifdef NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE
     (void)get_token_authenticationid(GetCurrentThreadEffectiveToken(),
@@ -1017,13 +1017,13 @@ NPGetConnection(
     __inout LPDWORD                     lpBufferSize)
 {
     DWORD Status = 0;
-    DbgP((L"--> NPGetConnection(lpLocalName='%s')\n",
+    DbgP((L"--> NPGetConnection(lpLocalName='%ls')\n",
         lpLocalName));
     Status = NPGetConnection3(lpLocalName,
         WNGETCON_CONNECTED, lpRemoteName, lpBufferSize);
     if (Status == WN_SUCCESS) {
-        DbgP((L"<-- NPGetConnection(lpRemoteName='%.*s',*lpBufferSize=%d) returns %d\n",
-            (int)*lpBufferSize,
+        DbgP((L"<-- NPGetConnection(lpRemoteName='%.*ls',*lpBufferSize=%d) returns %d\n",
+            (int)(*lpBufferSize/sizeof(wchar_t)),
             lpRemoteName,
             (int)*lpBufferSize,
             (int)Status));
@@ -1049,7 +1049,7 @@ NPGetConnection3(
     LUID authenticationid = { .LowPart = 0, .HighPart = 0L };
 #endif /* NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE */
 
-    DbgP((L"--> NPGetConnection3(lpLocalName='%s',dwLevel=%d)\n",
+    DbgP((L"--> NPGetConnection3(lpLocalName='%ls',dwLevel=%d)\n",
         lpLocalName, (int)dwLevel));
 
     if (dwLevel != WNGETCON_CONNECTED) {
@@ -1141,8 +1141,8 @@ NPGetConnection3(
     CloseSharedMemory( &hMutex, &hMemory, (PVOID)&pSharedMemory);
 out:
     if (Status == WN_SUCCESS) {
-        DbgP((L"<-- NPGetConnection3(lpRemoteName='%.*s',*lpBufferSize=%d) returns %d\n",
-            (int)*lpBufferSize,
+        DbgP((L"<-- NPGetConnection3(lpRemoteName='%.*ls',*lpBufferSize=%d) returns %d\n",
+            (int)(*lpBufferSize/sizeof(wchar_t)),
             lpRemoteName,
             (int)*lpBufferSize,
             (int)Status));
@@ -1373,7 +1373,7 @@ NPGetUniversalName(
     const wchar_t  *lpRemainingPath;
     wchar_t        *lpString = NULL;
 
-    DbgP((L"--> NPGetUniversalName(LocalPath='%s',"
+    DbgP((L"--> NPGetUniversalName(LocalPath='%ls',"
         L"dwInfoLevel=%d,"
         L"*BufferSize=%d)\n",
         LocalPath,
