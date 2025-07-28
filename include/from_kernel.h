@@ -174,14 +174,18 @@ typedef struct _FILE_STANDARD_INFORMATION_EX {
 
 /* FileRenameInformation==10 */
 typedef struct _FILE_RENAME_INFORMATION {
+#ifdef _MSC_VER
 #pragma warning( push )
 /* Disable warning C4201 ("nonstandard extension used: nameless struct/union") */
 #pragma warning (disable : 4201)
+#endif /* _MSC_VER */
     union {
         BOOLEAN ReplaceIfExists;  /* class==FileRenameInformation */
         ULONG Flags;              /* class==FileRenameInformationEx */
     };
+#ifdef _MSC_VER
 #pragma warning( pop )
+#endif /* _MSC_VER */
     HANDLE RootDirectory;
     ULONG FileNameLength;
     WCHAR FileName[1];
