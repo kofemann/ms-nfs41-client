@@ -84,7 +84,7 @@
  * NFS41_MAX_COMPONENT_LEN - MaximumComponentNameLength
  * reported for FileFsAttributeInformation
  */
-#define NFS41_MAX_COMPONENT_LEN     256
+#define NFS41_MAX_COMPONENT_LEN     255
 /*
  * NFS41_MAX_PATH_LEN - Maximum path length
  * Notes:

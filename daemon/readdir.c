@@ -754,7 +754,7 @@ static int handle_readdir(void *deamon_context, nfs41_upcall *upcall)
     bool_t eof;
     /* make sure we allocate enough space for one nfs41_readdir_entry */
     const uint32_t max_buf_len = max(args->buf_len,
-        sizeof(nfs41_readdir_entry) + NFS41_MAX_COMPONENT_LEN);
+        sizeof(nfs41_readdir_entry) + NFS41_MAX_COMPONENT_LEN+1);
 
     DPRINTF(1, ("--> handle_nfs41_dirquery(filter='%s',initial=%d,restart=%d,single=%d)\n",
         args->filter, (int)args->initial, (int)args->restart, (int)args->single));
@@ -836,9 +836,9 @@ fetch_entries:
         nfs41_readdir_entry *entry = (nfs41_readdir_entry*)entry_buf;
         entry->cookie = 0;
         entry->name_len = (uint32_t)strlen(args->filter) + 1;
-        if (entry->name_len >= NFS41_MAX_COMPONENT_LEN) {
+        if (entry->name_len >= (NFS41_MAX_COMPONENT_LEN+1)) {
             DPRINTF(1,
-                ("entry->name_len(=%d) >= NFS41_MAX_COMPONENT_LEN\n",
+                ("entry->name_len(=%d) >= (NFS41_MAX_COMPONENT_LEN+1)\n",
                 (int)entry->name_len));
             status = ERROR_FILENAME_EXCED_RANGE;
             goto out_free_cookie;

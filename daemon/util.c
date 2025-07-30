@@ -350,7 +350,7 @@ int create_silly_rename(
 #define SILLY_RENAME_PREPOSTFIX_LEN (6L)
     const unsigned short extra_len =
         SILLY_RENAME_PREPOSTFIX_LEN + MD5_HASH_LEN;
-    char name[NFS41_MAX_COMPONENT_LEN+1];
+    char name[NFS41_MAX_COMPONENT_LEN];
     unsigned char fhmd5[MD5_HASH_LEN+1];
     char *tmp;
     int status = NO_ERROR, i;
@@ -395,7 +395,7 @@ int create_silly_rename(
     }
 
     last_component(path->path, path->path + path->len, silly);
-    (void)StringCchCopyNA(name, NFS41_MAX_COMPONENT_LEN+1,
+    (void)StringCchCopyNA(name, NFS41_MAX_COMPONENT_LEN,
         silly->name, silly->len);
 
     tmp = (char*)silly->name;

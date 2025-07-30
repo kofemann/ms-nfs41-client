@@ -504,7 +504,7 @@ static void copy_attrs(
 /* name cache */
 RB_HEAD(name_tree, name_cache_entry);
 struct name_cache_entry {
-    char                    component[NFS41_MAX_COMPONENT_LEN];
+    char                    component[NFS41_MAX_COMPONENT_LEN+1];
     nfs41_fh                fh;
     RB_ENTRY(name_cache_entry) rbnode;
     struct name_tree        rbchildren;
@@ -552,7 +552,7 @@ static __inline void name_cache_entry_rename(
     OUT struct name_cache_entry *entry,
     IN const nfs41_component *component)
 {
-    StringCchCopyNA(entry->component, NFS41_MAX_COMPONENT_LEN,
+    StringCchCopyNA(entry->component, NFS41_MAX_COMPONENT_LEN+1,
         component->name, component->len);
     entry->component_len = component->len;
 }
@@ -752,7 +752,7 @@ static struct name_cache_entry* name_cache_search(
     DPRINTF(NCLVL2, ("--> name_cache_search('%.*s' under '%s')\n",
         component->len, component->name, parent->component));
 
-    StringCchCopyNA(tmp.component, NFS41_MAX_COMPONENT_LEN,
+    StringCchCopyNA(tmp.component, NFS41_MAX_COMPONENT_LEN+1,
         component->name, component->len);
     tmp.component_len = component->len;
 
