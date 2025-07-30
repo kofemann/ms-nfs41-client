@@ -272,23 +272,29 @@ static int convert_nfs4acl_2_dacl(nfs41_daemon_globals *nfs41dg,
                     win_aceflags, mask, sids[win_i]);
                 if (!status) {
                     eprintf("convert_nfs4acl_2_dacl: "
-                        "AddAccessAllowedAceEx(dacl=0x%p,win_aceflags=0x%x,mask=0x%x) failed "
-                        "with status=%d\n",
-                        dacl, (int)win_aceflags, (int)mask, status);
+                        "AddAccessAllowedAceEx"
+                        "(dacl=0x%p,win_aceflags=0x%x,mask=0x%x,who='%s') "
+                        "failed with lasterr=%d\n",
+                        dacl, (int)win_aceflags, (int)mask,
+                        curr_nfsace->who, (int)GetLastError());
+                    status = ERROR_INTERNAL_ERROR;
                     goto out_free_dacl;
                 }
-                else status = ERROR_SUCCESS;
+                status = ERROR_SUCCESS;
             } else if (curr_nfsace->acetype == ACE4_ACCESS_DENIED_ACE_TYPE) {
                 status = AddAccessDeniedAceEx(dacl, ACL_REVISION,
                     win_aceflags, mask, sids[win_i]);
                 if (!status) {
                     eprintf("convert_nfs4acl_2_dacl: "
-                        "AddAccessDeniedAceEx(dacl=0x%p,win_aceflags=0x%x,mask=0x%x) failed "
-                        "with status=%d\n",
-                        dacl, (int)win_aceflags, (int)mask, status);
+                        "AddAccessDeniedAceEx"
+                        "(dacl=0x%p,win_aceflags=0x%x,mask=0x%x,who='%s') "
+                        "failed with lasterr=%d\n",
+                        dacl, (int)win_aceflags, (int)mask,
+                        curr_nfsace->who, (int)GetLastError());
+                    status = ERROR_INTERNAL_ERROR;
                     goto out_free_dacl;
                 }
-                else status = ERROR_SUCCESS;
+                status = ERROR_SUCCESS;
             } else {
                 eprintf("convert_nfs4acl_2_dacl: unknown acetype %d\n",
                         curr_nfsace->acetype);
