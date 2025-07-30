@@ -91,30 +91,38 @@ static void free_sids(PSID *sids, int count)
     free(sids);
 }
 
-static int check_4_special_identifiers(char *who, PSID *sid, DWORD *sid_len, 
-                                       BOOLEAN *flag)
+static int check_4_special_identifiers(const char *restrict who,
+    PSID *sid,
+    DWORD *sid_len,
+    BOOLEAN *flag)
 {
     int status = ERROR_SUCCESS;
     WELL_KNOWN_SID_TYPE type = 0;
     *flag = TRUE;
-    if (!strncmp(who, ACE4_OWNER, strlen(ACE4_OWNER)-1))
+
+    /*
+     * Compare |who| against known constant strings, excluding the '@'
+     * symbol. Note that |ACE4_NOBODY| and |ACE4_WIN_NULL_SID| do not
+     * have a '@
+     */
+    if (!strncmp(who, ACE4_OWNER, ACE4_OWNER_LEN-1))
         type = WinCreatorOwnerSid;
 #ifdef NFS41_DRIVER_WS2022_HACKS
-    else if (!strncmp(who, "CREATOR OWNER@", strlen("CREATOR OWNER@")-1))
+    else if (!strncmp(who, ACE4_WIN_CREATOR_OWNER, ACE4_WIN_CREATOR_OWNER_LEN-1))
         type = WinCreatorOwnerSid;
 #endif /* NFS41_DRIVER_WS2022_HACKS */
-    else if (!strncmp(who, ACE4_GROUP, strlen(ACE4_GROUP)-1))
+    else if (!strncmp(who, ACE4_GROUP, ACE4_GROUP_LEN-1))
         type = WinCreatorGroupSid;
-    else if (!strncmp(who, ACE4_EVERYONE, strlen(ACE4_EVERYONE)-1))
+    else if (!strncmp(who, ACE4_EVERYONE, ACE4_EVERYONE_LEN-1))
         type = WinWorldSid;
 #ifdef NFS41_DRIVER_WS2022_HACKS
-    else if (!strncmp(who, "Everyone@", strlen("Everyone@")-1))
+    else if (!strncmp(who, ACE4_WIN_EVERYONE, ACE4_WIN_EVERYONE_LEN-1))
         type = WinWorldSid;
 #endif /* NFS41_DRIVER_WS2022_HACKS */
-    else if (!strncmp(who, ACE4_NOBODY, strlen(ACE4_NOBODY)))
+    else if (!strncmp(who, ACE4_NOBODY, ACE4_NOBODY_LEN))
         type = WinNullSid;
 #ifdef NFS41_DRIVER_WS2022_HACKS
-    else if (!strncmp(who, "NULL SID", strlen("NULL SID")))
+    else if (!strncmp(who, ACE4_WIN_NULL_SID, ACE4_WIN_NULL_SID_LEN))
         type = WinNullSid;
 #endif /* NFS41_DRIVER_WS2022_HACKS */
     else
@@ -523,55 +531,95 @@ out:
 
 static int is_well_known_sid(PSID sid, char *who, SID_NAME_USE *snu_out)
 {
-    int status, i;
-    for (i = 0; i < 78; i++) {
-        status = IsWellKnownSid(sid, (WELL_KNOWN_SID_TYPE)i);
-        if (!status) continue;
-        else {
-            DPRINTF(ACLLVL3, ("WELL_KNOWN_SID_TYPE %d\n", i));
-            switch((WELL_KNOWN_SID_TYPE)i) {
+    const WELL_KNOWN_SID_TYPE test_types[] = {
+        WinCreatorOwnerSid,
+        WinCreatorGroupSid,
+        WinBuiltinUsersSid,
+        WinNullSid,
+        WinAnonymousSid,
+        WinWorldSid,
+        WinAuthenticatedUserSid,
+        WinDialupSid,
+        WinNetworkSid,
+        WinBatchSid,
+        WinInteractiveSid,
+        WinNetworkServiceSid,
+        WinLocalServiceSid,
+        WinServiceSid
+    };
+    const size_t test_types_count = ARRAYSIZE(test_types);
+
+    BOOL ismatch;
+    size_t i;
+
+#ifdef _DEBUG
+    static bool once = true;
+
+    if (once) {
+        once = false;
+        EASSERT(test_types_count == 14);
+        /* Safeguards if someone tampers with the #defines for this */
+        EASSERT(strlen(ACE4_OWNER) == ACE4_OWNER_LEN);
+        EASSERT(strlen(ACE4_GROUP) == ACE4_GROUP_LEN);
+        EASSERT(strlen(ACE4_NOBODY) == ACE4_NOBODY_LEN);
+        EASSERT(strlen(ACE4_ANONYMOUS) == ACE4_ANONYMOUS_LEN);
+        EASSERT(strlen(ACE4_EVERYONE) == ACE4_EVERYONE_LEN);
+    }
+#endif /* _DEBUG */
+
+    for (i = 0; i < test_types_count ; i++) {
+        WELL_KNOWN_SID_TYPE tt = test_types[i];
+
+        ismatch = IsWellKnownSid(sid, tt);
+        if (!ismatch) {
+            continue;
+        }
+
+        DPRINTF(ACLLVL3, ("WELL_KNOWN_SID_TYPE=%d\n", (int)tt));
+        switch(tt) {
             case WinCreatorOwnerSid:
-                memcpy(who, ACE4_OWNER, strlen(ACE4_OWNER)+1);
+                (void)memcpy(who, ACE4_OWNER, ACE4_OWNER_LEN+1);
                 *snu_out = SidTypeUser;
                 return TRUE;
             case WinCreatorGroupSid:
             case WinBuiltinUsersSid:
-                memcpy(who, ACE4_GROUP, strlen(ACE4_GROUP)+1);
+                (void)memcpy(who, ACE4_GROUP, ACE4_GROUP_LEN+1);
                 *snu_out = SidTypeGroup;
                 return TRUE;
             case WinNullSid:
-                memcpy(who, ACE4_NOBODY, strlen(ACE4_NOBODY)+1);
+                (void)memcpy(who, ACE4_NOBODY, ACE4_NOBODY_LEN+1);
                 *snu_out = SidTypeUser;
                 return TRUE;
             case WinAnonymousSid:
-                memcpy(who, ACE4_ANONYMOUS, strlen(ACE4_ANONYMOUS)+1);
+                (void)memcpy(who, ACE4_ANONYMOUS, ACE4_ANONYMOUS_LEN+1);
                 return TRUE;
             case WinWorldSid:
-                memcpy(who, ACE4_EVERYONE, strlen(ACE4_EVERYONE)+1);
+                (void)memcpy(who, ACE4_EVERYONE, ACE4_EVERYONE_LEN+1);
                 *snu_out = SidTypeGroup;
                 return TRUE;
             case WinAuthenticatedUserSid:
-                memcpy(who, ACE4_AUTHENTICATED, strlen(ACE4_AUTHENTICATED)+1);
+                (void)memcpy(who, ACE4_AUTHENTICATED, ACE4_AUTHENTICATED_LEN+1);
                 return TRUE;
             case WinDialupSid:
-                memcpy(who, ACE4_DIALUP, strlen(ACE4_DIALUP)+1); 
+                (void)memcpy(who, ACE4_DIALUP, ACE4_DIALUP_LEN+1);
                 return TRUE;
             case WinNetworkSid:
-                memcpy(who, ACE4_NETWORK, strlen(ACE4_NETWORK)+1); 
+                (void)memcpy(who, ACE4_NETWORK, ACE4_NETWORK_LEN+1);
                 return TRUE;
             case WinBatchSid:
-                memcpy(who, ACE4_BATCH, strlen(ACE4_BATCH)+1); 
+                (void)memcpy(who, ACE4_BATCH, ACE4_BATCH_LEN+1);
                 return TRUE;
             case WinInteractiveSid:
-                memcpy(who, ACE4_INTERACTIVE, strlen(ACE4_INTERACTIVE)+1); 
+                (void)memcpy(who, ACE4_INTERACTIVE, ACE4_INTERACTIVE_LEN+1);
                 return TRUE;
             case WinNetworkServiceSid:
             case WinLocalServiceSid:
             case WinServiceSid:
-                memcpy(who, ACE4_SERVICE, strlen(ACE4_SERVICE)+1); 
+                (void)memcpy(who, ACE4_SERVICE, ACE4_SERVICE_LEN+1);
                 return TRUE;
-            default: return FALSE;
-            }
+            default:
+                eprintf("is_well_known_sid: unknown tt=%d\n", (int)tt);
+                return FALSE;
         }
     }
     return FALSE;
@@ -939,7 +987,7 @@ int map_sid2nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid,
     if (owner_sid) {
         if (EqualSid(sid, owner_sid)) {
             DPRINTF(ACLLVL2, ("this is owner's sid\n"));
-            memcpy(who_out, ACE4_OWNER, strlen(ACE4_OWNER)+1);
+            (void)memcpy(who_out, ACE4_OWNER, ACE4_OWNER_LEN+1);
             sid_type = SidTypeUser;
             status = ERROR_SUCCESS;
             goto out;
@@ -948,7 +996,7 @@ int map_sid2nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid,
     if (group_sid) {
         if (EqualSid(sid, group_sid)) {
             DPRINTF(ACLLVL2, ("this is group's sid\n"));
-            memcpy(who_out, ACE4_GROUP, strlen(ACE4_GROUP)+1);
+            memcpy(who_out, ACE4_GROUP, ACE4_GROUP_LEN+1);
             sid_type = SidTypeGroup;
             status = ERROR_SUCCESS;
             goto out;
@@ -956,8 +1004,8 @@ int map_sid2nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid,
     }
     status = is_well_known_sid(sid, who_out, &sid_type);
     if (status) {
-        if (!strncmp(who_out, ACE4_NOBODY, strlen(ACE4_NOBODY))) {
-            who_size = (DWORD)strlen(ACE4_NOBODY);
+        if (!strncmp(who_out, ACE4_NOBODY, ACE4_NOBODY_LEN)) {
+            who_size = (DWORD)ACE4_NOBODY_LEN;
             goto add_domain;
         }
 
@@ -1160,7 +1208,7 @@ static int map_dacl_2_nfs4acl(PACL acl, PSID sid, PSID gsid, nfsacl41 *nfs4_acl,
             goto out;
         }
         nfs4_acl->flag = 0;
-        memcpy(nfs4_acl->aces->who, ACE4_EVERYONE, strlen(ACE4_EVERYONE)+1);
+        (void)memcpy(nfs4_acl->aces->who, ACE4_EVERYONE, ACE4_EVERYONE_LEN+1);
         nfs4_acl->aces->acetype = ACE4_ACCESS_ALLOWED_ACE_TYPE;
 
         if (file_type == NF4DIR) {
