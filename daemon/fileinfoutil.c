@@ -219,7 +219,7 @@ void nfs_to_remote_protocol_info(
 {
     (void)memset(rpi_out, 0, sizeof(FILE_REMOTE_PROTOCOL_INFORMATION));
 
-    rpi_out->StructureVersion = 1;
+    rpi_out->StructureVersion = 4;
     rpi_out->StructureSize = sizeof(FILE_REMOTE_PROTOCOL_INFORMATION);
     rpi_out->Protocol = WNNC_NET_RDR2SAMPLE; /* FIXME! */
 
