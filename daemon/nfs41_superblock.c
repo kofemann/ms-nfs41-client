@@ -195,6 +195,9 @@ void nfs41_superblock_fs_attributes(
     /* NFSv4 protocol uses Unicode by default */
     FsAttrs->FileSystemAttributes |= FILE_UNICODE_ON_DISK;
 
+    /* We support |FileCaseSensitiveInformation| to query each dir */
+    FsAttrs->FileSystemAttributes |= FILE_SUPPORTS_CASE_SENSITIVE_DIRS;
+
     if (superblock->link_support)
         FsAttrs->FileSystemAttributes |= FILE_SUPPORTS_HARD_LINKS;
     if (superblock->symlink_support)
