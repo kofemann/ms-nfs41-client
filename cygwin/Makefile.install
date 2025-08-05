@@ -43,6 +43,7 @@ installdest:
 	mkdir -p $(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/msnfs41client/tests
 	mkdir -p $(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/msnfs41client/tests/misc
 	mkdir -p $(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/msnfs41client/tests/sparsefiles
+	mkdir -p $(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/msnfs41client/tests/filemmaptests
 	cp $(VS_BUILD_DIR)/nfsd.exe		$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/nfsd_debug.exe
 	cp $(VS_BUILD_DIR)/nfsd.pdb		$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/nfsd_debug.pdb
 	cp $(VS_BUILD_DIR)/nfs_mount.*	$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/.
@@ -136,6 +137,14 @@ installdest:
 	else \
 		(cd $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/ && $(LINKEXE) nfs_ea.i686.exe nfs_ea.exe) \
 	fi
+	cp "$(PROJECT_BASEDIR_DIR)/tests/filemmaptests/qsortonmmapedfile1.x86_64.exe" $(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/msnfs41client/tests/filemmaptests/qsortonmmapedfile1.x86_64.exe
+	cp "$(PROJECT_BASEDIR_DIR)/tests/filemmaptests/qsortonmmapedfile1.i686.exe" $(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/msnfs41client/tests/filemmaptests/qsortonmmapedfile1.i686.exe
+	if [[ "$(CYGWIN_BASEPATH)" == *64* ]] ; then \
+		(cd $(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/msnfs41client/tests/filemmaptests/ && $(LINKEXE) qsortonmmapedfile1.x86_64.exe qsortonmmapedfile1.exe) \
+	else \
+		(cd $(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/msnfs41client/tests/filemmaptests/ && $(LINKEXE) qsortonmmapedfile1.i686.exe qsortonmmapedfile1.exe) \
+	fi
+	cp $(PROJECT_BASEDIR_DIR)/tests/filemmaptests/testqsortonmmapedfile1.ksh93 $(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/msnfs41client/tests/filemmaptests/testqsortonmmapedfile1.ksh93
 	cp $(PROJECT_BASEDIR_DIR)/tests/nfsbuildtest/nfsbuildtest.ksh93 $(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/msnfs41client/tests/misc/nfsbuildtest.ksh93
 	cp $(PROJECT_BASEDIR_DIR)/tests/sparsefiles/testsparsefile1.ksh $(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/msnfs41client/tests/sparsefiles/testsparsefile1.ksh
 	cp $(PROJECT_BASEDIR_DIR)/tests/sparsefiles/testsparseexe1.ksh $(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/msnfs41client/tests/sparsefiles/testsparseexe1.ksh

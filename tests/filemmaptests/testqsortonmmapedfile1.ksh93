@@ -1,0 +1,44 @@
+#!/bin/ksh93
+
+#
+# testqsortonmmapedfile1.ksh93 - Test |qsort()| on memory mapped file
+#
+
+set -o errexit
+
+builtin cat
+builtin cmp
+builtin rm
+
+integer res=0
+
+which qsortonmmapedfile1.exe || exit 1
+
+if [[ ! -f 'numfile1_orig' ]] ; then
+    for ((i=32*1024*1024 ; i > 0 ; i--)) ; do
+        printf "%15.15d\n" i
+    # cat is used for buffering
+    done | cat >'numfile1_orig'
+fi
+set -o xtrace
+
+rm -f 'numfile1' 'numfile1_sort_out'
+cp 'numfile1_orig' 'numfile1'
+time sort 'numfile1' -o 'numfile1_sort_out'
+ls -l 'numfile1'
+head 'numfile1'
+time qsortonmmapedfile1.exe 'numfile1'
+head 'numfile1'
+ls -l 'numfile1'
+if cmp 'numfile1' 'numfile1_sort_out' ; then
+    printf '#\n# test OK\n#\n'
+    (( res=0 ))
+else
+    printf '#\n# test FAILED\n#\n'
+    (( res=1 ))
+
+    diff -u 'numfile1' 'numfile1_sort_out'
+fi
+
+exit $res
+# EOF.

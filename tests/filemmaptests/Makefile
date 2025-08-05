@@ -1,0 +1,26 @@
+#
+# Makefile for qsortonmmapedfile1
+#
+
+# POSIX Makefile
+
+all: \
+	qsortonmmapedfile1.i686.exe \
+	qsortonmmapedfile1.x86_64.exe \
+	qsortonmmapedfile1.exe
+
+qsortonmmapedfile1.i686.exe: qsortonmmapedfile1.c
+	clang -target i686-pc-windows-gnu -Wall -Wextra -DUNICODE=1 -D_UNICODE=1 -g -O qsortonmmapedfile1.c -o qsortonmmapedfile1.i686.exe
+
+qsortonmmapedfile1.x86_64.exe: qsortonmmapedfile1.c
+	clang -target x86_64-pc-windows-gnu -Wall -Wextra -DUNICODE=1 -D_UNICODE=1 -g -O qsortonmmapedfile1.c -o qsortonmmapedfile1.x86_64.exe
+
+qsortonmmapedfile1.exe: qsortonmmapedfile1.x86_64.exe
+	ln -s qsortonmmapedfile1.x86_64.exe qsortonmmapedfile1.exe
+
+clean:
+	rm -fv \
+		qsortonmmapedfile1.i686.exe \
+		qsortonmmapedfile1.x86_64.exe \
+		qsortonmmapedfile1.exe
+# EOF.
