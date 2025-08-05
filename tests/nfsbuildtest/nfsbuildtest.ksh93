@@ -667,6 +667,7 @@ function main
 			is_toolkit_pkg_installed itp 'gcc-core' || (( errc++ ))
 			is_toolkit_pkg_installed itp 'gcc-g++' || (( errc++ ))
 			is_toolkit_pkg_installed itp 'make' || (( errc++ ))
+			is_toolkit_pkg_installed itp 'patch' || (( errc++ ))
 			is_toolkit_pkg_installed itp 'flex' || (( errc++ ))
 			is_toolkit_pkg_installed itp 'bison' || (( errc++ ))
 			is_toolkit_pkg_installed itp 'libgmp-devel' || (( errc++ ))
@@ -711,6 +712,7 @@ function main
 			else
 				print '# bash_build: unsupported toolkit'
 			fi
+			is_toolkit_pkg_installed itp 'patch' || (( errc++ ))
 			is_toolkit_pkg_installed itp 'libncurses-devel' || (( errc++ ))
 			is_toolkit_pkg_installed itp 'gettext' || (( errc++ ))
 			is_toolkit_pkg_installed itp 'gettext-devel' || (( errc++ ))
