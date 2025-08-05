@@ -529,13 +529,35 @@ function msnfs41client_build
 	# build ms-nfs41-client
 	#
 	(
-		# Visual Studio 19 64bit+32bit kernel codepath
-		# fixme: Add support for VS2022 64bit-only codepath
-		export PATH+=":/cygdrive/c/Program Files (x86)/Microsoft Visual Studio/2019/Community/MSBuild/Current/Bin/"
-		set -o errexit
-		time make -j1 -f cygwin/Makefile build
-		time make -j1 -f cygwin/Makefile installdest
-		time make -j1 -f cygwin/Makefile bintarball
+		#
+		# We assume here:
+		# Visual Studio 2019 --> Win10 64bit+32bit build,
+		# Visual Studio 2022 --> Win11/64bit-only build
+		#
+		if [[ -x '/cygdrive/c/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe' ]] ; then
+			# Visual Studio 19 64bit+32bit kernel codepath
+			export PATH="/cygdrive/c/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/:$PATH"
+			set -o errexit
+
+			# "retarget" VS platform toolset to "v143"
+			# ("v142" should remain the default when comitting)
+			sed -i -E 's/<PlatformToolset>v142<\/PlatformToolset>/<PlatformToolset>v143<\/PlatformToolset>/g' $(find 'build.vc19' -name \*.vcxproj)
+
+			# build
+			time make -j1 -f cygwin/Makefile build64
+			time make -j1 -f cygwin/Makefile installdest64
+			time make -j1 -f cygwin/Makefile bintarball64
+		elif [[ -x '/cygdrive/c/Program Files (x86)/Microsoft Visual Studio/2019/Community/MSBuild/Current/Bin/MSBuild.exe' ]] ; then
+			# Visual Studio 19 64bit+32bit kernel codepath
+			export PATH="/cygdrive/c/Program Files (x86)/Microsoft Visual Studio/2019/Community/MSBuild/Current/Bin/:$PATH"
+			set -o errexit
+			time make -j1 -f cygwin/Makefile build
+			time make -j1 -f cygwin/Makefile installdest
+			time make -j1 -f cygwin/Makefile bintarball
+		else
+			print -u2 -f "%s: Unknown compiler.\n" "$0"
+			exit 5
+		fi
 	)
 	echo $?
 
