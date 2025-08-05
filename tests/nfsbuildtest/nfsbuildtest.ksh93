@@ -292,7 +292,8 @@ function bash_build
 	compound gitdata=(
 		typeset url='https://github.com/bminor/bash.git'
 		# use fixed git tag, so build times are compareable
-		typeset tag='master'
+		# (make sure to test this with Windows 10/32bit+Cygwin 3.4!!)
+		typeset tag='bash-5.0'
 	)
 
 	typeset -a configure_options=(
