@@ -640,7 +640,10 @@ NTSTATUS nfs41_SetFileInformation(
     NTSTATUS status = STATUS_INVALID_PARAMETER;
     nfs41_updowncall_entry *entry = NULL;
     FILE_INFORMATION_CLASS InfoClass = RxContext->Info.FileInformationClass;
+
+#ifdef FORCE_POSIX_SEMANTICS_DELETE
     FILE_RENAME_INFORMATION rinfo;
+#endif /* FORCE_POSIX_SEMANTICS_DELETE */
     __notnull PMRX_SRV_OPEN SrvOpen = RxContext->pRelevantSrvOpen;
     __notnull PNFS41_V_NET_ROOT_EXTENSION pVNetRootContext =
         NFS41GetVNetRootExtension(SrvOpen->pVNetRoot);
@@ -668,6 +671,12 @@ NTSTATUS nfs41_SetFileInformation(
             PFILE_DISPOSITION_INFORMATION dinfo =
                 (PFILE_DISPOSITION_INFORMATION)RxContext->Info.Buffer;
             if (dinfo->DeleteFile) {
+#ifdef FORCE_POSIX_SEMANTICS_DELETE
+                /*
+                 * Do POSIX-style delete here, i.e. what
+                 * |FILE_DISPOSITION_INFORMATION_EX.Flags &
+                 * FILE_DISPOSITION_POSIX_SEMANTICS| would do
+                 */
                 nfs41_fcb->DeletePending = TRUE;
                 // we can delete directories right away
                 if (nfs41_fcb->StandardInfo.Directory)
@@ -682,6 +691,11 @@ NTSTATUS nfs41_SetFileInformation(
                     nfs41_fcb->Renamed = TRUE;
                     break;
                 }
+#else
+                /* Do Win32 delete-on-close */
+                nfs41_fcb->DeletePending = TRUE;
+                nfs41_fcb->StandardInfo.DeletePending = TRUE;
+#endif /* FORCE_POSIX_SEMANTICS_DELETE */
             } else {
                 /* section 4.3.3 of [FSBO]
                  * "file system behavior in the microsoft windows environment"
@@ -732,13 +746,17 @@ NTSTATUS nfs41_SetFileInformation(
 
     entry->u.SetFile.InfoClass = InfoClass;
 
+#ifdef FORCE_POSIX_SEMANTICS_DELETE
     /* original irp has infoclass for remove but we need to rename instead,
      * thus we changed the local variable infoclass */
     if (RxContext->Info.FileInformationClass == FileDispositionInformation &&
             InfoClass == FileRenameInformation) {
         entry->buf = &rinfo;
         entry->buf_len = sizeof(rinfo);
-    } else {
+    }
+    else
+#endif /* FORCE_POSIX_SEMANTICS_DELETE */
+    {
         entry->buf = RxContext->Info.Buffer;
         entry->buf_len = RxContext->Info.Length;
     }

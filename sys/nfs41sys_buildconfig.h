@@ -1,5 +1,5 @@
 /* NFSv4.1 client for Windows
- * Copyright (C) 2023-2024 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Roland Mainz <roland.mainz@nrubsig.org>
  *
@@ -22,6 +22,7 @@
 #define _NFS41SYS_BUILDCONFIG_H_ 1
 
 /* Driver build config */
+// #define FORCE_POSIX_SEMANTICS_DELETE 1
 #define USE_STACK_FOR_DOWNCALL_UPDOWNCALLENTRY_MEM 1
 
 #if (NTDDI_VERSION >= NTDDI_WIN10_VB)
