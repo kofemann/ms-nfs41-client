@@ -24,11 +24,10 @@
 /* Driver build config */
 
 /*
- * |FORCE_POSIX_SEMANTICS_DELETE| and |FORCE_DELETE_DIRS_IMMEDIATELY| are for
- * bug-by-bug compatibility with the original Windows NFSv3 filesystem driver
+ * |FORCE_POSIX_SEMANTICS_DELETE| is for bug-by-bug compatibility with the
+ * original Windows NFSv3 filesystem driver
  */
 // #define FORCE_POSIX_SEMANTICS_DELETE 1
-// #define FORCE_DELETE_DIRS_IMMEDIATELY 1
 #define USE_STACK_FOR_DOWNCALL_UPDOWNCALLENTRY_MEM 1
 
 #if (NTDDI_VERSION >= NTDDI_WIN10_VB)

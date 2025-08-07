@@ -678,7 +678,10 @@ NTSTATUS nfs41_SetFileInformation(
                  * FILE_DISPOSITION_POSIX_SEMANTICS| would do
                  */
                 nfs41_fcb->DeletePending = TRUE;
-                // we can delete directories right away
+                /*
+                 * We can delete directories right away
+                 * (NTFS allows deleting a dir which has open handles)
+                 */
                 if (nfs41_fcb->StandardInfo.Directory)
                     break;
                 nfs41_fcb->StandardInfo.DeletePending = TRUE;
