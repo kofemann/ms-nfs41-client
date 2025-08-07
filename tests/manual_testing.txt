@@ -791,9 +791,9 @@ ksh93 tests/sparsefiles/testsparsefile1.ksh
 #
 
 # cd /cygdrive/l/download/
-# from https://github.com/DynamoRIO/drmemory/releases/tag/cronbuild-2.6.20167
-wget 'https://github.com/DynamoRIO/drmemory/releases/download/cronbuild-2.6.20167/DrMemory-Windows-2.6.20167.msi'
-msiexec /i DrMemory-Windows-2.6.20167.msi
+# from https://github.com/DynamoRIO/drmemory/releases/tag/cronbuild-2.6.20282
+wget 'https://github.com/DynamoRIO/drmemory/releases/download/cronbuild-2.6.20282/DrMemory-Windows-2.6.20282.msi'
+msiexec /i DrMemory-Windows-2.6.20282.msi
 
 
 #

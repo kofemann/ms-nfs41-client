@@ -485,7 +485,7 @@ function nfsclient_rundeamon
 		"${nfsd_args[@]}"
 	elif false ; then
 		#
-		# test nfsd.exe with Dr. Memory (version 2.6.0 -- build 0)
+		# test nfsd.exe with Dr. Memory (version 2.6.2028 -- build 0)
 		#
 		export _NT_ALT_SYMBOL_PATH="$(cygpath -w "$PWD")"
 		nfsd_args=(
