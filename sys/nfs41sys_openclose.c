@@ -1165,9 +1165,11 @@ NTSTATUS nfs41_CloseSrvOpen(
     entry->u.Close.srv_open = SrvOpen;
     if (nfs41_fcb->StandardInfo.DeletePending)
         nfs41_fcb->DeletePending = TRUE;
-    if (!RxContext->pFcb->OpenCount ||
-            (nfs41_fcb->StandardInfo.DeletePending &&
-                nfs41_fcb->StandardInfo.Directory))
+    if ((RxContext->pFcb->OpenCount == 0)
+#ifdef FORCE_DELETE_DIRS_IMMEDIATELY
+        || (nfs41_fcb->StandardInfo.DeletePending && nfs41_fcb->StandardInfo.Directory)
+#endif /* FORCE_DELETE_DIRS_IMMEDIATELY */
+        )
         entry->u.Close.remove = nfs41_fcb->StandardInfo.DeletePending;
     if (!RxContext->pFcb->OpenCount)
         entry->u.Close.renamed = nfs41_fcb->Renamed;
