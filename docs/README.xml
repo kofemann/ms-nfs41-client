@@ -524,7 +524,7 @@ $ /sbin/msnfs41client install
                     <para>requires "Administrator" account, and one nfsd client daemon is used for all users on a machine.</para>
                   </listitem>
                   <listitem>
-                    <para>The "ms-nfs41-client-service" service is installed by default as "disabled" and therefore always requires a "manual" start (e.g., <command>$ sc start ms-nfs41-client-service #</command>)</para>
+                    <para>The "ms-nfs41-client-service" service is installed by default as "enabled" and therefore does not require a "manual" start (e.g., <command>$ sc start ms-nfs41-client-service #</command>)</para>
                   </listitem>
                   <listitem>
                     <para>DOS devices are virtualised per LSA Logon, so each Logon needs to do a separate <command>nfs_mount.exe</command> to mount a NFSv4 share. The exception are mounts created by user "SYSTEM", such mounts are available to all users/logons. (see <command>PsExec</command> or function "su_system" in <filename>msnfs41client.bash</filename> how to run a process as user "SYSTEM")</para>
@@ -554,13 +554,13 @@ $ /sbin/msnfs41client install
                     <programlisting>$ sc qc ms-nfs41-client-service</programlisting>
                   </listitem>
                   <listitem>
-                    <para>Start service automatically:</para>
+                    <para>Start service automatically (default):</para>
                     <para>(<command>nfsd_debug.exe</command> will be started automagically, but mounts are not restored):</para>
-                    <programlisting>$ sc config ms-nfs41-client-service start=auto</programlisting>
+                    <programlisting>$ /sbin/msnfs41client enableautostartservices</programlisting>
                   </listitem>
                   <listitem>
-                    <para>Start service manually (default):</para>
-                    <programlisting>$ sc config ms-nfs41-client-service start=disabled</programlisting>
+                    <para>Start service manually:</para>
+                    <programlisting>$ /sbin/msnfs41client disableautostartservices</programlisting>
                   </listitem>
                 </itemizedlist>
               </para>
@@ -634,14 +634,13 @@ $ net use '\\10.49.202.230@2049\nfs4\net_tmpfs2' /delete</programlisting>
         <title>Global/System-wide mounts</title>
         <para>Mounts created by user "SYSTEM" are usable by all users in a system. Example usage:</para>
         <programlisting># Create a file /etc/fstab.msnfs41client, which list the mounts
-# which should be available system-wide
+# which should be mounted system-wide at boot
 $ cat /etc/fstab.msnfs41client
-nfs://[fe80::21b:1bff:fec3:7713]//bigdisk       V       nfs     rw      0       0
+nfs://[fe80::21b:1bff:fec3:7713]//bigdisk       N:       nfs     sec=sys,rw      0       0
 # run "ms-nfs41-client-globalmountall-service", which runs
 # /sbin/mountall_msnfs41client as user "SYSTEM" to read
 # /etc/fstab.msnfs41client and mount the matching filesystems
 sc start ms-nfs41-client-globalmountall-service</programlisting>
-        <para>BUG: "ms-nfs41-client-globalmountall-service" currently does not wait until <command>nfsd*.exe</command> is available for accepting mounts.</para>
       </section>
 
       <section xml:id="wsl-usage">

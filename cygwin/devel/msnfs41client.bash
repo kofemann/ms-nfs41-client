@@ -123,6 +123,8 @@ function nfsclient_install
 	set -o xtrace
 	set -o errexit
 
+	typeset cmd="$1"
+
 	typeset use_secureboot=false
 
 	# switch to the location where this script is installed,
@@ -232,9 +234,6 @@ function nfsclient_install
 		--type 'manual' \
 		--chdir "$PWD"
 
-	# query new 'ms-nfs41-client-service'
-	sc query 'ms-nfs41-client-service'
-
 	#
 	# install "mountall_msnfs41client" as system service
 	# 'ms-nfs41-client-globalmountall-service'
@@ -272,12 +271,19 @@ function nfsclient_install
 		{
 			printf '#\n'
 			printf '# /etc/fstab.msnfs41client - used by /sbin/mountall_msnfs41client\n'
+			printf '# at system boot time to mount global shares\n'
 			printf '#\n\n'
-			printf '# nfs://[fe80::21b:1bff:fec3:7713]//bigdisk\tV\tnfs\trw\t0\t0\n\n'
+			printf '# nfs://[fe80::21b:1bff:fec3:7713]//bigdisk\tN:\tnfs\tsec=sys,rw\t0\t0\n\n'
 			printf '# EOF.\n'
 		} >'/etc/fstab.msnfs41client'
 	fi
 
+	if [[ "$cmd" != *devinstall* ]] ; then
+		nfsclient_enable_autostartservices
+	fi
+
+	# query new 'ms-nfs41-client-service'
+	sc query 'ms-nfs41-client-service'
 	# query new 'ms-nfs41-client-globalmountall-service'
 	sc query 'ms-nfs41-client-globalmountall-service'
 
@@ -313,6 +319,18 @@ function nfsclient_install
 	sync
 
 	return 0
+}
+
+function nfsclient_enable_autostartservices
+{
+	sc config 'ms-nfs41-client-service' start=auto
+	sc config 'ms-nfs41-client-globalmountall-service' start=auto
+}
+
+function nfsclient_disable_autostartservices
+{
+	sc config 'ms-nfs41-client-service' start=disabled
+	sc config 'ms-nfs41-client-globalmountall-service' start=disabled
 }
 
 function nfsclient_adddriver
@@ -921,7 +939,7 @@ function main
 	PATH+=':/cygdrive/c/Users/roland_mainz/download/DebugView'
 
 	case "$cmd" in
-		'install')
+		'install' | 'devinstall')
 			check_machine_arch || (( numerr++ ))
 			require_cmd 'regtool.exe' || (( numerr++ ))
 			require_cmd 'cygrunsrv.exe' || (( numerr++ ))
@@ -937,7 +955,31 @@ function main
 			fi
 			(( numerr > 0 )) && return 1
 
-			nfsclient_install
+			nfsclient_install "$cmd"
+			return $?
+			;;
+		'enableautostartservices')
+			check_machine_arch || (( numerr++ ))
+			require_cmd 'sc.exe' || (( numerr++ ))
+			if ! is_windows_admin_account ; then
+				printf $"%s: %q requires Windows Adminstator permissions.\n" "$0" "$cmd"
+				(( numerr++ ))
+			fi
+			(( numerr > 0 )) && return 1
+
+			nfsclient_enable_autostartservices
+			return $?
+			;;
+		'disableautostartservices')
+			check_machine_arch || (( numerr++ ))
+			require_cmd 'sc.exe' || (( numerr++ ))
+			if ! is_windows_admin_account ; then
+				printf $"%s: %q requires Windows Adminstator permissions.\n" "$0" "$cmd"
+				(( numerr++ ))
+			fi
+			(( numerr > 0 )) && return 1
+
+			nfsclient_disable_autostartservices
 			return $?
 			;;
 		#

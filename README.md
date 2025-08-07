@@ -517,7 +517,7 @@ NFS server side.
     for all users on a machine.
 
   - The "ms-nfs41-client-service" service is installed by default as
-    "disabled" and therefore always requires a "manual" start (e.g.,
+    "enabled" and therefore does not require a "manual" start (e.g.,
     `$ sc start ms-nfs41-client-service #`)
 
   - DOS devices are virtualised per LSA Logon, so each Logon needs to do
@@ -547,16 +547,16 @@ NFS server side.
 
         $ sc qc ms-nfs41-client-service
 
-  - Start service automatically:
+  - Start service automatically (default):
 
     (`nfsd_debug.exe` will be started automagically, but mounts are not
     restored):
 
-        $ sc config ms-nfs41-client-service start=auto
+        $ /sbin/msnfs41client enableautostartservices
 
-  - Start service manually (default):
+  - Start service manually:
 
-        $ sc config ms-nfs41-client-service start=disabled
+        $ /sbin/msnfs41client disableautostartservices
 
 ### Manual starting the daemon
 
@@ -626,16 +626,13 @@ Mounts created by user "SYSTEM" are usable by all users in a system.
 Example usage:
 
     # Create a file /etc/fstab.msnfs41client, which list the mounts
-    # which should be available system-wide
+    # which should be mounted system-wide at boot
     $ cat /etc/fstab.msnfs41client
-    nfs://[fe80::21b:1bff:fec3:7713]//bigdisk       V       nfs     rw      0       0
+    nfs://[fe80::21b:1bff:fec3:7713]//bigdisk       N:       nfs     sec=sys,rw      0       0
     # run "ms-nfs41-client-globalmountall-service", which runs
     # /sbin/mountall_msnfs41client as user "SYSTEM" to read
     # /etc/fstab.msnfs41client and mount the matching filesystems
     sc start ms-nfs41-client-globalmountall-service
-
-BUG: "ms-nfs41-client-globalmountall-service" currently does not wait
-until `nfsd*.exe` is available for accepting mounts.
 
 ### WSL usage
 
