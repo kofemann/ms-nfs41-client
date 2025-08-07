@@ -728,7 +728,8 @@ VOID nfs41_invalidate_fobx_entry(
                 nfs41_fcb_list_entry, next);
         if (cur->nfs41_fobx == nfs41_fobx) {
 #ifdef DEBUG_CLOSE
-            DbgP("nfs41_invalidate_fobx_entry: Found match for fobx=0x%p\n", fobx);
+            DbgP("nfs41_invalidate_fobx_entry: Found match for nfs41_fobx=0x%p\n",
+                nfs41_fobx);
 #endif
             cur->nfs41_fobx = NULL;
             break;
@@ -736,7 +737,7 @@ VOID nfs41_invalidate_fobx_entry(
         if (pEntry->Flink == &openlist.head) {
 #ifdef DEBUG_CLOSE
             DbgP("nfs41_invalidate_fobx_entry: reached EOL looking "
-                "for fobx 0x%p\n", fobx);
+                "for nfs41_fobx=0x%p\n", nfs41_fobx);
 #endif
             break;
         }

@@ -164,7 +164,7 @@ NTSTATUS unmarshal_nfs41_dirquery(
     return status;
 }
 
-static void print_debug_filedirquery_header(
+void print_debug_filedirquery_header(
     PRX_CONTEXT RxContext)
 {
     print_debug_header(RxContext);

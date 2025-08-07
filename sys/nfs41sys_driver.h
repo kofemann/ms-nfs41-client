@@ -596,6 +596,8 @@ NTSTATUS marshal_nfs41_dirquery(
 NTSTATUS unmarshal_nfs41_dirquery(
     nfs41_updowncall_entry *cur,
     unsigned char **buf);
+void print_debug_filedirquery_header(
+    PRX_CONTEXT RxContext);
 NTSTATUS check_nfs41_dirquery_args(
     IN PRX_CONTEXT RxContext);
 NTSTATUS nfs41_QueryDirectory(
