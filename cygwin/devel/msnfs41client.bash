@@ -192,9 +192,13 @@ function nfsclient_install
 	fi
 
 	# disable DFS
-	sc query Dfsc
-	sc stop Dfsc || true
-	sc config Dfsc start=disabled
+	#
+	# Notes:
+	# - no longer needed because we have the UNC hostname@port layout
+	# - Use $ sc config Dfsc start=system to undo this
+	#sc query Dfsc
+	#sc stop Dfsc || true
+	#sc config Dfsc start=disabled
 
 	sc query nfs41_driver
 	domainname
