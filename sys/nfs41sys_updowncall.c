@@ -144,8 +144,6 @@ static void unmarshal_nfs41_header(
     nfs41_updowncall_entry *tmp,
     unsigned char **buf)
 {
-    RtlZeroMemory(tmp, sizeof(nfs41_updowncall_entry));
-
     RtlCopyMemory(&tmp->xid, *buf, sizeof(tmp->xid));
     *buf += sizeof(tmp->xid);
     RtlCopyMemory(&tmp->opcode, *buf, sizeof(tmp->opcode));
@@ -646,9 +644,8 @@ NTSTATUS nfs41_downcall(
 #endif /* DEBUG_PRINT_DOWNCALL_HEXBUF */
 
 #ifdef USE_STACK_FOR_DOWNCALL_UPDOWNCALLENTRY_MEM
-    nfs41_updowncall_entry stacktmp;
+    nfs41_updowncall_entry stacktmp; /* rename this to |header_tmp| */
 
-    (void)memset(&stacktmp, 0, sizeof(stacktmp));
     tmp = &stacktmp;
 #else
     tmp = nfs41_downcall_allocate_updowncall_entry();
