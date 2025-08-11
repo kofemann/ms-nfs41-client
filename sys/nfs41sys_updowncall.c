@@ -553,9 +553,9 @@ retry_wait:
         }
         /* fall-through */
     default:
-        ExAcquireFastMutex(&entry->lock);
+        ExAcquireFastMutexUnsafe(&entry->lock);
         if (entry->state == NFS41_DONE_PROCESSING) {
-            ExReleaseFastMutex(&entry->lock);
+            ExReleaseFastMutexUnsafe(&entry->lock);
             break;
         }
         DbgP("[upcall] abandoning '%s' entry=0x%p xid=%lld\n",
@@ -563,7 +563,7 @@ retry_wait:
             entry,
             (entry?entry->xid:-1LL));
         entry->state = NFS41_NOT_WAITING;
-        ExReleaseFastMutex(&entry->lock);
+        ExReleaseFastMutexUnsafe(&entry->lock);
         goto out;
     }
     nfs41_RemoveEntry(downcallLock, entry);
@@ -581,6 +581,8 @@ NTSTATUS nfs41_upcall(
     ULONG len = 0;
     PLIST_ENTRY pEntry = NULL;
 
+    FsRtlEnterFileSystem();
+
 process_upcall:
     nfs41_RemoveFirst(upcallLock, upcall, pEntry);
     if (pEntry) {
@@ -588,13 +590,13 @@ process_upcall:
 
         entry = (nfs41_updowncall_entry *)CONTAINING_RECORD(pEntry,
                     nfs41_updowncall_entry, next);
-        ExAcquireFastMutex(&entry->lock);
+        ExAcquireFastMutexUnsafe(&entry->lock);
         nfs41_AddEntry(downcallLock, downcall, entry);
         status = handle_upcall(RxContext, entry, &len);
         if (status == STATUS_SUCCESS &&
                 entry->state == NFS41_WAITING_FOR_UPCALL)
             entry->state = NFS41_WAITING_FOR_DOWNCALL;
-        ExReleaseFastMutex(&entry->lock);
+        ExReleaseFastMutexUnsafe(&entry->lock);
         if (status) {
             entry->status = status;
             (void)KeSetEvent(&entry->cond, IO_NFS41FS_INCREMENT, FALSE);
@@ -622,7 +624,10 @@ process_upcall:
                 goto out;
         }
     }
+
 out:
+    FsRtlExitFileSystem();
+
     return status;
 }
 
@@ -638,6 +643,8 @@ NTSTATUS nfs41_downcall(
     PLIST_ENTRY pEntry;
     nfs41_updowncall_entry *tmp, *cur= NULL;
     BOOLEAN found = 0;
+
+    FsRtlEnterFileSystem();
 
 #ifdef DEBUG_PRINT_DOWNCALL_HEXBUF
     print_hexbuf("downcall buffer", buf, in_len);
@@ -657,7 +664,7 @@ NTSTATUS nfs41_downcall(
 
     unmarshal_nfs41_header(tmp, &buf);
 
-    ExAcquireFastMutex(&downcallLock);
+    ExAcquireFastMutexUnsafe(&downcallLock);
     pEntry = &downcall.head;
     pEntry = pEntry->Flink;
     while (pEntry != NULL) {
@@ -671,7 +678,7 @@ NTSTATUS nfs41_downcall(
             break;
         pEntry = pEntry->Flink;
     }
-    ExReleaseFastMutex(&downcallLock);
+    ExReleaseFastMutexUnsafe(&downcallLock);
     SeStopImpersonatingClient();
     if (!found) {
         print_error("Didn't find xid=%lld entry\n", tmp->xid);
@@ -679,7 +686,7 @@ NTSTATUS nfs41_downcall(
         goto out_free;
     }
 
-    ExAcquireFastMutex(&cur->lock);
+    ExAcquireFastMutexUnsafe(&cur->lock);
     if (cur->state == NFS41_NOT_WAITING) {
         DbgP("[downcall] Nobody is waiting for this request!!!\n");
         switch(cur->opcode) {
@@ -719,7 +726,7 @@ NTSTATUS nfs41_downcall(
             }
             break;
         }
-        ExReleaseFastMutex(&cur->lock);
+        ExReleaseFastMutexUnsafe(&cur->lock);
         nfs41_RemoveEntry(downcallLock, cur);
         nfs41_UpcallDestroy(cur);
         status = STATUS_UNSUCCESSFUL;
@@ -782,7 +789,7 @@ NTSTATUS nfs41_downcall(
             break;
         }
     }
-    ExReleaseFastMutex(&cur->lock);
+    ExReleaseFastMutexUnsafe(&cur->lock);
     if (cur->async_op) {
         switch (cur->opcode) {
             case NFS41_SYSOP_WRITE:
@@ -818,6 +825,8 @@ out_free:
     nfs41_downcall_free_updowncall_entry(tmp);
 out:
 #endif /* USE_STACK_FOR_DOWNCALL_UPDOWNCALLENTRY_MEM */
+
+    FsRtlExitFileSystem();
 
     return status;
 }

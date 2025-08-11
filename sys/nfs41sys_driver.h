@@ -354,41 +354,41 @@ typedef struct _nfs41_mount_list {
 } nfs41_mount_list;
 
 #define nfs41_AddEntry(lock,list,pEntry)                    \
-            ExAcquireFastMutex(&lock);                      \
+            ExAcquireFastMutexUnsafe(&lock);                \
             InsertTailList(&(list).head, &(pEntry)->next);  \
-            ExReleaseFastMutex(&lock);
+            ExReleaseFastMutexUnsafe(&lock);
 #define nfs41_RemoveFirst(lock,list,pEntry)                 \
-            ExAcquireFastMutex(&lock);                      \
+            ExAcquireFastMutexUnsafe(&lock);                \
             pEntry = (IsListEmpty(&(list).head)             \
             ? NULL                                          \
             : RemoveHeadList(&(list).head));                \
-            ExReleaseFastMutex(&lock);
+            ExReleaseFastMutexUnsafe(&lock);
 #define nfs41_RemoveEntry(lock,pEntry)                      \
-            ExAcquireFastMutex(&lock);                      \
+            ExAcquireFastMutexUnsafe(&lock);                \
             RemoveEntryList(&pEntry->next);                 \
-            ExReleaseFastMutex(&lock);
+            ExReleaseFastMutexUnsafe(&lock);
 #define nfs41_IsListEmpty(lock,list,flag)                   \
-            ExAcquireFastMutex(&lock);                      \
+            ExAcquireFastMutexUnsafe(&lock);                \
             flag = IsListEmpty(&(list).head);               \
-            ExReleaseFastMutex(&lock);
+            ExReleaseFastMutexUnsafe(&lock);
 #define nfs41_GetFirstEntry(lock,list,pEntry)               \
-            ExAcquireFastMutex(&lock);                      \
+            ExAcquireFastMutexUnsafe(&lock);                \
             pEntry = (IsListEmpty(&(list).head)             \
              ? NULL                                         \
              : (nfs41_updowncall_entry *)                   \
                (CONTAINING_RECORD((list).head.Flink,        \
                                   nfs41_updowncall_entry,   \
                                   next)));                  \
-            ExReleaseFastMutex(&lock);
+            ExReleaseFastMutexUnsafe(&lock);
 #define nfs41_GetFirstMountEntry(lock,list,pEntry)          \
-            ExAcquireFastMutex(&lock);                      \
+            ExAcquireFastMutexUnsafe(&lock);                \
             pEntry = (IsListEmpty(&(list).head)             \
              ? NULL                                         \
              : (nfs41_mount_entry *)                        \
                (CONTAINING_RECORD((list).head.Flink,        \
                                   nfs41_mount_entry,        \
                                   next)));                  \
-            ExReleaseFastMutex(&lock);
+            ExReleaseFastMutexUnsafe(&lock);
 
 
 typedef struct _NFS41_NETROOT_EXTENSION {

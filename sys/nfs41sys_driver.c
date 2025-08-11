@@ -686,7 +686,7 @@ VOID nfs41_remove_fcb_entry(
 {
     PLIST_ENTRY pEntry;
     nfs41_fcb_list_entry *cur;
-    ExAcquireFastMutex(&fcblistLock);
+    ExAcquireFastMutexUnsafe(&fcblistLock);
 
     pEntry = openlist.head.Flink;
     while (!IsListEmpty(&openlist.head)) {
@@ -709,7 +709,7 @@ VOID nfs41_remove_fcb_entry(
         }
         pEntry = pEntry->Flink;
     }
-    ExReleaseFastMutex(&fcblistLock);
+    ExReleaseFastMutexUnsafe(&fcblistLock);
 }
 
 static
@@ -720,7 +720,7 @@ VOID nfs41_invalidate_fobx_entry(
     nfs41_fcb_list_entry *cur;
     __notnull PNFS41_FOBX nfs41_fobx = NFS41GetFobxExtension(pFobx);
 
-    ExAcquireFastMutex(&fcblistLock);
+    ExAcquireFastMutexUnsafe(&fcblistLock);
 
     pEntry = openlist.head.Flink;
     while (!IsListEmpty(&openlist.head)) {
@@ -743,7 +743,7 @@ VOID nfs41_invalidate_fobx_entry(
         }
         pEntry = pEntry->Flink;
     }
-    ExReleaseFastMutex(&fcblistLock);
+    ExReleaseFastMutexUnsafe(&fcblistLock);
 }
 
 NTSTATUS nfs41_Flush(
@@ -788,7 +788,7 @@ VOID nfs41_update_fcb_list(
 {
     PLIST_ENTRY pEntry;
     nfs41_fcb_list_entry *cur;
-    ExAcquireFastMutex(&fcblistLock);
+    ExAcquireFastMutexUnsafe(&fcblistLock);
     pEntry = openlist.head.Flink;
     while (!IsListEmpty(&openlist.head)) {
         cur = (nfs41_fcb_list_entry *)CONTAINING_RECORD(pEntry,
@@ -815,7 +815,7 @@ VOID nfs41_update_fcb_list(
         }
         pEntry = pEntry->Flink;
     }
-    ExReleaseFastMutex(&fcblistLock);
+    ExReleaseFastMutexUnsafe(&fcblistLock);
 }
 
 NTSTATUS nfs41_IsValidDirectory (
@@ -903,7 +903,7 @@ void enable_caching(
 
     RxChangeBufferingState((PSRV_OPEN)SrvOpen, ULongToPtr(flag), 1);
 
-    ExAcquireFastMutex(&fcblistLock);
+    ExAcquireFastMutexUnsafe(&fcblistLock);
     pEntry = openlist.head.Flink;
     while (!IsListEmpty(&openlist.head)) {
         cur = (nfs41_fcb_list_entry *)CONTAINING_RECORD(pEntry,
@@ -943,7 +943,7 @@ void enable_caching(
         nfs41_fobx->deleg_type = 0;
     }
 out_release_fcblistlock:
-    ExReleaseFastMutex(&fcblistLock);
+    ExReleaseFastMutexUnsafe(&fcblistLock);
 }
 
 NTSTATUS nfs41_CompleteBufferingStateChangeRequest(
@@ -1231,7 +1231,7 @@ VOID fcbopen_main(PVOID ctx)
         PLIST_ENTRY pEntry;
         nfs41_fcb_list_entry *cur;
         status = KeDelayExecutionThread(KernelMode, TRUE, &timeout);
-        ExAcquireFastMutex(&fcblistLock);
+        ExAcquireFastMutexUnsafe(&fcblistLock);
         pEntry = openlist.head.Flink;
         while (!IsListEmpty(&openlist.head)) {
             PNFS41_NETROOT_EXTENSION pNetRootContext;
@@ -1328,7 +1328,7 @@ out:
             }
             pEntry = pEntry->Flink;
         }
-        ExReleaseFastMutex(&fcblistLock);
+        ExReleaseFastMutexUnsafe(&fcblistLock);
     }
 //    DbgEx();
 }

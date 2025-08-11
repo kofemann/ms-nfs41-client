@@ -954,7 +954,7 @@ NTSTATUS nfs41_CreateVNetRoot(
 
         status = STATUS_NFS_SHARE_NOT_MOUNTED;
 
-        ExAcquireFastMutex(&pNetRootContext->mountLock);
+        ExAcquireFastMutexUnsafe(&pNetRootContext->mountLock);
         pEntry = &pNetRootContext->mounts.head;
         pEntry = pEntry->Flink;
         while (pEntry != NULL) {
@@ -1007,7 +1007,7 @@ NTSTATUS nfs41_CreateVNetRoot(
             status = STATUS_SUCCESS;
         }
 #endif /* NFS41_DRIVER_SYSTEM_LUID_MOUNTS_ARE_GLOBAL */
-        ExReleaseFastMutex(&pNetRootContext->mountLock);
+        ExReleaseFastMutexUnsafe(&pNetRootContext->mountLock);
 
         if (status != STATUS_SUCCESS) {
             DbgP("No existing mount found, "
@@ -1085,7 +1085,7 @@ NTSTATUS nfs41_CreateVNetRoot(
     } else {
         PLIST_ENTRY pEntry;
 
-        ExAcquireFastMutex(&pNetRootContext->mountLock);
+        ExAcquireFastMutexUnsafe(&pNetRootContext->mountLock);
         pEntry = &pNetRootContext->mounts.head;
         pEntry = pEntry->Flink;
         while (pEntry != NULL) {
@@ -1135,7 +1135,7 @@ NTSTATUS nfs41_CreateVNetRoot(
                 break;
             pEntry = pEntry->Flink;
         }
-        ExReleaseFastMutex(&pNetRootContext->mountLock);
+        ExReleaseFastMutexUnsafe(&pNetRootContext->mountLock);
 #ifdef DEBUG_MOUNT
         if (!found_matching_flavor)
             DbgP("Didn't find matching security flavor\n");
