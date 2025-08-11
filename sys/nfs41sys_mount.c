@@ -1414,7 +1414,7 @@ NTSTATUS nfs41_FinalizeNetRoot(
             DbgP("Removing entry from upcall list\n");
             nfs41_RemoveEntry(upcallLock, tmp);
             tmp->status = STATUS_INSUFFICIENT_RESOURCES;
-            KeSetEvent(&tmp->cond, 0, FALSE);
+            (void)KeSetEvent(&tmp->cond, IO_NFS41FS_INCREMENT, FALSE);
         } else
             break;
     } while (1);
@@ -1425,7 +1425,7 @@ NTSTATUS nfs41_FinalizeNetRoot(
             DbgP("Removing entry from downcall list\n");
             nfs41_RemoveEntry(downcallLock, tmp);
             tmp->status = STATUS_INSUFFICIENT_RESOURCES;
-            KeSetEvent(&tmp->cond, 0, FALSE);
+            (void)KeSetEvent(&tmp->cond, IO_NFS41FS_INCREMENT, FALSE);
         } else
             break;
     } while (1);

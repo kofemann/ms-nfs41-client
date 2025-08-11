@@ -257,7 +257,7 @@ NTSTATUS handle_upcall(
     switch(entry->opcode) {
     case NFS41_SYSOP_SHUTDOWN:
         status = marshal_nfs41_shutdown(entry, pbOut, cbOut, len);
-        KeSetEvent(&entry->cond, 0, FALSE);
+        (void)KeSetEvent(&entry->cond, IO_NFS41FS_INCREMENT, FALSE);
         break;
     case NFS41_SYSOP_MOUNT:
         status = marshal_nfs41_mount(entry, pbOut, cbOut, len);
@@ -518,7 +518,7 @@ NTSTATUS nfs41_UpcallWaitForReply(
     FsRtlEnterFileSystem();
 
     nfs41_AddEntry(upcallLock, upcall, entry);
-    KeSetEvent(&upcallEvent, 0, FALSE);
+    (void)KeSetEvent(&upcallEvent, IO_NFS41FS_INCREMENT, FALSE);
 
     if (entry->async_op)
         goto out;
@@ -597,7 +597,7 @@ process_upcall:
         ExReleaseFastMutex(&entry->lock);
         if (status) {
             entry->status = status;
-            KeSetEvent(&entry->cond, 0, FALSE);
+            (void)KeSetEvent(&entry->cond, IO_NFS41FS_INCREMENT, FALSE);
             RxContext->InformationToReturn = 0;
         } else
             RxContext->InformationToReturn = len;
@@ -807,8 +807,9 @@ NTSTATUS nfs41_downcall(
                     (int)cur->opcode);
                 break;
         }
-    } else
-        KeSetEvent(&cur->cond, 0, FALSE);
+    } else {
+        (void)KeSetEvent(&cur->cond, IO_NFS41FS_INCREMENT, FALSE);
+    }
 
 out_free:
 #ifdef USE_STACK_FOR_DOWNCALL_UPDOWNCALLENTRY_MEM

@@ -976,7 +976,7 @@ NTSTATUS nfs41_FsdDispatch(
         print_error("*** not ours ***\n");
         Irp->IoStatus.Status = STATUS_INVALID_DEVICE_REQUEST;
         Irp->IoStatus.Information = 0;
-        IoCompleteRequest(Irp, IO_NO_INCREMENT );
+        IoCompleteRequest(Irp, IO_NFS41FS_INCREMENT);
         status = STATUS_INVALID_DEVICE_REQUEST;
         goto out;
     }
