@@ -488,9 +488,9 @@ typedef struct _NFS41_DEVICE_EXTENSION {
     HANDLE                  openlistHandle;
 } NFS41_DEVICE_EXTENSION, *PNFS41_DEVICE_EXTENSION;
 
-#define NFS41GetDeviceExtension(RxContext,pExt)        \
-        PNFS41_DEVICE_EXTENSION (pExt) = (PNFS41_DEVICE_EXTENSION) \
-        ((PBYTE)((RxContext)->RxDeviceObject) + sizeof(RDBSS_DEVICE_OBJECT))
+#define NFS41GetDeviceExtension(DeviceObject)        \
+    ((PNFS41_DEVICE_EXTENSION) \
+        (((PBYTE)(DeviceObject)) + sizeof(RDBSS_DEVICE_OBJECT)))
 
 typedef struct _nfs41_fcb_list_entry {
     LIST_ENTRY next;

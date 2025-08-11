@@ -387,7 +387,8 @@ NTSTATUS nfs41_Start(
     IN OUT PRDBSS_DEVICE_OBJECT dev)
 {
     NTSTATUS status;
-    NFS41GetDeviceExtension(RxContext, DevExt);
+    PNFS41_DEVICE_EXTENSION DevExt =
+        NFS41GetDeviceExtension(RxContext->RxDeviceObject);
 
     DbgEn();
 
@@ -411,7 +412,8 @@ NTSTATUS nfs41_Stop(
     IN OUT PRDBSS_DEVICE_OBJECT dev)
 {
     NTSTATUS status;
-    NFS41GetDeviceExtension(RxContext, DevExt);
+    PNFS41_DEVICE_EXTENSION DevExt =
+        NFS41GetDeviceExtension(RxContext->RxDeviceObject);
     DbgEn();
     status = SharedMemoryFree(DevExt->SharedMemorySection);
     DbgEx();
@@ -444,7 +446,8 @@ NTSTATUS nfs41_DevFcbXXXControlFile(
     ULONG fsop = io_ctx->ParamsFor.FsCtl.FsControlCode, state;
     ULONG in_len = io_ctx->ParamsFor.IoCtl.InputBufferLength;
     DWORD *buf = io_ctx->ParamsFor.IoCtl.pInputBuffer;
-    NFS41GetDeviceExtension(RxContext, DevExt);
+    PNFS41_DEVICE_EXTENSION DevExt =
+        NFS41GetDeviceExtension(RxContext->RxDeviceObject);
     DWORD nfs41d_version = 0;
 
     //DbgEn();

@@ -819,7 +819,9 @@ NTSTATUS nfs41_CreateVNetRoot(
         NFS41GetVNetRootExtension(pVNetRoot);
     __notnull PNFS41_NETROOT_EXTENSION pNetRootContext =
         NFS41GetNetRootExtension(pNetRoot);
-    NFS41GetDeviceExtension(pCreateNetRootContext->RxContext,DevExt);
+    PRX_CONTEXT RxContext = pCreateNetRootContext->RxContext;
+    PNFS41_DEVICE_EXTENSION DevExt =
+        NFS41GetDeviceExtension(RxContext->RxDeviceObject);
     DWORD nfs41d_version = DevExt->nfs41d_version;
     nfs41_mount_entry *existing_mount = NULL;
     LUID luid;
@@ -875,17 +877,17 @@ NTSTATUS nfs41_CreateVNetRoot(
     }
     nfs41_MountConfig_InitDefaults(Config);
 
-    if (pCreateNetRootContext->RxContext->Create.EaLength) {
+    if (RxContext->Create.EaLength) {
         /* Codepath for nfs_mount.exe */
         DbgP("Codepath for nfs_mount.exe, "
             "Create->{ EaBuffer=0x%p, EaLength=%ld }\n",
-            pCreateNetRootContext->RxContext->Create.EaBuffer,
-            (long)pCreateNetRootContext->RxContext->Create.EaLength);
+            RxContext->Create.EaBuffer,
+            (long)RxContext->Create.EaLength);
 
         /* parse the extended attributes for mount options */
         status = nfs41_MountConfig_ParseOptions(
-            pCreateNetRootContext->RxContext->Create.EaBuffer,
-            pCreateNetRootContext->RxContext->Create.EaLength,
+            RxContext->Create.EaBuffer,
+            RxContext->Create.EaLength,
             Config);
         if (status != STATUS_SUCCESS) {
             DbgP("nfs41_MountConfig_ParseOptions() failed\n");
