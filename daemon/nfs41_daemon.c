@@ -138,7 +138,7 @@ static unsigned int nfsd_worker_thread_main(void *args)
     // buffer used to process upcall, assumed to be fixed size.
     // if we ever need to handle non-cached IO, need to make it dynamic
     unsigned char outbuf[UPCALL_BUF_SIZE], inbuf[UPCALL_BUF_SIZE]; 
-    DWORD inbuf_len = UPCALL_BUF_SIZE, outbuf_len;
+    DWORD inbuf_len, outbuf_len;
     nfs41_upcall upcall;
 
     /*
@@ -213,7 +213,7 @@ write_downcall:
             "get_last_error=%d\n", upcall.xid, opcode2string(upcall.opcode),
             upcall.status, upcall.last_error));
 
-        upcall_marshall(&upcall, inbuf, (uint32_t)inbuf_len, (uint32_t*)&outbuf_len);
+        upcall_marshall(&upcall, inbuf, UPCALL_BUF_SIZE, (uint32_t*)&inbuf_len);
 
         /*
          * Note: Caller impersonation ends with |IOCTL_NFS41_WRITE| -
@@ -223,7 +223,13 @@ write_downcall:
         (void)CloseHandle(upcall.currentthread_token);
         upcall.currentthread_token = INVALID_HANDLE_VALUE;
 
-        DPRINTF(2, ("making a downcall: outbuf_len %ld\n\n", outbuf_len));
+        DPRINTF(2,
+            ("making a downcall: "
+            "xid=%lld inbuf_len=%ld opcode='%s' status=%d\n",
+            upcall.xid,
+            (long)inbuf_len,
+            opcode2string(upcall.opcode),
+            upcall.status));
         status = DeviceIoControl(pipe, IOCTL_NFS41_WRITE,
             inbuf, inbuf_len, NULL, 0, (LPDWORD)&outbuf_len, NULL);
         if (!status) {

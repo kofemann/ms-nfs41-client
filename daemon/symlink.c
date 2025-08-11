@@ -297,6 +297,7 @@ static int marshall_symlink_get(unsigned char *buffer, uint32_t *length,
         goto out;
     }
 
+    /* FIXME: What about |len| if we have characters outside the BMP ? */
     if (!MultiByteToWideChar(CP_UTF8,
             MB_ERR_INVALID_CHARS,
             args->target_get.path, args->target_get.len,
@@ -307,6 +308,9 @@ static int marshall_symlink_get(unsigned char *buffer, uint32_t *length,
         status = ERROR_BUFFER_OVERFLOW;
         goto out;
     }
+
+    *length -= len;
+
 out:
     return status;
 }

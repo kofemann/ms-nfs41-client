@@ -232,8 +232,15 @@ write_downcall:
     /* marshall the operation's results */
     op = g_upcall_op_table[upcall->opcode];
     if (op && op->marshall) {
-        if ((upcall->status = op->marshall(buffer, &length, upcall)))
+        if ((upcall->status = op->marshall(buffer, &length, upcall))) {
+            DPRINTF(0,
+                ("upcall_marshall: "
+                "marshall failed, op='%s' *length=%ld, status=0x%lx\n",
+                opcode2string(upcall->opcode),
+                (long)length,
+                (long)upcall->status));
             goto write_downcall;
+        }
     }
 out:
     *length_out = total - length;

@@ -1227,7 +1227,10 @@ static int marshall_open(unsigned char *buffer, uint32_t *length, nfs41_upcall *
         if (status) goto out;
         status = safe_write(&buffer, length, &len, sizeof(len));
         if (status) goto out;
-        /* convert args->symlink to wchar */
+        /*
+         * convert args->symlink to wchar
+         * FIXME: What about |len| if we have characters outside the BMP ?
+         */
         if (*length <= len || !MultiByteToWideChar(CP_UTF8,
             MB_ERR_INVALID_CHARS,
             args->symlink.path, args->symlink.len,
@@ -1235,6 +1238,8 @@ static int marshall_open(unsigned char *buffer, uint32_t *length, nfs41_upcall *
             status = ERROR_BUFFER_OVERFLOW;
             goto out;
         }
+
+        *length -= len;
     }
     DPRINTF(2, ("NFS41_SYSOP_OPEN: downcall "
         "open_state=0x%p "
