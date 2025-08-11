@@ -38,7 +38,10 @@
 
 // See "Defining I/O Control Codes" in WDK docs
 #define _RDR_CTL_CODE(code, method) \
-    CTL_CODE(FILE_DEVICE_NETWORK_REDIRECTOR, 0x800 | (code), method, FILE_ANY_ACCESS)
+    CTL_CODE(FILE_DEVICE_NETWORK_REDIRECTOR, \
+    (0x800 | (code)), \
+    (method), \
+    FILE_ANY_ACCESS)
 
 #define IOCTL_NFS41_START       _RDR_CTL_CODE(0, METHOD_BUFFERED)
 #define IOCTL_NFS41_STOP        _RDR_CTL_CODE(1, METHOD_NEITHER)

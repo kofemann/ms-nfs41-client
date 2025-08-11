@@ -354,41 +354,53 @@ typedef struct _nfs41_mount_list {
 } nfs41_mount_list;
 
 #define nfs41_AddEntry(lock,list,pEntry)                    \
-            ExAcquireFastMutexUnsafe(&lock);                \
+            { \
+            ExAcquireFastMutexUnsafe(&(lock));              \
             InsertTailList(&(list).head, &(pEntry)->next);  \
-            ExReleaseFastMutexUnsafe(&lock);
+            ExReleaseFastMutexUnsafe(&(lock));              \
+            }
 #define nfs41_RemoveFirst(lock,list,pEntry)                 \
-            ExAcquireFastMutexUnsafe(&lock);                \
-            pEntry = (IsListEmpty(&(list).head)             \
+            { \
+            ExAcquireFastMutexUnsafe(&(lock));              \
+            (pEntry) = (IsListEmpty(&(list).head)           \
             ? NULL                                          \
             : RemoveHeadList(&(list).head));                \
-            ExReleaseFastMutexUnsafe(&lock);
+            ExReleaseFastMutexUnsafe(&(lock));              \
+            }
 #define nfs41_RemoveEntry(lock,pEntry)                      \
-            ExAcquireFastMutexUnsafe(&lock);                \
-            RemoveEntryList(&pEntry->next);                 \
-            ExReleaseFastMutexUnsafe(&lock);
+            { \
+            ExAcquireFastMutexUnsafe(&(lock));              \
+            RemoveEntryList(&(pEntry)->next);               \
+            ExReleaseFastMutexUnsafe(&(lock));              \
+            }
 #define nfs41_IsListEmpty(lock,list,flag)                   \
-            ExAcquireFastMutexUnsafe(&lock);                \
-            flag = IsListEmpty(&(list).head);               \
-            ExReleaseFastMutexUnsafe(&lock);
+            { \
+            ExAcquireFastMutexUnsafe(&(lock));              \
+            (flag) = IsListEmpty(&(list).head);             \
+            ExReleaseFastMutexUnsafe(&(lock));              \
+            }
 #define nfs41_GetFirstEntry(lock,list,pEntry)               \
-            ExAcquireFastMutexUnsafe(&lock);                \
-            pEntry = (IsListEmpty(&(list).head)             \
+            { \
+            ExAcquireFastMutexUnsafe(&(lock));              \
+            (pEntry) = (IsListEmpty(&(list).head)           \
              ? NULL                                         \
              : (nfs41_updowncall_entry *)                   \
                (CONTAINING_RECORD((list).head.Flink,        \
                                   nfs41_updowncall_entry,   \
                                   next)));                  \
-            ExReleaseFastMutexUnsafe(&lock);
+            ExReleaseFastMutexUnsafe(&(lock));              \
+            }
 #define nfs41_GetFirstMountEntry(lock,list,pEntry)          \
-            ExAcquireFastMutexUnsafe(&lock);                \
-            pEntry = (IsListEmpty(&(list).head)             \
+            { \
+            ExAcquireFastMutexUnsafe(&(lock));              \
+            (pEntry) = (IsListEmpty(&(list).head)           \
              ? NULL                                         \
              : (nfs41_mount_entry *)                        \
                (CONTAINING_RECORD((list).head.Flink,        \
                                   nfs41_mount_entry,        \
                                   next)));                  \
-            ExReleaseFastMutexUnsafe(&lock);
+            ExReleaseFastMutexUnsafe(&(lock));              \
+            }
 
 
 typedef struct _NFS41_NETROOT_EXTENSION {
@@ -477,8 +489,8 @@ typedef struct _NFS41_DEVICE_EXTENSION {
 } NFS41_DEVICE_EXTENSION, *PNFS41_DEVICE_EXTENSION;
 
 #define NFS41GetDeviceExtension(RxContext,pExt)        \
-        PNFS41_DEVICE_EXTENSION pExt = (PNFS41_DEVICE_EXTENSION) \
-        ((PBYTE)(RxContext->RxDeviceObject) + sizeof(RDBSS_DEVICE_OBJECT))
+        PNFS41_DEVICE_EXTENSION (pExt) = (PNFS41_DEVICE_EXTENSION) \
+        ((PBYTE)((RxContext)->RxDeviceObject) + sizeof(RDBSS_DEVICE_OBJECT))
 
 typedef struct _nfs41_fcb_list_entry {
     LIST_ENTRY next;
@@ -498,8 +510,8 @@ typedef enum _NULMRX_STORAGE_TYPE_CODES {
     NTC_NFS41_DEVICE_EXTENSION      =   (NODE_TYPE_CODE)0xFC00,
 } NFS41_STORAGE_TYPE_CODES;
 #define RxDefineNode( node, type )          \
-        node->NodeTypeCode = NTC_##type;    \
-        node->NodeByteSize = sizeof(type);
+        (node)->NodeTypeCode = NTC_##type;  \
+        (node)->NodeByteSize = sizeof(type);
 
 #define RDR_NULL_STATE  0
 #define RDR_UNLOADED    1
