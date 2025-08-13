@@ -305,13 +305,20 @@ retry_write:
             goto out_verify_failed;
         }
     } else if (stable == UNSTABLE4) {
-		nfs41_file_info info;
-        bitmap4 attr_request; 
+        nfs41_file_info dummyinfo;
+        bitmap4 attr_request;
+
+        /*
+         * FIXME: Which minimum set of attributes should be updated here (and
+         * for |nfs41_commit()| above ?) ?
+         */
         nfs41_superblock_getattr_mask(file->fh.superblock, &attr_request);
-		status = nfs41_getattr(session, file, &attr_request, &info);
-		if (status)
-			goto out;
-	}
+
+        /* Update attributes in the cache... */
+        status = nfs41_getattr(session, file, &attr_request, &dummyinfo);
+        if (status)
+            goto out;
+    }
 
     EASSERT(bitmap_isset(&info.attrmask, 0, FATTR4_WORD0_CHANGE));
     args->ctime = info.change;
