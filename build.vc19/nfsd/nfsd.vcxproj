@@ -139,7 +139,7 @@
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
-      <AdditionalOptions>/wd4100</AdditionalOptions>
+      <AdditionalOptions>/wd4100 /wd5105</AdditionalOptions>
       <SupportJustMyCode>false</SupportJustMyCode>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <WholeProgramOptimization>false</WholeProgramOptimization>
@@ -164,7 +164,7 @@
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
-      <AdditionalOptions>/wd4100</AdditionalOptions>
+      <AdditionalOptions>/wd4100 /wd5105</AdditionalOptions>
       <SupportJustMyCode>false</SupportJustMyCode>
       <OmitFramePointers>false</OmitFramePointers>
       <IntrinsicFunctions>true</IntrinsicFunctions>
@@ -190,7 +190,7 @@
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
-      <AdditionalOptions>/wd4100</AdditionalOptions>
+      <AdditionalOptions>/wd4100 /wd5105</AdditionalOptions>
       <SupportJustMyCode>false</SupportJustMyCode>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <WholeProgramOptimization>false</WholeProgramOptimization>
@@ -216,7 +216,7 @@
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
-      <AdditionalOptions>/wd4100</AdditionalOptions>
+      <AdditionalOptions>/wd4100 /wd5105</AdditionalOptions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <WholeProgramOptimization>true</WholeProgramOptimization>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
@@ -244,7 +244,7 @@
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
-      <AdditionalOptions>/wd4100</AdditionalOptions>
+      <AdditionalOptions>/wd4100 /wd5105</AdditionalOptions>
       <OmitFramePointers>false</OmitFramePointers>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -273,7 +273,7 @@
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
-      <AdditionalOptions>/wd4100</AdditionalOptions>
+      <AdditionalOptions>/wd4100 /wd5105</AdditionalOptions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <WholeProgramOptimization>true</WholeProgramOptimization>
     </ClCompile>

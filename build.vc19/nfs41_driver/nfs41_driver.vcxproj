@@ -113,7 +113,7 @@
       <PreprocessorDefinitions>EXPLODE_POOLTAGS;MONOLITHIC_MINIRDR;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <StringPooling>true</StringPooling>
-      <AdditionalOptions>/std:c17 /Zc:preprocessor- /kernel /wd4100 /wd4201 /wd5104</AdditionalOptions>
+      <AdditionalOptions>/std:c17 /Zc:preprocessor- /kernel /wd4100 /wd4201 /wd5104 /wd5105</AdditionalOptions>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <WholeProgramOptimization>false</WholeProgramOptimization>
     </ClCompile>
@@ -129,7 +129,7 @@
       <PreprocessorDefinitions>EXPLODE_POOLTAGS;MONOLITHIC_MINIRDR;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <StringPooling>true</StringPooling>
-      <AdditionalOptions>/std:c17 /Zc:preprocessor- /kernel /wd4100 /wd4201 /wd5104</AdditionalOptions>
+      <AdditionalOptions>/std:c17 /Zc:preprocessor- /kernel /wd4100 /wd4201 /wd5104 /wd5105</AdditionalOptions>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <WholeProgramOptimization>true</WholeProgramOptimization>
     </ClCompile>
@@ -146,7 +146,7 @@
       <PreprocessorDefinitions>EXPLODE_POOLTAGS;MONOLITHIC_MINIRDR;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <StringPooling>true</StringPooling>
-      <AdditionalOptions>/std:c17 /Zc:preprocessor- /kernel /wd4100 /wd4201 /wd5104</AdditionalOptions>
+      <AdditionalOptions>/std:c17 /Zc:preprocessor- /kernel /wd4100 /wd4201 /wd5104 /wd5105</AdditionalOptions>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <WholeProgramOptimization>false</WholeProgramOptimization>
     </ClCompile>
@@ -165,7 +165,7 @@
       <PreprocessorDefinitions>EXPLODE_POOLTAGS;MONOLITHIC_MINIRDR;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <StringPooling>true</StringPooling>
-      <AdditionalOptions>/std:c17 /Zc:preprocessor- /kernel /wd4100 /wd4201 /wd5104</AdditionalOptions>
+      <AdditionalOptions>/std:c17 /Zc:preprocessor- /kernel /wd4100 /wd4201 /wd5104 /wd5105</AdditionalOptions>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <WholeProgramOptimization>true</WholeProgramOptimization>
     </ClCompile>
@@ -185,7 +185,7 @@
       <PreprocessorDefinitions>EXPLODE_POOLTAGS;MONOLITHIC_MINIRDR;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <StringPooling>true</StringPooling>
-      <AdditionalOptions>/std:c17 /Zc:preprocessor- /kernel /wd4100 /wd4201 /wd5104</AdditionalOptions>
+      <AdditionalOptions>/std:c17 /Zc:preprocessor- /kernel /wd4100 /wd4201 /wd5104 /wd5105</AdditionalOptions>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <WholeProgramOptimization>false</WholeProgramOptimization>
     </ClCompile>
@@ -204,7 +204,7 @@
       <PreprocessorDefinitions>EXPLODE_POOLTAGS;MONOLITHIC_MINIRDR;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <StringPooling>true</StringPooling>
-      <AdditionalOptions>/std:c17 /Zc:preprocessor- /kernel /wd4100 /wd4201 /wd5104</AdditionalOptions>
+      <AdditionalOptions>/std:c17 /Zc:preprocessor- /kernel /wd4100 /wd4201 /wd5104 /wd5105</AdditionalOptions>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <WholeProgramOptimization>true</WholeProgramOptimization>
     </ClCompile>

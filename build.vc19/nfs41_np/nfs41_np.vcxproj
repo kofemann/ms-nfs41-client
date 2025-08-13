@@ -133,7 +133,7 @@
       <AdditionalIncludeDirectories>..\..\include;..\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
-      <AdditionalOptions>/wd4100</AdditionalOptions>
+      <AdditionalOptions>/wd4100 /wd5105</AdditionalOptions>
       <SupportJustMyCode>false</SupportJustMyCode>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <OmitFramePointers>false</OmitFramePointers>
@@ -154,7 +154,7 @@
       <AdditionalIncludeDirectories>..\..\include;..\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
-      <AdditionalOptions>/wd4100</AdditionalOptions>
+      <AdditionalOptions>/wd4100 /wd5105</AdditionalOptions>
       <SupportJustMyCode>false</SupportJustMyCode>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <OmitFramePointers>false</OmitFramePointers>
@@ -175,7 +175,7 @@
       <AdditionalIncludeDirectories>..\..\include;..\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
-      <AdditionalOptions>/wd4100</AdditionalOptions>
+      <AdditionalOptions>/wd4100 /wd5105</AdditionalOptions>
       <SupportJustMyCode>false</SupportJustMyCode>
       <IntrinsicFunctions>true</IntrinsicFunctions>
     </ClCompile>
@@ -197,7 +197,7 @@
       <AdditionalIncludeDirectories>..\..\include;..\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
-      <AdditionalOptions>/wd4100</AdditionalOptions>
+      <AdditionalOptions>/wd4100 /wd5105</AdditionalOptions>
       <OmitFramePointers>false</OmitFramePointers>
     </ClCompile>
     <Link>
@@ -221,7 +221,7 @@
       <AdditionalIncludeDirectories>..\..\include;..\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
-      <AdditionalOptions>/wd4100</AdditionalOptions>
+      <AdditionalOptions>/wd4100 /wd5105</AdditionalOptions>
       <OmitFramePointers>false</OmitFramePointers>
     </ClCompile>
     <Link>
@@ -245,7 +245,7 @@
       <AdditionalIncludeDirectories>..\..\include;..\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
-      <AdditionalOptions>/wd4100</AdditionalOptions>
+      <AdditionalOptions>/wd4100 /wd5105</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
