@@ -578,6 +578,7 @@ int wmain(int ac, wchar_t *av[])
 
     D((void)fwprintf(stdout, L"#mark winsg done, subcmdret=%d\n",
         (int)subcmdret));
+    retval = subcmdret;
 
 done:
     if (tok != INVALID_HANDLE_VALUE) {
