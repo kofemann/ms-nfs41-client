@@ -845,9 +845,39 @@ NTSTATUS nfs41_CreateVNetRoot(
 #endif
     FsRtlEnterFileSystem();
 
-    if (pNetRoot->Type != NET_ROOT_DISK && pNetRoot->Type != NET_ROOT_WILD) {
+    if ((pNetRoot->Type != NET_ROOT_DISK) &&
+        (pNetRoot->Type != NET_ROOT_WILD) &&
+        (pNetRoot->Type != NET_ROOT_PIPE)) {
         print_error("nfs41_CreateVNetRoot: Unsupported NetRoot Type %u\n",
             pNetRoot->Type);
+        status = STATUS_NOT_SUPPORTED;
+        goto out;
+    }
+
+    if (pNetRoot->Type == NET_ROOT_PIPE) {
+        PUNICODE_STRING nrn = pNetRoot->pNetRootName;
+
+        /*
+         * Check whether this is a CreateVNetRoot for a '\IPC$' pipe, and in
+         * that case return |STATUS_MORE_PROCESSING_REQUIRED| so DFS knows
+         * that this is not a DFS path
+         */
+        if (nrn->Length >=
+            (pSrvCall->pSrvCallName->Length + NetRootIpc.Length)) {
+            if (memcmp(&nrn->Buffer[(nrn->Length/sizeof(wchar_t)) -
+                    (NetRootIpc.Length/sizeof(wchar_t))],
+                NetRootIpc.Buffer, NetRootIpc.Length) == 0) {
+                DbgP("nfs41_CreateVNetRoot: "
+                    "CreateVNetRoot for the \\IPC$ pipe!\n");
+                status = STATUS_MORE_PROCESSING_REQUIRED;
+                goto out;
+            }
+            else {
+                DbgP("nfs41_CreateVNetRoot: "
+                    "CreateVNetRoot not for the \\IPC$ pipe\n");
+            }
+        }
+
         status = STATUS_NOT_SUPPORTED;
         goto out;
     }
