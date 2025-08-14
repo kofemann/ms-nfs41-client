@@ -117,6 +117,40 @@ function check_machine_arch
 	# not reached
 }
 
+function is_service_stopped
+{
+	typeset service_name="$1"
+	typeset -i res
+	typeset stdout
+
+	stdout="$( sc query "$service_name" )" ; (( res=$? ))
+
+	if (( res != 0 )) ; then
+		printf "%s: sc failed, msg=%q\n" "$0" "$stdout" 1>&2
+		return 1
+	fi
+
+	if [[ "$stdout" == *STOPPED* ]] ; then
+		return 0
+	fi
+
+	return 1
+}
+
+function is_service_installed
+{
+	typeset service_name="$1"
+	typeset -i res
+
+	sc getdisplayname "$service_name" >'/dev/null' 2>&1 ; (( res=$? ))
+
+	if (( res == 0 )) ; then
+		return 0
+	fi
+
+	return 1
+}
+
 function nfsclient_install
 {
 	set -o nounset
@@ -126,6 +160,16 @@ function nfsclient_install
 	typeset cmd="$1"
 
 	typeset use_secureboot=false
+
+	if is_service_installed 'ms-nfs41-client-service' ; then
+		if ! is_service_stopped 'ms-nfs41-client-service' ; then
+			set -o xtrace # make message below more readable
+			printf 'ms-nfs41-client-service is still running.\n'
+			printf 'Please disable the service via $ /sbin/msnfs41client disableautostartservices #,\n'
+			printf 'reboot and then install the new version of ms-nfs41-client via $ /sbin/msnfs41client install #\n'
+			return 1
+		fi
+	fi
 
 	# switch to the location where this script is installed,
 	# because on Cygwin the script will be installed
