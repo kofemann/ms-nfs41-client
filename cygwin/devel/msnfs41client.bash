@@ -840,7 +840,7 @@ function nfsclient_system_mount_globaldirs
 	set -o errexit
 
 	if ! nfsclient_waitfor_clientdaemon ; then
-		print -u2 -f $"%s: nfsd*.exe not running.\n" "$0"
+		printf $"%s: nfsd*.exe not running.\n" "$0" 1>&2
 		return 1
 	fi
 
@@ -862,7 +862,7 @@ function nfsclient_mount_homedir
 	set -o errexit
 
 	if ! nfsclient_waitfor_clientdaemon ; then
-		print -u2 -f $"%s: nfsd*.exe not running.\n" "$0"
+		printf $"%s: nfsd*.exe not running.\n" "$0" 1>&2
 		return 1
 	fi
 
