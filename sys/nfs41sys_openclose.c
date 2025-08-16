@@ -480,7 +480,7 @@ NTSTATUS check_nfs41_create_args(
     __notnull PNFS41_NETROOT_EXTENSION pNetRootContext =
         NFS41GetNetRootExtension(SrvOpen->pVNetRoot->pNetRoot);
     __notnull PMRX_FCB Fcb = RxContext->pFcb;
-    __notnull PNFS41_FCB nfs41_fcb = (PNFS41_FCB)Fcb->Context;
+    __notnull PNFS41_FCB nfs41_fcb = NFS41GetFcbExtension(Fcb);
     PFILE_FULL_EA_INFORMATION ea = (PFILE_FULL_EA_INFORMATION)
         RxContext->CurrentIrp->AssociatedIrp.SystemBuffer;
 
@@ -602,7 +602,7 @@ NTSTATUS nfs41_Create(
     __notnull PNFS41_NETROOT_EXTENSION pNetRootContext =
         NFS41GetNetRootExtension(SrvOpen->pVNetRoot->pNetRoot);
     __notnull PMRX_FCB Fcb = RxContext->pFcb;
-    __notnull PNFS41_FCB nfs41_fcb = (PNFS41_FCB)Fcb->Context;
+    __notnull PNFS41_FCB nfs41_fcb = NFS41GetFcbExtension(Fcb);
     PNFS41_FOBX nfs41_fobx = NULL;
     BOOLEAN oldDeletePending = nfs41_fcb->StandardInfo.DeletePending;
     bool fcb_locked_exclusive = false;
@@ -859,7 +859,7 @@ retry_on_link:
 #ifdef DEBUG_OPEN
     DbgP("nfs41_Create: created FOBX 0x%p\n", RxContext->pFobx);
 #endif
-    nfs41_fobx = (PNFS41_FOBX)(RxContext->pFobx)->Context;
+    nfs41_fobx = NFS41GetFobxExtension(RxContext->pFobx);
     nfs41_fobx->nfs41_open_state = entry->open_state;
     if (nfs41_fobx->sec_ctx.ClientToken == NULL) {
         status = nfs41_get_sec_ctx(SecurityImpersonation, &nfs41_fobx->sec_ctx);

@@ -273,7 +273,7 @@ NTSTATUS nfs41_Lock(
         NFS41GetNetRootExtension(SrvOpen->pVNetRoot->pNetRoot);
 #ifdef NFS41_DRIVER_HACK_LOCKING_STORAGE32_RANGELOCK_PROBING
     __notnull PMRX_FCB Fcb = RxContext->pFcb;
-    __notnull PNFS41_FCB nfs41_fcb = (PNFS41_FCB)Fcb->Context;
+    __notnull PNFS41_FCB nfs41_fcb = NFS41GetFcbExtension(Fcb);
 #endif /* NFS41_DRIVER_HACK_LOCKING_STORAGE32_RANGELOCK_PROBING */
     const ULONG flags = LowIoContext->ParamsFor.Locks.Flags;
     LARGE_INTEGER poll_delay = {0};
@@ -398,7 +398,7 @@ NTSTATUS nfs41_Unlock(
         NFS41GetNetRootExtension(SrvOpen->pVNetRoot->pNetRoot);
 #ifdef NFS41_DRIVER_HACK_LOCKING_STORAGE32_RANGELOCK_PROBING
     __notnull PMRX_FCB Fcb = RxContext->pFcb;
-    __notnull PNFS41_FCB nfs41_fcb = (PNFS41_FCB)Fcb->Context;
+    __notnull PNFS41_FCB nfs41_fcb = NFS41GetFcbExtension(Fcb);
 #endif /* NFS41_DRIVER_HACK_LOCKING_STORAGE32_RANGELOCK_PROBING */
 #ifdef ENABLE_TIMINGS
     LARGE_INTEGER t1, t2;

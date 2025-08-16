@@ -1319,7 +1319,7 @@ VOID fcbopen_main(PVOID ctx)
                     psrvEntry = psrvEntry->Flink;
                 };
             }
-            nfs41_fcb = (PNFS41_FCB)cur->fcb->Context;
+            nfs41_fcb = NFS41GetFcbExtension(cur->fcb);
             nfs41_fcb->changeattr = entry->ChangeTime;
 out:
             nfs41_UpcallDestroy(entry);
