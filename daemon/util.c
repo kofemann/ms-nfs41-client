@@ -61,6 +61,23 @@ int safe_write(unsigned char **pos, uint32_t *remaining, void *src, uint32_t src
     return 0;
 }
 
+/*
+ * |get_safe_write_bufferpos()| - like |safe_write()| but tests whether we
+ * have enough buffer space left, and in that case return current buffer
+ * position in |destbuffer|
+ */
+int get_safe_write_bufferpos(unsigned char **pos, uint32_t *remaining, uint32_t src_len, void **destbuffer)
+{
+    if (*remaining < src_len)
+        return ERROR_BUFFER_OVERFLOW;
+
+    *destbuffer = *pos;
+    *pos += src_len;
+    *remaining -= src_len;
+    return ERROR_SUCCESS;
+}
+
+
 int get_name(unsigned char **pos, uint32_t *remaining, const char **out_name)
 {
     int status;

@@ -1229,9 +1229,9 @@ static int marshall_open(unsigned char *buffer, uint32_t *length, nfs41_upcall *
         /*
          * convert args->symlink to wchar
          */
-        unsigned short *wc_len_out = (unsigned short *)buffer;
-        unsigned short dummy;
-        status = safe_write(&buffer, length, &dummy, sizeof(dummy));
+        unsigned short *wc_len_out;
+        status = get_safe_write_bufferpos(&buffer, length,
+            sizeof(unsigned short), &wc_len_out);
         if (status) goto out;
 
         if (*length <= len) {
