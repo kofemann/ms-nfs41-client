@@ -1220,26 +1220,35 @@ static int marshall_open(unsigned char *buffer, uint32_t *length, nfs41_upcall *
     if (status) goto out;
     if (upcall->last_error == ERROR_REPARSE) {
         unsigned short len = (args->symlink.len + 1) * sizeof(WCHAR);
+        int wc_len;
         status = safe_write(&buffer, length, &args->symlink_embedded, sizeof(BOOLEAN));
         if (status) goto out;
         BYTE tmp_symlinktarget_type = args->symlinktarget_type;
         status = safe_write(&buffer, length, &tmp_symlinktarget_type, sizeof(BYTE));
         if (status) goto out;
-        status = safe_write(&buffer, length, &len, sizeof(len));
-        if (status) goto out;
         /*
          * convert args->symlink to wchar
-         * FIXME: What about |len| if we have characters outside the BMP ?
          */
-        if (*length <= len || !MultiByteToWideChar(CP_UTF8,
+        unsigned short *wc_len_out = (unsigned short *)buffer;
+        unsigned short dummy;
+        status = safe_write(&buffer, length, &dummy, sizeof(dummy));
+        if (status) goto out;
+
+        if (*length <= len) {
+            status = ERROR_BUFFER_OVERFLOW;
+            goto out;
+        }
+        wc_len = MultiByteToWideChar(CP_UTF8,
             MB_ERR_INVALID_CHARS,
             args->symlink.path, args->symlink.len,
-            (LPWSTR)buffer, len / sizeof(WCHAR))) {
+            (LPWSTR)buffer, len / sizeof(WCHAR));
+        if (wc_len == 0) {
             status = ERROR_BUFFER_OVERFLOW;
             goto out;
         }
 
-        *length -= len;
+        *wc_len_out = (unsigned short)(wc_len*sizeof(wchar_t));
+        *length -= *wc_len_out;
     }
     DPRINTF(2, ("NFS41_SYSOP_OPEN: downcall "
         "open_state=0x%p "

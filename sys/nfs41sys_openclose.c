@@ -283,11 +283,11 @@ NTSTATUS unmarshal_nfs41_open(
         RtlCopyMemory(&tmp_symlinktarget_type, *buf, sizeof(BYTE));
         cur->u.Open.symlinktarget_type = tmp_symlinktarget_type;
         *buf += sizeof(BYTE);
-        RtlCopyMemory(&cur->u.Open.symlink.MaximumLength, *buf,
+        RtlCopyMemory(&cur->u.Open.symlink.Length, *buf,
             sizeof(USHORT));
         *buf += sizeof(USHORT);
-        cur->u.Open.symlink.Length = cur->u.Open.symlink.MaximumLength -
-            sizeof(WCHAR);
+        cur->u.Open.symlink.MaximumLength =
+            cur->u.Open.symlink.Length+sizeof(wchar_t);
         cur->u.Open.symlink.Buffer = RxAllocatePoolWithTag(NonPagedPoolNx,
             cur->u.Open.symlink.MaximumLength, NFS41_MM_POOLTAG);
         if (cur->u.Open.symlink.Buffer == NULL) {
@@ -296,7 +296,9 @@ NTSTATUS unmarshal_nfs41_open(
             goto out;
         }
         RtlCopyMemory(cur->u.Open.symlink.Buffer, *buf,
-            cur->u.Open.symlink.MaximumLength);
+            cur->u.Open.symlink.Length);
+        cur->u.Open.symlink.Buffer[cur->u.Open.symlink.Length/sizeof(wchar_t)] =
+            L'\0';
 #ifdef DEBUG_MARSHAL_DETAIL
         DbgP("unmarshal_nfs41_open: ERROR_REPARSE -> '%wZ'\n", &cur->u.Open.symlink);
 #endif

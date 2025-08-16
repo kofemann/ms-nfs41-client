@@ -287,9 +287,12 @@ static int marshall_symlink_get(unsigned char *buffer, uint32_t *length,
 {
     symlink_upcall_args *args = &upcall->args.symlink;
     unsigned short len = (args->target_get.len + 1) * sizeof(WCHAR);
+    unsigned short dummy = 0;
     int status = NO_ERROR;
+    int wc_len;
 
-    status = safe_write(&buffer, length, &len, sizeof(len));
+    unsigned short *wc_len_out = (unsigned short *)buffer;
+    status = safe_write(&buffer, length, &dummy, sizeof(dummy));
     if (status) goto out;
 
     if (*length <= len) {
@@ -297,11 +300,11 @@ static int marshall_symlink_get(unsigned char *buffer, uint32_t *length,
         goto out;
     }
 
-    /* FIXME: What about |len| if we have characters outside the BMP ? */
-    if (!MultiByteToWideChar(CP_UTF8,
-            MB_ERR_INVALID_CHARS,
-            args->target_get.path, args->target_get.len,
-            (LPWSTR)buffer, len / sizeof(WCHAR))) {
+    wc_len = MultiByteToWideChar(CP_UTF8,
+        MB_ERR_INVALID_CHARS,
+        args->target_get.path, args->target_get.len,
+        (LPWSTR)buffer, len / sizeof(WCHAR));
+    if (wc_len == 0) {
         eprintf("marshall_symlink_get: "
             "MultiByteToWideChar() failed, lasterr=%d\n",
             (int)GetLastError());
@@ -309,7 +312,8 @@ static int marshall_symlink_get(unsigned char *buffer, uint32_t *length,
         goto out;
     }
 
-    *length -= len;
+    *wc_len_out = (unsigned short)(wc_len*sizeof(wchar_t));
+    *length -= *wc_len_out;
 
 out:
     return status;
