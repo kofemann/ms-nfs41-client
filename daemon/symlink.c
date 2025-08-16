@@ -409,15 +409,8 @@ out:
     return status;
 }
 
-static int marshall_symlink_set(unsigned char *buffer, uint32_t *length,
-    nfs41_upcall *upcall)
-{
-    return NO_ERROR;
-}
-
 const nfs41_upcall_op nfs41_op_symlink_set = {
     .parse = parse_symlink_set,
     .handle = handle_symlink_set,
-    .marshall = marshall_symlink_set,
     .arg_size = sizeof(symlink_upcall_args)
 };
