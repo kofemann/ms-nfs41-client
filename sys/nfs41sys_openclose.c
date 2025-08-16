@@ -605,6 +605,7 @@ NTSTATUS nfs41_Create(
     __notnull PNFS41_FCB nfs41_fcb = (PNFS41_FCB)Fcb->Context;
     PNFS41_FOBX nfs41_fobx = NULL;
     BOOLEAN oldDeletePending = nfs41_fcb->StandardInfo.DeletePending;
+    bool fcb_locked_exclusive = false;
 #ifdef ENABLE_TIMINGS
     LARGE_INTEGER t1, t2;
     t1 = KeQueryPerformanceCounter(NULL);
@@ -839,7 +840,15 @@ retry_on_link:
 
     if (!RxIsFcbAcquiredExclusive(Fcb)) {
         ASSERT(!RxIsFcbAcquiredShared(Fcb));
-        RxAcquireExclusiveFcbResourceInMRx(Fcb);
+
+        DbgP("nfs41_Create: Fcb not locked exclusive\n");
+
+        NTSTATUS rxa_status;
+        rxa_status = RxAcquireExclusiveFcbResourceInMRx(Fcb);
+        if (!NT_SUCCESS(rxa_status)) {
+            goto out;
+        }
+        fcb_locked_exclusive = true;
     }
 
     RxContext->pFobx = RxCreateNetFobx(RxContext, SrvOpen);
@@ -1057,6 +1066,10 @@ retry_on_link:
     status = RxContext->CurrentIrp->IoStatus.Status = STATUS_SUCCESS;
 
 out:
+    if (fcb_locked_exclusive) {
+        RxReleaseFcbResourceInMRx(Fcb);
+    }
+
     if (entry) {
         nfs41_UpcallDestroy(entry);
     }
