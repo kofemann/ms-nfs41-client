@@ -306,6 +306,7 @@ typedef struct __nfs41_root {
     bool supports_nfs42_read_plus;
     bool supports_nfs42_seek;
     bool supports_nfs42_allocate;
+    bool supports_nfs42_copy;
     bool supports_nfs42_deallocate;
     bool supports_nfs42_clone;
     DWORD nfsminorvers;

@@ -72,6 +72,7 @@ int nfs41_root_create(
     root->supports_nfs42_read_plus  = false;
     root->supports_nfs42_seek       = false;
     root->supports_nfs42_allocate   = false;
+    root->supports_nfs42_copy       = false;
     root->supports_nfs42_deallocate = false;
     root->supports_nfs42_clone      = false;
     if (nfsvers == NFS_VERSION_AUTONEGOTIATION) {
@@ -453,6 +454,7 @@ retry_nfs41_exchange_id:
         root->supports_nfs42_read_plus  = true;
         root->supports_nfs42_seek       = true;
         root->supports_nfs42_allocate   = true;
+        root->supports_nfs42_copy       = true;
         root->supports_nfs42_deallocate = true;
         root->supports_nfs42_clone      = true;
     }

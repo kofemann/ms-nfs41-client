@@ -3674,7 +3674,7 @@ static const op_table_entry g_op_table[] = {
 
     /* new operations for NFSv4.2 */
     { encode_op_allocate, decode_op_allocate }, /* OP_ALLOCATE = 59, */
-    { NULL, NULL }, /* OP_COPY = 60, */
+    { encode_op_copy, decode_op_copy }, /* OP_COPY = 60, */
     { NULL, NULL }, /* OP_COPY_NOTIFY = 61, */
     { encode_op_deallocate, decode_op_deallocate }, /* OP_DEALLOCATE = 62, */
     { NULL, NULL }, /* OP_IO_ADVISE = 63, */

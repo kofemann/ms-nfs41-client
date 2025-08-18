@@ -814,6 +814,9 @@ bool_t nfs41_recover_stateid(
         nfs42_allocate_args *allocate =
             (nfs42_allocate_args *)argop->arg;
         stateid = allocate->stateid;
+    } else if (argop->op == OP_COPY) {
+        nfs42_copy_args *copy = (nfs42_copy_args *)argop->arg;
+        stateid = copy->dst_stateid;
     } else if (argop->op == OP_DEALLOCATE) {
         nfs42_deallocate_args *deallocate =
             (nfs42_deallocate_args *)argop->arg;

@@ -801,6 +801,50 @@ typedef struct __nfs42_allocate_res {
     uint32_t    status;
 } nfs42_allocate_res;
 
+/* OP_COPY */
+typedef struct __nfs42_copy_args {
+    stateid_arg     *src_stateid;
+    stateid_arg     *dst_stateid;
+    uint64_t        src_offset;
+    uint64_t        dst_offset;
+    uint64_t        count;
+    bool_t          consecutive;
+    bool_t          synchronous;
+/*
+ *  netloc4 ca_source_server<>; not implemented yet
+ */
+} nfs42_copy_args;
+
+typedef struct __nfs42_write_response {
+    uint32_t            callback_id_count;
+    stateid4            callback_id[1];
+    uint64_t            count;
+    uint32_t            committed; /* stable_how4 */
+    nfs41_write_verf    *writeverf;
+} nfs42_write_response;
+
+typedef struct __nfs42_copy_requirements {
+    bool_t      consecutive;
+    bool_t      synchronous;
+} nfs42_copy_requirements;
+
+typedef struct __nfs42_copy_res_ok {
+    nfs42_write_response        response;
+    nfs42_copy_requirements     requirements;
+} nfs42_copy_res_ok;
+
+typedef struct __nfs42_copy_res {
+    uint32_t    status;
+    /* switch (status) */
+    union {
+    /* case NFS4_OK: */
+        nfs42_copy_res_ok           resok4;
+    /* case NFS4ERR_OFFLOAD_NO_REQS: */
+        nfs42_copy_requirements     requirements;
+    /* default: void; */
+    } u;
+} nfs42_copy_res;
+
 /* OP_DEALLOCATE */
 typedef struct __nfs42_deallocate_args {
     stateid_arg     *stateid;
@@ -1244,6 +1288,18 @@ int nfs42_allocate(
     IN stateid_arg *stateid,
     IN uint64_t offset,
     IN uint64_t length,
+    OUT nfs41_file_info *cinfo);
+
+int nfs42_copy(
+    IN nfs41_session *session,
+    IN nfs41_path_fh *src_file,
+    IN nfs41_path_fh *dst_file,
+    IN stateid_arg *src_stateid,
+    IN stateid_arg *dst_stateid,
+    IN uint64_t src_offset,
+    IN uint64_t dst_offset,
+    IN uint64_t length,
+    OUT nfs41_write_verf *writeverf,
     OUT nfs41_file_info *cinfo);
 
 int nfs42_deallocate(

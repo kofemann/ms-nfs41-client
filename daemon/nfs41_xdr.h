@@ -36,6 +36,8 @@ bool_t xdr_stateid4(XDR *xdr, stateid4 *si);
 /* NFSv4.2 ops */
 bool_t encode_op_allocate(XDR *xdr, nfs_argop4 *argop);
 bool_t decode_op_allocate(XDR *xdr, nfs_resop4 *resop);
+bool_t encode_op_copy(XDR *xdr, nfs_argop4 *argop);
+bool_t decode_op_copy(XDR *xdr, nfs_resop4 *resop);
 bool_t encode_op_deallocate(XDR *xdr, nfs_argop4 *argop);
 bool_t decode_op_deallocate(XDR *xdr, nfs_resop4 *resop);
 bool_t encode_op_read_plus(XDR *xdr, nfs_argop4 *argop);

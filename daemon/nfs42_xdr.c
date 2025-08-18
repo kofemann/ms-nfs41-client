@@ -78,6 +78,107 @@ bool_t decode_op_allocate(
 }
 
 /*
+ * OP_COPY
+ */
+bool_t encode_op_copy(
+    XDR *xdr,
+    nfs_argop4 *argop)
+{
+    nfs42_copy_args *args = (nfs42_copy_args *)argop->arg;
+
+    if (unexpected_op(argop->op, OP_COPY))
+        return FALSE;
+
+    if (!xdr_stateid4(xdr, &args->src_stateid->stateid))
+        return FALSE;
+
+    if (!xdr_stateid4(xdr, &args->dst_stateid->stateid))
+        return FALSE;
+
+    if (!xdr_uint64_t(xdr, &args->src_offset))
+        return FALSE;
+
+    if (!xdr_uint64_t(xdr, &args->dst_offset))
+        return FALSE;
+
+    if (!xdr_uint64_t(xdr, &args->count))
+        return FALSE;
+
+    if (!xdr_bool(xdr, &args->consecutive))
+        return FALSE;
+
+    if (!xdr_bool(xdr, &args->synchronous))
+        return FALSE;
+
+    /*
+     * FIXME: We do not support server-to-server copy yet
+    * |source_server_count| means intra-server copy
+    */
+    uint32_t source_server_count = 0;
+    return xdr_uint32_t(xdr, &source_server_count);
+}
+
+static bool_t decode_write_response(
+    XDR *xdr,
+    nfs42_write_response *restrict response)
+{
+    if (!xdr_uint32_t(xdr, &response->callback_id_count))
+        return FALSE;
+    if (response->callback_id_count > 0) {
+        EASSERT(response->callback_id_count == 1);
+        if (response->callback_id_count > 1)
+            return FALSE;
+
+        if (!xdr_stateid4(xdr, &response->callback_id[0]))
+            return FALSE;
+    }
+    if (!xdr_uint64_t(xdr, &response->count))
+        return FALSE;
+    if (!xdr_uint32_t(xdr, &response->committed))
+        return FALSE;
+    if (!xdr_opaque(xdr, (char *)response->writeverf, NFS4_VERIFIER_SIZE))
+        return FALSE;
+    return TRUE;
+}
+
+static bool_t decode_copy_requirements(
+    XDR *xdr,
+    nfs42_copy_requirements *restrict requirements)
+{
+    if (!xdr_bool(xdr, &requirements->consecutive))
+        return FALSE;
+    if (!xdr_bool(xdr, &requirements->synchronous))
+        return FALSE;
+    return TRUE;
+}
+
+bool_t decode_op_copy(
+    XDR *xdr,
+    nfs_resop4 *resop)
+{
+    nfs42_copy_res *res = (nfs42_copy_res *)resop->res;
+
+    if (unexpected_op(resop->op, OP_COPY))
+        return FALSE;
+
+    if (!xdr_uint32_t(xdr, &res->status))
+        return FALSE;
+
+    if (res->status == NFS4_OK) {
+        if (!decode_write_response(xdr, &res->u.resok4.response))
+            return FALSE;
+        if (!decode_copy_requirements(xdr, &res->u.resok4.requirements))
+            return FALSE;
+    }
+    else if (res->status == NFS4ERR_OFFLOAD_NO_REQS) {
+        if (!decode_copy_requirements(xdr, &res->u.requirements))
+            return FALSE;
+    }
+
+    return TRUE;
+}
+
+/*
  * OP_DEALLOCATE
  */
 bool_t encode_op_deallocate(

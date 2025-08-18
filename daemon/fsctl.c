@@ -27,6 +27,9 @@
 #include "daemon_debug.h"
 #include "util.h"
 
+/* Testing only: Use NFS COPY instead of NFS CLONE */
+// #define DUP_DATA_USE_NFSCOPY 1
+
 #define QARLVL 2 /* dprintf level for "query allocated ranges" logging */
 #define SZDLVL 2 /* dprintf level for "set zero data" logging */
 #define DDLVL  2 /* dprintf level for "duplicate data" logging */
@@ -591,6 +594,20 @@ int duplicate_sparsefile(nfs41_open_state *src_state,
             (int)data_seek_sr_eof,
             (int)hole_seek_sr_eof));
 
+#ifdef DUP_DATA_USE_NFSCOPY
+        nfs41_write_verf verf;
+        status = nfs42_copy(session,
+            src_file,
+            dst_file,
+            &src_stateid,
+            &dst_stateid,
+            data_seek_sr_offset,
+            destfileoffset + (data_seek_sr_offset-srcfileoffset),
+            data_size,
+            &verf,
+            info);
+        /* FIXME: What should we do with |verf| ? Should we COMMIT this ? */
+#else
         status = nfs42_clone(session,
             src_file,
             dst_file,
@@ -600,14 +617,23 @@ int duplicate_sparsefile(nfs41_open_state *src_state,
             destfileoffset + (data_seek_sr_offset-srcfileoffset),
             data_size,
             info);
+#endif /* DUP_DATA_USE_NFSCOPY */
         if (status) {
+            const char dup_op_name[] =
+#ifdef DUP_DATA_USE_NFSCOPY
+                "COPY";
+#else
+                "CLONE";
+#endif /* DUP_DATA_USE_NFSCOPY */
+
             DPRINTF(0/*DDLVL*/,
                 ("duplicate_sparsefile("
                 "src_state->path.path='%s' "
                 "dst_state->path.path='%s'): "
-                "CLONE failed with '%s'\n",
+                "'%s' failed with '%s'\n",
                 src_state->path.path,
                 dst_state->path.path,
+                dup_op_name,
                 nfs_error_string(status)));
             status = nfs_to_windows_error(status, ERROR_BAD_NET_RESP);
             goto out;
@@ -668,7 +694,13 @@ int handle_duplicatedata(void *daemon_context,
         goto out;
     }
     /* NFS CLONE supported ? */
-    if (src_session->client->root->supports_nfs42_clone == false) {
+    if (
+#ifdef DUP_DATA_USE_NFSCOPY
+        src_session->client->root->supports_nfs42_copy == false
+#else
+        src_session->client->root->supports_nfs42_clone == false
+#endif /* DUP_DATA_USE_NFSCOPY */
+        ) {
         status = ERROR_NOT_SUPPORTED;
         goto out;
     }
