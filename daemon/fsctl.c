@@ -543,7 +543,7 @@ int duplicate_sparsefile(nfs41_opcodes opcode,
 
 #ifdef LINUX_NFSD_SEEK_NXIO_BUG_WORKAROUND
         if (data_seek_status == NFS4ERR_NXIO) {
-            DPRINTF(QARLVL, ("SEEK_DATA failed with NFS4ERR_NXIO\n"));
+            DPRINTF(DDLVL, ("SEEK_DATA failed with NFS4ERR_NXIO\n"));
             goto out;
         }
 #endif /* LINUX_NFSD_SEEK_NXIO_BUG_WORKAROUND */
