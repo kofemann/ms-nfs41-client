@@ -986,7 +986,7 @@ NTSTATUS nfs41_CreateVNetRoot(
 
         status = STATUS_NFS_SHARE_NOT_MOUNTED;
 
-        ExAcquireFastMutexUnsafe(&pNetRootContext->mountLock);
+        ExAcquireFastMutexUnsafe(&pNetRootContext->mounts.lock);
         pEntry = &pNetRootContext->mounts.head;
         pEntry = pEntry->Flink;
         while (pEntry != NULL) {
@@ -1039,7 +1039,7 @@ NTSTATUS nfs41_CreateVNetRoot(
             status = STATUS_SUCCESS;
         }
 #endif /* NFS41_DRIVER_SYSTEM_LUID_MOUNTS_ARE_GLOBAL */
-        ExReleaseFastMutexUnsafe(&pNetRootContext->mountLock);
+        ExReleaseFastMutexUnsafe(&pNetRootContext->mounts.lock);
 
         if (status != STATUS_SUCCESS) {
             DbgP("No existing mount found, "
@@ -1111,13 +1111,13 @@ NTSTATUS nfs41_CreateVNetRoot(
 #ifdef DEBUG_MOUNT
         DbgP("Initializing mount array\n");
 #endif
-        ExInitializeFastMutex(&pNetRootContext->mountLock);
+        ExInitializeFastMutex(&pNetRootContext->mounts.lock);
         InitializeListHead(&pNetRootContext->mounts.head);
         pNetRootContext->mounts_init = TRUE;
     } else {
         PLIST_ENTRY pEntry;
 
-        ExAcquireFastMutexUnsafe(&pNetRootContext->mountLock);
+        ExAcquireFastMutexUnsafe(&pNetRootContext->mounts.lock);
         pEntry = &pNetRootContext->mounts.head;
         pEntry = pEntry->Flink;
         while (pEntry != NULL) {
@@ -1167,7 +1167,7 @@ NTSTATUS nfs41_CreateVNetRoot(
                 break;
             pEntry = pEntry->Flink;
         }
-        ExReleaseFastMutexUnsafe(&pNetRootContext->mountLock);
+        ExReleaseFastMutexUnsafe(&pNetRootContext->mounts.lock);
 #ifdef DEBUG_MOUNT
         if (!found_matching_flavor)
             DbgP("Didn't find matching security flavor\n");
@@ -1180,7 +1180,7 @@ NTSTATUS nfs41_CreateVNetRoot(
         &pVNetRootContext->FsAttrs);
     if (status != STATUS_SUCCESS) {
         BOOLEAN MountsEmpty;
-        nfs41_IsListEmpty(pNetRootContext->mountLock,
+        nfs41_IsListEmpty(pNetRootContext->mounts.lock,
             pNetRootContext->mounts, MountsEmpty);
         if (!found_existing_mount && MountsEmpty)
             pNetRootContext->mounts_init = FALSE;
@@ -1219,7 +1219,7 @@ NTSTATUS nfs41_CreateVNetRoot(
          * \\server@port\@(pubnfs4|nfs4)\path mounts later
          */
         copy_nfs41_mount_config(&entry->Config, Config);
-        nfs41_AddEntry(pNetRootContext->mountLock,
+        nfs41_AddEntry(pNetRootContext->mounts.lock,
             pNetRootContext->mounts, entry);
     } else if (!found_matching_flavor) {
         ASSERT(existing_mount != NULL);
@@ -1390,7 +1390,7 @@ NTSTATUS nfs41_FinalizeNetRoot(
     }
 
     do {
-        nfs41_GetFirstMountEntry(pNetRootContext->mountLock,
+        nfs41_GetFirstMountEntry(pNetRootContext->mounts.lock,
             pNetRootContext->mounts, mount_tmp);
         if (mount_tmp == NULL)
             break;
@@ -1432,7 +1432,7 @@ NTSTATUS nfs41_FinalizeNetRoot(
                 print_error("nfs41_unmount RPCSEC_GSS_KRB5P failed with %d\n",
                             status);
         }
-        nfs41_RemoveEntry(pNetRootContext->mountLock, mount_tmp);
+        nfs41_RemoveEntry(pNetRootContext->mounts.lock, mount_tmp);
         RxFreePool(mount_tmp);
         mount_tmp = NULL;
     } while (1);
@@ -1441,10 +1441,10 @@ NTSTATUS nfs41_FinalizeNetRoot(
 
     // check if there is anything waiting in the upcall or downcall queue
     do {
-        nfs41_GetFirstEntry(upcallLock, upcall, tmp);
+        nfs41_GetFirstEntry(upcalllist.lock, upcalllist, tmp);
         if (tmp != NULL) {
             DbgP("Removing entry from upcall list\n");
-            nfs41_RemoveEntry(upcallLock, tmp);
+            nfs41_RemoveEntry(upcalllist.lock, tmp);
             tmp->status = STATUS_INSUFFICIENT_RESOURCES;
             (void)KeSetEvent(&tmp->cond, IO_NFS41FS_INCREMENT, FALSE);
         } else
@@ -1452,10 +1452,10 @@ NTSTATUS nfs41_FinalizeNetRoot(
     } while (1);
 
     do {
-        nfs41_GetFirstEntry(downcallLock, downcall, tmp);
+        nfs41_GetFirstEntry(downcalllist.lock, downcalllist, tmp);
         if (tmp != NULL) {
             DbgP("Removing entry from downcall list\n");
-            nfs41_RemoveEntry(downcallLock, tmp);
+            nfs41_RemoveEntry(downcalllist.lock, tmp);
             tmp->status = STATUS_INSUFFICIENT_RESOURCES;
             (void)KeSetEvent(&tmp->cond, IO_NFS41FS_INCREMENT, FALSE);
         } else

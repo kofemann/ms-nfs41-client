@@ -302,9 +302,11 @@ typedef struct _updowncall_entry {
 } nfs41_updowncall_entry;
 
 typedef struct _updowncall_list {
+    FAST_MUTEX lock;
     LIST_ENTRY head;
 } nfs41_updowncall_list;
-nfs41_updowncall_list upcall, downcall;
+extern nfs41_updowncall_list upcalllist;
+extern nfs41_updowncall_list downcalllist;
 
 
 #define SERVER_NAME_BUFFER_SIZE         1024
@@ -351,7 +353,8 @@ typedef struct _nfs41_mount_entry {
 } nfs41_mount_entry;
 
 typedef struct _nfs41_mount_list {
-    LIST_ENTRY head;
+    FAST_MUTEX  lock;
+    LIST_ENTRY  head;
 } nfs41_mount_list;
 
 #define nfs41_AddEntry(lock,list,pEntry)                    \
@@ -409,7 +412,6 @@ typedef struct _NFS41_NETROOT_EXTENSION {
     NODE_BYTE_SIZE          NodeByteSize;
     DWORD                   nfs41d_version;
     BOOLEAN                 mounts_init;
-    FAST_MUTEX              mountLock;
     nfs41_mount_list        mounts;
 } NFS41_NETROOT_EXTENSION, *PNFS41_NETROOT_EXTENSION;
 #define NFS41GetNetRootExtension(pNetRoot)      \
@@ -503,15 +505,16 @@ typedef struct _nfs41_fcb_list_entry {
 } nfs41_fcb_list_entry;
 
 typedef struct _nfs41_fcb_list {
-    LIST_ENTRY head;
+    FAST_MUTEX  lock;
+    LIST_ENTRY  head;
 } nfs41_fcb_list;
-nfs41_fcb_list openlist;
+extern nfs41_fcb_list openlist;
 
 typedef struct _nfs41_offloadcontext_list {
+    FAST_MUTEX lock;
     LIST_ENTRY head;
 } nfs41_offloadcontext_list;
-extern nfs41_offloadcontext_list offloadcontext_list;
-extern FAST_MUTEX offloadcontextLock;
+extern nfs41_offloadcontext_list offloadcontextlist;
 
 typedef enum _NULMRX_STORAGE_TYPE_CODES {
     NTC_NFS41_DEVICE_EXTENSION      =   (NODE_TYPE_CODE)0xFC00,
@@ -542,10 +545,6 @@ typedef enum _NULMRX_STORAGE_TYPE_CODES {
 
 /* Globals */
 extern KEVENT upcallEvent;
-extern FAST_MUTEX upcallLock;
-extern FAST_MUTEX downcallLock;
-extern FAST_MUTEX fcblistLock;
-extern FAST_MUTEX openOwnerLock;
 
 extern LONGLONG xid;
 extern LONG open_owner_id;

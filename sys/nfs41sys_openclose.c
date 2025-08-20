@@ -1051,7 +1051,7 @@ retry_on_link:
             oentry->session = pVNetRootContext->session;
             oentry->ChangeTime = entry->ChangeTime;
             oentry->skip = FALSE;
-            nfs41_AddEntry(fcblistLock, openlist, oentry);
+            nfs41_AddEntry(openlist.lock, openlist, oentry);
         }
     }
 

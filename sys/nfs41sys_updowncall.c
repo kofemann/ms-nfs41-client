@@ -518,7 +518,7 @@ NTSTATUS nfs41_UpcallWaitForReply(
 
     FsRtlEnterFileSystem();
 
-    nfs41_AddEntry(upcallLock, upcall, entry);
+    nfs41_AddEntry(upcalllist.lock, upcalllist, entry);
     (void)KeSetEvent(&upcallEvent, IO_NFS41FS_INCREMENT, FALSE);
 
     if (entry->async_op)
@@ -567,7 +567,7 @@ retry_wait:
         ExReleaseFastMutexUnsafe(&entry->lock);
         goto out;
     }
-    nfs41_RemoveEntry(downcallLock, entry);
+    nfs41_RemoveEntry(downcalllist.lock, entry);
 
 out:
     FsRtlExitFileSystem();
@@ -585,14 +585,14 @@ NTSTATUS nfs41_upcall(
     FsRtlEnterFileSystem();
 
 process_upcall:
-    nfs41_RemoveFirst(upcallLock, upcall, pEntry);
+    nfs41_RemoveFirst(upcalllist.lock, upcalllist, pEntry);
     if (pEntry) {
         nfs41_updowncall_entry *entry;
 
         entry = (nfs41_updowncall_entry *)CONTAINING_RECORD(pEntry,
                     nfs41_updowncall_entry, next);
         ExAcquireFastMutexUnsafe(&entry->lock);
-        nfs41_AddEntry(downcallLock, downcall, entry);
+        nfs41_AddEntry(downcalllist.lock, downcalllist, entry);
         status = handle_upcall(RxContext, entry, &len);
         if (status == STATUS_SUCCESS &&
                 entry->state == NFS41_WAITING_FOR_UPCALL)
@@ -665,8 +665,8 @@ NTSTATUS nfs41_downcall(
 
     unmarshal_nfs41_header(tmp, &buf);
 
-    ExAcquireFastMutexUnsafe(&downcallLock);
-    pEntry = &downcall.head;
+    ExAcquireFastMutexUnsafe(&downcalllist.lock);
+    pEntry = &downcalllist.head;
     pEntry = pEntry->Flink;
     while (pEntry != NULL) {
         cur = (nfs41_updowncall_entry *)CONTAINING_RECORD(pEntry,
@@ -675,11 +675,11 @@ NTSTATUS nfs41_downcall(
             found = 1;
             break;
         }
-        if (pEntry->Flink == &downcall.head)
+        if (pEntry->Flink == &downcalllist.head)
             break;
         pEntry = pEntry->Flink;
     }
-    ExReleaseFastMutexUnsafe(&downcallLock);
+    ExReleaseFastMutexUnsafe(&downcalllist.lock);
     SeStopImpersonatingClient();
     if (!found) {
         print_error("Didn't find xid=%lld entry\n", tmp->xid);
@@ -728,7 +728,7 @@ NTSTATUS nfs41_downcall(
             break;
         }
         ExReleaseFastMutexUnsafe(&cur->lock);
-        nfs41_RemoveEntry(downcallLock, cur);
+        nfs41_RemoveEntry(downcalllist.lock, cur);
         nfs41_UpcallDestroy(cur);
         status = STATUS_UNSUCCESSFUL;
         goto out_free;
@@ -806,7 +806,7 @@ NTSTATUS nfs41_downcall(
                         map_readwrite_errors(cur->status);
                     cur->u.ReadWrite.rxcontext->InformationToReturn = 0;
                 }
-                nfs41_RemoveEntry(downcallLock, cur);
+                nfs41_RemoveEntry(downcalllist.lock, cur);
                 RxLowIoCompletion(cur->u.ReadWrite.rxcontext);
                 nfs41_UpcallDestroy(cur);
                 break;

@@ -904,17 +904,17 @@ void nfs41_remove_offloadcontext_for_fobx(
     offloadcontext_entry *cur, *found = NULL;
     __notnull PNFS41_FOBX nfs41_fobx = NFS41GetFobxExtension(pFobx);
 
-    ExAcquireFastMutexUnsafe(&offloadcontextLock);
+    ExAcquireFastMutexUnsafe(&offloadcontextlist.lock);
 
-    pEntry = offloadcontext_list.head.Flink;
-    while (!IsListEmpty(&offloadcontext_list.head)) {
+    pEntry = offloadcontextlist.head.Flink;
+    while (!IsListEmpty(&offloadcontextlist.head)) {
         cur = (offloadcontext_entry *)CONTAINING_RECORD(pEntry,
             offloadcontext_entry, next);
         if (cur->src_fobx == nfs41_fobx) {
             found = cur;
             break;
         }
-        if (pEntry->Flink == &offloadcontext_list.head) {
+        if (pEntry->Flink == &offloadcontextlist.head) {
             break;
         }
         pEntry = pEntry->Flink;
@@ -940,7 +940,7 @@ void nfs41_remove_offloadcontext_for_fobx(
             pFobx);
     }
 
-    ExReleaseFastMutexUnsafe(&offloadcontextLock);
+    ExReleaseFastMutexUnsafe(&offloadcontextlist.lock);
 }
 
 static
@@ -950,17 +950,17 @@ offloadcontext_entry *nfs41_find_offloadcontext_acquireshared(
     PLIST_ENTRY pEntry;
     offloadcontext_entry *cur, *found = NULL;
 
-    ExAcquireFastMutexUnsafe(&offloadcontextLock);
+    ExAcquireFastMutexUnsafe(&offloadcontextlist.lock);
 
-    pEntry = offloadcontext_list.head.Flink;
-    while (!IsListEmpty(&offloadcontext_list.head)) {
+    pEntry = offloadcontextlist.head.Flink;
+    while (!IsListEmpty(&offloadcontextlist.head)) {
         cur = (offloadcontext_entry *)CONTAINING_RECORD(pEntry,
             offloadcontext_entry, next);
         if (cur == unvalidated_oce) {
             found = cur;
             break;
         }
-        if (pEntry->Flink == &offloadcontext_list.head) {
+        if (pEntry->Flink == &offloadcontextlist.head) {
             break;
         }
         pEntry = pEntry->Flink;
@@ -972,14 +972,14 @@ offloadcontext_entry *nfs41_find_offloadcontext_acquireshared(
             unvalidated_oce);
 
         (void)ExAcquireSharedStarveExclusive(&found->resource, TRUE);
-        ExReleaseFastMutexUnsafe(&offloadcontextLock);
+        ExReleaseFastMutexUnsafe(&offloadcontextlist.lock);
         return found;
     }
     else {
         DbgP("nfs41_find_offloadcontext_acquireshared(unvalidated_oce=0x%p): "
             "Nothing found.\n",
             unvalidated_oce);
-        ExReleaseFastMutexUnsafe(&offloadcontextLock);
+        ExReleaseFastMutexUnsafe(&offloadcontextlist.lock);
         return NULL;
     }
 }
@@ -1065,7 +1065,8 @@ NTSTATUS nfs41_OffloadRead(
     oro->TransferLength = ori->CopyLength;
     (void)memcpy(&oro->Token[0], &oce->token, sizeof(oce->token));
 
-    nfs41_AddEntry(offloadcontextLock, offloadcontext_list, oce);
+    nfs41_AddEntry(offloadcontextlist.lock,
+        offloadcontextlist, oce);
 
     RxContext->CurrentIrp->IoStatus.Status = status = STATUS_SUCCESS;
     RxContext->InformationToReturn = sizeof(FSCTL_OFFLOAD_READ_OUTPUT);

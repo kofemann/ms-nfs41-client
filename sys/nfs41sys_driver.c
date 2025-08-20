@@ -129,10 +129,11 @@ PRDBSS_DEVICE_OBJECT nfs41_dev;
 
 
 KEVENT upcallEvent;
-FAST_MUTEX upcallLock, downcallLock, fcblistLock;
-FAST_MUTEX openOwnerLock;
-FAST_MUTEX offloadcontextLock;
-nfs41_offloadcontext_list offloadcontext_list;
+nfs41_updowncall_list upcalllist;
+nfs41_updowncall_list downcalllist;
+nfs41_fcb_list openlist;
+
+nfs41_offloadcontext_list offloadcontextlist;
 
 LONGLONG xid = 0;
 LONG open_owner_id = 1;
@@ -692,7 +693,7 @@ VOID nfs41_remove_fcb_entry(
 {
     PLIST_ENTRY pEntry;
     nfs41_fcb_list_entry *cur;
-    ExAcquireFastMutexUnsafe(&fcblistLock);
+    ExAcquireFastMutexUnsafe(&openlist.lock);
 
     pEntry = openlist.head.Flink;
     while (!IsListEmpty(&openlist.head)) {
@@ -715,7 +716,7 @@ VOID nfs41_remove_fcb_entry(
         }
         pEntry = pEntry->Flink;
     }
-    ExReleaseFastMutexUnsafe(&fcblistLock);
+    ExReleaseFastMutexUnsafe(&openlist.lock);
 }
 
 static
@@ -726,7 +727,7 @@ VOID nfs41_invalidate_fobx_entry(
     nfs41_fcb_list_entry *cur;
     __notnull PNFS41_FOBX nfs41_fobx = NFS41GetFobxExtension(pFobx);
 
-    ExAcquireFastMutexUnsafe(&fcblistLock);
+    ExAcquireFastMutexUnsafe(&openlist.lock);
 
     pEntry = openlist.head.Flink;
     while (!IsListEmpty(&openlist.head)) {
@@ -749,7 +750,7 @@ VOID nfs41_invalidate_fobx_entry(
         }
         pEntry = pEntry->Flink;
     }
-    ExReleaseFastMutexUnsafe(&fcblistLock);
+    ExReleaseFastMutexUnsafe(&openlist.lock);
 }
 
 NTSTATUS nfs41_Flush(
@@ -795,7 +796,7 @@ VOID nfs41_update_fcb_list(
 {
     PLIST_ENTRY pEntry;
     nfs41_fcb_list_entry *cur;
-    ExAcquireFastMutexUnsafe(&fcblistLock);
+    ExAcquireFastMutexUnsafe(&openlist.lock);
     pEntry = openlist.head.Flink;
     while (!IsListEmpty(&openlist.head)) {
         cur = (nfs41_fcb_list_entry *)CONTAINING_RECORD(pEntry,
@@ -822,7 +823,7 @@ VOID nfs41_update_fcb_list(
         }
         pEntry = pEntry->Flink;
     }
-    ExReleaseFastMutexUnsafe(&fcblistLock);
+    ExReleaseFastMutexUnsafe(&openlist.lock);
 }
 
 NTSTATUS nfs41_IsValidDirectory (
@@ -910,7 +911,7 @@ void enable_caching(
 
     RxChangeBufferingState((PSRV_OPEN)SrvOpen, ULongToPtr(flag), 1);
 
-    ExAcquireFastMutexUnsafe(&fcblistLock);
+    ExAcquireFastMutexUnsafe(&openlist.lock);
     pEntry = openlist.head.Flink;
     while (!IsListEmpty(&openlist.head)) {
         cur = (nfs41_fcb_list_entry *)CONTAINING_RECORD(pEntry,
@@ -950,7 +951,7 @@ void enable_caching(
         nfs41_fobx->deleg_type = 0;
     }
 out_release_fcblistlock:
-    ExReleaseFastMutexUnsafe(&fcblistLock);
+    ExReleaseFastMutexUnsafe(&openlist.lock);
 }
 
 NTSTATUS nfs41_CompleteBufferingStateChangeRequest(
@@ -1238,7 +1239,7 @@ VOID fcbopen_main(PVOID ctx)
         PLIST_ENTRY pEntry;
         nfs41_fcb_list_entry *cur;
         status = KeDelayExecutionThread(KernelMode, TRUE, &timeout);
-        ExAcquireFastMutexUnsafe(&fcblistLock);
+        ExAcquireFastMutexUnsafe(&openlist.lock);
         pEntry = openlist.head.Flink;
         while (!IsListEmpty(&openlist.head)) {
             PNFS41_NETROOT_EXTENSION pNetRootContext;
@@ -1335,7 +1336,7 @@ out:
             }
             pEntry = pEntry->Flink;
         }
-        ExReleaseFastMutexUnsafe(&fcblistLock);
+        ExReleaseFastMutexUnsafe(&openlist.lock);
     }
 //    DbgEx();
 }
@@ -1395,15 +1396,14 @@ NTSTATUS DriverEntry(
     }
 
     KeInitializeEvent(&upcallEvent, SynchronizationEvent, FALSE );
-    ExInitializeFastMutex(&upcallLock);
-    ExInitializeFastMutex(&downcallLock);
-    ExInitializeFastMutex(&openOwnerLock);
-    ExInitializeFastMutex(&fcblistLock);
-    ExInitializeFastMutex(&offloadcontextLock);
-    InitializeListHead(&upcall.head);
-    InitializeListHead(&downcall.head);
+    ExInitializeFastMutex(&upcalllist.lock);
+    ExInitializeFastMutex(&downcalllist.lock);
+    ExInitializeFastMutex(&openlist.lock);
+    ExInitializeFastMutex(&offloadcontextlist.lock);
+    InitializeListHead(&upcalllist.head);
+    InitializeListHead(&downcalllist.head);
     InitializeListHead(&openlist.head);
-    InitializeListHead(&offloadcontext_list.head);
+    InitializeListHead(&offloadcontextlist.head);
 #ifdef USE_LOOKASIDELISTS_FOR_UPDOWNCALLENTRY_MEM
     /*
      * The |Depth| parameter is unfortunately ignored in Win10,
