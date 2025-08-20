@@ -137,7 +137,10 @@ static unsigned int nfsd_worker_thread_main(void *args)
     HANDLE pipe;
     // buffer used to process upcall, assumed to be fixed size.
     // if we ever need to handle non-cached IO, need to make it dynamic
-    unsigned char outbuf[UPCALL_BUF_SIZE], inbuf[UPCALL_BUF_SIZE]; 
+    // we use 128byte alignment to make sure we start at the beginning
+    // of a cache line
+    _declspec(align(128)) unsigned char outbuf[UPCALL_BUF_SIZE];
+    _declspec(align(128)) unsigned char inbuf[UPCALL_BUF_SIZE];
     DWORD inbuf_len, outbuf_len;
     nfs41_upcall upcall;
 
