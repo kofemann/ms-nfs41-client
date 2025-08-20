@@ -696,6 +696,20 @@ NTSTATUS nfs41_SetFileInformation(
                 }
 #else
                 /* Do Win32 delete-on-close */
+                /*
+                 * We must make sure that this works and still returns errors
+                 * to the caller, e.g. rm -Rf on a readonly dir must return
+                 * an error.
+                 *
+                 * Example:
+                 * ---- snip ----
+                 * $ ksh93 -c 'mkdir d1 && touch d1/f1 && chmod -R a-w d1 &&
+                 *      if rm -Rf d1 ; then echo "# Test failed" ; else
+                 *      echo "# Test OK" ; fi'
+                 * rm: cannot remove 'd1': Permission denied
+                 * # Test OK
+                s * ---- snip ----
+                 */
                 nfs41_fcb->DeletePending = TRUE;
                 nfs41_fcb->StandardInfo.DeletePending = TRUE;
 #endif /* FORCE_POSIX_SEMANTICS_DELETE */

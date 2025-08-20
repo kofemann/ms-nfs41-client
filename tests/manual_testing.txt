@@ -1,5 +1,5 @@
 #
-# ms-nfs41-client manual testing sequence, 2025-08-16
+# ms-nfs41-client manual testing sequence, 2025-08-20
 #
 # Draft version, needs to be turned into automated tests
 # if possible
@@ -770,6 +770,15 @@ bash /usr/share/msnfs41client/tests/misc/wintartest_comparewinvsgnu001.bash myta
 # bypasses the Cygwin code
 bash -c 'set -o errexit ; rm -Rf sillytestdir ; mkdir sillytestdir ; cd sillytestdir ; touch sillytest ; ( command exec {n}<"sillytest" ; printf "fd=%d\n" $n ; sleep 10) & sleep 1 ; ls -la ; cmd /C "del sillytest" ; ls -la ; if [[ "$(ls -1 .nfs*)" != "" ]] ; then echo "# test OK" ; else echo "# test FAILED" ; fi ; wait'
 bash -c 'set -o errexit ; rm -Rf sillytestdir ; mkdir sillytestdir ; cd sillytestdir ; touch sillytest ; ( command exec {n}<"sillytest" ; printf "fd=%d\n" $n ; sleep 10) & sleep 1 ; ls -la ; rm -f sillytest ; ls -la ; if [[ "$(ls -1 .nfs*)" != "" ]] ; then echo "# test OK" ; else echo "# test FAILED" ; fi ; wait'
+
+#
+# Test rm on read-only dir
+#
+---- snip ----
+$ ksh93 -c 'mkdir d1 && touch d1/f1 && chmod -R a-w d1 && if rm -Rf d1 ; then echo "# Test failed, rm on readonly dir should return error" ; else echo "# Test OK" ; fi'
+rm: cannot remove 'd1': Permission denied
+# Test OK
+---- snip ----
 
 #
 # WSL install for testing

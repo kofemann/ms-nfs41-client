@@ -26,8 +26,22 @@
 /*
  * |FORCE_POSIX_SEMANTICS_DELETE| is for bug-by-bug compatibility with the
  * original Windows NFSv3 filesystem driver
+ *
+ * If we ever disable this e must make sure that this works and still returns
+ * errors to the caller, e.g. rm -Rf on a readonly dir must return an
+ * error.
+ *
+ * Example:
+ * ---- snip ----
+ * $ ksh93 -c 'mkdir d1 && touch d1/f1 && chmod -R a-w d1 &&
+ *      if rm -Rf d1 ; then echo "# Test failed" ; else
+ *      echo "# Test OK" ; fi'
+ * rm: cannot remove 'd1': Permission denied
+ * # Test OK
+ * ---- snip ----
  */
-// #define FORCE_POSIX_SEMANTICS_DELETE 1
+#define FORCE_POSIX_SEMANTICS_DELETE 1
+
 #define USE_STACK_FOR_DOWNCALL_UPDOWNCALLENTRY_MEM 1
 
 #if (NTDDI_VERSION >= NTDDI_WIN10_VB)
