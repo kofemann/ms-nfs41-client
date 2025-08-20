@@ -1299,6 +1299,7 @@ int nfs42_copy(
     IN uint64_t src_offset,
     IN uint64_t dst_offset,
     IN uint64_t length,
+    OUT uint64_t *bytes_written,
     OUT nfs41_write_verf *writeverf,
     OUT nfs41_file_info *cinfo);
 

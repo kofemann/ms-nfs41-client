@@ -595,18 +595,34 @@ int duplicate_sparsefile(nfs41_open_state *src_state,
             (int)hole_seek_sr_eof));
 
 #ifdef DUP_DATA_USE_NFSCOPY
-        nfs41_write_verf verf;
-        status = nfs42_copy(session,
-            src_file,
-            dst_file,
-            &src_stateid,
-            &dst_stateid,
-            data_seek_sr_offset,
-            destfileoffset + (data_seek_sr_offset-srcfileoffset),
-            data_size,
-            &verf,
-            info);
-        /* FIXME: What should we do with |verf| ? Should we COMMIT this ? */
+        uint64_t bytes_written;
+        uint64_t bytestowrite = data_size;
+        uint64_t writeoffset = 0ULL;
+
+        do
+        {
+            nfs41_write_verf verf;
+            bytes_written = 0ULL;
+
+            status = nfs42_copy(session,
+                src_file,
+                dst_file,
+                &src_stateid,
+                &dst_stateid,
+                (data_seek_sr_offset + writeoffset),
+                (destfileoffset + (data_seek_sr_offset-srcfileoffset) +
+                    writeoffset),
+                bytestowrite,
+                &bytes_written,
+                &verf,
+                info);
+            if (status)
+                break;
+
+            bytestowrite -= bytes_written;
+            writeoffset += bytes_written;
+            /* FIXME: What should we do with |verf| ? Should we COMMIT this ? */
+        } while (bytestowrite > 0ULL);
 #else
         status = nfs42_clone(session,
             src_file,

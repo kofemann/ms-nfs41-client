@@ -122,6 +122,7 @@ int nfs42_copy(
     IN uint64_t src_offset,
     IN uint64_t dst_offset,
     IN uint64_t length,
+    OUT uint64_t *bytes_written,
     OUT nfs41_write_verf *writeverf,
     OUT nfs41_file_info *cinfo)
 {
@@ -205,13 +206,7 @@ int nfs42_copy(
 
     nfs41_superblock_space_changed(dst_file->fh.superblock);
 
-    if (copy_res.u.resok4.response.count != length) {
-        DPRINTF(0,
-            ("nfs42_copy: "
-            "copy_res.u.resok4.response.count(=%lld) < length(=%lld)\n",
-            (long long)copy_res.u.resok4.response.count, (long long)length));
-        status = ERROR_NET_WRITE_FAULT;
-    }
+    *bytes_written = copy_res.u.resok4.response.count;
 
 out:
     return status;
