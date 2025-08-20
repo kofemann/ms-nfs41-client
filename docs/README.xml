@@ -142,6 +142,27 @@
         </para>
       </listitem>
       <listitem>
+        <para>Data copy offload (server-side copy)
+          <itemizedlist>
+            <listitem>
+              <para>Implemented via Win32 <literal>|FSCTL_OFFLOAD_READ|</literal>+<literal>|FSCTL_OFFLOAD_WRITE|</literal> to copy data blocks directly on the server.</para>
+            </listitem>
+            <listitem>
+              <para>Requires NFSv4.2 server which supports the NFSv4.2 operations "COPY", "DEALLOCATE", "SEEK"</para>
+            </listitem>
+            <listitem>
+              <para>Sparse files are correctly copied including all hole and data ranges</para>
+            </listitem>
+            <listitem>
+              <para>Windows 10 <literal>|CopyFile2()|</literal> API uses <literal>|FSCTL_OFFLOAD_READ|</literal>+<literal>|FSCTL_OFFLOAD_WRITE|</literal> by default</para>
+            </listitem>
+            <listitem>
+              <para>Windows 10 tools like xcopy.exe (on Windows 11 requires <literal>/NOCLONE</literal>, otherwise block cloning is the default), robocopy etc. all use <literal>|CopyFile2()|</literal>, and therefore server-side copies by default</para>
+            </listitem>
+          </itemizedlist>
+        </para>
+      </listitem>
+      <listitem>
         <para>Block cloning support
           <itemizedlist>
             <listitem>

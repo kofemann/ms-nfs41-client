@@ -131,6 +131,8 @@ PRDBSS_DEVICE_OBJECT nfs41_dev;
 KEVENT upcallEvent;
 FAST_MUTEX upcallLock, downcallLock, fcblistLock;
 FAST_MUTEX openOwnerLock;
+FAST_MUTEX offloadcontextLock;
+nfs41_offloadcontext_list offloadcontext_list;
 
 LONGLONG xid = 0;
 LONG open_owner_id = 1;
@@ -772,6 +774,7 @@ NTSTATUS nfs41_DeallocateForFobx(
     __notnull PNFS41_FOBX nfs41_fobx = NFS41GetFobxExtension(pFobx);
 
     nfs41_invalidate_fobx_entry(pFobx);
+    nfs41_remove_offloadcontext_for_fobx(pFobx);
 
     if (nfs41_fobx->acl) {
         RxFreePool(nfs41_fobx->acl);
@@ -1396,9 +1399,11 @@ NTSTATUS DriverEntry(
     ExInitializeFastMutex(&downcallLock);
     ExInitializeFastMutex(&openOwnerLock);
     ExInitializeFastMutex(&fcblistLock);
+    ExInitializeFastMutex(&offloadcontextLock);
     InitializeListHead(&upcall.head);
     InitializeListHead(&downcall.head);
     InitializeListHead(&openlist.head);
+    InitializeListHead(&offloadcontext_list.head);
 #ifdef USE_LOOKASIDELISTS_FOR_UPDOWNCALLENTRY_MEM
     /*
      * The |Depth| parameter is unfortunately ignored in Win10,

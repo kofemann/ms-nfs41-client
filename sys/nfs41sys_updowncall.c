@@ -321,6 +321,7 @@ NTSTATUS handle_upcall(
             pbOut, cbOut, len);
         break;
     case NFS41_SYSOP_FSCTL_DUPLICATE_DATA:
+    case NFS41_SYSOP_FSCTL_OFFLOAD_DATACOPY:
         status = marshal_nfs41_duplicatedata(entry,
             pbOut, cbOut, len);
         break;
@@ -785,6 +786,7 @@ NTSTATUS nfs41_downcall(
             unmarshal_nfs41_setzerodata(cur, &buf);
             break;
         case NFS41_SYSOP_FSCTL_DUPLICATE_DATA:
+        case NFS41_SYSOP_FSCTL_OFFLOAD_DATACOPY:
             unmarshal_nfs41_duplicatedata(cur, &buf);
             break;
         }

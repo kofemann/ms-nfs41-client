@@ -507,6 +507,12 @@ typedef struct _nfs41_fcb_list {
 } nfs41_fcb_list;
 nfs41_fcb_list openlist;
 
+typedef struct _nfs41_offloadcontext_list {
+    LIST_ENTRY head;
+} nfs41_offloadcontext_list;
+extern nfs41_offloadcontext_list offloadcontext_list;
+extern FAST_MUTEX offloadcontextLock;
+
 typedef enum _NULMRX_STORAGE_TYPE_CODES {
     NTC_NFS41_DEVICE_EXTENSION      =   (NODE_TYPE_CODE)0xFC00,
 } NFS41_STORAGE_TYPE_CODES;
@@ -685,6 +691,8 @@ NTSTATUS marshal_nfs41_duplicatedata(
 NTSTATUS unmarshal_nfs41_duplicatedata(
     nfs41_updowncall_entry *cur,
     unsigned char **buf);
+void nfs41_remove_offloadcontext_for_fobx(
+    IN PMRX_FOBX pFobx);
 
 /* nfs41sys_ioctl.c */
 NTSTATUS nfs41_IoCtl(

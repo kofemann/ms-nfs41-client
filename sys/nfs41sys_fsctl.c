@@ -56,7 +56,7 @@
 #include <rx.h>
 #include <windef.h>
 #include <winerror.h>
-
+#include <ntddstor.h>
 #include <Ntstrsafe.h>
 
 #include "nfs41sys_buildconfig.h"
@@ -863,6 +863,437 @@ NTSTATUS unmarshal_nfs41_duplicatedata(
     return status;
 }
 
+/*
+ * |offloadcontext_entry| - context to store |FSCTL_OFFLOAD_READ| token
+ * information
+ *
+ * * Notes:
+ * - These are stored in a global list, as |FSCTL_OFFLOAD_READ|+
+ * |FSCTL_OFFLOAD_WRITE| is intended to work for intra-server and
+ * inter-server copies, so |FSCTL_OFFLOAD_READ| might be done on one
+ * filesystem but |FSCTL_OFFLOAD_WRITE| might be done on a different
+ * one
+ *
+ * * FIXME:
+ * - Is it legal if one user passes a token to another user, or
+ * should this be prevented ?
+ * - |offloadcontext_entry| lifetime is unkown. Right now we create
+ * it via |FSCTL_OFFLOAD_READ| and remove it when the matching file gets
+ * closed, but we ignore |FSCTL_OFFLOAD_READ_INPUT.TokenTimeToLive|
+ */
+typedef struct _offloadcontext_entry
+{
+    LIST_ENTRY              next;
+    /*
+     * r/w lock - shared access for |FSCTL_OFFLOAD_WRITE|, so one token can
+     * be used for multiple parallel writes, exclusive access for file delete
+     * (i.e. wait until all shared access before deleting the context)
+     */
+    ERESOURCE               resource;
+    STORAGE_OFFLOAD_TOKEN   token;
+    PNFS41_FOBX             src_fobx;
+    ULONGLONG               src_fileoffset;
+    ULONGLONG               src_length;
+} offloadcontext_entry;
+
+
+void nfs41_remove_offloadcontext_for_fobx(
+    IN PMRX_FOBX pFobx)
+{
+    PLIST_ENTRY pEntry;
+    offloadcontext_entry *cur, *found = NULL;
+    __notnull PNFS41_FOBX nfs41_fobx = NFS41GetFobxExtension(pFobx);
+
+    ExAcquireFastMutexUnsafe(&offloadcontextLock);
+
+    pEntry = offloadcontext_list.head.Flink;
+    while (!IsListEmpty(&offloadcontext_list.head)) {
+        cur = (offloadcontext_entry *)CONTAINING_RECORD(pEntry,
+            offloadcontext_entry, next);
+        if (cur->src_fobx == nfs41_fobx) {
+            found = cur;
+            break;
+        }
+        if (pEntry->Flink == &offloadcontext_list.head) {
+            break;
+        }
+        pEntry = pEntry->Flink;
+    }
+
+    if (found) {
+        DbgP("nfs41_remove_offloadcontext(pFobx=0x%p): "
+            "removing found=0x%p\n",
+            pFobx,
+            found);
+
+        /* Wait for any shared access in |nfs41_OffloadWrite()| to finish */
+        (void)ExAcquireResourceExclusiveLite(&found->resource, TRUE);
+        ExReleaseResourceLite(&found->resource);
+
+        RemoveEntryList(&found->next);
+
+        (void)ExDeleteResourceLite(&found->resource);
+        RxFreePool(found);
+    }
+    else {
+        DbgP("nfs41_remove_offloadcontext(pFobx=0x%p): Nothing found.\n",
+            pFobx);
+    }
+
+    ExReleaseFastMutexUnsafe(&offloadcontextLock);
+}
+
+static
+offloadcontext_entry *nfs41_find_offloadcontext_acquireshared(
+    IN offloadcontext_entry *unvalidated_oce)
+{
+    PLIST_ENTRY pEntry;
+    offloadcontext_entry *cur, *found = NULL;
+
+    ExAcquireFastMutexUnsafe(&offloadcontextLock);
+
+    pEntry = offloadcontext_list.head.Flink;
+    while (!IsListEmpty(&offloadcontext_list.head)) {
+        cur = (offloadcontext_entry *)CONTAINING_RECORD(pEntry,
+            offloadcontext_entry, next);
+        if (cur == unvalidated_oce) {
+            found = cur;
+            break;
+        }
+        if (pEntry->Flink == &offloadcontext_list.head) {
+            break;
+        }
+        pEntry = pEntry->Flink;
+    }
+
+    if (found) {
+        DbgP("nfs41_find_offloadcontext_acquireshared(unvalidated_oce=0x%p): "
+            "found=0x%p\n",
+            unvalidated_oce);
+
+        (void)ExAcquireSharedStarveExclusive(&found->resource, TRUE);
+        ExReleaseFastMutexUnsafe(&offloadcontextLock);
+        return found;
+    }
+    else {
+        DbgP("nfs41_find_offloadcontext_acquireshared(unvalidated_oce=0x%p): "
+            "Nothing found.\n",
+            unvalidated_oce);
+        ExReleaseFastMutexUnsafe(&offloadcontextLock);
+        return NULL;
+    }
+}
+
+static
+NTSTATUS nfs41_OffloadRead(
+    IN OUT PRX_CONTEXT RxContext)
+{
+    NTSTATUS status = STATUS_INVALID_DEVICE_REQUEST;
+    __notnull XXCTL_LOWIO_COMPONENT *FsCtl =
+        &RxContext->LowIoContext.ParamsFor.FsCtl;
+    __notnull PNFS41_FOBX nfs41_fobx = NFS41GetFobxExtension(RxContext->pFobx);
+
+    DbgEn();
+
+    RxContext->IoStatusBlock.Information = 0;
+
+    if (FsCtl->pInputBuffer == NULL) {
+        status = STATUS_INVALID_USER_BUFFER;
+        goto out;
+    }
+
+    if (FsCtl->pOutputBuffer == NULL) {
+        status = STATUS_INVALID_USER_BUFFER;
+        goto out;
+    }
+
+    if (FsCtl->InputBufferLength < sizeof(FSCTL_OFFLOAD_READ_INPUT)) {
+        DbgP("nfs41_OffloadRead: "
+            "buffer too small for FSCTL_OFFLOAD_READ_INPUT\n");
+        status = STATUS_BUFFER_TOO_SMALL;
+        goto out;
+    }
+    if (FsCtl->OutputBufferLength < sizeof(FSCTL_OFFLOAD_READ_OUTPUT)) {
+        DbgP("nfs41_OffloadRead: "
+            "buffer too small for FSCTL_OFFLOAD_READ_OUTPUT\n");
+        status = STATUS_BUFFER_TOO_SMALL;
+        goto out;
+    }
+
+    PFSCTL_OFFLOAD_READ_INPUT ori =
+        (PFSCTL_OFFLOAD_READ_INPUT)FsCtl->pInputBuffer;
+    PFSCTL_OFFLOAD_READ_OUTPUT oro =
+        (PFSCTL_OFFLOAD_READ_OUTPUT)FsCtl->pOutputBuffer;
+
+    DbgP("nfs41_OffloadRead: "
+        "ori->(Size=%lu, Flags=0x%lx, TokenTimeToLive=%lu, Reserved=%lu, "
+        "FileOffset=%llu, CopyLength=%llu)\n",
+        (unsigned long)ori->Size,
+        (unsigned long)ori->Flags,
+        (unsigned long)ori->TokenTimeToLive,
+        (unsigned long)ori->Reserved,
+        (unsigned long long)ori->FileOffset,
+        (unsigned long long)ori->CopyLength);
+
+    offloadcontext_entry *oce = RxAllocatePoolWithTag(NonPagedPoolNx,
+        sizeof(offloadcontext_entry), NFS41_MM_POOLTAG);
+    if (oce == NULL) {
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto out;
+    }
+
+    DbgP("nfs41_OffloadRead: oce=0x%p\n", oce);
+
+    (void)ExInitializeResourceLite(&oce->resource);
+
+    (void)memset(&oce->token, 0, sizeof(oce->token));
+    /* Add safeguard to |TokenType| */
+    oce->token.TokenType[0] = 'N';
+    oce->token.TokenType[1] = 'F';
+    oce->token.TokenType[2] = 'S';
+    oce->token.TokenType[3] = '4';
+    /* FIXME: What about the endianness of |TokenIdLength| ? */
+    *((USHORT *)(&oce->token.TokenIdLength[0])) =
+        STORAGE_OFFLOAD_TOKEN_ID_LENGTH;
+    *((void **)(&oce->token.Token[0])) = oce;
+    oce->src_fobx = nfs41_fobx;
+    oce->src_fileoffset = ori->FileOffset;
+    oce->src_length = ori->CopyLength;
+
+    oro->Size = sizeof(FSCTL_OFFLOAD_READ_OUTPUT);
+    oro->Flags = 0;
+    oro->TransferLength = ori->CopyLength;
+    (void)memcpy(&oro->Token[0], &oce->token, sizeof(oce->token));
+
+    nfs41_AddEntry(offloadcontextLock, offloadcontext_list, oce);
+
+    RxContext->CurrentIrp->IoStatus.Status = status = STATUS_SUCCESS;
+    RxContext->InformationToReturn = sizeof(FSCTL_OFFLOAD_READ_OUTPUT);
+
+out:
+    DbgEx();
+    return status;
+}
+
+static
+NTSTATUS check_nfs41_offload_write_args(
+    PRX_CONTEXT RxContext)
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    __notnull PMRX_SRV_OPEN SrvOpen = RxContext->pRelevantSrvOpen;
+    __notnull PNFS41_V_NET_ROOT_EXTENSION VNetRootContext =
+        NFS41GetVNetRootExtension(SrvOpen->pVNetRoot);
+
+    /* access checks */
+    if (VNetRootContext->read_only) {
+        status = STATUS_MEDIA_WRITE_PROTECTED;
+        goto out;
+    }
+    if (!(SrvOpen->DesiredAccess &
+        (FILE_WRITE_DATA|FILE_WRITE_ATTRIBUTES))) {
+        status = STATUS_ACCESS_DENIED;
+        goto out;
+    }
+
+out:
+    return status;
+}
+
+static
+NTSTATUS nfs41_OffloadWrite(
+    IN OUT PRX_CONTEXT RxContext)
+{
+    NTSTATUS status = STATUS_INVALID_DEVICE_REQUEST;
+    nfs41_updowncall_entry *entry = NULL;
+    __notnull PMRX_SRV_OPEN SrvOpen = RxContext->pRelevantSrvOpen;
+    __notnull PNFS41_V_NET_ROOT_EXTENSION pVNetRootContext =
+        NFS41GetVNetRootExtension(SrvOpen->pVNetRoot);
+    __notnull PNFS41_NETROOT_EXTENSION pNetRootContext =
+        NFS41GetNetRootExtension(SrvOpen->pVNetRoot->pNetRoot);
+    __notnull XXCTL_LOWIO_COMPONENT *FsCtl =
+        &RxContext->LowIoContext.ParamsFor.FsCtl;
+    __notnull PNFS41_FOBX nfs41_fobx = NFS41GetFobxExtension(RxContext->pFobx);
+    offloadcontext_entry *src_oce = NULL;
+
+    struct {
+        LONGLONG    srcfileoffset;
+        LONGLONG    destfileoffset;
+        LONGLONG    bytecount;
+    } dd;
+
+    DbgEn();
+
+    LONGLONG io_delay;
+    RxContext->IoStatusBlock.Information = 0;
+
+    status = check_nfs41_offload_write_args(RxContext);
+    if (status)
+        goto out;
+
+    if (FsCtl->pInputBuffer == NULL) {
+        status = STATUS_INVALID_USER_BUFFER;
+        goto out;
+    }
+    if (FsCtl->pOutputBuffer == NULL) {
+        status = STATUS_INVALID_USER_BUFFER;
+        goto out;
+    }
+    if (FsCtl->InputBufferLength < sizeof(FSCTL_OFFLOAD_WRITE_INPUT)) {
+        DbgP("nfs41_OffloadWrite: "
+            "buffer too small for FSCTL_OFFLOAD_WRITE_INPUT\n");
+        status = STATUS_BUFFER_TOO_SMALL;
+        goto out;
+    }
+    if (FsCtl->OutputBufferLength < sizeof(FSCTL_OFFLOAD_WRITE_OUTPUT)) {
+        DbgP("nfs41_OffloadWrite: "
+            "buffer too small for FSCTL_OFFLOAD_WRITE_OUTPUT\n");
+        status = STATUS_BUFFER_TOO_SMALL;
+        goto out;
+    }
+
+    PFSCTL_OFFLOAD_WRITE_INPUT owi =
+        (PFSCTL_OFFLOAD_WRITE_INPUT)FsCtl->pInputBuffer;
+    PFSCTL_OFFLOAD_WRITE_OUTPUT owo =
+        (PFSCTL_OFFLOAD_WRITE_OUTPUT)FsCtl->pOutputBuffer;
+
+    offloadcontext_entry *unvalidated_src_oce;
+
+    /*
+     * Peel |offloadcontext_entry| pointer from token...
+     */
+    unvalidated_src_oce =
+        *((void **)(&(((STORAGE_OFFLOAD_TOKEN *)(&owi->Token[0]))->Token[0])));
+    DbgP("nfs41_OffloadWrite: "
+        "unvalidated_src_oce=0x%p\n", unvalidated_src_oce);
+
+    /*
+     * ... and validate it (and take a shared lock if validation was
+     * successful, so nobody can delete the context while we use it)!
+     */
+    src_oce = nfs41_find_offloadcontext_acquireshared(unvalidated_src_oce);
+    if (src_oce == NULL) {
+        DbgP("nfs41_OffloadWrite: "
+            "nfs41_find_offloadcontext_acquireshared() failed\n");
+        status = STATUS_INVALID_PARAMETER;
+        goto out;
+    }
+
+    DbgP("nfs41_OffloadWrite: src_oce=0x%p\n", src_oce);
+
+    /* Check safeguard... */
+    if ((src_oce->token.TokenType[0] != 'N') ||
+        (src_oce->token.TokenType[1] != 'F') ||
+        (src_oce->token.TokenType[2] != 'S') ||
+        (src_oce->token.TokenType[3] != '4')) {
+        DbgP("nfs41_OffloadWrite: "
+            "token in src_oce=0x%p not a 'NFS4' token\n",
+            src_oce);
+        status = STATUS_INVALID_PARAMETER;
+        goto out;
+    }
+
+    /*
+     * FIXME: We should validate the length passed as
+     * |FSCTL_OFFLOAD_READ_INPUT.CopyLength| here better, because it is
+     * also used as some kind of access control to different parts of a
+     * file
+     */
+    dd.srcfileoffset    = src_oce->src_fileoffset + owi->TransferOffset;
+    dd.destfileoffset   = owi->FileOffset;
+    dd.bytecount        = owi->CopyLength;
+
+    DbgP("nfs41_OffloadWrite: "
+        "dd=(srcfileoffset=%lld,"
+        "destfileoffset=%lld,"
+        "bytecount=%lld)\n",
+        (long long)dd.srcfileoffset,
+        (long long)dd.destfileoffset,
+        (long long)dd.bytecount);
+
+    if (dd.bytecount == 0LL) {
+        status = STATUS_SUCCESS;
+        goto out;
+    }
+
+    PNFS41_FOBX nfs41_src_fobx = src_oce->src_fobx;
+    if (!nfs41_src_fobx) {
+        DbgP("nfs41_OffloadWrite: No nfs41_src_fobx\n");
+        status = STATUS_INVALID_PARAMETER;
+        goto out;
+    }
+
+    /*
+     * Disable caching because NFSv4.2 COPY is basically a
+     * "write" operation. AFAIK we should flush the cache and wait
+     * for the kernel lazy writer (which |RxChangeBufferingState()|
+     * AFAIK does) before doing the COPY, to avoid that we
+     * have outstanding writes in the kernel cache at the same
+     * location where the COPY should do it's work
+     */
+    ULONG flag = DISABLE_CACHING;
+    DbgP("nfs41_OffloadWrite: disableing caching for file '%wZ'\n",
+        SrvOpen->pAlreadyPrefixedName);
+    RxChangeBufferingState((PSRV_OPEN)SrvOpen, ULongToPtr(flag), 1);
+
+    status = nfs41_UpcallCreate(NFS41_SYSOP_FSCTL_OFFLOAD_DATACOPY,
+        &nfs41_fobx->sec_ctx,
+        pVNetRootContext->session,
+        nfs41_fobx->nfs41_open_state,
+        pNetRootContext->nfs41d_version,
+        SrvOpen->pAlreadyPrefixedName,
+        &entry);
+
+    if (status)
+        goto out;
+
+    entry->u.DuplicateData.src_state = nfs41_src_fobx->nfs41_open_state;
+    entry->u.DuplicateData.srcfileoffset = dd.srcfileoffset;
+    entry->u.DuplicateData.destfileoffset = dd.destfileoffset;
+    entry->u.DuplicateData.bytecount = dd.bytecount;
+
+    /* Add extra timeout depending on file size */
+    io_delay = pVNetRootContext->timeout +
+        EXTRA_TIMEOUT_PER_BYTE(entry->u.DuplicateData.bytecount);
+
+    status = nfs41_UpcallWaitForReply(entry, io_delay);
+    if (status) {
+        /* Timeout - |nfs41_downcall()| will free |entry|+contents */
+        entry = NULL;
+        goto out;
+    }
+
+    if (!entry->status) {
+        DbgP("nfs41_OffloadWrite: SUCCESS\n");
+
+        owo->Size = sizeof(FSCTL_OFFLOAD_READ_OUTPUT);
+        owo->Flags = 0;
+        owo->LengthWritten = dd.bytecount;
+
+        RxContext->CurrentIrp->IoStatus.Status = status = STATUS_SUCCESS;
+        RxContext->InformationToReturn = sizeof(FSCTL_OFFLOAD_READ_OUTPUT);
+    }
+    else {
+        DbgP("nfs41_OffloadWrite: "
+            "FAILURE, entry->status=0x%lx\n", entry->status);
+        status = map_setfile_error(entry->status);
+        RxContext->CurrentIrp->IoStatus.Status = status;
+        RxContext->IoStatusBlock.Information = 0;
+    }
+
+out:
+    if (src_oce) {
+        /* Release resource we obtained in shared mode */
+        ExReleaseResourceLite(&src_oce->resource);
+    }
+
+    if (entry) {
+        nfs41_UpcallDestroy(entry);
+    }
+
+    DbgEx();
+    return status;
+}
+
 NTSTATUS nfs41_FsCtl(
     IN OUT PRX_CONTEXT RxContext)
 {
@@ -894,6 +1325,12 @@ NTSTATUS nfs41_FsCtl(
         break;
     case FSCTL_DUPLICATE_EXTENTS_TO_FILE:
         status = nfs41_DuplicateData(RxContext);
+        break;
+    case FSCTL_OFFLOAD_READ:
+        status = nfs41_OffloadRead(RxContext);
+        break;
+    case FSCTL_OFFLOAD_WRITE:
+        status = nfs41_OffloadWrite(RxContext);
         break;
     default:
         break;

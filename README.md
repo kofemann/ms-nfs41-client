@@ -139,6 +139,23 @@ NFSv4.2/NFSv4.1 filesystem driver for Windows 10/11 & Windows Server
     sparse files. Requires on Win11 \>= 22H2 because it relies on
     `|CopyFile2()|` flag `|COPY_FILE_ENABLE_SPARSE_COPY|`.
 
+- Data copy offload (server-side copy)
+
+  - Implemented via Win32 `|FSCTL_OFFLOAD_READ|`+`|FSCTL_OFFLOAD_WRITE|`
+    to copy data blocks directly on the server.
+
+  - Requires NFSv4.2 server which supports the NFSv4.2 operations
+    "COPY", "DEALLOCATE", "SEEK"
+
+  - Sparse files are correctly copied including all hole and data ranges
+
+  - Windows 10 `|CopyFile2()|` API uses
+    `|FSCTL_OFFLOAD_READ|`+`|FSCTL_OFFLOAD_WRITE|` by default
+
+  - Windows 10 tools like xcopy.exe (on Windows 11 requires `/NOCLONE`,
+    otherwise block cloning is the default), robocopy etc. all use
+    `|CopyFile2()|`, and therefore server-side copies by default
+
 - Block cloning support
 
   - Implemented via Win32 `|FSCTL_DUPLICATE_EXTENTS_TO_FILE|` to clone

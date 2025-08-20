@@ -27,9 +27,6 @@
 #include "daemon_debug.h"
 #include "util.h"
 
-/* Testing only: Use NFS COPY instead of NFS CLONE */
-// #define DUP_DATA_USE_NFSCOPY 1
-
 #define QARLVL 2 /* dprintf level for "query allocated ranges" logging */
 #define SZDLVL 2 /* dprintf level for "set zero data" logging */
 #define DDLVL  2 /* dprintf level for "duplicate data" logging */
@@ -470,7 +467,8 @@ out:
 }
 
 static
-int duplicate_sparsefile(nfs41_open_state *src_state,
+int duplicate_sparsefile(nfs41_opcodes opcode,
+    nfs41_open_state *src_state,
     nfs41_open_state *dst_state,
     uint64_t srcfileoffset,
     uint64_t destfileoffset,
@@ -498,7 +496,8 @@ int duplicate_sparsefile(nfs41_open_state *src_state,
     (void)memset(info, 0, sizeof(*info));
 
     DPRINTF(DDLVL,
-        ("--> duplicate_sparsefile(src_state->path.path='%s')\n",
+        ("--> duplicate_sparsefile(opcode='%s',src_state->path.path='%s')\n",
+        opcode2string(opcode),
         src_state->path.path));
 
     nfs41_open_stateid_arg(src_state, &src_stateid);
@@ -518,9 +517,11 @@ int duplicate_sparsefile(nfs41_open_state *src_state,
     if (status) {
         DPRINTF(0/*DDLVL*/,
             ("duplicate_sparsefile("
+            "opcode='%s',"
             "src_state->path.path='%s' "
             "dst_state->path.path='%s'): "
             "DEALLOCATE failed with '%s'\n",
+            opcode2string(opcode),
             src_state->path.path,
             dst_state->path.path,
             nfs_error_string(status)));
@@ -594,62 +595,60 @@ int duplicate_sparsefile(nfs41_open_state *src_state,
             (int)data_seek_sr_eof,
             (int)hole_seek_sr_eof));
 
-#ifdef DUP_DATA_USE_NFSCOPY
-        uint64_t bytes_written;
-        uint64_t bytestowrite = data_size;
-        uint64_t writeoffset = 0ULL;
+        if (opcode == NFS41_SYSOP_FSCTL_OFFLOAD_DATACOPY) {
+            uint64_t bytes_written;
+            uint64_t bytestowrite = data_size;
+            uint64_t writeoffset = 0ULL;
 
-        do
-        {
-            nfs41_write_verf verf;
-            bytes_written = 0ULL;
+            do
+            {
+                nfs41_write_verf verf;
+                bytes_written = 0ULL;
 
-            status = nfs42_copy(session,
+                status = nfs42_copy(session,
+                    src_file,
+                    dst_file,
+                    &src_stateid,
+                    &dst_stateid,
+                    (data_seek_sr_offset + writeoffset),
+                    (destfileoffset + (data_seek_sr_offset-srcfileoffset) + writeoffset),
+                    bytestowrite,
+                    &bytes_written,
+                    &verf,
+                    info);
+                if (status)
+                    break;
+
+                bytestowrite -= bytes_written;
+                writeoffset += bytes_written;
+                /* FIXME: What should we do with |verf| ? Should we COMMIT this ? */
+            } while (bytestowrite > 0ULL);
+        }
+        else if (opcode == NFS41_SYSOP_FSCTL_DUPLICATE_DATA) {
+            status = nfs42_clone(session,
                 src_file,
                 dst_file,
                 &src_stateid,
                 &dst_stateid,
-                (data_seek_sr_offset + writeoffset),
-                (destfileoffset + (data_seek_sr_offset-srcfileoffset) +
-                    writeoffset),
-                bytestowrite,
-                &bytes_written,
-                &verf,
+                data_seek_sr_offset,
+                destfileoffset + (data_seek_sr_offset-srcfileoffset),
+                data_size,
                 info);
-            if (status)
-                break;
+        }
+        else {
+            EASSERT(0);
+        }
 
-            bytestowrite -= bytes_written;
-            writeoffset += bytes_written;
-            /* FIXME: What should we do with |verf| ? Should we COMMIT this ? */
-        } while (bytestowrite > 0ULL);
-#else
-        status = nfs42_clone(session,
-            src_file,
-            dst_file,
-            &src_stateid,
-            &dst_stateid,
-            data_seek_sr_offset,
-            destfileoffset + (data_seek_sr_offset-srcfileoffset),
-            data_size,
-            info);
-#endif /* DUP_DATA_USE_NFSCOPY */
         if (status) {
-            const char dup_op_name[] =
-#ifdef DUP_DATA_USE_NFSCOPY
-                "COPY";
-#else
-                "CLONE";
-#endif /* DUP_DATA_USE_NFSCOPY */
-
             DPRINTF(0/*DDLVL*/,
                 ("duplicate_sparsefile("
+                "opcode='%s',"
                 "src_state->path.path='%s' "
                 "dst_state->path.path='%s'): "
-                "'%s' failed with '%s'\n",
+                "failed with '%s'\n",
+                opcode2string(opcode),
                 src_state->path.path,
                 dst_state->path.path,
-                dup_op_name,
                 nfs_error_string(status)));
             status = nfs_to_windows_error(status, ERROR_BAD_NET_RESP);
             goto out;
@@ -704,25 +703,35 @@ int handle_duplicatedata(void *daemon_context,
             dst_state->path.path,
             src_state->path.path));
 
-    /* NFS SEEK supported ? */
-    if (src_session->client->root->supports_nfs42_seek == false) {
-        status = ERROR_NOT_SUPPORTED;
-        goto out;
+    /*
+     * Check whether we support the required NFS operations...
+     */
+    if (upcall->opcode == NFS41_SYSOP_FSCTL_OFFLOAD_DATACOPY) {
+        if ((src_session->client->root->supports_nfs42_seek == false) ||
+            (src_session->client->root->supports_nfs42_copy == false) ||
+            (src_session->client->root->supports_nfs42_deallocate == false)) {
+            status = ERROR_NOT_SUPPORTED;
+            goto out;
+        }
     }
-    /* NFS CLONE supported ? */
-    if (
-#ifdef DUP_DATA_USE_NFSCOPY
-        src_session->client->root->supports_nfs42_copy == false
-#else
-        src_session->client->root->supports_nfs42_clone == false
-#endif /* DUP_DATA_USE_NFSCOPY */
-        ) {
-        status = ERROR_NOT_SUPPORTED;
-        goto out;
+    else if (upcall->opcode == NFS41_SYSOP_FSCTL_DUPLICATE_DATA) {
+        if ((src_session->client->root->supports_nfs42_seek == false) ||
+            (src_session->client->root->supports_nfs42_clone == false) ||
+            (src_session->client->root->supports_nfs42_deallocate == false)) {
+            status = ERROR_NOT_SUPPORTED;
+            goto out;
+        }
     }
-    /* NFS DEALLOCATE supported ? */
-    if (src_session->client->root->supports_nfs42_deallocate == false) {
-        status = ERROR_NOT_SUPPORTED;
+    else {
+        status = ERROR_INVALID_PARAMETER;
+        eprintf("duplicate_sparsefile("
+            "opcode='%s',"
+            "src_state->path.path='%s' "
+            "dst_state->path.path='%s'): "
+            "Unknown opcode.\n",
+            opcode2string(upcall->opcode),
+            src_state->path.path,
+            dst_state->path.path);
         goto out;
     }
 
@@ -853,7 +862,8 @@ int handle_duplicatedata(void *daemon_context,
 
     (void)memset(&info, 0, sizeof(info));
 
-    status = duplicate_sparsefile(src_state,
+    status = duplicate_sparsefile(upcall->opcode,
+        src_state,
         dst_state,
         args->srcfileoffset,
         args->destfileoffset,
@@ -890,6 +900,13 @@ static int marshall_duplicatedata(unsigned char *buffer,
 }
 
 const nfs41_upcall_op nfs41_op_duplicatedata = {
+    .parse = parse_duplicatedata,
+    .handle = handle_duplicatedata,
+    .marshall = marshall_duplicatedata,
+    .arg_size = sizeof(duplicatedata_upcall_args)
+};
+
+const nfs41_upcall_op nfs41_op_offload_datacopy = {
     .parse = parse_duplicatedata,
     .handle = handle_duplicatedata,
     .marshall = marshall_duplicatedata,
