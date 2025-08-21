@@ -187,7 +187,9 @@ function multisparsefiletest1
             'sparsefile2.bin' \
             'sparsefile2_cpsparse.bin' \
             'sparsefile2_cloned_full.bin' \
-            'sparsefile2_cloned_1mbchunks.bin'
+            'sparsefile2_cloned_1mbchunks.bin' \
+            'sparsefile2_offloadcopy_full.bin' \
+            'sparsefile2_offloadcopy_1mbchunks.bin'
         c.testlabel=''
 
         if (( c.i == 0 )) ; then
@@ -230,6 +232,10 @@ function multisparsefiletest1
                     'cloned_1mbchunks_64bit'
                     'cloned_full_32bit'
                     'cloned_1mbchunks_32bit'
+                    'offloadcopy_full_64bit'
+                    'offloadcopy_1mbchunks_64bit'
+                    'offloadcopy_full_32bit'
+                    'offloadcopy_1mbchunks_32bit'
                 )
                 ;;
             '32')
@@ -238,6 +244,8 @@ function multisparsefiletest1
                     'cp_sparseauto'
                     'cloned_full'
                     'cloned_1mbchunks'
+                    'offloadcopy_full'
+                    'offloadcopy_1mbchunks'
                 )
                 ;;
             *)
@@ -251,8 +259,10 @@ function multisparsefiletest1
 
             if [[ "${tstmod}" == *32bit ]] ; then
                 winclonefilecmd='winclonefile.i686.exe'
+                winoffloadcopyfilecmd='winoffloadcopyfile.i686.exe'
             else
                 winclonefilecmd='winclonefile.exe'
+                winoffloadcopyfilecmd='winoffloadcopyfile.exe'
             fi
 
             case "${tstmod}" in
@@ -280,6 +290,29 @@ function multisparsefiletest1
                             'sparsefile2.bin' \
                             'sparsefile2_cloned_1mbchunks.bin' 1>'/dev/null'
                         c.stdout="$(lssparse -H 'sparsefile2_cloned_1mbchunks.bin')"
+                    else
+                        printf "# Test '%s' SKIPPED\n" "${c.testlabel}/${tstmod}"
+                        (( tests_skipped++ ))
+                        continue
+                    fi
+                    ;;
+                'offloadcopy_full' | 'offloadcopy_full_64bit' | 'offloadcopy_full_32bit')
+                    if $test_cloning ; then
+                        ${winoffloadcopyfilecmd} 'sparsefile2.bin' 'sparsefile2_offloadcopy_full.bin' 1>'/dev/null'
+                        c.stdout="$(lssparse -H 'sparsefile2_offloadcopy_full.bin')"
+                    else
+                        printf "# Test '%s' SKIPPED\n" "${c.testlabel}/${tstmod}"
+                        (( tests_skipped++ ))
+                        continue
+                    fi
+                    ;;
+                'offloadcopy_1mbchunks' | 'offloadcopy_1mbchunks_64bit' | 'offloadcopy_1mbchunks_32bit')
+                    if $test_cloning ; then
+                        ${winoffloadcopyfilecmd} \
+                            --clonechunksize $((1024*1024)) \
+                            'sparsefile2.bin' \
+                            'sparsefile2_offloadcopy_1mbchunks.bin' 1>'/dev/null'
+                        c.stdout="$(lssparse -H 'sparsefile2_offloadcopy_1mbchunks.bin')"
                     else
                         printf "# Test '%s' SKIPPED\n" "${c.testlabel}/${tstmod}"
                         (( tests_skipped++ ))
@@ -330,6 +363,7 @@ builtin wc
 # - tests for sparse files >= 2GB, 4GB, 16GB
 #
 typeset test_cloning=false
+typeset test_offloadcopy=true
 
 multisparsefiletest1
 

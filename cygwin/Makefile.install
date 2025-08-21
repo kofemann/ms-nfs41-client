@@ -119,6 +119,13 @@ installdest:
 	else \
 		(cd $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/ && $(LINKEXE) winclonefile.i686.exe winclonefile.exe) \
 	fi
+	cp "$(PROJECT_BASEDIR_DIR)/tests/winoffloadcopyfile/winoffloadcopyfile.x86_64.exe" $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/winoffloadcopyfile.x86_64.exe
+	cp "$(PROJECT_BASEDIR_DIR)/tests/winoffloadcopyfile/winoffloadcopyfile.i686.exe" $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/winoffloadcopyfile.i686.exe
+	if [[ "$(CYGWIN_BASEPATH)" == *64* ]] ; then \
+		(cd $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/ && $(LINKEXE) winoffloadcopyfile.x86_64.exe winoffloadcopyfile.exe) \
+	else \
+		(cd $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/ && $(LINKEXE) winoffloadcopyfile.i686.exe winoffloadcopyfile.exe) \
+	fi
 	cp "$(PROJECT_BASEDIR_DIR)/tests/lssparse/lssparse.x86_64.exe" $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/lssparse.x86_64.exe
 	if [[ "$(CYGWIN_BASEPATH)" == *64* ]] ; then \
 		(cd $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/ && $(LINKEXE) lssparse.x86_64.exe lssparse.exe) \
