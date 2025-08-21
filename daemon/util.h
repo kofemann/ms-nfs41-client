@@ -211,6 +211,31 @@ static __inline int nfs41_fsid_cmp(
         return 0;
 }
 
+/*
+ * |nfs41_fsid2VolumeSerialNumber32()| - used for
+ * |FILE_FS_VOLUME_INFORMATION.VolumeSerialNumber|, which is a 32bit |ULONG|
+ */
+static __inline ULONG nfs41_fsid2VolumeSerialNumber32(
+    IN const nfs41_fsid *restrict fsid)
+{
+    ULONG vsn;
+#define XOR_UINT64_WORDS(value) (((value) >> 32UL) ^ ((value) & 0x00000000FFFFFFFF))
+    vsn = (ULONG)(XOR_UINT64_WORDS(fsid->major) ^ XOR_UINT64_WORDS(fsid->minor));
+    return vsn;
+}
+
+/*
+ * |nfs41_fsid2VolumeSerialNumber64()| - used for
+ * |FILE_ID_INFORMATION.VolumeSerialNumber|, which is a 64bit |ULONGLONG|
+ */
+static __inline ULONGLONG nfs41_fsid2VolumeSerialNumber64(
+    IN const nfs41_fsid *restrict fsid)
+{
+    ULONGLONG vsn;
+    vsn = fsid->major ^ fsid->minor;
+    return vsn;
+}
+
 static __inline void open_delegation4_cpy(
     OUT open_delegation4 *restrict dst,
     IN  const open_delegation4 *restrict src)

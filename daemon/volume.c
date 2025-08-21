@@ -123,9 +123,15 @@ static int handle_volume(void *daemon_context, nfs41_upcall *upcall)
     switch (args->query) {
     case FileFsVolumeInformation:
         PFILE_FS_VOLUME_INFORMATION vi = &args->info.volume_info;
+        nfs41_superblock *superblock = upcall->state_ref->file.fh.superblock;
 
         vi->VolumeCreationTime.QuadPart = 0LL;
-        vi->VolumeSerialNumber = 0xBABAFACE;
+        /*
+         * |FILE_FS_VOLUME_INFORMATION.VolumeSerialNumber| is a 32bit |ULONG|
+         */
+        vi->VolumeSerialNumber =
+            nfs41_fsid2VolumeSerialNumber32(&superblock->fsid);
+        EASSERT(vi->VolumeSerialNumber != 0UL);
         vi->SupportsObjects = FALSE;
 
         /*

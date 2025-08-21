@@ -175,8 +175,14 @@ static int handle_getattr(void *daemon_context, nfs41_upcall *upcall)
             &args->remote_protocol_info);
         break;
     case FileIdInformation:
+        nfs41_superblock *superblock = state->file.fh.superblock;
         nfs41_file_info_to_FILE_ID_128(&info, &args->id_info.FileId);
-        args->id_info.VolumeSerialNumber = 0xBABAFACE; /* 64bit! */
+        /*
+         * |FILE_ID_INFORMATION.VolumeSerialNumber| is a 64bit |ULONGLONG|
+         */
+        args->id_info.VolumeSerialNumber =
+            nfs41_fsid2VolumeSerialNumber64(&superblock->fsid);
+        EASSERT(args->id_info.VolumeSerialNumber != 0ULL);
         break;
 #ifdef NFS41_DRIVER_WSL_SUPPORT
     case FileStatInformation:
