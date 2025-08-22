@@ -586,6 +586,7 @@ NTSTATUS check_nfs41_duplicatedata_args(
     __notnull PMRX_SRV_OPEN SrvOpen = RxContext->pRelevantSrvOpen;
     __notnull PNFS41_V_NET_ROOT_EXTENSION VNetRootContext =
         NFS41GetVNetRootExtension(SrvOpen->pVNetRoot);
+    __notnull PNFS41_FCB nfs41_fcb = NFS41GetFcbExtension(RxContext->pFcb);
 
     /* access checks */
     if (VNetRootContext->read_only) {
@@ -595,6 +596,11 @@ NTSTATUS check_nfs41_duplicatedata_args(
     if (!(SrvOpen->DesiredAccess &
         (FILE_WRITE_DATA|FILE_WRITE_ATTRIBUTES))) {
         status = STATUS_ACCESS_DENIED;
+        goto out;
+    }
+
+    if (nfs41_fcb->StandardInfo.Directory) {
+        status = STATUS_FILE_IS_A_DIRECTORY;
         goto out;
     }
 out:
@@ -739,6 +745,12 @@ NTSTATUS nfs41_DuplicateData(
     if (!nfs41_src_fobx) {
         DbgP("nfs41_DuplicateData: No nfs41_src_fobx\n");
         status = STATUS_INVALID_PARAMETER;
+        goto out;
+    }
+
+    if (nfs41_src_fcb->StandardInfo.Directory) {
+        DbgP("nfs41_DuplicateData: src is a dir\n");
+        status = STATUS_FILE_IS_A_DIRECTORY;
         goto out;
     }
 
@@ -991,6 +1003,7 @@ NTSTATUS nfs41_OffloadRead(
     NTSTATUS status = STATUS_INVALID_DEVICE_REQUEST;
     __notnull XXCTL_LOWIO_COMPONENT *FsCtl =
         &RxContext->LowIoContext.ParamsFor.FsCtl;
+    __notnull PNFS41_FCB nfs41_fcb = NFS41GetFcbExtension(RxContext->pFcb);
     __notnull PNFS41_FOBX nfs41_fobx = NFS41GetFobxExtension(RxContext->pFobx);
 
     DbgEn();
@@ -1017,6 +1030,11 @@ NTSTATUS nfs41_OffloadRead(
         DbgP("nfs41_OffloadRead: "
             "buffer too small for FSCTL_OFFLOAD_READ_OUTPUT\n");
         status = STATUS_BUFFER_TOO_SMALL;
+        goto out;
+    }
+
+    if (nfs41_fcb->StandardInfo.Directory) {
+        status = STATUS_FILE_IS_A_DIRECTORY;
         goto out;
     }
 
@@ -1084,6 +1102,7 @@ NTSTATUS check_nfs41_offload_write_args(
     __notnull PMRX_SRV_OPEN SrvOpen = RxContext->pRelevantSrvOpen;
     __notnull PNFS41_V_NET_ROOT_EXTENSION VNetRootContext =
         NFS41GetVNetRootExtension(SrvOpen->pVNetRoot);
+    __notnull PNFS41_FCB nfs41_fcb = NFS41GetFcbExtension(RxContext->pFcb);
 
     /* access checks */
     if (VNetRootContext->read_only) {
@@ -1096,6 +1115,10 @@ NTSTATUS check_nfs41_offload_write_args(
         goto out;
     }
 
+    if (nfs41_fcb->StandardInfo.Directory) {
+        status = STATUS_FILE_IS_A_DIRECTORY;
+        goto out;
+    }
 out:
     return status;
 }
