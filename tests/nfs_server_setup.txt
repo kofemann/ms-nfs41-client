@@ -3,12 +3,6 @@
 #
 
 #
-# TODO:
-# - FreeBSD NFSv4.1 server setup
-#
-
-
-#
 # Debian Linux "Bullseye" NFSv4.2 server setup
 #
 
@@ -178,5 +172,40 @@ chmod A... # to edit ACLs
 ##### 4. Troubleshooting:
 See https://docs.oracle.com/en/operating-systems/solaris/oracle-solaris/11.4/manage-nfs/troubleshooting-network-file-systems1.html
 
+
+#
+# FreeBSD NFSv4.2 server setup
+# (tested with FreeBSD 14.3)
+#
+
+##### 1. Server setup
+
+# Install FreeBSD (14.3) with NTP enabled
+
+# configure NFSv4.2 server with idmapping enabled
+sysrc rpcbind_enable="YES"
+sysrc mountd_enable="YES"
+sysrc nfs_server_enable=YES
+sysrc nfsv4_server_enable=YES
+sysrc nfsuserd_flags="-domain GLOBAL.LOC"
+sysrc nfsuserd_enable=YES
+sysrc nfscbd_enable=YES
+sysctl vfs.nfs.enable_uidtostring=1
+sysctl vfs.nfsd.enable_stringtouid=1
+sysctl vfs.nfsd.issue_delegations=1
+
+mkdir /nfsdata
+chmod a+rwxt /nfsdata
+
+# NFSv4.1 exports must come after the 'V4: /' line,
+# otherwise you get a NFS4ERR_NOFILEHANDLE
+printf 'V4: /\n' >'/etc/exports'
+printf '/nfsdata -network=10.49.202.0 -mask=255.255.255.0  -sec=sys\n' >>'/etc/exports'
+service nfsd start
+
+##### 2. Misc commands:
+pw groupadd group -n None -g 197121
+pw groupadd group -n ced -g 197608
+pw useradd -n ced -u 197608 -g None -G None,ced -m -s /bin/sh
 
 # EOF.
