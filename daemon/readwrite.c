@@ -82,7 +82,11 @@ static int read_from_mds(
             status = nfs42_read_plus(session, file, stateid,
                 args->offset + reloffset, chunk,
                 p, &bytes_read, &eof);
-            if (status == NFS4ERR_IO) {
+            /*
+             * Linux returns |NFS4ERR_IO| if not supported, FreeBSD 14.3
+             * returns |NFS4ERR_NOTSUPP| if not supported
+             */
+            if ((status == NFS4ERR_IO) || (status == NFS4ERR_NOTSUPP)) {
                 DPRINTF(0,
                     ("read_from_mds: "
                     "nfs42_read_plus() failed, error '%s', "
