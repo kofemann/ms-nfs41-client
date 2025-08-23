@@ -297,7 +297,7 @@ function multisparsefiletest1
                     fi
                     ;;
                 'offloadcopy_full' | 'offloadcopy_full_64bit' | 'offloadcopy_full_32bit')
-                    if $test_cloning ; then
+                    if $test_offloadcopy ; then
                         ${winoffloadcopyfilecmd} 'sparsefile2.bin' 'sparsefile2_offloadcopy_full.bin' 1>'/dev/null'
                         c.stdout="$(lssparse -H 'sparsefile2_offloadcopy_full.bin')"
                     else
@@ -307,7 +307,7 @@ function multisparsefiletest1
                     fi
                     ;;
                 'offloadcopy_1mbchunks' | 'offloadcopy_1mbchunks_64bit' | 'offloadcopy_1mbchunks_32bit')
-                    if $test_cloning ; then
+                    if $test_offloadcopy ; then
                         ${winoffloadcopyfilecmd} \
                             --copychunksize $((1024*1024)) \
                             'sparsefile2.bin' \
