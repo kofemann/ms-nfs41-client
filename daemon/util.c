@@ -668,3 +668,103 @@ int nfs41_cached_getchangeattr(nfs41_open_state *state, nfs41_file_info *restric
         &state->file, &change_bitmap, info);
     return status;
 }
+
+static
+bool parse_last_two_numbers(
+    IN const char *restrict str,
+    OUT const char **begin_dot, OUT int *num1, OUT int *num2)
+{
+    const char *last_dot = NULL;
+    const char *second_last_dot = NULL;
+    char *endptr = NULL;
+
+    last_dot = memrchr(str, '.', strlen(str));
+    if (last_dot == NULL) {
+        return false;
+    }
+
+    second_last_dot = memrchr(str, '.', last_dot - str);
+    if (second_last_dot == NULL) {
+        return false;
+    }
+
+    *begin_dot = second_last_dot;
+
+    errno = 0;
+    *num1 = (int)strtol(second_last_dot + 1, &endptr, 10);
+
+    if ((errno == ERANGE) ||
+        (endptr != last_dot) ||
+        (endptr == second_last_dot + 1)) {
+        return false;
+    }
+
+    errno = 0;
+    *num2 = (int)strtol(last_dot + 1, &endptr, 10);
+
+    if ((errno == ERANGE) ||
+        (*endptr != '\0') ||
+        (endptr == last_dot + 1)) {
+        return false;
+    }
+
+    return true;
+}
+
+static
+int count_chars(IN const char *restrict s, IN int ch)
+{
+    int num = 0;
+    unsigned char c;
+
+    while((c = *s++) != '\0') {
+        if (c == (unsigned char)ch)
+            num++;
+    }
+    return num;
+}
+
+int parse_fs_location_server_address(IN const char *restrict inaddr,
+    OUT char *restrict addr,
+    OUT unsigned short *restrict port)
+{
+    /*
+     * See https://datatracker.ietf.org/doc/html/rfc5665#section-5.2.3.3
+     * for IPv4 and
+     * https://datatracker.ietf.org/doc/html/rfc5665#section-5.2.3.4 for
+     * IPv6.
+     */
+    int dot_count = count_chars(inaddr, '.');
+    int colon_count = count_chars(inaddr, ':');
+
+    if (((dot_count == 5) && (colon_count == 0)) ||
+        (colon_count == 7) && (dot_count == 2)) {
+        int num1, num2;
+        const char *begin_dot = NULL;
+        if (parse_last_two_numbers(inaddr, &begin_dot, &num1, &num2)) {
+            size_t len = begin_dot - inaddr;
+            (void)memcpy(addr, inaddr, len);
+            addr[len] = '\0';
+            *port = (unsigned short)((num1 << 8) + num2);
+            DPRINTF(0,
+                ("parse_fs_location_server_address: "
+                "addr='%s' port=%d\n",
+                addr, (unsigned short)*port));
+
+            return NO_ERROR;
+        }
+        else {
+            return ERROR_BAD_NET_NAME;
+        }
+    }
+    else if (((dot_count == 3) && (colon_count == 0)) ||
+        (colon_count == 5) && (dot_count == 0)) {
+        (void)strcpy(addr, inaddr);
+        *port = 2049;
+        return NO_ERROR;
+    }
+
+    eprintf("parse_fs_location_server_address: Unknown format addr='%s'\n",
+        inaddr);
+    return ERROR_BAD_NET_NAME;
+}

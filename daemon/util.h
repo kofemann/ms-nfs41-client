@@ -69,6 +69,24 @@ void *mempcpy(void *restrict dest, const void *restrict src, size_t n)
     return (void *)((char *)dest + n);
 }
 
+static __inline
+void *memrchr(const void * restrict s, int c, size_t n)
+{
+    const unsigned char *cp;
+
+    if (n == 0UL)
+        return NULL;
+
+    cp = (const unsigned char *)s + n;
+    do {
+        if (*(--cp) == (unsigned char)c) {
+            return((void *)cp);
+        }
+    } while (--n != 0UL);
+
+    return NULL;
+}
+
 int safe_read(unsigned char **pos, uint32_t *remaining, void *dest, uint32_t dest_len);
 int safe_write(unsigned char **pos, uint32_t *remaining, void *dest, uint32_t dest_len);
 int get_safe_write_bufferpos(unsigned char **pos, uint32_t *remaining,
@@ -405,5 +423,9 @@ bool_t waitcriticalsection(LPCRITICAL_SECTION cs);
 bool getwinntversionnnumbers(DWORD *MajorVersionPtr, DWORD *MinorVersionPtr, DWORD *BuildNumberPtr);
 
 int nfs41_cached_getchangeattr(nfs41_open_state *state, nfs41_file_info *restrict info);
+
+int parse_fs_location_server_address(IN const char *restrict inaddr,
+    OUT char *restrict addr,
+    OUT unsigned short *restrict port);
 
 #endif /* !__NFS41_DAEMON_UTIL_H__ */

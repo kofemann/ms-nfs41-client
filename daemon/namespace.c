@@ -535,13 +535,19 @@ static int referral_mount_location(
 
     /* create a client and session for the first available server */
     for (i = 0; i < loc->server_count; i++) {
-        DPRINTF(1,
+        char addr[NFS41_HOSTNAME_LEN+1];
+        unsigned short port;
+
+        DPRINTF(0,
             ("referral_mount_location: "
                 "trying loc->servers[%d].address='%s'\n",
                 (int)i, loc->servers[i].address));
 
-        /* XXX: only deals with 'address' as a hostname with default port */
-        status = nfs41_server_resolve(loc->servers[i].address, 2049, &addrs);
+        status = parse_fs_location_server_address(loc->servers[i].address,
+            addr, &port);
+        if (status) continue;
+
+        status = nfs41_server_resolve(addr, port, &addrs);
         if (status) continue;
 
         status = nfs41_root_mount_addrs(root, &addrs, 0, 0, client_out);
