@@ -23,7 +23,8 @@
  */
 
 /*
- * winoffloadcopyfile.c - clone a file
+ * winoffloadcopyfile.c - copy a file with Win32
+ * |FSCTL_OFFLOAD_READ|+|FSCTL_OFFLOAD_WRITE|
  *
  * Written by Roland Mainz <roland.mainz@nrubsig.org>
  */
@@ -36,6 +37,7 @@
 
 #define EXIT_USAGE (2)
 
+/* MinGW headers are currently missing these defines and types */
 #ifndef OFFLOAD_READ_FLAG_ALL_ZERO_BEYOND_CURRENT_RANGE
 typedef struct _FSCTL_OFFLOAD_READ_INPUT {
     DWORD Size;
@@ -90,30 +92,137 @@ typedef struct _STORAGE_OFFLOAD_TOKEN {
 } STORAGE_OFFLOAD_TOKEN, *PSTORAGE_OFFLOAD_TOKEN;
 #endif /* STORAGE_OFFLOAD_MAX_TOKEN_LENGTH */
 
-int main(int argc, char* argv[])
+static
+void print_usage(const char *av0)
 {
-    int retval = EXIT_FAILURE;
+    (void)fprintf(stderr,
+        "Usage: %s [--copychunksize <numbytes>] <infile> <outfile>\n",
+        av0);
+}
 
-    if (argc != 3) {
-        (void)fprintf(stderr,
-            "Usage: %s <source_file> <destination_file>\n",
-            argv[0]);
-        return EXIT_USAGE;
-    }
-
-    const char *srcFilename = argv[1];
-    const char *destFilename = argv[2];
-    HANDLE hSrc = INVALID_HANDLE_VALUE;
-    HANDLE hDest = INVALID_HANDLE_VALUE;
-    BOOL bSuccess = FALSE;
+static
+BOOL offloadcopy(
+    HANDLE hSrc,
+    HANDLE hDest,
+    LONGLONG src_offset,
+    LONGLONG dst_offset,
+    LONGLONG copy_length,
+    LONGLONG *pBytesCopied)
+{
+    BOOL bSuccess;
     DWORD ioctlBytesReturned = 0;
 
     BYTE tokenBuffer[STORAGE_OFFLOAD_MAX_TOKEN_LENGTH] = { 0 };
     PSTORAGE_OFFLOAD_TOKEN pToken = (PSTORAGE_OFFLOAD_TOKEN)tokenBuffer;
 
-    (void)printf("Attempting offloaded copy from '%s' to '%s'\n",
-        srcFilename,
-        destFilename);
+    FSCTL_OFFLOAD_READ_INPUT readInput = { 0 };
+    readInput.Size = sizeof(FSCTL_OFFLOAD_READ_INPUT);
+    readInput.FileOffset = src_offset;
+    readInput.CopyLength = copy_length;
+
+    FSCTL_OFFLOAD_READ_OUTPUT readOutput = { 0 };
+    readOutput.Size = sizeof(FSCTL_OFFLOAD_READ_OUTPUT);
+
+    bSuccess = DeviceIoControl(
+        hSrc,
+        FSCTL_OFFLOAD_READ,
+        &readInput,
+        sizeof(readInput),
+        &readOutput,
+        sizeof(readOutput),
+        &ioctlBytesReturned,
+        NULL);
+
+    if (!bSuccess) {
+        (void)fprintf(stderr,
+            "FSCTL_OFFLOAD_READ failed, lasterr=%d\n",
+            (int)GetLastError());
+        return FALSE;
+    }
+
+    (void)memcpy(pToken, readOutput.Token, sizeof(tokenBuffer));
+
+    FSCTL_OFFLOAD_WRITE_INPUT writeInput = { 0 };
+    writeInput.Size = sizeof(FSCTL_OFFLOAD_WRITE_INPUT);
+    writeInput.FileOffset = dst_offset;
+    writeInput.CopyLength = copy_length;
+    writeInput.TransferOffset = 0LL;
+    (void)memcpy(writeInput.Token, pToken, sizeof(tokenBuffer));
+
+    FSCTL_OFFLOAD_WRITE_OUTPUT writeOutput = { 0 };
+    writeOutput.Size = sizeof(FSCTL_OFFLOAD_WRITE_OUTPUT);
+
+    (void)printf("Performing copy with FSCTL_OFFLOAD_WRITE...\n");
+    bSuccess = DeviceIoControl(
+        hDest,
+        FSCTL_OFFLOAD_WRITE,
+        &writeInput,
+        sizeof(writeInput),
+        &writeOutput,
+        sizeof(writeOutput),
+        &ioctlBytesReturned,
+        NULL);
+
+    if (!bSuccess) {
+        (void)fprintf(stderr,
+            "FSCTL_OFFLOAD_WRITE failed, lasterr=%d\n",
+            (int)GetLastError());
+        return FALSE;
+    }
+
+    *pBytesCopied = writeOutput.LengthWritten;
+
+    (void)printf("Offload write successful. Bytes written: %lld\n",
+        (long long)*pBytesCopied);
+    (void)printf("Offloaded copy completed successfully!\n");
+
+    return TRUE;
+}
+
+int main(int ac, char *av[])
+{
+    int retval = EXIT_FAILURE;
+    LONGLONG maxCopyChunkSize =
+        1024LL*1024LL*1024LL*1024LL*1024LL; /* 1PB */
+    const char *srcFilename;
+    const char *destFilename;
+
+    if (ac == 3) {
+        srcFilename = av[1];
+        destFilename = av[2];
+    }
+    else if (ac == 5) {
+        if (strcmp(av[1], "--copychunksize") != 0) {
+            print_usage(av[0]);
+            return (EXIT_USAGE);
+        }
+
+        maxCopyChunkSize = atoll(av[2]);
+        srcFilename = av[3];
+        destFilename = av[4];
+    }
+    else {
+        print_usage(av[0]);
+        return (EXIT_USAGE);
+    }
+
+    HANDLE hSrc = INVALID_HANDLE_VALUE;
+    HANDLE hDest = INVALID_HANDLE_VALUE;
+
+    if (ac == 3) {
+        (void)printf("# Attempting offloded copy from '%s' to '%s' using "
+            "FSCTL_OFFLOAD_READ+FSCTL_OFFLOAD_WRITE...\n",
+            srcFilename,
+            destFilename);
+    }
+    else if (ac == 5) {
+        (void)printf("# Attempting offloded copy from '%s' to '%s' in "
+            "%lld byte chunks using "
+            "FSCTL_OFFLOAD_READ+FSCTL_OFFLOAD_WRITE...\n",
+            srcFilename,
+            destFilename,
+            maxCopyChunkSize);
+    }
 
     hSrc = CreateFileA(srcFilename,
         GENERIC_READ,
@@ -151,31 +260,9 @@ int main(int argc, char* argv[])
         goto cleanup;
     }
 
-    FSCTL_OFFLOAD_READ_INPUT readInput = { 0 };
-    readInput.Size = sizeof(FSCTL_OFFLOAD_READ_INPUT);
-    readInput.FileOffset = 0;
-    readInput.CopyLength = fileSize.QuadPart;
-
-    FSCTL_OFFLOAD_READ_OUTPUT readOutput = { 0 };
-    readOutput.Size = sizeof(FSCTL_OFFLOAD_READ_OUTPUT);
-
-    bSuccess = DeviceIoControl(
-        hSrc,
-        FSCTL_OFFLOAD_READ,
-        &readInput,
-        sizeof(readInput),
-        &readOutput,
-        sizeof(readOutput),
-        &ioctlBytesReturned,
-        NULL);
-
-    if (!bSuccess) {
-        (void)fprintf(stderr,
-            "FSCTL_OFFLOAD_READ failed, lasterr=%d\n",
-            (int)GetLastError());
-        goto cleanup;
-    }
-
+    /*
+     * Extend destination file
+     */
     if (!SetFilePointerEx(hDest, fileSize, NULL, FILE_BEGIN)) {
         (void)fprintf(stderr,
             "Cannot set dest file pointer, lasterr=%d\n",
@@ -190,39 +277,33 @@ int main(int argc, char* argv[])
         goto cleanup;
     }
 
-    (void)memcpy(pToken, readOutput.Token, sizeof(tokenBuffer));
+    LONGLONG bytesCopied = 0LL;
+    LONGLONG byteCount = fileSize.QuadPart;
+    LONGLONG copyOffset = 0LL;
+    BOOL bResult;
 
-    FSCTL_OFFLOAD_WRITE_INPUT writeInput = { 0 };
-    writeInput.Size = sizeof(FSCTL_OFFLOAD_WRITE_INPUT);
-    writeInput.FileOffset = 0;
-    writeInput.CopyLength = fileSize.QuadPart;
-    writeInput.TransferOffset = 0;
-    (void)memcpy(writeInput.Token, pToken, sizeof(tokenBuffer));
+    while (byteCount > 0) {
+        (void)printf("# offloadcopy: copyOffset=%lld)\n",
+            copyOffset);
 
-    FSCTL_OFFLOAD_WRITE_OUTPUT writeOutput = { 0 };
-    writeOutput.Size = sizeof(FSCTL_OFFLOAD_WRITE_OUTPUT);
+        bResult = offloadcopy(hSrc,
+            hDest,
+            copyOffset,
+            copyOffset,
+            __min(byteCount, maxCopyChunkSize),
+            &bytesCopied);
 
-    (void)printf("Performing copy with FSCTL_OFFLOAD_WRITE...\n");
-    bSuccess = DeviceIoControl(
-        hDest,
-        FSCTL_OFFLOAD_WRITE,
-        &writeInput,
-        sizeof(writeInput),
-        &writeOutput,
-        sizeof(writeOutput),
-        &ioctlBytesReturned,
-        NULL);
+        if (!bResult) {
+            goto cleanup;
+        }
 
-    if (!bSuccess) {
-        (void)fprintf(stderr,
-            "FSCTL_OFFLOAD_WRITE failed, lasterr=%d\n",
-            (int)GetLastError());
-        goto cleanup;
+        byteCount -= bytesCopied;
+        copyOffset += bytesCopied;
     }
 
-    (void)printf("Offload write successful. Bytes written: %lld\n",
-        (long long)writeOutput.LengthWritten);
-    (void)printf("Offloaded copy completed successfully!\n");
+    (void)printf("# Successfully used offload read+write to copy '%s' to '%s'!\n",
+        srcFilename,
+        destFilename);
     retval = EXIT_SUCCESS;
 
 cleanup:
