@@ -386,6 +386,59 @@ done:
     (void)CloseHandle(fileHandle);
     return res;
 }
+
+static
+int getfilefssizeinformation(const char *progname, const char *filename)
+{
+    int res = EXIT_FAILURE;
+
+    HANDLE fileHandle = CreateFileA(filename,
+        GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING,
+        FILE_FLAG_BACKUP_SEMANTICS, NULL);
+    if (fileHandle == INVALID_HANDLE_VALUE) {
+        (void)fprintf(stderr,
+            "%s: Error opening file '%s'. Last error was %d.\n",
+            progname,
+            filename,
+            (int)GetLastError());
+        return EXIT_FAILURE;
+    }
+
+    FILE_FS_SIZE_INFORMATION ffsi = { 0 };
+    NTSTATUS status;
+    IO_STATUS_BLOCK io;
+
+    status = ZwQueryVolumeInformationFile(fileHandle, &io, &ffsi, sizeof(ffsi),
+        FileFsSizeInformation);
+
+    switch (status) {
+        case STATUS_SUCCESS:
+            break;
+        default:
+            (void)fprintf(stderr, "ZwQueryVolumeInformationFile() failed with 0x%lx\n", (long)status);
+            res = EXIT_FAILURE;
+            goto done;
+    }
+
+    (void)printf("(\n");
+    (void)printf("\tfilename='%s'\n", filename);
+
+    (void)printf("\tTotalAllocationUnits=%lld\n",
+        (long long)ffsi.TotalAllocationUnits.QuadPart);
+    (void)printf("\tAvailableAllocationUnits=%lld\n",
+        (long long)ffsi.AvailableAllocationUnits.QuadPart);
+    (void)printf("\tSectorsPerAllocationUnit=%lu\n",
+        (unsigned long)ffsi.SectorsPerAllocationUnit);
+    (void)printf("\tBytesPerSector=%lu\n",
+        (unsigned long)ffsi.BytesPerSector);
+
+    (void)printf(")\n");
+    res = EXIT_SUCCESS;
+
+done:
+    (void)CloseHandle(fileHandle);
+    return res;
+}
 #endif /* NTDLL_HAS_ZWQUERYVOLUMEINFORMATIONFILE */
 
 
@@ -1401,6 +1454,7 @@ void usage(void)
         "getfinalpath|"
 #ifdef NTDLL_HAS_ZWQUERYVOLUMEINFORMATIONFILE
         "getfilefssectorsizeinformation|"
+        "getfilefssizeinformation|"
 #endif /* NTDLL_HAS_ZWQUERYVOLUMEINFORMATIONFILE */
         "filebasicinfo|"
         "fileexinfostandard|"
@@ -1452,6 +1506,9 @@ int main(int ac, char *av[])
 #ifdef NTDLL_HAS_ZWQUERYVOLUMEINFORMATIONFILE
     else if (!strcmp(subcmd, "getfilefssectorsizeinformation")) {
         return getfilefssectorsizeinformation(av[0], av[2]);
+    }
+    else if (!strcmp(subcmd, "getfilefssizeinformation")) {
+        return getfilefssizeinformation(av[0], av[2]);
     }
 #endif /* NTDLL_HAS_ZWQUERYVOLUMEINFORMATIONFILE */
     else if (!strcmp(subcmd, "filebasicinfo")) {
