@@ -35,7 +35,7 @@
 #include <winioctl.h>
 #include <stdio.h>
 
-#define EXIT_USAGE (2)
+#define EXIT_USAGE (2) /* Traditional UNIX exit code for usage */
 
 /* MinGW headers are currently missing these defines and types */
 #ifndef OFFLOAD_READ_FLAG_ALL_ZERO_BEYOND_CURRENT_RANGE

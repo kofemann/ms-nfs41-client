@@ -41,7 +41,7 @@
 #include <unistd.h>
 #include <errno.h>
 
-#define	EXIT_USAGE	(2)
+#define EXIT_USAGE	(2) /* Traditional UNIX exit code for usage */
 
 static
 void

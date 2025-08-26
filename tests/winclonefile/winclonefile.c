@@ -35,7 +35,7 @@
 #include <winioctl.h>
 #include <stdio.h>
 
-#define EXIT_USAGE (2)
+#define EXIT_USAGE (2) /* Traditional UNIX exit code for usage */
 
 #ifdef DUPLICATE_EXTENTS_DATA_EX_SOURCE_ATOMIC
 /*

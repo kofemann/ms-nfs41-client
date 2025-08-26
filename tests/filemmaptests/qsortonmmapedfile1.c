@@ -61,7 +61,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define EXIT_USAGE 2
+#define EXIT_USAGE (2) /* Traditional UNIX exit code for usage */
 
 #define RECORD_DATA_SIZE 15
 #define RECORD_SIZE (RECORD_DATA_SIZE+1)
