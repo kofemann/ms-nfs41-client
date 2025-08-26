@@ -25,6 +25,7 @@ $(PROJECT_BASEDIR_DIR)/tests/ea/nfs_ea.exe \
 	$(PROJECT_BASEDIR_DIR)/tests/filemmaptests/qsortonmmapedfile1.exe \
 	$(PROJECT_BASEDIR_DIR)/tests/winclonefile/winclonefile.exe \
 	$(PROJECT_BASEDIR_DIR)/tests/winoffloadcopyfile/winoffloadcopyfile.exe \
+	$(PROJECT_BASEDIR_DIR)/tests/winrunassystem/winrunassystem.exe \
 	$(PROJECT_BASEDIR_DIR)/tests/winsg/winsg.exe: build_testutils
 
 #
@@ -72,6 +73,7 @@ build_testutils:
 	(cd "$(PROJECT_BASEDIR_DIR)/tests/filemmaptests" && make all)
 	(cd "$(PROJECT_BASEDIR_DIR)/tests/winclonefile" && make all)
 	(cd "$(PROJECT_BASEDIR_DIR)/tests/winoffloadcopyfile" && make all)
+	(cd "$(PROJECT_BASEDIR_DIR)/tests/winrunassystem" && make all)
 	(cd "$(PROJECT_BASEDIR_DIR)/tests/winsg" && make all)
 
 build: build_32bit_release build_32bit_debug build_64bit_release build_64bit_debug build_arm_64bit_debug build_testutils
@@ -109,6 +111,7 @@ clean:
 	(cd "$(PROJECT_BASEDIR_DIR)/tests/filemmaptests" && make clean)
 	(cd "$(PROJECT_BASEDIR_DIR)/tests/winclonefile" && make clean)
 	(cd "$(PROJECT_BASEDIR_DIR)/tests/winoffloadcopyfile" && make clean)
+	(cd "$(PROJECT_BASEDIR_DIR)/tests/winrunassystem" && make clean)
 	(cd "$(PROJECT_BASEDIR_DIR)/tests/winsg" && make clean)
 
 installdest_util: \
@@ -121,6 +124,7 @@ installdest_util: \
 	$(PROJECT_BASEDIR_DIR)/tests/filemmaptests/qsortonmmapedfile1.exe \
 	$(PROJECT_BASEDIR_DIR)/tests/winclonefile/winclonefile.exe \
 	$(PROJECT_BASEDIR_DIR)/tests/winoffloadcopyfile/winoffloadcopyfile.exe \
+	$(PROJECT_BASEDIR_DIR)/tests/winrunassystem/winrunassystem.exe \
 	$(PROJECT_BASEDIR_DIR)/tests/winsg/winsg.exe \
 	$(CYGWIN_MAKEFILE_DIR)/devel/msnfs41client.bash
 
