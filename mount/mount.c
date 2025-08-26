@@ -50,6 +50,8 @@
  */
 #include "git_version.h"
 
+#define EXIT_USAGE (2) /* Traditional UNIX exit code for usage */
+
 /*
  * Disable "warning C4996: 'wcscpy': This function or variable may be
  * unsafe." because in this case the buffers are properly sized,
@@ -249,7 +251,7 @@ int mount_main(int argc, wchar_t *argv[])
             if ((!wcscmp(argv[i], L"-h")) ||
                 (!wcscmp(argv[i], L"--help"))) {
                 PrintMountUsage(argv[0]);
-                result = 1;
+                result = ERROR_INVALID_COMMAND_LINE;
                 goto out;
             }
             /* print version info */
@@ -425,7 +427,7 @@ opt_o_argv_i_again:
         /* Windows-style "nfs_mount /?" help */
         else if (!wcscmp(argv[i], L"/?")) {
             PrintMountUsage(argv[0]);
-            result = 1;
+            result = ERROR_INVALID_COMMAND_LINE;
             goto out;
 	}
         /* drive letter */
@@ -532,7 +534,7 @@ int umount_main(int argc, wchar_t *argv[])
             if ((!wcscmp(argv[i], L"-h")) ||
                 (!wcscmp(argv[i], L"--help"))) {
                 PrintUmountUsage(argv[0]);
-                result = 1;
+                result = ERROR_INVALID_COMMAND_LINE;
                 goto out;
             }
             /* print version info */
@@ -556,7 +558,7 @@ int umount_main(int argc, wchar_t *argv[])
         /* Windows-style "nfs_umount /?" help */
         else if (!wcscmp(argv[i], L"/?")) {
             PrintUmountUsage(argv[0]);
-            result = 1;
+            result = ERROR_INVALID_COMMAND_LINE;
             goto out;
 	}
         /* drive letter */
@@ -573,7 +575,6 @@ int umount_main(int argc, wchar_t *argv[])
     if (pLocalName == NULL) {
         result = ERROR_BAD_ARGUMENTS;
         (void)fwprintf(stderr, L"Drive letter expected.\n");
-        PrintUmountUsage(argv[0]);
         goto out;
     }
 
@@ -702,9 +703,17 @@ int __cdecl wmain(int argc, wchar_t *argv[])
 out:
     /*
      * POSIX return value of a command can only in the range from
-     * |0|...|SCHAR_MAX|, so map the |ERROR_*| to |1|,|0|.
+     * |0|...|SCHAR_MAX|, so map the |ERROR_*| to { |2|,|1|,|0| }.
      */
-    return (result != NO_ERROR)?1:0;
+    if (result == ERROR_INVALID_COMMAND_LINE) {
+        return EXIT_USAGE;
+    }
+    else if (result != NO_ERROR) {
+        return EXIT_FAILURE;
+    }
+    else {
+        return EXIT_SUCCESS;
+    }
 }
 
 
