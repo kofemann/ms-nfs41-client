@@ -506,6 +506,41 @@ done:
 }
 
 static
+bool readfilecontentsintobuffer(const wchar_t *filename,
+    char *buffer,
+    size_t buffersize,
+    size_t *numreadbytes)
+{
+    HANDLE hFile;
+    bool retval = false;
+    DWORD readfile_numbytesread = 0UL;
+
+    hFile = CreateFileW(filename,
+        GENERIC_READ,
+        FILE_SHARE_READ,
+        NULL,
+        OPEN_EXISTING,
+        FILE_ATTRIBUTE_TEMPORARY,
+        NULL);
+    if (hFile == INVALID_HANDLE_VALUE) {
+        D((void)wprintf(L"readfilecontentsintobuffer: "
+            L"cannot open status file, lasterr=%d\n",
+            (int)GetLastError()));
+        return false;
+    }
+
+    retval = ReadFile(hFile, buffer, (DWORD)buffersize,
+        &readfile_numbytesread, NULL)?true:false;
+    *numreadbytes = readfile_numbytesread;
+
+    if (hFile != INVALID_HANDLE_VALUE) {
+        (void)CloseHandle(hFile);
+    }
+
+    return retval;
+}
+
+static
 void usage(const wchar_t *av0)
 {
     (void)fwprintf(stderr,
@@ -558,21 +593,37 @@ int wmain(int argc, wchar_t *argv[])
         /* Stop and Uninstall */
         UninstallService();
 
+        /* Get child stdout+stderr */
         (void)system_fmt("C:\\cygwin64\\bin\\bash.exe -c "
             "'cat \"/cygdrive/c/Windows/Temp/%ls_stderr\" 1>&2'",
             service_name_buffer);
         (void)system_fmt("C:\\cygwin64\\bin\\bash.exe -c "
             "'cat \"/cygdrive/c/Windows/Temp/%ls_stdout\"'",
             service_name_buffer);
-        (void)system_fmt("C:\\cygwin64\\bin\\bash.exe -c "
-            "'printf \"# Child status %%d.\\\\n\" "
-            "\"$( <\"/cygdrive/c/Windows/Temp/%ls_status\" )\" 1>&2'",
+
+        /* Read child return value */
+        wchar_t statusfilenamebuff[MAX_PATH+1];
+        char statusvalue[256];
+        size_t numbytesread = 0UL;
+        (void)swprintf(statusfilenamebuff, sizeof(statusfilenamebuff),
+            L"C:\\Windows\\Temp\\%ls_status",
             service_name_buffer);
+        if (readfilecontentsintobuffer(statusfilenamebuff,
+            statusvalue, sizeof(statusvalue), &numbytesread)) {
+            statusvalue[numbytesread] = '\0';
+            retval = atoi(statusvalue);
+        }
+        else {
+            (void)fwprintf(stderr,
+                L"%ls: Cannot read child status from file '%ls'\n",
+                argv[0], statusfilenamebuff);
+            retval = EXIT_FAILURE;
+        }
+
+        /* Delete temporary files */
         (void)remove_fmt("C:\\Windows\\Temp\\%ls_stdout", service_name_buffer);
         (void)remove_fmt("C:\\Windows\\Temp\\%ls_stderr", service_name_buffer);
         (void)remove_fmt("C:\\Windows\\Temp\\%ls_status", service_name_buffer);
-
-        retval = EXIT_SUCCESS;
     }
 
     return retval;
