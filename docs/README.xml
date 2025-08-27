@@ -653,7 +653,8 @@ $ net use '\\10.49.202.230@2049\nfs4\net_tmpfs2' /delete</programlisting>
 
       <section xml:id="global-system-wide-mounts">
         <title>Global/System-wide mounts</title>
-        <para>Mounts created by user "SYSTEM" are usable by all users in a system. Example usage:</para>
+        <para>Mounts created by user "SYSTEM" are usable by all users in a system. Such mounts can be created by the <command>/sbin/nfs_globalmount</command> command, or adding an entry in <filename>/etc/fstab.msnfs41client</filename>.</para>
+        <para>Example usage for <filename>/etc/fstab.msnfs41client</filename>:</para>
         <programlisting># Create a file /etc/fstab.msnfs41client, which list the mounts
 # which should be mounted system-wide at boot
 $ cat /etc/fstab.msnfs41client

@@ -640,7 +640,10 @@ List mounted NFSv4.2 filesystems:
 ### Global/System-wide mounts
 
 Mounts created by user "SYSTEM" are usable by all users in a system.
-Example usage:
+Such mounts can be created by the `/sbin/nfs_globalmount` command, or
+adding an entry in `/etc/fstab.msnfs41client`.
+
+Example usage for `/etc/fstab.msnfs41client`:
 
     # Create a file /etc/fstab.msnfs41client, which list the mounts
     # which should be mounted system-wide at boot

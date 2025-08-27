@@ -86,6 +86,10 @@ installdest:
 	git diff -w	>"$(DESTDIR)/$(CYGWIN_BASEPATH)/usr/src/msnfs41client/msnfs41client_diff_w.diff"
 	git diff	>"$(DESTDIR)/$(CYGWIN_BASEPATH)/usr/src/msnfs41client/msnfs41client_diff.diff"
 	@ printf "# Package utilties\n"
+	cp $(CYGWIN_MAKEFILE_DIR)/utils/nfs_globalmount/nfs_globalmount.ksh $(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/nfs_globalmount
+	chmod a+x $(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/nfs_globalmount
+	PATH+=":$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/" \
+		/usr/bin/ksh93 $(CYGWIN_MAKEFILE_DIR)/utils/nfs_globalmount/nfs_globalmount.ksh --nroff 2>"$(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/man/man1/nfs_globalmount.1" || true
 	cp $(CYGWIN_MAKEFILE_DIR)/utils/mountall_msnfs41client/mountall_msnfs41client.ksh $(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/mountall_msnfs41client
 	chmod a+x $(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/mountall_msnfs41client
 	PATH+=":$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/" \
