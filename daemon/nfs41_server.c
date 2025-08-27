@@ -1,5 +1,6 @@
 /* NFSv4.1 client for Windows
- * Copyright © 2012 The Regents of the University of Michigan
+ * Copyright (C) 2012 The Regents of the University of Michigan
+ * Copyright (C) 2024-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -49,7 +50,11 @@ static struct server_list g_server_list;
 void nfs41_server_list_init()
 {
     list_init(&g_server_list.head);
-    InitializeCriticalSection(&g_server_list.lock);
+    /*
+     * Disable spin count as |g_server_list.lock| is typically used to
+     * protect list searches, which takes a long time
+     */
+    (void)InitializeCriticalSectionAndSpinCount(&g_server_list.lock, 0);
 }
 
 /* http://tools.ietf.org/html/rfc5661#section-1.6

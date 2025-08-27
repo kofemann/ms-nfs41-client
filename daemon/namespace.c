@@ -88,7 +88,11 @@ int nfs41_root_create(
     }
     root->wsize = wsize;
     root->rsize = rsize;
-    InitializeCriticalSection(&root->lock);
+    /*
+     * Disable spin count as |root->lock| is typically used to
+     * protect list searches, which takes a long time
+     */
+    (void)InitializeCriticalSectionAndSpinCount(&root->lock, 0);
     root->ref_count = 1;
     root->sec_flavor = sec_flavor;
 

@@ -136,7 +136,11 @@ int nfs41_client_create(
 
     list_init(&client->state.opens);
     list_init(&client->state.delegations);
-    InitializeCriticalSection(&client->state.lock);
+    /*
+     * Disable spin count as |client->state.lock| is typically used to
+     * protect list searches, which takes a long time
+     */
+    (void)InitializeCriticalSectionAndSpinCount(&client->state.lock, 0);
 
     //initialize a lock used to protect access to client id and client id seq#
     InitializeSRWLock(&client->exid_lock);
