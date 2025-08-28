@@ -524,8 +524,14 @@ NTSTATUS nfs41_UpcallWaitForReply(
     if (entry->async_op)
         goto out;
 
+    const ULONG tickIncrement = KeQueryTimeIncrement();
+
+    LARGE_INTEGER startTicks, currTicks;
+    KeQueryTickCount(&startTicks);
+
     LARGE_INTEGER timeout;
     timeout.QuadPart = RELATIVE(SECONDS(secs));
+
 retry_wait:
     status = KeWaitForSingleObject(&entry->cond, Executive,
                 UserMode, FALSE, &timeout);
@@ -542,14 +548,22 @@ retry_wait:
         break;
     case STATUS_USER_APC:
     case STATUS_ALERTED:
-        DbgP("nfs41_UpcallWaitForReply: KeWaitForSingleObject() "
-            "returned status(=0x%lx), "
-            "retry waiting for '%s' entry=0x%p xid=%lld\n",
-            (long)status,
-            ENTRY_OPCODE2STRING(entry),
-            entry,
-            (entry?entry->xid:-1LL));
-        if (entry) {
+        /*
+         * Check for timeout here, because |KeWaitForSingleObject()| does not
+         * decrement the timout value.
+         * This prevents endless retry loops in case of APC storms or
+         * that the calling thread is in the process of being terminated.
+         */
+        KeQueryTickCount(&currTicks);
+        if (((currTicks.QuadPart - startTicks.QuadPart) * tickIncrement) <=
+            SECONDS(secs)) {
+            DbgP("nfs41_UpcallWaitForReply: KeWaitForSingleObject() "
+                "returned status(=0x%lx), "
+                "retry waiting for '%s' entry=0x%p xid=%lld\n",
+                (long)status,
+                ENTRY_OPCODE2STRING(entry),
+                entry,
+                entry->xid);
             goto retry_wait;
         }
         /* fall-through */
