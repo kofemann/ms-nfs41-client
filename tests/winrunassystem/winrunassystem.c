@@ -155,23 +155,6 @@ int remove_fmt(const char *fmt, ...)
 }
 
 static
-int system_fmt(const char *fmt, ...)
-{
-    int retval;
-    char buffer[16384];
-
-    va_list args;
-    va_start(args, fmt);
-
-    (void)vsnprintf(buffer, sizeof(buffer), fmt, args);
-    retval = system(buffer);
-
-    va_end(args);
-
-    return retval;
-}
-
-static
 void LaunchInteractiveProcess(void)
 {
     STARTUPINFOA si;
@@ -541,6 +524,55 @@ bool readfilecontentsintobuffer(const wchar_t *filename,
 }
 
 static
+bool CopyFileToHANDLE(wchar_t *filename, HANDLE hDest)
+{
+    HANDLE hSrc = INVALID_HANDLE_VALUE;
+    BYTE buffer[4096];
+    DWORD dwBytesRead = 0;
+    DWORD dwBytesWritten = 0;
+    BOOL bSuccess = FALSE;
+    bool retval = false;
+
+    hSrc = CreateFileW(filename,
+        GENERIC_READ,
+        FILE_SHARE_READ,
+        NULL,
+        OPEN_EXISTING,
+        FILE_ATTRIBUTE_NORMAL,
+        NULL);
+    if (hSrc == INVALID_HANDLE_VALUE) {
+        (void)fwprintf(stderr,
+            L"Unable to open source file '%ls', lasterr=%d\n",
+            filename, (int)GetLastError());
+        return false;
+    }
+
+    while (ReadFile(hSrc, buffer, sizeof(buffer), &dwBytesRead, NULL) &&
+        (dwBytesRead > 0)) {
+        bSuccess = WriteFile(hDest,
+            buffer,
+            dwBytesRead,
+            &dwBytesWritten,
+            NULL);
+
+        if (!bSuccess || (dwBytesRead != dwBytesWritten)) {
+            (void)fwprintf(stderr,
+                L"Failed to write to the destination file, lasterr=%d\n",
+                (int)GetLastError());
+            retval = false;
+            goto done;
+        }
+    }
+
+    retval = true;
+
+done:
+    (void)CloseHandle(hSrc);
+
+    return retval;
+}
+
+static
 void usage(const wchar_t *av0)
 {
     (void)fwprintf(stderr,
@@ -590,25 +622,28 @@ int wmain(int argc, wchar_t *argv[])
 
     /* Install and Start */
     if (InstallService(argc, argv)) {
+        wchar_t filenamebuff[MAX_PATH+1];
+
         /* Stop and Uninstall */
         UninstallService();
 
         /* Get child stdout+stderr */
-        (void)system_fmt("C:\\cygwin64\\bin\\bash.exe -c "
-            "'cat \"/cygdrive/c/Windows/Temp/%ls_stderr\" 1>&2'",
+        (void)swprintf(filenamebuff, sizeof(filenamebuff),
+            L"C:\\Windows\\Temp\\%ls_stderr",
             service_name_buffer);
-        (void)system_fmt("C:\\cygwin64\\bin\\bash.exe -c "
-            "'cat \"/cygdrive/c/Windows/Temp/%ls_stdout\"'",
+        (void)CopyFileToHANDLE(filenamebuff, GetStdHandle(STD_ERROR_HANDLE));
+        (void)swprintf(filenamebuff, sizeof(filenamebuff),
+            L"C:\\Windows\\Temp\\%ls_stdout",
             service_name_buffer);
+        (void)CopyFileToHANDLE(filenamebuff, GetStdHandle(STD_OUTPUT_HANDLE));
 
         /* Read child return value */
-        wchar_t statusfilenamebuff[MAX_PATH+1];
         char statusvalue[256];
         size_t numbytesread = 0UL;
-        (void)swprintf(statusfilenamebuff, sizeof(statusfilenamebuff),
+        (void)swprintf(filenamebuff, sizeof(filenamebuff),
             L"C:\\Windows\\Temp\\%ls_status",
             service_name_buffer);
-        if (readfilecontentsintobuffer(statusfilenamebuff,
+        if (readfilecontentsintobuffer(filenamebuff,
             statusvalue, sizeof(statusvalue), &numbytesread)) {
             statusvalue[numbytesread] = '\0';
             retval = atoi(statusvalue);
@@ -616,7 +651,7 @@ int wmain(int argc, wchar_t *argv[])
         else {
             (void)fwprintf(stderr,
                 L"%ls: Cannot read child status from file '%ls'\n",
-                argv[0], statusfilenamebuff);
+                argv[0], filenamebuff);
             retval = EXIT_FAILURE;
         }
 
