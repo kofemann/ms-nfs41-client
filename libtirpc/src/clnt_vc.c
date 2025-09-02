@@ -46,10 +46,12 @@
  */
 
 /* NFSv4.1 client for Windows
- * Copyright © 2012 The Regents of the University of Michigan
+ * Copyright (C) 2012 The Regents of the University of Michigan
+ * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
+ * Roland Mainz <roland.mainz@nrubsig.org>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -378,16 +380,16 @@ out:
  * fd should be an open socket
  */
 CLIENT *
-clnt_vc_create(fd, raddr, prog, vers, sendsz, recvsz, cb_xdr, cb_fn, cb_args)
-	int fd;				/* open file descriptor */
-	const struct netbuf *raddr;	/* servers address */
-	const rpcprog_t prog;			/* program number */
-	const rpcvers_t vers;			/* version number */
-	u_int sendsz;			/* buffer recv size */
-	u_int recvsz;			/* buffer send size */
-    int (*cb_xdr)(void *, void *); /* if not NULL, point to function to xdr CB args */
-    int (*cb_fn)(void *, void *, void **);   /* if not NULL, pointer to function to handle RPC_CALLs */
-    void *cb_args;          /* if not NULL, pointer to pass into cb_fn */
+clnt_vc_create(
+	int fd,				/* open file descriptor */
+	const struct netbuf *raddr,	/* servers address */
+	const rpcprog_t prog,			/* program number */
+	const rpcvers_t vers,			/* version number */
+	u_int sendsz,			/* buffer recv size */
+	u_int recvsz,			/* buffer send size */
+    int (*cb_xdr)(void *, void *), /* if not NULL, point to function to xdr CB args */
+    int (*cb_fn)(void *, void *, void **),   /* if not NULL, pointer to function to handle RPC_CALLs */
+    void *cb_args)          /* if not NULL, pointer to pass into cb_fn */
 {
 	CLIENT *cl;			/* client handle */
 	struct ct_data *ct = NULL;	/* client handle */
@@ -565,14 +567,14 @@ err:
 }
 
 static enum clnt_stat
-clnt_vc_call(cl, proc, xdr_args, args_ptr, xdr_results, results_ptr, timeout)
-	CLIENT *cl;
-	rpcproc_t proc;
-	xdrproc_t xdr_args;
-	void *args_ptr;
-	xdrproc_t xdr_results;
-	void *results_ptr;
-	struct timeval timeout;
+clnt_vc_call(
+	CLIENT *cl,
+	rpcproc_t proc,
+	xdrproc_t xdr_args,
+	void *args_ptr,
+	xdrproc_t xdr_results,
+	void *results_ptr,
+	struct timeval timeout)
 {
 	struct ct_data *ct = (struct ct_data *) cl->cl_private;
 	XDR *xdrs = &(ct->ct_xdrs);
@@ -766,9 +768,7 @@ out_status:
 }
 
 static void
-clnt_vc_geterr(cl, errp)
-	CLIENT *cl;
-	struct rpc_err *errp;
+clnt_vc_geterr(CLIENT *cl, struct rpc_err *errp)
 {
 	struct ct_data *ct;
 
@@ -780,10 +780,10 @@ clnt_vc_geterr(cl, errp)
 }
 
 static bool_t
-clnt_vc_freeres(cl, xdr_res, res_ptr)
-	CLIENT *cl;
-	xdrproc_t xdr_res;
-	void *res_ptr;
+clnt_vc_freeres(
+	CLIENT *cl,
+	xdrproc_t xdr_res,
+	void *res_ptr)
 {
 	struct ct_data *ct;
 	XDR *xdrs;
@@ -820,16 +820,15 @@ clnt_vc_freeres(cl, xdr_res, res_ptr)
 
 /*ARGSUSED*/
 static void
-clnt_vc_abort(cl)
-	CLIENT *cl;
+clnt_vc_abort(CLIENT *cl)
 {
 }
 
 static bool_t
-clnt_vc_control(cl, request, info)
-	CLIENT *cl;
-	u_int request;
-	void *info;
+clnt_vc_control(
+	CLIENT *cl,
+	u_int request,
+	void *info)
 {
 	struct ct_data *ct;
 	void *infop = info;
@@ -956,8 +955,7 @@ clnt_vc_control(cl, request, info)
 
 
 static void
-clnt_vc_destroy(cl)
-	CLIENT *cl;
+clnt_vc_destroy(CLIENT *cl)
 {
 	struct ct_data *ct = (struct ct_data *) cl->cl_private;
 	int ct_fd = ct->ct_fd;
@@ -1021,10 +1019,10 @@ clnt_vc_destroy(cl)
  * around for the rpc level.
  */
 static int
-read_vc(ctp, buf, len)
-	void *ctp;
-	void *buf;
-	int len;
+read_vc(
+	void *ctp,
+	void *buf,
+	int len)
 {
 	/*
 	struct sockaddr sa;
@@ -1075,10 +1073,10 @@ read_vc(ctp, buf, len)
 }
 
 static int
-write_vc(ctp, bufp, len)
-	void *ctp;
-	void *bufp;
-	int len;
+write_vc(
+       void *ctp,
+       void *bufp,
+       int len)
 {
 	char *buf = bufp;
 	struct ct_data *ct = (struct ct_data *)ctp;
@@ -1128,8 +1126,7 @@ clnt_vc_ops()
  * Note this is different from time_not_ok in clnt_dg.c
  */
 static bool_t
-time_not_ok(t)
-	struct timeval *t;
+time_not_ok(struct timeval *t)
 {
 	return (t->tv_sec <= -1 || t->tv_sec > 100000000 ||
 		t->tv_usec <= -1 || t->tv_usec > 1000000);

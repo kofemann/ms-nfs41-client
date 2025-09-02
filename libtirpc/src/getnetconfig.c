@@ -216,8 +216,7 @@ setnetconfig()
  */
 
 struct netconfig *
-getnetconfig(handlep)
-void *handlep;
+getnetconfig(void *handlep)
 {
     struct netconfig_vars *ncp = (struct netconfig_vars *)handlep;
     char *stringp;		/* tmp string pointer */
@@ -336,8 +335,7 @@ void *handlep;
  * previously).
  */
 int
-endnetconfig(handlep)
-void *handlep;
+endnetconfig(void *handlep)
 {
     struct netconfig_vars *nc_handlep = (struct netconfig_vars *)handlep;
 
@@ -395,8 +393,7 @@ void *handlep;
  */
 
 struct netconfig *
-getnetconfigent(netid)
-	const char *netid;
+getnetconfigent(const char *netid)
 {
     FILE *file;		/* NETCONFIG db's file pointer */
     char *linep;	/* holds current netconfig line */
@@ -493,8 +490,7 @@ getnetconfigent(netid)
  */
 
 void
-freenetconfigent(netconfigp)
-	struct netconfig *netconfigp;
+freenetconfigent(struct netconfig *netconfigp)
 {
     if (netconfigp != NULL) {
 		free(netconfigp->nc_netid);	/* holds all netconfigp's strings */
@@ -518,9 +514,9 @@ freenetconfigent(netconfigp)
  */
 
 static int
-parse_ncp(stringp, ncp)
-char *stringp;		/* string to parse */
-struct netconfig *ncp;	/* where to put results */
+parse_ncp(
+char *stringp,		/* string to parse */
+struct netconfig *ncp)	/* where to put results */
 {
     char    *tokenp;	/* for processing tokens */
     char    *lasts;
@@ -642,8 +638,7 @@ nc_sperror()
  * Prints a message onto standard error describing the reason for failure.
  */
 void
-nc_perror(s)
-	const char *s;
+nc_perror(const char *s)
 {
     fprintf(stderr, "%s: %s\n", s, nc_sperror());
 }
@@ -652,8 +647,7 @@ nc_perror(s)
  * Duplicates the matched netconfig buffer.
  */
 static struct netconfig *
-dup_ncp(ncp)
-struct netconfig	*ncp;
+dup_ncp(struct netconfig	*ncp)
 {
     struct netconfig	*p;
     char	*tmp;

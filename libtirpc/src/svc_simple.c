@@ -89,13 +89,14 @@ static const char __no_mem_str[] = "out of memory";
  */
 
 int
-rpc_reg(prognum, versnum, procnum, progname, inproc, outproc, nettype)
-	rpcprog_t prognum;			/* program number */
-	rpcvers_t versnum;			/* version number */
-	rpcproc_t procnum;			/* procedure number */
-	char *(*progname)(char *); /* Server routine */
-	xdrproc_t inproc, outproc;	/* in/out XDR procedures */
-	char *nettype;			/* nettype */
+rpc_reg(
+	rpcprog_t prognum,			/* program number */
+	rpcvers_t versnum,			/* version number */
+	rpcproc_t procnum,			/* procedure number */
+	char *(*progname)(char *), /* Server routine */
+	xdrproc_t inproc, 		/* in XDR procedures */
+	xdrproc_t outproc,		/* out XDR procedures */
+	char *nettype)			/* nettype */
 {
 	struct netconfig *nconf;
 	int done = FALSE;
@@ -232,9 +233,7 @@ rpc_reg(prognum, versnum, procnum, progname, inproc, outproc, nettype)
  */
 
 static void
-universal(rqstp, transp)
-	struct svc_req *rqstp;
-	SVCXPRT *transp;
+universal(struct svc_req *rqstp, SVCXPRT *transp)
 {
 	rpcprog_t prog;
 	rpcvers_t vers;

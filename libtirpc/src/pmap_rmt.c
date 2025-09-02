@@ -70,14 +70,17 @@ static const struct timeval timeout = { 3, 0 };
  * programs to do a lookup and call in one step.
 */
 enum clnt_stat
-pmap_rmtcall(addr, prog, vers, proc, xdrargs, argsp, xdrres, resp, tout,
-    port_ptr)
-	struct sockaddr_in *addr;
-	u_long prog, vers, proc;
-	xdrproc_t xdrargs, xdrres;
-	caddr_t argsp, resp;
-	struct timeval tout;
-	u_long *port_ptr;
+pmap_rmtcall(
+	struct sockaddr_in *addr,
+	u_long prog, 
+	u_long vers, 
+	u_long proc,
+	xdrproc_t xdrargs, 
+	caddr_t argsp,
+	xdrproc_t xdrres,
+	caddr_t resp,
+	struct timeval tout,
+	u_long *port_ptr)
 {
 	int sock = -1;
 	CLIENT *client;
@@ -116,9 +119,9 @@ pmap_rmtcall(addr, prog, vers, proc, xdrargs, argsp, xdrres, resp, tout,
  * written for XDR_ENCODE direction only
  */
 bool_t
-xdr_rmtcall_args(xdrs, cap)
-	XDR *xdrs;
-	struct rmtcallargs *cap;
+xdr_rmtcall_args(
+	XDR *xdrs,
+	struct rmtcallargs *cap)
 {
 	u_int lenposition, argposition, position;
 
@@ -150,9 +153,9 @@ xdr_rmtcall_args(xdrs, cap)
  * written for XDR_DECODE direction only
  */
 bool_t
-xdr_rmtcallres(xdrs, crp)
-	XDR *xdrs;
-	struct rmtcallres *crp;
+xdr_rmtcallres(
+	XDR *xdrs,
+	struct rmtcallres *crp)
 {
 	caddr_t port_ptr;
 

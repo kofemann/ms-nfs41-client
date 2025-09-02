@@ -90,8 +90,7 @@ _rpcdata()
 
 #ifdef GQ
 struct rpcent *
-getrpcbynumber(number)
-	int number;
+getrpcbynumber(int number)
 {
 #ifdef	YP
 	int reason;
@@ -136,8 +135,7 @@ no_yp:
 }
 
 struct rpcent *
-getrpcbyname(name)
-	char *name;
+getrpcbyname(char *name)
 {
 	struct rpcent *rpc = NULL;
 	char **rp;
@@ -160,8 +158,7 @@ done:
 #endif /* GQ */
 
 void
-setrpcent(f)
-	int f;
+setrpcent(int f)
 {
 	struct rpcdata *d = _rpcdata();
 
@@ -259,9 +256,7 @@ no_yp:
 }
 
 static struct rpcent *
-interpret(val, len)
-	char *val;
-	size_t len;
+interpret(char *val, size_t len)
 {
 	struct rpcdata *d = _rpcdata();
 	char *p;

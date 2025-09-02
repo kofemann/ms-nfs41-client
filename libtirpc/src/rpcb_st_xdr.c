@@ -46,9 +46,9 @@
 /* Link list of all the stats about getport and getaddr */
 
 bool_t
-xdr_rpcbs_addrlist(xdrs, objp)
-	XDR *xdrs;
-	rpcbs_addrlist *objp;
+xdr_rpcbs_addrlist(
+	XDR *xdrs,
+	rpcbs_addrlist *objp)
 {
 
 	    if (!xdr_u_int32_t(xdrs, &objp->prog)) {
@@ -83,9 +83,9 @@ xdr_rpcbs_addrlist(xdrs, objp)
 /* Link list of all the stats about rmtcall */
 
 bool_t
-xdr_rpcbs_rmtcalllist(xdrs, objp)
-	XDR *xdrs;
-	rpcbs_rmtcalllist *objp;
+xdr_rpcbs_rmtcalllist(
+	XDR *xdrs,
+	rpcbs_rmtcalllist *objp)
 {
 	int32_t *buf;
 
@@ -208,9 +208,9 @@ xdr_rpcbs_rmtcalllist(xdrs, objp)
 }
 
 bool_t
-xdr_rpcbs_proc(xdrs, objp)
-	XDR *xdrs;
-	rpcbs_proc objp;
+xdr_rpcbs_proc(
+	XDR *xdrs,
+	rpcbs_proc objp)
 {
 	if (!xdr_vector(xdrs, (char *)(void *)objp, RPCBSTAT_HIGHPROC,
 	    sizeof (int), (xdrproc_t)xdr_int)) {
@@ -220,9 +220,9 @@ xdr_rpcbs_proc(xdrs, objp)
 }
 
 bool_t
-xdr_rpcbs_addrlist_ptr(xdrs, objp)
-	XDR *xdrs;
-	rpcbs_addrlist_ptr *objp;
+xdr_rpcbs_addrlist_ptr(
+	XDR *xdrs,
+	rpcbs_addrlist_ptr *objp)
 {
 	if (!xdr_pointer(xdrs, (char **)objp, sizeof (rpcbs_addrlist),
 			(xdrproc_t)xdr_rpcbs_addrlist)) {
@@ -232,9 +232,9 @@ xdr_rpcbs_addrlist_ptr(xdrs, objp)
 }
 
 bool_t
-xdr_rpcbs_rmtcalllist_ptr(xdrs, objp)
-	XDR *xdrs;
-	rpcbs_rmtcalllist_ptr *objp;
+xdr_rpcbs_rmtcalllist_ptr(
+	XDR *xdrs,
+	rpcbs_rmtcalllist_ptr *objp)
 {
 	if (!xdr_pointer(xdrs, (char **)objp, sizeof (rpcbs_rmtcalllist),
 			(xdrproc_t)xdr_rpcbs_rmtcalllist)) {
@@ -244,9 +244,9 @@ xdr_rpcbs_rmtcalllist_ptr(xdrs, objp)
 }
 
 bool_t
-xdr_rpcb_stat(xdrs, objp)
-	XDR *xdrs;
-	rpcb_stat *objp;
+xdr_rpcb_stat(
+	XDR *xdrs,
+	rpcb_stat *objp)
 {
 
 	if (!xdr_rpcbs_proc(xdrs, objp->info)) {
@@ -272,9 +272,9 @@ xdr_rpcb_stat(xdrs, objp)
  * being monitored.
  */
 bool_t
-xdr_rpcb_stat_byvers(xdrs, objp)
-    XDR *xdrs;
-    rpcb_stat_byvers objp;
+xdr_rpcb_stat_byvers(
+    XDR *xdrs,
+    rpcb_stat_byvers objp)
 {
 	if (!xdr_vector(xdrs, (char *)(void *)objp, RPCBVERS_STAT,
 	    sizeof (rpcb_stat), (xdrproc_t)xdr_rpcb_stat)) {

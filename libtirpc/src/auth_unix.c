@@ -41,10 +41,12 @@
  */
 
 /* NFSv4.1 client for Windows
- * Copyright © 2012 The Regents of the University of Michigan
+ * Copyright (C) 2012 The Regents of the University of Michigan
+ * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
+ * Roland Mainz <roland.mainz@nrubsig.org>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -106,12 +108,12 @@ struct audata {
  * Returns an auth handle with the given stuff in it.
  */
 AUTH *
-authunix_create(machname, uid, gid, len, aup_gids)
-	char *machname;
-	uid_t uid;
-	gid_t gid;
-	int len;
-	gid_t *aup_gids;
+authunix_create(
+	char *machname,
+	uid_t uid,
+	gid_t gid,
+	int len,
+	gid_t *aup_gids)
 {
 	struct authunix_parms aup;
 	char mymem[MAX_AUTH_BYTES];
@@ -233,17 +235,13 @@ authunix_create_default()
 
 /* ARGSUSED */
 static void
-authunix_nextverf(auth)
-	AUTH *auth;
+authunix_nextverf(AUTH *auth)
 {
 	/* no action necessary */
 }
 
 static bool_t
-authunix_marshal(auth, xdrs, seq)
-	AUTH *auth;
-	XDR *xdrs;
-    u_int *seq;
+authunix_marshal(AUTH *auth, XDR *xdrs, u_int *seq)
 {
 	struct audata *au;
 
@@ -255,10 +253,7 @@ authunix_marshal(auth, xdrs, seq)
 }
 
 static bool_t
-authunix_validate(auth, verf, seq)
-	AUTH *auth;
-	struct opaque_auth *verf;
-    u_int seq;
+authunix_validate(AUTH *auth, struct opaque_auth *verf, u_int seq)
 {
 	struct audata *au;
 	XDR xdrs;
@@ -334,8 +329,7 @@ done:
 }
 
 static void
-authunix_destroy(auth)
-	AUTH *auth;
+authunix_destroy(AUTH *auth)
 {
 	struct audata *au;
 
@@ -360,8 +354,7 @@ authunix_destroy(auth)
  * sets private data, au_marshed and au_mpos
  */
 static void
-marshal_new_auth(auth)
-	AUTH *auth;
+marshal_new_auth(AUTH *auth)
 {
 	XDR	xdr_stream;
 	XDR	*xdrs = &xdr_stream;

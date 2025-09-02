@@ -59,16 +59,16 @@ int (*__getpublickey_LOCAL)(const char *, char *) = 0;
  * Get somebody's public key
  */
 int
-__getpublickey_real(netname, publickey)
-	char *netname;
-	char *publickey;
+__getpublickey_real(
+	const char *netname,
+	char *publickey)
 {
 	char lookup[3 * HEXKEYBYTES];
 	char *p;
 
 	if (publickey == NULL)
 		return (0);
-	if (!getpublicandprivatekey(netname, lookup))
+	if (!getpublicandprivatekey((char *)netname, lookup))
 		return (0);
 	p = strchr(lookup, ':');
 	if (p == NULL) {
@@ -86,9 +86,9 @@ __getpublickey_real(netname, publickey)
  */
 
 int
-getpublicandprivatekey(key, ret)
-	char *key;
-	char *ret;
+getpublicandprivatekey(
+	char *key,
+	char *ret)
 {
 	char buf[1024];	/* big enough */
 	char *res;
@@ -163,9 +163,9 @@ getpublicandprivatekey(key, ret)
 	}
 }
 
-int getpublickey(netname, publickey)
-	const char *netname;
-	char *publickey;
+int getpublickey(
+	const char *netname,
+	char *publickey)
 {
 	if (__getpublickey_LOCAL != NULL)
 		return(__getpublickey_LOCAL(netname, publickey));

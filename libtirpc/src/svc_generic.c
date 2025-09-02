@@ -65,11 +65,11 @@ extern int __svc_vc_setflag(SVCXPRT *, int);
  * created earlier instead of creating a new handle every time.
  */
 int
-svc_create(dispatch, prognum, versnum, nettype)
-	void (*dispatch)(struct svc_req *, SVCXPRT *);
-	rpcprog_t prognum;		/* Program number */
-	rpcvers_t versnum;		/* Version number */
-	const char *nettype;		/* Networktype token */
+svc_create(
+	void (*dispatch)(struct svc_req *, SVCXPRT *),
+	rpcprog_t prognum,		/* Program number */
+	rpcvers_t versnum,		/* Version number */
+	const char *nettype)		/* Networktype token */
 {
 	struct xlist {
 		SVCXPRT *xprt;		/* Server handle */
@@ -138,11 +138,11 @@ svc_create(dispatch, prognum, versnum, nettype)
  * with the rpcbind. It calls svc_tli_create();
  */
 SVCXPRT *
-svc_tp_create(dispatch, prognum, versnum, nconf)
-	void (*dispatch)(struct svc_req *, SVCXPRT *);
-	rpcprog_t prognum;		/* Program number */
-	rpcvers_t versnum;		/* Version number */
-	const struct netconfig *nconf; /* Netconfig structure for the network */
+svc_tp_create(
+	void (*dispatch)(struct svc_req *, SVCXPRT *),
+	rpcprog_t prognum,		/* Program number */
+	rpcvers_t versnum,		/* Version number */
+	const struct netconfig *nconf) /* Netconfig structure for the network */
 {
 	SVCXPRT *xprt;
 
@@ -179,12 +179,12 @@ svc_tp_create(dispatch, prognum, versnum, nconf)
  * If sendsz or recvsz are zero, their default values are chosen.
  */
 SVCXPRT *
-svc_tli_create(fd, nconf, bindaddr, sendsz, recvsz)
-	int fd;				/* Connection end point */
-	const struct netconfig *nconf;	/* Netconfig struct for nettoken */
-	const struct t_bind *bindaddr;	/* Local bind address */
-	u_int sendsz;			/* Max sendsize */
-	u_int recvsz;			/* Max recvsize */
+svc_tli_create(
+	int fd,				/* Connection end point */
+	const struct netconfig *nconf,	/* Netconfig struct for nettoken */
+	const struct t_bind *bindaddr,	/* Local bind address */
+	u_int sendsz,			/* Max sendsize */
+	u_int recvsz)			/* Max recvsize */
 {
 	SVCXPRT *xprt = NULL;		/* service handle */
 	bool_t madefd = FALSE;		/* whether fd opened here  */

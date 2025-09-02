@@ -47,9 +47,7 @@
  * XDR a call message
  */
 bool_t
-xdr_callmsg(xdrs, cmsg)
-	XDR *xdrs;
-	struct rpc_msg *cmsg;
+xdr_callmsg(XDR *xdrs, struct rpc_msg *cmsg)
 {
 	int32_t *buf;
 	struct opaque_auth *oa;

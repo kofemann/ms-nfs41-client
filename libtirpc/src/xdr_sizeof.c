@@ -122,9 +122,9 @@ x_destroy(XDR *xdrs)
 }
 
 unsigned long
-xdr_sizeof(func, data)
-	xdrproc_t func;
-	void *data;
+xdr_sizeof(
+	xdrproc_t func,
+	void *data)
 {
 	XDR x;
 	struct xdr_ops ops;

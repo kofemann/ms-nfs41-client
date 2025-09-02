@@ -59,11 +59,11 @@
  * proc is the routine to handle the referenced structure.
  */
 bool_t
-xdr_reference(xdrs, pp, size, proc)
-	XDR *xdrs;
-	caddr_t *pp;		/* the pointer to work on */
-	u_int size;		/* size of the object pointed to */
-	xdrproc_t proc;		/* xdr routine to handle the object */
+xdr_reference(
+	XDR *xdrs,
+	caddr_t *pp,		/* the pointer to work on */
+	u_int size,		/* size of the object pointed to */
+	xdrproc_t proc)		/* xdr routine to handle the object */
 {
 	caddr_t loc = *pp;
 	bool_t stat;
@@ -116,11 +116,11 @@ xdr_reference(xdrs, pp, size, proc)
  *
  */
 bool_t
-xdr_pointer(xdrs,objpp,obj_size,xdr_obj)
-	XDR *xdrs;
-	char **objpp;
-	u_int obj_size;
-	xdrproc_t xdr_obj;
+xdr_pointer(
+	XDR *xdrs,
+	char **objpp,
+	u_int obj_size,
+	xdrproc_t xdr_obj)
 {
 
 	bool_t more_data;
