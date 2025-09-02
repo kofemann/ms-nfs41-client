@@ -42,9 +42,7 @@
 #include <rpc/types.h>
 #include <rpc/xdr.h>
 #include <rpc/rpcb_prot.h>
-#ifdef _WIN32 // CVE-2017-8779
 #include "rpc_com.h"
-#endif /* _WIN32 */
 
 bool_t
 xdr_rpcb(
@@ -57,17 +55,6 @@ xdr_rpcb(
 	if (!xdr_u_int32_t(xdrs, &objp->r_vers)) {
 		return (FALSE);
 	}
-#ifndef _WIN32 // CVE-2017-8779
-	if (!xdr_string(xdrs, &objp->r_netid, (u_int)~0)) {
-		return (FALSE);
-	}
-	if (!xdr_string(xdrs, &objp->r_addr, (u_int)~0)) {
-		return (FALSE);
-	}
-	if (!xdr_string(xdrs, &objp->r_owner, (u_int)~0)) {
-		return (FALSE);
-	}
-#else
 	if (!xdr_string(xdrs, &objp->r_netid, RPC_MAXDATASIZE)) {
 		return (FALSE);
 	}
@@ -77,7 +64,6 @@ xdr_rpcb(
 	if (!xdr_string(xdrs, &objp->r_owner, RPC_MAXDATASIZE)) {
 		return (FALSE);
 	}
-#endif
 	return (TRUE);
 }
 
@@ -175,39 +161,21 @@ xdr_rpcb_entry(
 	XDR *xdrs,
 	rpcb_entry *objp)
 {
-#ifndef _WIN32 // CVE-2017-8779
-	if (!xdr_string(xdrs, &objp->r_maddr, (u_int)~0)) {
-		return (FALSE);
-	}
-	if (!xdr_string(xdrs, &objp->r_nc_netid, (u_int)~0)) {
-		return (FALSE);
-	}
-#else
 	if (!xdr_string(xdrs, &objp->r_maddr, RPC_MAXDATASIZE)) {
 		return (FALSE);
 	}
 	if (!xdr_string(xdrs, &objp->r_nc_netid, RPC_MAXDATASIZE)) {
 		return (FALSE);
 	}
-#endif
 	if (!xdr_u_int32_t(xdrs, &objp->r_nc_semantics)) {
 		return (FALSE);
 	}
-#ifndef _WIN32 // CVE-2017-8779
-	if (!xdr_string(xdrs, &objp->r_nc_protofmly, (u_int)~0)) {
-		return (FALSE);
-	}
-	if (!xdr_string(xdrs, &objp->r_nc_proto, (u_int)~0)) {
-		return (FALSE);
-	}
-#else
 	if (!xdr_string(xdrs, &objp->r_nc_protofmly, RPC_MAXDATASIZE)) {
 		return (FALSE);
 	}
 	if (!xdr_string(xdrs, &objp->r_nc_proto, RPC_MAXDATASIZE)) {
 		return (FALSE);
 	}
-#endif
 	return (TRUE);
 }
 
@@ -326,11 +294,7 @@ xdr_rpcb_rmtcallres(
 	bool_t dummy;
 	struct r_rpcb_rmtcallres *objp = (struct r_rpcb_rmtcallres *)(void *)p;
 
-#ifdef _WIN32 // CVE-2017-8779
 	if (!xdr_string(xdrs, &objp->addr, RPC_MAXDATASIZE)) {
-#else
-	if (!xdr_string(xdrs, &objp->addr, (u_int)~0)) {
-#endif
 		return (FALSE);
 	}
 	if (!xdr_u_int(xdrs, &objp->results.results_len)) {
@@ -350,13 +314,11 @@ xdr_netbuf(
 	if (!xdr_u_int32_t(xdrs, (u_int32_t *) &objp->maxlen)) {
 		return (FALSE);
 	}
-#ifdef _WIN32 // CVE-2017-8779
 
 	if (objp->maxlen > RPC_MAXDATASIZE) {
 		return (FALSE);
 	}
 
-#endif
 	dummy = xdr_bytes(xdrs, (char **)&(objp->buf),
 			(u_int *)&(objp->len), objp->maxlen);
 	return (dummy);

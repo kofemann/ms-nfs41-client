@@ -324,9 +324,6 @@ rendezvous_request(
 	socklen_t len;
 	struct __rpc_sockinfo si;
 	SVCXPRT *newxprt;
-#ifndef _WIN32 // CVE-2018-14621
-	fd_set cleanfds;
-#endif
 
 	assert(xprt != NULL);
 	assert(msg != NULL);
@@ -338,17 +335,6 @@ again:
 	    &len)) == SOCKET_ERROR) {
 		if (errno == EINTR)
 			goto again;
-#ifndef _WIN32 // CVE-2018-14621
-		/*
-		 * Clean out the most idle file descriptor when we're
-		 * running out.
-		 */
-		if (errno == EMFILE || errno == ENFILE) {
-			cleanfds = svc_fdset;
-			__svc_clean_idle(&cleanfds, 0, FALSE);
-			goto again;
-		}
-#endif
 		return (FALSE);
 	}
 	/*
@@ -356,10 +342,8 @@ again:
 	 */
 
 	newxprt = makefd_xprt(sock, r->sendsize, r->recvsize);
-#ifdef _WIN32 // CVE-2018-14622
 	if (!newxprt)
 		return (FALSE);
-#endif
 
 	if (!__rpc_set_netbuf(&newxprt->xp_rtaddr, &addr, len))
 		return (FALSE);

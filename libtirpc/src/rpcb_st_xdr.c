@@ -41,9 +41,7 @@
 
 #include <wintirpc.h>
 #include <rpc/rpc.h>
-#ifdef _WIN32 // CVE-2017-8779
 #include "rpc_com.h"
-#endif /* _WIN32 */
 
 /* Link list of all the stats about getport and getaddr */
 
@@ -65,11 +63,7 @@ xdr_rpcbs_addrlist(
 	    if (!xdr_int(xdrs, &objp->failure)) {
 		return (FALSE);
 	    }
-#ifdef _WIN32 // CVE-2017-8779
 	    if (!xdr_string(xdrs, &objp->netid, RPC_MAXDATASIZE)) {
-#else
-	    if (!xdr_string(xdrs, &objp->netid, (u_int)~0)) {
-#endif
 		return (FALSE);
 	    }
 
@@ -120,11 +114,7 @@ xdr_rpcbs_rmtcalllist(
 		IXDR_PUT_INT32(buf, objp->failure);
 		IXDR_PUT_INT32(buf, objp->indirect);
 	}
-#ifdef _WIN32 // CVE-2017-8779
 	if (!xdr_string(xdrs, &objp->netid, RPC_MAXDATASIZE)) {
-#else
-	if (!xdr_string(xdrs, &objp->netid, (u_int)~0)) {
-#endif
 		return (FALSE);
 	}
 	if (!xdr_pointer(xdrs, (char **)&objp->next,
@@ -162,11 +152,7 @@ xdr_rpcbs_rmtcalllist(
 		objp->failure = (int)IXDR_GET_INT32(buf);
 		objp->indirect = (int)IXDR_GET_INT32(buf);
 	}
-#ifdef _WIN32 // CVE-2017-8779
 	if (!xdr_string(xdrs, &objp->netid, RPC_MAXDATASIZE)) {
-#else
-	if (!xdr_string(xdrs, &objp->netid, (u_int)~0)) {
-#endif
 		return (FALSE);
 	}
 	if (!xdr_pointer(xdrs, (char **)&objp->next,
@@ -194,11 +180,7 @@ xdr_rpcbs_rmtcalllist(
 	if (!xdr_int(xdrs, &objp->indirect)) {
 		return (FALSE);
 	}
-#ifdef _WIN32 // CVE-2017-8779
 	if (!xdr_string(xdrs, &objp->netid, RPC_MAXDATASIZE)) {
-#else
-	if (!xdr_string(xdrs, &objp->netid, (u_int)~0)) {
-#endif
 		return (FALSE);
 	}
 	if (!xdr_pointer(xdrs, (char **)&objp->next,
