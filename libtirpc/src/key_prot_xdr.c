@@ -40,7 +40,7 @@
  */
 /* Copyright (c)  1990, 1991 Sun Microsystems, Inc. */
 
-//#include <sys/cdefs.h>
+#include <sys/cdefs.h>
 
 /* 
  * Compiled from key_prot.x using rpcgen.
@@ -176,4 +176,4 @@ xdr_key_netstres(register XDR *xdrs, key_netstres *objp)
 	}
 	return (TRUE);
 }
-#endif
+#endif /* !_WIN32 */

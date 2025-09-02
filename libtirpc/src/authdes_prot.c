@@ -1,4 +1,6 @@
-//#include <sys/cdefs.h>
+#ifndef _WIN32
+#include <sys/cdefs.h>
+#endif /* !_WIN32 */
 /*
  * Copyright (c) 2009, Sun Microsystems, Inc.
  * All rights reserved.

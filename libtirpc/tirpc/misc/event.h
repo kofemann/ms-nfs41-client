@@ -186,7 +186,9 @@ extern int	kqueue_del_filteropts(int filt);
 
 #else 	/* !_KERNEL */
 
-//#include <sys/cdefs.h>
+#ifndef _WIN32
+#include <sys/cdefs.h>
+#endif /* !_WIN32 */
 struct timespec;
 
 __BEGIN_DECLS

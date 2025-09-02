@@ -37,7 +37,9 @@
  * any interference from the kernel.
  */
 #include <wintirpc.h>
-//#include <pthread.h>
+#ifndef _WIN32
+#include <pthread.h>
+#endif /* !_WIN32 */
 #include <reentrant.h>
 #ifndef _WIN32
 #include <assert.h>

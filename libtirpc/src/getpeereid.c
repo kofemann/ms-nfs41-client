@@ -24,15 +24,21 @@
  * SUCH DAMAGE.
  */
 
-//#include <sys/cdefs.h>
+#ifndef _WIN32
+#include <sys/cdefs.h>
+#endif /* !_WIN32 */
 #include <wintirpc.h>
 #include <rpc/types.h>
-//#include <sys/param.h>
-//#include <sys/socket.h>
-//#include <sys/un.h>
+#ifndef _WIN32
+#include <sys/param.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+#endif /* !_WIN32 */
 
 #include <errno.h>
-//#include <unistd.h>
+#ifndef _WIN32
+#include <unistd.h>
+#endif /* !_WIN32 */
 
 #ifdef _WIN32
 int

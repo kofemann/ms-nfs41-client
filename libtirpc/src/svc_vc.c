@@ -27,7 +27,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-//#include <sys/cdefs.h>
+#ifndef _WIN32
+#include <sys/cdefs.h>
+#endif /* !_WIN32 */
 
 /*
  * svc_vc.c, Server side for Connection Oriented based RPC. 
@@ -37,17 +39,23 @@
  * and a record/tcp stream.
  */
 #include <wintirpc.h>
-//#include <pthread.h>
+#ifndef _WIN32
+#include <pthread.h>
+#endif /* !_WIN32 */
 #include <reentrant.h>
-//#include <sys/socket.h>
+#ifndef _WIN32
+#include <sys/socket.h>
+#endif /* !_WIN32 */
 #include <sys/types.h>
-//#include <sys/param.h>
-//#include <sys/poll.h>
-//#include <sys/un.h>
-//#include <sys/time.h>
-//#include <sys/uio.h>
-//#include <netinet/in.h>
-//#include <netinet/tcp.h>
+#ifndef _WIN32
+#include <sys/param.h>
+#include <sys/poll.h>
+#include <sys/un.h>
+#include <sys/time.h>
+#include <sys/uio.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
+#endif /* !_WIN32 */
 
 #ifndef _WIN32
 #include <assert.h>
@@ -58,7 +66,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-//#include <unistd.h>
+#ifndef _WIN32
+#include <unistd.h>
+#endif /* !_WIN32 */
 
 #include <rpc/rpc.h>
 

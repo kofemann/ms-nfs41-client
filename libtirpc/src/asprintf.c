@@ -16,11 +16,11 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-//extern int vsnprintf();
 #ifdef _WIN32
 #include <wintirpc.h>
 #include <stdarg.h>
 #else
+extern int vsnprintf();
 #include <varargs.h>
 #endif /* _WIN32 */
 #include <stdio.h>

@@ -28,7 +28,9 @@
 /*
  * Copyright (c) 1986-1991 by Sun Microsystems Inc. 
  */
-//#include <sys/cdefs.h>
+#ifndef _WIN32
+#include <sys/cdefs.h>
+#endif /* !_WIN32 */
 
 /*
  * clnt_bcast.c
@@ -41,17 +43,25 @@
  */
 
 #include <wintirpc.h>
-//#include <sys/socket.h>
+#ifndef _WIN32
+#include <sys/socket.h>
+#endif /* !_WIN32 */
 #include <sys/types.h>
-//#include <sys/queue.h>
+#ifndef _WIN32
+#include <sys/queue.h>
+#endif /* !_WIN32 */
 
 /* new queue functions */
-//#include <misc/queue.h>
+#ifndef _WIN32
+#include <misc/queue.h>
+#endif /* !_WIN32 */
 
-//#include <net/if.h>
-//#include <netinet/in.h>
-//#include <ifaddrs.h>
-//#include <sys/poll.h>
+#ifndef _WIN32
+#include <net/if.h>
+#include <netinet/in.h>
+#include <ifaddrs.h>
+#include <sys/poll.h>
+#endif /* !_WIN32 */
 #include <rpc/rpc.h>
 #ifdef PORTMAP
 #include <rpc/pmap_prot.h>
@@ -59,16 +69,20 @@
 #include <rpc/pmap_rmt.h>
 #endif				/* PORTMAP */
 #include <rpc/nettype.h>
-//#include <arpa/inet.h>
-//#define RPC_DEBUG 1
+#ifndef _WIN32
+#include <arpa/inet.h>
+#define RPC_DEBUG 1
+#endif /* !_WIN32 */
 #ifdef RPC_DEBUG
 #include <stdio.h>
 #endif
 #include <errno.h>
 #include <stdlib.h>
-//#include <unistd.h>
-//#include <netdb.h>
-//#include <err.h>
+#ifndef _WIN32
+#include <unistd.h>
+#include <netdb.h>
+#include <err.h>
+#endif /* !_WIN32 */
 #include <string.h>
 
 #include "rpc_com.h"

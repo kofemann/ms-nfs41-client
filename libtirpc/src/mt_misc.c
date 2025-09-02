@@ -1,10 +1,14 @@
 #include <wintirpc.h>
 
-//#include <sys/cdefs.h>
-//#include <pthread.h>
+#ifndef _WIN32
+#include <sys/cdefs.h>
+#include <pthread.h>
+#endif /* !_WIN32 */
 #include <reentrant.h>
 #include <rpc/rpc.h>
-//#include <sys/time.h>
+#ifndef _WIN32
+#include <sys/time.h>
+#endif /* !_WIN32 */
 #include <stdlib.h>
 #include <string.h>
 

@@ -34,7 +34,9 @@
  * when serialized using XDR.
  */
 
-//#include <sys/cdefs.h>
+#ifndef _WIN32
+#include <sys/cdefs.h>
+#endif /* !_WIN32 */
 
 #include <wintirpc.h>
 #include "namespace.h"

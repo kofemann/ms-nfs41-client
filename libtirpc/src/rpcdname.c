@@ -25,7 +25,9 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-//#include <sys/cdefs.h>
+#ifndef _WIN32
+#include <sys/cdefs.h>
+#endif /* !_WIN32 */
 
 /*
  * rpcdname.c
@@ -34,7 +36,9 @@
 
 #include <wintirpc.h>
 #include <stdlib.h>
-//#include <unistd.h>
+#ifndef _WIN32
+#include <unistd.h>
+#endif /* !_WIN32 */
 #include <string.h>
 
 static char *default_domain = NULL;

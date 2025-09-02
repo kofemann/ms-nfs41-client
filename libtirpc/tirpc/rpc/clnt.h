@@ -40,10 +40,12 @@
  */
 
 /* NFSv4.1 client for Windows
- * Copyright © 2012 The Regents of the University of Michigan
+ * Copyright (C) 2012 The Regents of the University of Michigan
+ * Copyright (C) 2023-25 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
+ * Roland Mainz <roland.mainz@nrubsig.org>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -63,13 +65,17 @@
 #ifndef _TIRPC_CLNT_H_
 #define _TIRPC_CLNT_H_
 
-//#include <rpc/clnt_stat.h>
+#ifndef _WIN32
+#include <rpc/clnt_stat.h>
+#endif /* !_WIN32 */
 #include "clnt_stat.h"
 #include <rpc/auth.h>
 
-//#include <sys/cdefs.h>
-//#include <netconfig.h>
-//#include <sys/un.h>
+#ifndef _WIN32
+#include <sys/cdefs.h>
+#include <netconfig.h>
+#include <sys/un.h>
+#endif /* !_WIN32 */
 
 /*
  * Well-known IPV6 RPC broadcast address.

@@ -41,7 +41,9 @@
 #ifndef _RPC_RPCCOM_H
 #define	_RPC_RPCCOM_H
 
-//#include <sys/cdefs.h>
+#ifndef _WIN32
+#include <sys/cdefs.h>
+#endif /* !_WIN32 */
 
 /* #pragma ident	"@(#)rpc_com.h	1.11	93/07/05 SMI" */
 

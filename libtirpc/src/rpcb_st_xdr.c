@@ -35,13 +35,15 @@
  * routines used with the rpcbind stats facility.
  */
 
-//#include <sys/cdefs.h>
+#ifndef _WIN32
+#include <sys/cdefs.h>
+#endif /* !_WIN32 */
 
 #include <wintirpc.h>
 #include <rpc/rpc.h>
 #ifdef _WIN32 // CVE-2017-8779
 #include "rpc_com.h"
-#endif
+#endif /* _WIN32 */
 
 /* Link list of all the stats about getport and getaddr */
 

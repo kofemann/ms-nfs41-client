@@ -35,7 +35,9 @@
  */
 
 #include <wintirpc.h>
-//#include <sys/param.h>
+#ifndef _WIN32
+#include <sys/param.h>
+#endif /* !_WIN32 */
 #include <rpc/rpc.h>
 #include "rpc_com.h"
 #ifdef YP
@@ -47,7 +49,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-//#include <unistd.h>
+#ifndef _WIN32
+#include <unistd.h>
+#endif /* !_WIN32 */
 
 #ifndef MAXHOSTNAMELEN
 #define MAXHOSTNAMELEN 256

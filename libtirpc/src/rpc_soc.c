@@ -44,10 +44,14 @@
  * of TLI/Streams
  */
 #include <wintirpc.h>
-//#include <pthread.h>
+#ifndef _WIN32
+#include <pthread.h>
+#endif /* !_WIN32 */
 #include <reentrant.h>
 #include <sys/types.h>
-//#include <sys/socket.h>
+#ifndef _WIN32
+#include <sys/socket.h>
+#endif /* !_WIN32 */
 #include <stdio.h>
 #include <rpc/rpc.h>
 #include <rpc/pmap_clnt.h>
@@ -56,12 +60,16 @@
 #ifndef _WIN32
 #include <syslog.h>
 #endif
-//#include <netinet/in.h>
-//#include <netdb.h>
+#ifndef _WIN32
+#include <netinet/in.h>
+#include <netdb.h>
+#endif /* !_WIN32 */
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
-//#include <unistd.h>
+#ifndef _WIN32
+#include <unistd.h>
+#endif /* !_WIN32 */
 
 #include "rpc_com.h"
 

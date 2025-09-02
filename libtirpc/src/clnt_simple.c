@@ -29,23 +29,31 @@
  * Copyright (c) 1986-1991 by Sun Microsystems Inc. 
  */
 
-//#include <sys/cdefs.h>
+#ifndef _WIN32
+#include <sys/cdefs.h>
+#endif /* !_WIN32 */
 
 /*
  * clnt_simple.c
  * Simplified front end to client rpc.
  */
 #include <wintirpc.h>
-//#include <pthread.h>
+#ifndef _WIN32
+#include <pthread.h>
+#endif /* !_WIN32 */
 #include <reentrant.h>
-//#include <sys/param.h>
+#ifndef _WIN32
+#include <sys/param.h>
+#endif /* !_WIN32 */
 #include <stdio.h>
 #include <errno.h>
 #include <rpc/rpc.h>
 #include <string.h>
 #include <stdlib.h>
 #include <fcntl.h>
-//#include <unistd.h>
+#ifndef _WIN32
+#include <unistd.h>
+#endif /* !_WIN32 */
 
 #include <rpc/clnt.h>
 

@@ -71,7 +71,10 @@
 
 #ifndef _RPC_PMAP_PROT_H
 #define _RPC_PMAP_PROT_H
-//#include <sys/cdefs.h>
+
+#ifndef _WIN32
+#include <sys/cdefs.h>
+#endif /* !_WIN32 */
 
 #define PMAPPORT		((u_short)111)
 #define PMAPPROG		((u_long)100000)

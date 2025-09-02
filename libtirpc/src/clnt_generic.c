@@ -53,25 +53,35 @@
  */
 
 #include <wintirpc.h>
-//#include <pthread.h>
+#ifndef _WIN32
+#include <pthread.h>
+#endif /* !_WIN32 */
 #include <reentrant.h>
 #include <sys/types.h>
-//#include <sys/fcntl.h>
+#ifndef _WIN32
+#include <sys/fcntl.h>
+#endif /* !_WIN32 */
 #include <fcntl.h>
-//#include <sys/socket.h>
-//#include <netinet/in.h>
-//#include <netinet/tcp.h>
+#ifndef _WIN32
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
+#endif /* !_WIN32 */
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
-//#include <netdb.h>
+#ifndef _WIN32
+#include <netdb.h>
+#endif /* !_WIN32 */
 #ifndef _WIN32
 #include <syslog.h>
 #endif
 #include <rpc/rpc.h>
 #include <rpc/nettype.h>
-//#include <unistd.h>
+#ifndef _WIN32
+#include <unistd.h>
+#endif /* !_WIN32 */
 #include "rpc_com.h"
 
 extern bool_t __rpc_is_local_host(const char *);

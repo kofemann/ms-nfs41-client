@@ -40,7 +40,9 @@
 #include <wintirpc.h>
 #ifndef _WIN32
 #include <stdio.h>
-//#include <pwd.h>
+#ifndef _WIN32
+#include <pwd.h>
+#endif /* !_WIN32 */
 #include <rpc/rpc.h>
 #include <rpc/key_prot.h>
 #include <rpcsvc/yp_prot.h>

@@ -36,29 +36,35 @@
  * Copyright (C) 1988, Sun Microsystems, Inc.
  */
 #include <wintirpc.h>
-//#include <pthread.h>
+#ifndef _WIN32
+#include <pthread.h>
+#endif /* !_WIN32 */
 #include <reentrant.h>
 #include <sys/types.h>
-//#include <sys/socket.h>
-//#include <sys/un.h>
-//#include <sys/utsname.h>
+#ifndef _WIN32
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <sys/utsname.h>
+#endif /* !_WIN32 */
 #include <rpc/rpc.h>
 #include <rpc/rpcb_prot.h>
 #include <rpc/nettype.h>
 #include <netconfig.h>
 #ifdef PORTMAP
-//#include <netinet/in.h>		/* FOR IPPROTO_TCP/UDP definitions */
+#ifndef _WIN32
+#include <netinet/in.h>		/* FOR IPPROTO_TCP/UDP definitions */
+#endif /* !_WIN32 */
 #include <rpc/pmap_prot.h>
 #endif				/* PORTMAP */
 #include <stdio.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
-//#include <unistd.h>
-//#include <netdb.h>
 #ifndef _WIN32
+#include <unistd.h>
+#include <netdb.h>
 #include <syslog.h>
-#endif
+#endif /* !_WIN32 */
 
 #include "rpc_com.h"
 

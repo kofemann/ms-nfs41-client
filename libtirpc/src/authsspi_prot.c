@@ -1,8 +1,10 @@
 /* NFSv4.1 client for Windows
- * Copyright © 2012 The Regents of the University of Michigan
+ * Copyright (C) 2012 The Regents of the University of Michigan
+ * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
+ * Roland Mainz <roland.mainz@nrubsig.org>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -23,7 +25,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
-//#include <rpc/types.h>
+#ifndef _WIN32
+#include <rpc/types.h>
+#endif /* !_WIN32 */
 #include <rpc/xdr.h>
 #include <rpc/auth.h>
 #include <rpc/auth_sspi.h>

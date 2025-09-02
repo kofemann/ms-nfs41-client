@@ -67,8 +67,10 @@
 #endif /* !_WIN32 */
 
 #ifdef _WIN32
-// Windows mappings of data types
-// Fixed size things
+/*
+ * Windows mappings of data types
+ * Fixed size things
+ */
 typedef signed char int8_t;
 typedef signed short int16_t;
 typedef INT32      int32_t;
@@ -82,7 +84,7 @@ typedef UINT32	 uint32_t;
 typedef UINT64   u_int64_t;
 typedef UINT64   uint64_t;
 typedef PCHAR      caddr_t;
-// Scalable things
+/* Scalable things */
 typedef UCHAR    u_char;
 typedef unsigned short   u_short;
 typedef UINT32   u_int;
@@ -95,7 +97,9 @@ typedef UINT     uid_t;
 typedef UINT     gid_t;
 typedef DWORD    pid_t;
 
-//typedef SIZE_T  size_t;  //This is causing a "benign redefinition error"
+#if 0
+typedef SIZE_T  size_t;  /* This is causing a "benign redefinition error" */
+#endif
 typedef SSIZE_T ssize_t;
 #endif /* _WIN32 */
 
@@ -124,8 +128,10 @@ typedef   int32_t rpc_inline_t;
 #define mem_alloc(bsize)	calloc(1, bsize)
 #define mem_free(ptr, bsize)	free(ptr)
 
-//#include <sys/time.h>
-//#include <sys/param.h>
+#ifndef _WIN32
+#include <sys/time.h>
+#include <sys/param.h>
+#endif /* !_WIN32 */
 #include <stdlib.h>
 #include <netconfig.h>
 

@@ -29,28 +29,38 @@
  * Copyright (c) 1986-1991 by Sun Microsystems Inc. 
  */
 
-//#include <sys/cdefs.h>
+#ifndef _WIN32
+#include <sys/cdefs.h>
+#endif /* !_WIN32 */
 
 /*
  * rpc_generic.c, Miscl routines for RPC.
  *
  */
 #include <wintirpc.h>
-//#include <pthread.h>
+#ifndef _WIN32
+#include <pthread.h>
+#endif /* !_WIN32 */
 #include <reentrant.h>
 #include <sys/types.h>
-//#include <sys/param.h>
-//#include <sys/socket.h>
-//#include <sys/time.h>
-//#include <sys/un.h>
-//#include <sys/resource.h>
-//#include <netinet/in.h>
-//#include <arpa/inet.h>
+#ifndef _WIN32
+#include <sys/param.h>
+#include <sys/socket.h>
+#include <sys/time.h>
+#include <sys/un.h>
+#include <sys/resource.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#endif /* !_WIN32 */
 #include <rpc/rpc.h>
-//#include <ctype.h>
-//#include <stddef.h>
+#ifndef _WIN32
+#include <ctype.h>
+#include <stddef.h>
+#endif /* !_WIN32 */
 #include <stdio.h>
-//#include <netdb.h>
+#ifndef _WIN32
+#include <netdb.h>
+#endif /* !_WIN32 */
 #include <netconfig.h>
 #include <stdlib.h>
 #include <string.h>

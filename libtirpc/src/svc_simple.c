@@ -29,7 +29,9 @@
  * Copyright (c) 1986-1991 by Sun Microsystems Inc. 
  */
 
-//#include <sys/cdefs.h>
+#ifndef _WIN32
+#include <sys/cdefs.h>
+#endif /* !_WIN32 */
 
 /*
  * svc_simple.c
@@ -43,7 +45,9 @@
  * for the given prognum and procnum.
  */
 #include <wintirpc.h>
-//#include <pthread.h>
+#ifndef _WIN32
+#include <pthread.h>
+#endif /* !_WIN32 */
 #include <reentrant.h>
 #include <sys/types.h>
 #include <rpc/rpc.h>
@@ -51,7 +55,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-//#include <err.h>
+#include <wintirpc.h>
+#ifndef _WIN32
+#include <err.h>
+#endif /* !_WIN32 */
 
 #include "rpc_com.h"
 

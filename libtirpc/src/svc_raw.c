@@ -38,7 +38,9 @@
  *
  */
 #include <wintirpc.h>
-//#include <pthread.h>
+#ifndef _WIN32
+#include <pthread.h>
+#endif /* !_WIN32 */
 #include <reentrant.h>
 #include <rpc/rpc.h>
 #include <sys/types.h>

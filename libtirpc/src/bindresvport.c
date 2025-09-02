@@ -27,7 +27,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-//#include <sys/cdefs.h>
+#ifndef _WIN32
+#include <sys/cdefs.h>
+#endif /* !_WIN32 */
 
 /*
  * Copyright (c) 1987 by Sun Microsystems, Inc.
@@ -41,13 +43,13 @@
 #ifndef _WIN32
 #include <sys/socket.h>
 #include <netinet/in.h>
-#endif
+#endif /* !_WIN32 */
 
 #include <errno.h>
 #include <string.h>
 #ifndef _WIN32
 #include <unistd.h>
-#endif
+#endif /* !_WIN32 */
 
 #include <rpc/rpc.h>
 
@@ -55,7 +57,7 @@
 #include <winsock2.h>
 #include <mstcpip.h>
 #include <ws2ipdef.h>
-#endif
+#endif /* _WIN32 */
 
 /*
  * Bind a socket to a privileged IP port

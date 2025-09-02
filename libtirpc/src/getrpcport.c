@@ -33,10 +33,14 @@
 
 #include <wintirpc.h>
 #include <sys/types.h>
-//#include <sys/socket.h>
+#ifndef _WIN32
+#include <sys/socket.h>
+#endif /* !_WIN32 */
 
 #include <assert.h>
-//#include <netdb.h>
+#ifndef _WIN32
+#include <netdb.h>
+#endif /* !_WIN32 */
 #include <stdio.h>
 #include <string.h>
 

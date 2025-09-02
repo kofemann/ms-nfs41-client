@@ -27,7 +27,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-//#include <sys/cdefs.h>
+#ifndef _WIN32
+#include <sys/cdefs.h>
+#endif /* !_WIN32 */
 
 /*
  * xdr_float.c, Generic XDR routines implementation.
@@ -42,7 +44,9 @@
 #include <wintirpc.h>
 #include "namespace.h"
 #include <sys/types.h>
-//#include <sys/param.h>
+#ifndef _WIN32
+#include <sys/param.h>
+#endif /* !_WIN32 */
 
 #include <stdio.h>
 

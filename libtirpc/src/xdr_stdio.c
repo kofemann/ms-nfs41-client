@@ -26,7 +26,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-//#include <sys/cdefs.h>
+#ifndef _WIN32
+#include <sys/cdefs.h>
+#endif /* !_WIN32 */
 
 /*
  * xdr_stdio.c, XDR implementation on standard i/o file.
@@ -42,7 +44,9 @@
 #include "namespace.h"
 #include <stdio.h>
 
-//#include <arpa/inet.h>
+#ifndef _WIN32
+#include <arpa/inet.h>
+#endif /* !_WIN32 */
 #include <rpc/types.h>
 #include <rpc/xdr.h>
 #include "un-namespace.h"

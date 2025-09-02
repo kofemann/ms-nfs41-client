@@ -33,26 +33,34 @@
  * Implements a connectionless client side RPC.
  */
 #include <wintirpc.h>
-//#include <pthread.h>
+#ifndef _WIN32
+#include <pthread.h>
+#endif /* !_WIN32 */
 #include <reentrant.h>
 #include <sys/types.h>
-//#include <sys/socket.h>
-//#include <stdint.h>
-//#include <sys/poll.h>
+#ifndef _WIN32
+#include <sys/socket.h>
+#include <stdint.h>
+#include <sys/poll.h>
 
-//#include <sys/time.h>
+#include <sys/time.h>
 
-//#include <sys/ioctl.h>
+#include <sys/ioctl.h>
+#endif /* !_WIN32 */
 #include <rpc/clnt.h>
-//#include <arpa/inet.h>
+#ifndef _WIN32
+#include <arpa/inet.h>
+#endif /* !_WIN32 */
 #include <rpc/rpc.h>
 #include <rpc/xdr.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
-//#include <signal.h>
-//#include <unistd.h>
-//#include <err.h>
+#ifndef _WIN32
+#include <signal.h>
+#include <unistd.h>
+#include <err.h>
+#endif /* !_WIN32 */
 #include "rpc_com.h"
 
 #ifdef _WIN32

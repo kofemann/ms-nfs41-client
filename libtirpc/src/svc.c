@@ -37,11 +37,15 @@
  * Copyright (C) 1984, Sun Microsystems, Inc.
  */
 #include <wintirpc.h>
-//#include <pthread.h>
+#ifndef _WIN32
+#include <pthread.h>
+#endif /* !_WIN32 */
 
 #include <reentrant.h>
 #include <sys/types.h>
-//#include <sys/poll.h>
+#ifndef _WIN32
+#include <sys/poll.h>
+#endif /* !_WIN32 */
 #include <assert.h>
 #include <errno.h>
 #include <stdlib.h>

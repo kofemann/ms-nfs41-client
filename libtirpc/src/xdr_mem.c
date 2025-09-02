@@ -26,7 +26,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-//#include <sys/cdefs.h>
+#ifndef _WIN32
+#include <sys/cdefs.h>
+#endif /* !_WIN32 */
 
 /*
  * xdr_mem.h, XDR implementation using memory buffers.
@@ -43,7 +45,9 @@
 #include "namespace.h"
 #include <sys/types.h>
 
-//#include <netinet/in.h>
+#ifndef _WIN32
+#include <netinet/in.h>
+#endif /* !_WIN32 */
 
 #include <string.h>
 

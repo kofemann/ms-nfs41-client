@@ -27,9 +27,11 @@
  */
 
 #include <wintirpc.h>
-//#include <unistd.h>
+#ifndef _WIN32
+#include <unistd.h>
 
-//#include <sys/select.h>
+#include <sys/select.h>
+#endif /* !_WIN32 */
 
 int _rpc_dtablesize(void);	/* XXX */
 

@@ -26,8 +26,10 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-//#include <sys/cdefs.h>
-//#include <sys/cdefs.h>
+#ifndef _WIN32
+#include <sys/cdefs.h>
+#include <sys/cdefs.h>
+#endif /* !_WIN32 */
 
 /*
  * xdr_rec.c, Implements TCP/IP based XDR streams with a "record marking"
@@ -47,10 +49,12 @@
  */
 
 /* NFSv4.1 client for Windows
- * Copyright © 2012 The Regents of the University of Michigan
+ * Copyright (C) 2012 The Regents of the University of Michigan
+ * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
+ * Roland Mainz <roland.mainz@nrubsig.org>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -71,9 +75,13 @@
 #include <io.h>
 #include <sys/types.h>
 
-//#include <netinet/in.h>
+#ifndef _WIN32
+#include <netinet/in.h>
+#endif /* !_WIN32 */
 
-//#include <err.h>
+#ifndef _WIN32
+#include <err.h>
+#endif /* !_WIN32 */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -86,7 +94,9 @@
 #include <rpc/clnt.h>
 #include <stddef.h>
 #include "rpc_com.h"
-//#include <unistd.h>
+#ifndef _WIN32
+#include <unistd.h>
+#endif /* !_WIN32 */
 static bool_t	xdrrec_getlong(XDR *, long *);
 static bool_t	xdrrec_putlong(XDR *, const long *);
 static bool_t	xdrrec_getbytes(XDR *, char *, u_int);

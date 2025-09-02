@@ -36,19 +36,25 @@
  *
  */
 #include <wintirpc.h>
-//#include <pthread.h>
+#ifndef _WIN32
+#include <pthread.h>
+#endif /* !_WIN32 */
 #include <reentrant.h>
 #include <sys/types.h>
-//#include <sys/socket.h>
-//#include <netinet/in.h>
+#ifndef _WIN32
+#include <sys/socket.h>
+#include <netinet/in.h>
+#endif /* !_WIN32 */
 #include <rpc/rpc.h>
 #include <rpc/nettype.h>
 #include <stdio.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
-//#include <unistd.h>
-//#include <err.h>
+#ifndef _WIN32
+#include <unistd.h>
+#include <err.h>
+#endif /* !_WIN32 */
 
 #include "rpc_com.h"
 #include <rpc/svc.h>

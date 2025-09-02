@@ -25,13 +25,17 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-//#include <sys/cdefs.h>
+#ifndef _WIN32
+#include <sys/cdefs.h>
+#endif /* !_WIN32 */
 
 /*
  * Copyright (c) 1989 by Sun Microsystems, Inc.
  */
 
-//#include <sys/cdefs.h>
+#ifndef _WIN32
+#include <sys/cdefs.h>
+#endif /* !_WIN32 */
 #include <wintirpc.h>
 #include <stdio.h>
 #include <errno.h>
@@ -40,7 +44,7 @@
 #include <string.h>
 #ifndef _WIN32
 #include <syslog.h>
-#endif
+#endif /* !_WIN32 */
 
 /*
  * internal structure to keep track of a netpath "session"

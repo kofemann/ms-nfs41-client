@@ -37,7 +37,9 @@
 
 #ifndef _SPINLOCK_H_
 #define _SPINLOCK_H_
-//#include <sys/cdefs.h>
+#ifndef _WIN32
+#include <sys/cdefs.h>
+#endif /* !_WIN32 */
 #include <sys/types.h>
 
 /*

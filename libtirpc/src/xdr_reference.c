@@ -26,8 +26,10 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-//#include <sys/cdefs.h>
-//#include <sys/cdefs.h>
+#ifndef _WIN32
+#include <sys/cdefs.h>
+#include <sys/cdefs.h>
+#endif /* !_WIN32 */
 
 /*
  * xdr_reference.c, Generic XDR routines impelmentation.
@@ -40,7 +42,9 @@
 
 #include <wintirpc.h>
 #include "namespace.h"
-//#include <err.h>
+#ifndef _WIN32
+#include <err.h>
+#endif /* !_WIN32 */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

@@ -37,8 +37,10 @@
 
 #include <rpc/types.h>		/* some typedefs */
 #include "winsock2.h"
-//#include <sys/socket.h>
-//#include <netinet/in.h>
+#ifndef _WIN32
+#include <sys/socket.h>
+#include <netinet/in.h>
+#endif /* !_WIN32 */
 
 /* external data representation interfaces */
 #include <rpc/xdr.h>		/* generic (de)serializer */

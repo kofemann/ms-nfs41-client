@@ -40,10 +40,14 @@
 
 #ifndef _TIRPC_XDR_H
 #define _TIRPC_XDR_H
-//#include <sys/cdefs.h>
+#ifndef _WIN32
+#include <sys/cdefs.h>
+#endif /* !_WIN32 */
 #include <stdio.h>
-//#include <netinet/in.h>
-// Rajout pour la définition des types
+#ifndef _WIN32
+#include <netinet/in.h>
+#endif /* !_WIN32 */
+/* Rajout pour la définition des types */
 #include <rpc/types.h>
 
 /*

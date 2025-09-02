@@ -41,18 +41,26 @@
  * what unix uses.
  */
 #include <wintirpc.h>
-//#include <pthread.h>
+#ifndef _WIN32
+#include <pthread.h>
+#endif /* !_WIN32 */
 #include <stdlib.h>
 #include <string.h>
-//#include <unistd.h>
+#ifndef _WIN32
+#include <unistd.h>
+#endif /* !_WIN32 */
 #include <errno.h>
 #include <sys/types.h>
-//#include <sys/socket.h>
-//#include <sys/time.h>
-//#include <netinet/in.h>
+#ifndef _WIN32
+#include <sys/socket.h>
+#include <sys/time.h>
+#include <netinet/in.h>
+#endif /* !_WIN32 */
 #include <stdio.h>
-//#include <netdb.h>
-//#include <sys/select.h>
+#ifndef _WIN32
+#include <netdb.h>
+#include <sys/select.h>
+#endif /* !_WIN32 */
 
 extern int _rpc_dtablesize( void );
 

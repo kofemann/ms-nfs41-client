@@ -45,15 +45,21 @@
  *
  */
 #include <wintirpc.h>
-//#include <pthread.h>
+#ifndef _WIN32
+#include <pthread.h>
+#endif /* !_WIN32 */
 #include <reentrant.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
-//#include <unistd.h>
+#ifndef _WIN32
+#include <unistd.h>
+#endif /* !_WIN32 */
 #include <rpc/des_crypt.h>
-//#include <sys/param.h>
-//#include <netinet/in.h>
+#ifndef _WIN32
+#include <sys/param.h>
+#include <netinet/in.h>
+#endif /* !_WIN32 */
 #include <rpc/types.h>
 #include <rpc/xdr.h>
 #include <rpc/auth.h>

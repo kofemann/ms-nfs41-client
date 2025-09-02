@@ -25,26 +25,34 @@
  *	needed to deal with TCP connections.
  */
 
-//#include <sys/cdefs.h>
+#ifndef _WIN32
+#include <sys/cdefs.h>
+#endif /* !_WIN32 */
 #include <wintirpc.h>
 #ifndef _WIN32
 #include <syslog.h>
 #endif
 #include <string.h>
 #include <stdlib.h>
-//#include <unistd.h>
-//#include <netdb.h>
-//#include <sys/signal.h>
+#ifndef _WIN32
+#include <unistd.h>
+#include <netdb.h>
+#include <sys/signal.h>
+#endif /* !_WIN32 */
 #include <errno.h>
-//#include <sys/socket.h>
-//#include <netinet/in.h>
-//#include <arpa/inet.h>
+#ifndef _WIN32
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#endif /* !_WIN32 */
 
 #include <rpc/rpc.h>
 #include <rpc/rpc_com.h>
 #include <rpc/rpcb_prot.h>
-//#include <clnt_soc.h>
-//#include <sys/select.h>
+#ifndef _WIN32
+#include <clnt_soc.h>
+#include <sys/select.h>
+#endif /* !_WIN32 */
 #undef NIS
 #include <rpcsvc/nis.h>
 

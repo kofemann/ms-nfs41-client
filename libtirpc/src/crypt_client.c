@@ -30,10 +30,14 @@
  * SUCH DAMAGE.
  */
 
-//#include <sys/cdefs.h>
+#ifndef _WIN32
+#include <sys/cdefs.h>
+#endif /* !_WIN32 */
 
 #include <wintirpc.h>
-//#include <err.h>
+#ifndef _WIN32
+#include <err.h>
+#endif /* !_WIN32 */
 #include <sys/types.h>
 #include <rpc/des_crypt.h>
 #include <rpc/des.h>

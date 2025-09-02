@@ -63,7 +63,9 @@
  */
 
 #include <wintirpc.h>
-//#include <sys/param.h>
+#ifndef _WIN32
+#include <sys/param.h>
+#endif /* !_WIN32 */
 
 #include <assert.h>
 

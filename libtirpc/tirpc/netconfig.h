@@ -1,9 +1,11 @@
 #ifndef _NETCONFIG_H_
 #define _NETCONFIG_H_
 
-//#include <features.h>
+#ifndef _WIN32
+#include <features.h>
+#endif /* !_WIN32 */
 
-// XXX Should be in, or come from, the registry!!!
+/* XXX Should be in, or come from, the registry!!! */
 #define NETCONFIG "c:\\etc\\netconfig"
 #define NETPATH	  "NETPATH"
 

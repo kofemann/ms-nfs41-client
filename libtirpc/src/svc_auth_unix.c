@@ -37,7 +37,9 @@
  * Copyright (C) 1984, Sun Microsystems, Inc.
  */
 #include <wintirpc.h>
-//#include <pthread.h>
+#ifndef _WIN32
+#include <pthread.h>
+#endif /* !_WIN32 */
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>

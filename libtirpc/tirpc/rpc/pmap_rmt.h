@@ -41,7 +41,9 @@
 
 #ifndef _RPC_PMAP_RMT_H
 #define _RPC_PMAP_RMT_H
-//#include <sys/cdefs.h>
+#ifndef _WIN32
+#include <sys/cdefs.h>
+#endif /* !_WIN32 */
 
 struct rmtcallargs {
 	u_long prog, vers, proc, arglen;

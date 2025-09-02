@@ -44,7 +44,7 @@
 #include <rpc/rpcb_prot.h>
 #ifdef _WIN32 // CVE-2017-8779
 #include "rpc_com.h"
-#endif
+#endif /* _WIN32 */
 
 bool_t
 xdr_rpcb(

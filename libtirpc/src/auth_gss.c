@@ -38,7 +38,9 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-//#include <unistd.h>
+#ifndef _WIN32
+#include <unistd.h>
+#endif /* !_WIN32 */
 #include <string.h>
 #include <errno.h>
 #include <rpc/types.h>

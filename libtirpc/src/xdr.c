@@ -38,7 +38,9 @@
  */
 
 #include <wintirpc.h>
-//#include <err.h>
+#ifndef _WIN32
+#include <err.h>
+#endif /* !_WIN32 */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
