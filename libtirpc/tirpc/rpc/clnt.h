@@ -65,17 +65,17 @@
 #ifndef _TIRPC_CLNT_H_
 #define _TIRPC_CLNT_H_
 
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <rpc/clnt_stat.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 #include "clnt_stat.h"
 #include <rpc/auth.h>
 
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <sys/cdefs.h>
 #include <netconfig.h>
 #include <sys/un.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 
 /*
  * Well-known IPV6 RPC broadcast address.

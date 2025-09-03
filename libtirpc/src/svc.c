@@ -37,15 +37,15 @@
  * Copyright (C) 1984, Sun Microsystems, Inc.
  */
 #include <wintirpc.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <pthread.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 
 #include <reentrant.h>
 #include <sys/types.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <sys/poll.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 #include <assert.h>
 #include <errno.h>
 #include <stdlib.h>
@@ -115,7 +115,7 @@ xprt_register (SVCXPRT *xprt)
       }
       memset (__svc_xports, 0, FD_SETSIZE * sizeof (SVCXPRT *));
   }
-#ifndef _WIN32
+#ifndef _WINTIRPC
   if (sock < FD_SETSIZE) {
     __svc_xports[sock] = xprt;
     FD_SET(wintirpc_fd2sockethandle(sock), &svc_fdset);
@@ -154,7 +154,7 @@ __xprt_do_unregister (
 
   sock = xprt->xp_fd;
 
-#ifndef _WIN32
+#ifndef _WINTIRPC
   if (dolock)
     rwlock_wrlock (&svc_fd_lock);
   if ((sock < FD_SETSIZE) && (__svc_xports[sock] == xprt)) {
@@ -612,7 +612,7 @@ svc_getreq (int rdfds)
 void
 svc_getreqset (fd_set *readfds)
 {
-#ifndef _WIN32
+#ifndef _WINTIRPC
   int bit, fd;
   fd_mask mask, *maskp;
   int sock;

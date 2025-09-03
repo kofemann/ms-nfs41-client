@@ -28,9 +28,9 @@
 /*
  * Copyright (c) 1986-1991 by Sun Microsystems Inc. 
  */
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <sys/cdefs.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 
 /*
  * clnt_bcast.c
@@ -43,25 +43,25 @@
  */
 
 #include <wintirpc.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <sys/socket.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 #include <sys/types.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <sys/queue.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 
 /* new queue functions */
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <misc/queue.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <net/if.h>
 #include <netinet/in.h>
 #include <ifaddrs.h>
 #include <sys/poll.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 #include <rpc/rpc.h>
 #ifdef PORTMAP
 #include <rpc/pmap_prot.h>
@@ -69,20 +69,20 @@
 #include <rpc/pmap_rmt.h>
 #endif				/* PORTMAP */
 #include <rpc/nettype.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <arpa/inet.h>
 #define RPC_DEBUG 1
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 #ifdef RPC_DEBUG
 #include <stdio.h>
 #endif
 #include <errno.h>
 #include <stdlib.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <unistd.h>
 #include <netdb.h>
 #include <err.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 #include <string.h>
 
 #include "rpc_com.h"
@@ -102,7 +102,7 @@
  * For now, ASSUME that we do not need this for the Windows port!!!!
  */
 #include <wintirpc.h>
-#ifdef _WIN32
+#ifdef _WINTIRPC
 int __rpc_lowvers = 0;
 
 enum clnt_stat

@@ -45,9 +45,9 @@
 
 #ifndef _TIRPC_AUTH_UNIX_H
 #define _TIRPC_AUTH_UNIX_H
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <sys/cdefs.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 
 /* The machine name is part of a credential; it may not exceed 255 bytes */
 #define MAX_MACHINE_NAME 255

@@ -1,6 +1,6 @@
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <sys/cdefs.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 /*
  * Copyright (c) 2009, Sun Microsystems, Inc.
  * All rights reserved.

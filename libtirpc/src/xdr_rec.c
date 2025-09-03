@@ -26,10 +26,10 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <sys/cdefs.h>
 #include <sys/cdefs.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 
 /*
  * xdr_rec.c, Implements TCP/IP based XDR streams with a "record marking"
@@ -75,13 +75,13 @@
 #include <io.h>
 #include <sys/types.h>
 
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <netinet/in.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <err.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -94,9 +94,9 @@
 #include <rpc/clnt.h>
 #include <stddef.h>
 #include "rpc_com.h"
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <unistd.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 static bool_t	xdrrec_getlong(XDR *, long *);
 static bool_t	xdrrec_putlong(XDR *, const long *);
 static bool_t	xdrrec_getbytes(XDR *, char *, u_int);

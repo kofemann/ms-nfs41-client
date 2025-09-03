@@ -29,21 +29,21 @@
  * Copyright (c) 1986-1991 by Sun Microsystems Inc. 
  */
 
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <sys/cdefs.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 
 /*
  * rpc_generic.c, Miscl routines for RPC.
  *
  */
 #include <wintirpc.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <pthread.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 #include <reentrant.h>
 #include <sys/types.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <sys/param.h>
 #include <sys/socket.h>
 #include <sys/time.h>
@@ -51,20 +51,20 @@
 #include <sys/resource.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 #include <rpc/rpc.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <ctype.h>
 #include <stddef.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 #include <stdio.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <netdb.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 #include <netconfig.h>
 #include <stdlib.h>
 #include <string.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <syslog.h>
 #endif
 #include <rpc/nettype.h>
@@ -121,7 +121,7 @@ static int getnettype(const char *);
 int
 __rpc_dtbsize()
 {
-#ifdef _WIN32
+#ifdef _WINTIRPC
         /* gisburn: Is |FD_SETSIZE| really correct here ? */
 	return (FD_SETSIZE);
 #else
@@ -493,7 +493,7 @@ __rpc_fd2sockinfo(int fd, struct __rpc_sockinfo *sip)
 	int type, proto;
 	struct sockaddr_storage ss;
 
-#ifdef _WIN32
+#ifdef _WINTIRPC
 	WSAPROTOCOL_INFO proto_info;
 	int proto_info_size = sizeof(proto_info);
 	if (wintirpc_getsockopt(fd, SOL_SOCKET, SO_PROTOCOL_INFO, (char *)&proto_info, &proto_info_size) == SOCKET_ERROR) {
@@ -567,7 +567,7 @@ __rpc_nconf2fd(const struct netconfig *nconf)
 	struct __rpc_sockinfo si;
 	int fd;
 
-#ifdef _WIN32
+#ifdef _WINTIRPC
 	if (!wintirpc_winsock_init())
 		return 0;
 #endif

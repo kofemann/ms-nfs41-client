@@ -35,9 +35,9 @@
  * routines used with the rpcbind stats facility.
  */
 
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <sys/cdefs.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 
 #include <wintirpc.h>
 #include <rpc/rpc.h>

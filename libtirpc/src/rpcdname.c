@@ -25,9 +25,9 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <sys/cdefs.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 
 /*
  * rpcdname.c
@@ -36,9 +36,9 @@
 
 #include <wintirpc.h>
 #include <stdlib.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <unistd.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 #include <string.h>
 
 static char *default_domain = NULL;
@@ -46,13 +46,13 @@ static char *default_domain = NULL;
 static char *
 get_default_domain()
 {
-#ifndef _WIN32
+#ifndef _WINTIRPC
 	char temp[256];
 #endif
 
 	if (default_domain)
 		return (default_domain);
-#ifndef _WIN32	// Need a WIN32 version?
+#ifndef _WINTIRPC	// Need a WIN32 version?
 	if (getdomainname(temp, sizeof(temp)) < 0)
 		return (0);
 	if ((int) strlen(temp) > 0) {

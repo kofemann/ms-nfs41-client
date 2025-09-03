@@ -1,14 +1,14 @@
 #include <wintirpc.h>
 
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <sys/cdefs.h>
 #include <pthread.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 #include <reentrant.h>
 #include <rpc/rpc.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <sys/time.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 #include <stdlib.h>
 #include <string.h>
 
@@ -106,7 +106,7 @@ mutex_t serialize_pkey;
 /* netconfig serialization */
 mutex_t nc_lock;
 
-#ifdef _WIN32
+#ifdef _WINTIRPC
 /*
  * Initialize all the mutexes (CriticalSections or SRWLOCK)
  */

@@ -69,35 +69,35 @@
  */
 
 #include <wintirpc.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <pthread.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 
 #include <reentrant.h>
 #include <sys/types.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <sys/poll.h>
 #include <sys/syslog.h>
 #include <sys/un.h>
 #include <sys/uio.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 #include <assert.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <err.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 #include <errno.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <netdb.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <unistd.h>
 #include <signal.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 #include <time.h>
 
 #include <rpc/rpc.h>
@@ -176,7 +176,7 @@ struct ct_data {
 static int      *vc_fd_locks;
 extern mutex_t  clnt_fd_lock;
 static cond_t   *vc_cv;
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #define release_fd_lock(fd, mask) {	\
 	mutex_lock(&clnt_fd_lock);	\
 	vc_fd_locks[(fd)] = 0;		\
@@ -404,7 +404,7 @@ clnt_vc_create(
 	struct timeval now;
 	struct rpc_msg call_msg;
 	static u_int32_t disrupt;
-#ifndef _WIN32
+#ifndef _WINTIRPC
 	sigset_t mask;
 	sigset_t newmask;
 #else
@@ -427,7 +427,7 @@ clnt_vc_create(
 		goto err;
 	}
 	ct->ct_addr.buf = NULL;
-#ifndef _WIN32
+#ifndef _WINTIRPC
 	sigfillset(&newmask);
 	thr_sigsetmask(SIG_SETMASK, &newmask, &mask);
 #else
@@ -592,7 +592,7 @@ clnt_vc_call(
 	static int refreshes = 2;
     u_int seq = (u_int)-1;
     time_t start_send, time_now;
-#ifndef _WIN32
+#ifndef _WINTIRPC
 	sigset_t mask, newmask;
 #else
 	/* XXX Need Windows signal/event stuff XXX */
@@ -603,7 +603,7 @@ clnt_vc_call(
 
 	assert(cl != NULL);
 
-#ifndef _WIN32
+#ifndef _WINTIRPC
 	sigfillset(&newmask);
 	thr_sigsetmask(SIG_SETMASK, &newmask, &mask);
 #else
@@ -796,7 +796,7 @@ clnt_vc_freeres(
 	struct ct_data *ct;
 	XDR *xdrs;
 	bool_t dummy;
-#ifndef _WIN32
+#ifndef _WINTIRPC
 	sigset_t mask;
 	sigset_t newmask;
 #else
@@ -808,7 +808,7 @@ clnt_vc_freeres(
 	ct = (struct ct_data *)cl->cl_private;
 	xdrs = &(ct->ct_xdrs);
 
-#ifndef _WIN32
+#ifndef _WINTIRPC
 	sigfillset(&newmask);
 	thr_sigsetmask(SIG_SETMASK, &newmask, &mask);
 #else
@@ -840,7 +840,7 @@ clnt_vc_control(
 {
 	struct ct_data *ct;
 	void *infop = info;
-#ifndef _WIN32
+#ifndef _WINTIRPC
 	sigset_t mask;
 	sigset_t newmask;
 #else
@@ -851,7 +851,7 @@ clnt_vc_control(
 
 	ct = (struct ct_data *)cl->cl_private;
 
-#ifndef _WIN32
+#ifndef _WINTIRPC
 	sigfillset(&newmask);
 	thr_sigsetmask(SIG_SETMASK, &newmask, &mask);
 #else
@@ -967,7 +967,7 @@ clnt_vc_destroy(CLIENT *cl)
 {
 	struct ct_data *ct = (struct ct_data *) cl->cl_private;
 	int ct_fd = ct->ct_fd;
-#ifndef _WIN32
+#ifndef _WINTIRPC
 	sigset_t mask;
 	sigset_t newmask;
 #else
@@ -978,7 +978,7 @@ clnt_vc_destroy(CLIENT *cl)
 
 	ct = (struct ct_data *) cl->cl_private;
 
-#ifndef _WIN32
+#ifndef _WINTIRPC
 	sigfillset(&newmask);
 	thr_sigsetmask(SIG_SETMASK, &newmask, &mask);
 #else
@@ -1105,7 +1105,7 @@ clnt_vc_ops()
 {
 	static struct clnt_ops ops;
 	extern mutex_t  ops_lock;
-#ifndef _WIN32
+#ifndef _WINTIRPC
 	sigset_t mask, newmask;
 
 	/* VARIABLES PROTECTED BY ops_lock: ops */

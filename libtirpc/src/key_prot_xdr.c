@@ -3,7 +3,7 @@
  * It was generated using rpcgen.
  */
 
-#ifdef _WIN32
+#ifdef _WINTIRPC
 /*
  * Disable "warning C4206: nonstandard extension
  * used: translation unit is empty" warning
@@ -176,4 +176,4 @@ xdr_key_netstres(register XDR *xdrs, key_netstres *objp)
 	}
 	return (TRUE);
 }
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */

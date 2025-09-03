@@ -33,12 +33,12 @@
  * Implements a connectionless client side RPC.
  */
 #include <wintirpc.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <pthread.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 #include <reentrant.h>
 #include <sys/types.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <sys/socket.h>
 #include <stdint.h>
 #include <sys/poll.h>
@@ -46,24 +46,24 @@
 #include <sys/time.h>
 
 #include <sys/ioctl.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 #include <rpc/clnt.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <arpa/inet.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 #include <rpc/rpc.h>
 #include <rpc/xdr.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <signal.h>
 #include <unistd.h>
 #include <err.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 #include "rpc_com.h"
 
-#ifdef _WIN32
+#ifdef _WINTIRPC
 #undef IP_RECVERR
 #endif
 
@@ -103,7 +103,7 @@ static void clnt_dg_destroy(CLIENT *);
 static int	*dg_fd_locks;
 extern mutex_t clnt_fd_lock;
 static cond_t	*dg_cv;
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #define	release_fd_lock(fd, mask) {		\
 	mutex_lock(&clnt_fd_lock);	\
 	dg_fd_locks[(fd)] = 0;		\
@@ -175,7 +175,7 @@ clnt_dg_create(
 	struct cu_data *cu = NULL;	/* private data */
 	struct timeval now;
 	struct rpc_msg call_msg;
-#ifndef _WIN32
+#ifndef _WINTIRPC
 	sigset_t mask;
 	sigset_t newmask;
 #else
@@ -184,7 +184,7 @@ clnt_dg_create(
 	struct __rpc_sockinfo si;
 	u_long one = 1;
 
-#ifndef _WIN32
+#ifndef _WINTIRPC
 	sigfillset(&newmask);
 	thr_sigsetmask(SIG_SETMASK, &newmask, &mask);
 #else
@@ -341,7 +341,7 @@ clnt_dg_call(
 	struct pollfd fd;
 	int total_time, nextsend_time, tv=0;
 	struct sockaddr *sa;
-#ifndef _WIN32
+#ifndef _WINTIRPC
 	sigset_t mask;
 	sigset_t newmask;
 #else
@@ -353,7 +353,7 @@ clnt_dg_call(
 	u_int32_t xid, inval, outval;
 
 	outlen = 0;
-#ifndef _WIN32
+#ifndef _WINTIRPC
 	sigfillset(&newmask);
 	thr_sigsetmask(SIG_SETMASK, &newmask, &mask);
 #else
@@ -602,7 +602,7 @@ clnt_dg_freeres(
 	struct cu_data *cu = (struct cu_data *)cl->cl_private;
 	XDR *xdrs = &(cu->cu_outxdrs);
 	bool_t dummy;
-#ifndef _WIN32
+#ifndef _WINTIRPC
 	sigset_t mask;
 	sigset_t newmask;
 
@@ -636,7 +636,7 @@ clnt_dg_control(
 {
 	struct cu_data *cu = (struct cu_data *)cl->cl_private;
 	struct netbuf *addr;
-#ifndef _WIN32
+#ifndef _WINTIRPC
 	sigset_t mask;
 	sigset_t newmask;
 #else
@@ -644,7 +644,7 @@ clnt_dg_control(
 #endif
 	int rpc_lock_value;
 
-#ifndef _WIN32
+#ifndef _WINTIRPC
 	sigfillset(&newmask);
 	thr_sigsetmask(SIG_SETMASK, &newmask, &mask);
 #else
@@ -784,7 +784,7 @@ clnt_dg_destroy(CLIENT *cl)
 {
 	struct cu_data *cu = (struct cu_data *)cl->cl_private;
 	int cu_fd = cu->cu_fd;
-#ifndef _WIN32
+#ifndef _WINTIRPC
 	sigset_t mask;
 	sigset_t newmask;
 
@@ -815,7 +815,7 @@ clnt_dg_ops()
 {
 	static struct clnt_ops ops;
 	extern mutex_t	ops_lock;
-#ifndef _WIN32
+#ifndef _WINTIRPC
 	sigset_t mask;
 	sigset_t newmask;
 

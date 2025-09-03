@@ -36,35 +36,35 @@
  * Copyright (C) 1988, Sun Microsystems, Inc.
  */
 #include <wintirpc.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <pthread.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 #include <reentrant.h>
 #include <sys/types.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <sys/utsname.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 #include <rpc/rpc.h>
 #include <rpc/rpcb_prot.h>
 #include <rpc/nettype.h>
 #include <netconfig.h>
 #ifdef PORTMAP
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <netinet/in.h>		/* FOR IPPROTO_TCP/UDP definitions */
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 #include <rpc/pmap_prot.h>
 #endif				/* PORTMAP */
 #include <stdio.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <unistd.h>
 #include <netdb.h>
 #include <syslog.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 
 #include "rpc_com.h"
 
@@ -1108,7 +1108,7 @@ error:
 	return (stat);
 }
 
-#ifndef _WIN32
+#ifndef _WINTIRPC
 /*
  * Gets the time on the remote host.
  * Returns 1 if succeeds else 0.

@@ -40,9 +40,9 @@
 
 #ifndef _TIRPC_SVC_H
 #define _TIRPC_SVC_H
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <sys/cdefs.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 
 /*
  * This interface must manage two items concerning remote procedure calling:

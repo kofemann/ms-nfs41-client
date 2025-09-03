@@ -31,9 +31,9 @@
  * Copyright (c) 1986-1991 by Sun Microsystems Inc.
  */
 
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <sys/cdefs.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 
 /*
  * svc_dg.c, Server side for connectionless RPC.
@@ -41,20 +41,20 @@
  * Does some caching in the hopes of achieving execute-at-most-once semantics.
  */
 #include <wintirpc.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <pthread.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 #include <reentrant.h>
 #include <sys/types.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <sys/socket.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 #include <rpc/rpc.h>
 #include <rpc/svc_dg.h>
 #include <errno.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <unistd.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -62,9 +62,9 @@
 #include <netconfig.h>
 #include <netdir.h>
 #endif
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <err.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 
 #include "rpc_com.h"
 

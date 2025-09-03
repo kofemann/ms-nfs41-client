@@ -35,9 +35,9 @@
  */
 
 #include <wintirpc.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <sys/param.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 #include <rpc/rpc.h>
 #include "rpc_com.h"
 #ifdef YP
@@ -49,9 +49,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <unistd.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 
 #ifndef MAXHOSTNAMELEN
 #define MAXHOSTNAMELEN 256
@@ -81,7 +81,7 @@ static char *OPSYS = "unix";
 int
 getnetname(char *name)
 {
-#ifdef _WIN32
+#ifdef _WINTIRPC
 	/* I don't understand what these underlying routines are accomplishing??? */
 	return 1;
 #else
@@ -96,7 +96,7 @@ getnetname(char *name)
 #endif
 }
 
-#ifndef _WIN32
+#ifndef _WINTIRPC
 /*
  * Convert unix cred to network-name
  */

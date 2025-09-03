@@ -33,15 +33,15 @@
 #include <wintirpc.h>
 #include <sys/types.h>
 
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 
 #include <assert.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <netdb.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

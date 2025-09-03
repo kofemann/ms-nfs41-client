@@ -27,11 +27,11 @@
  */
 
 #include <wintirpc.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <unistd.h>
 
 #include <sys/select.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 
 int _rpc_dtablesize(void);	/* XXX */
 
@@ -49,7 +49,7 @@ int _rpc_dtablesize(void);	/* XXX */
 int
 _rpc_dtablesize(void)
 {
-#ifdef _WIN32
+#ifdef _WINTIRPC
 	return FD_SETSIZE;
 #else
 	static int size;

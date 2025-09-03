@@ -26,9 +26,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <sys/cdefs.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 
 /*
  * pmap_getmap.c
@@ -40,29 +40,29 @@
 
 #include <wintirpc.h>
 #include <sys/types.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <sys/socket.h>
 #include <sys/ioctl.h>
 
 #include <arpa/inet.h>
 #include <net/if.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 
 #include <assert.h>
 #include <errno.h>
-#ifndef _WIN32
-#endif /* !_WIN32 */
+#ifndef _WINTIRPC
+#endif /* !_WINTIRPC */
 #include <stdio.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <unistd.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 
 #include <rpc/rpc.h>
 #include <rpc/pmap_prot.h>
 #include <rpc/pmap_clnt.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <clnt_soc.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 #define NAMELEN 255
 #define MAX_BROADCAST_SIZE 1400
 

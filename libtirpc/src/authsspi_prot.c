@@ -25,9 +25,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <rpc/types.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 #include <rpc/xdr.h>
 #include <rpc/auth.h>
 #include <rpc/auth_sspi.h>

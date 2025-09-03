@@ -62,11 +62,11 @@
 #define _TIRPC_TYPES_H
 
 #include <sys/types.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <sys/_null.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 
-#ifdef _WIN32
+#ifdef _WINTIRPC
 /*
  * Windows mappings of data types
  * Fixed size things
@@ -101,7 +101,7 @@ typedef DWORD    pid_t;
 typedef SIZE_T  size_t;  /* This is causing a "benign redefinition error" */
 #endif
 typedef SSIZE_T ssize_t;
-#endif /* _WIN32 */
+#endif /* _WINTIRPC */
 
 typedef int32_t bool_t;
 typedef int32_t enum_t;
@@ -128,10 +128,10 @@ typedef   int32_t rpc_inline_t;
 #define mem_alloc(bsize)	calloc(1, bsize)
 #define mem_free(ptr, bsize)	free(ptr)
 
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <sys/time.h>
 #include <sys/param.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 #include <stdlib.h>
 #include <netconfig.h>
 

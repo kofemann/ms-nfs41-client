@@ -36,7 +36,7 @@
 
 #include <wintirpc.h>
 #include <sys/types.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <sys/ioctl.h>
 #include <sys/poll.h>
 #include <sys/socket.h>
@@ -44,18 +44,18 @@
 #include <net/if.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 
 #include <assert.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <err.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <unistd.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 
 #include <rpc/rpc.h>
 #include <rpc/pmap_prot.h>
@@ -63,9 +63,9 @@
 #include <rpc/pmap_rmt.h>
 
 // For the clnttcp_create function
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <clnt_soc.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 
 
 static const struct timeval timeout = { 3, 0 };

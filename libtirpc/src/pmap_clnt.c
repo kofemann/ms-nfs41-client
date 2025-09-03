@@ -26,9 +26,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <sys/cdefs.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 
 /*
  * pmap_clnt.c
@@ -40,17 +40,17 @@
 #include <wintirpc.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <unistd.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 
 #include <rpc/rpc.h>
 #include <rpc/pmap_prot.h>
 #include <rpc/pmap_clnt.h>
 #include <rpc/nettype.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <netinet/in.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 
 #include <stdio.h>
 #include <stdlib.h>

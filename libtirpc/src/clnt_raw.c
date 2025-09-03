@@ -37,14 +37,14 @@
  * any interference from the kernel.
  */
 #include <wintirpc.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <pthread.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 #include <reentrant.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <assert.h>
 #include <err.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 #include <stdio.h>
 #include <stdlib.h>
 

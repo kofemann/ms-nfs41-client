@@ -41,9 +41,9 @@
 #ifndef _RPC_RPCCOM_H
 #define	_RPC_RPCCOM_H
 
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <sys/cdefs.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 
 /* #pragma ident	"@(#)rpc_com.h	1.11	93/07/05 SMI" */
 
@@ -54,7 +54,7 @@
 #define	RPC_MAXDATASIZE 9000
 #define	RPC_MAXADDRSIZE 1024
 
-//#ifdef _WIN32
+//#ifdef _WINTIRPC
 //#define __RPC_GETXID(now) ((u_int32_t)_getpid() ^ (u_int32_t)(now)->tv_sec ^ \
 //    (u_int32_t)(now)->tv_usec)
 //#else

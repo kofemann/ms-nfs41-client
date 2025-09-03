@@ -26,9 +26,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <sys/cdefs.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 
 /*
  * auth_unix.c, Implements UNIX style authentication parameters.
@@ -66,23 +66,23 @@
  */
 
 #include <wintirpc.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <pthread.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 #include <reentrant.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <sys/param.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <assert.h>
 #include <err.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 #include <stdio.h>
 #include <stdlib.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <unistd.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 #include <string.h>
 
 #include <rpc/types.h>

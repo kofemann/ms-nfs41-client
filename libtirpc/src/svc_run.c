@@ -31,26 +31,26 @@
  * Wait for input, call server program.
  */
 #include <wintirpc.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <pthread.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 #include <reentrant.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <err.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 #include <errno.h>
 #include <rpc/rpc.h>
 #include <stdio.h>
 #include <string.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <unistd.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 
 #include <rpc/rpc.h>
 #include "rpc_com.h"
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <sys/select.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 
 void
 svc_run()

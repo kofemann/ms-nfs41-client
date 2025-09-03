@@ -43,9 +43,9 @@
 #ifndef _DES_DES_CRYPT_H
 #define _DES_DES_CRYPT_H
 
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <sys/cdefs.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 #include <rpc/rpc.h>
 
 #define DES_MAXDATA 8192	/* max bytes encrypted in one call */

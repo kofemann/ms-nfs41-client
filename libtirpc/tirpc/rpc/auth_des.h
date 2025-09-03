@@ -121,7 +121,7 @@ __END_DECLS
 __BEGIN_DECLS
 extern bool_t	xdr_authdes_cred(XDR *, struct authdes_cred *);
 extern bool_t	xdr_authdes_verf(XDR *, struct authdes_verf *);
-#ifndef _WIN32
+#ifndef _WINTIRPC
 extern int	rtime(dev_t, struct netbuf *, int, struct timeval *,
 		    struct timeval *);
 #else

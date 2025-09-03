@@ -27,9 +27,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <sys/cdefs.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 
 /*
  * svc_vc.c, Server side for Connection Oriented based RPC. 
@@ -39,15 +39,15 @@
  * and a record/tcp stream.
  */
 #include <wintirpc.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <pthread.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 #include <reentrant.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <sys/socket.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 #include <sys/types.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <sys/param.h>
 #include <sys/poll.h>
 #include <sys/un.h>
@@ -55,20 +55,20 @@
 #include <sys/uio.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <assert.h>
 #include <err.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <unistd.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 
 #include <rpc/rpc.h>
 
@@ -315,7 +315,7 @@ rendezvous_request(
 	struct rpc_msg *msg)
 {
 	int sock;
-#ifndef _WIN32
+#ifndef _WINTIRPC
 	int flags;
 #endif
 	struct cf_rendezvous *r;
@@ -373,7 +373,7 @@ again:
 	cd->sendsize = r->sendsize;
 	cd->maxrec = r->maxrec;
 
-#ifndef _WIN32
+#ifndef _WINTIRPC
 	if (cd->maxrec != 0) {
 		flags = fcntl(sock, F_GETFL, 0);
 		if (flags  == -1)
@@ -386,7 +386,7 @@ again:
 		__xdrrec_setnonblock(&cd->xdrs, cd->maxrec);
 	} else
 		cd->nonblock = FALSE;
-#endif	/* _WIN32 */
+#endif	/* _WINTIRPC */
 
 	gettimeofday(&cd->last_recv_time, NULL);
 
@@ -502,7 +502,7 @@ read_vc(
 	cfp = (struct cf_conn *)xprt->xp_p1;
 
 	if (cfp->nonblock) {
-#ifdef _WIN32
+#ifdef _WINTIRPC
 		len = (int)wintirpc_recv(sock, buf, (size_t)len, 0);
 #else
 		len = read(sock, buf, (size_t)len);
@@ -519,7 +519,7 @@ read_vc(
 	}
 
 	do {
-#ifdef _WIN32
+#ifdef _WINTIRPC
 		pollfd.fd = wintirpc_fd2sockethandle(sock);
 #else
 		pollfd.fd = sock;
@@ -539,7 +539,7 @@ read_vc(
 		}
 	} while ((pollfd.revents & POLLIN) == 0);
 
-#ifdef _WIN32
+#ifdef _WINTIRPC
 	if ((len = (int)wintirpc_recv(sock, buf, (size_t)len, 0)) > 0) {
 #else
 	if ((len = read(sock, buf, (size_t)len)) > 0) {
@@ -579,7 +579,7 @@ write_vc(
 		gettimeofday(&tv0, NULL);
 	
 	for (cnt = len; cnt > 0; cnt -= i, buf += i) {
-#ifdef _WIN32
+#ifdef _WINTIRPC
 		i = (int)wintirpc_send(xprt->xp_fd, buf, (size_t)cnt, 0);
 #else
 		i = write(xprt->xp_fd, buf, (size_t)cnt);
@@ -778,7 +778,7 @@ __rpc_get_local_uid(SVCXPRT *transp, uid_t *uid) {
 		return (-1);
 }
 
-#ifdef _WIN32
+#ifdef _WINTIRPC
 void timersub( const struct timeval *tvp, const struct timeval *uvp, struct timeval *vvp ) 
 { 
     vvp->tv_sec = tvp->tv_sec - uvp->tv_sec; 

@@ -26,9 +26,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <sys/cdefs.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 
 /*
  * xdr_mem.h, XDR implementation using memory buffers.
@@ -45,9 +45,9 @@
 #include "namespace.h"
 #include <sys/types.h>
 
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <netinet/in.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 
 #include <string.h>
 

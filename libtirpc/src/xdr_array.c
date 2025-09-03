@@ -27,9 +27,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <sys/cdefs.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 
 /*
  * xdr_array.c, Generic XDR routines impelmentation.
@@ -42,10 +42,10 @@
 
 #include <wintirpc.h>
 #include "namespace.h"
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <err.h>
 #include <limits.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

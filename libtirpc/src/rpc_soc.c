@@ -34,7 +34,7 @@
  * California.
  */
 
-#if defined(PORTMAP) || defined (_WIN32)
+#if defined(PORTMAP) || defined (_WINTIRPC)
 /*
  * rpc_soc.c
  *
@@ -44,32 +44,32 @@
  * of TLI/Streams
  */
 #include <wintirpc.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <pthread.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 #include <reentrant.h>
 #include <sys/types.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <sys/socket.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 #include <stdio.h>
 #include <rpc/rpc.h>
 #include <rpc/pmap_clnt.h>
 #include <rpc/pmap_prot.h>
 #include <rpc/nettype.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <syslog.h>
 #endif
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <netinet/in.h>
 #include <netdb.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <unistd.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 
 #include "rpc_com.h"
 
@@ -495,7 +495,7 @@ clnt_broadcast(
 	    (resultproc_t) rpc_wrap_bcast, "udp");
 }
 
-#ifndef _WIN32
+#ifndef _WINTIRPC
 /*
  * Create the client des authentication object. Obsoleted by
  * authdes_seccreate().

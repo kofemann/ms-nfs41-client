@@ -16,13 +16,13 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifdef _WIN32
+#ifdef _WINTIRPC
 #include <wintirpc.h>
 #include <stdarg.h>
 #else
 extern int vsnprintf();
 #include <varargs.h>
-#endif /* _WIN32 */
+#endif /* _WINTIRPC */
 #include <stdio.h>
 
 /* Include vasprintf() if not on your OS. */

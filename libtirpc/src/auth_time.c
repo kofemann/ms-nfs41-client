@@ -25,34 +25,34 @@
  *	needed to deal with TCP connections.
  */
 
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <sys/cdefs.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 #include <wintirpc.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <syslog.h>
 #endif
 #include <string.h>
 #include <stdlib.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <unistd.h>
 #include <netdb.h>
 #include <sys/signal.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 #include <errno.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 
 #include <rpc/rpc.h>
 #include <rpc/rpc_com.h>
 #include <rpc/rpcb_prot.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <clnt_soc.h>
 #include <sys/select.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 #undef NIS
 #include <rpcsvc/nis.h>
 
@@ -253,7 +253,7 @@ __rpc_get_time_offset(
 	char			ut[64], ipuaddr[64];
 	endpoint		teps[32];
 	nis_server		tsrv = { 0 };
-#ifndef _WIN32
+#ifndef _WINTIRPC
 	void			(*oldsig)(int) = NULL; /* old alarm handler */
 #endif
 	struct sockaddr_in	sin;
@@ -423,7 +423,7 @@ __rpc_get_time_offset(
 			time_valid = 1;
 		} else {
 			int res;
-#ifndef _WIN32
+#ifndef _WINTIRPC
 			oldsig = (void (*)(int))signal(SIGALRM, alarm_hndler);
 			saw_alarm = 0; /* global tracking the alarm */
 			alarm(20); /* only wait 20 seconds */
@@ -440,7 +440,7 @@ __rpc_get_time_offset(
 				msg("alarm caught it, must be unreachable.");
 				goto error;
 			}
-#ifndef _WIN32
+#ifndef _WINTIRPC
 			res = read(s, (char *)&thetime, sizeof(thetime));
 #else
 			res = (int)wintirpc_recv(s, (char *)&thetime, sizeof(thetime), 0);
@@ -480,7 +480,7 @@ error:
 	if (clnt != NULL)
 		clnt_destroy(clnt);
 
-#ifdef _WIN32
+#ifdef _WINTIRPC
 	/* XXX Need Windows signal/alarm stuff here XXX */
 #else
 	alarm(0);	/* reset that alarm if its outstanding */

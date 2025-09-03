@@ -38,11 +38,11 @@
  * Public key lookup routines
  */
 #include <wintirpc.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <stdio.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <pwd.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 #include <rpc/rpc.h>
 #include <rpc/key_prot.h>
 #include <rpcsvc/yp_prot.h>
@@ -174,4 +174,4 @@ int getpublickey(
 	else
 		return(__getpublickey_real(netname, publickey));
 }
-#endif	/* ! _WIN32 */
+#endif	/* ! _WINTIRPC */

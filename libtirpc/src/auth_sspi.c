@@ -22,9 +22,9 @@
 #include <wintirpc.h>
 #include <stdio.h>
 #include <stdlib.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <unistd.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 #include <string.h>
 #include <errno.h>
 #include <rpc/types.h>

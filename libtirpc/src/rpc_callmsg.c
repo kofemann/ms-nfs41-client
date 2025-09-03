@@ -41,9 +41,9 @@
 #include <rpc/rpc.h>
 #include <rpc/xdr.h>
 
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <sys/select.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 
 /*
  * XDR a call message

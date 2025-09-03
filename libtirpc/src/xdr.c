@@ -38,9 +38,9 @@
  */
 
 #include <wintirpc.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <err.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -553,13 +553,13 @@ xdr_enum(
 {
 	enum sizecheck { SIZEVAL };	/* used to find the size of an enum */
 
-#ifdef _WIN32
+#ifdef _WINTIRPC
 #pragma warning( push )
 /*
  * warning C4127: conditional expression is constant
  */
 #pragma warning (disable : 4127)
-#endif /* _WIN32 */
+#endif /* _WINTIRPC */
 	/*
 	 * enums are treated as ints
 	 */
@@ -572,9 +572,9 @@ xdr_enum(
 	} else {
 		return (FALSE);
 	}
-#ifdef _WIN32
+#ifdef _WINTIRPC
 #pragma warning( pop )
-#endif /* _WIN32 */
+#endif /* _WINTIRPC */
 }
 
 /*

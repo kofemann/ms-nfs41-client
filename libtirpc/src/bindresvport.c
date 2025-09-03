@@ -27,9 +27,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <sys/cdefs.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 
 /*
  * Copyright (c) 1987 by Sun Microsystems, Inc.
@@ -40,24 +40,24 @@
 
 #include <wintirpc.h>
 #include <sys/types.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <sys/socket.h>
 #include <netinet/in.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 
 #include <errno.h>
 #include <string.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <unistd.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 
 #include <rpc/rpc.h>
 
-#ifdef _WIN32
+#ifdef _WINTIRPC
 #include <winsock2.h>
 #include <mstcpip.h>
 #include <ws2ipdef.h>
-#endif /* _WIN32 */
+#endif /* _WINTIRPC */
 
 /*
  * Bind a socket to a privileged IP port
@@ -150,7 +150,7 @@ bindresvport_sa(int sd, struct sockaddr *sa)
         return (res);
 }
 
-#elif defined(_WIN32)
+#elif defined(_WINTIRPC)
 
 #define STARTPORT 600
 #define ENDPORT (IPPORT_RESERVED - 1)

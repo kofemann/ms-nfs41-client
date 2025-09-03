@@ -28,17 +28,17 @@
 
 #include <wintirpc.h>
 #include <sys/types.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <sys/socket.h>
 
 #include <arpa/inet.h>
 #include <net/if.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 
 #include <assert.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <unistd.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 
 #include <rpc/rpc.h>
 #include <rpc/pmap_prot.h>
@@ -47,7 +47,7 @@
 static const struct timeval timeout = { 5, 0 };
 static const struct timeval tottimeout = { 60, 0 };
 
-#ifdef _WIN32
+#ifdef _WINTIRPC
 /*
  * pmap_getport.c
  * Client interface to pmap rpc service.
@@ -111,4 +111,4 @@ pmap_getport(
 	address->sin_port = 0;
 	return (port);
 }
-#endif /* ! _WIN32 */
+#endif /* ! _WINTIRPC */

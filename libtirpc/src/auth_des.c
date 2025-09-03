@@ -33,40 +33,40 @@
  */
 
 #include <wintirpc.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <pthread.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 #include <reentrant.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <err.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <unistd.h>
 #include <sys/cdefs.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 #include <rpc/des_crypt.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <syslog.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 #include <rpc/types.h>
 #include <rpc/auth.h>
 #include <rpc/auth_des.h>
 #include <rpc/clnt.h>
 #include <rpc/xdr.h>
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <sys/socket.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 #undef NIS
 #include <rpcsvc/nis.h>
 
 #if defined(LIBC_SCCS) && !defined(lint)
 #endif
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <sys/cdefs.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 
 #define USEC_PER_SEC		1000000
 #define RTIME_TIMEOUT		5	/* seconds to wait for sync */

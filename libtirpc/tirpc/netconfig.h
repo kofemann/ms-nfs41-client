@@ -1,9 +1,9 @@
 #ifndef _NETCONFIG_H_
 #define _NETCONFIG_H_
 
-#ifndef _WIN32
+#ifndef _WINTIRPC
 #include <features.h>
-#endif /* !_WIN32 */
+#endif /* !_WINTIRPC */
 
 /* XXX Should be in, or come from, the registry!!! */
 #define NETCONFIG "c:\\etc\\netconfig"

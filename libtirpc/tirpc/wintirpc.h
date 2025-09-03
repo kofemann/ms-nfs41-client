@@ -1,5 +1,6 @@
 /* NFSv4.1 client for Windows
- * Copyright © 2012 The Regents of the University of Michigan
+ * Copyright (C) 2012 The Regents of the University of Michigan
+ * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -116,6 +117,10 @@ struct timezone
 
 extern int gettimeofday(struct timeval *tv, struct timezone *tz);
 extern int asprintf(char **str, const char *fmt, ...);
+
+#ifndef _WIN32_WINNT
+#error _WIN32_WINNT not defined
+#endif /* !_WIN32_WINNT */
 
 #if(_WIN32_WINNT < 0x0501)
 #define SOL_IPV6 IPPROTO_IPV6
