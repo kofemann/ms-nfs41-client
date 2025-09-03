@@ -31,35 +31,40 @@ $(PROJECT_BASEDIR_DIR)/tests/ea/nfs_ea.exe \
 #
 # build the code
 #
-build_64bit_release:
+build_x86_64bit_release:
 	@printf '#\n# PATH is %q\n#\n' '$(PATH)'
 	which MSBuild.exe
 	MSBuild.exe '$(shell cygpath -w "$(PROJECT_BASEDIR_DIR)/build.vc19/nfs41-client.sln")' -t:Build  -p:Configuration=Release -p:Platform=x64 /p:CERTIFICATE_THUMBPRINT=$$CERTIFICATE_THUMBPRINT
 
-build_64bit_debug:
+build_x86_64bit_debug:
 	@printf '#\n# PATH is %q\n#\n' '$(PATH)'
 	which MSBuild.exe
 	MSBuild.exe '$(shell cygpath -w "$(PROJECT_BASEDIR_DIR)/build.vc19/nfs41-client.sln")' -t:Build  -p:Configuration=Debug -p:Platform=x64 /p:CERTIFICATE_THUMBPRINT=$$CERTIFICATE_THUMBPRINT
 
-build_32bit_release:
+build_x86_32bit_release:
 	@printf '#\n# PATH is %q\n#\n' '$(PATH)'
 	which MSBuild.exe
 	MSBuild.exe '$(shell cygpath -w "$(PROJECT_BASEDIR_DIR)/build.vc19/nfs41-client.sln")' -t:Build  -p:Configuration=Release -p:Platform=x86 /p:CERTIFICATE_THUMBPRINT=$$CERTIFICATE_THUMBPRINT
 
-build_32bit_debug:
+build_x86_32bit_debug:
 	@printf '#\n# PATH is %q\n#\n' '$(PATH)'
 	which MSBuild.exe
 	MSBuild.exe '$(shell cygpath -w "$(PROJECT_BASEDIR_DIR)/build.vc19/nfs41-client.sln")' -t:Build  -p:Configuration=Debug -p:Platform=x86 /p:CERTIFICATE_THUMBPRINT=$$CERTIFICATE_THUMBPRINT
 
-build_32bit_release_clientutils:
+build_x86_32bit_release_clientutils:
 	@printf '#\n# PATH is %q\n#\n' '$(PATH)'
 	which MSBuild.exe
 	MSBuild.exe '$(shell cygpath -w "$(PROJECT_BASEDIR_DIR)/build.vc19/nfs41-client.sln")' -t:nfs41_np,nfs_mount  -p:Configuration=Release -p:Platform=x86 /p:CERTIFICATE_THUMBPRINT=$$CERTIFICATE_THUMBPRINT
 
-build_32bit_debug_clientutils:
+build_x86_32bit_debug_clientutils:
 	@printf '#\n# PATH is %q\n#\n' '$(PATH)'
 	which MSBuild.exe
 	MSBuild.exe '$(shell cygpath -w "$(PROJECT_BASEDIR_DIR)/build.vc19/nfs41-client.sln")' -t:nfs41_np,nfs_mount  -p:Configuration=Debug -p:Platform=x86 /p:CERTIFICATE_THUMBPRINT=$$CERTIFICATE_THUMBPRINT
+
+build_arm_64bit_release:
+	@printf '#\n# PATH is %q\n#\n' '$(PATH)'
+	which MSBuild.exe
+	MSBuild.exe '$(shell cygpath -w "$(PROJECT_BASEDIR_DIR)/build.vc19/nfs41-client.sln")' -t:Build  -p:Configuration=Release -p:Platform=ARM64 /p:CERTIFICATE_THUMBPRINT=$$CERTIFICATE_THUMBPRINT
 
 build_arm_64bit_debug:
 	@printf '#\n# PATH is %q\n#\n' '$(PATH)'
@@ -76,14 +81,14 @@ build_testutils:
 	(cd "$(PROJECT_BASEDIR_DIR)/tests/winrunassystem" && make all)
 	(cd "$(PROJECT_BASEDIR_DIR)/tests/winsg" && make all)
 
-build: build_32bit_release build_32bit_debug build_64bit_release build_64bit_debug build_arm_64bit_debug build_testutils
+build: build_x86_32bit_release build_x86_32bit_debug build_x86_64bit_release build_x86_64bit_debug build_arm_64bit_release build_arm_64bit_debug build_testutils
 	sync
 
 # 32bit kernel only build, for Windows <= 10/32bit
 # - BUG: ARM64 build not working yet
 build32: \
-	build_32bit_release \
-	build_32bit_debug \
+	build_x86_32bit_release \
+	build_x86_32bit_debug \
 	build_testutils
 	sync
 
@@ -93,10 +98,12 @@ build32: \
 # - we need 32bit nfs41_np.dll to support 32bit applications on 64bit machines
 # - BUG: ARM64 build not working yet
 build64: \
-	build_32bit_release_clientutils \
-	build_32bit_debug_clientutils \
-	build_64bit_release \
-	build_64bit_debug \
+	build_x86_32bit_release_clientutils \
+	build_x86_32bit_debug_clientutils \
+	build_x86_64bit_release \
+	build_x86_64bit_debug \
+	build_arm_64bit_release \
+	build_arm_64bit_debug \
 	build_testutils
 	sync
 
