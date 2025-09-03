@@ -218,6 +218,21 @@ void PrintUmountUsage(LPWSTR pProcess)
 
 
 static
+bool isvaliduncpath(const wchar_t *path)
+{
+    /*
+     * UNC path must start with \\ and have at least the syntax \\x\...
+     */
+
+    if ((wcsncmp(path, L"\\\\", 2) == 0) &&
+        (wcslen(path) > (2+1+1)))
+        return true;
+    else
+        return false;
+}
+
+
+static
 int mount_main(int argc, wchar_t *argv[])
 {
     int     i;
@@ -430,12 +445,12 @@ opt_o_argv_i_again:
             result = ERROR_INVALID_COMMAND_LINE;
             goto out;
 	}
-        /* drive letter */
+        /* drive letter (2nd last argument ) */
 	else if ((!bUnmount) && (pLocalName == NULL) &&
             (i == (argc-2)) && (wcslen(argv[i]) <= 2)) {
             pLocalName = argv[i];
         }
-        /* remote path */
+        /* remote path (last argument) */
         else if ((pRemoteName == NULL) && (i == (argc-1))) {
             pRemoteName = argv[i];
         }
@@ -448,30 +463,62 @@ opt_o_argv_i_again:
         }
     }
 
-    /* validate local drive letter */
-    if (pLocalName) {
-        if (!ParseDriveLetter(pLocalName, szLocalName)) {
-            result = ERROR_BAD_ARGUMENTS;
-            (void)fwprintf(stderr, L"Invalid drive letter '%ls'. "
-                L"Expected 'C' or 'C:'.\n",
-                pLocalName);
-            goto out_free;
-        }
-    }
+    if (bUnmount) {
+        /*
+         * unmount
+         */
+        pLocalName = pRemoteName;
 
-    if (bUnmount == TRUE) /* unmount */
-    {
-        result = DoUnmount(pLocalName?szLocalName:pRemoteName,
-            bForceUnmount);
+        if (pLocalName == NULL) {
+            result = ERROR_BAD_ARGUMENTS;
+            (void)fwprintf(stderr, L"Drive letter or UNC path expected.\n");
+            goto out;
+        }
+
+        if (wcslen(pLocalName) <= 2) {
+            if (!ParseDriveLetter(pLocalName, szLocalName)) {
+                result = ERROR_BAD_ARGUMENTS;
+                (void)fwprintf(stderr, L"Invalid drive letter '%ls'. "
+                    L"Expected 'C' or 'C:'.\n",
+                    pLocalName);
+                goto out;
+            }
+
+            result = DoUnmount(szLocalName, bForceUnmount);
+        }
+        else if (isvaliduncpath(pLocalName)) {
+            result = DoUnmount(pLocalName, bForceUnmount);
+        }
+        else {
+            result = ERROR_BAD_ARGUMENTS;
+            (void)fwprintf(stderr,
+                L"Invalid Drive or UNC path '%ls'.\n", pLocalName);
+            goto out;
+        }
+
         if (result)
             PrintErrorMessage(result);
     }
-    else /* mount */
-    {
+    else {
+        /*
+         * mount
+         */
+
         wchar_t szRemoteName[NFS41_SYS_MAX_PATH_LEN];
         wchar_t szParsedRemoteName[NFS41_SYS_MAX_PATH_LEN];
 
         *szRemoteName = L'\0';
+
+        /* validate local drive letter */
+        if (pLocalName) {
+            if (!ParseDriveLetter(pLocalName, szLocalName)) {
+                result = ERROR_BAD_ARGUMENTS;
+                (void)fwprintf(stderr, L"Invalid drive letter '%ls'. "
+                    L"Expected 'C' or 'C:'.\n",
+                    pLocalName);
+                goto out_free;
+            }
+        }
 
         if (pRemoteName == NULL)
         {
@@ -574,19 +621,34 @@ int umount_main(int argc, wchar_t *argv[])
 
     if (pLocalName == NULL) {
         result = ERROR_BAD_ARGUMENTS;
-        (void)fwprintf(stderr, L"Drive letter expected.\n");
+        (void)fwprintf(stderr, L"Drive letter or UNC path expected.\n");
         goto out;
     }
 
-    if (!ParseDriveLetter(pLocalName, szLocalName)) {
+    if (wcslen(pLocalName) <= 2) {
+        if (!ParseDriveLetter(pLocalName, szLocalName)) {
+            result = ERROR_BAD_ARGUMENTS;
+            (void)fwprintf(stderr, L"Invalid drive letter '%ls'. "
+                L"Expected 'C' or 'C:'.\n",
+                pLocalName);
+            goto out;
+        }
+
+        result = DoUnmount(szLocalName, bForceUnmount);
+    }
+    /*
+     * UNC path must start with \\ and have at least the syntax \\x\...
+     */
+    else if (isvaliduncpath(pLocalName)) {
+        result = DoUnmount(pLocalName, bForceUnmount);
+    }
+    else {
         result = ERROR_BAD_ARGUMENTS;
-        (void)fwprintf(stderr, L"Invalid drive letter '%ls'. "
-            L"Expected 'C' or 'C:'.\n",
-            pLocalName);
+        (void)fwprintf(stderr,
+            L"Invalid Drive or UNC path '%ls'.\n", pLocalName);
         goto out;
     }
 
-    result = DoUnmount(szLocalName, bForceUnmount);
     if (result)
         PrintErrorMessage(result);
 out:
