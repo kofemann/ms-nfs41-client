@@ -118,7 +118,7 @@
       <WholeProgramOptimization>false</WholeProgramOptimization>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>$(DDK_LIB_PATH)\ntoskrnl.lib;$(DDK_LIB_PATH)\hal.lib;$(DDK_LIB_PATH)\BufferOverflowfastfailK.lib;$(DDK_LIB_PATH)\ksecdd.lib;$(DDK_LIB_PATH)\rxce.lib;$(DDK_LIB_PATH)\rdbsslib.lib</AdditionalDependencies>
+      <AdditionalDependencies>$(DDK_LIB_PATH)\ntoskrnl.lib;$(DDK_LIB_PATH)\hal.lib;$(DDK_LIB_PATH)\BufferOverflowfastfailK.lib;$(DDK_LIB_PATH)\ksecdd.lib;$(DDK_LIB_PATH)\rxce.lib;$(DDK_LIB_PATH)\rdbsslib.lib;$(DDK_LIB_PATH)\libcntpr.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
@@ -134,7 +134,7 @@
       <WholeProgramOptimization>true</WholeProgramOptimization>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>$(DDK_LIB_PATH)\ntoskrnl.lib;$(DDK_LIB_PATH)\hal.lib;$(DDK_LIB_PATH)\BufferOverflowfastfailK.lib;$(DDK_LIB_PATH)\ksecdd.lib;$(DDK_LIB_PATH)\rxce.lib;$(DDK_LIB_PATH)\rdbsslib.lib</AdditionalDependencies>
+      <AdditionalDependencies>$(DDK_LIB_PATH)\ntoskrnl.lib;$(DDK_LIB_PATH)\hal.lib;$(DDK_LIB_PATH)\BufferOverflowfastfailK.lib;$(DDK_LIB_PATH)\ksecdd.lib;$(DDK_LIB_PATH)\rxce.lib;$(DDK_LIB_PATH)\rdbsslib.lib;$(DDK_LIB_PATH)\libcntpr.lib</AdditionalDependencies>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
     </Link>
   </ItemDefinitionGroup>
@@ -151,7 +151,7 @@
       <WholeProgramOptimization>false</WholeProgramOptimization>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>$(DDK_LIB_PATH)\ntoskrnl.lib;$(DDK_LIB_PATH)\hal.lib;$(DDK_LIB_PATH)\BufferOverflowfastfailK.lib;$(DDK_LIB_PATH)\ksecdd.lib;$(DDK_LIB_PATH)\rxce.lib;$(DDK_LIB_PATH)\rdbsslib.lib</AdditionalDependencies>
+      <AdditionalDependencies>$(DDK_LIB_PATH)\ntoskrnl.lib;$(DDK_LIB_PATH)\hal.lib;$(DDK_LIB_PATH)\BufferOverflowfastfailK.lib;$(DDK_LIB_PATH)\ksecdd.lib;$(DDK_LIB_PATH)\rxce.lib;$(DDK_LIB_PATH)\rdbsslib.lib;$(DDK_LIB_PATH)\libcntpr.lib</AdditionalDependencies>
     </Link>
     <DriverSign>
       <FileDigestAlgorithm>sha256</FileDigestAlgorithm>
@@ -170,7 +170,7 @@
       <WholeProgramOptimization>true</WholeProgramOptimization>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>$(DDK_LIB_PATH)\ntoskrnl.lib;$(DDK_LIB_PATH)\hal.lib;$(DDK_LIB_PATH)\BufferOverflowfastfailK.lib;$(DDK_LIB_PATH)\ksecdd.lib;$(DDK_LIB_PATH)\rxce.lib;$(DDK_LIB_PATH)\rdbsslib.lib</AdditionalDependencies>
+      <AdditionalDependencies>$(DDK_LIB_PATH)\ntoskrnl.lib;$(DDK_LIB_PATH)\hal.lib;$(DDK_LIB_PATH)\BufferOverflowfastfailK.lib;$(DDK_LIB_PATH)\ksecdd.lib;$(DDK_LIB_PATH)\rxce.lib;$(DDK_LIB_PATH)\rdbsslib.lib;$(DDK_LIB_PATH)\libcntpr.lib</AdditionalDependencies>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
     </Link>
     <DriverSign>
@@ -190,7 +190,7 @@
       <WholeProgramOptimization>false</WholeProgramOptimization>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>$(DDK_LIB_PATH)\ntoskrnl.lib;$(DDK_LIB_PATH)\hal.lib;$(DDK_LIB_PATH)\BufferOverflowfastfailK.lib;$(DDK_LIB_PATH)\ksecdd.lib;$(DDK_LIB_PATH)\rxce.lib;$(DDK_LIB_PATH)\rdbsslib.lib</AdditionalDependencies>
+      <AdditionalDependencies>$(DDK_LIB_PATH)\ntoskrnl.lib;$(DDK_LIB_PATH)\hal.lib;$(DDK_LIB_PATH)\BufferOverflowfastfailK.lib;$(DDK_LIB_PATH)\ksecdd.lib;$(DDK_LIB_PATH)\rxce.lib;$(DDK_LIB_PATH)\rdbsslib.lib;$(DDK_LIB_PATH)\libcntpr.lib</AdditionalDependencies>
     </Link>
     <DriverSign>
       <FileDigestAlgorithm>sha256</FileDigestAlgorithm>
@@ -209,7 +209,7 @@
       <WholeProgramOptimization>true</WholeProgramOptimization>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>$(DDK_LIB_PATH)\ntoskrnl.lib;$(DDK_LIB_PATH)\hal.lib;$(DDK_LIB_PATH)\BufferOverflowfastfailK.lib;$(DDK_LIB_PATH)\ksecdd.lib;$(DDK_LIB_PATH)\rxce.lib;$(DDK_LIB_PATH)\rdbsslib.lib</AdditionalDependencies>
+      <AdditionalDependencies>$(DDK_LIB_PATH)\ntoskrnl.lib;$(DDK_LIB_PATH)\hal.lib;$(DDK_LIB_PATH)\BufferOverflowfastfailK.lib;$(DDK_LIB_PATH)\ksecdd.lib;$(DDK_LIB_PATH)\rxce.lib;$(DDK_LIB_PATH)\rdbsslib.lib;$(DDK_LIB_PATH)\libcntpr.lib</AdditionalDependencies>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
     </Link>
     <DriverSign>

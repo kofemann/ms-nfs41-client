@@ -597,16 +597,3 @@ done_exit_filesystem:
 done:
     return retval;
 }
-
-
-#if defined(_ARM_) || defined(_ARM64_)
-
-void __security_push_cookie()
-{
-}
-
-void __security_pop_cookie()
-{
-}
-
-#endif /* defined(_ARM_) || defined(_ARM64_) */
