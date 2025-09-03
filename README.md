@@ -841,7 +841,8 @@ Within WSL mount UNC path returned by `/sbin/nfs_mount`
 
 - Extended attributes are supported with some limitations:
 
-  - a\) the server must support NFS Named Attributes,
+  - a\) the server must support NFS Named Attributes (e.g. Solaris,
+    Illumos, FreeBSD 15, but NOT Linux nfsd),
 
   - b\) the order of listings cannot be guaranteed by NFS, and
 

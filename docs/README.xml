@@ -824,7 +824,7 @@ A::EVERYONE@:rtcy</programlisting>
       <listitem>
         <para>Extended attributes are supported with some limitations:
           <itemizedlist>
-            <listitem><para>a) the server must support NFS Named Attributes,</para></listitem>
+            <listitem><para>a) the server must support NFS Named Attributes (e.g. Solaris, Illumos, FreeBSD 15, but NOT Linux nfsd),</para></listitem>
             <listitem><para>b) the order of listings cannot be guaranteed by NFS, and</para></listitem>
             <listitem><para>c) the EaSize field cannot be reported for directory queries of <literal>FileBothDirInformation</literal>, <literal>FileFullDirInfo</literal>, or <literal>FileIdFullDirInfo</literal>.</para></listitem>
           </itemizedlist>
