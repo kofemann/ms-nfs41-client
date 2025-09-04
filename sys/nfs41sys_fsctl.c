@@ -948,8 +948,10 @@ void nfs41_remove_offloadcontext_for_fobx(
         RxFreePool(found);
     }
     else {
+#ifdef DEBUG_FSCTL_OFFLOAD_READWRITE
         DbgP("nfs41_remove_offloadcontext(pFobx=0x%p): Nothing found.\n",
             pFobx);
+#endif /* DEBUG_FSCTL_OFFLOAD_READWRITE */
     }
 
     ExReleaseFastMutexUnsafe(&offloadcontextlist.lock);
@@ -979,9 +981,11 @@ offloadcontext_entry *nfs41_find_offloadcontext_acquireshared(
     }
 
     if (found) {
+#ifdef DEBUG_FSCTL_OFFLOAD_READWRITE
         DbgP("nfs41_find_offloadcontext_acquireshared(unvalidated_oce=0x%p): "
             "found=0x%p\n",
             unvalidated_oce);
+#endif /* DEBUG_FSCTL_OFFLOAD_READWRITE */
 
         (void)ExAcquireSharedStarveExclusive(&found->resource, TRUE);
         ExReleaseFastMutexUnsafe(&offloadcontextlist.lock);
@@ -1187,8 +1191,10 @@ NTSTATUS nfs41_OffloadWrite(
      */
     unvalidated_src_oce =
         *((void **)(&(((STORAGE_OFFLOAD_TOKEN *)(&owi->Token[0]))->Token[0])));
+#ifdef DEBUG_FSCTL_OFFLOAD_READWRITE
     DbgP("nfs41_OffloadWrite: "
         "unvalidated_src_oce=0x%p\n", unvalidated_src_oce);
+#endif /* DEBUG_FSCTL_OFFLOAD_READWRITE */
 
     /*
      * ... and validate it (and take a shared lock if validation was
