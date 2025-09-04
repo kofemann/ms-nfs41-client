@@ -525,6 +525,10 @@ function msnfs41client_build
 
 	# Use WDK test certificate to sign *.(exe|dll) files
 	export CERTIFICATE_THUMBPRINT="$(powershell -c 'Get-ChildItem -Path Cert:\CurrentUser\My | Where-Object {$_.Subject -like "*WDKTestCert*"} | Select-Object -ExpandProperty Thumbprint')"
+	if [[ "${CERTIFICATE_THUMBPRINT}" == '' ]] ; then
+		printf '%s: ERROR: Empty CERTIFICATE_THUMBPRINT\n' "$0"
+		return 1
+	fi
 
 	#
 	# build ms-nfs41-client
