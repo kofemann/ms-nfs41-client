@@ -1,5 +1,5 @@
 #
-# ms-nfs41-client manual testing sequence, 2025-08-20
+# ms-nfs41-client manual testing sequence, 2025-09-04
 #
 # Draft version, needs to be turned into automated tests
 # if possible
@@ -301,6 +301,84 @@ bash -c 'set -o errexit ; m="$(printf "\U0001f313")" ; typeset filenames=( "$m$m
 # (CYGWIN='winsymlinks:nativestrict' is used so the same test works with NTFS too)
 #
 CYGWIN='winsymlinks:nativestrict' bash -c 'rm -f symlrootdotslash &&  ln -sf / symlrootdotslash && cmd /C "cd symlrootdotslash" && echo "Test OK"'
+
+#
+# Test script to test git symlink with Windows git
+#
+---- snip ----
+#
+# Windows git symlink test
+#
+set -o xtrace
+set -o errexit
+
+export PATH='/bin:/usr/bin'
+
+builtin cat
+builtin ln
+builtin rm
+
+which -a git
+
+integer test_errs=0
+
+rm -Rf newgitproj newgitproj_cloned
+
+#
+# Create via Cygwin git
+#
+mkdir newgitproj
+cd newgitproj
+git init --initial-branch='master'
+git config --global --add safe.directory "$PWD"
+git config --global --add safe.directory "$PWD/.git"
+
+printf 'Hello, Git symlink test!\n' >'README.md'
+printf '123\n' >'123.txt'
+git add 'README.md' '123.txt'
+git commit -m 'Add README file'
+
+ln -s 'README.md' 'README_link.md'
+ln -s '123.txt' '123_link.txt'
+ln -s '123_link.txt' '123_link_link.txt'
+git add 'README_link.md' '123_link.txt' '123_link_link.txt'
+git commit -m 'Add symlink to README+123.txt files'
+cd ..
+
+#
+# clone via Windows git
+#
+'/cygdrive/c/Program Files/Git/cmd/git' clone -c core.symlinks=true newgitproj newgitproj_cloned
+cd newgitproj_cloned
+ls -l
+if [[ ! -L 'README_link.md' ]] ; then
+	printf '## FAIL: README_link.md should be a symlink\n'
+        (( test_errs++ ))
+fi
+if [[ ! -L '123_link.txt' ]] ; then
+	printf '## FAIL: 123_link.txt should be a symlink\n'
+        (( test_errs++ ))
+fi
+if [[ ! -L '123_link_link.txt' ]] ; then
+	printf '## FAIL: 123_link_link.txt should be a symlink\n'
+        (( test_errs++ ))
+fi
+
+if [[ "$(cat '123_link_link.txt')" != $'123\r' ]] ; then
+	printf '## FAIL: 123_link_link.txt contain the string "123\\r", got %q\n' "$(cat '123_link_link.txt')"
+        (( test_errs++ ))
+fi
+
+if (( test_errs > 0 )) ; then
+    printf '#### FAILURE: %d test failed.\n' test_errs
+    exit 1
+fi
+
+printf '#### ALL Test OK\n'
+exit 0
+
+# EOF.
+---- snip ----
 
 #
 # Test for mkdir with UNC path
