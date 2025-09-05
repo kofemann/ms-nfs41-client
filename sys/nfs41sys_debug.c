@@ -69,7 +69,7 @@ ULONG __cdecl DbgP(IN PCCH fmt, ...)
     va_start(args, fmt);
     ASSERT(fmt != NULL);
     status = RtlStringCbVPrintfA(msg, sizeof(msg), fmt, args);
-    if (NT_SUCCESS(status)) {
+    if (NT_SUCCESS(status) || (status == STATUS_BUFFER_OVERFLOW)) {
 #ifdef INCLUDE_TIMESTAMPS
         LARGE_INTEGER timestamp, local_time;
         TIME_FIELDS time_fields;
@@ -88,6 +88,11 @@ ULONG __cdecl DbgP(IN PCCH fmt, ...)
             "[%04x] %s", PsGetCurrentProcessShortDebugId(), msg);
 #endif
     }
+    else {
+        DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL,
+            "[%04x] DbgP: RtlStringCbVPrintfA() failed, status=0x%lx",
+            PsGetCurrentProcessShortDebugId(), (long)status);
+    }
     va_end(args);
 
     return 0;
@@ -102,7 +107,7 @@ ULONG __cdecl print_error(IN PCCH fmt, ...)
     va_start(args, fmt);
     ASSERT(fmt != NULL);
     status = RtlStringCbVPrintfA(msg, sizeof(msg), fmt, args);
-    if (NT_SUCCESS(status)) {
+    if (NT_SUCCESS(status) || (status == STATUS_BUFFER_OVERFLOW)) {
 #ifdef INCLUDE_TIMESTAMPS
         LARGE_INTEGER timestamp, local_time;
         TIME_FIELDS time_fields;
@@ -121,6 +126,12 @@ ULONG __cdecl print_error(IN PCCH fmt, ...)
             "[%04x] %s", PsGetCurrentProcessShortDebugId(), msg);
 #endif /* INCLUDE_TIMESTAMPS */
     }
+    else {
+        DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL,
+            "[%04x] print_error: RtlStringCbVPrintfA() failed, status=0x%lx",
+            PsGetCurrentProcessShortDebugId(), (long)status);
+    }
+
     va_end(args);
 
     return 0;
@@ -804,7 +815,7 @@ dprintk(
         status = RtlStringCbVPrintfA(debugMessageBuffer, sizeof(debugMessageBuffer),
                                     format, list);
 
-        if (!NT_SUCCESS(status))
+        if (!(NT_SUCCESS(status) || (status == STATUS_BUFFER_OVERFLOW)))
             rv = DbgPrintEx(PNFS_FLTR_ID, DPFLTR_MASK | flags,
                             "RtlStringCbVPrintfA failed 0x%lx \n",
                             (long)status);
