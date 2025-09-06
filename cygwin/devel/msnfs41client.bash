@@ -381,8 +381,12 @@ function nfsclient_disable_autostartservices
 	sc config 'ms-nfs41-client-globalmountall-service' start=disabled
 }
 
+typeset -r use_nfs41rdrinf=true
+
 function nfsclient_adddriver
 {
+	typeset -i res
+
 	set -o nounset
 	set -o xtrace
 	set -o errexit
@@ -404,7 +408,37 @@ function nfsclient_adddriver
 	nfs_install -D
 	printf 'after nfs_install:  ProviderOrder="%s"\n' "$( strings -a '/proc/registry/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Control/NetworkProvider/Order/ProviderOrder')"
 
-	rundll32 setupapi.dll,InstallHinfSection DefaultInstall 132 ./nfs41rdr.inf
+	if ${use_nfs41rdrinf} ; then
+		rundll32 setupapi.dll,InstallHinfSection DefaultInstall 132 ./nfs41rdr.inf
+	else
+		#
+		# Install kernel driver and network provider DLL "manually"
+		# (this is the same functionality which the nfs41rdr.inf should do)
+		#
+		rm -f '/cygdrive/c/Windows/System32/drivers/nfs41_driver.sys'
+		cp 'nfs41_driver.sys' '/cygdrive/c/Windows/System32/drivers/nfs41_driver.sys'
+		rm -f '/cygdrive/c/Windows/System32/nfs41_np.dll'
+		cp 'nfs41_np.dll' '/cygdrive/c/Windows/System32/nfs41_np.dll'
+
+		#
+		# create nfs41_driver service if it does not exists
+		# (ERROR_SERVICE_DOES_NOT_EXIST==1060, 1060-1024==36)
+		#
+		set +o errexit
+		sc query nfs41_driver >'/dev/null' 2>&1
+		(( res=$? ))
+		set -o errexit
+
+		if (( res == 36 )) ; then
+			sc create nfs41_driver binPath='C:\Windows\System32\drivers\nfs41_driver.sys' type=filesys group=network start=system tag=8
+		fi
+
+		regtool add '/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Services/nfs41_driver'
+		regtool add '/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Services/nfs41_driver/NetworkProvider'
+		regtool -s set '/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Services/nfs41_driver/NetworkProvider/DeviceName' '\Device\nfs41_driver'
+		regtool -s set '/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Services/nfs41_driver/NetworkProvider/Name' 'NFS41 Network'
+		regtool -s set '/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Services/nfs41_driver/NetworkProvider/ProviderPath' 'System32\nfs41_np.dll'
+	fi
 
 	#
 	# Hack: Manually Add 32bit provider DLL to a 64bit system, so
@@ -413,7 +447,8 @@ function nfsclient_adddriver
 	#
 	if is_windows_64bit ; then
 		# copy from the 32bit install dir
-		cp './i686/nfs41_np.dll' '/cygdrive/c/Windows/SysWOW64/'
+		rm -f '/cygdrive/c/Windows/SysWOW64/nfs41_np.dll'
+		cp './i686/nfs41_np.dll' '/cygdrive/c/Windows/SysWOW64/nfs41_np.dll'
 	fi
 
 	return 0
@@ -436,12 +471,44 @@ function nfsclient_removedriver
 	fi
 
 	nfs_install.exe 0
-	rundll32.exe setupapi.dll,InstallHinfSection DefaultUninstall 132 ./nfs41rdr.inf
-	rm /cygdrive/c/Windows/System32/nfs41_np.dll || true
-	if is_windows_64bit ; then
-		rm '/cygdrive/c/Windows/SysWOW64/nfs41_np.dll' || true
+
+	if ${use_nfs41rdrinf} ; then
+		rundll32.exe setupapi.dll,InstallHinfSection DefaultUninstall 132 ./nfs41rdr.inf
+
+		# nfs41rdr.inf should do this, but we do this here for testing
+		if [[ -f '/cygdrive/c/Windows/System32/drivers/nfs41_driver.sys' ]] ; then
+			printf '# %q leftover from INF uninstall, removing...\n' \
+				'/cygdrive/c/Windows/System32/drivers/nfs41_driver.sys'
+			rm -f '/cygdrive/c/Windows/System32/drivers/nfs41_driver.sys' || true
+		fi
+		if [[ -f '/cygdrive/c/Windows/System32/nfs41_np.dll' ]] ; then
+			printf '# %q leftover from INF uninstall, removing...\n' \
+				'/cygdrive/c/Windows/System32/nfs41_np.dll'
+			rm -f '/cygdrive/c/Windows/System32/nfs41_np.dll' || true
+		fi
+	else
+		#
+		# Remove kernel driver and network provider DLL "manually"
+		# (this is the same functionality which the nfs41rdr.inf should do)
+		#
+
+		#sc stop nfs41_driver
+		#sc delete nfs41_driver
+
+		# regtool fails with an error if we try to delete the nfs41_driver dir
+		reg delete "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\nfs41_driver" /f || true
+
+		rm -f '/cygdrive/c/Windows/System32/drivers/nfs41_driver.sys' || true
+		rm -f '/cygdrive/c/Windows/System32/nfs41_np.dll' || true
 	fi
-	rm /cygdrive/c/Windows/System32/drivers/nfs41_driver.sys || true
+
+	#
+	# Hack: Manually remove 32bit provider DLL on a 64bit system,
+	# (see comment in "nfsclient_adddriver")
+	#
+	if is_windows_64bit ; then
+		rm -f '/cygdrive/c/Windows/SysWOW64/nfs41_np.dll' || true
+	fi
 
 	sync
 
