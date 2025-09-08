@@ -567,6 +567,12 @@ function nfsclient_rundeamon
 
 	set -o xtrace
 
+	#
+	# start kernel driver if it is not running yet
+	# (can happen directly after installation if no reboot was made)
+	#
+	sc start nfs41_driver || true
+
 	# switch to UTF-8 codepage so debug output with non-ASCII characters
 	# gets printed correctly on a terminal
 	chcp.com 65001
@@ -686,6 +692,12 @@ function nfsclient_system_rundeamon
 	sync
 
 	set -o xtrace
+
+	#
+	# start kernel driver if it is not running yet
+	# (can happen directly after installation if no reboot was made)
+	#
+	sc start nfs41_driver || true
 
 	# switch to UTF-8 codepage so debug output with non-ASCII characters
 	# gets printed correctly on a terminal
