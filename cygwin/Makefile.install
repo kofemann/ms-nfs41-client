@@ -72,7 +72,9 @@ installdest:
 	# workaround for coreutils 9.5-1 /bin/cp bug stuck in an endless loop with compressed files
 	chattr -V -c $(VS_BUILD_DIR)/nfs41_driver.*
 	cp $(VS_BUILD_DIR)/nfs41_driver.*	$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/.
+	# Copy kernel driver INF file and generate signature catalog
 	cp $(PROJECT_BASEDIR_DIR)/nfs41rdr.inf	$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/.
+	(cd "$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/" && '/cygdrive/c/Program Files (x86)/Windows Kits/10/bin/x86/Inf2Cat.exe' /driver:. /os:10_X86,10_X64,10_VB_ARM64)
 	cp $(PROJECT_BASEDIR_DIR)/etc_netconfig	$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/.
 	cp $(PROJECT_BASEDIR_DIR)/ms-nfs41-idmap.conf		$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/.
 	cp $(CYGWIN_MAKEFILE_DIR)/devel/msnfs41client.bash	$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/msnfs41client

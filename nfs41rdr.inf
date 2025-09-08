@@ -3,7 +3,7 @@ Signature="$CHICAGO$"
 DriverVer=06/12/2024,1.0.0.0
 Class=NetService
 ClassGUID={4d36e974-e325-11ce-bfc1-08002be10318}
-CatalogFile=catalogfile.cat
+CatalogFile=nfs41rdr.cat
 Provider=%ProviderName%
 
 [SourceDisksNames]
