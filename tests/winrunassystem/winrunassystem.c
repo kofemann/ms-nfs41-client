@@ -80,7 +80,6 @@ static void LaunchInteractiveProcess(void);
 static void WINAPI ServiceCtrlHandler(DWORD CtrlCode);
 static void WINAPI ServiceMain(DWORD argc, LPWSTR* argv);
 
-
 // #define DBG 1
 
 #ifdef DBG
@@ -573,25 +572,9 @@ done:
 }
 
 static
-void usage(const wchar_t *av0)
-{
-    (void)fwprintf(stderr,
-        L"%ls: Run command as user SYSTEM\n",
-        av0);
-}
-
-int wmain(int argc, wchar_t *argv[])
+int winrunassystem_main(int argc, wchar_t *argv[])
 {
     int retval = EXIT_FAILURE;
-
-    if ((argc == 1) ||
-        ((argc == 2) &&
-            ((wcscmp(argv[1], L"--help") == 0) ||
-            (wcscmp(argv[1], L"-h") == 0) ||
-            (wcscmp(argv[1], L"/?") == 0)))) {
-        usage(argv[0]);
-        return EXIT_USAGE;
-    }
 
     /*
      * If started with "--service", run as a service
@@ -663,3 +646,84 @@ int wmain(int argc, wchar_t *argv[])
 
     return retval;
 }
+
+#ifdef BUILD_WINRUNASSYSTEM
+static
+void usage(const wchar_t *av0)
+{
+    (void)fwprintf(stderr,
+        L"%ls: Run command as user SYSTEM\n",
+        av0);
+}
+
+int wmain(int argc, wchar_t *argv[])
+{
+    if ((argc == 1) ||
+        ((argc == 2) &&
+            ((wcscmp(argv[1], L"--help") == 0) ||
+            (wcscmp(argv[1], L"-h") == 0) ||
+            (wcscmp(argv[1], L"/?") == 0)))) {
+        usage(argv[0]);
+        return EXIT_USAGE;
+    }
+
+    return winrunassystem_main(argc, argv);
+}
+#elif BUILD_NFS_GLOBALMOUNT
+
+/*
+ * Implement /sbin/nfs_globalmount.exe as EXE instead of a script,
+ * so it can be easily called from cmd.exe, powershell.exe, and
+ * be whitelisted in MS Defender
+ */
+
+/* Paths to nfs_mount*.exe */
+#ifdef _WIN64
+#define NFS_MOUNT_PATH L"C:\\cygwin64\\sbin\\nfs_mount.exe"
+#define NFS_MOUNT_PATH_X86 L"C:\\cygwin64\\sbin\\nfs_mount.i686.exe"
+#define NFS_MOUNT_PATH_AMD64 L"C:\\cygwin64\\sbin\\nfs_mount.x86_64.exe"
+#else
+#define NFS_MOUNT_PATH L"C:\\cygwin\\sbin\\nfs_mount.exe"
+#define NFS_MOUNT_PATH_X86 L"C:\\cygwin\\sbin\\nfs_mount.i686.exe"
+#define NFS_MOUNT_PATH_AMD64 L"C:\\cygwin\\sbin\\nfs_mount.x86_64.exe"
+#endif /* _WIN64 */
+/* FIXME: What about ARM64 ? */
+
+int wmain(int argc, wchar_t *argv[])
+{
+    int i;
+    const wchar_t *nfs_mount_path;
+
+    /*
+     * Select nfs_mount.exe binary based on our argv[0] name, e.g.
+     * "nfs_globalmount.i686.exe" ---> "/sbin/nfs_mount.i686.exe",
+     * "nfs_globalmount.x86_64.exe" ---> "/sbin/nfs_mount.x86_64.exe",
+     * etc
+     *
+     * FIXME: What about ARM64 ?
+     */
+    if (wcsstr(argv[0], L".i686") != NULL) {
+        nfs_mount_path = NFS_MOUNT_PATH_X86;
+    }
+    else if (wcsstr(argv[0], L".x86_64") != NULL) {
+        nfs_mount_path = NFS_MOUNT_PATH_AMD64;
+    }
+    else {
+        nfs_mount_path = NFS_MOUNT_PATH;
+    }
+
+    if ((argc > 2) && (wcscmp(argv[1], L"--service") == 0)) {
+        return winrunassystem_main(argc, argv);
+    }
+    else {
+        wchar_t **new_argv = (wchar_t **)alloca(sizeof(wchar_t *)*(argc+3));
+        new_argv[0] = argv[0];
+        new_argv[1] = (wchar_t *)nfs_mount_path;
+        for (i=1 ; i < argc ; i++)
+            new_argv[i+1] = argv[i];
+        return winrunassystem_main(argc+1, new_argv);
+    }
+}
+#else
+#error Unknown target, BUILD_WINRUNASSYSTEM+BUILD_NFS_GLOBALMOUNT not set
+#endif
