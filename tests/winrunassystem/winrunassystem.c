@@ -128,6 +128,22 @@ ULONG _cdecl RASDbgPrint(__in LPWSTR fmt, ...)
 #endif /* DBG */
 
 static
+bool isprocesselevated(void)
+{
+    bool isElevated = false;
+    HANDLE hToken = GetCurrentProcessToken();
+    TOKEN_ELEVATION elevation;
+    DWORD cbSize = sizeof(elevation);
+
+    if (GetTokenInformation(hToken, TokenElevation,
+        &elevation, cbSize, &cbSize)) {
+        isElevated = elevation.TokenIsElevated?true:false;
+    }
+
+    return isElevated;
+}
+
+static
 void ReportError(const char* context)
 {
     (void)fprintf(stderr,
@@ -605,8 +621,16 @@ int winrunassystem_main(int argc, wchar_t *argv[])
         return 0;
     }
 
-    /* Otherwise, run as the client to manage the service */
+    /*
+     * Otherwise, run as the client to manage the service
+     */
     D((void)wprintf(L"Running as client to install and start the service...\n"));
+
+    if (!isprocesselevated()) {
+        (void)fwprintf(stderr,
+            L"%ls: Requires Windows Adminstator permissions.\n", argv[0]);
+        return EXIT_FAILURE;
+    }
 
     SetupTemporaryServiceName();
 
