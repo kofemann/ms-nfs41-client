@@ -249,8 +249,18 @@ void LaunchInteractiveProcess(void)
         NULL,
         &si,
         &pi)) {
-        (void)printf("CreateProcess failed (%d).\n", (int)GetLastError());
-        return;
+        char errbuff[16384];
+        DWORD lasterr = GetLastError();
+
+        (void)snprintf(errbuff, sizeof(errbuff),
+            "Cannot create process for '%s', lasterr=%d\n",
+            buffer, (int)lasterr);
+        (void)WriteFile(hFile_stderr,
+            errbuff, strlen(errbuff), NULL, NULL);
+
+        child_retval = 127;
+
+        goto done;
     }
 
     (void)WaitForSingleObject(pi.hProcess, INFINITE);
