@@ -50,8 +50,8 @@ typedef struct __nfs41_superblock {
     uint64_t maxwrite;
 
     /* constant filesystem attributes */
+    uint32_t aclsupport; /* |ACL4_SUPPORT_*| */
     unsigned int layout_types : 3;
-    unsigned int aclsupport : 3;
     unsigned int cansettime : 1;
     unsigned int link_support : 1;
     unsigned int symlink_support : 1;
