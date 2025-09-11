@@ -55,6 +55,28 @@ service nfs-server restart
 ---- snip ----
 
 
+##### 4. Setup a 32GB EXT4 filesystem in case-INSENSITIVE mode for testing:
+# * Notes:
+# - requires CONFIG_UNICODE in the kernel, otherwise mount will FAIL
+# - Linux nfsd has a bug which will report FATTR4_WORD0_CASE_INSENSITIVE==0 even
+# if the filesystem is case-insensitive (FATTR4_WORD0_CASE_INSENSITIVE and
+# FATTR4_WORD0_CASE_PRESERVING are currently hardcoded in Linux nfsd)
+---- snip ----
+dd if='/dev/zero' of='/bigdisk/ext4_caseinsensitive_image.img' bs=$((1024*1024)) count=$((32*1024))
+mkfs.ext4 -O casefold -E encoding=utf8 /bigdisk/ext4_caseinsensitive_image.img
+mkdir /ext4caseinsensitive
+chmod -R a+rwx /ext4caseinsensitive
+echo '/bigdisk/ext4_caseinsensitive_image.img /ext4caseinsensitive ext4 loop 0 0' >>'/etc/fstab'
+mount /ext4caseinsensitive
+mkdir /ext4caseinsensitive/nfsexport
+# chattr +F is inherited by subdirs (of /ext4caseinsensitive/nfsexport) automatically
+chattr +F /ext4caseinsensitive/nfsexport
+chmod a+rwxt /ext4caseinsensitive/nfsexport
+echo '/ext4caseinsensitive/nfsexport *(sec=sys,rw,async,insecure,no_root_squash,fsid=3272524)' >>'/etc/exports'
+service nfs-server restart
+---- snip ----
+
+
 #
 # Windows Server 2019 NFSv4.1 server setup
 #
