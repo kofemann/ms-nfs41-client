@@ -28,6 +28,7 @@
 #include "daemon_debug.h"
 #include "nfs41.h"
 #include "nfs41_ops.h"
+#include "name_cache.h"
 #include "from_kernel.h"
 #include "nfs41_driver.h"
 #include "util.h"
@@ -124,8 +125,20 @@ static int get_superblock_attrs(
     superblock->link_support = info.link_support;
     superblock->symlink_support = info.symlink_support;
     superblock->ea_support = supports_named_attrs;
+//#define TEST_LINUX_FORCE_FAT32 1
+#ifdef TEST_LINUX_FORCE_FAT32
+    /*
+     * Testing-ONLY: Force FAT32 behaviour, because Linux nfsd returns
+     * |info.case_insensitive==0| even on FAT32
+     * Windows Server 2019 nfsd and OpenText nfsd do this correctly
+     */
+    DPRINTF(0, ("get_superblock_attrs: TEST_LINUX_FORCE_FAT32 enabled!\n"));
+    superblock->case_preserving = 0/*info.case_preserving*/;
+    superblock->case_insensitive = 1/*info.case_insensitive*/;
+#else
     superblock->case_preserving = info.case_preserving;
     superblock->case_insensitive = info.case_insensitive;
+#endif /* TEST_FS_FORCE_FAT32 */
     superblock->sparse_file_support = 1; /* always ON for now */
     if (session->client->root->nfsminorvers >= 2) {
         superblock->block_clone_support = 1;
@@ -133,6 +146,10 @@ static int get_superblock_attrs(
     else {
         superblock->block_clone_support = 0;
     }
+
+    nfs41_name_cache_set_casesensitivesearch(
+        session->client->server->name_cache,
+        superblock->case_insensitive?false:true);
 
     if (bitmap_isset(&info.attrmask, 0, FATTR4_WORD0_CANSETTIME))
         superblock->cansettime = info.cansettime;

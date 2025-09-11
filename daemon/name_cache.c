@@ -23,6 +23,7 @@
 
 #include <Windows.h>
 #include <strsafe.h>
+#include <icu.h>
 #include <time.h>
 
 #include "nfs41_ops.h"
@@ -502,6 +503,8 @@ static void copy_attrs(
 
 
 /* name cache */
+struct nfs41_name_cache;
+
 RB_HEAD(name_tree, name_cache_entry);
 struct name_cache_entry {
     char                    component[NFS41_MAX_COMPONENT_LEN+1];
@@ -512,15 +515,13 @@ struct name_cache_entry {
     struct name_cache_entry *parent;
     struct list_entry       exp_entry;
     util_reltimestamp         expiration;
+    struct nfs41_name_cache *name_cache;
     unsigned short          component_len;
 };
 #define NAME_ENTRY_SIZE sizeof(struct name_cache_entry)
 
-static int name_cmp(struct name_cache_entry *lhs, struct name_cache_entry *rhs)
-{
-    const int diff = rhs->component_len - lhs->component_len;
-    return diff ? diff : strncmp(lhs->component, rhs->component, lhs->component_len);
-}
+static int name_cmp(struct name_cache_entry *lhs, struct name_cache_entry *rhs);
+
 RB_GENERATE(name_tree, name_cache_entry, rbnode, name_cmp)
 
 struct nfs41_name_cache {
@@ -534,8 +535,86 @@ struct nfs41_name_cache {
     uint32_t                delegations;
     uint32_t                max_delegations;
     SRWLOCK                 lock;
+    bool                    casesensitivesearch;
+    UCollator               *icu_coll;
 };
 
+static
+int icu_strcmpcoll(UCollator *coll, const char *str1, const char *str2, int32_t len)
+{
+    UErrorCode status = U_ZERO_ERROR;
+    UCollationResult result;
+
+    result = ucol_strcollUTF8(coll, str1, len, str2, len, &status);
+    if (U_FAILURE(status)) {
+        eprintf("icu_strcmpcoll: "
+            "ucol_strcollUTF8(str1='%s',str2='%s') returned status='%s'\n",
+            u_errorName(status));
+        return -1;
+    }
+
+    switch (result) {
+        case UCOL_LESS:
+            return -1;
+        case UCOL_EQUAL:
+            return 0;
+        case UCOL_GREATER:
+            return 1;
+    }
+
+    eprintf("icu_strcmpcoll: "
+        "ucol_strcollUTF8(str1='%s',str2='%s') returned unexpected result=0x%lx\n",
+        (long)result);
+    return -1;
+}
+
+static
+int name_cmp(struct name_cache_entry *lhs, struct name_cache_entry *rhs)
+{
+    const int diff = rhs->component_len - lhs->component_len;
+    int res;
+
+    if (diff != 0)
+        return diff;
+
+    unsigned short clen = lhs->component_len;
+
+    if (lhs->name_cache->casesensitivesearch) {
+        /* FIXME: Can we use |memcmp()| here ? */
+        res = strncmp(lhs->component, rhs->component, clen);
+    }
+    else {
+        res = icu_strcmpcoll(lhs->name_cache->icu_coll,
+            lhs->component, rhs->component, (int32_t)clen);
+
+//#define DEBUG_CASEINSENSITIVE_NAMECMP 1
+#ifdef DEBUG_CASEINSENSITIVE_NAMECMP
+        int casesensitive_res;
+
+        /* FIXME: Can we use |memcmp()| here ? */
+        casesensitive_res = strncmp(lhs->component, rhs->component,
+            clen);
+
+        if (res != casesensitive_res) {
+            /*
+             * Explicitly call |clen| "byte_clen" in the output to make sure
+             * people do not get confused, e.g. if |<Ae><ae>| has the same
+             * terminal character width as "dir1
+             */
+            DPRINTF(0,
+                ("name_cmp: "
+                    "(lhs='%.*s',rhs='%.*s',byte_clen=%d), "
+                    "res(=%d) != casesensitive_res(=%d)\n",
+                    (int)clen, lhs->component,
+                    (int)clen, rhs->component,
+                    (int)clen,
+                    res, casesensitive_res));
+        }
+#endif /* DEBUG_CASEINSENSITIVE_NAMECMP */
+    }
+
+    return res;
+}
 
 /* internal name cache functions used by the public name cache interface;
  * these functions expect the caller to hold a lock on the cache */
@@ -625,6 +704,9 @@ static int name_cache_entry_create(
         list_init(&entry->exp_entry);
         list_add_tail(&cache->exp_entries, &entry->exp_entry);
     }
+
+    /* Add back pointer to entry */
+    entry->name_cache = cache;
 
     name_cache_entry_rename(entry, component);
 
@@ -755,6 +837,7 @@ static struct name_cache_entry* name_cache_search(
     StringCchCopyNA(tmp.component, NFS41_MAX_COMPONENT_LEN+1,
         component->name, component->len);
     tmp.component_len = component->len;
+    tmp.name_cache = cache;
 
     entry = RB_FIND(name_tree, &parent->rbchildren, &tmp);
     if (entry) {
@@ -911,6 +994,33 @@ int nfs41_name_cache_create(
         goto out;
     }
 
+    /*
+     * We need to set this to the real value later, once we have the value
+     * of the |FATTR4_WORD0_CASE_INSENSITIVE| attribute...
+     * FIXME: This is suboptimal...
+     */
+    cache->casesensitivesearch = false;
+
+    UErrorCode xstatus = U_ZERO_ERROR;
+    cache->icu_coll = ucol_open("en_US", &xstatus);
+    if (U_FAILURE(xstatus)) {
+        eprintf("nfs41_name_cache_create: "
+            "ucol_open() failued with icu_error='%s'\n",
+            u_errorName(xstatus));
+        goto out_err_cache;
+    }
+
+
+    /*
+     * FIXME: Which strength should be use ?
+     * - |UCOL_SECONDARY| --> ignore case, keep accents
+     * - |UCOL_PRIMARY|   --> ignore case AND accents
+     *
+     * NTFS is case-insensitive by default but compares accents 1:1,
+     * so we stick with |UCOL_SECONDARY|
+     */
+    ucol_setStrength(cache->icu_coll, UCOL_SECONDARY);
+
     list_init(&cache->exp_entries);
     cache->expiration = NAME_CACHE_EXPIRATION;
     cache->max_entries = NAME_CACHE_MAX_ENTRIES;
@@ -936,6 +1046,9 @@ out:
 out_err_pool:
     free(cache->pool);
 out_err_cache:
+    if (cache->icu_coll) {
+        ucol_close(cache->icu_coll);
+    }
     free(cache);
     goto out;
 }
@@ -951,11 +1064,26 @@ int nfs41_name_cache_free(
     /* free the attribute cache */
     attr_cache_free(&cache->attributes);
 
+    /* free the ICU object */
+    if (cache->icu_coll) {
+        ucol_close(cache->icu_coll);
+    }
+
     /* free the name entry pool */
     free(cache->pool);
     free(cache);
     *cache_out = NULL;
     return status;
+}
+
+void nfs41_name_cache_set_casesensitivesearch(
+    IN struct nfs41_name_cache *cache,
+    IN bool casesensitivesearch)
+{
+    cache->casesensitivesearch = casesensitivesearch;
+    DPRINTF(1,
+        ("nfs41_name_cache_set_casesensitivesearch: casesensitivesearch=%d\n",
+        (int)casesensitivesearch));
 }
 
 static __inline void copy_fh(
