@@ -47,8 +47,8 @@ mkfs.fat -F 32 '/bigdisk/fat32_image.img'
 mkdir /fat32_mount
 chmod -R a+rwx /fat32_mount
 chown 65534:65534 /fat32_mount
-#mount -o loop,uid=65534,gid=65534 /bigdisk/fat32_image.img /fat32_mount
-echo '/bigdisk/fat32_image.img /fat32_mount fat loop,uid=65534,gid=65534 0 0' >>'/etc/fstab'
+#mount -o loop,uid=65534,gid=65534,fmask=0000,dmask=0000 /bigdisk/fat32_image.img /fat32_mount
+echo '/bigdisk/fat32_image.img /fat32_mount fat loop,uid=65534,gid=65534,fmask=0000,dmask=0000 0 0' >>'/etc/fstab'
 mount /fat32_mount
 echo '/fat32_mount *(sec=sys,rw,async,insecure,all_squash,anonuid=65534,anongid=65534,fsid=5272429)' >>'/etc/exports'
 service nfs-server restart
