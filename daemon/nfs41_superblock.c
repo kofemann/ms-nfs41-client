@@ -175,6 +175,63 @@ static int get_superblock_attrs(
 
     nfs41_superblock_supported_attrs(superblock, &superblock->default_getattr);
 
+    /*
+     * Print infos for admins
+     */
+    char infobuff[256];
+    char *is;
+
+    /* ACL info */
+    if (superblock->aclsupport) {
+        is = infobuff;
+        *is = '\0';
+        if (bitmap_isset(&superblock->supported_attrs, 0, FATTR4_WORD0_ACL)) {
+            is = stpcpy(is, "ACL");
+        }
+        if (bitmap_isset(&superblock->supported_attrs, 1, FATTR4_WORD1_DACL)) {
+            if (is != infobuff)
+                *is++ = ',';
+            is = stpcpy(is, "DACL");
+        }
+        if (bitmap_isset(&superblock->supported_attrs, 1, FATTR4_WORD1_SACL)) {
+            if (is != infobuff)
+                *is++ = ',';
+            is = stpcpy(is, "SACL");
+        }
+
+        logprintf("get_superblock_attrs: Supported ACL types: { %s }\n",
+            infobuff);
+    }
+    else {
+        logprintf("get_superblock_attrs: No ACL support\n");
+    }
+
+    /* Windows/DOS attributes */
+    is = infobuff;
+    *is = '\0';
+    if (bitmap_isset(&superblock->supported_attrs, 0, FATTR4_WORD0_HIDDEN)) {
+        is = stpcpy(is, "HIDDEN");
+    }
+    if (bitmap_isset(&superblock->supported_attrs, 0, FATTR4_WORD0_ARCHIVE)) {
+        if (is != infobuff)
+            *is++ = ',';
+        is = stpcpy(is, "ARCHIVE");
+    }
+    if (bitmap_isset(&superblock->supported_attrs, 1, FATTR4_WORD1_SYSTEM)) {
+        if (is != infobuff)
+            *is++ = ',';
+        is = stpcpy(is, "SYSTEM");
+    }
+    logprintf("get_superblock_attrs: "
+        "Supported Windows/DOS attributes: { %s }\n",
+        infobuff);
+
+    /* Filename case handling */
+    logprintf("get_superblock_attrs: "
+        "Case handling: case_insensitive=%d, case_preserving=%d\n",
+        (int)superblock->case_insensitive,
+        (int)superblock->case_preserving);
+
     DPRINTF(SBLVL, ("attributes for fsid(%llu,%llu): "
         "maxread=%llu, maxwrite=%llu, layout_types: 0x%X, "
         "cansettime=%u, time_delta={%llu,%u}, aclsupport=%u, "
