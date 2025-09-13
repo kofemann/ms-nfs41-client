@@ -104,7 +104,15 @@ enum nfs_opnum4 {
     OP_WRITE_SAME           = 70,
     OP_CLONE                = 71,
 
-    /* xattr support (RFC8726) */
+    /*
+     * xattr support (RFC8726)
+     * Note that RFC8726 XATTRS represent Linux XATTRs and are
+     * semantically incompatible to Windows EA (extended attributes).
+     * Windows EAs can only properly (i.e. pass the Windows HCL
+     * filesystem tests) be implemented via NFSv4 "named attributes"
+     * (OP_OPENATTR)&co, so these will remain no-ops for Windows NFS
+     * clients conformaing to the Win32 specs.
+     */
     OP_GETXATTR             = 72,
     OP_SETXATTR             = 73,
     OP_LISTXATTRS           = 74,
