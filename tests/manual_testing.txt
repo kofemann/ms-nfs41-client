@@ -1,5 +1,5 @@
 #
-# ms-nfs41-client manual testing sequence, 2025-09-04
+# ms-nfs41-client manual testing sequence, 2025-09-15
 #
 # Draft version, needs to be turned into automated tests
 # if possible
@@ -158,7 +158,12 @@
 #   4. Disable verifier:
 #       $ verifier /reset
 #
-
+# - Testing NFSv4.* with non-standard TCP ports:
+#   1. Run this on the NFS server itself to forward accesses to TCP/2050
+#   to TCP/2049 on the same server machine:
+#   $ ssh -L '*:2050:localhost:2049' root@localhost 'printf "# forwarding...\n" ; sleep $((60*60*24*366))'
+#   2. Connect to the NFS server via nfs://servername1:2050//path/to/nfsexport
+#
 
 #
 # "cthon04" test suite:
