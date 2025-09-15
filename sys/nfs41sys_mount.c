@@ -108,7 +108,11 @@ NTSTATUS marshal_nfs41_mount(
     else tmp += *len;
 
     header_len = *len + length_as_utf8(entry->u.Mount.srv_name) +
-        length_as_utf8(entry->u.Mount.root) + 5 * sizeof(DWORD);
+        length_as_utf8(entry->u.Mount.root) + 5 * sizeof(DWORD)
+#ifdef NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS
+        + 2 * sizeof(tristate_bool)
+#endif /* NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS */
+        ;
     if (header_len > buf_len) {
         status = STATUS_INSUFFICIENT_RESOURCES;
         goto out;
@@ -126,18 +130,36 @@ NTSTATUS marshal_nfs41_mount(
     RtlCopyMemory(tmp, &entry->u.Mount.use_nfspubfh, sizeof(DWORD));
     tmp += sizeof(DWORD);
     RtlCopyMemory(tmp, &entry->u.Mount.nfsvers, sizeof(DWORD));
+#ifdef NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS
+    tmp += sizeof(DWORD);
+    RtlCopyMemory(tmp, &entry->u.Mount.force_case_preserving,
+        sizeof(tristate_bool));
+    tmp += sizeof(tristate_bool);
+    RtlCopyMemory(tmp, &entry->u.Mount.force_case_insensitive,
+        sizeof(tristate_bool));
+    /* tmp += sizeof(tristate_bool); */
+#endif /* NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS */
 
     *len = header_len;
 
 #ifdef DEBUG_MARSHAL_DETAIL
     DbgP("marshal_nfs41_mount: server name='%wZ' mount point='%wZ' "
-         "sec_flavor='%s' rsize=%d wsize=%d use_nfspubfh=%d "
-         "nfsvers=%d\n",
-	 entry->u.Mount.srv_name, entry->u.Mount.root,
-         secflavorop2name(entry->u.Mount.sec_flavor),
-         (int)entry->u.Mount.rsize, (int)entry->u.Mount.wsize,
-         (int)entry->u.Mount.use_nfspubfh,
-         (int)entry->u.Mount.nfsvers);
+        "sec_flavor='%s' rsize=%d wsize=%d use_nfspubfh=%d "
+#ifdef NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS
+        "nfsvers=%d force_case_preserving=%d force_case_insensitive=%d\n"
+#endif /* NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS */
+        ,
+        entry->u.Mount.srv_name, entry->u.Mount.root,
+        secflavorop2name(entry->u.Mount.sec_flavor),
+        (int)entry->u.Mount.rsize, (int)entry->u.Mount.wsize,
+        (int)entry->u.Mount.use_nfspubfh,
+        (int)entry->u.Mount.nfsvers
+#ifdef NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS
+        ,
+        (int)entry->u.Mount.force_case_preserving,
+        (int)entry->u.Mount.force_case_insensitive
+#endif /* NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS */
+         );
 #endif
 out:
     return status;
@@ -262,6 +284,10 @@ NTSTATUS nfs41_mount(
     entry->u.Mount.wsize = config->WriteSize;
     entry->u.Mount.use_nfspubfh = config->use_nfspubfh;
     entry->u.Mount.nfsvers = config->nfsvers;
+#ifdef NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS
+    entry->u.Mount.force_case_preserving = config->force_case_preserving;
+    entry->u.Mount.force_case_insensitive = config->force_case_insensitive;
+#endif /* NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS */
     entry->u.Mount.sec_flavor = sec_flavor;
     entry->u.Mount.FsAttrs = FsAttrs;
 
@@ -320,6 +346,10 @@ void nfs41_MountConfig_InitDefaults(
     Config->file_createmode.use_nfsv3attrsea_mode = TRUE;
     Config->file_createmode.mode =
         NFS41_DRIVER_DEFAULT_FILE_CREATE_MODE;
+#ifdef NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS
+    Config->force_case_preserving = TRISTATE_BOOL_NOT_SET;
+    Config->force_case_insensitive = TRISTATE_BOOL_NOT_SET;
+#endif /* NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS */
 }
 
 static
@@ -647,6 +677,22 @@ NTSTATUS nfs41_MountConfig_ParseOptions(
                 (int)Config->file_createmode.use_nfsv3attrsea_mode,
                 (int)Config->file_createmode.mode);
         }
+#ifdef NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS
+        else if (wcsncmp(L"forcecasepreserving", Name, NameLen) == 0) {
+            BOOLEAN val;
+            status = nfs41_MountConfig_ParseBoolean(Option, &usValue,
+                FALSE, &val);
+            Config->force_case_preserving =
+                val?TRISTATE_BOOL_TRUE:TRISTATE_BOOL_FALSE;
+        }
+        else if (wcsncmp(L"forcecaseinsensitive", Name, NameLen) == 0) {
+            BOOLEAN val;
+            status = nfs41_MountConfig_ParseBoolean(Option, &usValue,
+                FALSE, &val);
+            Config->force_case_insensitive =
+                val?TRISTATE_BOOL_TRUE:TRISTATE_BOOL_FALSE;
+        }
+#endif /* NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS */
         else {
             status = STATUS_INVALID_PARAMETER;
             print_error("Unrecognized option '%ls' -> '%wZ'\n",
@@ -1068,6 +1114,10 @@ NTSTATUS nfs41_CreateVNetRoot(
         "timeout=%d "
         "dir_cmode=(usenfsv3attrs=%d mode=0%o) "
         "file_cmode=(usenfsv3attrs=%d mode=0%o) "
+#ifdef NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS
+        "force_case_preserving=%d "
+        "force_case_insensitive=%d "
+#endif /* NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS */
         "}\n",
         &Config->MntPt,
         &Config->SrvName,
@@ -1081,7 +1131,13 @@ NTSTATUS nfs41_CreateVNetRoot(
         Config->dir_createmode.use_nfsv3attrsea_mode?1:0,
         Config->dir_createmode.mode,
         Config->file_createmode.use_nfsv3attrsea_mode?1:0,
-        Config->file_createmode.mode);
+        Config->file_createmode.mode
+#ifdef NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS
+        ,
+        (int)Config->force_case_preserving,
+        (int)Config->force_case_insensitive
+#endif /* NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS */
+        );
 
     pVNetRootContext->MntPt.Buffer = pVNetRootContext->mntpt_buffer;
     pVNetRootContext->MntPt.Length = Config->MntPt.Length;
@@ -1096,6 +1152,15 @@ NTSTATUS nfs41_CreateVNetRoot(
         Config->file_createmode.use_nfsv3attrsea_mode;
     pVNetRootContext->file_createmode.mode =
         Config->file_createmode.mode;
+#ifdef NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS
+    /*
+     * FIXME: NO-OP for now, as no one reads
+     * |pVNetRootContext->force_case_preserving| and
+     * |pVNetRootContext->force_case_insensitive| (yet)
+     */
+    pVNetRootContext->force_case_preserving = Config->force_case_preserving;
+    pVNetRootContext->force_case_insensitive = Config->force_case_insensitive;
+#endif /* NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS */
 
     status = map_sec_flavor(&Config->SecFlavor, &pVNetRootContext->sec_flavor);
     if (status != STATUS_SUCCESS) {

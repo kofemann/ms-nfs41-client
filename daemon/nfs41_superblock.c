@@ -81,6 +81,7 @@ static int get_superblock_attrs(
     IN nfs41_superblock *superblock,
     IN nfs41_path_fh *file)
 {
+    nfs41_root *root = session->client->root;
     bool_t supports_named_attrs;
     int status;
     bitmap4 attr_request;
@@ -125,22 +126,35 @@ static int get_superblock_attrs(
     superblock->link_support = info.link_support;
     superblock->symlink_support = info.symlink_support;
     superblock->ea_support = supports_named_attrs;
-//#define TEST_LINUX_FORCE_FAT32 1
-#ifdef TEST_LINUX_FORCE_FAT32
-    /*
-     * Testing-ONLY: Force FAT32 behaviour, because Linux nfsd returns
-     * |info.case_insensitive==0| even on FAT32
-     * Windows Server 2019 nfsd and OpenText nfsd do this correctly
-     */
-    DPRINTF(0, ("get_superblock_attrs: TEST_LINUX_FORCE_FAT32 enabled!\n"));
-    superblock->case_preserving = 0/*info.case_preserving*/;
-    superblock->case_insensitive = 1/*info.case_insensitive*/;
+
+#ifdef NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS
+    if (root->force_case_preserving == TRISTATE_BOOL_NOT_SET) {
+        superblock->case_preserving = info.case_preserving;
+    }
+    else {
+        superblock->case_preserving =
+            root->force_case_preserving?1:0;
+        DPRINTF(0,
+            ("get_superblock_attrs: OVERRIDING case_preserving to %d\n",
+            (int)superblock->case_preserving));
+    }
+    if (root->force_case_insensitive == TRISTATE_BOOL_NOT_SET) {
+        superblock->case_insensitive = info.case_insensitive;
+    }
+    else {
+        superblock->case_insensitive =
+            root->force_case_insensitive?1:0;
+        DPRINTF(0,
+            ("get_superblock_attrs: OVERRIDING case_insensitive to %d\n",
+            (int)superblock->case_insensitive));
+    }
 #else
     superblock->case_preserving = info.case_preserving;
     superblock->case_insensitive = info.case_insensitive;
-#endif /* TEST_FS_FORCE_FAT32 */
+#endif /* NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS */
+
     superblock->sparse_file_support = 1; /* always ON for now */
-    if (session->client->root->nfsminorvers >= 2) {
+    if (root->nfsminorvers >= 2) {
         superblock->block_clone_support = 1;
     }
     else {

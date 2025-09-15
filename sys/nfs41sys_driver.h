@@ -201,6 +201,10 @@ typedef struct _updowncall_entry {
             DWORD lease_time;
             DWORD use_nfspubfh;
             DWORD nfsvers;
+#ifdef NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS
+            tristate_bool force_case_preserving;
+            tristate_bool force_case_insensitive;
+#endif /* NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS */
         } Mount;
         struct {
             PMDL MdlAddress;
@@ -339,6 +343,10 @@ typedef struct _NFS41_MOUNT_CONFIG {
     DWORD timeout;
     NFS41_MOUNT_CREATEMODE dir_createmode;
     NFS41_MOUNT_CREATEMODE file_createmode;
+#ifdef NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS
+    tristate_bool force_case_preserving;
+    tristate_bool force_case_insensitive;
+#endif /* NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS */
 } NFS41_MOUNT_CONFIG, *PNFS41_MOUNT_CONFIG;
 
 typedef struct _nfs41_mount_entry {
@@ -434,6 +442,10 @@ typedef struct _NFS41_V_NET_ROOT_EXTENSION {
     BOOLEAN                 write_thru;
     BOOLEAN                 nocache;
     BOOLEAN                 timebasedcoherency;
+#ifdef NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS
+    tristate_bool           force_case_preserving;
+    tristate_bool           force_case_insensitive;
+#endif /* NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS */
 } NFS41_V_NET_ROOT_EXTENSION, *PNFS41_V_NET_ROOT_EXTENSION;
 #define NFS41GetVNetRootExtension(pVNetRoot)      \
         (((pVNetRoot) == NULL) ? NULL :           \

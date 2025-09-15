@@ -25,8 +25,10 @@
 #define __NFS41__ 1
 
 #include <stdbool.h>
+#include "nfs41_build_features.h"
 #include "util.h"
 #include "list.h"
+#include "nfs41_driver.h" /* needed for |tristate_bool| */
 
 
 struct __nfs41_session;
@@ -320,6 +322,10 @@ typedef struct __nfs41_root {
     uint32_t uid;
     uint32_t gid;
     DWORD sec_flavor;
+#ifdef NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS
+    tristate_bool force_case_preserving;
+    tristate_bool force_case_insensitive;
+#endif /* NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS */
 } nfs41_root;
 
 
@@ -328,11 +334,16 @@ int nfs41_root_create(
     IN const char *name,
     IN uint32_t port,
     IN bool use_nfspubfh,
+#ifdef NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS
+    IN tristate_bool force_case_preserving,
+    IN tristate_bool force_case_insensitive,
+#endif /* NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS */
     IN DWORD nfsvers,
     IN uint32_t sec_flavor,
     IN uint32_t wsize,
     IN uint32_t rsize,
     OUT nfs41_root **root_out);
+
 
 void nfs41_root_ref(
     IN nfs41_root *root);
@@ -449,6 +460,10 @@ int nfs41_client_owner(
     IN uint32_t port,
     IN int nfsminorvers,
     IN bool use_nfspubfh,
+#ifdef NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS
+    IN tristate_bool force_case_preserving,
+    IN tristate_bool force_case_insensitive,
+#endif /* NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS */
     IN uint32_t sec_flavor,
     OUT client_owner4 *owner);
 

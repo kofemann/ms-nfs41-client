@@ -156,4 +156,10 @@ typedef enum _nfs41_start_driver_state {
 #define ERROR_NFS_VERSION_MISMATCH ERROR_REMOTE_FILE_VERSION_MISMATCH
 #define STATUS_NFS_VERSION_MISMATCH STATUS_REMOTE_FILE_VERSION_MISMATCH
 
+/* Boolean with three states to cover "not set" */
+typedef signed char tristate_bool;
+#define TRISTATE_BOOL_NOT_SET   (-1)
+#define TRISTATE_BOOL_FALSE     (0)
+#define TRISTATE_BOOL_TRUE      (1)
+
 #endif /* !_NFS41_DRIVER_ */

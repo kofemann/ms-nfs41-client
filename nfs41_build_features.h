@@ -236,4 +236,30 @@
  */
 #define NFS41_DRIVER_HACK_LOCKING_STORAGE32_RANGELOCK_PROBING 1
 
+/*
+ * |NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS| - provide mount
+ * options "forcecasepreserving=0/1" and "forcecaseinsensitive=0/1"
+ * to override |FATTR4_WORD0_CASE_INSENSITIVE|/|FATTR4_WORD0_CASE_PRESERVING|
+ * obtained by the NFS server.
+ *
+ * This is only a HACK to circumvent a Linux nfsd bug which always returns
+ * |FATTR4_WORD0_CASE_INSENSITIVE==0|&&|FATTR4_WORD0_CASE_PRESERVING==1|,
+ * even for FAT.
+ * Since Windows file accesses via UNC path make mount options basically
+ * per-server mounts from a single server can only have one set of
+ * "forcecasepreserving=0/1" and "forcecaseinsensitive=0/1" options.
+ *
+ * As workaround you can use use the same hostname but a different port
+ * number (as for ms-nfs41-client the port number of part of the UNC path),
+ * e.g. ssh on the NFS server itself to forward port 2050 to 2049 to
+ * pretent it is a different server:
+ * $ ssh -L '*:2050:localhost:2049' root@localhost 'printf "# forwarding...\n" ; sleep $((60*60*24*366*99))' #
+ * and then connect the NFS client to port 2050 on the NFS server.
+ *
+ * This build option should be removed as soon as the Linux nfsd has been
+ * fixed.
+ * THIS OPTION MUST NOT BE USED ON PRODUCTION SYSTEMS!!
+ */
+#define NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS 1
+
 #endif /* !_NFS41_DRIVER_BUILDFEATURES_ */

@@ -43,6 +43,10 @@ int nfs41_root_create(
     IN const char *name,
     IN uint32_t port,
     IN bool use_nfspubfh,
+#ifdef NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS
+    IN tristate_bool force_case_preserving,
+    IN tristate_bool force_case_insensitive,
+#endif /* NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS */
     IN DWORD nfsvers,
     IN uint32_t sec_flavor,
     IN uint32_t wsize,
@@ -52,10 +56,23 @@ int nfs41_root_create(
     int status = NO_ERROR;
     nfs41_root *root;
 
+#ifdef NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS
     DPRINTF(NSLVL,
         ("--> nfs41_root_create(name='%s', port=%d, "
-            "use_nfspubfh=%d, nfsvers=%d)\n",
-            name, port, (int)use_nfspubfh, (int)nfsvers));
+            "use_nfspubfh=%d, "
+            "force_case_preserving=%d force_case_insensitive=%d"
+            "nfsvers=%d)\n",
+            name, port, (int)use_nfspubfh,
+            (int)force_case_preserving, (int)force_case_insensitive,
+            (int)nfsvers));
+#else
+    DPRINTF(NSLVL,
+        ("--> nfs41_root_create(name='%s', port=%d, "
+            "use_nfspubfh=%d, "
+            "nfsvers=%d)\n",
+            name, port, (int)use_nfspubfh,
+            (int)nfsvers));
+#endif /* NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS */
 
     root = calloc(1, sizeof(nfs41_root));
     if (root == NULL) {
@@ -65,6 +82,11 @@ int nfs41_root_create(
 
     list_init(&root->clients);
     root->use_nfspubfh = use_nfspubfh;
+#ifdef NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS
+    root->force_case_preserving = force_case_preserving;
+    root->force_case_insensitive = force_case_insensitive;
+#endif /* NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS */
+
     /*
      * nfs41_root_mount_addrs() will enable NFSv4.2 features (like
      * |OP_READ_PLUS|) after NFSv4.x minor version autonegitiation
@@ -98,7 +120,11 @@ int nfs41_root_create(
 
     /* generate a unique client_owner */
     status = nfs41_client_owner(name, port, root->nfsminorvers,
-        use_nfspubfh, sec_flavor, &root->client_owner);
+        use_nfspubfh,
+#ifdef NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS
+        root->force_case_preserving, root->force_case_insensitive,
+#endif /* NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS */
+        sec_flavor, &root->client_owner);
     if (status) {
         eprintf("nfs41_client_owner() failed with %d\n", status);
         free(root);

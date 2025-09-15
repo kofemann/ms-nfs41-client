@@ -55,13 +55,33 @@ static int parse_mount(unsigned char *buffer, uint32_t length, nfs41_upcall *upc
     if (status) goto out;
     status = safe_read(&buffer, &length, &args->nfsvers, sizeof(DWORD));
     if (status) goto out;
+#ifdef NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS
+    status = safe_read(&buffer, &length, &args->force_case_preserving,
+        sizeof(tristate_bool));
+    if (status) goto out;
+    status = safe_read(&buffer, &length, &args->force_case_insensitive,
+        sizeof(tristate_bool));
+    if (status) goto out;
+#endif /* NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS */
 
+#ifdef NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS
+    DPRINTF(1, ("parsing NFS41_SYSOP_MOUNT: hostport='%s' root='%s' "
+        "sec_flavor='%s' rsize=%d wsize=%d use_nfspubfh=%d "
+        "nfsvers=%d force_case_preserving=%d force_case_insensitive=%d\n",
+        args->hostport, args->path, secflavorop2name(args->sec_flavor),
+        args->rsize, args->wsize, args->use_nfspubfh,
+        args->nfsvers,
+        (int)args->force_case_preserving,
+        (int)args->force_case_insensitive));
+#else
     DPRINTF(1, ("parsing NFS41_SYSOP_MOUNT: hostport='%s' root='%s' "
         "sec_flavor='%s' rsize=%d wsize=%d use_nfspubfh=%d "
         "nfsvers=%d\n",
         args->hostport, args->path, secflavorop2name(args->sec_flavor),
         args->rsize, args->wsize, args->use_nfspubfh,
         args->nfsvers));
+#endif /* NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS */
+
     return status;
 out:
     DPRINTF(1, ("parsing NFS41_SYSOP_MOUNT: failed %d\n", status));
@@ -183,6 +203,10 @@ static int handle_mount(void *daemon_context, nfs41_upcall *upcall)
         // create root
         status = nfs41_root_create(hostname, port,
             args->use_nfspubfh?true:false,
+#ifdef NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS
+            args->force_case_preserving,
+            args->force_case_insensitive,
+#endif /* NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS */
             args->nfsvers,
             args->sec_flavor,
             args->wsize + WRITE_OVERHEAD, args->rsize + READ_OVERHEAD, &root);
