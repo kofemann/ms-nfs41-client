@@ -4,6 +4,7 @@
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
+ * Roland Mainz <roland.mainz@nrubsig.org>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -221,6 +222,7 @@ typedef struct __nfs41_file_info {
     bool_t                  hidden;
     bool_t                  system;
     bool_t                  archive;
+    bool_t                  offline;
     uint32_t                clone_blksize;
     bool_t                  case_insensitive;
     bool_t                  case_preserving;

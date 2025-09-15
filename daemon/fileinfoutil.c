@@ -84,6 +84,8 @@ ULONG nfs_file_info_to_attributes(
         attrs |= FILE_ATTRIBUTE_SYSTEM;
     if (info->archive)
         attrs |= FILE_ATTRIBUTE_ARCHIVE;
+    if (info->offline)
+        attrs |= FILE_ATTRIBUTE_OFFLINE;
 
     /*
      * |FILE_ATTRIBUTE_NORMAL| attribute is only set if no other
@@ -636,6 +638,9 @@ void nfs41_file_info_cpy(
         }
         if (attrmask->arr[2] & FATTR4_WORD2_CLONE_BLKSIZE) {
             dest->clone_blksize = src->clone_blksize;
+        }
+        if (attrmask->arr[2] & FATTR4_WORD2_OFFLINE) {
+            dest->offline = src->offline;
         }
     }
 

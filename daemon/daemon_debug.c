@@ -1147,6 +1147,9 @@ void print_nfs41_file_info(
                 (long)info->clone_blksize);
         }
 
+        if (info->attrmask.arr[2] & FATTR4_WORD2_OFFLINE)
+            PRNFS41FI_FMT("offline=%d, ", (int)info->offline);
+
         p += snprintf(p, (sizeof(buf)-(p-buf)), "} ");
     }
 

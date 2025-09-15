@@ -1021,6 +1021,7 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
         createattrs.hidden = args->file_attrs & FILE_ATTRIBUTE_HIDDEN ? 1 : 0;
         createattrs.system = args->file_attrs & FILE_ATTRIBUTE_SYSTEM ? 1 : 0;
         createattrs.archive = args->file_attrs & FILE_ATTRIBUTE_ARCHIVE ? 1 : 0;
+        /* FIXME: What about |FILE_ATTRIBUTE_OFFLINE| ? */
 
         map_access_2_allowdeny(args->access_mask, args->access_mode,
             args->disposition, &state->share_access, &state->share_deny);

@@ -77,22 +77,23 @@ static __inline bool_t is_delegation(
     return type == OPEN_DELEGATE_READ || type == OPEN_DELEGATE_WRITE;
 }
 
-#define NC_ATTR_TYPE        (1 <<  0)
-#define NC_ATTR_CHANGE      (1 <<  1)
-#define NC_ATTR_FSID        (1 <<  2)
-#define NC_ATTR_SIZE        (1 <<  3)
-#define NC_ATTR_SPACE_USED  (1 <<  4)
-#define NC_ATTR_HIDDEN      (1 <<  5)
-#define NC_ATTR_ARCHIVE     (1 <<  6)
-#define NC_ATTR_MODE        (1 <<  7)
-#define NC_ATTR_NUMLINKS    (1 <<  8)
-#define NC_ATTR_OWNER       (1 <<  9)
-#define NC_ATTR_OWNER_GROUP (1 << 10)
-#define NC_ATTR_TIME_ACCESS (1 << 11)
-#define NC_ATTR_TIME_CREATE (1 << 12)
-#define NC_ATTR_TIME_MODIFY (1 << 13)
-#define NC_ATTR_SYSTEM      (1 << 14)
-#define NC_ATTR_CLONE_BLKSIZE (1 << 15)
+#define NC_ATTR_TYPE            (1 <<  0)
+#define NC_ATTR_CHANGE          (1 <<  1)
+#define NC_ATTR_FSID            (1 <<  2)
+#define NC_ATTR_SIZE            (1 <<  3)
+#define NC_ATTR_SPACE_USED      (1 <<  4)
+#define NC_ATTR_HIDDEN          (1 <<  5)
+#define NC_ATTR_ARCHIVE         (1 <<  6)
+#define NC_ATTR_SYSTEM          (1 <<  7)
+#define NC_ATTR_OFFLINE         (1 <<  8)
+#define NC_ATTR_MODE            (1 <<  9)
+#define NC_ATTR_NUMLINKS        (1 << 10)
+#define NC_ATTR_OWNER           (1 << 11)
+#define NC_ATTR_OWNER_GROUP     (1 << 12)
+#define NC_ATTR_TIME_ACCESS     (1 << 13)
+#define NC_ATTR_TIME_CREATE     (1 << 14)
+#define NC_ATTR_TIME_MODIFY     (1 << 15)
+#define NC_ATTR_CLONE_BLKSIZE   (1 << 16)
 
 /* attribute cache */
 struct attr_cache_entry {
@@ -114,14 +115,15 @@ struct attr_cache_entry {
     uint32_t                numlinks;
     unsigned                mode : 30;
     unsigned                hidden : 1;
-    unsigned                system : 1;
     unsigned                archive : 1;
-    uint32_t                clone_blksize;
-    util_reltimestamp       expiration;
+    unsigned                system : 1;
+    unsigned                offline : 1;
     unsigned                ref_count : 26;
     unsigned                type : 4;
     unsigned                invalidated : 1;
     unsigned                delegated : 1;
+    uint32_t                clone_blksize;
+    util_reltimestamp       expiration;
     char                    owner[NFS4_FATTR4_OWNER_LIMIT+1];
     char                    owner_group[NFS4_FATTR4_OWNER_LIMIT+1];
 };
@@ -394,6 +396,10 @@ static void attr_cache_update(
             entry->nc_attrs |= NC_ATTR_CLONE_BLKSIZE;
             entry->clone_blksize = info->clone_blksize;
         }
+        if (info->attrmask.arr[2] & FATTR4_WORD2_OFFLINE) {
+            entry->nc_attrs |= NC_ATTR_OFFLINE;
+            entry->offline = info->offline;
+        }
     }
 
     if (is_delegation(delegation))
@@ -488,6 +494,10 @@ static void copy_attrs(
     if (src->nc_attrs & NC_ATTR_CLONE_BLKSIZE) {
         dst->attrmask.arr[2] |= FATTR4_WORD2_CLONE_BLKSIZE;
         dst->clone_blksize = src->clone_blksize;
+    }
+    if (src->nc_attrs & NC_ATTR_OFFLINE) {
+        dst->attrmask.arr[2] |= FATTR4_WORD2_OFFLINE;
+        dst->offline = src->offline;
     }
 
     if (dst->attrmask.arr[2] != 0) {

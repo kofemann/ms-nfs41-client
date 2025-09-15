@@ -1927,6 +1927,10 @@ static bool_t decode_file_attrs(
             if (!xdr_uint32_t(xdr, &info->clone_blksize))
                 return FALSE;
         }
+        if (attrs->attrmask.arr[2] & FATTR4_WORD2_OFFLINE) {
+            if (!xdr_bool(xdr, &info->offline))
+                return FALSE;
+        }
     }
     return TRUE;
 }

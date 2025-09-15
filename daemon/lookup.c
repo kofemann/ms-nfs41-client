@@ -96,7 +96,7 @@ static void init_component_args(
 {
     uint32_t i;
 
-    args->attr_request.count = 2;
+    args->attr_request.count = 3;
     args->attr_request.arr[0] = FATTR4_WORD0_TYPE
         | FATTR4_WORD0_CHANGE | FATTR4_WORD0_SIZE
         | FATTR4_WORD0_FSID | FATTR4_WORD0_FILEID
@@ -107,6 +107,7 @@ static void init_component_args(
         | FATTR4_WORD1_TIME_ACCESS | FATTR4_WORD1_TIME_CREATE
         | FATTR4_WORD1_TIME_MODIFY
         | FATTR4_WORD1_OWNER | FATTR4_WORD1_OWNER_GROUP;
+    args->attr_request.arr[2] = FATTR4_WORD2_OFFLINE;
 
     args->getrootattr.attr_request = &args->attr_request;
     res->root.path = path;
