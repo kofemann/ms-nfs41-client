@@ -805,10 +805,6 @@ VOID ServiceStart(DWORD argc, LPTSTR *argv)
     DPRINTF(0, ("SID cache disabled\n"));
 #endif /* NFS41_DRIVER_SID_CACHE */
 
-#if 1
-    DPRINTF(0, ("wmain: GetACP()=%d\n", (int)GetACP()));
-#endif
-
 #ifdef _DEBUG
     logprintf("NFS client daemon (DEBUG build) %s starting...\n",
         GIT_COMMIT_ID);
