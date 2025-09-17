@@ -177,7 +177,7 @@ out:
     return status;
 }
 
-static int map_lookup_error(int status, bool_t last_component)
+static int map_lookup_error(int status, bool last_component)
 {
     switch (status) {
     case NFS4ERR_NOENT:
@@ -302,7 +302,7 @@ static int server_lookup(
         }
     }
 out:
-    return map_lookup_error(status, i == count-1);
+    return map_lookup_error(status, ((i == count-1)?true:false));
 }
 
 static uint32_t max_lookup_components(
@@ -480,7 +480,7 @@ int nfs41_lookup(
     nfs41_path_fh parent = { 0 }, target = { 0 }, *server_start;
     const char *path_pos, *path_end;
     struct lookup_referral referral = { 0 };
-    bool_t negative = 0;
+    bool negative = false;
     int status;
 
     if (session_out) *session_out = session;

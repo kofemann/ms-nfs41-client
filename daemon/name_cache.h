@@ -68,7 +68,7 @@ int nfs41_name_cache_lookup(
     OUT OPTIONAL nfs41_fh *parent_out,
     OUT OPTIONAL nfs41_fh *target_out,
     OUT OPTIONAL nfs41_file_info *info_out,
-    OUT OPTIONAL bool_t *is_negative);
+    OUT OPTIONAL bool *is_negative);
 
 int nfs41_name_cache_insert(
     IN struct nfs41_name_cache *cache,

@@ -71,7 +71,7 @@ enum {
  * ERROR_TOO_MANY_OPEN_FILES, chosen arbitrarily for this case, instructs the
  * caller to return an outstanding delegation before caching a new one.
  */
-static __inline bool_t is_delegation(
+static __inline bool is_delegation(
     IN enum open_delegation_type4 type)
 {
     return type == OPEN_DELEGATE_READ || type == OPEN_DELEGATE_WRITE;
@@ -659,7 +659,7 @@ int name_cmp_case_insensitive(
 
 #define name_entry(pos) list_container(pos, struct name_cache_entry, exp_entry)
 
-static __inline bool_t name_cache_enabled(
+static __inline bool name_cache_enabled(
     IN struct nfs41_name_cache *cache)
 {
     return cache->expiration > 0;
@@ -890,7 +890,7 @@ static struct name_cache_entry* name_cache_search(
 
 static int entry_invis(
     IN struct name_cache_entry *entry,
-    OUT OPTIONAL bool_t *is_negative)
+    OUT OPTIONAL bool *is_negative)
 {
     /* name entry timer expired? */
     if (!list_empty(&entry->exp_entry) && (UTIL_GETRELTIME() > entry->expiration)) {
@@ -899,7 +899,7 @@ static int entry_invis(
     }
     /* negative lookup entry? */
     if (entry->attributes == NULL) {
-        if (is_negative) *is_negative = 1;
+        if (is_negative) *is_negative = true;
         DPRINTF(NCLVL2, ("name_entry_negative('%s')\n", entry->component));
         return 1;
     }
@@ -914,13 +914,13 @@ static int entry_invis(
 
 static int name_cache_lookup(
     IN struct nfs41_name_cache *cache,
-    IN bool_t skip_invis,
+    IN bool skip_invis,
     IN const char *path,
     IN const char *path_end,
     OUT OPTIONAL const char **remaining_path_out,
     OUT OPTIONAL struct name_cache_entry **parent_out,
     OUT OPTIONAL struct name_cache_entry **target_out,
-    OUT OPTIONAL bool_t *is_negative)
+    OUT OPTIONAL bool *is_negative)
 {
     struct name_cache_entry *parent, *target;
     nfs41_component component;
@@ -1126,7 +1126,7 @@ int nfs41_name_cache_lookup(
     OUT OPTIONAL nfs41_fh *parent_out,
     OUT OPTIONAL nfs41_fh *target_out,
     OUT OPTIONAL nfs41_file_info *info_out,
-    OUT OPTIONAL bool_t *is_negative)
+    OUT OPTIONAL bool *is_negative)
 {
     struct name_cache_entry *parent, *target;
     const char *path_pos = path;
@@ -1567,7 +1567,7 @@ out_unlock:
  */
 #define MAX_PUTFH_PER_COMPOUND 64
 
-static bool_t get_path_fhs(
+static bool get_path_fhs(
     IN struct nfs41_name_cache *cache,
     IN nfs41_abs_path *path,
     IN OUT const char **path_pos,
