@@ -317,6 +317,10 @@ static int parse_open(unsigned char *buffer, uint32_t length, nfs41_upcall *upca
 
     status = get_name(&buffer, &length, &args->path);
     if (status) goto out;
+
+    status = safe_read(&buffer, &length, &args->is_caseinsensitive_volume,
+        sizeof(tristate_bool));
+    if (status) goto out;
     status = safe_read(&buffer, &length, &args->isvolumemntpt, sizeof(BOOLEAN));
     if (status) goto out;
     status = safe_read(&buffer, &length, &args->access_mask, sizeof(ULONG));
@@ -737,6 +741,25 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
     open_upcall_args *args = &upcall->args.open;
     nfs41_open_state *state;
     nfs41_file_info info = { 0 };
+    bool is_caseinsensitive_volume;
+
+    switch (args->is_caseinsensitive_volume) {
+        case TRISTATE_BOOL_FALSE:
+            is_caseinsensitive_volume = false;
+            break;
+        case TRISTATE_BOOL_TRUE:
+            is_caseinsensitive_volume = true;
+            break;
+        default:
+            eprintf("handle_open(args->path='%s'): "
+                "Invalid args->is_caseinsensitive_volume=%d value\n",
+                args->path, (int)args->is_caseinsensitive_volume);
+            /* fall-through */
+        case TRISTATE_BOOL_NOT_SET:
+            /* We default to case-sensitive mode */
+            is_caseinsensitive_volume = false;
+            break;
+    }
 
     EASSERT_MSG(!(args->create_opts & FILE_COMPLETE_IF_OPLOCKED),
         ("handle_open: file='%s': "
@@ -776,7 +799,8 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
 
     // always do a lookup
     status = nfs41_lookup(upcall->root_ref, nfs41_root_session(upcall->root_ref),
-        &state->path, &state->parent, &state->file, &info, &state->session);
+        is_caseinsensitive_volume, &state->path,
+        &state->parent, &state->file, &info, &state->session);
 
     if (status == ERROR_REPARSE) {
         uint32_t depth = 0;
@@ -802,7 +826,8 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
 
             /* redo the lookup until it doesn't return REPARSE */
             status = nfs41_lookup(upcall->root_ref, state->session,
-                &state->path, &state->parent, NULL, NULL, &state->session);
+                is_caseinsensitive_volume, &state->path,
+                &state->parent, NULL, NULL, &state->session);
         } while (status == ERROR_REPARSE);
 
         if (status == NO_ERROR || status == ERROR_FILE_NOT_FOUND) {

@@ -530,7 +530,13 @@ struct name_cache_entry {
 };
 #define NAME_ENTRY_SIZE sizeof(struct name_cache_entry)
 
-static int name_cmp(struct name_cache_entry *lhs, struct name_cache_entry *rhs);
+/*
+ * FIXME: We use a thread-local variable |name_cmp| here because we do not know
+ * an (easy) way to do a |RB_GENERATE()| with two diffrent name comparisation
+ * functions (|name_cmp_case_sensitive()| and |name_cmp_case_insensitive()|)
+ */
+__declspec(thread) static
+int (*name_cmp)(struct name_cache_entry *, struct name_cache_entry *) = NULL;
 
 RB_GENERATE(name_tree, name_cache_entry, rbnode, name_cmp)
 
@@ -545,7 +551,6 @@ struct nfs41_name_cache {
     uint32_t                delegations;
     uint32_t                max_delegations;
     SRWLOCK                 lock;
-    bool                    casesensitivesearch;
     UCollator               *icu_coll;
 };
 
@@ -579,7 +584,8 @@ int icu_strcmpcoll(UCollator *coll, const char *str1, const char *str2, int32_t 
 }
 
 static
-int name_cmp(struct name_cache_entry *lhs, struct name_cache_entry *rhs)
+int name_cmp_case_sensitive(
+    struct name_cache_entry *lhs, struct name_cache_entry *rhs)
 {
     const int diff = rhs->component_len - lhs->component_len;
     int res;
@@ -589,42 +595,64 @@ int name_cmp(struct name_cache_entry *lhs, struct name_cache_entry *rhs)
 
     unsigned short clen = lhs->component_len;
 
-    if (lhs->name_cache->casesensitivesearch) {
-        /* FIXME: Can we use |memcmp()| here ? */
-        res = strncmp(lhs->component, rhs->component, clen);
-    }
-    else {
-        res = icu_strcmpcoll(lhs->name_cache->icu_coll,
-            lhs->component, rhs->component, (int32_t)clen);
-
-//#define DEBUG_CASEINSENSITIVE_NAMECMP 1
-#ifdef DEBUG_CASEINSENSITIVE_NAMECMP
-        int casesensitive_res;
-
-        /* FIXME: Can we use |memcmp()| here ? */
-        casesensitive_res = strncmp(lhs->component, rhs->component,
-            clen);
-
-        if (res != casesensitive_res) {
-            /*
-             * Explicitly call |clen| "byte_clen" in the output to make sure
-             * people do not get confused, e.g. if |<Ae><ae>| has the same
-             * terminal character width as "dir1
-             */
-            DPRINTF(0,
-                ("name_cmp: "
-                    "(lhs='%.*s',rhs='%.*s',byte_clen=%d), "
-                    "res(=%d) != casesensitive_res(=%d)\n",
-                    (int)clen, lhs->component,
-                    (int)clen, rhs->component,
-                    (int)clen,
-                    res, casesensitive_res));
-        }
-#endif /* DEBUG_CASEINSENSITIVE_NAMECMP */
-    }
+    /* FIXME: Can we use |memcmp()| here ? */
+    res = strncmp(lhs->component, rhs->component, clen);
 
     return res;
 }
+
+static
+int name_cmp_case_insensitive(
+    struct name_cache_entry *lhs, struct name_cache_entry *rhs)
+{
+    const int diff = rhs->component_len - lhs->component_len;
+    int res;
+
+    if (diff != 0)
+        return diff;
+
+    unsigned short clen = lhs->component_len;
+
+    res = icu_strcmpcoll(lhs->name_cache->icu_coll,
+        lhs->component, rhs->component, (int32_t)clen);
+
+//#define DEBUG_CASEINSENSITIVE_NAMECMP 1
+#ifdef DEBUG_CASEINSENSITIVE_NAMECMP
+    int casesensitive_res;
+
+    /* FIXME: Can we use |memcmp()| here ? */
+    casesensitive_res = strncmp(lhs->component, rhs->component,
+        clen);
+
+    if (res != casesensitive_res) {
+        /*
+         * Explicitly call |clen| "byte_clen" in the output to make sure
+         * people do not get confused, e.g. if |<Ae><ae>| has the same
+         * terminal character width as "dir1
+         */
+        DPRINTF(0,
+            ("name_cmp: "
+                "(lhs='%.*s',rhs='%.*s',byte_clen=%d), "
+                "res(=%d) != casesensitive_res(=%d)\n",
+                (int)clen, lhs->component,
+                (int)clen, rhs->component,
+                (int)clen,
+                res, casesensitive_res));
+    }
+#endif /* DEBUG_CASEINSENSITIVE_NAMECMP */
+
+    return res;
+}
+
+#define NC_SET_NAMECMP(ciss) \
+    { name_cmp = (ciss)?name_cmp_case_insensitive:name_cmp_case_sensitive; }
+#define NC_CLEAR_NAMECMP() \
+    { \
+        name_cmp = \
+            (int (*)(struct name_cache_entry *, struct name_cache_entry *))NULL; \
+    }
+
+
 
 /* internal name cache functions used by the public name cache interface;
  * these functions expect the caller to hold a lock on the cache */
@@ -1004,13 +1032,6 @@ int nfs41_name_cache_create(
         goto out;
     }
 
-    /*
-     * We need to set this to the real value later, once we have the value
-     * of the |FATTR4_WORD0_CASE_INSENSITIVE| attribute...
-     * FIXME: This is suboptimal...
-     */
-    cache->casesensitivesearch = false;
-
     UErrorCode xstatus = U_ZERO_ERROR;
     cache->icu_coll = ucol_open("en_US", &xstatus);
     if (U_FAILURE(xstatus)) {
@@ -1086,16 +1107,6 @@ int nfs41_name_cache_free(
     return status;
 }
 
-void nfs41_name_cache_set_casesensitivesearch(
-    IN struct nfs41_name_cache *cache,
-    IN bool casesensitivesearch)
-{
-    cache->casesensitivesearch = casesensitivesearch;
-    DPRINTF(1,
-        ("nfs41_name_cache_set_casesensitivesearch: casesensitivesearch=%d\n",
-        (int)casesensitivesearch));
-}
-
 static __inline void copy_fh(
     OUT nfs41_fh *dst,
     IN OPTIONAL const struct name_cache_entry *src)
@@ -1108,6 +1119,7 @@ static __inline void copy_fh(
 
 int nfs41_name_cache_lookup(
     IN struct nfs41_name_cache *cache,
+    IN bool caseinsensitivesearch,
     IN const char *path,
     IN const char *path_end,
     OUT OPTIONAL const char **remaining_path_out,
@@ -1119,6 +1131,8 @@ int nfs41_name_cache_lookup(
     struct name_cache_entry *parent, *target;
     const char *path_pos = path;
     int status;
+
+    NC_SET_NAMECMP(caseinsensitivesearch);
 
     AcquireSRWLockShared(&cache->lock);
 
@@ -1137,6 +1151,7 @@ int nfs41_name_cache_lookup(
 
 out_unlock:
     ReleaseSRWLockShared(&cache->lock);
+    NC_CLEAR_NAMECMP();
     if (remaining_path_out) *remaining_path_out = path_pos;
     return status;
 }
@@ -1150,6 +1165,9 @@ int nfs41_attr_cache_lookup(
     int status = NO_ERROR;
 
     DPRINTF(NCLVL1, ("--> nfs41_attr_cache_lookup(%llu)\n", fileid));
+
+    /* No name argument, so no lookups by name */
+    NC_CLEAR_NAMECMP();
 
     AcquireSRWLockShared(&cache->lock);
 
@@ -1183,6 +1201,9 @@ int nfs41_attr_cache_update(
 
     DPRINTF(NCLVL1, ("--> nfs41_attr_cache_update(%llu)\n", fileid));
 
+    /* No name argument, so no lookups by name */
+    NC_CLEAR_NAMECMP();
+
     AcquireSRWLockExclusive(&cache->lock);
 
     if (!name_cache_enabled(cache)) {
@@ -1207,6 +1228,7 @@ out_unlock:
 
 int nfs41_name_cache_insert(
     IN struct nfs41_name_cache *cache,
+    IN bool caseinsensitivesearch,
     IN const char *path,
     IN const nfs41_component *name,
     IN OPTIONAL const nfs41_fh *fh,
@@ -1219,6 +1241,8 @@ int nfs41_name_cache_insert(
 
     DPRINTF(NCLVL1, ("--> nfs41_name_cache_insert('%.*s')\n",
         name->name + name->len - path, path));
+
+    NC_SET_NAMECMP(caseinsensitivesearch);
 
     AcquireSRWLockExclusive(&cache->lock);
 
@@ -1268,6 +1292,7 @@ int nfs41_name_cache_insert(
 
 out_unlock:
     ReleaseSRWLockExclusive(&cache->lock);
+    NC_CLEAR_NAMECMP();
 
     DPRINTF(NCLVL1, ("<-- nfs41_name_cache_insert() returning %d\n",
         status));
@@ -1296,6 +1321,7 @@ out_err_deleg:
 
 int nfs41_name_cache_delegreturn(
     IN struct nfs41_name_cache *cache,
+    IN bool caseinsensitivesearch,
     IN uint64_t fileid,
     IN const char *path,
     IN const nfs41_component *name)
@@ -1306,6 +1332,8 @@ int nfs41_name_cache_delegreturn(
 
     DPRINTF(NCLVL1, ("--> nfs41_name_cache_delegreturn(%llu, '%s')\n",
         fileid, path));
+
+    NC_SET_NAMECMP(caseinsensitivesearch);
 
     AcquireSRWLockExclusive(&cache->lock);
 
@@ -1343,6 +1371,7 @@ int nfs41_name_cache_delegreturn(
 
 out_unlock:
     ReleaseSRWLockExclusive(&cache->lock);
+    NC_CLEAR_NAMECMP();
 
     DPRINTF(NCLVL1, ("<-- nfs41_name_cache_delegreturn() returning %d\n", status));
     return status;
@@ -1350,6 +1379,7 @@ out_unlock:
 
 int nfs41_name_cache_remove(
     IN struct nfs41_name_cache *cache,
+    IN bool caseinsensitivesearch,
     IN const char *path,
     IN const nfs41_component *name,
     IN uint64_t fileid,
@@ -1360,6 +1390,8 @@ int nfs41_name_cache_remove(
     int status;
 
     DPRINTF(NCLVL1, ("--> nfs41_name_cache_remove('%s')\n", path));
+
+    NC_SET_NAMECMP(caseinsensitivesearch);
 
     AcquireSRWLockExclusive(&cache->lock);
 
@@ -1390,6 +1422,7 @@ int nfs41_name_cache_remove(
 
 out_unlock:
     ReleaseSRWLockExclusive(&cache->lock);
+    NC_CLEAR_NAMECMP();
 
     DPRINTF(NCLVL1, ("<-- nfs41_name_cache_remove() returning %d\n", status));
     return status;
@@ -1406,6 +1439,7 @@ out_attributes:
 
 int nfs41_name_cache_rename(
     IN struct nfs41_name_cache *cache,
+    IN bool caseinsensitivesearch,
     IN const char *src_path,
     IN const nfs41_component *src_name,
     IN const change_info4 *src_cinfo,
@@ -1419,6 +1453,8 @@ int nfs41_name_cache_rename(
 
     DPRINTF(NCLVL1, ("--> nfs41_name_cache_rename('%s' to '%s')\n",
         src_path, dst_path));
+
+    NC_SET_NAMECMP(caseinsensitivesearch);
 
     AcquireSRWLockExclusive(&cache->lock);
 
@@ -1506,6 +1542,7 @@ int nfs41_name_cache_rename(
 
 out_unlock:
     ReleaseSRWLockExclusive(&cache->lock);
+    NC_CLEAR_NAMECMP();
 
     DPRINTF(NCLVL1, ("<-- nfs41_name_cache_rename() returning %d\n", status));
     return status;
@@ -1659,6 +1696,7 @@ static __inline uint32_t max_putfh_components(
 
 int nfs41_name_cache_remove_stale(
     IN struct nfs41_name_cache *cache,
+    IN bool caseinsensitivesearch,
     IN nfs41_session *session,
     IN nfs41_abs_path *path)
 {
@@ -1668,6 +1706,8 @@ int nfs41_name_cache_remove_stale(
     const uint32_t max_components = max_putfh_components(session);
     uint32_t count, index;
     int status = NO_ERROR;
+
+    NC_SET_NAMECMP(caseinsensitivesearch);
 
     AcquireSRWLockShared(&cache->lock);
 
@@ -1695,6 +1735,7 @@ int nfs41_name_cache_remove_stale(
     }
 
     ReleaseSRWLockShared(&path->lock);
+    NC_CLEAR_NAMECMP();
 
     return status;
 }

@@ -412,7 +412,9 @@ static void open_update_cache(
     bitmap4_cpy(&file_attrs->info->attrmask, &file_attrs->obj_attributes.attrmask);
 retry_cache_insert:
     AcquireSRWLockShared(&file->path->lock);
-    status = nfs41_name_cache_insert(cache, file->path->path, &file->name,
+    status = nfs41_name_cache_insert(cache,
+        BIT2BOOL(parent->fh.superblock->case_insensitive),
+        file->path->path, &file->name,
         &file->fh, file_attrs->info, changeinfo,
         already_delegated ? OPEN_DELEGATE_NONE : delegation->type);
     ReleaseSRWLockShared(&file->path->lock);
@@ -688,6 +690,7 @@ int nfs41_create(
     bitmap4_cpy(&info->attrmask, &getattr_res.obj_attributes.attrmask);
     AcquireSRWLockShared(&file->path->lock);
     nfs41_name_cache_insert(session_name_cache(session),
+        BIT2BOOL(parent->fh.superblock->case_insensitive),
         file->path->path, &file->name, &file->fh,
         info, &create_res.cinfo, OPEN_DELEGATE_NONE);
     ReleaseSRWLockShared(&file->path->lock);
@@ -1331,6 +1334,7 @@ int nfs41_remove(
     /* remove the target file from the cache */
     AcquireSRWLockShared(&parent->path->lock);
     nfs41_name_cache_remove(session_name_cache(session),
+        BIT2BOOL(parent->fh.superblock->case_insensitive),
         parent->path->path, target, fileid, &remove_res.cinfo);
     ReleaseSRWLockShared(&parent->path->lock);
 
@@ -1429,6 +1433,7 @@ int nfs41_rename(
 
     /* move/rename the target file's name cache entry */
     nfs41_name_cache_rename(session_name_cache(session),
+        BIT2BOOL(src_dir->fh.superblock->case_insensitive),
         src_dir->path->path, src_name, &rename_res.source_cinfo,
         dst_dir->path->path, dst_name, &rename_res.target_cinfo);
 
@@ -1623,6 +1628,7 @@ int nfs41_link(
     bitmap4_cpy(&cinfo->attrmask, &getattr_res[1].obj_attributes.attrmask);
     AcquireSRWLockShared(&dst_dir->path->lock);
     nfs41_name_cache_insert(session_name_cache(session),
+        BIT2BOOL(dst_dir->fh.superblock->case_insensitive),
         dst_dir->path->path, target, &file.fh,
         cinfo, &link_res.cinfo, OPEN_DELEGATE_NONE);
     ReleaseSRWLockShared(&dst_dir->path->lock);
@@ -1858,6 +1864,7 @@ int nfs41_delegreturn(
 
     AcquireSRWLockShared(&file->path->lock);
     nfs41_name_cache_delegreturn(session_name_cache(session),
+        BIT2BOOL(file->fh.superblock->case_insensitive),
         file->fh.fileid, file->path->path, &file->name);
     ReleaseSRWLockShared(&file->path->lock);
 out:

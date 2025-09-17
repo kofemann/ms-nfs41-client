@@ -231,7 +231,9 @@ static int server_lookup(
         /* add the file handle and attributes to the name cache */
         bitmap4_cpy(&res->getrootattr.info->attrmask,
             &res->getrootattr.obj_attributes.attrmask);
-        nfs41_name_cache_insert(session_name_cache(session), path, &name,
+        nfs41_name_cache_insert(session_name_cache(session),
+            BIT2BOOL(dir->fh.superblock->case_insensitive),
+            path, &name,
             &dir->fh, res->getrootattr.info, NULL, OPEN_DELEGATE_NONE);
     }
     file = dir;
@@ -254,7 +256,9 @@ static int server_lookup(
             if (parent_out) *parent_out = file;
         } else if (res->lookup[i].status == NFS4ERR_NOENT) {
             /* insert a negative lookup entry */
-            nfs41_name_cache_insert(session_name_cache(session), path,
+            nfs41_name_cache_insert(session_name_cache(session),
+                BIT2BOOL(dir->fh.superblock->case_insensitive),
+                path,
                 args->lookup[i].name, NULL, NULL, NULL, OPEN_DELEGATE_NONE);
         }
         status = res->lookup[i].status;     if (status) break;
@@ -282,6 +286,7 @@ static int server_lookup(
         bitmap4_cpy(&res->getattr[i].info->attrmask,
             &res->getattr[i].obj_attributes.attrmask);
         nfs41_name_cache_insert(session_name_cache(session),
+            BIT2BOOL(parent->fh.superblock->case_insensitive),
             path, args->lookup[i].name, &res->file[i].fh,
             res->getattr[i].info, NULL, OPEN_DELEGATE_NONE);
 
@@ -463,6 +468,7 @@ out:
 int nfs41_lookup(
     IN nfs41_root *root,
     IN nfs41_session *session,
+    IN bool casesensitive,
     IN OUT nfs41_abs_path *path_inout,
     OUT OPTIONAL nfs41_path_fh *parent_out,
     OUT OPTIONAL nfs41_path_fh *target_out,
@@ -496,7 +502,7 @@ int nfs41_lookup(
     if (target_out == NULL) target_out = &target;
     parent_out->fh.len = target_out->fh.len = 0;
 
-    status = nfs41_name_cache_lookup(cache, path_pos, path_end, &path_pos,
+    status = nfs41_name_cache_lookup(cache, casesensitive, path_pos, path_end, &path_pos,
         &parent_out->fh, &target_out->fh, info_out, &negative);
     if (status == NO_ERROR || negative)
         goto out;
@@ -538,7 +544,8 @@ int nfs41_lookup(
         if (session_out) *session_out = new_session;
 
         /* look up the new path */
-        status = nfs41_lookup(root, new_session, path_inout,
+        status = nfs41_lookup(root, new_session,
+            casesensitive, path_inout,
             parent_out, target_out, info_out, session_out);
     }
 out:

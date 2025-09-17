@@ -234,8 +234,13 @@ static int handle_mount(void *daemon_context, nfs41_upcall *upcall)
     }
     path.len = (unsigned short)strlen(path.path);
 
-    // look up the mount path, and fail if it doesn't exist
+    /*
+     * look up the mount path, and fail if it doesn't exist
+     * (The lookup is done case-sensitive, but will work correctly
+     * with case mixing if the exported filesystem is case-insensitive)
+     */
     status = nfs41_lookup(root, client->session,
+        false,
         &path, NULL, &file, NULL, NULL);
     if (status) {
         eprintf("nfs41_lookup('%s') failed with %d\n", path.path, status);

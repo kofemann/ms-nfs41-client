@@ -132,8 +132,7 @@ static int get_superblock_attrs(
         superblock->case_preserving = info.case_preserving;
     }
     else {
-        superblock->case_preserving =
-            root->force_case_preserving?1:0;
+        superblock->case_preserving = BOOL2BIT(root->force_case_preserving);
         DPRINTF(0,
             ("get_superblock_attrs: OVERRIDING case_preserving to %d\n",
             (int)superblock->case_preserving));
@@ -142,8 +141,7 @@ static int get_superblock_attrs(
         superblock->case_insensitive = info.case_insensitive;
     }
     else {
-        superblock->case_insensitive =
-            root->force_case_insensitive?1:0;
+        superblock->case_insensitive = BOOL2BIT(root->force_case_insensitive);
         DPRINTF(0,
             ("get_superblock_attrs: OVERRIDING case_insensitive to %d\n",
             (int)superblock->case_insensitive));
@@ -160,10 +158,6 @@ static int get_superblock_attrs(
     else {
         superblock->block_clone_support = 0;
     }
-
-    nfs41_name_cache_set_casesensitivesearch(
-        session->client->server->name_cache,
-        superblock->case_insensitive?false:true);
 
     if (bitmap_isset(&info.attrmask, 0, FATTR4_WORD0_CANSETTIME))
         superblock->cansettime = info.cansettime;
@@ -257,8 +251,9 @@ static int get_superblock_attrs(
         superblock->layout_types, superblock->cansettime,
         superblock->time_delta.seconds, superblock->time_delta.nseconds,
         superblock->aclsupport, superblock->link_support,
-        superblock->symlink_support, superblock->case_preserving,
-        superblock->case_insensitive,
+        superblock->symlink_support,
+        (int)superblock->case_preserving,
+        (int)superblock->case_insensitive,
         superblock->sparse_file_support,
         superblock->block_clone_support));
 out:
@@ -327,8 +322,8 @@ void nfs41_superblock_fs_attributes(
         superblock->link_support,
         superblock->symlink_support,
         superblock->ea_support,
-        superblock->case_preserving,
-        superblock->case_insensitive,
+        (int)superblock->case_preserving,
+        (int)superblock->case_insensitive,
         superblock->aclsupport,
         (unsigned int)FsAttrs->MaximumComponentNameLength,
         (unsigned long)FsAttrs->FileSystemAttributes));

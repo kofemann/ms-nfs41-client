@@ -222,8 +222,9 @@ int nfs41_symlink_follow(
         last_component(path.path, path.path + path.len, &file.name);
 
         /* get attributes for the target */
-        status = nfs41_lookup(root, session, &path,
-            NULL, &file, info, &session);
+        status = nfs41_lookup(root, session,
+            BIT2BOOL(symlink->fh.superblock->case_insensitive),
+            &path, NULL, &file, info, &session);
         if (status) goto out;
 
         symlink = &file;

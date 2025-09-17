@@ -56,15 +56,12 @@ int nfs41_attr_cache_update(
 int nfs41_name_cache_create(
     OUT struct nfs41_name_cache **cache_out);
 
-void nfs41_name_cache_set_casesensitivesearch(
-    IN struct nfs41_name_cache *cache,
-    IN bool casesensitivesearch);
-
 int nfs41_name_cache_free(
     IN OUT struct nfs41_name_cache **cache_out);
 
 int nfs41_name_cache_lookup(
     IN struct nfs41_name_cache *cache,
+    IN bool caseinsensitivesearch,
     IN const char *path,
     IN const char *path_end,
     OUT OPTIONAL const char **remaining_path_out,
@@ -75,6 +72,7 @@ int nfs41_name_cache_lookup(
 
 int nfs41_name_cache_insert(
     IN struct nfs41_name_cache *cache,
+    IN bool caseinsensitivesearch,
     IN const char *path,
     IN const nfs41_component *name,
     IN OPTIONAL const nfs41_fh *fh,
@@ -84,12 +82,14 @@ int nfs41_name_cache_insert(
 
 int nfs41_name_cache_delegreturn(
     IN struct nfs41_name_cache *cache,
+    IN bool caseinsensitivesearch,
     IN uint64_t fileid,
     IN const char *path,
     IN const nfs41_component *name);
 
 int nfs41_name_cache_remove(
     IN struct nfs41_name_cache *cache,
+    IN bool caseinsensitivesearch,
     IN const char *path,
     IN const nfs41_component *name,
     IN uint64_t fileid,
@@ -97,6 +97,7 @@ int nfs41_name_cache_remove(
 
 int nfs41_name_cache_rename(
     IN struct nfs41_name_cache *cache,
+    IN bool caseinsensitivesearch,
     IN const char *src_path,
     IN const nfs41_component *src_name,
     IN const change_info4 *src_cinfo,
@@ -106,6 +107,7 @@ int nfs41_name_cache_rename(
 
 int nfs41_name_cache_remove_stale(
     IN struct nfs41_name_cache *cache,
+    IN bool caseinsensitivesearch,
     IN nfs41_session *session,
     IN nfs41_abs_path *path);
 

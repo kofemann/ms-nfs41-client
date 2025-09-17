@@ -227,6 +227,7 @@ typedef struct _updowncall_entry {
             ULONGLONG fileid;
             ULONGLONG fsid_major, fsid_minor;
             UNICODE_STRING symlink;
+            tristate_bool is_caseinsensitive_volume;
             BOOLEAN isvolumemntpt;
             ULONG access_mask;
             ULONG access_mode;

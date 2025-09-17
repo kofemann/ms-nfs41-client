@@ -499,8 +499,9 @@ static int lookup_entry(
     status = format_abs_path(parent->path, &name, &path);
     if (status) goto out;
 
-    status = nfs41_lookup(root, session, &path,
-        NULL, NULL, &entry->attr_info, NULL);
+    status = nfs41_lookup(root, session,
+        BIT2BOOL(parent->fh.superblock->case_insensitive),
+        &path, NULL, NULL, &entry->attr_info, NULL);
     if (status) goto out;
 out:
     return status;
@@ -522,7 +523,9 @@ static int lookup_symlink(
     if (status) goto out;
 
     file.path = &path;
-    status = nfs41_lookup(root, session, &path, NULL, &file, &info, &session);
+    status = nfs41_lookup(root, session,
+        BIT2BOOL(parent->fh.superblock->case_insensitive),
+        &path, NULL, &file, &info, &session);
     if (status) goto out;
 
     last_component(path.path, path.path + path.len, &file.name);

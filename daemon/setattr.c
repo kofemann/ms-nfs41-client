@@ -413,6 +413,7 @@ static int handle_nfs41_rename(void *daemon_context, setattr_upcall_args *args)
 
     /* the destination path is absolute, so start from the root session */
     status = nfs41_lookup(args->root, nfs41_root_session(args->root),
+        BIT2BOOL(state->file.fh.superblock->case_insensitive),
         &dst_path, &dst_dir, &dst, NULL, &dst_session);
 
     while (status == ERROR_REPARSE) {
@@ -431,6 +432,7 @@ static int handle_nfs41_rename(void *daemon_context, setattr_upcall_args *args)
 
         /* redo the lookup until it doesn't return REPARSE */
         status = nfs41_lookup(args->root, dst_session,
+            BIT2BOOL(state->file.fh.superblock->case_insensitive),
             &dst_path, &dst_dir, NULL, NULL, &dst_session);
     }
 
@@ -591,6 +593,7 @@ static int handle_nfs41_link(void *daemon_context, setattr_upcall_args *args)
 
     /* the destination path is absolute, so start from the root session */
     status = nfs41_lookup(args->root, nfs41_root_session(args->root),
+        BIT2BOOL(state->file.fh.superblock->case_insensitive),
         &dst_path, &dst_dir, &dst, NULL, &dst_session);
 
     while (status == ERROR_REPARSE) {
@@ -609,6 +612,7 @@ static int handle_nfs41_link(void *daemon_context, setattr_upcall_args *args)
 
         /* redo the lookup until it doesn't return REPARSE */
         status = nfs41_lookup(args->root, dst_session,
+            BIT2BOOL(state->file.fh.superblock->case_insensitive),
             &dst_path, &dst_dir, &dst, NULL, &dst_session);
     }
 

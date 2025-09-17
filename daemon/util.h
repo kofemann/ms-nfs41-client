@@ -40,6 +40,12 @@ typedef struct __nfs41_superblock nfs41_superblock;
 enum stable_how4;
 
 /*
+ * Turn |unsigned int foo:1| from/to |bool|
+ */
+#define BIT2BOOL(bit) ((bit)?true:false)
+#define BOOL2BIT(b) ((b)?1U:0U)
+
+/*
  * UTIL_GETRELTIME - Get a relative time stamp
  * |GetTickCount64()| is almost twice as fast as |time()|, and
  * cache code only needs a relative timestamp and not the

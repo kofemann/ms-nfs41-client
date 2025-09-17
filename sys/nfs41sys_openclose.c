@@ -119,6 +119,7 @@ NTSTATUS marshal_nfs41_open(
     else tmp += *len;
 
     header_len = *len + length_as_utf8(entry->filename) +
+        1 * sizeof(tristate_bool) +
         7 * sizeof(ULONG) +
         1 * sizeof(BOOLEAN) +
         2 * sizeof(HANDLE) +
@@ -129,6 +130,9 @@ NTSTATUS marshal_nfs41_open(
     }
     status = marshall_unicode_as_utf8(&tmp, entry->filename);
     if (status) goto out;
+    RtlCopyMemory(tmp, &entry->u.Open.is_caseinsensitive_volume,
+        sizeof(entry->u.Open.is_caseinsensitive_volume));
+    tmp += sizeof(entry->u.Open.is_caseinsensitive_volume);
     RtlCopyMemory(tmp, &entry->u.Open.isvolumemntpt,
         sizeof(entry->u.Open.isvolumemntpt));
     tmp += sizeof(entry->u.Open.isvolumemntpt);
@@ -631,6 +635,19 @@ NTSTATUS nfs41_Create(
         pNetRootContext->nfs41d_version,
         SrvOpen->pAlreadyPrefixedName, &entry);
     if (status) goto out;
+
+    entry->u.Open.is_caseinsensitive_volume = TRISTATE_BOOL_NOT_SET;
+    ULONG fsattrs = pVNetRootContext->FsAttrs.FileSystemAttributes;
+    /*
+     * Only set |entry->u.Open.is_caseinsensitive_volume| to |TRUE|/|FALSE|
+     * if we got any attributes from the superblock yet...
+     */
+    if (fsattrs) {
+        if (fsattrs & FILE_CASE_SENSITIVE_SEARCH)
+            entry->u.Open.is_caseinsensitive_volume = TRISTATE_BOOL_FALSE;
+        else
+            entry->u.Open.is_caseinsensitive_volume = TRISTATE_BOOL_TRUE;
+    }
 
     /* Check whether this is the mount point for this volume */
     entry->u.Open.isvolumemntpt =

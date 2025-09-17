@@ -1222,6 +1222,7 @@ enum nfsstat4 nfs41_reclaim_complete(
 int nfs41_lookup(
     IN nfs41_root *root,
     IN nfs41_session *session,
+    IN bool casesensitive,
     IN OUT nfs41_abs_path *path,
     OUT OPTIONAL nfs41_path_fh *parent_out,
     OUT OPTIONAL nfs41_path_fh *target_out,
