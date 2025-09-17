@@ -1,0 +1,65 @@
+#
+# ms-nfs41-client software compatibility notes
+#
+
+# Name: FireFox
+# Version: FireFox 143.0b9
+# Download URL: https://download-installer.cdn.mozilla.net/pub/firefox/releases/143.0b9/win64/de/Firefox%20Setup%20143.0b9.exe
+# Can use NFS for data storage: yes
+# Software can be installed on NFS: Yes, requires global-mount, requires case-insensitive filesystem
+# Notes:
+# - Requires case-insensitive filesystem for installation on NFS because DLL
+# are stored with a different case than they are loaded
+# - Requires global-mount, because installer uses different, evelated logon than the caller
+# - The *.msi installer does not provide an option to install to a non-standard location, so the *.exe installer is needed
+#
+
+# Name: Seamonkey
+# Version:
+# Download URL: https://archive.seamonkey-project.org/releases/2.53.21/win64/de/seamonkey-2.53.21.de.win64.installer.exe
+# Can use NFS for data storage: yes
+# Software can be installed on NFS: Yes, requires global-mount, requires case-insensitive filesystem
+# Notes:
+# - Requires case-insensitive filesystem for installation on NFS because DLL
+# are stored with a different case than they are loaded
+# - Requires global-mount, because installer uses different, evelated logon than the caller
+#
+
+# Name: VMware Workstation
+# Version: VMware-workstation-full-17.5.0-22583795
+# Installer: VMware-workstation-full-17.5.0-22583795.exe
+# Download URL: XXX
+# Can use NFS for data storage: yes
+# Software can be installed on NFS: Yes, requires global-mount, requires case-insensitive filesystem
+# Notes:
+# - Requires case-insensitive filesystem for installation on NFS because DLL
+# are stored with a different case than they are loaded
+# - Requires global-mount, because installer uses different, evelated logon than the caller
+#
+
+# Name: Wireshark
+# Version: Wireshark-4.4.3-x64
+# Installer: Wireshark-4.4.3-x64.exe
+# Download URL:
+# Can use NFS for data storage: yes
+# Software can be installed on NFS: Yes, requires global-mount, requires case-insensitive filesystem
+# Notes:
+# - Requires case-insensitive filesystem for installation on NFS because DLL
+# are stored with a different case than they are loaded
+# - Requires global-mount, because installer uses different, evelated logon than the caller
+#
+
+# Name: JAVA SDK
+# Version: jdk-23_windows-x64
+# Installer: jdk-23_windows-x64_bin.msi
+# Download URL:
+# Can use NFS for data storage: yes
+# Software can be installed on NFS: No, MSI installer fails to unpack the files
+# Notes:
+# - MSI installer fails to unpack the files
+# - running java software via *.class or *.jar works fine, even on case-sensive filesystems
+#
+
+
+
+# EOF.
