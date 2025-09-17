@@ -142,6 +142,15 @@
         </para>
       </listitem>
       <listitem>
+        <para>Case-insensitive filesystem support
+          <itemizedlist>
+            <listitem>
+              <para>Requires NFSv4.1 server which supports the <literal>|FATTR4_WORD0_CASE_INSENSITIVE|</literal> attribute set to <literal>TRUE</literal> (currently Windows Server NFSv4.1 server exporting NTFS).</para>
+            </listitem>
+          </itemizedlist>
+        </para>
+      </listitem>
+      <listitem>
         <para>Data copy offload (server-side copy)
           <itemizedlist>
             <listitem>

@@ -139,6 +139,12 @@ NFSv4.2/NFSv4.1 filesystem driver for Windows 10/11 & Windows Server
     sparse files. Requires on Win11 \>= 22H2 because it relies on
     `|CopyFile2()|` flag `|COPY_FILE_ENABLE_SPARSE_COPY|`.
 
+- Case-insensitive filesystem support
+
+  - Requires NFSv4.1 server which supports the
+    `|FATTR4_WORD0_CASE_INSENSITIVE|` attribute set to `TRUE` (currently
+    Windows Server NFSv4.1 server exporting NTFS).
+
 - Data copy offload (server-side copy)
 
   - Implemented via Win32 `|FSCTL_OFFLOAD_READ|`+`|FSCTL_OFFLOAD_WRITE|`
