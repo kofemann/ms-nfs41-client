@@ -207,11 +207,15 @@ static int get_superblock_attrs(
             is = stpcpy(is, "SACL");
         }
 
-        logprintf("get_superblock_attrs: Supported ACL types: { %s }\n",
+        logprintf("get_superblock_attrs(fsid=(%llu,%llu)): "
+            "Supported ACL types: { %s }\n",
+            superblock->fsid.major, superblock->fsid.minor,
             infobuff);
     }
     else {
-        logprintf("get_superblock_attrs: No ACL support\n");
+        logprintf("get_superblock_attrs(fsid=(%llu,%llu)): "
+            "No ACL support\n",
+            superblock->fsid.major, superblock->fsid.minor);
     }
 
     /* Windows/DOS attributes */
@@ -230,13 +234,15 @@ static int get_superblock_attrs(
             *is++ = ',';
         is = stpcpy(is, "SYSTEM");
     }
-    logprintf("get_superblock_attrs: "
+    logprintf("get_superblock_attrs(fsid=(%llu,%llu)): "
         "Supported Windows/DOS attributes: { %s }\n",
+        superblock->fsid.major, superblock->fsid.minor,
         infobuff);
 
     /* Filename case handling */
-    logprintf("get_superblock_attrs: "
+    logprintf("get_superblock_attrs(fsid=(%llu,%llu)): "
         "Case handling: case_insensitive=%d, case_preserving=%d\n",
+        superblock->fsid.major, superblock->fsid.minor,
         (int)superblock->case_insensitive,
         (int)superblock->case_preserving);
 
