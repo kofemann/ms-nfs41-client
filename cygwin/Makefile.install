@@ -72,9 +72,18 @@ installdest:
 	# workaround for coreutils 9.5-1 /bin/cp bug stuck in an endless loop with compressed files
 	chattr -V -c $(VS_BUILD_DIR)/nfs41_driver.*
 	cp $(VS_BUILD_DIR)/nfs41_driver.*	$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/.
-	# Copy kernel driver INF file and generate signature catalog
+	# Copy kernel driver INF file
 	cp $(PROJECT_BASEDIR_DIR)/nfs41rdr.inf	$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/.
-	(cd "$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/" && '/cygdrive/c/Program Files (x86)/Windows Kits/10/bin/x86/Inf2Cat.exe' /driver:. /os:10_X86,10_X64,10_VB_ARM64)
+	# generate signature catalog
+	# (inf2cat.exe cannot handle case-sensitive filesystems like NFS for temporary files, so we reset TMP&co)
+	( \
+		cd "$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/" && \
+		if [[ "$$(/usr/lib/csih/getVolInfo . | awk '/FILE_CASE_SENSITIVE_SEARCH/ { print $$3 }')" == "TRUE" ]] ; then \
+			printf "# case-sensitive filesystem, resetting TMP TMPDIR TEMP to /tmp\n" ; \
+			export TMP=/tmp TMPDIR=/tmp TEMP=/tmp ; \
+		fi && \
+		'/cygdrive/c/Program Files (x86)/Windows Kits/10/bin/x86/Inf2Cat.exe' /driver:. /os:10_X86,10_X64,10_VB_ARM64 \
+	)
 	cp $(PROJECT_BASEDIR_DIR)/etc_netconfig	$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/.
 	cp $(PROJECT_BASEDIR_DIR)/ms-nfs41-idmap.conf		$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/.
 	cp $(CYGWIN_MAKEFILE_DIR)/devel/msnfs41client.bash	$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/msnfs41client
