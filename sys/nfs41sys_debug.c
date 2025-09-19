@@ -21,7 +21,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  */
 
-#define MINIRDR__NAME "Value is ignored, only fact of definition"
+#define MINIRDR__NAME MRxNFS41
 
 /* FIXME: Why does VS22 need this, but not VC19 ? */
 #if _MSC_VER >= 1900

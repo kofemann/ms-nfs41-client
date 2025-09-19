@@ -52,7 +52,7 @@
 #endif
 #endif /* _MSC_VER >= 1900 */
 
-#define MINIRDR__NAME "Value is ignored, only fact of definition"
+#define MINIRDR__NAME MRxNFS41
 #include <rx.h>
 #include <windef.h>
 #include <winerror.h>
