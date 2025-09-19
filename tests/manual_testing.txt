@@ -1061,6 +1061,8 @@ chmod a+x *.EXE
 ./TCMD16.EXE
 ---- snip ----
 
+#### ToDo:
+- Test more binaries from http://www.retroarchive.org/garbo/pc/unix/
 
 #### Notes:
 - NTVDM is only available on Windows 32bit
