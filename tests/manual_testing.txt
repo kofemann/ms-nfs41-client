@@ -1,5 +1,5 @@
 #
-# ms-nfs41-client manual testing sequence, 2025-09-15
+# ms-nfs41-client manual testing sequence, 2025-09-19
 #
 # Draft version, needs to be turned into automated tests
 # if possible
@@ -1008,6 +1008,68 @@ $ lssparse -H /cygdrive/n/mariadbtest/alphabet_test4/file_data.ibd
 - MariaDB runs in a Windows "NT Service" account ("NT SERVICE\MariaDB"), which neither Cygwin
   $ /usrbin/getent passwd # nor $ net localusers # will list
 - Thanks to MariaDB's Kristian Nielsen <knielsen@knielsen-hq.org> for helping with this
+
+
+#
+# Windows NTVDM
+# (Windows NT Virtual DOS Maschine, emulator for 16bit DOS binaries)
+#
+
+#### Setup:
+- Mount case-insensitive filesystem
+- Enable NTVDM in a Windows command-line Window as admin:
+---- snip ----
+DISM /online /enable-feature /all /featurename:NTVDM #
+---- snip ----
+
+#### Tests:
+## Test1 ("DOSNIX"):
+---- snip ----
+wget 'http://www.retroarchive.org/garbo/pc/unix/dosnx23b.zip'
+mkdir dosnx23b && cd dosnx23b
+unzip ../dosnx23b.zip
+chmod a+x *.EXE
+./HEAD.EXE WHATS.NEW
+./head.exe WHATS.NEW
+---- snip ----
+
+## Test 2 (DOS zip 16bit):
+---- snip ----
+# download and unpack DOS zip
+wget 'https://github.com/DankRank/ftp.info-zip.org/raw/refs/heads/master/ftp.info-zip.org/pub/infozip/msdos/zip232x.zip'
+mkdir zip232x
+cd zip232x
+unzip ../zip232x.zip
+chmod a+x *.exe
+./zip16 -h
+# generate new zip archive with DOS zip and test it with Cygwin unzip
+seq 7000000 >seq7.txt
+./zip16 x.zip MANUAL README seq7.txt
+unzip -t x.zip
+(mkdir tmp1 && cd tmp1 && unzip ../x.zip seq7.txt)
+diff -u seq7.txt tmp1/seq7.txt
+---- snip ----
+
+## Test 3 (Total Commander 16bit):
+---- snip ----
+# see https://www.ghisler.com/wcmd16.htm
+wget 'https://plugins.ghisler.com/tcmd16/tc16v658.zip'
+mkdir tc16v658 && cd tc16v658
+unzip ../tc16v658.zip
+unzip INSTALL.BIN
+chmod a+x *.EXE
+./TCMD16.EXE
+---- snip ----
+
+
+#### Notes:
+- NTVDM is only available on Windows 32bit
+- Only works on case-insensitive filesystems, i.e.
+$ /usr/lib/csih/getVolInfo.exe . | fgrep FILE_CASE_SENSITIVE_SEARCH # must be "FALSE"!!
+- Path names must be <= 8+3 characters long, or files cannot be opened/executed
+- ms-nfs41-client does not support alternative DOS "short names"
+- References:
+1. https://learn.microsoft.com/en-us/windows/compatibility/ntvdm-and-16-bit-app-support
 
 
 #
