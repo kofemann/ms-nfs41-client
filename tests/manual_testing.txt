@@ -1061,6 +1061,21 @@ chmod a+x *.EXE
 ./TCMD16.EXE
 ---- snip ----
 
+## Test 4 (Turbo C):
+---- snip ----
+mkdir turboc && cd turboc/
+wget 'https://web.archive.org/web/20040401174842/http://bdn.borland.com/article/images/20841/tc201.zip'
+unzip tc201.zip
+mkdir tc
+mv Disk*/* tc/.
+cd tc
+chmod a+x *.EXE
+# *.c sources MUST have <CR><LF> endings in Turbo C!!
+ printf '#include <stdio.h>\nint main(int ac, char *av[])\n{\n\tprintf("hello DOS TCC world\\n");\n\treturn 0;\n}\n' | unix2dos >'x.c'
+./X.EXE
+hello DOS TCC world
+---- snip ----
+
 #### ToDo:
 - Test more binaries from http://www.retroarchive.org/garbo/pc/unix/
 
