@@ -319,65 +319,64 @@
             </listitem>
             <listitem>
               <para>Packages (required):
-                <itemizedlist>
-                  <listitem><para><literal>cygwin</literal></para></listitem>
-                  <listitem><para><literal>cygrunsrv</literal></para></listitem>
-                  <listitem><para><literal>cygutils</literal></para></listitem>
-                  <listitem><para><literal>cygutils-extra</literal></para></listitem>
-                  <listitem><para><literal>libiconv</literal></para></listitem>
-                  <listitem><para><literal>libiconv2</literal></para></listitem>
-                  <listitem><para><literal>procps-ng</literal></para></listitem>
-                  <listitem><para><literal>util-linux</literal></para></listitem>
-                </itemizedlist>
+                <simplelist type="inline">
+                  <member><literal>cygwin</literal></member>
+                  <member><literal>cygrunsrv</literal></member>
+                  <member><literal>cygutils</literal></member>
+                  <member><literal>cygutils-extra</literal></member>
+                  <member><literal>libiconv</literal></member>
+                  <member><literal>libiconv2</literal></member>
+                  <member><literal>procps-ng</literal></member>
+                  <member><literal>util-linux</literal></member>
+                </simplelist>
               </para>
             </listitem>
             <listitem>
-              <para>Packages (optional, recommended, required to build ms-nf41-client):
-                <itemizedlist>
-                  <listitem><para><literal>bison</literal></para></listitem>
-                  <listitem><para><literal>cygport</literal></para></listitem>
-                  <listitem><para><literal>cygwin-devel</literal></para></listitem>
-                  <listitem><para><literal>clang</literal></para></listitem>
-                  <listitem><para><literal>dos2unix</literal></para></listitem>
-                  <listitem><para><literal>pax</literal></para></listitem>
-                  <listitem><para><literal>pbzip2</literal></para></listitem>
-                  <listitem><para><literal>libnfs-utils</literal> (for <filename>/usr/bin/nfs-ls</filename>)</para></listitem>
-                  <listitem><para><literal>libiconv-devel</literal></para></listitem>
-                  <listitem><para><literal>make</literal></para></listitem>
-                  <listitem><para><literal>bmake</literal></para></listitem>
-                  <listitem><para><literal>git</literal></para></listitem>
-                  <listitem><para><literal>gcc-core</literal></para></listitem>
-                  <listitem><para><literal>gcc-g++</literal></para></listitem>
-                  <listitem><para><literal>gdb</literal></para></listitem>
-                  <listitem><para><literal>mingw64-i686-clang</literal></para></listitem>
-                  <listitem><para><literal>mingw64-x86_64-clang</literal></para></listitem>
-                  <listitem><para><literal>unzip</literal></para></listitem>
-                  <listitem><para><literal>time</literal></para></listitem>
-                  <listitem><para><literal>docbook-utils</literal></para></listitem>
-                  <listitem><para><literal>docbook-xml45</literal></para></listitem>
-                  <listitem><para><literal>docbook-xsl</literal></para></listitem>
-                  <listitem><para><literal>docbook-xsl-ns</literal></para></listitem>
-                  <listitem><para><literal>libxslt</literal></para></listitem>
-                  <listitem><para><literal>w3m</literal></para></listitem>
-                </itemizedlist>
+              <para>Packages (optional, recommended, required to build ms-nfs41-client):
+                <simplelist type="inline">
+                  <member><literal>bison</literal></member>
+                  <member><literal>cygport</literal></member>
+                  <member><literal>cygwin-devel</literal></member>
+                  <member><literal>clang</literal></member>
+                  <member><literal>dos2unix</literal></member>
+                  <member><literal>pax</literal></member>
+                  <member><literal>pbzip2</literal></member>
+                  <member><literal>libnfs-utils</literal> (for <filename>/usr/bin/nfs-ls</filename>)</member>
+                  <member><literal>libiconv-devel</literal></member>
+                  <member><literal>make</literal></member>
+                  <member><literal>bmake</literal></member>
+                  <member><literal>git</literal></member>
+                  <member><literal>gcc-core</literal></member>
+                  <member><literal>gcc-g++</literal></member>
+                  <member><literal>gdb</literal></member>
+                  <member><literal>mingw64-i686-clang</literal></member>
+                  <member><literal>mingw64-x86_64-clang</literal></member>
+                  <member><literal>unzip</literal></member>
+                  <member><literal>time</literal></member>
+                  <member><literal>docbook-utils</literal></member>
+                  <member><literal>docbook-xml45</literal></member>
+                  <member><literal>docbook-xsl</literal></member>
+                  <member><literal>docbook-xsl-ns</literal></member>
+                  <member><literal>libxslt</literal></member>
+                  <member><literal>w3m</literal></member>
+                </simplelist>
               </para>
             </listitem>
             <listitem>
               <para>Packages (only-CI):
-                <itemizedlist>
-                  <listitem><para># required packages, but part of Cygwin default installation</para></listitem>
-                  <listitem><para># listed here for CI package list ONLY</para></listitem>
-                  <listitem><para><literal>bash</literal></para></listitem>
-                  <listitem><para><literal>bzip2</literal></para></listitem>
-                  <listitem><para><literal>coreutils</literal></para></listitem>
-                  <listitem><para><literal>getent</literal></para></listitem>
-                  <listitem><para><literal>grep</literal></para></listitem>
-                  <listitem><para><literal>hostname</literal></para></listitem>
-                  <listitem><para><literal>less</literal></para></listitem>
-                  <listitem><para><literal>sed</literal></para></listitem>
-                  <listitem><para><literal>tar</literal></para></listitem>
-                  <listitem><para><literal>wget</literal></para></listitem>
-                </itemizedlist>
+                <para># required packages, but part of Cygwin default installation, listed here for CI package list ONLY</para>
+                <simplelist type="inline">
+                  <member><literal>bash</literal></member>
+                  <member><literal>bzip2</literal></member>
+                  <member><literal>coreutils</literal></member>
+                  <member><literal>getent</literal></member>
+                  <member><literal>grep</literal></member>
+                  <member><literal>hostname</literal></member>
+                  <member><literal>less</literal></member>
+                  <member><literal>sed</literal></member>
+                  <member><literal>tar</literal></member>
+                  <member><literal>wget</literal></member>
+                </simplelist>
               </para>
             </listitem>
           </itemizedlist>
@@ -388,39 +387,39 @@
           <itemizedlist>
             <listitem>
               <para>Packages (recommended):
-                <itemizedlist>
-                  <listitem><para><literal>base-devel</literal></para></listitem>
-                  <listitem><para><literal>gcc</literal></para></listitem>
-                  <listitem><para><literal>clang</literal></para></listitem>
-                  <listitem><para><literal>sed</literal></para></listitem>
-                  <listitem><para><literal>time</literal></para></listitem>
-                  <listitem><para><literal>coreutils</literal></para></listitem>
-                  <listitem><para><literal>util-linux</literal></para></listitem>
-                  <listitem><para><literal>grep</literal></para></listitem>
-                  <listitem><para><literal>sed</literal></para></listitem>
-                  <listitem><para><literal>emacs</literal></para></listitem>
-                  <listitem><para><literal>gdb</literal></para></listitem>
-                  <listitem><para><literal>make</literal></para></listitem>
-                  <listitem><para><literal>autoconf</literal></para></listitem>
-                  <listitem><para><literal>automake</literal></para></listitem>
-                  <listitem><para><literal>gettext</literal></para></listitem>
-                  <listitem><para><literal>gettext-devel</literal></para></listitem>
-                  <listitem><para><literal>git</literal></para></listitem>
-                  <listitem><para><literal>subversion</literal></para></listitem>
-                  <listitem><para><literal>flex</literal></para></listitem>
-                  <listitem><para><literal>bison</literal></para></listitem>
-                  <listitem><para><literal>unzip</literal></para></listitem>
-                  <listitem><para><literal>pax</literal></para></listitem>
-                  <listitem><para><literal>tar</literal></para></listitem>
-                  <listitem><para><literal>libiconv-devel</literal></para></listitem>
-                  <listitem><para><literal>ncurses-devel</literal></para></listitem>
-                  <listitem><para><literal>gmp-devel</literal></para></listitem>
-                  <listitem><para><literal>mpfr-devel</literal></para></listitem>
-                  <listitem><para><literal>mpc-devel</literal></para></listitem>
-                  <listitem><para><literal>isl-devel</literal></para></listitem>
-                  <listitem><para><literal>procps-ng</literal></para></listitem>
-                  <listitem><para><literal>libiconv-devel</literal></para></listitem>
-                </itemizedlist>
+                <simplelist type="inline">
+                  <member><literal>base-devel</literal></member>
+                  <member><literal>gcc</literal></member>
+                  <member><literal>clang</literal></member>
+                  <member><literal>sed</literal></member>
+                  <member><literal>time</literal></member>
+                  <member><literal>coreutils</literal></member>
+                  <member><literal>util-linux</literal></member>
+                  <member><literal>grep</literal></member>
+                  <member><literal>sed</literal></member>
+                  <member><literal>emacs</literal></member>
+                  <member><literal>gdb</literal></member>
+                  <member><literal>make</literal></member>
+                  <member><literal>autoconf</literal></member>
+                  <member><literal>automake</literal></member>
+                  <member><literal>gettext</literal></member>
+                  <member><literal>gettext-devel</literal></member>
+                  <member><literal>git</literal></member>
+                  <member><literal>subversion</literal></member>
+                  <member><literal>flex</literal></member>
+                  <member><literal>bison</literal></member>
+                  <member><literal>unzip</literal></member>
+                  <member><literal>pax</literal></member>
+                  <member><literal>tar</literal></member>
+                  <member><literal>libiconv-devel</literal></member>
+                  <member><literal>ncurses-devel</literal></member>
+                  <member><literal>gmp-devel</literal></member>
+                  <member><literal>mpfr-devel</literal></member>
+                  <member><literal>mpc-devel</literal></member>
+                  <member><literal>isl-devel</literal></member>
+                  <member><literal>procps-ng</literal></member>
+                  <member><literal>libiconv-devel</literal></member>
+                </simplelist>
               </para>
             </listitem>
           </itemizedlist>

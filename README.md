@@ -267,167 +267,33 @@ NFSv4.2/NFSv4.1 filesystem driver for Windows 10/11 & Windows Server
 
     - 32bit: \>= 3.3.6
 
-  - Packages (required):
+  - Packages (required): `cygwin`, `cygrunsrv`, `cygutils`,
+    `cygutils-extra`, `libiconv`, `libiconv2`, `procps-ng`, `util-linux`
 
-    - `cygwin`
-
-    - `cygrunsrv`
-
-    - `cygutils`
-
-    - `cygutils-extra`
-
-    - `libiconv`
-
-    - `libiconv2`
-
-    - `procps-ng`
-
-    - `util-linux`
-
-  - Packages (optional, recommended, required to build ms-nf41-client):
-
-    - `bison`
-
-    - `cygport`
-
-    - `cygwin-devel`
-
-    - `clang`
-
-    - `dos2unix`
-
-    - `pax`
-
-    - `pbzip2`
-
-    - `libnfs-utils` (for `/usr/bin/nfs-ls`)
-
-    - `libiconv-devel`
-
-    - `make`
-
-    - `bmake`
-
-    - `git`
-
-    - `gcc-core`
-
-    - `gcc-g++`
-
-    - `gdb`
-
-    - `mingw64-i686-clang`
-
-    - `mingw64-x86_64-clang`
-
-    - `unzip`
-
-    - `time`
-
-    - `docbook-utils`
-
-    - `docbook-xml45`
-
-    - `docbook-xsl`
-
-    - `docbook-xsl-ns`
-
-    - `libxslt`
-
-    - `w3m`
+  - Packages (optional, recommended, required to build ms-nfs41-client):
+    `bison`, `cygport`, `cygwin-devel`, `clang`, `dos2unix`, `pax`,
+    `pbzip2`, `libnfs-utils` (for `/usr/bin/nfs-ls`), `libiconv-devel`,
+    `make`, `bmake`, `git`, `gcc-core`, `gcc-g++`, `gdb`,
+    `mingw64-i686-clang`, `mingw64-x86_64-clang`, `unzip`, `time`,
+    `docbook-utils`, `docbook-xml45`, `docbook-xsl`, `docbook-xsl-ns`,
+    `libxslt`, `w3m`
 
   - Packages (only-CI):
 
-    - \# required packages, but part of Cygwin default installation
+    \# required packages, but part of Cygwin default installation,
+    listed here for CI package list ONLY
 
-    - \# listed here for CI package list ONLY
-
-    - `bash`
-
-    - `bzip2`
-
-    - `coreutils`
-
-    - `getent`
-
-    - `grep`
-
-    - `hostname`
-
-    - `less`
-
-    - `sed`
-
-    - `tar`
-
-    - `wget`
+    `bash`, `bzip2`, `coreutils`, `getent`, `grep`, `hostname`, `less`,
+    `sed`, `tar`, `wget`
 
 - MSYS2 (64bit, optional):
 
-  - Packages (recommended):
-
-    - `base-devel`
-
-    - `gcc`
-
-    - `clang`
-
-    - `sed`
-
-    - `time`
-
-    - `coreutils`
-
-    - `util-linux`
-
-    - `grep`
-
-    - `sed`
-
-    - `emacs`
-
-    - `gdb`
-
-    - `make`
-
-    - `autoconf`
-
-    - `automake`
-
-    - `gettext`
-
-    - `gettext-devel`
-
-    - `git`
-
-    - `subversion`
-
-    - `flex`
-
-    - `bison`
-
-    - `unzip`
-
-    - `pax`
-
-    - `tar`
-
-    - `libiconv-devel`
-
-    - `ncurses-devel`
-
-    - `gmp-devel`
-
-    - `mpfr-devel`
-
-    - `mpc-devel`
-
-    - `isl-devel`
-
-    - `procps-ng`
-
-    - `libiconv-devel`
+  - Packages (recommended): `base-devel`, `gcc`, `clang`, `sed`, `time`,
+    `coreutils`, `util-linux`, `grep`, `sed`, `emacs`, `gdb`, `make`,
+    `autoconf`, `automake`, `gettext`, `gettext-devel`, `git`,
+    `subversion`, `flex`, `bison`, `unzip`, `pax`, `tar`,
+    `libiconv-devel`, `ncurses-devel`, `gmp-devel`, `mpfr-devel`,
+    `mpc-devel`, `isl-devel`, `procps-ng`, `libiconv-devel`
 
 # Installation
 
