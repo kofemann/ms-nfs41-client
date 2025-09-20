@@ -280,6 +280,7 @@
               <para>Windows 16bit DOS and Windows 3.x applications via
                 <link xl:href="https://learn.microsoft.com/en-us/windows/compatibility/ntvdm-and-16-bit-app-support">NT Virtual DOS Machine</link> (requires case-insensitive filesystem), e.g.
                 <simplelist type="inline">
+                  <member><link xl:href="https://web.archive.org/web/20040401174842/http://bdn.borland.com/article/0,1410,20841,00.html">Borland Turbo C compiler</link></member>
                   <member><link xl:href="https://www.ghisler.com/wcmd16.htm">Total Commander for Windows 3.x</link></member>
                   <member><link xl:href="http://www.retroarchive.org/garbo/pc/unix/dosnx23b.zip">DOSNIX</link></member>
                   <member><link xl:href="https://github.com/DankRank/ftp.info-zip.org/raw/refs/heads/master/ftp.info-zip.org/pub/infozip/msdos/zip232x.zip">DOS 16bit zip</link></member>

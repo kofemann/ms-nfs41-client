@@ -246,8 +246,10 @@ NFSv4.2/NFSv4.1 filesystem driver for Windows 10/11 & Windows Server
 
   - Windows 16bit DOS and Windows 3.x applications via [NT Virtual DOS
     Machine](https://learn.microsoft.com/en-us/windows/compatibility/ntvdm-and-16-bit-app-support)
-    (requires case-insensitive filesystem), e.g. [Total Commander for
-    Windows 3.x](https://www.ghisler.com/wcmd16.htm),
+    (requires case-insensitive filesystem), e.g. [Borland Turbo C
+    compiler](https://web.archive.org/web/20040401174842/http://bdn.borland.com/article/0,1410,20841,00.html),
+    [Total Commander for Windows
+    3.x](https://www.ghisler.com/wcmd16.htm),
     [DOSNIX](http://www.retroarchive.org/garbo/pc/unix/dosnx23b.zip),
     [DOS 16bit
     zip](https://github.com/DankRank/ftp.info-zip.org/raw/refs/heads/master/ftp.info-zip.org/pub/infozip/msdos/zip232x.zip),
