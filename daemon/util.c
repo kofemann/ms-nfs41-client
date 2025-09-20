@@ -82,6 +82,7 @@ int get_name(unsigned char **pos, uint32_t *remaining, const char **out_name)
 {
     int status;
     USHORT len;
+    const char *name;
     
     status = safe_read(pos, remaining, &len, sizeof(USHORT));
     if (status) goto out;
@@ -89,9 +90,17 @@ int get_name(unsigned char **pos, uint32_t *remaining, const char **out_name)
         status = ERROR_BUFFER_OVERFLOW;
         goto out;
     }
-    *out_name = (const char*)*pos;
+
+    name = (const char *)*pos;
+
+    EASSERT_MSG((name[len-1] == '\0'),
+        ("name='%s', (len-1)=%d, expected 0x00, got 0x%x\n",
+        name, (int)(len-1), (int)name[len-1]));
+
+    *out_name = name;
     *pos += len;
     *remaining -= len;
+
 out:
     return status;
 }

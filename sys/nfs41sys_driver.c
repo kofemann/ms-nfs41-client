@@ -180,42 +180,47 @@ NTSTATUS marshall_unicode_as_utf8(
     IN OUT unsigned char **pos,
     IN PCUNICODE_STRING str)
 {
-    ANSI_STRING ansi;
     ULONG ActualCount;
     NTSTATUS status;
+    PCHAR out_str;
+
+    out_str = ((PCHAR)*pos) + sizeof(USHORT);
 
     if (str->Length == 0) {
         status = STATUS_SUCCESS;
         ActualCount = 0;
-        ansi.MaximumLength = 1;
         goto out_copy;
     }
 
-    /* query the number of bytes required for the utf8 encoding */
-    status = RtlUnicodeToUTF8N(NULL, 0xffff,
+    /*
+     * Convert the string directly into the upcall buffer
+     * (We assume that the caller has used |length_as_utf8()|
+     * to make sure the buffer is big enougth)
+     */
+    status = RtlUnicodeToUTF8N(out_str, 0xFFFF,
         &ActualCount, str->Buffer, str->Length);
     if (status) {
-        print_error("RtlUnicodeToUTF8N('%wZ') failed with 0x%08X\n",
-            str, status);
+        print_error("marshall_unicode_as_utf8: "
+            "RtlUnicodeToUTF8N(str='%wZ',str->Length=%ld) failed with 0x%lx\n",
+            str, (long)str->Length, (long)status);
         goto out;
     }
 
-    /* convert the string directly into the upcall buffer */
-    ansi.Buffer = (PCHAR)*pos + sizeof(ansi.MaximumLength);
-    ansi.MaximumLength = (USHORT)ActualCount + sizeof(UNICODE_NULL);
-    status = RtlUnicodeToUTF8N(ansi.Buffer, ansi.MaximumLength,
-        &ActualCount, str->Buffer, str->Length);
-    if (status) {
-        print_error("RtlUnicodeToUTF8N(%hu, '%wZ', %hu) failed with 0x%08X\n",
-            ansi.MaximumLength, str, str->Length, status);
-        goto out;
-    }
 
 out_copy:
-    RtlCopyMemory(*pos, &ansi.MaximumLength, sizeof(ansi.MaximumLength));
-    *pos += sizeof(ansi.MaximumLength);
-    (*pos)[ActualCount] = '\0';
-    *pos += ansi.MaximumLength;
+    /* Terminate buffer */
+    out_str[ActualCount] = '\0';
+
+    /*
+     * Copy size field
+     * (string itself was already converted&&written by |RtlUnicodeToUTF8N()|)
+     */
+    USHORT out_str_len = (USHORT)(ActualCount+1L);
+    RtlCopyMemory(*pos, &out_str_len, sizeof(out_str_len));
+    *pos += sizeof(out_str_len);
+
+    /* Add string size to buffer pointer */
+    *pos += out_str_len;
 out:
     return status;
 }

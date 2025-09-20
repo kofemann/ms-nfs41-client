@@ -40,7 +40,8 @@ static INLINE ULONG length_as_utf8(
 {
     ULONG ActualCount = 0;
     RtlUnicodeToUTF8N(NULL, 0xffff, &ActualCount, str->Buffer, str->Length);
-    return sizeof(str->MaximumLength) + ActualCount + sizeof(UNICODE_NULL);
+    /* Length of length field + string length + '\0'*/
+    return sizeof(USHORT) + ActualCount + 1;
 }
 
 /* Prototypes */
