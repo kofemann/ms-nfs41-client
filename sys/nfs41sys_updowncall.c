@@ -497,6 +497,8 @@ void nfs41_UpcallDestroy(nfs41_updowncall_entry *entry)
     }
 #endif /* _DEBUG */
 
+    KeClearEvent(&entry->cond);
+
     if (entry->psec_ctx_clienttoken) {
         ObDereferenceObject(entry->psec_ctx_clienttoken);
     }
