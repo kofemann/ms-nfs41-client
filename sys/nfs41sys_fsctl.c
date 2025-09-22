@@ -775,12 +775,12 @@ NTSTATUS nfs41_DuplicateData(
     }
 
     /*
-     * Disable caching because NFSv4.2 DEALLOCATE is basically a
+     * Disable caching because NFSv4.2 CLONE is basically a
      * "write" operation. AFAIK we should flush the cache and wait
      * for the kernel lazy writer (which |RxChangeBufferingState()|
-     * AFAIK does) before doing the DEALLOCATE, to avoid that we
+     * AFAIK does) before doing the CLONE, to avoid that we
      * have outstanding writes in the kernel cache at the same
-     * location where the DEALLOCATE should do it's work
+     * location where the CLONE should do it's work
      */
     ULONG flag = DISABLE_CACHING;
     DbgP("nfs41_DuplicateData: disableing caching for file '%wZ'\n",
