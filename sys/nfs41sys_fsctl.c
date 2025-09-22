@@ -754,6 +754,26 @@ NTSTATUS nfs41_DuplicateData(
         goto out;
     }
 
+    IO_STATUS_BLOCK flushIoStatus;
+    DbgP("nfs41_DuplicateData: flushing src file buffers\n");
+    status = ZwFlushBuffersFile(dd.handle, &flushIoStatus);
+    if (status) {
+        if (status == STATUS_ACCESS_DENIED) {
+            /*
+             * |ZwFlushBuffersFile()| can fail if |dd.handle| was not opened
+             * for write access
+             */
+            DbgP("nfs41_DuplicateData: "
+                "ZwFlushBuffersFile() failed with STATUS_ACCESS_DENIED\n");
+        }
+        else {
+            DbgP("nfs41_DuplicateData: "
+                "ZwFlushBuffersFile() failed, status=0x%lx\n",
+                (long)status);
+            goto out;
+        }
+    }
+
     /*
      * Disable caching because NFSv4.2 DEALLOCATE is basically a
      * "write" operation. AFAIK we should flush the cache and wait
