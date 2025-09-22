@@ -445,58 +445,6 @@ void nfs41_UpcallDestroy(nfs41_updowncall_entry *entry)
     if (!entry)
         return;
 
-    /*
-     * Free resources which might otherwise be leaked
-     * FIXME: Does not work yet, the |NFS41_SYSOP_READ| codepath crashes in
-     * |MmUnmapLockedPages()| when
-     * $ verifier /standard /driver nfs41_driver.sys # is active
-     */
-#ifdef XXDISABLED_FOR_NOWXX /*defined(_DEBUG) */
-    switch(entry->opcode) {
-        case NFS41_SYSOP_WRITE:
-        case NFS41_SYSOP_READ:
-            if (entry->buf) {
-                DbgP("nfs41_UpcallDestroy: NFS41_SYSOP_RW mapping leak\n");
-                MmUnmapLockedPages(entry->buf, entry->u.ReadWrite.MdlAddress);
-                entry->buf = NULL;
-            }
-            break;
-        case NFS41_SYSOP_DIR_QUERY:
-            if (entry->u.QueryFile.mdl) {
-                DbgP("nfs41_UpcallDestroy: "
-                    "NFS41_SYSOP_DIR_QUERY mapping leak\n");
-                MmUnmapLockedPages(entry->u.QueryFile.mdl_buf,
-                    entry->u.QueryFile.mdl);
-                IoFreeMdl(entry->u.QueryFile.mdl);
-                entry->u.QueryFile.mdl_buf = NULL;
-                entry->u.QueryFile.mdl = NULL;
-            }
-            break;
-        case NFS41_SYSOP_OPEN:
-            if (entry->u.Open.EaMdl) {
-                DbgP("nfs41_UpcallDestroy: NFS41_SYSOP_OPEN mapping leak\n");
-                MmUnmapLockedPages(entry->u.Open.EaBuffer,
-                    entry->u.Open.EaMdl);
-                IoFreeMdl(entry->u.Open.EaMdl);
-                entry->u.Open.EaBuffer = NULL;
-                entry->u.Open.EaMdl = NULL;
-            }
-            break;
-        case NFS41_SYSOP_FSCTL_QUERYALLOCATEDRANGES:
-            if (entry->u.QueryAllocatedRanges.BufferMdl) {
-                DbgP("nfs41_UpcallDestroy: "
-                    "NFS41_SYSOP_FSCTL_QUERYALLOCATEDRANGES mapping leak\n");
-                MmUnmapLockedPages(
-                    entry->u.QueryAllocatedRanges.Buffer,
-                    entry->u.QueryAllocatedRanges.BufferMdl);
-                IoFreeMdl(entry->u.QueryAllocatedRanges.BufferMdl);
-                entry->u.QueryAllocatedRanges.Buffer = NULL;
-                entry->u.QueryAllocatedRanges.BufferMdl = NULL;
-            }
-            break;
-    }
-#endif /* _DEBUG */
-
     KeClearEvent(&entry->cond);
 
     if (entry->psec_ctx_clienttoken) {
