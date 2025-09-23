@@ -13,10 +13,13 @@ PROJECT_BASEDIR_DIR := $(shell dirname $(realpath $(CYGWIN_MAKEFILE_DIR)/))
 
 DESTDIR:=$(PROJECT_BASEDIR_DIR)/destdir
 
-VS_BUILD_DIR32:=$(PROJECT_BASEDIR_DIR)/build.vc19/Debug/
-VS_BUILD_DIR64:=$(PROJECT_BASEDIR_DIR)/build.vc19/x64/Debug/
-#VS_BUILD_DIR32:=$(PROJECT_BASEDIR_DIR)/build.vc19/Release/
-#VS_BUILD_DIR64:=$(PROJECT_BASEDIR_DIR)/build.vc19/x64/Release/
+VS_BUILD_DIR_I686:=$(PROJECT_BASEDIR_DIR)/build.vc19/Debug/
+VS_BUILD_DIR_X64:=$(PROJECT_BASEDIR_DIR)/build.vc19/x64/Debug/
+VS_BUILD_DIR_ARM64:=$(PROJECT_BASEDIR_DIR)/build.vc19/ARM64/Debug/
+#VS_BUILD_DIR_I686:=$(PROJECT_BASEDIR_DIR)/build.vc19/Release/
+#VS_BUILD_DIR_X64:=$(PROJECT_BASEDIR_DIR)/build.vc19/x64/Release/
+#VS_BUILD_DIR_ARM64:=$(PROJECT_BASEDIR_DIR)/build.vc19/ARM64/Release/
+
 
 # trigger "build_testutils" target when these binaries are needed
 $(PROJECT_BASEDIR_DIR)/tests/ea/nfs_ea.exe \
@@ -136,36 +139,42 @@ installdest_util: \
 	$(CYGWIN_MAKEFILE_DIR)/devel/msnfs41client.bash
 
 installdest32: \
-	$(VS_BUILD_DIR32)/nfsd.exe \
-	$(VS_BUILD_DIR32)/nfs_mount.exe \
-	$(VS_BUILD_DIR32)/nfs_install.exe \
-	$(VS_BUILD_DIR32)/nfs41_driver.sys \
-	$(VS_BUILD_DIR32)/libtirpc.dll \
-	$(VS_BUILD_DIR32)/nfs41_np.dll \
+	$(VS_BUILD_DIR_I686)/nfsd.exe \
+	$(VS_BUILD_DIR_I686)/nfs_mount.exe \
+	$(VS_BUILD_DIR_I686)/nfs_install.exe \
+	$(VS_BUILD_DIR_I686)/nfs41_driver.sys \
+	$(VS_BUILD_DIR_I686)/libtirpc.dll \
+	$(VS_BUILD_DIR_I686)/nfs41_np.dll \
 	# installdest 32bit Windows
 	make -f $(CYGWIN_MAKEFILE_DIR)/Makefile.install \
 		installdest \
-		VS_BUILD_DIR="$(VS_BUILD_DIR32)" \
-		VS_BUILD_DIR32="$(VS_BUILD_DIR32)" \
-		VS_BUILD_DIR64="$(VS_BUILD_DIR64)" \
+		VS_BUILD_DIR_I686="$(VS_BUILD_DIR_I686)" \
+		VS_BUILD_DIR_X64="" \
+		VS_BUILD_DIR_ARM64="" \
 		CYGWIN_BASEPATH=/cygdrive/c/cygwin/
 
 # installdest64: 32bit nfs41_np.dll is required to support 32bit
 # apps on 64bit Windows
 installdest64: \
-	$(VS_BUILD_DIR64)/nfsd.exe \
-	$(VS_BUILD_DIR64)/nfs_mount.exe \
-	$(VS_BUILD_DIR64)/nfs_install.exe \
-	$(VS_BUILD_DIR64)/nfs41_driver.sys \
-	$(VS_BUILD_DIR64)/libtirpc.dll \
-	$(VS_BUILD_DIR32)/nfs41_np.dll \
-	$(VS_BUILD_DIR64)/nfs41_np.dll \
+	$(VS_BUILD_DIR_X64)/nfsd.exe \
+	$(VS_BUILD_DIR_X64)/nfs_mount.exe \
+	$(VS_BUILD_DIR_X64)/nfs_install.exe \
+	$(VS_BUILD_DIR_X64)/nfs41_driver.sys \
+	$(VS_BUILD_DIR_X64)/libtirpc.dll \
+	$(VS_BUILD_DIR_X64)/nfs41_np.dll \
+	$(VS_BUILD_DIR_ARM64)/nfsd.exe \
+	$(VS_BUILD_DIR_ARM64)/nfs_mount.exe \
+	$(VS_BUILD_DIR_ARM64)/nfs_install.exe \
+	$(VS_BUILD_DIR_ARM64)/nfs41_driver.sys \
+	$(VS_BUILD_DIR_ARM64)/libtirpc.dll \
+	$(VS_BUILD_DIR_ARM64)/nfs41_np.dll \
+	$(VS_BUILD_DIR_I686)/nfs41_np.dll \
 	# installdest 64bit Windows
 	make -f $(CYGWIN_MAKEFILE_DIR)/Makefile.install \
 		installdest \
-		VS_BUILD_DIR="$(VS_BUILD_DIR64)" \
-		VS_BUILD_DIR32="$(VS_BUILD_DIR32)" \
-		VS_BUILD_DIR64="$(VS_BUILD_DIR64)" \
+		VS_BUILD_DIR_I686="$(VS_BUILD_DIR_I686)" \
+		VS_BUILD_DIR_X64="$(VS_BUILD_DIR_X64)" \
+		VS_BUILD_DIR_ARM64="$(VS_BUILD_DIR_ARM64)" \
 		CYGWIN_BASEPATH=/cygdrive/c/cygwin64/
 
 # installdest: we need a .WAIT here becase Makefile.install uses git commands

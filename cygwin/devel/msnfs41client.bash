@@ -184,10 +184,96 @@ function nfsclient_install
 	# make sure all binaries are executable, Windows cmd does
 	# not care, but Cygwin&bash do.
 	# If *.ddl are not executable nfs*.exe fail with 0xc0000022
+	typeset uname_m="$(uname -m)"
+	typeset uname_s="$(uname -s)"
+	typeset kernel_platform
+	case "${uname_m}" in
+		'x86_64')
+			if [[ "${uname_s}" == *-ARM64 ]] ; then
+				kernel_platform='ARM64'
+			else
+				kernel_platform='x64'
+			fi
+			;;
+		'i686')
+			kernel_platform='i686'
+			;;
+		*)
+			printf $"%s: Unsupported platform %q\n" "$0" "${uname_m}"
+			return 1
+			;;
+	esac
+
+	platform_dir="$PWD/${kernel_platform}"
+
+	#
+	# We have to use hardlinks here, because cygwin defaults to use <JUNCTION>s,
+	# which neither cmd.exe nor powershell can follow. <SYMLINK>s are not an option,
+	# because it woulld required the "SeCreateSymbolicLinkPrivilege", which by default
+	# not even the Adminstrator has
+	#
+
+	ln -f "${platform_dir}"/nfs41_driver.*		.
+	ln -f "${platform_dir}"/nfsd.*			.
+	ln -f "${platform_dir}"/nfs_install.*		.
+	ln -f "${platform_dir}"/nfs_mount.*		.
+	ln -f "${platform_dir}"/libtirpc.*		.
+	ln -f "${platform_dir}"/nfs41_np.*		.
+	ln -f "${platform_dir}"/nfs41rdr.inf		.
+	ln -f "${platform_dir}/VCRUNTIME140D.dll"	.
+	ln -f "${platform_dir}/ucrtbased.dll"		.
+
+	# add hardlinks in /sbin
+	ln -f "nfsd".*				"../../sbin/."
+	ln -f "nfs_install".*			"../../sbin/."
+	ln -f "nfs_mount".*			"../../sbin/."
+	ln -f "libtirpc".*			"../../sbin/."
+	ln -f "VCRUNTIME140D.dll"		"../../sbin/."
+	ln -f "ucrtbased.dll"			"../../sbin/."
+	ln -f "../../sbin/nfs_mount.exe"	"../../sbin/nfs_umount.exe"
+	if [[ "${kernel_platform}" != 'i686' ]] ; then
+		ln -f 'i686/nfs_mount.release.i686.exe' "../../sbin/nfs_mount.i686.exe"
+	fi
+
+	typeset -a platformspecificexe=(
+		'bin/winfsinfo'
+		'bin/winclonefile'
+		'bin/winoffloadcopyfile'
+		'bin/winsg'
+		'bin/nfs_ea'
+		'sbin/winrunassystem'
+		'sbin/nfs_globalmount'
+		'usr/share/msnfs41client/tests/filemmaptests/qsortonmmapedfile1'
+	)
+
+	if [[ "${kernel_platform}" != 'i686' ]] ; then
+		# lssparse needs Cygwin >= 3.5 (|lseek(..., SEEK_HOLE, ...)| support), which is not available
+		# for Windows 32bit
+		platformspecificexe+=( 'bin/lssparse' )
+	fi
+
+	for i in "${platformspecificexe[@]}"; do
+		case "${kernel_platform}" in
+			'x64')
+				ln -f "../../${i}.x86_64.exe" "../../${i}.exe"
+				;;
+			'ARM64')
+				if [[ -f "../../${i}.arm64.exe" ]] ; then
+					ln -f "../../${i}.arm64.exe" "../../${i}.exe"
+				else
+					ln -f "../../${i}.x86_64.exe" "../../${i}.exe"
+				fi
+				;;
+			'i686')
+				ln -f "../../${i}.i686.exe" "../../${i}.exe"
+				;;
+		esac
+	done
+
 	chmod a+x *.dll
 	chmod a+x ../../sbin/nfs*.exe ../../sbin/libtirpc*.dll
 
-	# (re-)install driver
+	# (re-)install driver and network provider DLL(s) (nfs41_np.dll)
 	nfsclient_adddriver
 
 	mkdir -p /cygdrive/c/etc
@@ -207,8 +293,6 @@ function nfsclient_install
 	od -t x4 <'/proc/registry/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Control/FileSystem/LongPathsEnabled'
 
 	# use the Win10 "SegmentHeap" (see https://www.blackhat.com/docs/us-16/materials/us-16-Yason-Windows-10-Segment-Heap-Internals.pdf)
-	regtool add '/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows NT/CurrentVersion/Image File Execution Options/nfsd_debug.exe'
-	regtool -i set '/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows NT/CurrentVersion/Image File Execution Options/nfsd_debug.exe/FrontEndHeapDebugOptions' 0x08
 	regtool add '/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows NT/CurrentVersion/Image File Execution Options/nfsd.exe'
 	regtool -i set '/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows NT/CurrentVersion/Image File Execution Options/nfsd.exe/FrontEndHeapDebugOptions' 0x08
 	regtool add '/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows NT/CurrentVersion/Image File Execution Options/nfs_mount.exe'
@@ -232,7 +316,7 @@ function nfsclient_install
 		win_domainname="$( strings '/proc/registry/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Services/Tcpip/Parameters/Domain' )"
 	fi
 	if [[ "${win_domainname}" == '' ]] ; then
-	regtool -s set '/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Services/Tcpip/Parameters/Domain' 'GLOBAL.LOC'
+		regtool -s set '/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Services/Tcpip/Parameters/Domain' 'GLOBAL.LOC'
 	fi
 
 	# disable DFS
@@ -448,7 +532,7 @@ function nfsclient_adddriver
 	if is_windows_64bit ; then
 		# copy from the 32bit install dir
 		rm -f '/cygdrive/c/Windows/SysWOW64/nfs41_np.dll'
-		cp './i686/nfs41_np.dll' '/cygdrive/c/Windows/SysWOW64/nfs41_np.dll'
+		cp './i686/nfs41_np.release.dll' '/cygdrive/c/Windows/SysWOW64/nfs41_np.dll'
 	fi
 
 	return 0
@@ -1070,8 +1154,6 @@ function main
 			check_machine_arch || (( numerr++ ))
 			require_cmd 'regtool.exe' || (( numerr++ ))
 			require_cmd 'cygrunsrv.exe' || (( numerr++ ))
-			require_cmd 'nfsd.exe' || (( numerr++ ))
-			require_cmd 'nfs_install.exe' || (( numerr++ ))
 			require_cmd 'rundll32.exe' || (( numerr++ ))
 			require_cmd 'bcdedit.exe' || (( numerr++ ))
 			require_cmd 'fsutil.exe' || (( numerr++ ))
@@ -1130,7 +1212,6 @@ function main
 			check_machine_arch || (( numerr++ ))
 			#require_cmd 'cdb.exe' || (( numerr++ ))
 			require_cmd 'nfsd.exe' || (( numerr++ ))
-			require_cmd 'nfsd_debug.exe' || (( numerr++ ))
 			require_cmd 'nfs_mount.exe' || (( numerr++ ))
 			require_cmd 'ksh93.exe' || (( numerr++ ))
 			require_file '/lib/msnfs41client/cygwin_idmapper.ksh' || (( numerr++ ))
@@ -1144,7 +1225,6 @@ function main
 			#require_cmd 'cdb.exe' || (( numerr++ ))
 			require_cmd 'PsExec.exe' || (( numerr++ ))
 			require_cmd 'nfsd.exe' || (( numerr++ ))
-			require_cmd 'nfsd_debug.exe' || (( numerr++ ))
 			require_cmd 'nfs_mount.exe' || (( numerr++ ))
 			require_cmd 'ksh93.exe' || (( numerr++ ))
 			require_file '/lib/msnfs41client/cygwin_idmapper.ksh' || (( numerr++ ))
