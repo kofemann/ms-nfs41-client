@@ -465,8 +465,6 @@ function nfsclient_disable_autostartservices
 	sc config 'ms-nfs41-client-globalmountall-service' start=disabled
 }
 
-typeset -r use_nfs41rdrinf=true
-
 function nfsclient_adddriver
 {
 	typeset -i res
@@ -1349,6 +1347,12 @@ function main
 #
 # main
 #
+
+# Our current nfs41rdr.inf file does not work on Windows 11/ARM64,
+# therefore use the "manual driver install" codepath for now
+# until we fixed the nfs41rdr.inf
+typeset -r use_nfs41rdrinf=false
+
 if [[ -v KSH_VERSION ]] ; then
 	#
 	# use ksh93 builtins
