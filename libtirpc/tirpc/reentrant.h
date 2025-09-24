@@ -152,7 +152,7 @@
 #define mutex_unlock(m)		ReleaseSRWLockExclusive(m)
 #define mutex_trylock(m)	TryAcquireSRWLockExclusive(m)
 #else
-#define mutex_init(m, a)	InitializeCriticalSection(m)
+#define mutex_init(m, a)	InitializeCriticalSectionAndSpinCount((m), 0)
 #define mutex_lock(m)		EnterCriticalSection(m)
 #define mutex_unlock(m)		LeaveCriticalSection(m)
 #define mutex_trylock(m)	TryEnterCriticalSection(m)
