@@ -60,7 +60,7 @@ int get_safe_read_bufferpos(unsigned char **pos, uint32_t *remaining, uint32_t s
     if (*remaining < src_len)
         return ERROR_BUFFER_OVERFLOW;
 
-    *destbuffer = *pos;
+    *destbuffer = (src_len == 0)?NULL:*pos;
     *pos += src_len;
     *remaining -= src_len;
     return ERROR_SUCCESS;
@@ -88,7 +88,7 @@ int get_safe_write_bufferpos(unsigned char **pos, uint32_t *remaining, uint32_t 
     if (*remaining < src_len)
         return ERROR_BUFFER_OVERFLOW;
 
-    *destbuffer = *pos;
+    *destbuffer = (src_len == 0)?NULL:*pos;
     *pos += src_len;
     *remaining -= src_len;
     return ERROR_SUCCESS;

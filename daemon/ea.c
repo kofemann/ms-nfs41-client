@@ -212,8 +212,14 @@ static int handle_setexattr(void *daemon_context, nfs41_upcall *upcall)
     int status;
     setexattr_upcall_args *args = &upcall->args.setexattr;
     nfs41_open_state *state = upcall->state_ref;
-    PFILE_FULL_EA_INFORMATION ea = 
+    PFILE_FULL_EA_INFORMATION ea =
         (PFILE_FULL_EA_INFORMATION)args->buf;
+
+    if (ea == NULL) {
+        eprintf("handle_setexattr: ea==NULL\n");
+        status = ERROR_INVALID_PARAMETER;
+        goto out;
+    }
 
     /* break read delegations before SETATTR */
     nfs41_delegation_return(state->session, &state->file,
@@ -273,13 +279,8 @@ static int parse_getexattr(unsigned char *buffer, uint32_t length, nfs41_upcall 
     if (status) goto out;
     status = safe_read(&buffer, &length, &args->ealist_len, sizeof(args->ealist_len));
     if (status) goto out;
-    if (args->ealist_len) {
-        status = get_safe_read_bufferpos(&buffer, &length, args->ealist_len, &args->ealist);
-        if (status) goto out;
-    }
-    else {
-        args->ealist = NULL;
-    }
+    status = get_safe_read_bufferpos(&buffer, &length, args->ealist_len, &args->ealist);
+    if (status) goto out;
 
     EASSERT(length == 0);
 

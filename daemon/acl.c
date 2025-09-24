@@ -523,7 +523,7 @@ static int parse_setacl(unsigned char *buffer, uint32_t length,
 {
     int status;
     setacl_upcall_args *args = &upcall->args.setacl;
-    void *sec_desc_ptr = NULL;
+    void *sec_desc_ptr;
     ULONG sec_desc_len;
 
     status = safe_read(&buffer, &length, &args->query, sizeof(args->query));
@@ -1436,6 +1436,12 @@ static int handle_setacl(void *daemon_context, nfs41_upcall *upcall)
 
     DPRINTF(ACLLVL1, ("--> handle_setacl(state->path.path='%s')\n",
         state->path.path));
+
+    if (args->sec_desc == NULL) {
+        eprintf("handle_setacl: args->sec_desc==NULL\n");
+        status = ERROR_INVALID_PARAMETER;
+        goto out;
+    }
 
     if (args->query & OWNER_SECURITY_INFORMATION) {
         DPRINTF(ACLLVL2, ("handle_setacl: OWNER_SECURITY_INFORMATION\n"));

@@ -78,6 +78,12 @@ static int handle_nfs41_setattr_basicinfo(void *daemon_context, setattr_upcall_a
     (void)memset(&info, 0, sizeof(info));
     (void)memset(&old_info, 0, sizeof(old_info));
 
+    if (basic_info == NULL) {
+        eprintf("handle_nfs41_setattr_basicinfo: basic_info==NULL\n");
+        status = ERROR_INVALID_PARAMETER;
+        goto out;
+    }
+
     getattr_status = nfs41_cached_getattr(state->session,
         &state->file, NULL, &old_info);
     if (getattr_status) {
