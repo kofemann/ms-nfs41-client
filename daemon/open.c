@@ -1263,6 +1263,7 @@ static int marshall_open(unsigned char *buffer, uint32_t *length, nfs41_upcall *
         status = get_safe_write_bufferpos(&buffer, length,
             sizeof(unsigned short), &wc_len_out);
         if (status) goto out;
+        EASSERT(wc_len_out != NULL);
 
         if (*length <= len) {
             status = ERROR_BUFFER_OVERFLOW;

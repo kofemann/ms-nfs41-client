@@ -199,6 +199,7 @@ static int parse_setexattr(unsigned char *buffer, uint32_t length, nfs41_upcall 
     status = safe_read(&buffer, &length, &args->buf_len, sizeof(args->buf_len));
     if (status) goto out;
     status = get_safe_read_bufferpos(&buffer, &length, args->buf_len, &args->buf);
+    if (status) goto out;
 
     EASSERT(length == 0);
 
