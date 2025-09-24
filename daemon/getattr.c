@@ -93,6 +93,8 @@ static int parse_getattr(unsigned char *buffer, uint32_t length, nfs41_upcall *u
     status = safe_read(&buffer, &length, &args->buf_len, sizeof(args->buf_len));
     if (status) goto out;
 
+    EASSERT(length == 0);
+
     DPRINTF(1, ("parsing '%s': "
         "info_class=%d buf_len=%d file='%.*s'\n",
         opcode2string(upcall->opcode),

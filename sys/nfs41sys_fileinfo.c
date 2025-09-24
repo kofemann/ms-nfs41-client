@@ -83,7 +83,7 @@ NTSTATUS marshal_nfs41_filequery(
     if (status) goto out;
     else tmp += *len;
 
-    header_len = *len + 2 * sizeof(ULONG) + 2*sizeof(HANDLE);
+    header_len = *len + 2 * sizeof(ULONG);
     if (header_len > buf_len) {
         status = STATUS_INSUFFICIENT_RESOURCES;
         goto out;
@@ -91,10 +91,7 @@ NTSTATUS marshal_nfs41_filequery(
     RtlCopyMemory(tmp, &entry->u.QueryFile.InfoClass, sizeof(ULONG));
     tmp += sizeof(ULONG);
     RtlCopyMemory(tmp, &entry->buf_len, sizeof(ULONG));
-    tmp += sizeof(ULONG);
-    RtlCopyMemory(tmp, &entry->session, sizeof(HANDLE));
-    tmp += sizeof(HANDLE);
-    RtlCopyMemory(tmp, &entry->open_state, sizeof(HANDLE));
+    /* tmp += sizeof(ULONG); */
     *len = header_len;
 
 #ifdef DEBUG_MARSHAL_DETAIL

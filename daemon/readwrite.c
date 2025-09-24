@@ -50,6 +50,8 @@ static int parse_rw(unsigned char *buffer, uint32_t length, nfs41_upcall *upcall
     status = safe_read(&buffer, &length, &args->buffer, sizeof(args->buffer));
     if (status) goto out;
 
+    EASSERT(length == 0);
+
     DPRINTF(1, ("parsing '%s' len=%lu offset=%llu buf=0x%p\n",
             opcode2string(upcall->opcode), args->len, args->offset, args->buffer));
 out:

@@ -181,6 +181,8 @@ static int parse_lock(unsigned char *buffer, uint32_t length, nfs41_upcall *upca
     status = safe_read(&buffer, &length, &args->blocking, sizeof(BOOLEAN));
     if (status) goto out;
 
+    EASSERT(length == 0);
+
     DPRINTF(1, ("parsing NFS41_SYSOP_LOCK: offset=0x%llx length=0x%llx exclusive=%u "
             "blocking=%u\n", args->offset, args->length, args->exclusive,
             args->blocking));
@@ -310,6 +312,8 @@ static int parse_unlock(unsigned char *buffer, uint32_t length, nfs41_upcall *up
 
     status = safe_read(&buffer, &length, &args->count, sizeof(ULONG));
     if (status) goto out;
+
+    EASSERT(length == 0);
 
     args->buf = buffer;
     args->buf_len = length;

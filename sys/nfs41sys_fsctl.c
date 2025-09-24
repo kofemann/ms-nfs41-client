@@ -256,7 +256,7 @@ NTSTATUS marshal_nfs41_queryallocatedranges(
     else tmp += *len;
 
     header_len = *len + sizeof(FILE_ALLOCATED_RANGE_BUFFER) +
-        sizeof(LONGLONG) +
+        sizeof(ULONG) +
         sizeof(HANDLE);
     if (header_len > buf_len) {
         status = STATUS_INSUFFICIENT_RESOURCES;

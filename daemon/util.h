@@ -94,6 +94,8 @@ void *memrchr(const void * restrict s, int c, size_t n)
 }
 
 int safe_read(unsigned char **pos, uint32_t *remaining, void *dest, uint32_t dest_len);
+int get_safe_read_bufferpos(unsigned char **pos, uint32_t *remaining,
+    uint32_t src_len, void **destbuffer);
 int safe_write(unsigned char **pos, uint32_t *remaining, void *dest, uint32_t dest_len);
 int get_safe_write_bufferpos(unsigned char **pos, uint32_t *remaining,
     uint32_t src_len, void **destbuffer);

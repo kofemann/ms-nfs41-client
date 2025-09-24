@@ -198,7 +198,9 @@ static int parse_setexattr(unsigned char *buffer, uint32_t length, nfs41_upcall 
     if (status) goto out;
     status = safe_read(&buffer, &length, &args->buf_len, sizeof(args->buf_len));
     if (status) goto out;
-    args->buf = buffer;
+    status = get_safe_read_bufferpos(&buffer, &length, args->buf_len, &args->buf);
+
+    EASSERT(length == 0);
 
     DPRINTF(1, ("parsing NFS41_SYSOP_EA_SET: mode=0%o\n", args->mode));
 out:
@@ -271,7 +273,15 @@ static int parse_getexattr(unsigned char *buffer, uint32_t length, nfs41_upcall 
     if (status) goto out;
     status = safe_read(&buffer, &length, &args->ealist_len, sizeof(args->ealist_len));
     if (status) goto out;
-    args->ealist = args->ealist_len ? buffer : NULL;
+    if (args->ealist_len) {
+        status = get_safe_read_bufferpos(&buffer, &length, args->ealist_len, &args->ealist);
+        if (status) goto out;
+    }
+    else {
+        args->ealist = NULL;
+    }
+
+    EASSERT(length == 0);
 
     DPRINTF(1, ("parsing NFS41_SYSOP_EA_GET: buf_len=%d Index %d Restart %d "
         "Single %d\n", args->buf_len,args->eaindex, args->restart, args->single));

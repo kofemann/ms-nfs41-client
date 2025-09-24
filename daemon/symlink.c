@@ -246,6 +246,8 @@ static int parse_symlink_get(unsigned char *buffer, uint32_t length,
     if (status)
         goto out;
 
+    EASSERT(length == 0);
+
     args->target_set = NULL;
 
     DPRINTF(SYMLLVL1,
@@ -344,6 +346,8 @@ static int parse_symlink_set(unsigned char *buffer, uint32_t length,
      */
     status = get_name(&buffer, &length,
         (const char **)(&args->target_set));
+
+    EASSERT(length == 0);
 
     DPRINTF(SYMLLVL1,
         ("parse_symlink_set: parsing NFS41_SYSOP_SYMLINK_SET: "

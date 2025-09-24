@@ -50,6 +50,23 @@ int safe_read(unsigned char **pos, uint32_t *remaining, void *dest, uint32_t des
     return 0;
 }
 
+/*
+ * |get_safe_read_bufferpos()| - like |safe_read()| but tests whether we
+ * have enough buffer space left, and in that case return current buffer
+ * position in |destbuffer|
+ */
+int get_safe_read_bufferpos(unsigned char **pos, uint32_t *remaining, uint32_t src_len, void **destbuffer)
+{
+    if (*remaining < src_len)
+        return ERROR_BUFFER_OVERFLOW;
+
+    *destbuffer = *pos;
+    *pos += src_len;
+    *remaining -= src_len;
+    return ERROR_SUCCESS;
+}
+
+
 int safe_write(unsigned char **pos, uint32_t *remaining, void *src, uint32_t src_len)
 {
     if (*remaining < src_len)

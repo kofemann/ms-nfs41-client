@@ -344,6 +344,10 @@ static int parse_open(unsigned char *buffer, uint32_t length, nfs41_upcall *upca
     status = safe_read(&buffer, &length, &args->ea, sizeof(HANDLE));
     if (status) goto out;
 
+    EASSERT_MSG((length == 0),
+        ("parse_open: filename='%s' leftover length=%ld\n",
+        args->path, (long)length));
+
     DPRINTF(1, ("parsing NFS41_SYSOP_OPEN: filename='%s' "
         "isvolumemntpt=%d access mask=%d "
         "access mode=%d\n\tfile attrs=0x%x create attrs=0x%x "
@@ -1350,6 +1354,8 @@ static int parse_close(unsigned char *buffer, uint32_t length, nfs41_upcall *upc
         status = safe_read(&buffer, &length, &args->renamed, sizeof(BOOLEAN));
         if (status) goto out;
     }
+
+    EASSERT(length == 0);
 
     DPRINTF(1,
         ("parsing NFS41_SYSOP_CLOSE: "

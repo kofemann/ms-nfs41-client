@@ -44,6 +44,8 @@ static int parse_queryallocatedranges(unsigned char *buffer,
     status = safe_read(&buffer, &length, &args->outbuffer, sizeof(args->outbuffer));
     if (status) goto out;
 
+    EASSERT(length == 0);
+
     DPRINTF(QARLVL, ("parse_queryallocatedranges: "
         "parsing '%s' inrange=(FileOffset=%lld Length=%lld) "
         "outbuffersize=%lu outbuffer=0x%p\n",
@@ -327,6 +329,8 @@ static int parse_setzerodata(unsigned char *buffer,
         sizeof(args->setzerodata));
     if (status) goto out;
 
+    EASSERT(length == 0);
+
     DPRINTF(SZDLVL, ("parse_setzerodata: "
         "parsing '%s' setzerodata=(FileOffset=%lld BeyondFinalZero=%lld)\n",
         opcode2string(upcall->opcode),
@@ -452,6 +456,8 @@ static int parse_duplicatedata(unsigned char *buffer,
     status = safe_read(&buffer, &length, &args->bytecount,
         sizeof(args->bytecount));
     if (status) goto out;
+
+    EASSERT(length == 0);
 
     DPRINTF(DDLVL, ("parse_duplicatedata: "
         "parsing '%s' "

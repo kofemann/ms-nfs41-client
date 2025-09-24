@@ -282,6 +282,9 @@ static int parse_readdir(unsigned char *buffer, uint32_t length, nfs41_upcall *u
     if (status) goto out;
     status = safe_read(&buffer, &length, &args->kbuf, sizeof(args->kbuf));
     if (status) goto out;
+
+    EASSERT(length == 0);
+
     args->root = upcall->root_ref;
     args->state = upcall->state_ref;
 

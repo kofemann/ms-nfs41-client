@@ -64,6 +64,8 @@ static int parse_mount(unsigned char *buffer, uint32_t length, nfs41_upcall *upc
     if (status) goto out;
 #endif /* NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS */
 
+    EASSERT(length == 0);
+
 #ifdef NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS
     DPRINTF(1, ("parsing NFS41_SYSOP_MOUNT: hostport='%s' root='%s' "
         "sec_flavor='%s' rsize=%d wsize=%d use_nfspubfh=%d "
@@ -347,6 +349,9 @@ const nfs41_upcall_op nfs41_op_mount = {
 static int parse_unmount(unsigned char *buffer, uint32_t length, nfs41_upcall *upcall)
 {
     DPRINTF(1, ("parsing NFS41_SYSOP_UNMOUNT: root=0x%p\n", upcall->root_ref));
+
+    EASSERT(length == 0);
+
     return ERROR_SUCCESS;
 }
 
