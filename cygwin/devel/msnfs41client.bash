@@ -82,16 +82,7 @@ function check_machine_arch
 	typeset winpwd
 	typeset uname_m
 
-	# get the location where this script is installed,
-	# because on Cygwin the script will be installed
-	# in /cygdrive/c/cygwin/lib/msnfs41client/ (32bit) or
-	# in /cygdrive/c/cygwin64/lib/msnfs41client/ (64bit).
-	if [[ -v KSH_VERSION ]] ; then
-		winpwd="$(cygpath -w "$(dirname -- "$(realpath "${.sh.file}")")")"
-	else
-		winpwd="$(cygpath -w "$(dirname -- "$(realpath "${BASH_SOURCE[0]}")")")"
-	fi
-
+	winpwd="$(cygpath -w "${sbinpath}")"
 	uname_m="$(uname -m)"
 
 	case "${uname_m}" in
@@ -175,11 +166,7 @@ function nfsclient_install
 	# because on Cygwin the script will be installed
 	# in /cygdrive/c/cygwin/lib/msnfs41client/ (32bit) or
 	# in /cygdrive/c/cygwin64/lib/msnfs41client/ (64bit).
-	if [[ -v KSH_VERSION ]] ; then
-		cd -P "$(dirname -- "$(realpath "${.sh.file}")")"
-	else
-		cd -P "$(dirname -- "$(realpath "${BASH_SOURCE[0]}")")"
-	fi
+	cd -P "${sbinpath}"
 
 	# make sure all binaries are executable, Windows cmd does
 	# not care, but Cygwin&bash do.
@@ -477,11 +464,7 @@ function nfsclient_adddriver
 	# because on Cygwin the script will be installed
 	# in /cygdrive/c/cygwin/lib/msnfs41client/ (32bit) or
 	# in /cygdrive/c/cygwin64/lib/msnfs41client/ (64bit).
-	if [[ -v KSH_VERSION ]] ; then
-		cd -P "$(dirname -- "$(realpath "${.sh.file}")")"
-	else
-		cd -P "$(dirname -- "$(realpath "${BASH_SOURCE[0]}")")"
-	fi
+	cd -P "${sbinpath}"
 
 	# devel: set default in case "nfs_install" ruined it:
 	#regtool -s set '/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Control/NetworkProvider/Order/ProviderOrder' 'RDPNP,LanmanWorkstation,webclient'
@@ -546,11 +529,7 @@ function nfsclient_removedriver
 	# because on Cygwin the script will be installed
 	# in /cygdrive/c/cygwin/lib/msnfs41client/ (32bit) or
 	# in /cygdrive/c/cygwin64/lib/msnfs41client/ (64bit).
-	if [[ -v KSH_VERSION ]] ; then
-		cd -P "$(dirname -- "$(realpath "${.sh.file}")")"
-	else
-		cd -P "$(dirname -- "$(realpath "${BASH_SOURCE[0]}")")"
-	fi
+	cd -P "${sbinpath}"
 
 	nfs_install.exe 0
 
@@ -700,7 +679,7 @@ function nfsclient_rundeamon
 		nfsd_args=(
 			'cdb'
 			'-c' '!gflag +soe;sxe -c "kp;gn" *;.lines -e;g'
-			"$(cygpath -w "$PWD/${nfsd_args[0]}")"
+			"$(cygpath -w "${sbinpath}/${nfsd_args[0]}")"
 			"${nfsd_args[@]:1}"
 		)
 		"${nfsd_args[@]}"
@@ -708,7 +687,7 @@ function nfsclient_rundeamon
 		#
 		# test nfsd.exe with Dr. Memory (version 2.6.2028 -- build 0)
 		#
-		export _NT_ALT_SYMBOL_PATH="$(cygpath -w "$PWD")"
+		export _NT_ALT_SYMBOL_PATH="$(cygpath -w "${sbinpath}")"
 		nfsd_args=(
 			'drmemory.exe' \
 				'-batch'
@@ -745,7 +724,7 @@ function nfsclient_rundeamon
 		typeset -i vsdiagnostics_id=50
 		VSDiagnostics \
 			start ${vsdiagnostics_id} \
-			"/launch:$(cygpath -w "$PWD/nfsd.exe")" \
+			"/launch:$(cygpath -w "${sbinpath}/nfsd.exe")" \
 			"/launchArgs:${nfsd_args[*]:1}" \
 			"/loadConfig:$(cygpath -w "${vsdiagnostics_path}/AgentConfigs/CpuUsageHigh.json")"
 		printf '#\n'
@@ -829,7 +808,7 @@ function nfsclient_system_rundeamon
 
 		"${nfsd_args[@]}"
 	elif false ; then
-		export _NT_ALT_SYMBOL_PATH="$(cygpath -w "$PWD");srv*https://msdl.microsoft.com/download/symbols"
+		export _NT_ALT_SYMBOL_PATH="$(cygpath -w "${sbinpath}");srv*https://msdl.microsoft.com/download/symbols"
 		# - heap tests (eats lots of memory):
 		# '-c' '!gflag +full;g' for heap tests
 		# - log all |malloc()|/|calloc()| calls:
@@ -838,7 +817,7 @@ function nfsclient_system_rundeamon
 		nfsd_args=(
 			'cdb'
 			'-c' '!gflag +soe;sxe -c "kp;gn" *;.lines -e;g'
-			"$(cygpath -w "$PWD/${nfsd_args[0]}")"
+			"$(cygpath -w "${sbinpath}/${nfsd_args[0]}")"
 			"${nfsd_args[@]:1}"
 		)
 
@@ -853,7 +832,7 @@ function nfsclient_system_rundeamon
 		#
 		# test nfsd.exe with Dr. Memory (version 2.6.0 -- build 0)
 		#
-		export _NT_ALT_SYMBOL_PATH="$(cygpath -w "$PWD")"
+		export _NT_ALT_SYMBOL_PATH="$(cygpath -w "${sbinpath}")"
 		nfsd_args=(
 			'drmemory.exe' \
 				'-batch'
@@ -897,7 +876,7 @@ function nfsclient_system_rundeamon
 		# run everything as su_system
 		su_system VSDiagnostics \
 			start ${vsdiagnostics_id} \
-			"/launch:$(cygpath -w "$PWD/nfsd.exe")" \
+			"/launch:$(cygpath -w "${sbinpath}/nfsd.exe")" \
 			"/launchArgs:${nfsd_args[*]:1}" \
 			"/loadConfig:$(cygpath -w "${vsdiagnostics_path}/AgentConfigs/CpuUsageHigh.json")"
 		printf '#\n'
@@ -926,7 +905,7 @@ function attach_debugger_to_daemon
 	typeset nfsd_winpid
 	typeset dummy
 
-	export NT_ALT_SYMBOL_PATH="$(cygpath -w "$PWD");srv*https://msdl.microsoft.com/download/symbols"
+	export NT_ALT_SYMBOL_PATH="$(cygpath -w "${sbinpath}");srv*https://msdl.microsoft.com/download/symbols"
 
 	# Get Windows pid of nfsd.exe
 	read dummy nfsd_winpid < <(tasklist /FI "IMAGENAME eq nfsd.exe" /FO list | fgrep 'PID:')
@@ -1103,20 +1082,26 @@ function sys_terminal
 		"$(cygpath -w "$(which mintty.exe)")" --nodaemon
 }
 
+typeset sbinpath
+
 function main
 {
 	typeset cmd="$1"
 	typeset -i numerr=0
 
+	#
 	# path where this script is installed
+	# we save this path so we can have a different installation root
+	# (ReactOS netboot etc.) than just /cygdrive/c/
+	#
 	if [[ -v KSH_VERSION ]] ; then
-		typeset scriptpath="$(dirname -- "$(realpath "${.sh.file}")")"
+		sbinpath="$(dirname -- "$(realpath "${.sh.file}")")"
 	else
-		typeset scriptpath="$(dirname -- "$(realpath "${BASH_SOURCE[0]}")")"
+		sbinpath="$(dirname -- "$(realpath "${BASH_SOURCE[0]}")")"
 	fi
 
 	# "$PATH:/usr/bin:/bin" is used for PsExec where $PATH might be empty
-	PATH="$PWD:$PATH:${scriptpath}../../usr/bin:${scriptpath}/../../bin:${scriptpath}/../../sbin:${scriptpath}/../../usr/sbin"
+	PATH="$PWD:$PATH:${sbinpath}/../../lib/msnfs41client:${sbinpath}/../../usr/bin:${sbinpath}/../../bin:${sbinpath}/../../sbin:${sbinpath}/../../usr/sbin"
 	# add defauft system path for POSIX utilities
 	PATH+=':/sbin:/usr/sbin:/bin:/usr/bin'
 
