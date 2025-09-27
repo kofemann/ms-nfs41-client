@@ -352,9 +352,11 @@ Cygwin 32bit can be installed like this:
 1.  Download & install from Cygwin
 
         mkdir -p download && cd download
-        wget 'https://github.com/msys2/msys2-installer/releases/download/2025-02-21/msys2-x86_64-20250221.exe'
-        chmod a+x 'msys2-x86_64-20250221'
-        ./msys2-x86_64-20250221 --default-answer --root 'C:\msys64' install
+        # ARM64: https://github.com/msys2/msys2-installer/releases/download/2025-08-30/msys2-arm64-20250830.exe
+        # x86_64: https://github.com/msys2/msys2-installer/releases/download/2025-08-30/msys2-x86_64-20250830.exe
+        wget 'https://github.com/msys2/msys2-installer/releases/download/2025-08-30/msys2-x86_64-20250830.exe'
+        chmod a+x 'msys2-x86_64-20250830.exe'
+        ./msys2-x86_64-20250830 --default-answer --root 'C:\msys64' install
 
 2.  Install extra packages:
 
