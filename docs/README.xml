@@ -498,6 +498,15 @@ chmod a+x 'msys2-x86_64-20250830.exe'
         <programlisting>pacman -S --noconfirm base-devel gcc clang sed time coreutils util-linux grep sed emacs gdb make autoconf automake gettext gettext-devel git subversion flex bison unzip pax tar libiconv-devel ncurses-devel gmp-devel mpfr-devel mpc-devel isl-devel procps-ng libiconv-devel</programlisting>
       </listitem>
     </orderedlist>
+    <note>
+        <title>Installing MSYS on NFS filesystem</title>
+        <para>NFS filesystem used the MSYS root filesystem must be mounted as global filesystem</para>
+        <orderedlist>
+            <title>Known issues</title>
+            <listitem><para>Edit <filename>/etc/pacman.conf</filename> and set <programlisting>SigLevel = Never</programlisting>, because due to a Cygwin/MSYS2 bug there is a mismatch between Cygwin/MSYS2 POSIX uid/gid and Win32 owner/owner_group SIDs</para></listitem>
+            <listitem><para>Permissions of the <filename>/tmp</filename> dir should be fixed: <programlisting>chmod a+rwxt /tmp</programlisting></para></listitem>
+        </orderedlist>
+    </note>
   </section>
 
   <section xml:id="download-msnfs41client-tarball">

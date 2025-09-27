@@ -364,6 +364,31 @@ Cygwin 32bit can be installed like this:
 
         pacman -S --noconfirm base-devel gcc clang sed time coreutils util-linux grep sed emacs gdb make autoconf automake gettext gettext-devel git subversion flex bison unzip pax tar libiconv-devel ncurses-devel gmp-devel mpfr-devel mpc-devel isl-devel procps-ng libiconv-devel
 
+> [!NOTE]
+> NFS filesystem used the MSYS root filesystem must be mounted as global
+> filesystem
+>
+> <div>
+>
+> <div class="title">
+>
+> Known issues
+>
+> </div>
+>
+> 1.  Edit `/etc/pacman.conf` and set
+>
+>         SigLevel = Never
+>
+>     , because due to a Cygwin/MSYS2 bug there is a mismatch between
+>     Cygwin/MSYS2 POSIX uid/gid and Win32 owner/owner_group SIDs
+>
+> 2.  Permissions of the `/tmp` dir should be fixed:
+>
+>         chmod a+rwxt /tmp
+>
+> </div>
+
 ## Download "ms-nfs41-client" installation tarball
 
 (from a Cygwin terminal)

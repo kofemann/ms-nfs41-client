@@ -2,6 +2,20 @@
 # ms-nfs41-client software compatibility notes
 #
 
+# Name: MSYS2
+# Version: msys2-20250830
+# Download URL/x86_64: https://github.com/msys2/msys2-installer/releases/download/2025-08-30/msys2-x86_64-20250830.exe
+# Download URL/ARM64: https://github.com/msys2/msys2-installer/releases/download/2025-08-30/msys2-arm64-20250830.exe
+# Can use NFS for data storage: yes
+# Software can be installed on NFS: Yes, requires global-mount
+# Notes:
+# - Installation works on case-sensitive NFS filesystems mounted as global mount
+# - After installation
+#     - edit /etc/pacman.conf and set "SigLevel = Never", because due to a Cygwin/MSYS2 bug there is a mismatch
+#     between Cygwin/MSYS2 POSIX uid/gid and Win32 owner/owner_group SIDs
+#     - chmod a+rwxt /tmp
+#
+
 # Name: FireFox
 # Version: FireFox 143.0b9
 # Download URL: https://download-installer.cdn.mozilla.net/pub/firefox/releases/143.0b9/win64/de/Firefox%20Setup%20143.0b9.exe
