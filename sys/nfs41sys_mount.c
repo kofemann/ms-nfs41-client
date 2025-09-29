@@ -249,6 +249,7 @@ NTSTATUS map_mount_errors(
     case ERROR_BAD_NETPATH:     return STATUS_BAD_NETWORK_PATH;
     case ERROR_NOT_SUPPORTED:   return STATUS_NOT_SUPPORTED;
     case ERROR_NFS_VERSION_MISMATCH: return STATUS_NFS_VERSION_MISMATCH;
+    case ERROR_BAD_ARGUMENTS:   return STATUS_INVALID_PARAMETER;
     case ERROR_INTERNAL_ERROR:  return STATUS_INTERNAL_ERROR;
     default:
         print_error("map_mount_errors: "
