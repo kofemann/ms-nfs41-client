@@ -591,7 +591,10 @@ function get_cpv_cygwin_version
 	typeset uname_r="${ /usr/bin/uname -r ; }"
 	typeset leftover
 
-	leftover="${uname_r/~(Elr)([[:digit:]]+)\.([[:digit:]]+)\.([[:digit:]]+)-([[:digit:]]+)\..+/x}"
+	# Example output of $ uname -r # on Cygwin:
+	# "3.3.6-341.i686"
+	# "3.7.0-dev-289-g63dc988ac745-dirty.x86_64"
+	leftover="${uname_r/~(Elr)([[:digit:]]+)\.([[:digit:]]+)\.([[:digit:]]+)-(?:dev-|)([[:digit:]]+)(-|\.).+/x}"
 
 	if [[ "$leftover" != 'x' ]] ; then
 		print -u2 -f $"%s: error parsing uname -r for Cygwin version number, got %q\n" \
