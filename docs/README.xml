@@ -265,7 +265,7 @@
               <para>All tools from Cygwin/MSYS2/MinGW</para>
             </listitem>
             <listitem>
-              <para>Visual Studio (tested: VS2019, VS2022)</para>
+              <para>Visual Studio (tested: VS2019 Community VS2022 Community, VS2026 Community Insiders)</para>
             </listitem>
             <listitem>
               <para>VMware Workstation (can use VMs hosted on NFSv4.2/NFSv4.1 filesystem)</para>
@@ -925,7 +925,7 @@ Datei befindet. Versuchen Sie, die Datei woanders zu speichern.</programlisting>
         <title>Required Software</title>
         <itemizedlist>
           <listitem>
-            <para><emphasis role="bold">Option 1:</emphasis> Windows 10 with Visual Studio 2019</para>
+            <para><emphasis role="bold">Option 1:</emphasis> Windows 10 with Visual Studio 2019 Community</para>
             <itemizedlist>
               <listitem>
                 <para>Start Visual Studio 2019 installer and import the installer config file
@@ -946,7 +946,7 @@ Datei befindet. Versuchen Sie, die Datei woanders zu speichern.</programlisting>
             </itemizedlist>
           </listitem>
           <listitem>
-            <para><emphasis role="bold">Option 2:</emphasis> Windows 10/11 with Visual Studio 2022</para>
+            <para><emphasis role="bold">Option 2:</emphasis> Windows 11 with Visual Studio 2022 Community</para>
             <itemizedlist>
               <listitem>
                 <para>Start Visual Studio 2022 installer and import the installer config file
@@ -966,6 +966,28 @@ Datei befindet. Versuchen Sie, die Datei woanders zu speichern.</programlisting>
               </listitem>
             </itemizedlist>
           </listitem>
+          <listitem>
+            <para><emphasis role="bold">Option 3 (EXPERIMENTAL):</emphasis> Windows 10 with Visual Studio 2026 Community Insiders</para>
+            <itemizedlist>
+              <listitem>
+                <para>Start Visual Studio 2026 installer and import the installer config file
+                <filename>ms-nfs41-client/build.vc19/ms-nfs41-client_vs2022.vsconfig</filename>,
+                and then install Visual Studio 2026 Community Insiders.</para>
+              </listitem>
+              <listitem>
+                <para>WDK for Windows 10, version 2004, from <link xl:href="https://go.microsoft.com/fwlink/?linkid=2128854">https://go.microsoft.com/fwlink/?linkid=2128854</link>,
+                and then copy the <filename>Microsoft.DriverKit.Build.Tasks.16.0.dll</filename> to <filename>Microsoft.DriverKit.Build.Tasks.18.0.dll</filename>:
+                <programlisting>cp '/cygdrive/c/Program Files (x86)/Windows Kits/10/build/bin/Microsoft.DriverKit.Build.Tasks.16.0.dll' '/cygdrive/c/Program Files (x86)/Windows Kits/10/build/bin/Microsoft.DriverKit.Build.Tasks.18.0.dll'</programlisting>
+                </para>
+              </listitem>
+              <listitem>
+                <para>Cygwin 64bit &gt;= 3.5.0 (see <filename>ms-nfs41-clientcygwin/README.bintarball.txt</filename> for Cygwin 32bit and 64bit installation instructions)</para>
+              </listitem>
+              <listitem>
+                <para>PanDoc document converter, from <link xl:href="https://github.com/jgm/pandoc/releases/download/3.7.0.1/pandoc-3.7.0.1-windows-x86_64.msi">https://github.com/jgm/pandoc/releases/download/3.7.0.1/pandoc-3.7.0.1-windows-x86_64.msi</link></para>
+              </listitem>
+            </itemizedlist>
+          </listitem>
         </itemizedlist>
       </section>
 
@@ -973,7 +995,7 @@ Datei befindet. Versuchen Sie, die Datei woanders zu speichern.</programlisting>
         <title>Build the Project</title>
         <itemizedlist>
           <listitem>
-            <para><emphasis role="bold">Using Visual Studio 2019+Cygwin command line (bash/ksh93):</emphasis></para>
+            <para><emphasis role="bold">Windows 10: Using Visual Studio 2019+Cygwin command line (bash/ksh93):</emphasis></para>
             <programlisting># this creates a 32bit+kernel+64bit-kernel build for Windows 10+11
 export PATH="/cygdrive/c/Program Files (x86)/Microsoft Visual Studio/2019/Community/MSBuild/Current/Bin/:$PATH"
 git clone https://github.com/kofemann/ms-nfs41-client.git
@@ -986,7 +1008,7 @@ make installdest
 make bintarball</programlisting>
           </listitem>
           <listitem>
-            <para><emphasis role="bold">Using Visual Studio 2022+Cygwin command line (bash/ksh93):</emphasis></para>
+            <para><emphasis role="bold">Windows 11: Using Visual Studio 2022+Cygwin command line (bash/ksh93):</emphasis></para>
             <programlisting># this creates a 64bit-kernel only build for Windows 11
 export PATH="/cygdrive/c/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/:$PATH"
 git clone https://github.com/kofemann/ms-nfs41-client.git
@@ -1001,6 +1023,23 @@ make build64
 make installdest64
 make bintarball64</programlisting>
           </listitem>
+          <listitem>
+            <para><emphasis role="bold">Windows 10: Using Visual Studio 2026 Community Insiders+Cygwin command line (bash/ksh93):</emphasis></para>
+            <programlisting># this creates a 32bit+kernel+64bit-kernel build for Windows 10+11
+export PATH="/cygdrive/c/Program Files/Microsoft Visual Studio/18/Insiders/MSBuild/Current/Bin/:$PATH"
+git clone https://github.com/kofemann/ms-nfs41-client.git
+cd ms-nfs41-client
+# "retarget" VS platform toolset to "v145"
+# ("v142" should remain the default when comitting)
+sed -i -E 's/&lt;PlatformToolset&gt;v142&lt;\/PlatformToolset&gt;/&lt;PlatformToolset&gt;v145&lt;\/PlatformToolset&gt;/g' $(find 'build.vc19' -name \*.vcxproj)
+cd cygwin
+# get default WDK Test Certificate SHA1 ThumbPrint value for code signing
+export CERTIFICATE_THUMBPRINT="$(powershell -c 'Get-ChildItem -Path Cert:\CurrentUser\My | Where-Object {$_.Subject -like "*WDKTestCert*"} | Select-Object -ExpandProperty Thumbprint')"
+make build
+make installdest
+make bintarball</programlisting>
+          </listitem>
+
         </itemizedlist>
         <note>
           <para><command>make installdest</command> or <command>make installdest64</command> can fail on SMB/NFSv4.1 filesystems with a "link.exe" crash. The workaround is to disable incremental linking before building, e.g., do:</para>

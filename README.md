@@ -234,7 +234,8 @@ NFSv4.2/NFSv4.1 filesystem driver for Windows 10/11 & Windows Server
 
   - All tools from Cygwin/MSYS2/MinGW
 
-  - Visual Studio (tested: VS2019, VS2022)
+  - Visual Studio (tested: VS2019 Community VS2022 Community, VS2026
+    Community Insiders)
 
   - VMware Workstation (can use VMs hosted on NFSv4.2/NFSv4.1
     filesystem)
@@ -823,7 +824,7 @@ Source code can be obtained from
 
 #### Required Software
 
-- **Option 1:** Windows 10 with Visual Studio 2019
+- **Option 1:** Windows 10 with Visual Studio 2019 Community
 
   - Start Visual Studio 2019 installer and import the installer config
     file `ms-nfs41-client/build.vc19/ms-nfs41-client_vs2019.vsconfig`,
@@ -844,7 +845,7 @@ Source code can be obtained from
   - PanDoc document converter, from
     <https://github.com/jgm/pandoc/releases/download/3.7.0.1/pandoc-3.7.0.1-windows-x86_64.msi>
 
-- **Option 2:** Windows 10/11 with Visual Studio 2022
+- **Option 2:** Windows 11 with Visual Studio 2022 Community
 
   - Start Visual Studio 2022 installer and import the installer config
     file `ms-nfs41-client/build.vc19/ms-nfs41-client_vs2022.vsconfig`,
@@ -865,9 +866,31 @@ Source code can be obtained from
   - PanDoc document converter, from
     <https://github.com/jgm/pandoc/releases/download/3.7.0.1/pandoc-3.7.0.1-windows-x86_64.msi>
 
+- **Option 3 (EXPERIMENTAL):** Windows 10 with Visual Studio 2026
+  Community Insiders
+
+  - Start Visual Studio 2026 installer and import the installer config
+    file `ms-nfs41-client/build.vc19/ms-nfs41-client_vs2022.vsconfig`,
+    and then install Visual Studio 2026 Community Insiders.
+
+  - WDK for Windows 10, version 2004, from
+    <https://go.microsoft.com/fwlink/?linkid=2128854>, and then copy the
+    `Microsoft.DriverKit.Build.Tasks.16.0.dll` to
+    `Microsoft.DriverKit.Build.Tasks.18.0.dll`:
+
+        cp '/cygdrive/c/Program Files (x86)/Windows Kits/10/build/bin/Microsoft.DriverKit.Build.Tasks.16.0.dll' '/cygdrive/c/Program Files (x86)/Windows Kits/10/build/bin/Microsoft.DriverKit.Build.Tasks.18.0.dll'
+
+  - Cygwin 64bit \>= 3.5.0 (see
+    `ms-nfs41-clientcygwin/README.bintarball.txt` for Cygwin 32bit and
+    64bit installation instructions)
+
+  - PanDoc document converter, from
+    <https://github.com/jgm/pandoc/releases/download/3.7.0.1/pandoc-3.7.0.1-windows-x86_64.msi>
+
 #### Build the Project
 
-- **Using Visual Studio 2019+Cygwin command line (bash/ksh93):**
+- **Windows 10: Using Visual Studio 2019+Cygwin command line
+  (bash/ksh93):**
 
       # this creates a 32bit+kernel+64bit-kernel build for Windows 10+11
       export PATH="/cygdrive/c/Program Files (x86)/Microsoft Visual Studio/2019/Community/MSBuild/Current/Bin/:$PATH"
@@ -880,7 +903,8 @@ Source code can be obtained from
       make installdest
       make bintarball
 
-- **Using Visual Studio 2022+Cygwin command line (bash/ksh93):**
+- **Windows 11: Using Visual Studio 2022+Cygwin command line
+  (bash/ksh93):**
 
       # this creates a 64bit-kernel only build for Windows 11
       export PATH="/cygdrive/c/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/:$PATH"
@@ -895,6 +919,23 @@ Source code can be obtained from
       make build64
       make installdest64
       make bintarball64
+
+- **Windows 10: Using Visual Studio 2026 Community Insiders+Cygwin
+  command line (bash/ksh93):**
+
+      # this creates a 32bit+kernel+64bit-kernel build for Windows 10+11
+      export PATH="/cygdrive/c/Program Files/Microsoft Visual Studio/18/Insiders/MSBuild/Current/Bin/:$PATH"
+      git clone https://github.com/kofemann/ms-nfs41-client.git
+      cd ms-nfs41-client
+      # "retarget" VS platform toolset to "v145"
+      # ("v142" should remain the default when comitting)
+      sed -i -E 's/<PlatformToolset>v142<\/PlatformToolset>/<PlatformToolset>v145<\/PlatformToolset>/g' $(find 'build.vc19' -name \*.vcxproj)
+      cd cygwin
+      # get default WDK Test Certificate SHA1 ThumbPrint value for code signing
+      export CERTIFICATE_THUMBPRINT="$(powershell -c 'Get-ChildItem -Path Cert:\CurrentUser\My | Where-Object {$_.Subject -like "*WDKTestCert*"} | Select-Object -ExpandProperty Thumbprint')"
+      make build
+      make installdest
+      make bintarball
 
 > [!NOTE]
 > `make installdest` or `make installdest64` can fail on SMB/NFSv4.1
