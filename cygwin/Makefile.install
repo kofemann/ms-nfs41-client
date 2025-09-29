@@ -23,41 +23,41 @@ installdest:
 		exit 1 ; \
 	fi
 	mkdir -p $(DESTDIR)
-	mkdir -p $(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/
-	# /usr/bin is a bind mount to C:/cygwin64/bin, so copy binaries to /$(CYGWIN_BASEPATH)/bin
-	mkdir -p $(DESTDIR)/$(CYGWIN_BASEPATH)/bin
-	# /usr/lib is a bind mount to C:/cygwin64/lib, so copy library data to /$(CYGWIN_BASEPATH)/lib
-	mkdir -p $(DESTDIR)/$(CYGWIN_BASEPATH)/lib
-	mkdir -p $(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client
-	mkdir -p $(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/i686
-	if [[ "$(VS_BUILD_DIR_X64)" != '' ]] ; then mkdir -p $(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/x64 ; fi
-	if [[ "$(VS_BUILD_DIR_ARM64)" != '' ]] ; then mkdir -p $(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/ARM64 ; fi
-	mkdir -p $(DESTDIR)/$(CYGWIN_BASEPATH)/etc
-	mkdir -p $(DESTDIR)/$(CYGWIN_BASEPATH)/usr/src/msnfs41client
-	mkdir -p $(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/man/man1
-	mkdir -p $(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/msnfs41client
-	mkdir -p $(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/msnfs41client/tests
-	mkdir -p $(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/msnfs41client/tests/misc
-	mkdir -p $(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/msnfs41client/tests/sparsefiles
-	mkdir -p $(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/msnfs41client/tests/filemmaptests
+	mkdir -p $(DESTDIR)/sbin/
+	# /usr/bin is a bind mount to C:/cygwin64/bin, so copy binaries to /bin
+	mkdir -p $(DESTDIR)/bin
+	# /usr/lib is a bind mount to C:/cygwin64/lib, so copy library data to /lib
+	mkdir -p $(DESTDIR)/lib
+	mkdir -p $(DESTDIR)/lib/msnfs41client
+	mkdir -p $(DESTDIR)/lib/msnfs41client/i686
+	if [[ "$(VS_BUILD_DIR_X64)" != '' ]] ; then mkdir -p $(DESTDIR)/lib/msnfs41client/x64 ; fi
+	if [[ "$(VS_BUILD_DIR_ARM64)" != '' ]] ; then mkdir -p $(DESTDIR)/lib/msnfs41client/ARM64 ; fi
+	mkdir -p $(DESTDIR)/etc
+	mkdir -p $(DESTDIR)/usr/src/msnfs41client
+	mkdir -p $(DESTDIR)/usr/share/man/man1
+	mkdir -p $(DESTDIR)/usr/share/msnfs41client
+	mkdir -p $(DESTDIR)/usr/share/msnfs41client/tests
+	mkdir -p $(DESTDIR)/usr/share/msnfs41client/tests/misc
+	mkdir -p $(DESTDIR)/usr/share/msnfs41client/tests/sparsefiles
+	mkdir -p $(DESTDIR)/usr/share/msnfs41client/tests/filemmaptests
 	#
 	# copy x86 binaries
 	#
 	if [[ -f "$(VS_BUILD_DIR_I686)/nfs41_driver.sys" ]] ; then \
 		# workaround for coreutils 9.5-1 /bin/cp bug stuck in an endless loop with compressed files \
 		chattr -V -c $(VS_BUILD_DIR_I686)/nfs41_driver.* ; \
-		cp $(VS_BUILD_DIR_I686)/nfs41_driver.*	$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/i686/. ; \
-		cp $(VS_BUILD_DIR_I686)/nfsd.*		$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/i686/. ; \
-		cp $(VS_BUILD_DIR_I686)/libtirpc.*	$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/i686/. ; \
-		cp $(VS_BUILD_DIR_I686)/nfs_install.*	$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/i686/. ; \
+		cp $(VS_BUILD_DIR_I686)/nfs41_driver.*	$(DESTDIR)/lib/msnfs41client/i686/. ; \
+		cp $(VS_BUILD_DIR_I686)/nfsd.*		$(DESTDIR)/lib/msnfs41client/i686/. ; \
+		cp $(VS_BUILD_DIR_I686)/libtirpc.*	$(DESTDIR)/lib/msnfs41client/i686/. ; \
+		cp $(VS_BUILD_DIR_I686)/nfs_install.*	$(DESTDIR)/lib/msnfs41client/i686/. ; \
 	fi
-	cp $(VS_BUILD_DIR_I686)/nfs_mount.*	$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/i686/.
+	cp $(VS_BUILD_DIR_I686)/nfs_mount.*	$(DESTDIR)/lib/msnfs41client/i686/.
 	# install 32bit nfs_mount.exe on 64bit Windows to assist with debugging 32bit issues
 	# we use the "Release" version on 64bit to avoid issues with missing debug libraries
 	# on 32bit we just create a hardlink from nfs_mount.exe to nfs_mount.i686.exe
-	cp $(VS_BUILD_DIR_I686)/../Release/nfs_mount.exe $(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/i686/nfs_mount.release.i686.exe
-	cp $(VS_BUILD_DIR_I686)/../Release/nfs41_np.dll $(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/i686/nfs41_np.release.dll
-	cp $(VS_BUILD_DIR_I686)/nfs41_np.*	$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/i686/. ; \
+	cp $(VS_BUILD_DIR_I686)/../Release/nfs_mount.exe $(DESTDIR)/lib/msnfs41client/i686/nfs_mount.release.i686.exe
+	cp $(VS_BUILD_DIR_I686)/../Release/nfs41_np.dll $(DESTDIR)/lib/msnfs41client/i686/nfs41_np.release.dll
+	cp $(VS_BUILD_DIR_I686)/nfs41_np.*	$(DESTDIR)/lib/msnfs41client/i686/. ; \
 	#
 	# copy x64 binaries
 	#
@@ -65,13 +65,13 @@ installdest:
 		if [[ -f "$(VS_BUILD_DIR_X64)/nfs41_driver.sys" ]] ; then \
 			# workaround for coreutils 9.5-1 /bin/cp bug stuck in an endless loop with compressed files \
 			chattr -V -c $(VS_BUILD_DIR_X64)/nfs41_driver.* ; \
-			cp $(VS_BUILD_DIR_X64)/nfs41_driver.*	$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/x64/. ; \
-			cp $(VS_BUILD_DIR_X64)/nfsd.*		$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/x64/. ; \
-			cp $(VS_BUILD_DIR_X64)/libtirpc.*	$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/x64/. ; \
-			cp $(VS_BUILD_DIR_X64)/nfs_install.*	$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/x64/. ; \
+			cp $(VS_BUILD_DIR_X64)/nfs41_driver.*	$(DESTDIR)/lib/msnfs41client/x64/. ; \
+			cp $(VS_BUILD_DIR_X64)/nfsd.*		$(DESTDIR)/lib/msnfs41client/x64/. ; \
+			cp $(VS_BUILD_DIR_X64)/libtirpc.*	$(DESTDIR)/lib/msnfs41client/x64/. ; \
+			cp $(VS_BUILD_DIR_X64)/nfs_install.*	$(DESTDIR)/lib/msnfs41client/x64/. ; \
 		fi ; \
-		cp $(VS_BUILD_DIR_X64)/nfs_mount.*	$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/x64/. ; \
-		cp $(VS_BUILD_DIR_X64)/nfs41_np.*	$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/x64/. ; \
+		cp $(VS_BUILD_DIR_X64)/nfs_mount.*	$(DESTDIR)/lib/msnfs41client/x64/. ; \
+		cp $(VS_BUILD_DIR_X64)/nfs41_np.*	$(DESTDIR)/lib/msnfs41client/x64/. ; \
 	fi
 	#
 	# copy ARM64 binaries
@@ -80,22 +80,22 @@ installdest:
 		if [[ -f "$(VS_BUILD_DIR_ARM64)/nfs41_driver.sys" ]] ; then \
 			# workaround for coreutils 9.5-1 /bin/cp bug stuck in an endless loop with compressed files \
 			chattr -V -c $(VS_BUILD_DIR_ARM64)/nfs41_driver.* ; \
-			cp $(VS_BUILD_DIR_ARM64)/nfs41_driver.*	$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/ARM64/. ; \
-			cp $(VS_BUILD_DIR_ARM64)/nfsd.*		$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/ARM64/. ; \
-			cp $(VS_BUILD_DIR_ARM64)/libtirpc.*	$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/ARM64/. ; \
-			cp $(VS_BUILD_DIR_ARM64)/nfs_install.*	$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/ARM64/. ; \
+			cp $(VS_BUILD_DIR_ARM64)/nfs41_driver.*	$(DESTDIR)/lib/msnfs41client/ARM64/. ; \
+			cp $(VS_BUILD_DIR_ARM64)/nfsd.*		$(DESTDIR)/lib/msnfs41client/ARM64/. ; \
+			cp $(VS_BUILD_DIR_ARM64)/libtirpc.*	$(DESTDIR)/lib/msnfs41client/ARM64/. ; \
+			cp $(VS_BUILD_DIR_ARM64)/nfs_install.*	$(DESTDIR)/lib/msnfs41client/ARM64/. ; \
 		fi ; \
-		cp $(VS_BUILD_DIR_ARM64)/nfs_mount.*	$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/ARM64/. ; \
-		cp $(VS_BUILD_DIR_ARM64)/nfs41_np.*	$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/ARM64/. ; \
+		cp $(VS_BUILD_DIR_ARM64)/nfs_mount.*	$(DESTDIR)/lib/msnfs41client/ARM64/. ; \
+		cp $(VS_BUILD_DIR_ARM64)/nfs41_np.*	$(DESTDIR)/lib/msnfs41client/ARM64/. ; \
 	fi
 	# Copy kernel driver INF file and generate signature catalog
 	# (inf2cat.exe cannot handle case-sensitive filesystems like NFS for temporary files, so we reset TMP&co)
 	for infdir in "i686" "x64" "ARM64" ; do \
-		[[ -f "$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/$${infdir}/nfs41_driver.sys" ]] || continue ; \
+		[[ -f "$(DESTDIR)/lib/msnfs41client/$${infdir}/nfs41_driver.sys" ]] || continue ; \
 		( \
-			cp "$(PROJECT_BASEDIR_DIR)/nfs41rdr.inf" "$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/$${infdir}/." && \
+			cp "$(PROJECT_BASEDIR_DIR)/nfs41rdr.inf" "$(DESTDIR)/lib/msnfs41client/$${infdir}/." && \
 			inf2catbin="$$(find '/cygdrive/c/Program Files (x86)/Windows Kits/10/bin' -iname inf2cat.exe | head -n 1)" && \
-			cd "$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/$${infdir}/." && \
+			cd "$(DESTDIR)/lib/msnfs41client/$${infdir}/." && \
 			if [[ "$$(/usr/lib/csih/getVolInfo . | awk '/FILE_CASE_SENSITIVE_SEARCH/ { print $$3 }')" == "TRUE" ]] ; then \
 				printf "# case-sensitive filesystem, resetting TMP TMPDIR TEMP to /tmp\n" ; \
 				export TMP=/tmp TMPDIR=/tmp TEMP=/tmp ; \
@@ -105,67 +105,73 @@ installdest:
 		) ; \
 	done
 	# Platform-independent files
-	cp $(PROJECT_BASEDIR_DIR)/etc_netconfig	$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/.
-	cp $(PROJECT_BASEDIR_DIR)/ms-nfs41-idmap.conf		$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/.
-	cp $(CYGWIN_MAKEFILE_DIR)/devel/msnfs41client.bash	$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/msnfs41client
-	chmod a+x "$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/msnfs41client"
+	cp $(PROJECT_BASEDIR_DIR)/etc_netconfig	$(DESTDIR)/lib/msnfs41client/.
+	cp $(PROJECT_BASEDIR_DIR)/ms-nfs41-idmap.conf		$(DESTDIR)/lib/msnfs41client/.
+	cp $(CYGWIN_MAKEFILE_DIR)/devel/msnfs41client.bash	$(DESTDIR)/lib/msnfs41client/msnfs41client
+	chmod a+x "$(DESTDIR)/lib/msnfs41client/msnfs41client"
 	# this must be a symlink, so msnfs41client can find it's real location
-	(cd "$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/" && ln -s -f ../lib/msnfs41client/msnfs41client .)
-	cp $(PROJECT_BASEDIR_DIR)/cygwin_idmapper.ksh		$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/.
+	(cd "$(DESTDIR)/sbin/" && ln -s -f ../lib/msnfs41client/msnfs41client .)
+	cp $(PROJECT_BASEDIR_DIR)/cygwin_idmapper.ksh		$(DESTDIR)/lib/msnfs41client/.
 	@ printf "# Package sources and diffs\n"
 	git config --global --add safe.directory "$(PROJECT_BASEDIR_DIR)"
-	git bundle create "$(DESTDIR)/$(CYGWIN_BASEPATH)/usr/src/msnfs41client/msnfs41client_git.bundle" HEAD
-	git diff -w	>"$(DESTDIR)/$(CYGWIN_BASEPATH)/usr/src/msnfs41client/msnfs41client_diff_w.diff"
-	git diff	>"$(DESTDIR)/$(CYGWIN_BASEPATH)/usr/src/msnfs41client/msnfs41client_diff.diff"
+	git bundle create "$(DESTDIR)/usr/src/msnfs41client/msnfs41client_git.bundle" HEAD
+	git diff -w	>"$(DESTDIR)/usr/src/msnfs41client/msnfs41client_diff_w.diff"
+	git diff	>"$(DESTDIR)/usr/src/msnfs41client/msnfs41client_diff.diff"
 	@ printf "# Package utilties\n"
-	cp $(CYGWIN_MAKEFILE_DIR)/utils/mountall_msnfs41client/mountall_msnfs41client.ksh $(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/mountall_msnfs41client
-	chmod a+x $(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/mountall_msnfs41client
-	PATH+=":$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/" \
-		/usr/bin/ksh93 $(CYGWIN_MAKEFILE_DIR)/utils/mountall_msnfs41client/mountall_msnfs41client.ksh --nroff 2>"$(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/man/man1/mountall_msnfs41client.1" || true
-	cp $(CYGWIN_MAKEFILE_DIR)/utils/cygwinaccount2nfs4account/cygwinaccount2nfs4account.ksh $(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/cygwinaccount2nfs4account
-	chmod a+x $(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/cygwinaccount2nfs4account
-	PATH+=":$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/" \
-		/usr/bin/ksh93 $(CYGWIN_MAKEFILE_DIR)/utils/cygwinaccount2nfs4account/cygwinaccount2nfs4account.ksh --nroff 2>"$(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/man/man1/cygwinaccount2nfs4account.1" || true
-	cp $(CYGWIN_MAKEFILE_DIR)/utils/mount_sshnfs/mount_sshnfs.ksh $(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/mount_sshnfs
-	chmod a+x $(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/mount_sshnfs
-	PATH+=":$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/" \
-		/usr/bin/ksh93 $(CYGWIN_MAKEFILE_DIR)/utils/mount_sshnfs/mount_sshnfs.ksh --nroff 2>"$(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/man/man1/mount_sshnfs.1" || true
-	cp $(CYGWIN_MAKEFILE_DIR)/utils/sshnfs/sshnfs.ksh $(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/sshnfs
-	chmod a+x $(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/sshnfs
-	cp $(CYGWIN_MAKEFILE_DIR)/utils/nfsurlconv/nfsurlconv.ksh $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/nfsurlconv
-	chmod a+x $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/nfsurlconv
-	/usr/bin/ksh93 $(CYGWIN_MAKEFILE_DIR)/utils/nfsurlconv/nfsurlconv.ksh --nroff 2>"$(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/man/man1/nfsurlconv.1" || true
+	cp $(CYGWIN_MAKEFILE_DIR)/utils/mountall_msnfs41client/mountall_msnfs41client.ksh $(DESTDIR)/sbin/mountall_msnfs41client
+	chmod a+x $(DESTDIR)/sbin/mountall_msnfs41client
+	PATH+=":$(DESTDIR)/sbin/" \
+		/usr/bin/ksh93 $(CYGWIN_MAKEFILE_DIR)/utils/mountall_msnfs41client/mountall_msnfs41client.ksh --nroff 2>"$(DESTDIR)/usr/share/man/man1/mountall_msnfs41client.1" || true
+	cp $(CYGWIN_MAKEFILE_DIR)/utils/cygwinaccount2nfs4account/cygwinaccount2nfs4account.ksh $(DESTDIR)/sbin/cygwinaccount2nfs4account
+	chmod a+x $(DESTDIR)/sbin/cygwinaccount2nfs4account
+	PATH+=":$(DESTDIR)/sbin/" \
+		/usr/bin/ksh93 $(CYGWIN_MAKEFILE_DIR)/utils/cygwinaccount2nfs4account/cygwinaccount2nfs4account.ksh --nroff 2>"$(DESTDIR)/usr/share/man/man1/cygwinaccount2nfs4account.1" || true
+	cp $(CYGWIN_MAKEFILE_DIR)/utils/mount_sshnfs/mount_sshnfs.ksh $(DESTDIR)/sbin/mount_sshnfs
+	chmod a+x $(DESTDIR)/sbin/mount_sshnfs
+	PATH+=":$(DESTDIR)/sbin/" \
+		/usr/bin/ksh93 $(CYGWIN_MAKEFILE_DIR)/utils/mount_sshnfs/mount_sshnfs.ksh --nroff 2>"$(DESTDIR)/usr/share/man/man1/mount_sshnfs.1" || true
+	cp $(CYGWIN_MAKEFILE_DIR)/utils/sshnfs/sshnfs.ksh $(DESTDIR)/sbin/sshnfs
+	chmod a+x $(DESTDIR)/sbin/sshnfs
+	cp $(CYGWIN_MAKEFILE_DIR)/utils/nfsurlconv/nfsurlconv.ksh $(DESTDIR)/bin/nfsurlconv
+	chmod a+x $(DESTDIR)/bin/nfsurlconv
+	/usr/bin/ksh93 $(CYGWIN_MAKEFILE_DIR)/utils/nfsurlconv/nfsurlconv.ksh --nroff 2>"$(DESTDIR)/usr/share/man/man1/nfsurlconv.1" || true
 	@ printf "# Package tests\n"
-	cp "$(PROJECT_BASEDIR_DIR)/tests/manual_testing.txt" $(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/msnfs41client/tests/manual_testing.txt
-	cp "$(PROJECT_BASEDIR_DIR)/tests/winfsinfo1/winfsinfo.x86_64.exe" $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/winfsinfo.x86_64.exe
-	cp "$(PROJECT_BASEDIR_DIR)/tests/winfsinfo1/winfsinfo.i686.exe" $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/winfsinfo.i686.exe
-	cp "$(PROJECT_BASEDIR_DIR)/tests/winclonefile/winclonefile.x86_64.exe" $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/winclonefile.x86_64.exe
-	cp "$(PROJECT_BASEDIR_DIR)/tests/winclonefile/winclonefile.i686.exe" $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/winclonefile.i686.exe
-	cp "$(PROJECT_BASEDIR_DIR)/tests/winoffloadcopyfile/winoffloadcopyfile.x86_64.exe" $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/winoffloadcopyfile.x86_64.exe
-	cp "$(PROJECT_BASEDIR_DIR)/tests/winoffloadcopyfile/winoffloadcopyfile.i686.exe" $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/winoffloadcopyfile.i686.exe
-	cp "$(PROJECT_BASEDIR_DIR)/tests/winrunassystem/winrunassystem.x86_64.exe" $(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/winrunassystem.x86_64.exe
-	cp "$(PROJECT_BASEDIR_DIR)/tests/winrunassystem/winrunassystem.i686.exe" $(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/winrunassystem.i686.exe
-	cp "$(PROJECT_BASEDIR_DIR)/tests/winrunassystem/nfs_globalmount.x86_64.exe" $(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/nfs_globalmount.x86_64.exe
-	cp "$(PROJECT_BASEDIR_DIR)/tests/winrunassystem/nfs_globalmount.i686.exe" $(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/nfs_globalmount.i686.exe
-	cp "$(PROJECT_BASEDIR_DIR)/tests/lssparse/lssparse.x86_64.exe" $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/lssparse.x86_64.exe
-	cp "$(PROJECT_BASEDIR_DIR)/tests/winsg/winsg.x86_64.exe" $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/winsg.x86_64.exe
-	cp "$(PROJECT_BASEDIR_DIR)/tests/winsg/winsg.i686.exe" $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/winsg.i686.exe
-	cp "$(PROJECT_BASEDIR_DIR)/tests/ea/nfs_ea.x86_64.exe" $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/nfs_ea.x86_64.exe
-	cp "$(PROJECT_BASEDIR_DIR)/tests/ea/nfs_ea.i686.exe" $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/nfs_ea.i686.exe
-	cp "$(PROJECT_BASEDIR_DIR)/tests/filemmaptests/qsortonmmapedfile1.x86_64.exe" $(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/msnfs41client/tests/filemmaptests/qsortonmmapedfile1.x86_64.exe
-	cp "$(PROJECT_BASEDIR_DIR)/tests/filemmaptests/qsortonmmapedfile1.i686.exe" $(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/msnfs41client/tests/filemmaptests/qsortonmmapedfile1.i686.exe
-	cp $(PROJECT_BASEDIR_DIR)/tests/filemmaptests/testqsortonmmapedfile1.ksh93 $(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/msnfs41client/tests/filemmaptests/testqsortonmmapedfile1.ksh93
-	cp $(PROJECT_BASEDIR_DIR)/tests/nfsbuildtest/nfsbuildtest.ksh93 $(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/msnfs41client/tests/misc/nfsbuildtest.ksh93
-	cp $(PROJECT_BASEDIR_DIR)/tests/sparsefiles/testsparsefile1.ksh $(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/msnfs41client/tests/sparsefiles/testsparsefile1.ksh
-	cp $(PROJECT_BASEDIR_DIR)/tests/sparsefiles/testsparseexe1.ksh $(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/msnfs41client/tests/sparsefiles/testsparseexe1.ksh
-	cp $(PROJECT_BASEDIR_DIR)/tests/sparsefiles/multisparsefiletest.ksh $(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/msnfs41client/tests/sparsefiles/multisparsefiletest.ksh
-	cp $(PROJECT_BASEDIR_DIR)/tests/fstest_make_numtree1/fstest_make_numtree1.ksh93 $(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/msnfs41client/tests/misc/fstest_make_numtree1.ksh93
-	cp $(PROJECT_BASEDIR_DIR)/tests/wintartests/wintartest_comparewinvsgnu001.bash $(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/msnfs41client/tests/misc/wintartest_comparewinvsgnu001.bash
-	cp $(PROJECT_BASEDIR_DIR)/tests/wintartests/wintartest_seq001.bash $(DESTDIR)/$(CYGWIN_BASEPATH)/usr/share/msnfs41client/tests/misc/wintartest_seq001.bash
+	cp "$(PROJECT_BASEDIR_DIR)/tests/manual_testing.txt" $(DESTDIR)/usr/share/msnfs41client/tests/manual_testing.txt
+	cp "$(PROJECT_BASEDIR_DIR)/tests/winfsinfo1/winfsinfo.x86_64.exe" $(DESTDIR)/bin/winfsinfo.x86_64.exe
+	cp "$(PROJECT_BASEDIR_DIR)/tests/winfsinfo1/winfsinfo.i686.exe" $(DESTDIR)/bin/winfsinfo.i686.exe
+	cp "$(PROJECT_BASEDIR_DIR)/tests/winclonefile/winclonefile.x86_64.exe" $(DESTDIR)/bin/winclonefile.x86_64.exe
+	cp "$(PROJECT_BASEDIR_DIR)/tests/winclonefile/winclonefile.i686.exe" $(DESTDIR)/bin/winclonefile.i686.exe
+	cp "$(PROJECT_BASEDIR_DIR)/tests/winoffloadcopyfile/winoffloadcopyfile.x86_64.exe" $(DESTDIR)/bin/winoffloadcopyfile.x86_64.exe
+	cp "$(PROJECT_BASEDIR_DIR)/tests/winoffloadcopyfile/winoffloadcopyfile.i686.exe" $(DESTDIR)/bin/winoffloadcopyfile.i686.exe
+	cp "$(PROJECT_BASEDIR_DIR)/tests/winrunassystem/winrunassystem.x86_64.exe" $(DESTDIR)/sbin/winrunassystem.x86_64.exe
+	cp "$(PROJECT_BASEDIR_DIR)/tests/winrunassystem/winrunassystem.i686.exe" $(DESTDIR)/sbin/winrunassystem.i686.exe
+	cp "$(PROJECT_BASEDIR_DIR)/tests/winrunassystem/nfs_globalmount.x86_64.exe" $(DESTDIR)/sbin/nfs_globalmount.x86_64.exe
+	cp "$(PROJECT_BASEDIR_DIR)/tests/winrunassystem/nfs_globalmount.i686.exe" $(DESTDIR)/sbin/nfs_globalmount.i686.exe
+	cp "$(PROJECT_BASEDIR_DIR)/tests/lssparse/lssparse.x86_64.exe" $(DESTDIR)/bin/lssparse.x86_64.exe
+	cp "$(PROJECT_BASEDIR_DIR)/tests/winsg/winsg.x86_64.exe" $(DESTDIR)/bin/winsg.x86_64.exe
+	cp "$(PROJECT_BASEDIR_DIR)/tests/winsg/winsg.i686.exe" $(DESTDIR)/bin/winsg.i686.exe
+	cp "$(PROJECT_BASEDIR_DIR)/tests/ea/nfs_ea.x86_64.exe" $(DESTDIR)/bin/nfs_ea.x86_64.exe
+	cp "$(PROJECT_BASEDIR_DIR)/tests/ea/nfs_ea.i686.exe" $(DESTDIR)/bin/nfs_ea.i686.exe
+	cp "$(PROJECT_BASEDIR_DIR)/tests/filemmaptests/qsortonmmapedfile1.x86_64.exe" $(DESTDIR)/usr/share/msnfs41client/tests/filemmaptests/qsortonmmapedfile1.x86_64.exe
+	cp "$(PROJECT_BASEDIR_DIR)/tests/filemmaptests/qsortonmmapedfile1.i686.exe" $(DESTDIR)/usr/share/msnfs41client/tests/filemmaptests/qsortonmmapedfile1.i686.exe
+	cp $(PROJECT_BASEDIR_DIR)/tests/filemmaptests/testqsortonmmapedfile1.ksh93 $(DESTDIR)/usr/share/msnfs41client/tests/filemmaptests/testqsortonmmapedfile1.ksh93
+	cp $(PROJECT_BASEDIR_DIR)/tests/nfsbuildtest/nfsbuildtest.ksh93 $(DESTDIR)/usr/share/msnfs41client/tests/misc/nfsbuildtest.ksh93
+	cp $(PROJECT_BASEDIR_DIR)/tests/sparsefiles/testsparsefile1.ksh $(DESTDIR)/usr/share/msnfs41client/tests/sparsefiles/testsparsefile1.ksh
+	cp $(PROJECT_BASEDIR_DIR)/tests/sparsefiles/testsparseexe1.ksh $(DESTDIR)/usr/share/msnfs41client/tests/sparsefiles/testsparseexe1.ksh
+	cp $(PROJECT_BASEDIR_DIR)/tests/sparsefiles/multisparsefiletest.ksh $(DESTDIR)/usr/share/msnfs41client/tests/sparsefiles/multisparsefiletest.ksh
+	cp $(PROJECT_BASEDIR_DIR)/tests/fstest_make_numtree1/fstest_make_numtree1.ksh93 $(DESTDIR)/usr/share/msnfs41client/tests/misc/fstest_make_numtree1.ksh93
+	cp $(PROJECT_BASEDIR_DIR)/tests/wintartests/wintartest_comparewinvsgnu001.bash $(DESTDIR)/usr/share/msnfs41client/tests/misc/wintartest_comparewinvsgnu001.bash
+	cp $(PROJECT_BASEDIR_DIR)/tests/wintartests/wintartest_seq001.bash $(DESTDIR)/usr/share/msnfs41client/tests/misc/wintartest_seq001.bash
 	@ printf "# Package ksh93&co (if available) since Cygwin does not ship with it yet\n"
-	[[ -x $(CYGWIN_BASEPATH)/bin/ksh93.exe ]] && cp -f $(CYGWIN_BASEPATH)/bin/ksh93.exe $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/ksh93.exe || true
-	[[ -x $(CYGWIN_BASEPATH)/bin/shcomp.exe ]] && cp -f $(CYGWIN_BASEPATH)/bin/shcomp.exe $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/shcomp.exe || true
-	cp $(PROJECT_BASEDIR_DIR)/cygwin/cygwin_ksh93/ksh.kshrc $(DESTDIR)/$(CYGWIN_BASEPATH)/etc/ksh.kshrc
+	if [[ -d '$(DESTDIR)/lib/msnfs41client/x64/' ]] ; then \
+		[[ -x '/cygdrive/c/cygwin/bin/ksh93.exe' ]] && cp '/cygdrive/c/cygwin/bin/ksh93.exe' '$(DESTDIR)/lib/msnfs41client/i686/ksh93.i686.exe' ; \
+		[[ -x '/cygdrive/c/cygwin/bin/shcomp.exe' ]] && cp '/cygdrive/c/cygwin/bin/shcomp.exe' '$(DESTDIR)/lib/msnfs41client/i686/shcomp.i686.exe' ; \
+	fi
+	if [[ -d '$(DESTDIR)/lib/msnfs41client/x64/' ]] ; then \
+		[[ -x '/cygdrive/c/cygwin64/bin/ksh93.exe' ]] && cp '/cygdrive/c/cygwin64/bin/ksh93.exe' '$(DESTDIR)/lib/msnfs41client/x64/ksh93.x86_64.exe' ; \
+		[[ -x '/cygdrive/c/cygwin64/bin/shcomp.exe' ]] && cp '/cygdrive/c/cygwin64/bin/shcomp.exe' '$(DESTDIR)/lib/msnfs41client/x64/shcomp.x86_64.exe' ; \
+	fi
+	cp $(PROJECT_BASEDIR_DIR)/cygwin/cygwin_ksh93/ksh.kshrc $(DESTDIR)/etc/ksh.kshrc
 	@ printf '# Packaging libs\n'
 	set -o errexit -o pipefail ; \
 	typeset msbuildpath="$$(which MSBuild.exe)" ; \
@@ -173,34 +179,34 @@ installdest:
 	test -d "$${vsbasepath}" || { printf "vsbasepath not found\n" 1>&2 ; exit 1 ; }; \
 	cp \
 		"$$(find "$${vsbasepath}/Community" -ipath '*/x86/*/VCRUNTIME140D.dll' | sort -n -r | head -n 1)" \
-		"$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/i686/." ; \
-	cp '/cygdrive/c/Program Files (x86)/Windows Kits/10/bin/x86/ucrt/ucrtbased.dll' "$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/i686/." ; \
+		"$(DESTDIR)/lib/msnfs41client/i686/." ; \
+	cp '/cygdrive/c/Program Files (x86)/Windows Kits/10/bin/x86/ucrt/ucrtbased.dll' "$(DESTDIR)/lib/msnfs41client/i686/." ; \
 	if [[ "$(VS_BUILD_DIR_X64)" != '' ]] ; then \
 		cp \
 			"$$(find "$${vsbasepath}/Community" -ipath '*/x64/*/VCRUNTIME140D.dll' | sort -n -r | head -n 1)" \
-			"$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/x64/." ; \
-		cp '/cygdrive/c/Program Files (x86)/Windows Kits/10/bin/x64/ucrt/ucrtbased.dll' "$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/x64/." ; \
+			"$(DESTDIR)/lib/msnfs41client/x64/." ; \
+		cp '/cygdrive/c/Program Files (x86)/Windows Kits/10/bin/x64/ucrt/ucrtbased.dll' "$(DESTDIR)/lib/msnfs41client/x64/." ; \
 	fi ; \
 	if [[ "$(VS_BUILD_DIR_ARM64)" != '' ]] ; then \
 		cp \
 			"$$(find "$${vsbasepath}/Community" -ipath '*/arm64/*/VCRUNTIME140D.dll' | sort -n -r | head -n 1)" \
-			"$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/ARM64/." ; \
-		cp '/cygdrive/c/Program Files (x86)/Windows Kits/10/bin/arm64/ucrt/ucrtbased.dll' "$(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/ARM64/." ; \
+			"$(DESTDIR)/lib/msnfs41client/ARM64/." ; \
+		cp '/cygdrive/c/Program Files (x86)/Windows Kits/10/bin/arm64/ucrt/ucrtbased.dll' "$(DESTDIR)/lib/msnfs41client/ARM64/." ; \
 	fi
 	@ printf "# Set file flags\n"
-	(cd $(DESTDIR)/$(CYGWIN_BASEPATH)/bin/ && chmod a+rx *.exe)
-	(cd $(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/ && chmod a+rx *.exe)
-	(cd $(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/i686 && chmod a+rx *.exe *.dll)
+	(cd $(DESTDIR)/bin/ && chmod a+rx *.exe)
+	(cd $(DESTDIR)/sbin/ && chmod a+rx *.exe)
+	(cd $(DESTDIR)/lib/msnfs41client/i686 && chmod a+rx *.exe *.dll)
 	if [[ "$(VS_BUILD_DIR_X64)" != '' ]] ; then \
-		(cd $(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/x64 && chmod a+rx *.exe *.dll) ; \
+		(cd $(DESTDIR)/lib/msnfs41client/x64 && chmod a+rx *.exe *.dll) ; \
 	fi
 	if [[ "$(VS_BUILD_DIR_ARM64)" != '' ]] ; then \
-		(cd $(DESTDIR)/$(CYGWIN_BASEPATH)/lib/msnfs41client/ARM64 && chmod a+rx *.exe *.dll) ; \
+		(cd $(DESTDIR)/lib/msnfs41client/ARM64 && chmod a+rx *.exe *.dll) ; \
 	fi
-	@printf "\n#\n# TEST sbin dir is %s\n#\n" "$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/"
+	@printf "\n#\n# TEST sbin dir is %s\n#\n" "$(DESTDIR)/sbin/"
 	@printf '\n'
 	@printf "\n#\n# Now use\n# $$ cd '%s' && ./msnfs41client install #\n# to install the kernel driver as Admin\n#\n" \
-		"$(DESTDIR)/$(CYGWIN_BASEPATH)/sbin/"
+		"$(DESTDIR)/sbin/"
 	sync
 
 

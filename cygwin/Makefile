@@ -150,8 +150,7 @@ installdest32: \
 		installdest \
 		VS_BUILD_DIR_I686="$(VS_BUILD_DIR_I686)" \
 		VS_BUILD_DIR_X64="" \
-		VS_BUILD_DIR_ARM64="" \
-		CYGWIN_BASEPATH=/cygdrive/c/cygwin/
+		VS_BUILD_DIR_ARM64=""
 
 # installdest64: 32bit nfs41_np.dll is required to support 32bit
 # apps on 64bit Windows
@@ -174,8 +173,7 @@ installdest64: \
 		installdest \
 		VS_BUILD_DIR_I686="$(VS_BUILD_DIR_I686)" \
 		VS_BUILD_DIR_X64="$(VS_BUILD_DIR_X64)" \
-		VS_BUILD_DIR_ARM64="$(VS_BUILD_DIR_ARM64)" \
-		CYGWIN_BASEPATH=/cygdrive/c/cygwin64/
+		VS_BUILD_DIR_ARM64="$(VS_BUILD_DIR_ARM64)"
 
 # installdest: we need a .WAIT here becase Makefile.install uses git commands
 # to create a git bundle, and the commands do not like to run
@@ -190,8 +188,7 @@ bintarball: installdest $(PROJECT_BASEDIR_DIR)/README.txt $(PROJECT_BASEDIR_DIR)
 	tar -cvf - \
 		--owner=SYSTEM:18 \
 		--group=SYSTEM:18 \
-		cygdrive/c/cygwin \
-		cygdrive/c/cygwin64 \
+		sbin bin usr lib etc \
 		| \
 			bzip2 -9 >"$${base_filename}.tar.bz2" ; \
 	archive_sha256hash="$$(openssl sha256 -r "$${base_filename}.tar.bz2" | while read a dummy ; do printf "%s\n" "$$a" ; done)" ; \
@@ -212,7 +209,7 @@ bintarball32: installdest32 $(PROJECT_BASEDIR_DIR)/README.txt $(PROJECT_BASEDIR_
 	tar -cvf - \
 		--owner=SYSTEM:18 \
 		--group=SYSTEM:18 \
-		cygdrive/c/cygwin \
+		sbin bin usr lib etc \
 		| \
 			bzip2 -9 >"$${base_filename}.tar.bz2" ; \
 	archive_sha256hash="$$(openssl sha256 -r "$${base_filename}.tar.bz2" | while read a dummy ; do printf "%s\n" "$$a" ; done)" ; \
@@ -233,7 +230,7 @@ bintarball64: installdest64 $(PROJECT_BASEDIR_DIR)/README.txt $(PROJECT_BASEDIR_
 	tar -cvf - \
 		--owner=SYSTEM:18 \
 		--group=SYSTEM:18 \
-		cygdrive/c/cygwin64 \
+		sbin bin usr lib etc \
 		| \
 			bzip2 -9 >"$${base_filename}.tar.bz2" ; \
 	archive_sha256hash="$$(openssl sha256 -r "$${base_filename}.tar.bz2" | while read a dummy ; do printf "%s\n" "$$a" ; done)" ; \

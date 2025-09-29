@@ -222,6 +222,27 @@ function nfsclient_install
 		ln -f 'i686/nfs_mount.release.i686.exe' "../../sbin/nfs_mount.i686.exe"
 	fi
 
+	# copy ksh93&co
+	case "${kernel_platform}" in
+		'x64')
+			ln -f "${platform_dir}/ksh93.x86_64.exe" "../../bin/ksh93.exe"
+			ln -f "${platform_dir}/shcomp.x86_64.exe" "../../bin/shcomp.exe"
+			;;
+		'ARM64')
+			if [[ -f "${platform_dir}/ksh93.arm64.exe" ]] ; then
+				ln -f "${platform_dir}/ksh93.arm64.exe" "../../bin/ksh93.exe"
+				ln -f "${platform_dir}/shcomp.arm64.exe" "../../bin/shcomp.exe"
+			else
+				ln -f "${platform_dir}/../x64/ksh93.x86_64.exe" "../../bin/ksh93.exe"
+				ln -f "${platform_dir}/../x64/shcomp.x86_64.exe" "../../bin/shcomp.exe"
+			fi
+			;;
+		'i686')
+			ln -f "${platform_dir}/ksh93.i686.exe" "../../bin/ksh93.exe"
+			ln -f "${platform_dir}/shcomp.i686.exe" "../../bin/shcomp.exe"
+			;;
+	esac
+
 	typeset -a platformspecificexe=(
 		'bin/winfsinfo'
 		'bin/winclonefile'
