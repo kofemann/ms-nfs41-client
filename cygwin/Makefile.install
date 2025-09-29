@@ -31,7 +31,7 @@ installdest:
 	mkdir -p $(DESTDIR)/lib/msnfs41client
 	mkdir -p $(DESTDIR)/lib/msnfs41client/i686
 	if [[ "$(VS_BUILD_DIR_X64)" != '' ]] ; then mkdir -p $(DESTDIR)/lib/msnfs41client/x64 ; fi
-	if [[ "$(VS_BUILD_DIR_ARM64)" != '' ]] ; then mkdir -p $(DESTDIR)/lib/msnfs41client/ARM64 ; fi
+	if [[ "$(VS_BUILD_DIR_ARM64)" != '' ]] ; then mkdir -p $(DESTDIR)/lib/msnfs41client/arm64 ; fi
 	mkdir -p $(DESTDIR)/etc
 	mkdir -p $(DESTDIR)/usr/src/msnfs41client
 	mkdir -p $(DESTDIR)/usr/share/man/man1
@@ -80,17 +80,17 @@ installdest:
 		if [[ -f "$(VS_BUILD_DIR_ARM64)/nfs41_driver.sys" ]] ; then \
 			# workaround for coreutils 9.5-1 /bin/cp bug stuck in an endless loop with compressed files \
 			chattr -V -c $(VS_BUILD_DIR_ARM64)/nfs41_driver.* ; \
-			cp $(VS_BUILD_DIR_ARM64)/nfs41_driver.*	$(DESTDIR)/lib/msnfs41client/ARM64/. ; \
-			cp $(VS_BUILD_DIR_ARM64)/nfsd.*		$(DESTDIR)/lib/msnfs41client/ARM64/. ; \
-			cp $(VS_BUILD_DIR_ARM64)/libtirpc.*	$(DESTDIR)/lib/msnfs41client/ARM64/. ; \
-			cp $(VS_BUILD_DIR_ARM64)/nfs_install.*	$(DESTDIR)/lib/msnfs41client/ARM64/. ; \
+			cp $(VS_BUILD_DIR_ARM64)/nfs41_driver.*	$(DESTDIR)/lib/msnfs41client/arm64/. ; \
+			cp $(VS_BUILD_DIR_ARM64)/nfsd.*		$(DESTDIR)/lib/msnfs41client/arm64/. ; \
+			cp $(VS_BUILD_DIR_ARM64)/libtirpc.*	$(DESTDIR)/lib/msnfs41client/arm64/. ; \
+			cp $(VS_BUILD_DIR_ARM64)/nfs_install.*	$(DESTDIR)/lib/msnfs41client/arm64/. ; \
 		fi ; \
-		cp $(VS_BUILD_DIR_ARM64)/nfs_mount.*	$(DESTDIR)/lib/msnfs41client/ARM64/. ; \
-		cp $(VS_BUILD_DIR_ARM64)/nfs41_np.*	$(DESTDIR)/lib/msnfs41client/ARM64/. ; \
+		cp $(VS_BUILD_DIR_ARM64)/nfs_mount.*	$(DESTDIR)/lib/msnfs41client/arm64/. ; \
+		cp $(VS_BUILD_DIR_ARM64)/nfs41_np.*	$(DESTDIR)/lib/msnfs41client/arm64/. ; \
 	fi
 	# Copy kernel driver INF file and generate signature catalog
 	# (inf2cat.exe cannot handle case-sensitive filesystems like NFS for temporary files, so we reset TMP&co)
-	for infdir in "i686" "x64" "ARM64" ; do \
+	for infdir in "i686" "x64" "arm64" ; do \
 		[[ -f "$(DESTDIR)/lib/msnfs41client/$${infdir}/nfs41_driver.sys" ]] || continue ; \
 		( \
 			cp "$(PROJECT_BASEDIR_DIR)/nfs41rdr.inf" "$(DESTDIR)/lib/msnfs41client/$${infdir}/." && \
@@ -190,8 +190,8 @@ installdest:
 	if [[ "$(VS_BUILD_DIR_ARM64)" != '' ]] ; then \
 		cp \
 			"$$(find "$${vsbasepath}/Community" -ipath '*/arm64/*/VCRUNTIME140D.dll' | sort -n -r | head -n 1)" \
-			"$(DESTDIR)/lib/msnfs41client/ARM64/." ; \
-		cp '/cygdrive/c/Program Files (x86)/Windows Kits/10/bin/arm64/ucrt/ucrtbased.dll' "$(DESTDIR)/lib/msnfs41client/ARM64/." ; \
+			"$(DESTDIR)/lib/msnfs41client/arm64/." ; \
+		cp '/cygdrive/c/Program Files (x86)/Windows Kits/10/bin/arm64/ucrt/ucrtbased.dll' "$(DESTDIR)/lib/msnfs41client/arm64/." ; \
 	fi
 	@ printf "# Set file flags\n"
 	(cd $(DESTDIR)/bin/ && chmod a+rx *.exe)
@@ -201,7 +201,7 @@ installdest:
 		(cd $(DESTDIR)/lib/msnfs41client/x64 && chmod a+rx *.exe *.dll) ; \
 	fi
 	if [[ "$(VS_BUILD_DIR_ARM64)" != '' ]] ; then \
-		(cd $(DESTDIR)/lib/msnfs41client/ARM64 && chmod a+rx *.exe *.dll) ; \
+		(cd $(DESTDIR)/lib/msnfs41client/arm64 && chmod a+rx *.exe *.dll) ; \
 	fi
 	@printf "\n#\n# TEST sbin dir is %s\n#\n" "$(DESTDIR)/sbin/"
 	@printf '\n'

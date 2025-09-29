@@ -177,7 +177,7 @@ function nfsclient_install
 	case "${uname_m}" in
 		'x86_64')
 			if [[ "${uname_s}" == *-ARM64 ]] ; then
-				kernel_platform='ARM64'
+				kernel_platform='arm64'
 			else
 				kernel_platform='x64'
 			fi
@@ -228,7 +228,7 @@ function nfsclient_install
 			ln -f "${platform_dir}/ksh93.x86_64.exe" "../../bin/ksh93.exe"
 			ln -f "${platform_dir}/shcomp.x86_64.exe" "../../bin/shcomp.exe"
 			;;
-		'ARM64')
+		'arm64')
 			if [[ -f "${platform_dir}/ksh93.arm64.exe" ]] ; then
 				ln -f "${platform_dir}/ksh93.arm64.exe" "../../bin/ksh93.exe"
 				ln -f "${platform_dir}/shcomp.arm64.exe" "../../bin/shcomp.exe"
@@ -265,7 +265,7 @@ function nfsclient_install
 			'x64')
 				ln -f "../../${i}.x86_64.exe" "../../${i}.exe"
 				;;
-			'ARM64')
+			'arm64')
 				if [[ -f "../../${i}.arm64.exe" ]] ; then
 					ln -f "../../${i}.arm64.exe" "../../${i}.exe"
 				else
