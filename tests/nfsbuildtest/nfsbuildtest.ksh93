@@ -552,9 +552,14 @@ function msnfs41client_build
 			time make -j1 -f cygwin/Makefile build64
 			time make -j1 -f cygwin/Makefile installdest64
 			time make -j1 -f cygwin/Makefile bintarball64
-		elif [[ -x '/cygdrive/c/Program Files (x86)/Microsoft Visual Studio/2019/Community/MSBuild/Current/Bin/MSBuild.exe' ]] ; then
+		elif [[ -x '/cygdrive/c/Program Files/Microsoft Visual Studio/2019/Community/MSBuild/Current/Bin/MSBuild.exe' || \
+			-x '/cygdrive/c/Program Files (x86)/Microsoft Visual Studio/2019/Community/MSBuild/Current/Bin/MSBuild.exe' ]] ; then
 			# Visual Studio 19 64bit+32bit kernel codepath
-			export PATH="/cygdrive/c/Program Files (x86)/Microsoft Visual Studio/2019/Community/MSBuild/Current/Bin/:$PATH"
+			if [[ -x '/cygdrive/c/Program Files/Microsoft Visual Studio/2019/Community/MSBuild/Current/Bin/MSBuild.exe' ]] ; then
+				export PATH="/cygdrive/c/Program Files/Microsoft Visual Studio/2019/Community/MSBuild/Current/Bin/:$PATH"
+			else
+				export PATH="/cygdrive/c/Program Files (x86)/Microsoft Visual Studio/2019/Community/MSBuild/Current/Bin/:$PATH"
+			fi
 			set -o errexit
 			time make -j1 -f cygwin/Makefile build
 			time make -j1 -f cygwin/Makefile installdest
