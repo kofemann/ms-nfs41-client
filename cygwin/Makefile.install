@@ -39,7 +39,6 @@ installdest:
 	mkdir -p $(DESTDIR)/usr/share/msnfs41client/tests
 	mkdir -p $(DESTDIR)/usr/share/msnfs41client/tests/misc
 	mkdir -p $(DESTDIR)/usr/share/msnfs41client/tests/sparsefiles
-	mkdir -p $(DESTDIR)/usr/share/msnfs41client/tests/filemmaptests
 	#
 	# copy x86 binaries
 	#
@@ -152,9 +151,11 @@ installdest:
 	cp "$(PROJECT_BASEDIR_DIR)/tests/winsg/winsg.i686.exe" $(DESTDIR)/bin/winsg.i686.exe
 	cp "$(PROJECT_BASEDIR_DIR)/tests/ea/nfs_ea.x86_64.exe" $(DESTDIR)/bin/nfs_ea.x86_64.exe
 	cp "$(PROJECT_BASEDIR_DIR)/tests/ea/nfs_ea.i686.exe" $(DESTDIR)/bin/nfs_ea.i686.exe
-	cp "$(PROJECT_BASEDIR_DIR)/tests/filemmaptests/qsortonmmapedfile1.x86_64.exe" $(DESTDIR)/usr/share/msnfs41client/tests/filemmaptests/qsortonmmapedfile1.x86_64.exe
-	cp "$(PROJECT_BASEDIR_DIR)/tests/filemmaptests/qsortonmmapedfile1.i686.exe" $(DESTDIR)/usr/share/msnfs41client/tests/filemmaptests/qsortonmmapedfile1.i686.exe
-	cp $(PROJECT_BASEDIR_DIR)/tests/filemmaptests/testqsortonmmapedfile1.ksh93 $(DESTDIR)/usr/share/msnfs41client/tests/filemmaptests/testqsortonmmapedfile1.ksh93
+	cp "$(PROJECT_BASEDIR_DIR)/tests/filemmaptests/qsortonmmapedfile1.x86_64.exe" $(DESTDIR)/usr/share/msnfs41client/tests/misc/qsortonmmapedfile1.x86_64.exe
+	cp "$(PROJECT_BASEDIR_DIR)/tests/filemmaptests/qsortonmmapedfile1.i686.exe" $(DESTDIR)/usr/share/msnfs41client/tests/misc/qsortonmmapedfile1.i686.exe
+	cp $(PROJECT_BASEDIR_DIR)/tests/filemmaptests/testqsortonmmapedfile1.ksh93 $(DESTDIR)/usr/share/msnfs41client/tests/misc/testqsortonmmapedfile1.ksh93
+	cp "$(PROJECT_BASEDIR_DIR)/tests/lockincfile1/lockincfile1.x86_64.exe" $(DESTDIR)/usr/share/msnfs41client/tests/misc/lockincfile1.x86_64.exe
+	cp "$(PROJECT_BASEDIR_DIR)/tests/lockincfile1/lockincfile1.i686.exe" $(DESTDIR)/usr/share/msnfs41client/tests/misc/lockincfile1.i686.exe
 	cp $(PROJECT_BASEDIR_DIR)/tests/nfsbuildtest/nfsbuildtest.ksh93 $(DESTDIR)/usr/share/msnfs41client/tests/misc/nfsbuildtest.ksh93
 	cp $(PROJECT_BASEDIR_DIR)/tests/sparsefiles/testsparsefile1.ksh $(DESTDIR)/usr/share/msnfs41client/tests/sparsefiles/testsparsefile1.ksh
 	cp $(PROJECT_BASEDIR_DIR)/tests/sparsefiles/testsparseexe1.ksh $(DESTDIR)/usr/share/msnfs41client/tests/sparsefiles/testsparseexe1.ksh

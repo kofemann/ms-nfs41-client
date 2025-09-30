@@ -26,6 +26,7 @@ $(PROJECT_BASEDIR_DIR)/tests/ea/nfs_ea.exe \
 	$(PROJECT_BASEDIR_DIR)/tests/lssparse/lssparse.exe \
 	$(PROJECT_BASEDIR_DIR)/tests/winfsinfo1/winfsinfo.exe \
 	$(PROJECT_BASEDIR_DIR)/tests/filemmaptests/qsortonmmapedfile1.exe \
+	$(PROJECT_BASEDIR_DIR)/tests/lockincfile1/lockincfile1.exe \
 	$(PROJECT_BASEDIR_DIR)/tests/winclonefile/winclonefile.exe \
 	$(PROJECT_BASEDIR_DIR)/tests/winoffloadcopyfile/winoffloadcopyfile.exe \
 	$(PROJECT_BASEDIR_DIR)/tests/winrunassystem/winrunassystem.exe \
@@ -132,6 +133,7 @@ installdest_util: \
 	$(PROJECT_BASEDIR_DIR)/tests/lssparse/lssparse.exe \
 	$(PROJECT_BASEDIR_DIR)/tests/winfsinfo1/winfsinfo.exe \
 	$(PROJECT_BASEDIR_DIR)/tests/filemmaptests/qsortonmmapedfile1.exe \
+	$(PROJECT_BASEDIR_DIR)/tests/lockincfile1/lockincfile1.exe \
 	$(PROJECT_BASEDIR_DIR)/tests/winclonefile/winclonefile.exe \
 	$(PROJECT_BASEDIR_DIR)/tests/winoffloadcopyfile/winoffloadcopyfile.exe \
 	$(PROJECT_BASEDIR_DIR)/tests/winrunassystem/winrunassystem.exe \

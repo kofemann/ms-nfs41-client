@@ -251,7 +251,8 @@ function nfsclient_install
 		'bin/nfs_ea'
 		'sbin/winrunassystem'
 		'sbin/nfs_globalmount'
-		'usr/share/msnfs41client/tests/filemmaptests/qsortonmmapedfile1'
+		'usr/share/msnfs41client/tests/misc/qsortonmmapedfile1'
+		'usr/share/msnfs41client/tests/misc/lockincfile1'
 	)
 
 	if [[ "${kernel_platform}" != 'i686' ]] ; then
