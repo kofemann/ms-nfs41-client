@@ -504,14 +504,30 @@ int get_file_basic_info(const char *progname, const char *filename)
     TESTFBIA(FILE_ATTRIBUTE_OFFLINE);
     TESTFBIA(FILE_ATTRIBUTE_NOT_CONTENT_INDEXED);
     TESTFBIA(FILE_ATTRIBUTE_ENCRYPTED);
+#ifdef FILE_ATTRIBUTE_INTEGRITY_STREAM
     TESTFBIA(FILE_ATTRIBUTE_INTEGRITY_STREAM);
+#endif /* FILE_ATTRIBUTE_INTEGRITY_STREAM */
+#ifdef FILE_ATTRIBUTE_VIRTUAL
     TESTFBIA(FILE_ATTRIBUTE_VIRTUAL);
+#endif /* FILE_ATTRIBUTE_VIRTUAL */
+#ifdef FILE_ATTRIBUTE_NO_SCRUB_DATA
     TESTFBIA(FILE_ATTRIBUTE_NO_SCRUB_DATA);
+#endif /* FILE_ATTRIBUTE_NO_SCRUB_DATA */
+#ifdef FILE_ATTRIBUTE_EA
     TESTFBIA(FILE_ATTRIBUTE_EA);
+#endif /* FILE_ATTRIBUTE_EA */
+#ifdef FILE_ATTRIBUTE_PINNED
     TESTFBIA(FILE_ATTRIBUTE_PINNED);
+#endif /* FILE_ATTRIBUTE_PINNED */
+#ifdef FILE_ATTRIBUTE_UNPINNED
     TESTFBIA(FILE_ATTRIBUTE_UNPINNED);
+#endif /* FILE_ATTRIBUTE_UNPINNED */
+#ifdef FILE_ATTRIBUTE_RECALL_ON_OPEN
     TESTFBIA(FILE_ATTRIBUTE_RECALL_ON_OPEN);
+#endif /* FILE_ATTRIBUTE_RECALL_ON_OPEN */
+#ifdef FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS
     TESTFBIA(FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS);
+#endif /* FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS */
 
     /*
      * print any leftover flags not covered by |TESTFBIA(FILE_*)|
@@ -602,14 +618,30 @@ int get_fileexinfostandard(const char *progname, const char *filename)
     TESTFEIS(FILE_ATTRIBUTE_OFFLINE);
     TESTFEIS(FILE_ATTRIBUTE_NOT_CONTENT_INDEXED);
     TESTFEIS(FILE_ATTRIBUTE_ENCRYPTED);
+#ifdef FILE_ATTRIBUTE_INTEGRITY_STREAM
     TESTFEIS(FILE_ATTRIBUTE_INTEGRITY_STREAM);
+#endif /* FILE_ATTRIBUTE_INTEGRITY_STREAM */
+#ifdef FILE_ATTRIBUTE_VIRTUAL
     TESTFEIS(FILE_ATTRIBUTE_VIRTUAL);
+#endif /* FILE_ATTRIBUTE_VIRTUAL */
+#ifdef FILE_ATTRIBUTE_NO_SCRUB_DATA
     TESTFEIS(FILE_ATTRIBUTE_NO_SCRUB_DATA);
+#endif /* FILE_ATTRIBUTE_NO_SCRUB_DATA */
+#ifdef FILE_ATTRIBUTE_EA
     TESTFEIS(FILE_ATTRIBUTE_EA);
+#endif /* FILE_ATTRIBUTE_EA */
+#ifdef FILE_ATTRIBUTE_PINNED
     TESTFEIS(FILE_ATTRIBUTE_PINNED);
+#endif /* FILE_ATTRIBUTE_PINNED */
+#ifdef FILE_ATTRIBUTE_UNPINNED
     TESTFEIS(FILE_ATTRIBUTE_UNPINNED);
+#endif /* FILE_ATTRIBUTE_UNPINNED */
+#ifdef FILE_ATTRIBUTE_RECALL_ON_OPEN
     TESTFEIS(FILE_ATTRIBUTE_RECALL_ON_OPEN);
+#endif /* FILE_ATTRIBUTE_RECALL_ON_OPEN */
+#ifdef FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS
     TESTFEIS(FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS);
+#endif /* FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS */
 
     /*
      * print any leftover flags not covered by |TESTFNOI(FILE_*)|
@@ -798,7 +830,7 @@ done:
     return res;
 }
 
-
+#ifdef FILE_CS_FLAG_CASE_SENSITIVE_DIR
 static
 int get_filecasesensitiveinfo(const char *progname, const char *filename)
 {
@@ -863,6 +895,7 @@ done:
     (void)CloseHandle(fileHandle);
     return res;
 }
+#endif /* FILE_CS_FLAG_CASE_SENSITIVE_DIR */
 
 static
 int get_getfiletime(const char *progname, const char *filename)
@@ -1461,7 +1494,9 @@ void usage(void)
         "filestandardinfo|"
         "filenameinfo|"
         "filenormalizednameinfo|"
+#ifdef FILE_CS_FLAG_CASE_SENSITIVE_DIR
         "filecasesensitiveinfo|"
+#endif /* FILE_CS_FLAG_CASE_SENSITIVE_DIR */
         "getfiletime|"
         "nfs3attr|"
         "fileremoteprotocolinfo|"
@@ -1529,9 +1564,11 @@ int main(int ac, char *av[])
     else if (!strcmp(subcmd, "getfiletime")) {
         return get_getfiletime(av[0], av[2]);
     }
+#ifdef FILE_CS_FLAG_CASE_SENSITIVE_DIR
     else if (!strcmp(subcmd, "filecasesensitiveinfo")) {
         return get_filecasesensitiveinfo(av[0], av[2]);
     }
+#endif /* FILE_CS_FLAG_CASE_SENSITIVE_DIR */
     else if (!strcmp(subcmd, "nfs3attr")) {
         return get_nfs3attr(av[0], av[2]);
     }
