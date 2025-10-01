@@ -130,6 +130,18 @@ out_map_default_ids:
     goto out;
 }
 
+#ifdef NFS41_DRIVER_HACK_HANDLE_NFS_DELAY_GRACE_WIP
+/* Store the current kernel XID in |curr_upcall_xid|
+ * so |compound_encode_send_decode()| can use this to extend the
+ * kernel timout
+ * This code still requires some cleanup, as we do not
+ * have a simple way that |compound_encode_send_decode()| can
+ * access the current kernel XID. As hackish quickfix we
+ * use this thread-local variable to store the current XID.
+ */
+__declspec(thread) LONGLONG curr_upcall_xid = -1;
+#endif /* NFS41_DRIVER_HACK_HANDLE_NFS_DELAY_GRACE_WIP */
+
 static unsigned int nfsd_worker_thread_main(void *args)
 {
     nfs41_daemon_globals *nfs41dg = (nfs41_daemon_globals *)args;
@@ -183,6 +195,10 @@ static unsigned int nfsd_worker_thread_main(void *args)
             goto write_downcall;
         }
 
+#ifdef NFS41_DRIVER_HACK_HANDLE_NFS_DELAY_GRACE_WIP
+        curr_upcall_xid = upcall.xid;
+#endif /* NFS41_DRIVER_HACK_HANDLE_NFS_DELAY_GRACE_WIP */
+
         if (!OpenThreadToken(GetCurrentThread(),
             TOKEN_QUERY/*|TOKEN_IMPERSONATE*/, FALSE,
             &upcall.currentthread_token)) {
@@ -225,6 +241,10 @@ write_downcall:
          */
         (void)CloseHandle(upcall.currentthread_token);
         upcall.currentthread_token = INVALID_HANDLE_VALUE;
+
+#ifdef NFS41_DRIVER_HACK_HANDLE_NFS_DELAY_GRACE_WIP
+        curr_upcall_xid = -1LL;
+#endif /* NFS41_DRIVER_HACK_HANDLE_NFS_DELAY_GRACE_WIP */
 
         DPRINTF(2,
             ("making a downcall: "

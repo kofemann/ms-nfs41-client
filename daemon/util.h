@@ -436,4 +436,6 @@ int parse_fs_location_server_address(IN const char *restrict inaddr,
     OUT char *restrict addr,
     OUT unsigned short *restrict port);
 
+int delayxid(LONGLONG xid, LONGLONG moredelaysecs);
+
 #endif /* !__NFS41_DAEMON_UTIL_H__ */

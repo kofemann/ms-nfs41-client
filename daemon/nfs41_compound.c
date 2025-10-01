@@ -1,5 +1,6 @@
 /* NFSv4.1 client for Windows
- * Copyright © 2012 The Regents of the University of Michigan
+ * Copyright (C) 2012 The Regents of the University of Michigan
+ * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -337,6 +338,17 @@ retry:
                     "NFS4ERR_GRACE":"NFS4ERR_DELAY"),
                 (int)retry_count,
                 delayby));
+#ifdef NFS41_DRIVER_HACK_HANDLE_NFS_DELAY_GRACE_WIP
+            {
+                extern __declspec(thread) LONGLONG curr_upcall_xid;
+                if (curr_upcall_xid != -1) {
+                    DPRINTF(0,
+                        ("compound_encode_send_decode: delayxid(xid=%llu)\n",
+                        curr_upcall_xid));
+                    (void)delayxid(curr_upcall_xid, 60);
+                }
+            }
+#endif /* NFS41_DRIVER_HACK_HANDLE_NFS_DELAY_GRACE_WIP */
             Sleep(delayby);
             DPRINTF(1, ("Attempting to resend compound.\n"));
             goto do_retry;

@@ -479,6 +479,9 @@ NTSTATUS nfs41_DevFcbXXXControlFile(
         case IOCTL_NFS41_WRITE:
             status = nfs41_downcall(RxContext);
             break;
+        case IOCTL_NFS41_DELAYXID:
+            status = nfs41_delayxid(RxContext);
+            break;
         case IOCTL_NFS41_ADDCONN:
             status = nfs41_CreateConnection(RxContext, &RxContext->PostRequest);
             break;

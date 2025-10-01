@@ -476,18 +476,21 @@ NTSTATUS nfs41_UpcallWaitForReply(
 
     const ULONG tickIncrement = KeQueryTimeIncrement();
 
+    /*
+     * |entry->timeout_secs| can be increased by |nfs41_delayxid()| from
+     * another userland thread!
+     */
+    entry->timeout_secs = secs;
+
     LARGE_INTEGER startTicks, currTicks;
     KeQueryTickCount(&startTicks);
 
     LARGE_INTEGER timeout;
-    timeout.QuadPart = RELATIVE(SECONDS(secs));
+    timeout.QuadPart = RELATIVE(SECONDS(entry->timeout_secs));
 
 retry_wait:
     status = KeWaitForSingleObject(&entry->cond, Executive,
                 UserMode, FALSE, &timeout);
-
-    if (status == STATUS_TIMEOUT)
-            status = STATUS_NETWORK_UNREACHABLE;
 
     print_wait_status(0, "[downcall]", status,
         ENTRY_OPCODE2STRING(entry), entry,
@@ -496,17 +499,20 @@ retry_wait:
     switch(status) {
     case STATUS_SUCCESS:
         break;
+    case STATUS_TIMEOUT:
     case STATUS_USER_APC:
     case STATUS_ALERTED:
         /*
-         * Check for timeout here, because |KeWaitForSingleObject()| does not
+         * Check for timeout here, because...
+         * 1. ... |KeWaitForSingleObject()| does not
          * decrement the timout value.
          * This prevents endless retry loops in case of APC storms or
          * that the calling thread is in the process of being terminated.
+         * 2. ... |nfs41_delayxid()| might have increased the timeout
          */
         KeQueryTickCount(&currTicks);
         if (((currTicks.QuadPart - startTicks.QuadPart) * tickIncrement) <=
-            SECONDS(secs)) {
+            SECONDS(entry->timeout_secs)) {
             DbgP("nfs41_UpcallWaitForReply: KeWaitForSingleObject() "
                 "returned status(=0x%lx), "
                 "retry waiting for '%s' entry=0x%p xid=%lld\n",
@@ -535,6 +541,9 @@ retry_wait:
 
 out:
     FsRtlExitFileSystem();
+
+    if (status == STATUS_TIMEOUT)
+        status = STATUS_NETWORK_UNREACHABLE;
 
     return status;
 }
@@ -792,6 +801,69 @@ out_free:
 out:
 #endif /* USE_STACK_FOR_DOWNCALL_UPDOWNCALLENTRY_MEM */
 
+    FsRtlExitFileSystem();
+
+    return status;
+}
+
+NTSTATUS nfs41_delayxid(
+    IN PRX_CONTEXT RxContext)
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PLOWIO_CONTEXT LowIoContext = &RxContext->LowIoContext;
+#ifdef DEBUG_PRINT_DOWNCALL_HEXBUF
+    ULONG in_len = LowIoContext->ParamsFor.IoCtl.InputBufferLength;
+#endif /* DEBUG_PRINT_DOWNCALL_HEXBUF */
+    unsigned char *buf = LowIoContext->ParamsFor.IoCtl.pInputBuffer;
+    PLIST_ENTRY pEntry;
+    nfs41_updowncall_entry *cur = NULL;
+    BOOLEAN found = FALSE;
+
+    FsRtlEnterFileSystem();
+
+#ifdef DEBUG_PRINT_DOWNCALL_HEXBUF
+    print_hexbuf("delayxid buffer", buf, in_len);
+#endif /* DEBUG_PRINT_DOWNCALL_HEXBUF */
+
+    LONGLONG delayxid;
+    LONGLONG moredelay;
+
+    /* Unmarshal XID+delay value */
+    RtlCopyMemory(&delayxid, buf, sizeof(delayxid));
+    buf += sizeof(delayxid);
+    RtlCopyMemory(&moredelay, buf, sizeof(moredelay));
+    /* buf += sizeof(delay); */
+
+    ExAcquireFastMutexUnsafe(&downcalllist.lock);
+    pEntry = &downcalllist.head;
+    pEntry = pEntry->Flink;
+    while (pEntry != NULL) {
+        cur = (nfs41_updowncall_entry *)CONTAINING_RECORD(pEntry,
+                nfs41_updowncall_entry, next);
+        if (cur->xid == delayxid) {
+            found = TRUE;
+            break;
+        }
+        if (pEntry->Flink == &downcalllist.head)
+            break;
+        pEntry = pEntry->Flink;
+    }
+    ExReleaseFastMutexUnsafe(&downcalllist.lock);
+
+    if (!found) {
+        print_error("nfs41_delayxid: Did not find xid=%lld entry\n", delayxid);
+        status = STATUS_NOT_FOUND;
+        goto out;
+    }
+
+    DbgP("nfs41_delayxid: Adding moredelay=%llu xid=%lld entry\n",
+        moredelay, delayxid);
+
+    ExAcquireFastMutexUnsafe(&cur->lock);
+    cur->timeout_secs += moredelay;
+    ExReleaseFastMutexUnsafe(&cur->lock);
+
+out:
     FsRtlExitFileSystem();
 
     return status;

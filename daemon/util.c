@@ -31,6 +31,8 @@
 #include "util.h"
 #include "sid.h"
 #include "nfs41_ops.h"
+#include <devioctl.h>
+#include "nfs41_driver.h" /* for |delayxid()| */
 
 
 char *stpcpy(char *restrict s1, const char *restrict s2)
@@ -793,4 +795,46 @@ int parse_fs_location_server_address(IN const char *restrict inaddr,
     eprintf("parse_fs_location_server_address: Unknown format addr='%s'\n",
         inaddr);
     return ERROR_BAD_NET_NAME;
+}
+
+int delayxid(LONGLONG xid, LONGLONG moredelaysecs)
+{
+    int status;
+    HANDLE pipe;
+    unsigned char inbuf[sizeof(LONGLONG)*2], *buffer = inbuf;
+    DWORD inbuf_len = sizeof(LONGLONG)*2, outbuf_len, dstatus;
+    uint32_t length;
+
+    pipe = CreateFileA(NFS41_USER_DEVICE_NAME_A,
+        GENERIC_READ|GENERIC_WRITE,
+        FILE_SHARE_READ|FILE_SHARE_WRITE,
+        NULL,
+        OPEN_EXISTING,
+        0,
+        NULL);
+    if (pipe == INVALID_HANDLE_VALUE) {
+        status = GetLastError();
+        eprintf("delayxid: Unable to open downcall pipe. lasterr=%d\n",
+            status);
+        return status;
+    }
+
+    length = inbuf_len;
+    safe_write(&buffer, &length, &xid, sizeof(xid));
+    safe_write(&buffer, &length, &moredelaysecs, sizeof(moredelaysecs));
+    EASSERT(length == 0);
+
+    dstatus = DeviceIoControl(pipe, IOCTL_NFS41_DELAYXID,
+        inbuf, inbuf_len, NULL, 0, &outbuf_len, NULL);
+    if (dstatus) {
+        status = ERROR_SUCCESS;
+    }
+    else {
+        status = GetLastError();
+        eprintf("delayxid: IOCTL_NFS41_INVALCACHE failed, lasterr=%d\n",
+            status);
+    }
+    (void)CloseHandle(pipe);
+
+    return status;
 }

@@ -169,6 +169,7 @@ typedef struct _updowncall_entry {
     LONGLONG xid;
     nfs41_opcodes opcode;
     NTSTATUS status;
+    volatile LONGLONG timeout_secs;
     nfs41_updowncall_state state;
     FAST_MUTEX lock;
     LIST_ENTRY next;
@@ -884,6 +885,8 @@ NTSTATUS nfs41_UpcallWaitForReply(
 NTSTATUS nfs41_upcall(
     IN PRX_CONTEXT RxContext);
 NTSTATUS nfs41_downcall(
+    IN PRX_CONTEXT RxContext);
+NTSTATUS nfs41_delayxid(
     IN PRX_CONTEXT RxContext);
 
 /* nfs41sys_fileinfo.c */

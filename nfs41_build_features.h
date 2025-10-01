@@ -262,4 +262,14 @@
  */
 #define NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS 1
 
+/*
+ * |NFS41_DRIVER_HACK_HANDLE_NFS_DELAY_GRACE_WIP| - handle
+ * |NFS4ERR_GRACE| and |NFS4ERR_DELAY|.
+ * This code still requires some cleanup, as we do not
+ * have a simple way that |compound_encode_send_decode()| can
+ * access the current kernel XID. As hackish quickfix we
+ * use a thread-local variable to store the current XID.
+ */
+#define NFS41_DRIVER_HACK_HANDLE_NFS_DELAY_GRACE_WIP 1
+
 #endif /* !_NFS41_DRIVER_BUILDFEATURES_ */
