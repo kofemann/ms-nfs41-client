@@ -81,7 +81,11 @@ static int create_open_state(
     state->ref_count = 1; /* will be released in |cleanup_close()| */
     list_init(&state->locks.list);
     list_init(&state->client_entry);
-    InitializeCriticalSection(&state->locks.lock);
+    /*
+     * Disable spin count as |state->locks.lock| is typically used to
+     * protect list searches, which takes a long time
+     */
+    (void)InitializeCriticalSectionAndSpinCount(&state->locks.lock, 0);
 
     state->ea.list = INVALID_HANDLE_VALUE;
     InitializeCriticalSection(&state->ea.lock);
