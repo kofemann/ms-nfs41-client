@@ -220,19 +220,19 @@ static void print_lock_args(
 
 
 /* use exponential backoff between polls for blocking locks */
-#define MSEC_TO_RELATIVE_WAIT   (-10000)
-#define MIN_LOCK_POLL_WAIT      (500 * MSEC_TO_RELATIVE_WAIT) /* 500ms */
-#define MAX_LOCK_POLL_WAIT      (30000 * MSEC_TO_RELATIVE_WAIT) /* 30s */
+#define MSEC_TO_RELATIVE_WAIT   (-10000LL)
+#define MIN_LOCK_POLL_WAIT      (100 * MSEC_TO_RELATIVE_WAIT) /* 100ms */
+#define MAX_LOCK_POLL_WAIT      (15000 * MSEC_TO_RELATIVE_WAIT) /* 15s */
 
 static void denied_lock_backoff(
     IN OUT PLARGE_INTEGER delay)
 {
-    if (delay->QuadPart == 0)
+    if (delay->QuadPart == 0LL)
         delay->QuadPart = MIN_LOCK_POLL_WAIT;
     else
-        delay->QuadPart <<= 1;
+        delay->QuadPart *= 2LL;
 
-    if (delay->QuadPart < MAX_LOCK_POLL_WAIT)
+    if (delay->QuadPart > MAX_LOCK_POLL_WAIT)
         delay->QuadPart = MAX_LOCK_POLL_WAIT;
 }
 
