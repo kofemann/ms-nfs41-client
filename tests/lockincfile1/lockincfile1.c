@@ -67,7 +67,7 @@ int main(int argc, char *av[])
         FILE_SHARE_READ | FILE_SHARE_WRITE,
         NULL,
         OPEN_EXISTING,
-        /*FILE_ATTRIBUTE_NORMAL*/FILE_FLAG_NO_BUFFERING,
+        /*FILE_ATTRIBUTE_NORMAL*/FILE_FLAG_NO_BUFFERING|FILE_FLAG_WRITE_THROUGH,
         NULL);
     if (h == INVALID_HANDLE_VALUE) {
         (void)fprintf(stderr, "%s: Cannot open file '%s', lasterr=%ld\n",
