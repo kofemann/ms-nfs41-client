@@ -218,24 +218,6 @@ static void print_lock_args(
         !BooleanFlagOn(flags, SL_FAIL_IMMEDIATELY));
 }
 
-
-/* use exponential backoff between polls for blocking locks */
-#define MSEC_TO_RELATIVE_WAIT   (-10000LL)
-#define MIN_LOCK_POLL_WAIT      (100 * MSEC_TO_RELATIVE_WAIT) /* 100ms */
-#define MAX_LOCK_POLL_WAIT      (15000 * MSEC_TO_RELATIVE_WAIT) /* 15s */
-
-static void denied_lock_backoff(
-    IN OUT PLARGE_INTEGER delay)
-{
-    if (delay->QuadPart == 0LL)
-        delay->QuadPart = MIN_LOCK_POLL_WAIT;
-    else
-        delay->QuadPart *= 2LL;
-
-    if (delay->QuadPart > MAX_LOCK_POLL_WAIT)
-        delay->QuadPart = MAX_LOCK_POLL_WAIT;
-}
-
 #ifdef NFS41_DRIVER_HACK_LOCKING_STORAGE32_RANGELOCK_PROBING
 static
 bool rangelock_hack_skiplock(
@@ -276,13 +258,10 @@ NTSTATUS nfs41_Lock(
     __notnull PNFS41_FCB nfs41_fcb = NFS41GetFcbExtension(Fcb);
 #endif /* NFS41_DRIVER_HACK_LOCKING_STORAGE32_RANGELOCK_PROBING */
     const ULONG flags = LowIoContext->ParamsFor.Locks.Flags;
-    LARGE_INTEGER poll_delay = {0};
 #ifdef ENABLE_TIMINGS
     LARGE_INTEGER t1, t2;
     t1 = KeQueryPerformanceCounter(NULL);
 #endif
-
-    poll_delay.QuadPart = 0;
 
 #ifdef DEBUG_LOCK
     DbgEn();
@@ -312,22 +291,11 @@ NTSTATUS nfs41_Lock(
     entry->u.Lock.exclusive = BooleanFlagOn(flags, SL_EXCLUSIVE_LOCK);
     entry->u.Lock.blocking = !BooleanFlagOn(flags, SL_FAIL_IMMEDIATELY);
 
-retry_upcall:
     status = nfs41_UpcallWaitForReply(entry, pVNetRootContext->timeout);
     if (status) {
         /* Timeout - |nfs41_downcall()| will free |entry|+contents */
         entry = NULL;
         goto out;
-    }
-
-    /* blocking locks keep trying until it succeeds */
-    if (entry->status == ERROR_LOCK_FAILED && entry->u.Lock.blocking) {
-        denied_lock_backoff(&poll_delay);
-        DbgP("returned ERROR_LOCK_FAILED; retrying in %llums\n",
-            poll_delay.QuadPart / MSEC_TO_RELATIVE_WAIT);
-        KeDelayExecutionThread(KernelMode, FALSE, &poll_delay);
-        entry->state = NFS41_WAITING_FOR_UPCALL;
-        goto retry_upcall;
     }
 
     status = map_lock_errors(entry->status);

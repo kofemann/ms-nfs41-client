@@ -1,5 +1,6 @@
 /* NFSv4.1 client for Windows
- * Copyright © 2012 The Regents of the University of Michigan
+ * Copyright (C) 2012 The Regents of the University of Michigan
+ * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -197,7 +198,7 @@ static __inline uint32_t get_lock_type(BOOLEAN exclusive, BOOLEAN blocking)
         : ( exclusive == 0 ? READW_LT : WRITEW_LT );
 }
 
-static int handle_lock(void *deamon_context, nfs41_upcall *upcall)
+static int handle_lock_retry(void *deamon_context, nfs41_upcall *upcall)
 {
     stateid_arg stateid;
     lock_upcall_args *args = &upcall->args.lock;
@@ -265,6 +266,51 @@ out_free:
     free(lock);
     goto out;
 }
+
+#define LOCK_POLL_MIN_WAIT_MS   (100UL)     /* 100ms */
+#define LOCK_POLL_MAX_WAIT_MS   (15000UL)   /* 15s */
+
+static int handle_lock(void *deamon_context, nfs41_upcall *upcall)
+{
+    int status;
+    lock_upcall_args *args = &upcall->args.lock;
+    nfs41_open_state *state = upcall->state_ref;
+    DWORD poll_delay = 0UL;
+
+retry_lock:
+    status = handle_lock_retry(deamon_context, upcall);
+    if ((status == ERROR_LOCK_FAILED) && (args->blocking)) {
+        /*
+         * Use exponential backoff between polls for blocking locks, but
+         * limit it to |LOCK_POLL_MAX_WAIT_MS| milliseconds
+         */
+        if (poll_delay == 0L)
+            poll_delay = LOCK_POLL_MIN_WAIT_MS;
+        else
+            poll_delay *= 2L;
+        if (poll_delay > LOCK_POLL_MAX_WAIT_MS)
+            poll_delay = LOCK_POLL_MAX_WAIT_MS;
+
+        /*
+         * Make sure the kernel waits for us, and then go to sleep
+         *
+         * ToDO:
+         * - Turn this into an Win32 event, wait via
+         * |WaitForSingleObject(..., poll_delay)|, and signal the event if
+         * a matching |CB_NOTIFY_LOCK| is received
+         */
+        DPRINTF(1,
+            ("handle_lock(state->path.path='%s'): retry in %ldms\n",
+            state->path.path, (long)poll_delay));
+        (void)delayxid(upcall->xid, 30+(poll_delay/1000));
+        Sleep(poll_delay);
+
+        goto retry_lock;
+    }
+
+    return status;
+}
+
 
 static void cancel_lock(IN nfs41_upcall *upcall)
 {
