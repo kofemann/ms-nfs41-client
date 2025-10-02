@@ -1,5 +1,5 @@
 #
-# ms-nfs41-client manual testing sequence, 2025-09-19
+# ms-nfs41-client manual testing sequence, 2025-10-02
 #
 # Draft version, needs to be turned into automated tests
 # if possible
@@ -1087,6 +1087,36 @@ $ /usr/lib/csih/getVolInfo.exe . | fgrep FILE_CASE_SENSITIVE_SEARCH # must be "F
 - ms-nfs41-client does not support alternative DOS "short names"
 - References:
 1. https://learn.microsoft.com/en-us/windows/compatibility/ntvdm-and-16-bit-app-support
+
+
+#
+# DISKSPD storage load generator / performance test tool
+# (https://github.com/microsoft/diskspd/)
+# Mainly used to test Win32 async read/write
+#
+
+#
+# Download&&unpack
+#
+wget 'https://github.com/microsoft/diskspd/releases/download/v2.2/DiskSpd.ZIP'
+mkdir DiskSpd && cd DiskSpd
+unzip ../DiskSpd.ZIP
+
+#
+# run tests
+#
+
+# prep
+mkdir testruns && cd testruns
+
+# async IO tests
+../DiskSpd/amd64/diskspd.exe -c512M -b4K -t32 -r -o64 -d120 -Sh -w50 testfile1.dat testfile2.dat
+../DiskSpd/amd64/diskspd.exe -c512M -b8K -t32 -r -o64 -d120 -Sh -w50 testfile1.dat testfile2.dat
+../DiskSpd/amd64/diskspd.exe -c512M -b32K -t32 -r -o64 -d120 -Sh -w50 testfile1.dat testfile2.dat
+../DiskSpd/amd64/diskspd.exe -c512M -b32K -t32 -r -o64 -d120 -Sb -w50 testfile1.dat testfile2.dat
+../DiskSpd/amd64/diskspd.exe -c512M -b1M -t32 -r -o64 -d120 -Sh -w50 testfile1.dat testfile2.dat
+# memory-mapped IO (not async)
+../DiskSpd/amd64/diskspd.exe -c512M -b1M -t32 -r -o64 -d120 -Sm -Nv -w50 testfile1.dat
 
 
 #
