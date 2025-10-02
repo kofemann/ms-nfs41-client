@@ -759,8 +759,8 @@ static int handle_readdir(void *deamon_context, nfs41_upcall *upcall)
     bitmap4 attr_request;
     bool_t eof;
     /* make sure we allocate enough space for one nfs41_readdir_entry */
-    const uint32_t max_buf_len = max(args->buf_len,
-        sizeof(nfs41_readdir_entry) + NFS41_MAX_COMPONENT_LEN+1);
+    const uint32_t max_buf_len = max((uint32_t)args->buf_len,
+        (uint32_t)(sizeof(nfs41_readdir_entry) + NFS41_MAX_COMPONENT_LEN+1));
 
     DPRINTF(1, ("--> handle_nfs41_dirquery(filter='%s',initial=%d,restart=%d,single=%d)\n",
         args->filter, (int)args->initial, (int)args->restart, (int)args->single));
