@@ -165,6 +165,7 @@ void nfs41_open_stateid_arg(
     IN nfs41_open_state *state,
     OUT stateid_arg *arg)
 {
+    arg->type = STATEID_UNINITIALISED;
     arg->open = state;
     arg->delegation = NULL;
 
@@ -202,6 +203,8 @@ void nfs41_open_stateid_arg(
     }
 out:
     ReleaseSRWLockShared(&state->lock);
+
+    EASSERT(arg->type != STATEID_UNINITIALISED);
 }
 
 /* client list of associated open state */

@@ -305,6 +305,7 @@ typedef struct __nfs41_reclaim_complete_res {
 
 /* recoverable stateid argument */
 enum stateid_type {
+    STATEID_UNINITIALISED = 0,
     STATEID_OPEN,
     STATEID_LOCK,
     STATEID_DELEG_FILE,
