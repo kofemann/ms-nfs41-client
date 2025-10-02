@@ -169,7 +169,7 @@ typedef struct _updowncall_entry {
     LONGLONG xid;
     nfs41_opcodes opcode;
     NTSTATUS status;
-    volatile LONGLONG timeout_secs;
+    volatile LONG timeout_secs;
     nfs41_updowncall_state state;
     FAST_MUTEX lock;
     LIST_ENTRY next;

@@ -468,6 +468,12 @@ NTSTATUS nfs41_UpcallWaitForReply(
 
     FsRtlEnterFileSystem();
 
+    /*
+     * |entry->timeout_secs| can be increased by |nfs41_delayxid()| from
+     * another userland thread!
+     */
+    entry->timeout_secs = (LONG)secs;
+
     nfs41_AddEntry(upcalllist.lock, upcalllist, entry);
     (void)KeSetEvent(&upcallEvent, IO_NFS41FS_INCREMENT, FALSE);
 
@@ -476,17 +482,12 @@ NTSTATUS nfs41_UpcallWaitForReply(
 
     const ULONG tickIncrement = KeQueryTimeIncrement();
 
-    /*
-     * |entry->timeout_secs| can be increased by |nfs41_delayxid()| from
-     * another userland thread!
-     */
-    entry->timeout_secs = secs;
-
     LARGE_INTEGER startTicks, currTicks;
     KeQueryTickCount(&startTicks);
 
     LARGE_INTEGER timeout;
-    timeout.QuadPart = RELATIVE(SECONDS(entry->timeout_secs));
+    timeout.QuadPart =
+        RELATIVE(SECONDS(InterlockedAdd(&entry->timeout_secs, 0)));
 
 retry_wait:
     status = KeWaitForSingleObject(&entry->cond, Executive,
@@ -512,7 +513,7 @@ retry_wait:
          */
         KeQueryTickCount(&currTicks);
         if (((currTicks.QuadPart - startTicks.QuadPart) * tickIncrement) <=
-            SECONDS(entry->timeout_secs)) {
+            SECONDS(InterlockedAdd(&entry->timeout_secs, 0))) {
             DbgP("nfs41_UpcallWaitForReply: KeWaitForSingleObject() "
                 "returned status(=0x%lx), "
                 "retry waiting for '%s' entry=0x%p xid=%lld\n",
@@ -859,9 +860,7 @@ NTSTATUS nfs41_delayxid(
     DbgP("nfs41_delayxid: Adding moredelay=%llu xid=%lld entry\n",
         moredelay, delayxid);
 
-    ExAcquireFastMutexUnsafe(&cur->lock);
-    cur->timeout_secs += moredelay;
-    ExReleaseFastMutexUnsafe(&cur->lock);
+    (void)InterlockedAdd(&cur->timeout_secs, (LONG)moredelay);
 
 out:
     FsRtlExitFileSystem();
