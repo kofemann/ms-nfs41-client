@@ -295,7 +295,7 @@ static int marshall_symlink_get(unsigned char *buffer, uint32_t *length,
 
     unsigned short *wc_len_out;
     status = get_safe_write_bufferpos(&buffer, length,
-        sizeof(unsigned short), &wc_len_out);
+        sizeof(unsigned short), (void **)&wc_len_out);
     if (status) goto out;
     EASSERT(wc_len_out != NULL);
 

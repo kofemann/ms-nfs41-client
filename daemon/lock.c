@@ -359,7 +359,8 @@ static int parse_unlock(unsigned char *buffer, uint32_t length, nfs41_upcall *up
     status = safe_read(&buffer, &length, &args->count, sizeof(ULONG));
     if (status) goto out;
     args->buf_len = args->count*2L*sizeof(LONGLONG);
-    status = get_safe_read_bufferpos(&buffer, &length, args->buf_len, &args->buf);
+    status = get_safe_read_bufferpos(&buffer, &length,
+        args->buf_len, (void **)&args->buf);
     if (status) goto out;
 
     EASSERT(length == 0);

@@ -1267,7 +1267,7 @@ static int map_dacl_2_nfs4acl(PACL acl, PSID sid, PSID gsid, nfsacl41 *nfs4_acl,
             nfsace4 *curr_nfsace = &nfs4_acl->aces[nfs_i];
             PSID ace_sid;
 
-            status = GetAce(acl, win_i, &ace);
+            status = GetAce(acl, win_i, (LPVOID *)&ace);
             if (!status) {
                 status = GetLastError();
                 eprintf("map_dacl_2_nfs4acl: GetAce failed with %d\n", status);

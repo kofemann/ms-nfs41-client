@@ -198,7 +198,8 @@ static int parse_setexattr(unsigned char *buffer, uint32_t length, nfs41_upcall 
     if (status) goto out;
     status = safe_read(&buffer, &length, &args->buf_len, sizeof(args->buf_len));
     if (status) goto out;
-    status = get_safe_read_bufferpos(&buffer, &length, args->buf_len, &args->buf);
+    status = get_safe_read_bufferpos(&buffer, &length,
+        args->buf_len, (void **)&args->buf);
     if (status) goto out;
 
     EASSERT(length == 0);
@@ -280,7 +281,8 @@ static int parse_getexattr(unsigned char *buffer, uint32_t length, nfs41_upcall 
     if (status) goto out;
     status = safe_read(&buffer, &length, &args->ealist_len, sizeof(args->ealist_len));
     if (status) goto out;
-    status = get_safe_read_bufferpos(&buffer, &length, args->ealist_len, &args->ealist);
+    status = get_safe_read_bufferpos(&buffer, &length,
+        args->ealist_len, (void **)&args->ealist);
     if (status) goto out;
 
     EASSERT(length == 0);
