@@ -300,7 +300,7 @@ static int open_or_delegate(
 
 
 static int parse_abs_path(
-    const unsigned char **restrict buffer,
+    const unsigned char *restrict *restrict buffer,
     uint32_t *restrict length,
     nfs41_abs_path *restrict path)
 {

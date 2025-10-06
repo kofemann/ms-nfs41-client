@@ -57,7 +57,7 @@ static int parse_setattr(
     status = safe_read(&buffer, &length, &args->buf_len, sizeof(args->buf_len));
     if (status) goto out;
     status = get_safe_read_bufferpos(&buffer, &length,
-        args->buf_len, (void **)&args->buf);
+        args->buf_len, (const void **)&args->buf);
     if (status) goto out;
 
     args->root = upcall->root_ref;

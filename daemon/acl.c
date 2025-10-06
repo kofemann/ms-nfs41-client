@@ -527,7 +527,7 @@ static int parse_setacl(
 {
     int status;
     setacl_upcall_args *args = &upcall->args.setacl;
-    void *sec_desc_ptr;
+    const void *sec_desc_ptr;
     ULONG sec_desc_len;
 
     status = safe_read(&buffer, &length, &args->query, sizeof(args->query));

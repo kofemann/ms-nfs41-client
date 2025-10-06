@@ -366,7 +366,7 @@ static int parse_unlock(
     if (status) goto out;
     args->buf_len = args->count*2L*sizeof(LONGLONG);
     status = get_safe_read_bufferpos(&buffer, &length,
-        args->buf_len, (void **)&args->buf);
+        args->buf_len, (const void **)&args->buf);
     if (status) goto out;
 
     EASSERT(length == 0);
@@ -382,7 +382,7 @@ static int handle_unlock(void *daemon_context, nfs41_upcall *upcall)
     stateid_arg stateid;
     unlock_upcall_args *args = &upcall->args.unlock;
     nfs41_open_state *state = upcall->state_ref;
-    unsigned char *buf = args->buf;
+    const unsigned char *buf = args->buf;
     uint32_t buf_len = args->buf_len;
     uint32_t i;
     int status = NO_ERROR;
