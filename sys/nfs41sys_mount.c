@@ -186,6 +186,7 @@ void unmarshal_nfs41_mount(
     *buf += sizeof(DWORD);
     RtlCopyMemory(cur->u.Mount.FsAttrs, *buf,
         sizeof(NFS41_FILE_FS_ATTRIBUTE_INFORMATION));
+    *buf += sizeof(NFS41_FILE_FS_ATTRIBUTE_INFORMATION);
 #ifdef DEBUG_MARSHAL_DETAIL
     DbgP("unmarshal_nfs41_mount: session=0x%p version=%d lease_time "
          "%d\n",

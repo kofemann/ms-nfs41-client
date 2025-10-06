@@ -143,7 +143,8 @@ void unmarshal_nfs41_setattr(
     PULONGLONG dest_buf,
     const unsigned char *restrict *restrict buf)
 {
-    RtlCopyMemory(dest_buf, *buf, sizeof(ULONGLONG));
+    RtlCopyMemory(dest_buf, *buf, sizeof(*dest_buf));
+    *buf += sizeof(*dest_buf);
 #ifdef DEBUG_MARSHAL_DETAIL
     DbgP("unmarshal_nfs41_setattr: returned ChangeTime %llu\n", *dest_buf);
 #endif
@@ -154,7 +155,8 @@ void unmarshal_nfs41_getattr(
     const unsigned char *restrict *restrict buf)
 {
     unmarshal_nfs41_attrget(cur, cur->buf, &cur->buf_len, buf, FALSE);
-    RtlCopyMemory(&cur->ChangeTime, *buf, sizeof(ULONGLONG));
+    RtlCopyMemory(&cur->ChangeTime, *buf, sizeof(cur->ChangeTime));
+    *buf += sizeof(cur->ChangeTime);
 #ifdef DEBUG_MARSHAL_DETAIL
     if (cur->u.QueryFile.InfoClass == FileBasicInformation)
         DbgP("[unmarshal_nfs41_getattr] ChangeTime %llu\n", cur->ChangeTime);

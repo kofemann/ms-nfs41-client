@@ -135,6 +135,7 @@ void unmarshal_nfs41_symlink(
     }
     RtlCopyMemory(cur->u.Symlink.target->Buffer, *buf,
         cur->u.Symlink.target->Length);
+    *buf += cur->u.Symlink.target->Length;
 }
 
 NTSTATUS map_symlink_errors(

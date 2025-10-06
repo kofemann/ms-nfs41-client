@@ -571,7 +571,8 @@ NTSTATUS unmarshal_nfs41_setzerodata(
 {
     NTSTATUS status = STATUS_SUCCESS;
 
-    RtlCopyMemory(&cur->ChangeTime, *buf, sizeof(ULONGLONG));
+    RtlCopyMemory(&cur->ChangeTime, *buf, sizeof(cur->ChangeTime));
+    *buf += sizeof(cur->ChangeTime);
     DbgP("unmarshal_nfs41_setzerodata: returned ChangeTime %llu\n",
         cur->ChangeTime);
 
@@ -889,6 +890,7 @@ NTSTATUS unmarshal_nfs41_duplicatedata(
     NTSTATUS status = STATUS_SUCCESS;
 
     RtlCopyMemory(&cur->ChangeTime, *buf, sizeof(ULONGLONG));
+    *buf += sizeof(cur->ChangeTime);
     DbgP("unmarshal_nfs41_duplicatedata: returned ChangeTime %llu\n",
         cur->ChangeTime);
 

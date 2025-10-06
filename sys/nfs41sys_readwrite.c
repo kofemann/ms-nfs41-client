@@ -167,7 +167,8 @@ NTSTATUS unmarshal_nfs41_rw(
 
     RtlCopyMemory(&cur->buf_len, *buf, sizeof(cur->buf_len));
     *buf += sizeof(cur->buf_len);
-    RtlCopyMemory(&cur->ChangeTime, *buf, sizeof(ULONGLONG));
+    RtlCopyMemory(&cur->ChangeTime, *buf, sizeof(cur->ChangeTime));
+    *buf += sizeof(cur->ChangeTime);
 #ifdef DEBUG_MARSHAL_DETAIL_RW
     DbgP("unmarshal_nfs41_rw: returned len %lu ChangeTime %llu\n",
         cur->buf_len, cur->ChangeTime);

@@ -301,6 +301,7 @@ NTSTATUS unmarshal_nfs41_open(
         }
         RtlCopyMemory(cur->u.Open.symlink.Buffer, *buf,
             cur->u.Open.symlink.Length);
+        *buf += cur->u.Open.symlink.Length;
         cur->u.Open.symlink.Buffer[cur->u.Open.symlink.Length/sizeof(wchar_t)] =
             L'\0';
 #ifdef DEBUG_MARSHAL_DETAIL

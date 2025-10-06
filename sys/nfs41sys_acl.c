@@ -151,6 +151,7 @@ NTSTATUS unmarshal_nfs41_getacl(
         goto out;
     }
     RtlCopyMemory(cur->buf, *buf, buf_len);
+    *buf += buf_len;
     if (buf_len > cur->buf_len)
         cur->status = STATUS_BUFFER_TOO_SMALL;
     cur->buf_len = buf_len;

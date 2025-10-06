@@ -168,7 +168,10 @@ void unmarshal_nfs41_attrget(
     BOOL copy_partial)
 {
     ULONG buf_len;
-    RtlCopyMemory(&buf_len, *buf, sizeof(ULONG));
+
+    RtlCopyMemory(&buf_len, *buf, sizeof(buf_len));
+    *buf += sizeof(ULONG);
+
     if (copy_partial) {
         if (buf_len > *attr_len) {
             cur->status = STATUS_BUFFER_OVERFLOW;
@@ -182,7 +185,6 @@ void unmarshal_nfs41_attrget(
         }
     }
 
-    *buf += sizeof(ULONG);
     *attr_len = buf_len;
     RtlCopyMemory(attr_value, *buf, buf_len);
     *buf += buf_len;
@@ -611,13 +613,14 @@ NTSTATUS nfs41_downcall(
 {
     NTSTATUS status = STATUS_SUCCESS;
     PLOWIO_CONTEXT LowIoContext = &RxContext->LowIoContext;
-#ifdef DEBUG_PRINT_DOWNCALL_HEXBUF
     ULONG inbuf_len = LowIoContext->ParamsFor.IoCtl.InputBufferLength;
-#endif /* DEBUG_PRINT_DOWNCALL_HEXBUF */
-    const unsigned char *inbuf = LowIoContext->ParamsFor.IoCtl.pInputBuffer;
+    const unsigned char *inbuf;
+    const unsigned char *inbuf_orig;
     PLIST_ENTRY pEntry;
     nfs41_updowncall_entry *tmp, *cur= NULL;
     BOOLEAN found = 0;
+
+    inbuf = inbuf_orig = LowIoContext->ParamsFor.IoCtl.pInputBuffer;
 
     FsRtlEnterFileSystem();
 
@@ -764,6 +767,25 @@ NTSTATUS nfs41_downcall(
             unmarshal_nfs41_duplicatedata(cur, &inbuf);
             break;
         }
+
+        /*
+         * Verify that we really read all bytes send by the userland daemon!
+         * (|NFS41_SYSOP_VOLUME_QUERY| is exempt from this test, because most
+         * volume queries allows partial reads from |inbuf| if the caller
+         * passes a buffer which is too small)
+         */
+        ULONG bytesread_from_inbuf = (ULONG)(inbuf - inbuf_orig);
+        if ((tmp->opcode != NFS41_SYSOP_VOLUME_QUERY) &&
+            (bytesread_from_inbuf != inbuf_len)) {
+            print_error("nfs41_downcall: ASSERT: '%s': "
+                "(inbuf(=0x%p)-inbuf_orig(=0x%p))(=%ld) != inbuf_len(=%ld)\n",
+                opcode2string(tmp->opcode),
+                inbuf,
+                inbuf_orig,
+                (long)bytesread_from_inbuf,
+                (long)inbuf_len);
+            status = STATUS_BUFFER_OVERFLOW;
+        }
     }
     ExReleaseFastMutexUnsafe(&cur->lock);
     if (cur->async_op) {
@@ -812,15 +834,16 @@ NTSTATUS nfs41_delayxid(
 {
     NTSTATUS status = STATUS_SUCCESS;
     PLOWIO_CONTEXT LowIoContext = &RxContext->LowIoContext;
-#ifdef DEBUG_PRINT_DOWNCALL_HEXBUF
     ULONG inbuf_len = LowIoContext->ParamsFor.IoCtl.InputBufferLength;
-#endif /* DEBUG_PRINT_DOWNCALL_HEXBUF */
-    const unsigned char *inbuf = LowIoContext->ParamsFor.IoCtl.pInputBuffer;
+    const unsigned char *inbuf;
+    const unsigned char *inbuf_orig;
     PLIST_ENTRY pEntry;
     nfs41_updowncall_entry *cur = NULL;
     BOOLEAN found = FALSE;
 
     FsRtlEnterFileSystem();
+
+    inbuf = inbuf_orig = LowIoContext->ParamsFor.IoCtl.pInputBuffer;
 
 #ifdef DEBUG_PRINT_DOWNCALL_HEXBUF
     print_hexbuf("delayxid buffer", inbuf, inbuf_len);
@@ -833,7 +856,21 @@ NTSTATUS nfs41_delayxid(
     RtlCopyMemory(&delayxid, inbuf, sizeof(delayxid));
     inbuf += sizeof(delayxid);
     RtlCopyMemory(&moredelay, inbuf, sizeof(moredelay));
-    /* inbuf += sizeof(delay); */
+    inbuf += sizeof(moredelay);
+
+    /*
+     * Verify that we really read all bytes send by the userland daemon!
+     */
+    ULONG bytesread_from_inbuf = (ULONG)(inbuf - inbuf_orig);
+    if (bytesread_from_inbuf != inbuf_len) {
+        print_error("nfs41_delayxid: ASSERT: "
+            "(inbuf(=0x%p)-inbuf_orig(=0x%p))(=%ld) != inbuf_len(=%ld)\n",
+            inbuf,
+            inbuf_orig,
+            (long)bytesread_from_inbuf,
+            (long)inbuf_len);
+        status = STATUS_BUFFER_OVERFLOW;
+    }
 
     ExAcquireFastMutexUnsafe(&downcalllist.lock);
     pEntry = &downcalllist.head;
