@@ -83,7 +83,10 @@ int nfs41_cached_getattr(
 }
 
 /* NFS41_SYSOP_FILE_QUERY, NFS41_SYSOP_FILE_QUERY_TIME_BASED_COHERENCY */
-static int parse_getattr(unsigned char *buffer, uint32_t length, nfs41_upcall *upcall)
+static int parse_getattr(
+    const unsigned char *restrict buffer,
+    uint32_t length,
+    nfs41_upcall *upcall)
 {
     int status;
 

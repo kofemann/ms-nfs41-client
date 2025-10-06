@@ -42,7 +42,10 @@
 #endif
 
 /* NFS41_SYSOP_FILE_SET */
-static int parse_setattr(unsigned char *buffer, uint32_t length, nfs41_upcall *upcall)
+static int parse_setattr(
+    const unsigned char *restrict buffer,
+    uint32_t length,
+    nfs41_upcall *upcall)
 {
     int status;
     setattr_upcall_args *args = &upcall->args.setattr;

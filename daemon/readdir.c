@@ -263,7 +263,10 @@ typedef union _FILE_DIR_INFO_UNION {
 
 
 /* NFS41_SYSOP_DIR_QUERY */
-static int parse_readdir(unsigned char *buffer, uint32_t length, nfs41_upcall *upcall)
+static int parse_readdir(
+    const unsigned char *restrict buffer,
+    uint32_t length,
+    nfs41_upcall *upcall)
 {
     int status;
     readdir_upcall_args *args = &upcall->args.readdir;

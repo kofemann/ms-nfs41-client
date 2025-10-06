@@ -87,7 +87,7 @@ static const uint32_t g_upcall_op_table_size = ARRAYSIZE(g_upcall_op_table);
 
 
 int upcall_parse(
-    IN unsigned char *buffer,
+    IN const unsigned char *restrict buffer,
     IN uint32_t length,
     OUT nfs41_upcall *upcall)
 {

@@ -38,7 +38,10 @@
 const stateid4 special_read_stateid = {0xffffffff, 
     {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}};
 
-static int parse_rw(unsigned char *buffer, uint32_t length, nfs41_upcall *upcall)
+static int parse_rw(
+    const unsigned char *restrict buffer,
+    uint32_t length,
+    nfs41_upcall *upcall)
 {
     int status;
     readwrite_upcall_args *args = &upcall->args.rw;

@@ -187,7 +187,10 @@ out:
 
 
 /* NFS41_SYSOP_EA_SET */
-static int parse_setexattr(unsigned char *buffer, uint32_t length, nfs41_upcall *upcall)
+static int parse_setexattr(
+    const unsigned char *restrict buffer,
+    uint32_t length,
+    nfs41_upcall *upcall)
 {
     int status;
     setexattr_upcall_args *args = &upcall->args.setexattr;
@@ -264,7 +267,10 @@ static int marshall_setexattr(unsigned char *buffer, uint32_t *length, nfs41_upc
 
 
 /* NFS41_SYSOP_EA_GET */
-static int parse_getexattr(unsigned char *buffer, uint32_t length, nfs41_upcall *upcall)
+static int parse_getexattr(
+    const unsigned char *restrict buffer,
+    uint32_t length,
+    nfs41_upcall *upcall)
 {
     int status;
     getexattr_upcall_args *args = &upcall->args.getexattr;

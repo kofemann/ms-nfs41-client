@@ -299,7 +299,10 @@ static int open_or_delegate(
 }
 
 
-static int parse_abs_path(unsigned char **buffer, uint32_t *length, nfs41_abs_path *path)
+static int parse_abs_path(
+    const unsigned char **restrict buffer,
+    uint32_t *restrict length,
+    nfs41_abs_path *restrict path)
 {
     int status = safe_read(buffer, length, &path->len, sizeof(USHORT));
     if (status) goto out;
@@ -317,7 +320,10 @@ out:
 }
 
 /* NFS41_SYSOP_OPEN */
-static int parse_open(unsigned char *buffer, uint32_t length, nfs41_upcall *upcall)
+static int parse_open(
+    const unsigned char *restrict buffer,
+    uint32_t length,
+    nfs41_upcall *upcall)
 {
     int status;
     open_upcall_args *args = &upcall->args.open;
@@ -1347,7 +1353,10 @@ out:
 
 
 /* NFS41_SYSOP_CLOSE */
-static int parse_close(unsigned char *buffer, uint32_t length, nfs41_upcall *upcall)
+static int parse_close(
+    const unsigned char *restrict buffer,
+    uint32_t length,
+    nfs41_upcall *upcall)
 {
     int status;
     close_upcall_args *args = &upcall->args.close;

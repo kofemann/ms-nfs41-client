@@ -168,7 +168,10 @@ static void open_unlock_remove(
 
 
 /* NFS41_SYSOP_LOCK */
-static int parse_lock(unsigned char *buffer, uint32_t length, nfs41_upcall *upcall)
+static int parse_lock(
+    const unsigned char *restrict buffer,
+    uint32_t length,
+    nfs41_upcall *upcall)
 {
     int status;
     lock_upcall_args *args = &upcall->args.lock;
@@ -351,7 +354,10 @@ out:
 
 
 /* NFS41_SYSOP_UNLOCK */
-static int parse_unlock(unsigned char *buffer, uint32_t length, nfs41_upcall *upcall)
+static int parse_unlock(
+    const unsigned char *restrict buffer,
+    uint32_t length,
+    nfs41_upcall *upcall)
 {
     int status;
     unlock_upcall_args *args = &upcall->args.unlock;

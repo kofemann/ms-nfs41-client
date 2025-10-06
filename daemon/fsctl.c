@@ -31,8 +31,10 @@
 #define SZDLVL 2 /* dprintf level for "set zero data" logging */
 #define DDLVL  2 /* dprintf level for "duplicate data" logging */
 
-static int parse_queryallocatedranges(unsigned char *buffer,
-    uint32_t length, nfs41_upcall *upcall)
+static int parse_queryallocatedranges(
+    const unsigned char *restrict buffer,
+    uint32_t length,
+    nfs41_upcall *upcall)
 {
     int status;
     queryallocatedranges_upcall_args *args = &upcall->args.queryallocatedranges;
@@ -319,8 +321,10 @@ const nfs41_upcall_op nfs41_op_queryallocatedranges = {
     .arg_size = sizeof(queryallocatedranges_upcall_args)
 };
 
-static int parse_setzerodata(unsigned char *buffer,
-    uint32_t length, nfs41_upcall *upcall)
+static int parse_setzerodata(
+    const unsigned char *restrict buffer,
+    uint32_t length,
+    nfs41_upcall *upcall)
 {
     int status;
     setzerodata_upcall_args *args = &upcall->args.setzerodata;
@@ -438,8 +442,10 @@ const nfs41_upcall_op nfs41_op_setzerodata = {
     .arg_size = sizeof(setzerodata_upcall_args)
 };
 
-static int parse_duplicatedata(unsigned char *buffer,
-    uint32_t length, nfs41_upcall *upcall)
+static int parse_duplicatedata(
+    const unsigned char *restrict buffer,
+    uint32_t length,
+    nfs41_upcall *upcall)
 {
     int status;
     duplicatedata_upcall_args *args = &upcall->args.duplicatedata;

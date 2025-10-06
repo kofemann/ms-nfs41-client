@@ -55,8 +55,10 @@ static void map_winaccessmask2nfs4acemask(ACCESS_MASK win_mask,
 static void map_nfs4acemask2winaccessmask(uint32_t nfs4_mask,
     int file_type, bool named_attr_support, ACCESS_MASK *win_mask);
 
-static int parse_getacl(unsigned char *buffer, uint32_t length,
-                        nfs41_upcall *upcall)
+static int parse_getacl(
+    const unsigned char *restrict buffer,
+    uint32_t length,
+    nfs41_upcall *upcall)
 {
     int status;
     getacl_upcall_args *args = &upcall->args.getacl;
@@ -518,8 +520,10 @@ const nfs41_upcall_op nfs41_op_getacl = {
     .arg_size = sizeof(getacl_upcall_args)
 };
 
-static int parse_setacl(unsigned char *buffer, uint32_t length,
-                        nfs41_upcall *upcall)
+static int parse_setacl(
+    const unsigned char *restrict buffer,
+    uint32_t length,
+    nfs41_upcall *upcall)
 {
     int status;
     setacl_upcall_args *args = &upcall->args.setacl;

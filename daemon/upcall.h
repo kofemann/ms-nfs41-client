@@ -282,7 +282,10 @@ typedef struct __nfs41_upcall {
 
 
 /* upcall operation interface */
-typedef int (*upcall_parse_proc)(unsigned char*, uint32_t, nfs41_upcall*);
+typedef int (*upcall_parse_proc)(
+    const unsigned char *restrict buffer,
+    uint32_t length,
+    nfs41_upcall *upcall);
 typedef int (*upcall_handle_proc)(void*, nfs41_upcall*);
 typedef int (*upcall_marshall_proc)(unsigned char*, uint32_t*, nfs41_upcall*);
 typedef void (*upcall_cancel_proc)(nfs41_upcall*);
@@ -300,7 +303,7 @@ typedef struct __nfs41_upcall_op {
 
 /* upcall.c */
 int upcall_parse(
-    IN unsigned char *buffer,
+    IN const unsigned char *restrict buffer,
     IN uint32_t length,
     OUT nfs41_upcall *upcall);
 

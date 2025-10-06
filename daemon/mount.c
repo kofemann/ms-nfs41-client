@@ -36,7 +36,10 @@
 
 
 /* NFS41_SYSOP_MOUNT */
-static int parse_mount(unsigned char *buffer, uint32_t length, nfs41_upcall *upcall)
+static int parse_mount(
+    const unsigned char *restrict buffer,
+    uint32_t length,
+    nfs41_upcall *upcall)
 {
     int status;
     mount_upcall_args *args = &upcall->args.mount;
@@ -346,7 +349,9 @@ const nfs41_upcall_op nfs41_op_mount = {
 
 
 /* NFS41_SYSOP_UNMOUNT */
-static int parse_unmount(unsigned char *buffer, uint32_t length, nfs41_upcall *upcall)
+static int parse_unmount(const unsigned char *restrict buffer,
+    uint32_t length,
+    nfs41_upcall *upcall)
 {
     DPRINTF(1, ("parsing NFS41_SYSOP_UNMOUNT: root=0x%p\n", upcall->root_ref));
 

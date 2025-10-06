@@ -45,7 +45,10 @@
 
 
 /* NFS41_SYSOP_VOLUME_QUERY */
-static int parse_volume(unsigned char *buffer, uint32_t length, nfs41_upcall *upcall)
+static int parse_volume(
+    const unsigned char *restrict buffer,
+    uint32_t length,
+    nfs41_upcall *upcall)
 {
     int status;
     volume_upcall_args *args = &upcall->args.volume;

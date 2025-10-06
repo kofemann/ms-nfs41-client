@@ -236,7 +236,9 @@ out:
 
 
 /* NFS41_SYSOP_SYMLINK_GET */
-static int parse_symlink_get(unsigned char *buffer, uint32_t length,
+static int parse_symlink_get(
+    const unsigned char *restrict buffer,
+    uint32_t length,
     nfs41_upcall *upcall)
 {
     symlink_upcall_args *args = &upcall->args.symlink;
@@ -332,7 +334,9 @@ const nfs41_upcall_op nfs41_op_symlink_get = {
 };
 
 /* NFS41_SYSOP_SYMLINK_SET */
-static int parse_symlink_set(unsigned char *buffer, uint32_t length,
+static int parse_symlink_set(
+    const unsigned char *restrict buffer,
+    uint32_t length,
     nfs41_upcall *upcall)
 {
     symlink_upcall_args *args = &upcall->args.symlink;
