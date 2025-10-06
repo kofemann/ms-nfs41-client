@@ -141,7 +141,7 @@ out:
 void unmarshal_nfs41_setattr(
     nfs41_updowncall_entry *cur,
     PULONGLONG dest_buf,
-    unsigned char **buf)
+    const unsigned char *restrict *restrict buf)
 {
     RtlCopyMemory(dest_buf, *buf, sizeof(ULONGLONG));
 #ifdef DEBUG_MARSHAL_DETAIL
@@ -151,7 +151,7 @@ void unmarshal_nfs41_setattr(
 
 void unmarshal_nfs41_getattr(
     nfs41_updowncall_entry *cur,
-    unsigned char **buf)
+    const unsigned char *restrict *restrict buf)
 {
     unmarshal_nfs41_attrget(cur, cur->buf, &cur->buf_len, buf, FALSE);
     RtlCopyMemory(&cur->ChangeTime, *buf, sizeof(ULONGLONG));

@@ -159,7 +159,7 @@ out:
 
 void unmarshal_nfs41_eaget(
     nfs41_updowncall_entry *cur,
-    unsigned char **buf)
+    const unsigned char *restrict *restrict buf)
 {
     RtlCopyMemory(&cur->u.QueryEa.Overflow, *buf, sizeof(ULONG));
     *buf += sizeof(ULONG);

@@ -76,8 +76,8 @@ NTSTATUS check_nfs41_queryallocatedranges_args(
     XXCTL_LOWIO_COMPONENT *FsCtl =
         &RxContext->LowIoContext.ParamsFor.FsCtl;
     const USHORT HeaderLen = sizeof(FILE_ALLOCATED_RANGE_BUFFER);
-    __notnull PFILE_ALLOCATED_RANGE_BUFFER in_range_buffer =
-        (PFILE_ALLOCATED_RANGE_BUFFER)FsCtl->pInputBuffer;
+    __notnull const PFILE_ALLOCATED_RANGE_BUFFER in_range_buffer =
+        (const PFILE_ALLOCATED_RANGE_BUFFER)FsCtl->pInputBuffer;
 
     if (FsCtl->pInputBuffer == NULL) {
         status = STATUS_INVALID_USER_BUFFER;
@@ -128,8 +128,8 @@ NTSTATUS nfs41_QueryAllocatedRanges(
         NFS41GetNetRootExtension(SrvOpen->pVNetRoot->pNetRoot);
     __notnull XXCTL_LOWIO_COMPONENT *FsCtl =
         &RxContext->LowIoContext.ParamsFor.FsCtl;
-    __notnull PFILE_ALLOCATED_RANGE_BUFFER in_range_buffer =
-        (PFILE_ALLOCATED_RANGE_BUFFER)FsCtl->pInputBuffer;
+    __notnull const PFILE_ALLOCATED_RANGE_BUFFER in_range_buffer =
+        (const PFILE_ALLOCATED_RANGE_BUFFER)FsCtl->pInputBuffer;
     __notnull PFILE_ALLOCATED_RANGE_BUFFER out_range_buffer =
         (PFILE_ALLOCATED_RANGE_BUFFER)FsCtl->pOutputBuffer;
     ULONG out_range_buffer_len = FsCtl->OutputBufferLength;
@@ -307,7 +307,7 @@ out:
 
 NTSTATUS unmarshal_nfs41_queryallocatedranges(
     nfs41_updowncall_entry *cur,
-    unsigned char **buf)
+    const unsigned char *restrict *restrict buf)
 {
     NTSTATUS status = STATUS_SUCCESS;
 
@@ -350,8 +350,8 @@ NTSTATUS nfs41_SetSparse(
     __notnull PMRX_SRV_OPEN SrvOpen = RxContext->pRelevantSrvOpen;
     __notnull XXCTL_LOWIO_COMPONENT *FsCtl =
         &RxContext->LowIoContext.ParamsFor.FsCtl;
-    __notnull PFILE_SET_SPARSE_BUFFER set_parse_buffer =
-        (PFILE_SET_SPARSE_BUFFER)FsCtl->pInputBuffer;
+    __notnull const PFILE_SET_SPARSE_BUFFER set_parse_buffer =
+        (const PFILE_SET_SPARSE_BUFFER)FsCtl->pInputBuffer;
 
     DbgEn();
 
@@ -448,8 +448,8 @@ NTSTATUS nfs41_SetZeroData(
         NFS41GetNetRootExtension(SrvOpen->pVNetRoot->pNetRoot);
     __notnull XXCTL_LOWIO_COMPONENT *FsCtl =
         &RxContext->LowIoContext.ParamsFor.FsCtl;
-    __notnull PFILE_ZERO_DATA_INFORMATION setzerodatabuffer =
-        (PFILE_ZERO_DATA_INFORMATION)FsCtl->pInputBuffer;
+    __notnull const PFILE_ZERO_DATA_INFORMATION setzerodatabuffer =
+        (const PFILE_ZERO_DATA_INFORMATION)FsCtl->pInputBuffer;
     __notnull PNFS41_FOBX nfs41_fobx = NFS41GetFobxExtension(RxContext->pFobx);
 
     DbgEn();
@@ -567,7 +567,7 @@ out:
 
 NTSTATUS unmarshal_nfs41_setzerodata(
     nfs41_updowncall_entry *cur,
-    unsigned char **buf)
+    const unsigned char *restrict *restrict buf)
 {
     NTSTATUS status = STATUS_SUCCESS;
 
@@ -662,8 +662,8 @@ NTSTATUS nfs41_DuplicateData(
             goto out;
         }
 
-        PDUPLICATE_EXTENTS_DATA32 ded32bit =
-            (PDUPLICATE_EXTENTS_DATA32)FsCtl->pInputBuffer;
+        const PDUPLICATE_EXTENTS_DATA32 ded32bit =
+            (const PDUPLICATE_EXTENTS_DATA32)FsCtl->pInputBuffer;
 
         dd.handle           = (HANDLE)ded32bit->FileHandle;
         dd.srcfileoffset    = ded32bit->SourceFileOffset.QuadPart;
@@ -681,8 +681,8 @@ NTSTATUS nfs41_DuplicateData(
             goto out;
         }
 
-        PDUPLICATE_EXTENTS_DATA ded =
-            (PDUPLICATE_EXTENTS_DATA)FsCtl->pInputBuffer;
+        const PDUPLICATE_EXTENTS_DATA ded =
+            (const PDUPLICATE_EXTENTS_DATA)FsCtl->pInputBuffer;
 
         dd.handle           = ded->FileHandle;
         dd.srcfileoffset    = ded->SourceFileOffset.QuadPart;
@@ -884,7 +884,7 @@ out:
 
 NTSTATUS unmarshal_nfs41_duplicatedata(
     nfs41_updowncall_entry *cur,
-    unsigned char **buf)
+    const unsigned char *restrict *restrict buf)
 {
     NTSTATUS status = STATUS_SUCCESS;
 
@@ -1025,7 +1025,7 @@ NTSTATUS nfs41_OffloadRead(
     IN OUT PRX_CONTEXT RxContext)
 {
     NTSTATUS status = STATUS_INVALID_DEVICE_REQUEST;
-    __notnull XXCTL_LOWIO_COMPONENT *FsCtl =
+    __notnull const XXCTL_LOWIO_COMPONENT *FsCtl =
         &RxContext->LowIoContext.ParamsFor.FsCtl;
     __notnull PNFS41_FCB nfs41_fcb = NFS41GetFcbExtension(RxContext->pFcb);
     __notnull PNFS41_FOBX nfs41_fobx = NFS41GetFobxExtension(RxContext->pFobx);
@@ -1062,8 +1062,8 @@ NTSTATUS nfs41_OffloadRead(
         goto out;
     }
 
-    PFSCTL_OFFLOAD_READ_INPUT ori =
-        (PFSCTL_OFFLOAD_READ_INPUT)FsCtl->pInputBuffer;
+    const PFSCTL_OFFLOAD_READ_INPUT ori =
+        (const PFSCTL_OFFLOAD_READ_INPUT)FsCtl->pInputBuffer;
     PFSCTL_OFFLOAD_READ_OUTPUT oro =
         (PFSCTL_OFFLOAD_READ_OUTPUT)FsCtl->pOutputBuffer;
 
@@ -1158,7 +1158,7 @@ NTSTATUS nfs41_OffloadWrite(
         NFS41GetVNetRootExtension(SrvOpen->pVNetRoot);
     __notnull PNFS41_NETROOT_EXTENSION pNetRootContext =
         NFS41GetNetRootExtension(SrvOpen->pVNetRoot->pNetRoot);
-    __notnull XXCTL_LOWIO_COMPONENT *FsCtl =
+    __notnull const XXCTL_LOWIO_COMPONENT *FsCtl =
         &RxContext->LowIoContext.ParamsFor.FsCtl;
     __notnull PNFS41_FOBX nfs41_fobx = NFS41GetFobxExtension(RxContext->pFobx);
     offloadcontext_entry *src_oce = NULL;
@@ -1199,8 +1199,8 @@ NTSTATUS nfs41_OffloadWrite(
         goto out;
     }
 
-    PFSCTL_OFFLOAD_WRITE_INPUT owi =
-        (PFSCTL_OFFLOAD_WRITE_INPUT)FsCtl->pInputBuffer;
+    const PFSCTL_OFFLOAD_WRITE_INPUT owi =
+        (const PFSCTL_OFFLOAD_WRITE_INPUT)FsCtl->pInputBuffer;
     PFSCTL_OFFLOAD_WRITE_OUTPUT owo =
         (PFSCTL_OFFLOAD_WRITE_OUTPUT)FsCtl->pOutputBuffer;
 

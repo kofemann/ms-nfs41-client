@@ -161,7 +161,7 @@ out:
 
 NTSTATUS unmarshal_nfs41_rw(
     nfs41_updowncall_entry *cur,
-    unsigned char **buf)
+    const unsigned char *restrict *restrict buf)
 {
     NTSTATUS status = STATUS_SUCCESS;
 

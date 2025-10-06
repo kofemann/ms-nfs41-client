@@ -137,7 +137,7 @@ out:
 
 NTSTATUS unmarshal_nfs41_dirquery(
     nfs41_updowncall_entry *cur,
-    unsigned char **buf)
+    const unsigned char *restrict *restrict buf)
 {
     NTSTATUS status = STATUS_SUCCESS;
     ULONG buf_len;

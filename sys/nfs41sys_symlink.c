@@ -121,7 +121,7 @@ out:
 
 void unmarshal_nfs41_symlink(
     nfs41_updowncall_entry *cur,
-    unsigned char **buf)
+    const unsigned char *restrict *restrict buf)
 {
     if (cur->opcode == NFS41_SYSOP_SYMLINK_SET)
         return;
@@ -172,7 +172,8 @@ NTSTATUS check_nfs41_setsymlinkreparse_args(
 {
     NTSTATUS status = STATUS_SUCCESS;
     __notnull XXCTL_LOWIO_COMPONENT *FsCtl = &RxContext->LowIoContext.ParamsFor.FsCtl;
-    __notnull PREPARSE_DATA_BUFFER Reparse = (PREPARSE_DATA_BUFFER)FsCtl->pInputBuffer;
+    __notnull const PREPARSE_DATA_BUFFER Reparse =
+        (const PREPARSE_DATA_BUFFER)FsCtl->pInputBuffer;
     __notnull PMRX_SRV_OPEN SrvOpen = RxContext->pRelevantSrvOpen;
     __notnull PNFS41_V_NET_ROOT_EXTENSION VNetRootContext =
         NFS41GetVNetRootExtension(SrvOpen->pVNetRoot);
@@ -241,7 +242,8 @@ NTSTATUS nfs41_SetSymlinkReparsePoint(
     NTSTATUS status;
     UNICODE_STRING TargetName;
     __notnull XXCTL_LOWIO_COMPONENT *FsCtl = &RxContext->LowIoContext.ParamsFor.FsCtl;
-    __notnull PREPARSE_DATA_BUFFER Reparse = (PREPARSE_DATA_BUFFER)FsCtl->pInputBuffer;
+    __notnull const PREPARSE_DATA_BUFFER Reparse =
+        (const PREPARSE_DATA_BUFFER)FsCtl->pInputBuffer;
     __notnull PNFS41_FOBX Fobx = NFS41GetFobxExtension(RxContext->pFobx);
     __notnull PMRX_SRV_OPEN SrvOpen = RxContext->pRelevantSrvOpen;
     __notnull PNFS41_V_NET_ROOT_EXTENSION VNetRootContext =

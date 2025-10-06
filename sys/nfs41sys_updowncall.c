@@ -142,7 +142,7 @@ void nfs41_downcall_free_updowncall_entry(nfs41_updowncall_entry *entry)
 
 static void unmarshal_nfs41_header(
     nfs41_updowncall_entry *tmp,
-    unsigned char **buf)
+    const unsigned char *restrict *restrict buf)
 {
     RtlCopyMemory(&tmp->xid, *buf, sizeof(tmp->xid));
     *buf += sizeof(tmp->xid);
@@ -164,7 +164,7 @@ void unmarshal_nfs41_attrget(
     nfs41_updowncall_entry *cur,
     PVOID attr_value,
     ULONG *attr_len,
-    unsigned char **buf,
+    const unsigned char *restrict *restrict buf,
     BOOL copy_partial)
 {
     ULONG buf_len;
@@ -612,9 +612,9 @@ NTSTATUS nfs41_downcall(
     NTSTATUS status = STATUS_SUCCESS;
     PLOWIO_CONTEXT LowIoContext = &RxContext->LowIoContext;
 #ifdef DEBUG_PRINT_DOWNCALL_HEXBUF
-    ULONG in_len = LowIoContext->ParamsFor.IoCtl.InputBufferLength;
+    ULONG inbuf_len = LowIoContext->ParamsFor.IoCtl.InputBufferLength;
 #endif /* DEBUG_PRINT_DOWNCALL_HEXBUF */
-    unsigned char *buf = LowIoContext->ParamsFor.IoCtl.pInputBuffer;
+    const unsigned char *inbuf = LowIoContext->ParamsFor.IoCtl.pInputBuffer;
     PLIST_ENTRY pEntry;
     nfs41_updowncall_entry *tmp, *cur= NULL;
     BOOLEAN found = 0;
@@ -622,7 +622,7 @@ NTSTATUS nfs41_downcall(
     FsRtlEnterFileSystem();
 
 #ifdef DEBUG_PRINT_DOWNCALL_HEXBUF
-    print_hexbuf("downcall buffer", buf, in_len);
+    print_hexbuf("downcall buffer", inbuf, inbuf_len);
 #endif /* DEBUG_PRINT_DOWNCALL_HEXBUF */
 
 #ifdef USE_STACK_FOR_DOWNCALL_UPDOWNCALLENTRY_MEM
@@ -637,7 +637,7 @@ NTSTATUS nfs41_downcall(
     }
 #endif /* USE_STACK_FOR_DOWNCALL_UPDOWNCALLENTRY_MEM */
 
-    unmarshal_nfs41_header(tmp, &buf);
+    unmarshal_nfs41_header(tmp, &inbuf);
 
     ExAcquireFastMutexUnsafe(&downcalllist.lock);
     pEntry = &downcalllist.head;
@@ -715,53 +715,53 @@ NTSTATUS nfs41_downcall(
     if (!tmp->status) {
         switch (tmp->opcode) {
         case NFS41_SYSOP_MOUNT:
-            unmarshal_nfs41_mount(cur, &buf);
+            unmarshal_nfs41_mount(cur, &inbuf);
             break;
         case NFS41_SYSOP_WRITE:
         case NFS41_SYSOP_READ:
-            status = unmarshal_nfs41_rw(cur, &buf);
+            status = unmarshal_nfs41_rw(cur, &inbuf);
             break;
         case NFS41_SYSOP_OPEN:
-            status = unmarshal_nfs41_open(cur, &buf);
+            status = unmarshal_nfs41_open(cur, &inbuf);
             break;
         case NFS41_SYSOP_DIR_QUERY:
-            status = unmarshal_nfs41_dirquery(cur, &buf);
+            status = unmarshal_nfs41_dirquery(cur, &inbuf);
             break;
         case NFS41_SYSOP_FILE_QUERY:
         case NFS41_SYSOP_FILE_QUERY_TIME_BASED_COHERENCY:
-            unmarshal_nfs41_getattr(cur, &buf);
+            unmarshal_nfs41_getattr(cur, &inbuf);
             break;
         case NFS41_SYSOP_EA_GET:
-            unmarshal_nfs41_eaget(cur, &buf);
+            unmarshal_nfs41_eaget(cur, &inbuf);
             break;
         case NFS41_SYSOP_SYMLINK_GET:
         case NFS41_SYSOP_SYMLINK_SET:
-            unmarshal_nfs41_symlink(cur, &buf);
+            unmarshal_nfs41_symlink(cur, &inbuf);
             break;
         case NFS41_SYSOP_VOLUME_QUERY:
-            unmarshal_nfs41_volume(cur, &buf);
+            unmarshal_nfs41_volume(cur, &inbuf);
             break;
         case NFS41_SYSOP_ACL_QUERY:
-            status = unmarshal_nfs41_getacl(cur, &buf);
+            status = unmarshal_nfs41_getacl(cur, &inbuf);
             break;
         case NFS41_SYSOP_FILE_SET:
-            unmarshal_nfs41_setattr(cur, &cur->ChangeTime, &buf);
+            unmarshal_nfs41_setattr(cur, &cur->ChangeTime, &inbuf);
             break;
         case NFS41_SYSOP_EA_SET:
-            unmarshal_nfs41_setattr(cur, &cur->ChangeTime, &buf);
+            unmarshal_nfs41_setattr(cur, &cur->ChangeTime, &inbuf);
             break;
         case NFS41_SYSOP_ACL_SET:
-            unmarshal_nfs41_setattr(cur, &cur->ChangeTime, &buf);
+            unmarshal_nfs41_setattr(cur, &cur->ChangeTime, &inbuf);
             break;
         case NFS41_SYSOP_FSCTL_QUERYALLOCATEDRANGES:
-            unmarshal_nfs41_queryallocatedranges(cur, &buf);
+            unmarshal_nfs41_queryallocatedranges(cur, &inbuf);
             break;
         case NFS41_SYSOP_FSCTL_SET_ZERO_DATA:
-            unmarshal_nfs41_setzerodata(cur, &buf);
+            unmarshal_nfs41_setzerodata(cur, &inbuf);
             break;
         case NFS41_SYSOP_FSCTL_DUPLICATE_DATA:
         case NFS41_SYSOP_FSCTL_OFFLOAD_DATACOPY:
-            unmarshal_nfs41_duplicatedata(cur, &buf);
+            unmarshal_nfs41_duplicatedata(cur, &inbuf);
             break;
         }
     }
@@ -813,9 +813,9 @@ NTSTATUS nfs41_delayxid(
     NTSTATUS status = STATUS_SUCCESS;
     PLOWIO_CONTEXT LowIoContext = &RxContext->LowIoContext;
 #ifdef DEBUG_PRINT_DOWNCALL_HEXBUF
-    ULONG in_len = LowIoContext->ParamsFor.IoCtl.InputBufferLength;
+    ULONG inbuf_len = LowIoContext->ParamsFor.IoCtl.InputBufferLength;
 #endif /* DEBUG_PRINT_DOWNCALL_HEXBUF */
-    unsigned char *buf = LowIoContext->ParamsFor.IoCtl.pInputBuffer;
+    const unsigned char *inbuf = LowIoContext->ParamsFor.IoCtl.pInputBuffer;
     PLIST_ENTRY pEntry;
     nfs41_updowncall_entry *cur = NULL;
     BOOLEAN found = FALSE;
@@ -823,17 +823,17 @@ NTSTATUS nfs41_delayxid(
     FsRtlEnterFileSystem();
 
 #ifdef DEBUG_PRINT_DOWNCALL_HEXBUF
-    print_hexbuf("delayxid buffer", buf, in_len);
+    print_hexbuf("delayxid buffer", inbuf, inbuf_len);
 #endif /* DEBUG_PRINT_DOWNCALL_HEXBUF */
 
     LONGLONG delayxid;
     LONGLONG moredelay;
 
     /* Unmarshal XID+delay value */
-    RtlCopyMemory(&delayxid, buf, sizeof(delayxid));
-    buf += sizeof(delayxid);
-    RtlCopyMemory(&moredelay, buf, sizeof(moredelay));
-    /* buf += sizeof(delay); */
+    RtlCopyMemory(&delayxid, inbuf, sizeof(delayxid));
+    inbuf += sizeof(delayxid);
+    RtlCopyMemory(&moredelay, inbuf, sizeof(moredelay));
+    /* inbuf += sizeof(delay); */
 
     ExAcquireFastMutexUnsafe(&downcalllist.lock);
     pEntry = &downcalllist.head;

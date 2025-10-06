@@ -616,7 +616,7 @@ NTSTATUS marshal_nfs41_setacl(
     ULONG *len);
 NTSTATUS unmarshal_nfs41_getacl(
     nfs41_updowncall_entry *cur,
-    unsigned char **buf);
+    const unsigned char *restrict *restrict buf);
 NTSTATUS nfs41_QuerySecurityInformation(
     IN OUT PRX_CONTEXT RxContext);
 NTSTATUS nfs41_SetSecurityInformation(
@@ -630,7 +630,7 @@ NTSTATUS marshal_nfs41_dirquery(
     ULONG *len);
 NTSTATUS unmarshal_nfs41_dirquery(
     nfs41_updowncall_entry *cur,
-    unsigned char **buf);
+    const unsigned char *restrict *restrict buf);
 void print_debug_filedirquery_header(
     PRX_CONTEXT RxContext);
 NTSTATUS check_nfs41_dirquery_args(
@@ -671,7 +671,7 @@ NTSTATUS marshal_nfs41_eaget(
     ULONG *len);
 void unmarshal_nfs41_eaget(
     nfs41_updowncall_entry *cur,
-    unsigned char **buf);
+    const unsigned char *restrict *restrict buf);
 NTSTATUS nfs41_SetEaInformation(
     IN OUT PRX_CONTEXT RxContext);
 NTSTATUS nfs41_QueryEaInformation(
@@ -687,7 +687,7 @@ NTSTATUS marshal_nfs41_queryallocatedranges(
     ULONG *len);
 NTSTATUS unmarshal_nfs41_queryallocatedranges(
     nfs41_updowncall_entry *cur,
-    unsigned char **buf);
+    const unsigned char *restrict *restrict buf);
 NTSTATUS marshal_nfs41_setzerodata(
     nfs41_updowncall_entry *entry,
     unsigned char *buf,
@@ -695,7 +695,7 @@ NTSTATUS marshal_nfs41_setzerodata(
     ULONG *len);
 NTSTATUS unmarshal_nfs41_setzerodata(
     nfs41_updowncall_entry *cur,
-    unsigned char **buf);
+    const unsigned char *restrict *restrict buf);
 NTSTATUS marshal_nfs41_duplicatedata(
     nfs41_updowncall_entry *entry,
     unsigned char *buf,
@@ -703,7 +703,7 @@ NTSTATUS marshal_nfs41_duplicatedata(
     ULONG *len);
 NTSTATUS unmarshal_nfs41_duplicatedata(
     nfs41_updowncall_entry *cur,
-    unsigned char **buf);
+    const unsigned char *restrict *restrict buf);
 void nfs41_remove_offloadcontext_for_fobx(
     IN PMRX_FOBX pFobx);
 
@@ -747,7 +747,7 @@ NTSTATUS marshal_nfs41_unmount(
     ULONG *len);
 void unmarshal_nfs41_mount(
     nfs41_updowncall_entry *cur,
-    unsigned char **buf);
+    const unsigned char *restrict *restrict buf);
 NTSTATUS nfs41_unmount(
     HANDLE session,
     DWORD version,
@@ -808,7 +808,7 @@ NTSTATUS marshal_nfs41_close(
     ULONG *len);
 NTSTATUS unmarshal_nfs41_open(
     nfs41_updowncall_entry *cur,
-    unsigned char **buf);
+    const unsigned char *restrict *restrict buf);
 NTSTATUS nfs41_Create(
     IN OUT PRX_CONTEXT RxContext);
 NTSTATUS nfs41_CollapseOpen(
@@ -826,7 +826,7 @@ NTSTATUS marshal_nfs41_rw(
     ULONG *len);
 NTSTATUS unmarshal_nfs41_rw(
     nfs41_updowncall_entry *cur,
-    unsigned char **buf);
+    const unsigned char *restrict *restrict buf);
 NTSTATUS nfs41_Read(
     IN OUT PRX_CONTEXT RxContext);
 NTSTATUS nfs41_Write(
@@ -844,7 +844,7 @@ NTSTATUS marshal_nfs41_symlink(
     ULONG *len);
 void unmarshal_nfs41_symlink(
     nfs41_updowncall_entry *cur,
-    unsigned char **buf);
+    const unsigned char *restrict *restrict buf);
 NTSTATUS nfs41_SetSymlinkReparsePoint(
     IN OUT PRX_CONTEXT RxContext);
 NTSTATUS nfs41_GetSymlinkReparsePoint(
@@ -868,7 +868,7 @@ void unmarshal_nfs41_attrget(
     nfs41_updowncall_entry *cur,
     PVOID attr_value,
     ULONG *attr_len,
-    unsigned char **buf,
+    const unsigned char *restrict *restrict buf,
     BOOL copy_partial);
 NTSTATUS nfs41_UpcallCreate(
     IN DWORD opcode,
@@ -903,10 +903,10 @@ NTSTATUS marshal_nfs41_fileset(
 void unmarshal_nfs41_setattr(
     nfs41_updowncall_entry *cur,
     PULONGLONG dest_buf,
-    unsigned char **buf);
+    const unsigned char *restrict *restrict buf);
 void unmarshal_nfs41_getattr(
     nfs41_updowncall_entry *cur,
-    unsigned char **buf);
+    const unsigned char *restrict *restrict buf);
 NTSTATUS nfs41_QueryFileInformation(
     IN OUT PRX_CONTEXT RxContext);
 NTSTATUS nfs41_SetFileInformation(
@@ -922,7 +922,7 @@ NTSTATUS marshal_nfs41_volume(
     ULONG *len);
 void unmarshal_nfs41_volume(
     nfs41_updowncall_entry *cur,
-    unsigned char **buf);
+    const unsigned char *restrict *restrict buf);
 NTSTATUS nfs41_QueryVolumeInformation(
     IN OUT PRX_CONTEXT RxContext);
 

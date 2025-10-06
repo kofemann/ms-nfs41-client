@@ -76,8 +76,10 @@ NTSTATUS nfs41_SetReparsePoint(
     IN OUT PRX_CONTEXT RxContext)
 {
     NTSTATUS status;
-    __notnull XXCTL_LOWIO_COMPONENT *FsCtl = &RxContext->LowIoContext.ParamsFor.FsCtl;
-    __notnull PREPARSE_DATA_BUFFER Reparse = (PREPARSE_DATA_BUFFER)FsCtl->pInputBuffer;
+    __notnull XXCTL_LOWIO_COMPONENT *FsCtl =
+        &RxContext->LowIoContext.ParamsFor.FsCtl;
+    __notnull const PREPARSE_DATA_BUFFER Reparse =
+        (const PREPARSE_DATA_BUFFER)FsCtl->pInputBuffer;
 
     DbgEn();
     FsRtlEnterFileSystem();

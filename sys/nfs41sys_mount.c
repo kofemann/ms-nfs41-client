@@ -176,7 +176,7 @@ NTSTATUS marshal_nfs41_unmount(
 
 void unmarshal_nfs41_mount(
     nfs41_updowncall_entry *cur,
-    unsigned char **buf)
+    const unsigned char *restrict *restrict buf)
 {
     RtlCopyMemory(&cur->session, *buf, sizeof(HANDLE));
     *buf += sizeof(HANDLE);
@@ -1653,7 +1653,8 @@ NTSTATUS nfs41_CreateConnection(
     NTSTATUS status = STATUS_SUCCESS;
     HANDLE Handle = INVALID_HANDLE_VALUE;
     PLOWIO_CONTEXT LowIoContext = &RxContext->LowIoContext;
-    PVOID Buffer = LowIoContext->ParamsFor.IoCtl.pInputBuffer, EaBuffer;
+    const PVOID Buffer = LowIoContext->ParamsFor.IoCtl.pInputBuffer;
+    PVOID EaBuffer;
     ULONG BufferLen = LowIoContext->ParamsFor.IoCtl.InputBufferLength, EaLength;
     UNICODE_STRING FileName;
     BOOLEAN Wait = BooleanFlagOn(RxContext->Flags, RX_CONTEXT_FLAG_WAIT);
@@ -1693,7 +1694,7 @@ NTSTATUS nfs41_DeleteConnection(
 {
     NTSTATUS status = STATUS_INVALID_PARAMETER;
     PLOWIO_CONTEXT LowIoContext = &RxContext->LowIoContext;
-    PWCHAR ConnectName = LowIoContext->ParamsFor.IoCtl.pInputBuffer;
+    const PWCHAR ConnectName = LowIoContext->ParamsFor.IoCtl.pInputBuffer;
     ULONG ConnectNameLen = LowIoContext->ParamsFor.IoCtl.InputBufferLength;
     HANDLE Handle;
     UNICODE_STRING FileName;

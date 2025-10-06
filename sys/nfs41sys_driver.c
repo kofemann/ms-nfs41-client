@@ -277,12 +277,12 @@ NTSTATUS nfs41_invalidate_cache(
     IN PRX_CONTEXT RxContext)
 {
     PLOWIO_CONTEXT LowIoContext = &RxContext->LowIoContext;
-    unsigned char *buf = LowIoContext->ParamsFor.IoCtl.pInputBuffer;
+    const unsigned char *inbuf = LowIoContext->ParamsFor.IoCtl.pInputBuffer;
     ULONG flag = DISABLE_CACHING;
     PMRX_SRV_OPEN srv_open;
     NTSTATUS status;
 
-    RtlCopyMemory(&srv_open, buf, sizeof(HANDLE));
+    RtlCopyMemory(&srv_open, inbuf, sizeof(HANDLE));
 #ifdef DEBUG_INVALIDATE_CACHE
     DbgP("nfs41_invalidate_cache: received srv_open=0x%p '%wZ'\n",
         srv_open, srv_open->pAlreadyPrefixedName);
@@ -454,7 +454,7 @@ NTSTATUS nfs41_DevFcbXXXControlFile(
     PLOWIO_CONTEXT io_ctx = &RxContext->LowIoContext;
     ULONG fsop = io_ctx->ParamsFor.FsCtl.FsControlCode, state;
     ULONG in_len = io_ctx->ParamsFor.IoCtl.InputBufferLength;
-    DWORD *buf = io_ctx->ParamsFor.IoCtl.pInputBuffer;
+    const DWORD *inbuf = io_ctx->ParamsFor.IoCtl.pInputBuffer;
     PNFS41_DEVICE_EXTENSION DevExt =
         NFS41GetDeviceExtension(RxContext->RxDeviceObject);
     DWORD nfs41d_version = 0;
@@ -521,7 +521,7 @@ NTSTATUS nfs41_DevFcbXXXControlFile(
         case IOCTL_NFS41_START:
             print_driver_state(nfs41_start_state);
             if (in_len >= sizeof(DWORD)) {
-                RtlCopyMemory(&nfs41d_version, buf, sizeof(DWORD));
+                RtlCopyMemory(&nfs41d_version, inbuf, sizeof(DWORD));
                 DbgP("NFS41 Daemon sent start request with version %d\n",
                     nfs41d_version);
                 DbgP("Currently used NFS41 Daemon version is %d\n",
