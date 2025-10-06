@@ -93,13 +93,16 @@ void *memrchr(const void * restrict s, int c, size_t n)
     return NULL;
 }
 
-int safe_read(unsigned char **pos, uint32_t *remaining, void *dest, uint32_t dest_len);
-int get_safe_read_bufferpos(unsigned char **pos, uint32_t *remaining,
-    uint32_t src_len, void **destbuffer);
-int safe_write(unsigned char **pos, uint32_t *remaining, void *dest, uint32_t dest_len);
-int get_safe_write_bufferpos(unsigned char **pos, uint32_t *remaining,
-    uint32_t src_len, void **destbuffer);
-int get_name(unsigned char **pos, uint32_t *remaining, const char **out_name);
+int safe_read(const unsigned char *restrict *restrict pos,
+    uint32_t *restrict remaining, void *dest, uint32_t dest_len);
+int get_safe_read_bufferpos(const unsigned char *restrict *restrict pos,
+    uint32_t *restrict remaining, uint32_t src_len, const void **destbuffer);
+int get_name(const unsigned char *restrict *restrict pos,
+    uint32_t *restrict remaining, const char *restrict *restrict out_name);
+int safe_write(unsigned char *restrict *restrict pos,
+    uint32_t *restrict remaining, const void *src, uint32_t src_len);
+int get_safe_write_bufferpos(unsigned char *restrict *restrict pos,
+    uint32_t *restrict remaining, uint32_t src_len, void **destbuffer);
 
 const char* strip_path(
     IN const char *path,
