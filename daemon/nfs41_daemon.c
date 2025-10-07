@@ -31,6 +31,10 @@
 
 #include <devioctl.h>
 #include <iphlpapi.h> /* for GetNetworkParam() */
+
+/* SDK, WDK versions */
+#include <sdkddkver.h>
+
 #include "nfs41_build_features.h"
 #include "nfs41_driver.h" /* for NFS41_USER_DEVICE_NAME_A */
 #include "nfs41_np.h" /* for NFS41NP_SHARED_MEMORY */
@@ -329,14 +333,24 @@ static void PrintUsage(const wchar_t *argv0)
 static
 void PrintVersion(void)
 {
-    (void)fprintf(stderr,
-        "nfsd.exe version 0.1 (%s) from ms-nfs41-client, commitid=%s\n",
+    (void)fwprintf(stderr,
+        L"nfsd.exe "
+        L"version 0.1 (%s) from ms-nfs41-client, commitid=\"%s\", "
+#ifdef _MSC_VER
+        L"_MSC_VER=%ld, "
+#endif /* _MSC_VER */
+        L"NTDDI_VERSION=0x%lx, WDK_NTDDI_VERSION=0x%lx\n",
 #ifdef _DEBUG
         "DEBUG build",
 #else
-        "RELEASE",
+        "RELEASE build",
 #endif /* _DEBUG */
-        GIT_COMMIT_ID);
+        GIT_COMMIT_ID,
+#ifdef _MSC_VER
+        (long)_MSC_VER,
+#endif /* _MSC_VER */
+        (long)NTDDI_VERSION,
+        (long)WDK_NTDDI_VERSION);
 }
 
 static

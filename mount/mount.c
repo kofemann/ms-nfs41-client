@@ -40,6 +40,9 @@
 #include <io.h>
 #include <fcntl.h>
 
+/* SDK, WDK versions */
+#include <sdkddkver.h>
+
 #include "nfs41_build_features.h"
 #include "nfs41_driver.h" /* |NFS41_PROVIDER_NAME_U| */
 #include "options.h"
@@ -92,13 +95,23 @@ static
 void PrintVersion(void)
 {
     (void)fwprintf(stderr,
-        L"nfs_mount.exe version 0.1 (%s) from ms-nfs41-client, commitid=%s\n",
+        L"nfs_mount.exe "
+        L"version 0.1 (%s) from ms-nfs41-client, commitid=\"%s\", "
+#ifdef _MSC_VER
+        L"_MSC_VER=%ld, "
+#endif /* _MSC_VER */
+        L"NTDDI_VERSION=0x%lx, WDK_NTDDI_VERSION=0x%lx\n",
 #ifdef _DEBUG
         "DEBUG build",
 #else
         "RELEASE build",
 #endif /* _DEBUG */
-        GIT_COMMIT_ID);
+        GIT_COMMIT_ID,
+#ifdef _MSC_VER
+        (long)_MSC_VER,
+#endif /* _MSC_VER */
+        (long)NTDDI_VERSION,
+        (long)WDK_NTDDI_VERSION);
 }
 
 static
