@@ -546,7 +546,7 @@ function msnfs41client_build
 
 			# "retarget" VS platform toolset to "v143"
 			# ("v142" should remain the default when comitting)
-			sed -i -E 's/<PlatformToolset>v142<\/PlatformToolset>/<PlatformToolset>v143<\/PlatformToolset>/g' $(find 'build.vc19' -name \*.vcxproj)
+			sed -i -E 's/<PlatformToolset>v...<\/PlatformToolset>/<PlatformToolset>v143<\/PlatformToolset>/g' $(find 'build.vc19' -name \*.vcxproj)
 
 			# build
 			time make -j1 -f cygwin/Makefile build64
@@ -561,6 +561,12 @@ function msnfs41client_build
 				export PATH="/cygdrive/c/Program Files (x86)/Microsoft Visual Studio/2019/Community/MSBuild/Current/Bin/:$PATH"
 			fi
 			set -o errexit
+
+			# "retarget" VS platform toolset to "v142"
+			# ("v142" should remain the default when comitting)
+			sed -i -E 's/<PlatformToolset>v...<\/PlatformToolset>/<PlatformToolset>v142<\/PlatformToolset>/g' $(find 'build.vc19' -name \*.vcxproj)
+
+			# build
 			time make -j1 -f cygwin/Makefile build
 			time make -j1 -f cygwin/Makefile installdest
 			time make -j1 -f cygwin/Makefile bintarball

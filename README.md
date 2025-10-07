@@ -896,6 +896,9 @@ Source code can be obtained from
       export PATH="/cygdrive/c/Program Files (x86)/Microsoft Visual Studio/2019/Community/MSBuild/Current/Bin/:$PATH"
       git clone https://github.com/kofemann/ms-nfs41-client.git
       cd ms-nfs41-client
+      # "retarget" VS platform toolset to "v142"
+      # ("v142" should remain the default when comitting)
+      sed -i -E 's/<PlatformToolset>v...<\/PlatformToolset>/<PlatformToolset>v142<\/PlatformToolset>/g' $(find 'build.vc19' -name \*.vcxproj)
       cd cygwin
       # get default WDK Test Certificate SHA1 ThumbPrint value for code signing
       export CERTIFICATE_THUMBPRINT="$(powershell -c 'Get-ChildItem -Path Cert:\CurrentUser\My | Where-Object {$_.Subject -like "*WDKTestCert*"} | Select-Object -ExpandProperty Thumbprint')"
@@ -912,7 +915,7 @@ Source code can be obtained from
       cd ms-nfs41-client
       # "retarget" VS platform toolset to "v143"
       # ("v142" should remain the default when comitting)
-      sed -i -E 's/<PlatformToolset>v142<\/PlatformToolset>/<PlatformToolset>v143<\/PlatformToolset>/g' $(find 'build.vc19' -name \*.vcxproj)
+      sed -i -E 's/<PlatformToolset>v...<\/PlatformToolset>/<PlatformToolset>v143<\/PlatformToolset>/g' $(find 'build.vc19' -name \*.vcxproj)
       cd cygwin
       # get default WDK Test Certificate SHA1 ThumbPrint value for code signing
       export CERTIFICATE_THUMBPRINT="$(powershell -c 'Get-ChildItem -Path Cert:\CurrentUser\My | Where-Object {$_.Subject -like "*WDKTestCert*"} | Select-Object -ExpandProperty Thumbprint')"
@@ -929,7 +932,7 @@ Source code can be obtained from
       cd ms-nfs41-client
       # "retarget" VS platform toolset to "v145"
       # ("v142" should remain the default when comitting)
-      sed -i -E 's/<PlatformToolset>v142<\/PlatformToolset>/<PlatformToolset>v145<\/PlatformToolset>/g' $(find 'build.vc19' -name \*.vcxproj)
+      sed -i -E 's/<PlatformToolset>v...<\/PlatformToolset>/<PlatformToolset>v145<\/PlatformToolset>/g' $(find 'build.vc19' -name \*.vcxproj)
       cd cygwin
       # get default WDK Test Certificate SHA1 ThumbPrint value for code signing
       export CERTIFICATE_THUMBPRINT="$(powershell -c 'Get-ChildItem -Path Cert:\CurrentUser\My | Where-Object {$_.Subject -like "*WDKTestCert*"} | Select-Object -ExpandProperty Thumbprint')"
