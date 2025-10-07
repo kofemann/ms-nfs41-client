@@ -971,7 +971,7 @@ Datei befindet. Versuchen Sie, die Datei woanders zu speichern.</programlisting>
             <itemizedlist>
               <listitem>
                 <para>Start Visual Studio 2026 installer and import the installer config file
-                <filename>ms-nfs41-client/build.vc19/ms-nfs41-client_vs2022.vsconfig</filename>,
+                <filename>ms-nfs41-client/build.vc19/ms-nfs41-client_vs2026.vsconfig</filename>,
                 and then install Visual Studio 2026 Community Insiders.</para>
               </listitem>
               <listitem>

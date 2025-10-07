@@ -870,7 +870,7 @@ Source code can be obtained from
   Community Insiders
 
   - Start Visual Studio 2026 installer and import the installer config
-    file `ms-nfs41-client/build.vc19/ms-nfs41-client_vs2022.vsconfig`,
+    file `ms-nfs41-client/build.vc19/ms-nfs41-client_vs2026.vsconfig`,
     and then install Visual Studio 2026 Community Insiders.
 
   - WDK for Windows 10, version 2004, from
