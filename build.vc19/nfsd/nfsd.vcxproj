@@ -183,7 +183,7 @@
       </PrecompiledHeader>
       <WarningLevel>Level4</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32_LEAN_AND_MEAN;FD_SETSIZE=1024;INET6;NO_CB_4_KRB5P;STANDALONE_NFSD;_CRT_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;WIN32;_WINTIRPC;_CRT_STDIO_ISO_WIDE_SPECIFIERS=1;_MEMCPY_INLINE_=1;UNICODE;_UNICODE;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32_LEAN_AND_MEAN;FD_SETSIZE=1024;INET6;NO_CB_4_KRB5P;STANDALONE_NFSD;_CRT_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;WIN32;_WINTIRPC;_CRT_STDIO_ISO_WIDE_SPECIFIERS=1;_MEMCPY_INLINE_=1;PopulationCount64=1;UNICODE;_UNICODE;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>..\..\include;..\..\libtirpc\tirpc;..\..\dll;..\..;$(IntermediateOutputPath);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
@@ -267,7 +267,7 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>WIN32_LEAN_AND_MEAN;FD_SETSIZE=1024;INET6;NO_CB_4_KRB5P;_CRT_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;WIN32;_WINTIRPC;_CRT_STDIO_ISO_WIDE_SPECIFIERS=1;_MEMCPY_INLINE_=1;UNICODE;_UNICODE;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32_LEAN_AND_MEAN;FD_SETSIZE=1024;INET6;NO_CB_4_KRB5P;_CRT_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;WIN32;_WINTIRPC;_CRT_STDIO_ISO_WIDE_SPECIFIERS=1;_MEMCPY_INLINE_=1;PopulationCount64=1;UNICODE;_UNICODE;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>..\..\include;..\..\libtirpc\tirpc;..\..\dll;..\..;$(IntermediateOutputPath);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <BufferSecurityCheck>false</BufferSecurityCheck>

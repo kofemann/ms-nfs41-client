@@ -178,7 +178,7 @@
       </PrecompiledHeader>
       <WarningLevel>Level4</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>FD_SETSIZE=1024;INET6;NO_CB_4_KRB5P;PORTMAP;_WINSOCK_DEPRECATED_NO_WARNINGS;WIN32;_WINTIRPC;_CRT_STDIO_ISO_WIDE_SPECIFIERS=1;_MEMCPY_INLINE_=1;UNICODE;_UNICODE;_DEBUG;_WINDOWS;_USRDLL;LIBTIRPC_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>FD_SETSIZE=1024;INET6;NO_CB_4_KRB5P;PORTMAP;_WINSOCK_DEPRECATED_NO_WARNINGS;WIN32;_WINTIRPC;_CRT_STDIO_ISO_WIDE_SPECIFIERS=1;_MEMCPY_INLINE_=1;PopulationCount64=1;UNICODE;_UNICODE;_DEBUG;_WINDOWS;_USRDLL;LIBTIRPC_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>..\..\libtirpc\tirpc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <StringPooling>true</StringPooling>
@@ -264,7 +264,7 @@
       </PrecompiledHeader>
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>FD_SETSIZE=1024;INET6;NO_CB_4_KRB5P;PORTMAP;_WINSOCK_DEPRECATED_NO_WARNINGS;WIN32;_WINTIRPC;_CRT_STDIO_ISO_WIDE_SPECIFIERS=1;_MEMCPY_INLINE_=1;UNICODE;_UNICODE;NDEBUG;_WINDOWS;_USRDLL;LIBTIRPC_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>FD_SETSIZE=1024;INET6;NO_CB_4_KRB5P;PORTMAP;_WINSOCK_DEPRECATED_NO_WARNINGS;WIN32;_WINTIRPC;_CRT_STDIO_ISO_WIDE_SPECIFIERS=1;_MEMCPY_INLINE_=1;PopulationCount64=1;UNICODE;_UNICODE;NDEBUG;_WINDOWS;_USRDLL;LIBTIRPC_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>..\..\libtirpc\tirpc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <StringPooling>true</StringPooling>

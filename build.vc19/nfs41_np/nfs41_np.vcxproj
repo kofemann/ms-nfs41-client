@@ -171,7 +171,7 @@
       </PrecompiledHeader>
       <WarningLevel>Level4</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;_CRT_STDIO_ISO_WIDE_SPECIFIERS=1;_MEMCPY_INLINE_=1;UNICODE;_UNICODE;_DEBUG;_WINDOWS;_USRDLL;NFS41_NP_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_CRT_STDIO_ISO_WIDE_SPECIFIERS=1;_MEMCPY_INLINE_=1;PopulationCount64=1;UNICODE;_UNICODE;_DEBUG;_WINDOWS;_USRDLL;NFS41_NP_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>..\..\include;..\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -241,7 +241,7 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>WIN32;_CRT_STDIO_ISO_WIDE_SPECIFIERS=1;_MEMCPY_INLINE_=1;UNICODE;_UNICODE;NDEBUG;_WINDOWS;_USRDLL;NFS41_NP_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_CRT_STDIO_ISO_WIDE_SPECIFIERS=1;_MEMCPY_INLINE_=1;PopulationCount64=1;UNICODE;_UNICODE;NDEBUG;_WINDOWS;_USRDLL;NFS41_NP_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>..\..\include;..\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
