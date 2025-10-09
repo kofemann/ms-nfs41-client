@@ -56,6 +56,7 @@
 #include <rx.h>
 #include <windef.h>
 #include <winerror.h>
+#include <stdbool.h>
 
 #include <Ntstrsafe.h>
 
@@ -156,7 +157,9 @@ static void unmarshal_nfs41_header(
     DbgP("[downcall header] "
         "xid=%lld opcode='%s' status=0x%lx errno=%d\n",
         tmp->xid,
-        ENTRY_OPCODE2STRING(tmp), (long)tmp->status, tmp->errno);
+        opcode2string(tmp->opcode),
+        (long)tmp->status,
+        tmp->errno);
 #endif
 }
 
@@ -496,8 +499,8 @@ retry_wait:
                 UserMode, FALSE, &timeout);
 
     print_wait_status(0, "[downcall]", status,
-        ENTRY_OPCODE2STRING(entry), entry,
-        (entry?entry->xid:-1LL));
+        opcode2string(entry->opcode), entry,
+        entry->xid);
 
     switch(status) {
     case STATUS_SUCCESS:
@@ -520,7 +523,7 @@ retry_wait:
                 "returned status(=0x%lx), "
                 "retry waiting for '%s' entry=0x%p xid=%lld\n",
                 (long)status,
-                ENTRY_OPCODE2STRING(entry),
+                opcode2string(entry->opcode),
                 entry,
                 entry->xid);
             goto retry_wait;
@@ -533,9 +536,9 @@ retry_wait:
             break;
         }
         DbgP("[upcall] abandoning '%s' entry=0x%p xid=%lld\n",
-            ENTRY_OPCODE2STRING(entry),
+            opcode2string(entry->opcode),
             entry,
-            (entry?entry->xid:-1LL));
+            entry->xid);
         entry->state = NFS41_NOT_WAITING;
         ExReleaseFastMutexUnsafe(&entry->lock);
         goto out;
@@ -617,8 +620,9 @@ NTSTATUS nfs41_downcall(
     const unsigned char *inbuf;
     const unsigned char *inbuf_orig;
     PLIST_ENTRY pEntry;
-    nfs41_updowncall_entry *tmp, *cur= NULL;
-    BOOLEAN found = 0;
+    nfs41_updowncall_entry *header_tmp;
+    nfs41_updowncall_entry *cur = NULL;
+    bool found = false;
 
     inbuf = inbuf_orig = LowIoContext->ParamsFor.IoCtl.pInputBuffer;
 
@@ -629,18 +633,18 @@ NTSTATUS nfs41_downcall(
 #endif /* DEBUG_PRINT_DOWNCALL_HEXBUF */
 
 #ifdef USE_STACK_FOR_DOWNCALL_UPDOWNCALLENTRY_MEM
-    nfs41_updowncall_entry stacktmp; /* rename this to |header_tmp| */
+    nfs41_updowncall_entry header_tmp_from_stack;
 
-    tmp = &stacktmp;
+    header_tmp = &header_tmp_from_stack;
 #else
-    tmp = nfs41_downcall_allocate_updowncall_entry();
-    if (tmp == NULL) {
+    header_tmp = nfs41_downcall_allocate_updowncall_entry();
+    if (header_tmp == NULL) {
         status = STATUS_INSUFFICIENT_RESOURCES;
         goto out;
     }
 #endif /* USE_STACK_FOR_DOWNCALL_UPDOWNCALLENTRY_MEM */
 
-    unmarshal_nfs41_header(tmp, &inbuf);
+    unmarshal_nfs41_header(header_tmp, &inbuf);
 
     ExAcquireFastMutexUnsafe(&downcalllist.lock);
     pEntry = &downcalllist.head;
@@ -648,8 +652,8 @@ NTSTATUS nfs41_downcall(
     while (pEntry != NULL) {
         cur = (nfs41_updowncall_entry *)CONTAINING_RECORD(pEntry,
                 nfs41_updowncall_entry, next);
-        if (cur->xid == tmp->xid) {
-            found = 1;
+        if (cur->xid == header_tmp->xid) {
+            found = true;
             break;
         }
         if (pEntry->Flink == &downcalllist.head)
@@ -659,14 +663,17 @@ NTSTATUS nfs41_downcall(
     ExReleaseFastMutexUnsafe(&downcalllist.lock);
     SeStopImpersonatingClient();
     if (!found) {
-        print_error("Didn't find xid=%lld entry\n", tmp->xid);
+        print_error("nfs41_downcall: Did not find xid=%lld entry\n",
+            header_tmp->xid);
         status = STATUS_NOT_FOUND;
         goto out_free;
     }
 
     ExAcquireFastMutexUnsafe(&cur->lock);
     if (cur->state == NFS41_NOT_WAITING) {
-        DbgP("[downcall] Nobody is waiting for this request!!!\n");
+        DbgP("nfs41_downcall: "
+            "Nobody is waiting for this request (xid=%lld)!\n",
+            cur->xid);
         switch(cur->opcode) {
         case NFS41_SYSOP_WRITE:
         case NFS41_SYSOP_READ:
@@ -711,12 +718,12 @@ NTSTATUS nfs41_downcall(
         goto out_free;
     }
     cur->state = NFS41_DONE_PROCESSING;
-    cur->status = tmp->status;
-    cur->errno = tmp->errno;
+    cur->status = header_tmp->status;
+    cur->errno = header_tmp->errno;
     status = STATUS_SUCCESS;
 
-    if (!tmp->status) {
-        switch (tmp->opcode) {
+    if (!header_tmp->status) {
+        switch (header_tmp->opcode) {
         case NFS41_SYSOP_MOUNT:
             unmarshal_nfs41_mount(cur, &inbuf);
             break;
@@ -775,11 +782,12 @@ NTSTATUS nfs41_downcall(
          * passes a buffer which is too small)
          */
         ULONG bytesread_from_inbuf = (ULONG)(inbuf - inbuf_orig);
-        if ((tmp->opcode != NFS41_SYSOP_VOLUME_QUERY) &&
+        if ((header_tmp->opcode != NFS41_SYSOP_VOLUME_QUERY) &&
             (bytesread_from_inbuf != inbuf_len)) {
-            print_error("nfs41_downcall: ASSERT: '%s': "
+            print_error("nfs41_downcall: ASSERT: '%s' (xid=%lld): "
                 "(inbuf(=0x%p)-inbuf_orig(=0x%p))(=%ld) != inbuf_len(=%ld)\n",
-                opcode2string(tmp->opcode),
+                opcode2string(header_tmp->opcode),
+                cur->xid,
                 inbuf,
                 inbuf_orig,
                 (long)bytesread_from_inbuf,
@@ -807,9 +815,9 @@ NTSTATUS nfs41_downcall(
                 nfs41_UpcallDestroy(cur);
                 break;
             default:
-                print_error("##### nfs41_downcall: "
+                print_error("nfs41_downcall: xid=%lld "
                     "unknown async opcode=%d ####\n",
-                    (int)cur->opcode);
+                    cur->xid, (int)cur->opcode);
                 break;
         }
     } else {
@@ -820,7 +828,7 @@ out_free:
 #ifdef USE_STACK_FOR_DOWNCALL_UPDOWNCALLENTRY_MEM
     ;
 #else
-    nfs41_downcall_free_updowncall_entry(tmp);
+    nfs41_downcall_free_updowncall_entry(header_tmp);
 out:
 #endif /* USE_STACK_FOR_DOWNCALL_UPDOWNCALLENTRY_MEM */
 
@@ -839,7 +847,7 @@ NTSTATUS nfs41_delayxid(
     const unsigned char *inbuf_orig;
     PLIST_ENTRY pEntry;
     nfs41_updowncall_entry *cur = NULL;
-    BOOLEAN found = FALSE;
+    bool found = false;
 
     FsRtlEnterFileSystem();
 
@@ -863,8 +871,9 @@ NTSTATUS nfs41_delayxid(
      */
     ULONG bytesread_from_inbuf = (ULONG)(inbuf - inbuf_orig);
     if (bytesread_from_inbuf != inbuf_len) {
-        print_error("nfs41_delayxid: ASSERT: "
+        print_error("nfs41_delayxid: ASSERT (xid=%lld): "
             "(inbuf(=0x%p)-inbuf_orig(=0x%p))(=%ld) != inbuf_len(=%ld)\n",
+            delayxid,
             inbuf,
             inbuf_orig,
             (long)bytesread_from_inbuf,
@@ -879,7 +888,7 @@ NTSTATUS nfs41_delayxid(
         cur = (nfs41_updowncall_entry *)CONTAINING_RECORD(pEntry,
                 nfs41_updowncall_entry, next);
         if (cur->xid == delayxid) {
-            found = TRUE;
+            found = true;
             break;
         }
         if (pEntry->Flink == &downcalllist.head)
