@@ -81,6 +81,13 @@ if (( $? == 0 )) && [[ "$stdout" != ~(El)Unknown\+Group: ]] ; then
 	c.localised_groupnames['Administrators']="${stdout%%:*}"
 fi
 
+# Group "Users" de_DE: "Benutzer", fr_FR: "Utilisateurs"
+# (primarily used by WindowsServer (2019) NFSv4.1 server)
+stdout="$(getent group 'S-1-5-32-545')"
+if (( $? == 0 )) && [[ "$stdout" != ~(El)Unknown\+Group: ]] ; then
+	c.localised_groupnames['Users']="${stdout%%:*}"
+fi
+
 compound -A localusers=(
 	#
 	# System accounts
@@ -286,6 +293,7 @@ if [[ -v c.localised_groupnames['Administrators'] ]] ; then
 			localgid=544
 		)
 		# French Windows localised group name for "Administrators"
+		# (from https://learn.microsoft.com/fr-fr/windows-server/identity/ad-ds/manage/understand-security-identifiers)
 		['Administrateurs']=(
 			localgroupname="${c.localised_groupnames['Administrators']}"
 			localgid=544
@@ -294,6 +302,30 @@ if [[ -v c.localised_groupnames['Administrators'] ]] ; then
 		['Administratoren']=(
 			localgroupname="${c.localised_groupnames['Administrators']}"
 			localgid=544
+		)
+	)
+fi
+
+if [[ -v c.localised_groupnames['Users'] ]] ; then
+	localgroups+=(
+		["${c.localised_groupnames['Users']}"]=(
+			localgroupname="${c.localised_groupnames['Users']}"
+			localgid=545
+		)
+		['Users']=(
+			localgroupname="${c.localised_groupnames['Users']}"
+			localgid=545
+		)
+		# French Windows localised group name for "Users"
+		# (from https://learn.microsoft.com/fr-fr/windows-server/identity/ad-ds/manage/understand-security-identifiers)
+		['Utilisateurs']=(
+			localgroupname="${c.localised_groupnames['Users']}"
+			localgid=545
+		)
+		# German Windows localised group name for "Users"
+		['Benutzer']=(
+			localgroupname="${c.localised_groupnames['Users']}"
+			localgid=545
 		)
 	)
 fi
