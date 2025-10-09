@@ -74,6 +74,13 @@ if (( $? == 0 )) && [[ "$stdout" != ~(El)Unknown\+Group: ]] ; then
 	c.localised_groupnames['None']="${stdout%%:*}"
 fi
 
+# Group "Administrators" de_DE: "Administratoren"
+# (primarily used by WindowsServer (2019) NFSv4.1 server)
+stdout="$(getent group 'S-1-5-32-544')"
+if (( $? == 0 )) && [[ "$stdout" != ~(El)Unknown\+Group: ]] ; then
+	c.localised_groupnames['Administrators']="${stdout%%:*}"
+fi
+
 compound -A localusers=(
 	#
 	# System accounts
@@ -268,6 +275,28 @@ if [[ -v c.localised_groupnames['None'] ]] ; then
 	)
 fi
 
+if [[ -v c.localised_groupnames['Administrators'] ]] ; then
+	localgroups+=(
+		["${c.localised_groupnames['Administrators']}"]=(
+			localgroupname="${c.localised_groupnames['Administrators']}"
+			localgid=544
+		)
+		['Administrators']=(
+			localgroupname="${c.localised_groupnames['Administrators']}"
+			localgid=544
+		)
+		# French Windows localised group name for "Administrators"
+		['Administrateurs']=(
+			localgroupname="${c.localised_groupnames['Administrators']}"
+			localgid=544
+		)
+		# German Windows localised group name for "Administrators"
+		['Administratoren']=(
+			localgroupname="${c.localised_groupnames['Administrators']}"
+			localgid=544
+		)
+	)
+fi
 
 case "${c.mode}" in
 	'nfsserver_owner2localaccount')
