@@ -154,8 +154,8 @@ static void unmarshal_nfs41_header(
     RtlCopyMemory(&tmp->errno, *buf, sizeof(tmp->errno));
     *buf += sizeof(tmp->errno);
 #ifdef DEBUG_MARSHAL_HEADER
-    DbgP("[downcall header] "
-        "xid=%lld opcode='%s' status=0x%lx errno=%d\n",
+    DbgP("[downcall hdr] "
+        "xid=%lld op='%s' status=0x%lx errno=%d\n",
         tmp->xid,
         opcode2string(tmp->opcode),
         (long)tmp->status,

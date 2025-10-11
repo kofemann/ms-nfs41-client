@@ -255,10 +255,15 @@ NTSTATUS marshal_nfs41_header(
     tmp += sizeof(HANDLE);
 
 #ifdef DEBUG_MARSHAL_HEADER
-    DbgP("[upcall header] xid=%lld opcode='%s' filename='%wZ' version=%d "
-        "session=0x%p open_state=0x%x\n", entry->xid,
-        ENTRY_OPCODE2STRING(entry), entry->filename,
-        entry->version, entry->session, entry->open_state);
+    DbgP("[upcall hdr] xid=%lld op='%s'%s filename='%wZ' vers=%d "
+        "sess=0x%p open_state=0x%x\n",
+        entry->xid,
+        opcode2string(entry->opcode),
+        (entry->async_op?"(async)":""),
+        entry->filename,
+        (int)entry->version,
+        entry->session,
+        entry->open_state);
 #endif /* DEBUG_MARSHAL_HEADER */
 out:
     return status;
