@@ -745,8 +745,10 @@ NTSTATUS nfs41_downcall(
             unmarshal_nfs41_eaget(cur, &inbuf);
             break;
         case NFS41_SYSOP_SYMLINK_GET:
+            unmarshal_nfs41_get_symlink(cur, &inbuf);
+            break;
         case NFS41_SYSOP_SYMLINK_SET:
-            unmarshal_nfs41_symlink(cur, &inbuf);
+            unmarshal_nfs41_set_symlink(cur, &inbuf);
             break;
         case NFS41_SYSOP_VOLUME_QUERY:
             unmarshal_nfs41_volume(cur, &inbuf);

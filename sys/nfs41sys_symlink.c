@@ -119,13 +119,10 @@ out:
     return status;
 }
 
-void unmarshal_nfs41_symlink(
+void unmarshal_nfs41_get_symlink(
     nfs41_updowncall_entry *cur,
     const unsigned char *restrict *restrict buf)
 {
-    if (cur->opcode == NFS41_SYSOP_SYMLINK_SET)
-        return;
-
     RtlCopyMemory(&cur->u.Symlink.target->Length, *buf, sizeof(USHORT));
     *buf += sizeof(USHORT);
     if (cur->u.Symlink.target->Length >
@@ -136,6 +133,13 @@ void unmarshal_nfs41_symlink(
     RtlCopyMemory(cur->u.Symlink.target->Buffer, *buf,
         cur->u.Symlink.target->Length);
     *buf += cur->u.Symlink.target->Length;
+}
+
+void unmarshal_nfs41_set_symlink(
+    nfs41_updowncall_entry *cur,
+    const unsigned char *restrict *restrict buf)
+{
+    /* empty */
 }
 
 NTSTATUS map_symlink_errors(

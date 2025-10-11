@@ -842,7 +842,10 @@ NTSTATUS marshal_nfs41_symlink(
     unsigned char *buf,
     ULONG buf_len,
     ULONG *len);
-void unmarshal_nfs41_symlink(
+void unmarshal_nfs41_get_symlink(
+    nfs41_updowncall_entry *cur,
+    const unsigned char *restrict *restrict buf);
+void unmarshal_nfs41_set_symlink(
     nfs41_updowncall_entry *cur,
     const unsigned char *restrict *restrict buf);
 NTSTATUS nfs41_SetSymlinkReparsePoint(
