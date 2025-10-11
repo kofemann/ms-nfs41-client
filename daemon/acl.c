@@ -498,11 +498,13 @@ out:
     return status;
 }
 
-static int marshall_getacl(unsigned char *buffer, uint32_t *length, 
-                           nfs41_upcall *upcall)
+static int marshall_getacl(
+    unsigned char *restrict buffer,
+    uint32_t *restrict length,
+    nfs41_upcall *restrict upcall)
 {
     int status = ERROR_NOT_SUPPORTED;
-    getacl_upcall_args *args = &upcall->args.getacl;
+    const getacl_upcall_args *args = &upcall->args.getacl;
 
     status = safe_write(&buffer, length, &args->sec_desc_len, sizeof(DWORD));
     if (status) goto out;
@@ -1557,9 +1559,12 @@ out:
     return status;
 }
 
-static int marshall_setacl(unsigned char *buffer, uint32_t *length, nfs41_upcall *upcall)
+static int marshall_setacl(
+    unsigned char *restrict buffer,
+    uint32_t *restrict length,
+    nfs41_upcall *restrict upcall)
 {
-    setacl_upcall_args *args = &upcall->args.setacl;
+    const setacl_upcall_args *args = &upcall->args.setacl;
     return safe_write(&buffer, length, &args->ctime, sizeof(args->ctime));
 }
 

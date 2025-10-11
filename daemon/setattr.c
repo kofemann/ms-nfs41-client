@@ -717,9 +717,12 @@ static int handle_setattr(void *daemon_context, nfs41_upcall *upcall)
     return status;
 }
 
-static int marshall_setattr(unsigned char *buffer, uint32_t *length, nfs41_upcall *upcall)
+static int marshall_setattr(
+    unsigned char *restrict buffer,
+    uint32_t *restrict length,
+    nfs41_upcall *restrict upcall)
 {
-    setattr_upcall_args *args = &upcall->args.setattr;
+    const setattr_upcall_args *args = &upcall->args.setattr;
     return safe_write(&buffer, length, &args->ctime, sizeof(args->ctime));
 }
 

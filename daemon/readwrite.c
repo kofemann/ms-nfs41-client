@@ -399,9 +399,12 @@ out:
     return status;
 }
 
-static int marshall_rw(unsigned char *buffer, uint32_t *length, nfs41_upcall *upcall)
+static int marshall_rw(
+    unsigned char *restrict buffer,
+    uint32_t *restrict length,
+    nfs41_upcall *restrict upcall)
 {
-    readwrite_upcall_args *args = &upcall->args.rw;
+    const readwrite_upcall_args *args = &upcall->args.rw;
     int status;
     status = safe_write(&buffer, length, &args->out_len, sizeof(args->out_len));
     if (status) goto out;

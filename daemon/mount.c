@@ -316,9 +316,12 @@ out_err:
     goto out;
 }
 
-static int marshall_mount(unsigned char *buffer, uint32_t *length, nfs41_upcall *upcall)
+static int marshall_mount(
+    unsigned char *restrict buffer,
+    uint32_t *restrict length,
+    nfs41_upcall *restrict upcall)
 {
-    mount_upcall_args *args = &upcall->args.mount;
+    const mount_upcall_args *args = &upcall->args.mount;
     int status;
     DPRINTF(2, ("NFS41_SYSOP_MOUNT: writing pointer to nfs41_root 0x%p, version %d, "
         "lease_time %d\n", upcall->root_ref, NFS41D_VERSION, args->lease_time));

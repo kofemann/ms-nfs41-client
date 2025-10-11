@@ -1232,10 +1232,13 @@ out_free_state:
     goto out;
 }
 
-static int marshall_open(unsigned char *buffer, uint32_t *length, nfs41_upcall *upcall)
+static int marshall_open(
+    unsigned char *restrict buffer,
+    uint32_t *restrict length,
+    nfs41_upcall *restrict upcall)
 {
     int status;
-    open_upcall_args *args = &upcall->args.open;
+    const open_upcall_args *args = &upcall->args.open;
 
     status = safe_write(&buffer, length, &args->basic_info, sizeof(args->basic_info));
     if (status) goto out;

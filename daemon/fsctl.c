@@ -300,11 +300,14 @@ int handle_queryallocatedranges(void *daemon_context,
     return status;
 }
 
-static int marshall_queryallocatedranges(unsigned char *buffer,
-    uint32_t *length, nfs41_upcall *upcall)
+static int marshall_queryallocatedranges(
+    unsigned char *restrict buffer,
+    uint32_t *restrict length,
+    nfs41_upcall *restrict upcall)
 {
     int status;
-    queryallocatedranges_upcall_args *args = &upcall->args.queryallocatedranges;
+    const queryallocatedranges_upcall_args *args =
+        &upcall->args.queryallocatedranges;
 
     status = safe_write(&buffer, length, &args->buffer_overflow, sizeof(args->buffer_overflow));
     if (status) goto out;
@@ -426,10 +429,12 @@ out:
     return status;
 }
 
-static int marshall_setzerodata(unsigned char *buffer,
-    uint32_t *length, nfs41_upcall *upcall)
+static int marshall_setzerodata(
+    unsigned char *restrict buffer,
+    uint32_t *restrict length,
+    nfs41_upcall *restrict upcall)
 {
-    setzerodata_upcall_args *args = &upcall->args.setzerodata;
+    const setzerodata_upcall_args *args = &upcall->args.setzerodata;
     int status;
     status = safe_write(&buffer, length, &args->ctime, sizeof(args->ctime));
     return status;
@@ -902,10 +907,12 @@ out:
     return status;
 }
 
-static int marshall_duplicatedata(unsigned char *buffer,
-    uint32_t *length, nfs41_upcall *upcall)
+static int marshall_duplicatedata(
+    unsigned char *restrict buffer,
+    uint32_t *restrict length,
+    nfs41_upcall *restrict upcall)
 {
-    setzerodata_upcall_args *args = &upcall->args.setzerodata;
+    const setzerodata_upcall_args *args = &upcall->args.setzerodata;
     int status;
     status = safe_write(&buffer, length, &args->ctime, sizeof(args->ctime));
     return status;

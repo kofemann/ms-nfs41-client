@@ -958,10 +958,13 @@ out_free_cookie:
     goto out_free_entry;
 }
 
-static int marshall_readdir(unsigned char *buffer, uint32_t *length, nfs41_upcall *upcall)
+static int marshall_readdir(
+    unsigned char *restrict buffer,
+    uint32_t *restrict length,
+    nfs41_upcall *restrict upcall)
 {
     int status;
-    readdir_upcall_args *args = &upcall->args.readdir;
+    const readdir_upcall_args *args = &upcall->args.readdir;
 
     status = safe_write(&buffer, length, &args->query_reply_len, sizeof(args->query_reply_len));
     return status;

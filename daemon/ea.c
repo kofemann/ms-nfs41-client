@@ -259,9 +259,12 @@ out:
     return nfs_to_windows_error(status, ERROR_NOT_SUPPORTED);
 }
 
-static int marshall_setexattr(unsigned char *buffer, uint32_t *length, nfs41_upcall *upcall)
+static int marshall_setexattr(
+    unsigned char *restrict buffer,
+    uint32_t *restrict length,
+    nfs41_upcall *restrict upcall)
 {
-    setexattr_upcall_args *args = &upcall->args.setexattr;
+    const setexattr_upcall_args *args = &upcall->args.setexattr;
     return safe_write(&buffer, length, &args->ctime, sizeof(args->ctime));
 }
 
@@ -786,10 +789,13 @@ out_free:
     goto out;
 }
 
-static int marshall_getexattr(unsigned char *buffer, uint32_t *length, nfs41_upcall *upcall)
+static int marshall_getexattr(
+    unsigned char *restrict buffer,
+    uint32_t *restrict length,
+    nfs41_upcall *restrict upcall)
 {
     int status = NO_ERROR;
-    getexattr_upcall_args *args = &upcall->args.getexattr;
+    const getexattr_upcall_args *args = &upcall->args.getexattr;
 
     status = safe_write(&buffer, length, &args->overflow, sizeof(args->overflow));
     if (status) goto out;

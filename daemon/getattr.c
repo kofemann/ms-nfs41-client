@@ -216,10 +216,13 @@ out:
     return status;
 }
 
-static int marshall_getattr(unsigned char *buffer, uint32_t *length, nfs41_upcall *upcall)
+static int marshall_getattr(
+    unsigned char *restrict buffer,
+    uint32_t *restrict length,
+    nfs41_upcall *restrict upcall)
 {
     int status;
-    getattr_upcall_args *args = &upcall->args.getattr;
+    const getattr_upcall_args *args = &upcall->args.getattr;
     uint32_t info_len;
 
     switch (args->query_class) {

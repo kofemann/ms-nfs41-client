@@ -230,10 +230,13 @@ static int handle_volume(void *daemon_context, nfs41_upcall *upcall)
     return status;
 }
 
-static int marshall_volume(unsigned char *buffer, uint32_t *length, nfs41_upcall *upcall)
+static int marshall_volume(
+    unsigned char *restrict buffer,
+    uint32_t *restrict length,
+    nfs41_upcall *restrict upcall)
 {
     int status;
-    volume_upcall_args *args = &upcall->args.volume;
+    const volume_upcall_args *args = &upcall->args.volume;
 
     status = safe_write(&buffer, length, &args->len, sizeof(args->len));
     if (status) goto out;

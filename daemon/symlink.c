@@ -287,10 +287,12 @@ out:
     return status;
 }
 
-static int marshall_symlink_get(unsigned char *buffer, uint32_t *length,
-    nfs41_upcall *upcall)
+static int marshall_symlink_get(
+    unsigned char *restrict buffer,
+    uint32_t *restrict length,
+    nfs41_upcall *restrict upcall)
 {
-    symlink_upcall_args *args = &upcall->args.symlink;
+    const symlink_upcall_args *args = &upcall->args.symlink;
     unsigned short len = (args->target_get.len + 1) * sizeof(WCHAR);
     int status = NO_ERROR;
     int wc_len;

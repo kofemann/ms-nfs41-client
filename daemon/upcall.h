@@ -287,7 +287,9 @@ typedef int (*upcall_parse_proc)(
     uint32_t length,
     nfs41_upcall *upcall);
 typedef int (*upcall_handle_proc)(void*, nfs41_upcall*);
-typedef int (*upcall_marshall_proc)(unsigned char*, uint32_t*, nfs41_upcall*);
+typedef int (*upcall_marshall_proc)(unsigned char* restrict,
+    uint32_t*restrict,
+    nfs41_upcall* restrict);
 typedef void (*upcall_cancel_proc)(nfs41_upcall*);
 typedef void (*upcall_cleanup_proc)(nfs41_upcall*);
 
