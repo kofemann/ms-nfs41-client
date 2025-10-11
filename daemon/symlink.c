@@ -294,7 +294,7 @@ static int marshall_symlink_get(
 {
     const symlink_upcall_args *args = &upcall->args.symlink;
     unsigned short len = (args->target_get.len + 1) * sizeof(WCHAR);
-    int status = NO_ERROR;
+    int status;
     int wc_len;
 
     unsigned short *wc_len_out;

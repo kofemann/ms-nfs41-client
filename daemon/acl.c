@@ -503,7 +503,7 @@ static int marshall_getacl(
     uint32_t *restrict length,
     nfs41_upcall *restrict upcall)
 {
-    int status = ERROR_NOT_SUPPORTED;
+    int status;
     const getacl_upcall_args *args = &upcall->args.getacl;
 
     status = safe_write(&buffer, length, &args->sec_desc_len, sizeof(DWORD));

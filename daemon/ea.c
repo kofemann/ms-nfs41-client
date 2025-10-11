@@ -794,7 +794,7 @@ static int marshall_getexattr(
     uint32_t *restrict length,
     nfs41_upcall *restrict upcall)
 {
-    int status = NO_ERROR;
+    int status;
     const getexattr_upcall_args *args = &upcall->args.getexattr;
 
     status = safe_write(&buffer, length, &args->overflow, sizeof(args->overflow));
