@@ -283,11 +283,11 @@ static int delegation_return(
         DPRINTF(1,
             ("delegation_return: making a downcall for srv_open=0x%p\n",
             deleg->srv_open));
-        pipe = CreateFileA(NFS41_USER_DEVICE_NAME_A, GENERIC_READ|GENERIC_WRITE,
-                FILE_SHARE_READ|FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
+        pipe = create_nfs41sys_device_pipe();
         if (pipe == INVALID_HANDLE_VALUE) {
-            eprintf("delegation_return: Unable to open downcall pipe %d\n",
-                GetLastError());
+            eprintf("delegation_return: "
+                "Unable to open downcall pipe, lasterr=%d\n",
+                (int)GetLastError());
             goto out_downcall;
         }
         length = inbuf_len;
@@ -297,7 +297,7 @@ static int delegation_return(
             NULL, 0, (LPDWORD)&outbuf_len, NULL);
         if (!dstatus)
             eprintf("IOCTL_NFS41_INVALCACHE failed %d\n", GetLastError());
-        CloseHandle(pipe);
+        close_nfs41sys_device_pipe(pipe);
     }
 out_downcall:
 

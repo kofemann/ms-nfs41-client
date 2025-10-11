@@ -36,7 +36,7 @@
 #include <sdkddkver.h>
 
 #include "nfs41_build_features.h"
-#include "nfs41_driver.h" /* for NFS41_USER_DEVICE_NAME_A */
+#include "nfs41_driver.h" /* for |IOCTL_NFS41_*|  */
 #include "nfs41_np.h" /* for NFS41NP_SHARED_MEMORY */
 
 #include "nfs41_daemon.h"
@@ -173,13 +173,11 @@ static unsigned int nfsd_worker_thread_main(void *args)
         eprintf("Failed set THREAD_PRIORITY_TIME_CRITICAL\n");
     }
 
-    pipe = CreateFileA(NFS41_USER_DEVICE_NAME_A, GENERIC_READ | GENERIC_WRITE,
-        FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING,
-        0, NULL);
-    if (pipe == INVALID_HANDLE_VALUE)
-    {
+    pipe = create_nfs41sys_device_pipe();
+    if (pipe == INVALID_HANDLE_VALUE) {
         DWORD lasterr = GetLastError();
-        eprintf("Unable to open upcall pipe %d\n", (int)lasterr);
+        eprintf("nfsd_worker_thread_main: Unable to open upcall pipe %d\n",
+            (int)lasterr);
         return lasterr;
     }
 
@@ -267,7 +265,8 @@ write_downcall:
         if (upcall.status != NFSD_VERSION_MISMATCH)
             upcall_cleanup(&upcall);
     }
-    CloseHandle(pipe);
+
+    close_nfs41sys_device_pipe(pipe);
 
     return GetLastError();
 }
@@ -890,12 +889,16 @@ VOID ServiceStart(DWORD argc, LPTSTR *argv)
     NFS41D_VERSION = GetTickCount();
     DPRINTF(1, ("NFS41 Daemon starting: version %d\n", NFS41D_VERSION));
 
-    pipe = CreateFileA(NFS41_USER_DEVICE_NAME_A, GENERIC_READ | GENERIC_WRITE,
-        FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING,
-        0, NULL);
-    if (pipe == INVALID_HANDLE_VALUE)
-    {
-        eprintf("Unable to open upcall pipe %d\n", GetLastError());
+    pipe = create_nfs41sys_device_pipe();
+    if (pipe == INVALID_HANDLE_VALUE) {
+        eprintf(
+#ifdef STANDALONE_NFSD
+            "wmain: "
+#else
+            "ServiceStart: "
+#endif /* STANDALONE_NFSD */
+            "Unable to open upcall pipe %d\n",
+            (int)GetLastError());
         goto out_idmap;
     }
 
@@ -957,7 +960,8 @@ VOID ServiceStart(DWORD argc, LPTSTR *argv)
     DPRINTF(1, ("Parent woke up!!!!\n"));
 
 out_pipe:
-    CloseHandle(pipe);
+    close_nfs41sys_device_pipe(pipe);
+
 out_idmap:
     if (nfs41_dg.idmapper)
         nfs41_idmap_free(nfs41_dg.idmapper);

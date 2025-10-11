@@ -800,6 +800,24 @@ int parse_fs_location_server_address(IN const char *restrict inaddr,
     return ERROR_BAD_NET_NAME;
 }
 
+HANDLE create_nfs41sys_device_pipe(void)
+{
+    HANDLE pipe;
+    pipe = CreateFileA(NFS41_USER_DEVICE_NAME_A,
+        GENERIC_READ|GENERIC_WRITE,
+        FILE_SHARE_READ|FILE_SHARE_WRITE,
+        NULL,
+        OPEN_EXISTING,
+        0,
+        NULL);
+    return pipe;
+}
+
+void close_nfs41sys_device_pipe(HANDLE pipe)
+{
+    (void)CloseHandle(pipe);
+}
+
 int delayxid(LONGLONG xid, LONGLONG moredelaysecs)
 {
     int status;
@@ -808,13 +826,7 @@ int delayxid(LONGLONG xid, LONGLONG moredelaysecs)
     DWORD inbuf_len = sizeof(LONGLONG)*2, outbuf_len, dstatus;
     uint32_t length;
 
-    pipe = CreateFileA(NFS41_USER_DEVICE_NAME_A,
-        GENERIC_READ|GENERIC_WRITE,
-        FILE_SHARE_READ|FILE_SHARE_WRITE,
-        NULL,
-        OPEN_EXISTING,
-        0,
-        NULL);
+    pipe = create_nfs41sys_device_pipe();
     if (pipe == INVALID_HANDLE_VALUE) {
         status = GetLastError();
         eprintf("delayxid: Unable to open downcall pipe. lasterr=%d\n",
@@ -837,7 +849,7 @@ int delayxid(LONGLONG xid, LONGLONG moredelaysecs)
         eprintf("delayxid: IOCTL_NFS41_INVALCACHE failed, lasterr=%d\n",
             status);
     }
-    (void)CloseHandle(pipe);
+    close_nfs41sys_device_pipe(pipe);
 
     return status;
 }
