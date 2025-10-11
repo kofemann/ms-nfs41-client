@@ -161,6 +161,12 @@ function gcc_build
 
 	cd "$PWD/gcc/"
 
+	# make sure git commands (like git "describe", "fsck", ...) work
+	git config --global --add safe.directory "$PWD"
+
+	# use git fsck as filesystem test
+	time git fsck
+
 	if $config_use_posix_ksh93_builtins ; then
 		PATH="/usr/ast/bin:/opt/ast/bin:$PATH"
 	fi
@@ -338,6 +344,12 @@ function bash_build
 
 	cd "$PWD/bash/"
 
+	# make sure git commands (like git "describe", "fsck", ...) work
+	git config --global --add safe.directory "$PWD"
+
+	# use git fsck as filesystem test
+	time git fsck
+
 	if $config_use_posix_ksh93_builtins ; then
 		PATH="/usr/ast/bin:/opt/ast/bin:$PATH"
 	fi
@@ -507,8 +519,11 @@ function msnfs41client_build
 
 	cd "$PWD/ms-nfs41-client/"
 
-	# make sure git commands (like "git describe ...") work
+	# make sure git commands (like git "describe", "fsck", ...) work
 	git config --global --add safe.directory "$PWD"
+
+	# use git fsck as filesystem test
+	time git fsck
 
 	#
 	# patch sources and configure build
