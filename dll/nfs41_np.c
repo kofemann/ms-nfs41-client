@@ -1343,7 +1343,9 @@ NPGetResourceParent(
     LPVOID          lpBuffer,
     LPDWORD         lpBufferSize )
 {
-    DbgP((L"NPGetResourceParent: WN_NOT_SUPPORTED\n"));
+    DbgP((L"NPGetResourceParent(pNetResource->lpRemoteName='%ls'): "
+        "WN_NOT_SUPPORTED\n",
+        lpNetResource->lpRemoteName));
     return WN_NOT_SUPPORTED;
 }
 
@@ -1354,7 +1356,9 @@ NPGetResourceInformation(
     __inout LPDWORD lpBufferSize,
     __deref_out LPWSTR *lplpSystem )
 {
-    DbgP((L"NPGetResourceInformation: WN_NOT_SUPPORTED\n"));
+    DbgP((L"NPGetResourceInformation(lpNetResource->lpRemoteName='%ls'): "
+        "WN_NOT_SUPPORTED\n",
+        lpNetResource->lpRemoteName));
     return WN_NOT_SUPPORTED;
 }
 
