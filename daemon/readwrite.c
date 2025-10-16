@@ -24,6 +24,12 @@
 #include <Windows.h>
 #include <stdio.h>
 
+// #define IOSIZE_STAT 1
+
+#ifdef IOSIZE_STAT
+#include <math.h>
+#endif /* IOSIZE_STAT */
+
 #include "nfs41_ops.h"
 #include "name_cache.h"
 #include "upcall.h"
@@ -34,6 +40,129 @@
 /* number of times to retry on write/commit verifier mismatch */
 #define MAX_WRITE_RETRIES 6
 
+
+
+#ifdef IOSIZE_STAT
+struct
+{
+    /*
+     * Windows I/O is limited to |ULONG| (32bit) block sizes, so
+     * |log2()| below can never go beyond 2^31
+     */
+    long long readstats[32+1];
+    long read_counter;
+    long long writestats[32+1];
+    long write_counter;
+} iosizestat;
+
+static
+void ioread_stats(int status, ULONG size)
+{
+    if (status != ERROR_SUCCESS)
+        return;
+
+    /* No locking, no atomic operations, we do not need to be 100% accurate! */
+    iosizestat.readstats[(int)log2((double)size)]++;
+    iosizestat.read_counter++;
+    if ((iosizestat.read_counter % 256) == 0) {
+        DPRINTF(0, ("ioread_stats: readstats=( "
+            "[0]=%lld [1]=%lld [2]=%lld [3]=%lld "
+            "[4]=%lld [5]=%lld [6]=%lld [7]=%lld "
+            "[8]=%lld [9]=%lld [10]=%lld [11]=%lld "
+            "[12]=%lld [13]=%lld [14]=%lld [15]=%lld "
+            "[16]=%lld [17]=%lld [18]=%lld [19]=%lld "
+            "[20]=%lld [21]=%lld [22]=%lld [23]=%lld "
+            "[24]=%lld [25]=%lld [26]=%lld [27]=%lld "
+            "[28]=%lld [29]=%lld [30]=%lld [31]=%lld )\n",
+            iosizestat.readstats[0],
+            iosizestat.readstats[1],
+            iosizestat.readstats[2],
+            iosizestat.readstats[3],
+            iosizestat.readstats[4],
+            iosizestat.readstats[5],
+            iosizestat.readstats[6],
+            iosizestat.readstats[7],
+            iosizestat.readstats[8],
+            iosizestat.readstats[9],
+            iosizestat.readstats[10],
+            iosizestat.readstats[11],
+            iosizestat.readstats[12],
+            iosizestat.readstats[13],
+            iosizestat.readstats[14],
+            iosizestat.readstats[15],
+            iosizestat.readstats[16],
+            iosizestat.readstats[17],
+            iosizestat.readstats[18],
+            iosizestat.readstats[19],
+            iosizestat.readstats[20],
+            iosizestat.readstats[21],
+            iosizestat.readstats[22],
+            iosizestat.readstats[23],
+            iosizestat.readstats[24],
+            iosizestat.readstats[25],
+            iosizestat.readstats[26],
+            iosizestat.readstats[27],
+            iosizestat.readstats[28],
+            iosizestat.readstats[29],
+            iosizestat.readstats[30],
+            iosizestat.readstats[31]));
+    }
+}
+
+static
+void iowrite_stats(int status, ULONG size)
+{
+    if (status != ERROR_SUCCESS)
+        return;
+
+    /* No locking, no atomic operations, we do not need to be 100% accurate! */
+    iosizestat.writestats[(int)log2((double)size)]++;
+    iosizestat.write_counter++;
+    if ((iosizestat.write_counter % 256) == 0) {
+        DPRINTF(0, ("iowrite_stats: writestats=( "
+            "[0]=%lld [1]=%lld [2]=%lld [3]=%lld "
+            "[4]=%lld [5]=%lld [6]=%lld [7]=%lld "
+            "[8]=%lld [9]=%lld [10]=%lld [11]=%lld "
+            "[12]=%lld [13]=%lld [14]=%lld [15]=%lld "
+            "[16]=%lld [17]=%lld [18]=%lld [19]=%lld "
+            "[20]=%lld [21]=%lld [22]=%lld [23]=%lld "
+            "[24]=%lld [25]=%lld [26]=%lld [27]=%lld "
+            "[28]=%lld [29]=%lld [30]=%lld [31]=%lld )\n",
+            iosizestat.writestats[0],
+            iosizestat.writestats[1],
+            iosizestat.writestats[2],
+            iosizestat.writestats[3],
+            iosizestat.writestats[4],
+            iosizestat.writestats[5],
+            iosizestat.writestats[6],
+            iosizestat.writestats[7],
+            iosizestat.writestats[8],
+            iosizestat.writestats[9],
+            iosizestat.writestats[10],
+            iosizestat.writestats[11],
+            iosizestat.writestats[12],
+            iosizestat.writestats[13],
+            iosizestat.writestats[14],
+            iosizestat.writestats[15],
+            iosizestat.writestats[16],
+            iosizestat.writestats[17],
+            iosizestat.writestats[18],
+            iosizestat.writestats[19],
+            iosizestat.writestats[20],
+            iosizestat.writestats[21],
+            iosizestat.writestats[22],
+            iosizestat.writestats[23],
+            iosizestat.writestats[24],
+            iosizestat.writestats[25],
+            iosizestat.writestats[26],
+            iosizestat.writestats[27],
+            iosizestat.writestats[28],
+            iosizestat.writestats[29],
+            iosizestat.writestats[30],
+            iosizestat.writestats[31]));
+    }
+}
+#endif /* IOSIZE_STAT */
 
 const stateid4 special_read_stateid = {0xffffffff, 
     {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}};
@@ -193,6 +322,11 @@ static int handle_read(void *daemon_context, nfs41_upcall *upcall)
 
     args->out_len += pnfs_bytes_read;
 out:
+
+#ifdef IOSIZE_STAT
+    ioread_stats(status, args->out_len);
+#endif /* IOSIZE_STAT */
+
     return status;
 }
 
@@ -396,6 +530,11 @@ static int handle_write(void *daemon_context, nfs41_upcall *upcall)
     status = write_to_mds(upcall, &stateid);
 out:
     args->out_len += pnfs_bytes_written;
+
+#ifdef IOSIZE_STAT
+    iowrite_stats(status, args->out_len);
+#endif /* IOSIZE_STAT */
+
     return status;
 }
 
