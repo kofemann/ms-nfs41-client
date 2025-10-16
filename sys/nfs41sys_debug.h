@@ -50,7 +50,6 @@ void print_ea_info(PFILE_FULL_EA_INFORMATION info);
 void print_get_ea(int on, PFILE_GET_EA_INFORMATION info);
 void print_caching_level(int on, ULONG flag, PUNICODE_STRING s);
 const char *opcode2string(int opcode);
-#define ENTRY_OPCODE2STRING(entry) ((entry)?opcode2string((entry)->opcode):"<entry==NULL>")
 void print_open_error(int on, int status);
 void print_wait_status(int on, const char *str, NTSTATUS status,
                        const char *opcode, PVOID entry, LONGLONG xid);
