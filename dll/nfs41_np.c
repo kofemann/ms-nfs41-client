@@ -274,7 +274,8 @@ static DWORD StoreConnectionInfo(
     LUID authenticationid = { .LowPart = 0, .HighPart = 0L };
 #endif /* NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE */
 
-    DbgP((L"--> StoreConnectionInfo\n"));
+    DbgP((L"--> StoreConnectionInfo(LocalName='%ls',ConnectionName='%ls')\n",
+        LocalName, ConnectionName));
 
 #ifdef NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE
     (void)get_token_authenticationid(GetCurrentThreadEffectiveToken(),
@@ -603,14 +604,18 @@ NPAddConnection3(
     }
     ServerName[i] = L'\0';
 
+    /* Check for "@NFS" or "@PUBNFS" tag in UNC path */
+    if ((wcsstr(ServerName, L"@NFS") == NULL) &&
+        (wcsstr(ServerName, L"@PUBNFS") == NULL)) {
+        DbgP((L"ServerName name '%ls' not tagged with "
+            "'@NFS' or '@PUBNFS'\n",
+            ServerName));
+        Status = WN_BAD_NETNAME;
+        goto out;
+    }
+
     (void)StringCchCatW(ConnectionName,
         NFS41_SYS_MAX_PATH_LEN, ServerName);
-#ifndef NFS41_DRIVER_MOUNT_DOES_NFS4_PREFIX
-    /* insert the "nfs4" in between the server name and the path,
-     * just to make sure all calls to our driver come thru this */
-    (void)StringCchCatW(ConnectionName,
-        NFS41_SYS_MAX_PATH_LEN, L"\\nfs4");
-#endif /* NFS41_DRIVER_MOUNT_DOES_NFS4_PREFIX */
 
 #ifdef CONVERT_2_UNIX_SLASHES
     /* convert all windows slashes to unix slashes */
@@ -645,7 +650,7 @@ NPAddConnection3(
      * from looking up the path from the device letter
      * (e.g. device letter does not show up in /cygdrive/).
      * nfsd_daemon will still see the full path with all backslashes
-     * (e.g. "msg=mount(hostport='derfwnb4966_ipv4@2049',
+     * (e.g. "msg=mount(hostport='derfwnb4966_ipv4@NFS@2049',
      * path='\\\\\\\\\net_tmpfs2\\test2')"
      */
     {
@@ -660,17 +665,6 @@ NPAddConnection3(
         *u = L'\0';
     }
 #endif
-
-#ifdef NFS41_DRIVER_MOUNT_DOES_NFS4_PREFIX
-    if (wcsncmp(&p[i], L"\\nfs4", 5) &&
-        wcsncmp(&p[i], L"\\pubnfs4", 8)) {
-        DbgP((L"Connection name '%ls' not prefixed with "
-            "'\\nfs41' or '\\pubnfs41'\n",
-            &p[i]));
-        Status = WN_BAD_NETNAME;
-        goto out;
-    }
-#endif /* NFS41_DRIVER_MOUNT_DOES_NFS4_PREFIX */
 
     (void)StringCchCatW(ConnectionName,
         NFS41_SYS_MAX_PATH_LEN, &p[i]);

@@ -50,8 +50,6 @@
 // #define LOOKASIDELISTS_STATS 1
 #endif /* (NTDDI_VERSION >= NTDDI_WIN10_VB) */
 
-// #define USE_ENTIRE_PATH_FOR_NETROOT 1
-
 /* debugging printout defines */
 #if defined(_DEBUG)
 /* Debug build defines follow... */

@@ -71,11 +71,11 @@
               <para><filename>/sbin/nfs_mount</filename> prints UNC paths in Win32+Cygwin/MSYS2 formats</para>
             </listitem>
             <listitem>
-              <para>Cygwin/MSYS2 bash+ksh93 support UNC paths, e.g., <command>cd //derfwnb4966@2049/nfs4/bigdisk/mysqldb4/</command></para>
+              <para>Cygwin/MSYS2 bash+ksh93 support UNC paths, e.g., <command>cd //derfwnb4966@NFS@2049/bigdisk/mysqldb4/</command></para>
             </listitem>
             <listitem>
               <para>Symlinks on NFS can redirect to other filesystems via UNC syntax and work with Cygwin, MSYS2, cmd.exe, powershell etc., e.g.:
-                <programlisting>mklink /D symlnk1_to_h_tmp \\lab17@2049\nfs4\export\home\rsm\tmp</programlisting>
+                <programlisting>mklink /D symlnk1_to_h_tmp \\lab17@NFS@2049\export\home\rsm\tmp</programlisting>
               </para>
             </listitem>
           </itemizedlist>
@@ -647,7 +647,7 @@ $ /sbin/msnfs41client install
         <title>Basic usage</title>
         <para>Mount a filesystem to drive N: and use it</para>
         <programlisting>$ /sbin/nfs_mount -o rw N 10.49.202.230:/net_tmpfs2
-Successfully mounted '10.49.202.230@2049' to drive 'N:'
+Successfully mounted '10.49.202.230@NFS@2049' to drive 'N:'
 $ cd /cygdrive/n/
 $ ls -la
 total 4
@@ -665,10 +665,10 @@ $ net use N: /delete</programlisting>
 
         <para>Mount a filesystem WITHOUT a dos drive assigned and use it via UNC path</para>
         <programlisting>$ /sbin/nfs_mount -o rw 10.49.202.230:/net_tmpfs2
-Successfully mounted '10.49.202.230@2049' to drive '\\10.49.202.230@2049\nfs4\net_tmpfs2'
-$ cygpath -u '\\10.49.202.230@2049\nfs4\net_tmpfs2'
-//10.49.202.230@2049/nfs4/net_tmpfs2
-$ cd '//10.49.202.230@2049/nfs4/net_tmpfs2'
+Successfully mounted '10.49.202.230@NFS@2049' to drive '\\10.49.202.230@NFS@2049\net_tmpfs2'
+$ cygpath -u '\\10.49.202.230@NFS@2049\net_tmpfs2'
+//10.49.202.230@NFS@2049/net_tmpfs2
+$ cd '//10.49.202.230@NFS@2049/net_tmpfs2'
 $ ls -la
 total 4
 drwxrwxrwt 5 Unix_User+0      Unix_Group+0      100 Dec  7 14:17 .
@@ -677,10 +677,10 @@ drwxr-xr-x 3 Unix_User+197608 Unix_Group+197121  80 Dec 12 16:24 10492030
 drwxr-xr-x 3 Unix_User+197608 Unix_Group+197121  60 Dec 13 17:58 directory_t
 drwxr-xr-x 3 Unix_User+197608 Unix_Group+197121  60 Dec  7 11:01 test2</programlisting>
         <para>Unmount filesystem:</para>
-        <programlisting>$ cd ~ &amp;&amp; /sbin/nfs_umount '\\10.49.202.230@2049\nfs4\net_tmpfs2'
+        <programlisting>$ cd ~ &amp;&amp; /sbin/nfs_umount '\\10.49.202.230@NFS@2049\net_tmpfs2'
 # OR
 $ cd ~
-$ net use '\\10.49.202.230@2049\nfs4\net_tmpfs2' /delete</programlisting>
+$ net use '\\10.49.202.230@NFS@2049\net_tmpfs2' /delete</programlisting>
         <para>List mounted NFSv4.2 filesystems:</para>
         <programlisting>$ /sbin/nfs_mount</programlisting>
       </section>
@@ -704,7 +704,7 @@ sc start ms-nfs41-client-globalmountall-service</programlisting>
         <para>Example 1: Mount Windows NFSv4.2 share via Windows drive letter</para>
         <para>Mount NFSv4.2 share in Windows to drive letter 'N':</para>
         <programlisting>$ /sbin/nfs_mount -o rw 'N' nfs://10.49.202.230//bigdisk
-Successfully mounted '10.49.202.230@2049' to drive 'N:'</programlisting>
+Successfully mounted '10.49.202.230@NFS@2049' to drive 'N:'</programlisting>
         <para>Within WSL mount drive letter 'N' to <filename>/mnt/n</filename></para>
         <programlisting>$ sudo bash
 $ mkdir /mnt/n
@@ -713,11 +713,11 @@ $ mount -t drvfs N: /mnt/n</programlisting>
         <para>Example 2: Mount Windows NFSv4.2 share via UNC path:</para>
         <para>Mount NFSv4.2 share in Windows</para>
         <programlisting>$ /sbin/nfs_mount -o rw nfs://10.49.202.230//bigdisk
-Successfully mounted '10.49.202.230@2049' to drive '\\10.49.202.230@2049\nfs4\bigdisk'</programlisting>
+Successfully mounted '10.49.202.230@NFS@2049' to drive '\\10.49.202.230@NFS@2049\bigdisk'</programlisting>
         <para>Within WSL mount UNC path returned by <filename>/sbin/nfs_mount</filename></para>
         <programlisting>$ sudo bash
 $ mkdir /mnt/bigdisk
-$ mount -t drvfs '\\10.49.202.230@2049\nfs4\bigdisk' /mnt/bigdisk</programlisting>
+$ mount -t drvfs '\\10.49.202.230@NFS@2049\bigdisk' /mnt/bigdisk</programlisting>
 
         <para><emphasis role="strong">Known issues with WSL:</emphasis></para>
         <itemizedlist>
@@ -750,7 +750,7 @@ $ mount -t drvfs '\\10.49.202.230@2049\nfs4\bigdisk' /mnt/bigdisk</programlistin
         </para>
       </listitem>
       <listitem>
-        <para>Cygwin/MSYS2 symlinks are supported, but might require <command>$ fsutil behavior set SymlinkEvaluation L2L:1 R2R:1 L2R:1 R2L:1 #</command>. This includes symlinks to UNC paths, e.g., as Administrator <command>$ cmd /c 'mklink /d c:\home\rmainz \\derfwpc5131_ipv6@2049\nfs4\export\home2\rmainz' #</command> and then <command>$ cd /cygdrive/c/home/rmainz/ #</command> should work</para>
+        <para>Cygwin/MSYS2 symlinks are supported, but might require <command>$ fsutil behavior set SymlinkEvaluation L2L:1 R2R:1 L2R:1 R2L:1 #</command>. This includes symlinks to UNC paths, e.g., as Administrator <command>$ cmd /c 'mklink /d c:\home\rmainz \\derfwpc5131_ipv6@NFS@2049\export\home2\rmainz' #</command> and then <command>$ cd /cygdrive/c/home/rmainz/ #</command> should work</para>
       </listitem>
       <listitem>
         <para>performance: All binaries are built without any optimisation, so the filesystem is much slower than it could be.</para>
@@ -870,7 +870,7 @@ A::EVERYONE@:rtcy</programlisting>
       <listitem>
         <para>Windows event log can list errors like "MUP 0xc0000222" (<literal>|STATUS_LOST_WRITEBEHIND_DATA|</literal>) in case the disk on the NFSv4 server is full and outstanding writes from a memory-mapped file fail. Example:</para>
         <programlisting>{Fehler beim verzoegerten Schreibvorgang} Nicht alle Daten fuer die
-Datei "\\34.159.25.153@2049\nfs4\export\nfs4export\gcc\lto-dump.exe"
+Datei "\\34.159.25.153@NFS@2049\exportexport\gcc\lto-dump.exe"
 konnten gespeichert werden. Daten gingen verloren.
 Dieser Fehler wurde von dem Server zurueckgegeben, auf dem sich die
 Datei befindet. Versuchen Sie, die Datei woanders zu speichern.</programlisting>

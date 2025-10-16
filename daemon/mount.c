@@ -173,13 +173,24 @@ static int handle_mount(void *daemon_context, nfs41_upcall *upcall)
     (void)strcpy_s(hostname, sizeof(hostname), args->hostport);
     s = strchr(hostname, '@');
     if (s) {
+        char *tmps;
+        *s++ = '\0';
+        tmps = strchr(s, '@');
+        if (tmps)
+            s = tmps;
+    }
+
+    if (s) {
         *s++ = '\0';
 	port = atoi(s);
 	if ((port < 1) || (port > 65535)) {
             status = ERROR_BAD_ARGUMENTS;
-            eprintf("handle_mount: bad port number %d specified in "
+            eprintf("handle_mount: "
+                "bad port number '%s' -> %d specified in "
                 "hostport '%s'\n",
-                port, args->hostport);
+                s,
+                port,
+                args->hostport);
             goto out;
 	}
 

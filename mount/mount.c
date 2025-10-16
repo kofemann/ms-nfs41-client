@@ -1136,12 +1136,21 @@ static DWORD ParseRemoteName(
 	 *   too
 	 */
         (void)swprintf(srvname, SRVNAME_LEN,
-	    L"%ls.ipv6-literal.net@%d", premotename, port);
+            L"%ls.ipv6-literal.net@%ls@%d",
+            premotename,
+            (use_nfspubfh?L"PUBNFS":L"NFS"),
+            port);
     }
     else {
-        /* ALWAYS add port number to hostname, so UNC paths use it too */
-        (void)swprintf(srvname, SRVNAME_LEN, L"%ls@%d",
-	    premotename, port);
+        /*
+         * ALWAYS add @NFS/@PUBNFS tag and port number to hostname, so
+         * UNC paths use them too
+         */
+        (void)swprintf(srvname, SRVNAME_LEN,
+            L"%ls@%ls@%d",
+            premotename,
+            (use_nfspubfh?L"PUBNFS":L"NFS"),
+            port);
     }
 
     /*
@@ -1174,12 +1183,6 @@ static DWORD ParseRemoteName(
     result = StringCbCatW(pConnectionName, cchConnectionLen, srvname);
     if (FAILED(result))
         goto out;
-#ifdef NFS41_DRIVER_MOUNT_DOES_NFS4_PREFIX
-    result = StringCbCatW(pConnectionName, cchConnectionLen,
-        (use_nfspubfh?(L"\\pubnfs4"):(L"\\nfs4")));
-    if (FAILED(result))
-        goto out;
-#endif /* NFS41_DRIVER_MOUNT_DOES_NFS4_PREFIX */
     if (*pEnd)
         result = StringCchCatW(pConnectionName, cchConnectionLen, pEnd);
 

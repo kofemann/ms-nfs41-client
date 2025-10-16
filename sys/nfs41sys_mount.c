@@ -533,7 +533,7 @@ NTSTATUS nfs41_MountConfig_ParseOptions(
         else if (wcsncmp(L"public", Name, NameLen) == 0) {
             /*
              + We ignore this value here, and instead rely on the
-             * /pubnfs4 prefix
+             * "@PUBNFS" tag in the UNC path
              */
             BOOLEAN dummy;
             status = nfs41_MountConfig_ParseBoolean(Option, &usValue,
@@ -776,81 +776,65 @@ release_sec_ctx:
 }
 
 static
-NTSTATUS has_nfs_prefix(
+NTSTATUS netroot_has_nfs_tag(
     IN PUNICODE_STRING SrvCallName,
     IN PUNICODE_STRING NetRootName,
-    OUT BOOLEAN *pubfh_prefix)
+    OUT bool *pubfh_tag)
 {
     NTSTATUS status = STATUS_BAD_NETWORK_NAME;
 
-#ifdef USE_ENTIRE_PATH_FOR_NETROOT
-    if (NetRootName->Length >=
-        (SrvCallName->Length + NfsPrefix.Length)) {
-        size_t len = NetRootName->Length / 2;
-        size_t i;
-        int state = 0;
+    DbgP("netroot_has_nfs_tag: SrvCallName='%wZ' NetRootName='%wZ'\n",
+        SrvCallName, NetRootName);
 
-        /* Scan \hostname@port\nfs4 */
-        for (i = 0 ; i < len ; i++) {
-            wchar_t ch = NetRootName->Buffer[i];
+    size_t len = NetRootName->Length / 2;
+    size_t i;
+    int state = 0;
+    wchar_t *nfstag = NULL;
 
-            if ((ch == L'\\') && (state == 0)) {
-                state = 1;
-                continue;
-            }
-            else if ((ch == L'@') && (state == 1)) {
-                state = 2;
-                continue;
-            }
-            else if ((ch == L'\\') && (state == 2)) {
-                state = 3;
-                break;
-            }
-            else if (ch == L'\\') {
-                /* Abort, '\\' with wrong state */
-                break;
-            }
+    /* Scan \hostname@NFS@port\ or \hostname@PUBNFS@port\ */
+    for (i = 0 ; i < len ; i++) {
+        wchar_t ch = NetRootName->Buffer[i];
+
+        if ((ch == L'\\') && (state == 0)) {
+            state = 1;
+            continue;
         }
-
-        if (state == 3) {
-            if (!memcmp(&NetRootName->Buffer[i], L"\\nfs4",
-                (4*sizeof(wchar_t))))) {
-                *pubfh_prefix = FALSE;
-                status = STATUS_SUCCESS;
+        else if ((ch == L'@') && ((state == 1) || (state == 2))) {
+            if (state == 1) {
+                nfstag = &NetRootName->Buffer[i];
             }
-            if ((NetRootName->Length >=
-                (SrvCallName->Length + PubNfsPrefix.Length)) &&
-                (!memcmp(&NetRootName->Buffer[i], L"\\pubnfs4",
-                    (4*sizeof(wchar_t))))) {
-                *pubfh_prefix = TRUE;
-                status = STATUS_SUCCESS;
-            }
+            state = 2;
+            continue;
+        }
+        else if ((ch == L'\\') && (state == 2)) {
+            state = 3;
+            continue;
+        }
+        else if (ch == L'\\') {
+            /* Abort, '\\' with wrong state */
+            break;
+        }
+        else {
+            /* Next character */
         }
     }
-#else
-    if (NetRootName->Length ==
-        (SrvCallName->Length + NfsPrefix.Length)) {
-        const UNICODE_STRING NetRootPrefix = {
-            NfsPrefix.Length,
-            NetRootName->MaximumLength - SrvCallName->Length,
-            &NetRootName->Buffer[SrvCallName->Length/2]
-        };
-        if (!RtlCompareUnicodeString(&NetRootPrefix, &NfsPrefix, FALSE))
-            *pubfh_prefix = FALSE;
+
+    DbgP("netroot_has_nfs_tag: state=%d, nfstag=0x%p\n", state, nfstag);
+
+    if (((state == 2) || (state == 3)) && (nfstag != NULL)) {
+        if (memcmp(nfstag, L"@NFS", (4*sizeof(wchar_t))) == 0) {
+            *pubfh_tag = false;
             status = STATUS_SUCCESS;
-    }
-    else if (NetRootName->Length ==
-        (SrvCallName->Length + PubNfsPrefix.Length)) {
-        const UNICODE_STRING PubNetRootPrefix = {
-            PubNfsPrefix.Length,
-            NetRootName->MaximumLength - SrvCallName->Length,
-            &NetRootName->Buffer[SrvCallName->Length/2]
-        };
-        if (!RtlCompareUnicodeString(&PubNetRootPrefix, &PubNfsPrefix, FALSE))
-            *pubfh_prefix = TRUE;
+        }
+        else if (memcmp(nfstag, L"@PUBNFS", (7*sizeof(wchar_t))) == 0) {
+            *pubfh_tag = true;
             status = STATUS_SUCCESS;
+        }
+        else {
+            DbgP("netroot_has_nfs_tag: no match\n");
+        }
     }
-#endif /* USE_ENTIRE_PATH_FOR_NETROOT */
+
     return status;
 }
 
@@ -934,15 +918,16 @@ NTSTATUS nfs41_CreateVNetRoot(
 
     /*
      * In order to cooperate with other network providers, we
-     * must only claim paths of the form '\\server\nfs4\path'
-     * or '\\server\pubnfs4\path'
+     * must only claim paths of the form '\\server@NFS@<port>\path'
+     * or '\\server@PUBNFS@<port>\path'
      */
-    BOOLEAN pubfh_prefix = FALSE;
-    status = has_nfs_prefix(pSrvCall->pSrvCallName, pNetRoot->pNetRootName, &pubfh_prefix);
+    bool pubfh_tag = false;
+    status = netroot_has_nfs_tag(pSrvCall->pSrvCallName, pNetRoot->pNetRootName, &pubfh_tag);
     if (status) {
-        print_error("nfs41_CreateVNetRoot: NetRootName '%wZ' doesn't match "
-            "'\\nfs4' or '\\pubnfs4'!\n", pNetRoot->pNetRootName);
-        goto out;
+        print_error("nfs41_CreateVNetRoot: "
+            "NetRootName '%wZ' does not match '@NFS' or '@PUBNFS'!\n",
+            pNetRoot->pNetRootName);
+            goto out;
     }
     pNetRoot->MRxNetRootState = MRX_NET_ROOT_STATE_GOOD;
     pNetRoot->DeviceType = FILE_DEVICE_DISK;
@@ -979,10 +964,10 @@ NTSTATUS nfs41_CreateVNetRoot(
         pVNetRootContext->timebasedcoherency = Config->timebasedcoherency;
     } else {
         /*
-         * Codepath for \\server@port\nfs4\path or
-         * \\server@port\pubnfs4\path
+         * Codepath for \\server@NFS@port\path or
+         * \\server@PUBNFS@port\path
          */
-        DbgP("Codepath for \\\\server@port\\@(pubnfs4|nfs4)\\path\n");
+        DbgP("Codepath for \\\\server@(NFS|PUBNFS)@port\\path\n");
 
         /*
          * STATUS_NFS_SHARE_NOT_MOUNTED - status code for the case
@@ -1102,7 +1087,7 @@ NTSTATUS nfs41_CreateVNetRoot(
         pVNetRootContext->timebasedcoherency = Config->timebasedcoherency;
     }
 
-    Config->use_nfspubfh = pubfh_prefix;
+    Config->use_nfspubfh = pubfh_tag;
 
     DbgP("Config->{ "
         "MntPt='%wZ', "
@@ -1283,7 +1268,7 @@ NTSTATUS nfs41_CreateVNetRoot(
         RtlCopyLuid(&entry->login_id, &luid);
         /*
          * Save mount config so we can use it for
-         * \\server@port\@(pubnfs4|nfs4)\path mounts later
+         * \\server@(PUBNFS|NFS)@port\path mounts later
          */
         copy_nfs41_mount_config(&entry->Config, Config);
         nfs41_AddEntry(pNetRootContext->mounts.lock,
@@ -1366,32 +1351,18 @@ VOID nfs41_ExtractNetRootName(
     ULONG length = FilePathName->Length;
     PWCH w = FilePathName->Buffer;
     PWCH wlimit = (PWCH)(((PCHAR)w)+length);
-    PWCH wlow;
 
-    w += (SrvCall->pSrvCallName->Length/sizeof(WCHAR));
-    NetRootName->Buffer = wlow = w;
-    /* parse the entire path into NetRootName */
-#if USE_ENTIRE_PATH_FOR_NETROOT
-    w = wlimit;
-#else
-    for (;;) {
-        if (w >= wlimit)
-            break;
-        if ((*w == OBJ_NAME_PATH_SEPARATOR) && (w != wlow))
-            break;
-        w++;
-    }
-#endif
-    NetRootName->Length = NetRootName->MaximumLength
-                = (USHORT)((PCHAR)w - (PCHAR)wlow);
+    NetRootName->Buffer = wlimit;
+    NetRootName->Length = NetRootName->MaximumLength = 0;
+
+    /* FIXME: |RestOfName| not implemented yet, the Win10 RDR does not use it */
+
 #ifdef DEBUG_MOUNT
     DbgP("nfs41_ExtractNetRootName: "
-        "In: pSrvCall 0x%p PathName='%wZ' SrvCallName='%wZ' "
+        "In: pSrvCall 0x%p FilePathName='%wZ' SrvCallName='%wZ' "
         "Out: NetRootName='%wZ'\n",
         SrvCall, FilePathName, SrvCall->pSrvCallName, NetRootName);
-#endif
-    return;
-
+#endif /* DEBUG_MOUNT */
 }
 
 NTSTATUS nfs41_FinalizeSrvCall(

@@ -85,12 +85,12 @@ NFSv4.2/NFSv4.1 filesystem driver for Windows 10/11 & Windows Server
   - `/sbin/nfs_mount` prints UNC paths in Win32+Cygwin/MSYS2 formats
 
   - Cygwin/MSYS2 bash+ksh93 support UNC paths, e.g.,
-    `cd //derfwnb4966@2049/nfs4/bigdisk/mysqldb4/`
+    `cd //derfwnb4966@NFS@2049/bigdisk/mysqldb4/`
 
   - Symlinks on NFS can redirect to other filesystems via UNC syntax and
     work with Cygwin, MSYS2, cmd.exe, powershell etc., e.g.:
 
-        mklink /D symlnk1_to_h_tmp \\lab17@2049\nfs4\export\home\rsm\tmp
+        mklink /D symlnk1_to_h_tmp \\lab17@NFS@2049\export\home\rsm\tmp
 
 - WSL support
 
@@ -507,7 +507,7 @@ Run the NFSv4 client daemon manually:
 Mount a filesystem to drive N: and use it
 
     $ /sbin/nfs_mount -o rw N 10.49.202.230:/net_tmpfs2
-    Successfully mounted '10.49.202.230@2049' to drive 'N:'
+    Successfully mounted '10.49.202.230@NFS@2049' to drive 'N:'
     $ cd /cygdrive/n/
     $ ls -la
     total 4
@@ -527,10 +527,10 @@ Unmount filesystem:
 Mount a filesystem WITHOUT a dos drive assigned and use it via UNC path
 
     $ /sbin/nfs_mount -o rw 10.49.202.230:/net_tmpfs2
-    Successfully mounted '10.49.202.230@2049' to drive '\\10.49.202.230@2049\nfs4\net_tmpfs2'
-    $ cygpath -u '\\10.49.202.230@2049\nfs4\net_tmpfs2'
-    //10.49.202.230@2049/nfs4/net_tmpfs2
-    $ cd '//10.49.202.230@2049/nfs4/net_tmpfs2'
+    Successfully mounted '10.49.202.230@NFS@2049' to drive '\\10.49.202.230@NFS@2049\net_tmpfs2'
+    $ cygpath -u '\\10.49.202.230@NFS@2049\net_tmpfs2'
+    //10.49.202.230@NFS@2049/net_tmpfs2
+    $ cd '//10.49.202.230@NFS@2049/net_tmpfs2'
     $ ls -la
     total 4
     drwxrwxrwt 5 Unix_User+0      Unix_Group+0      100 Dec  7 14:17 .
@@ -541,10 +541,10 @@ Mount a filesystem WITHOUT a dos drive assigned and use it via UNC path
 
 Unmount filesystem:
 
-    $ cd ~ && /sbin/nfs_umount '\\10.49.202.230@2049\nfs4\net_tmpfs2'
+    $ cd ~ && /sbin/nfs_umount '\\10.49.202.230@NFS@2049\net_tmpfs2'
     # OR
     $ cd ~
-    $ net use '\\10.49.202.230@2049\nfs4\net_tmpfs2' /delete
+    $ net use '\\10.49.202.230@NFS@2049\net_tmpfs2' /delete
 
 List mounted NFSv4.2 filesystems:
 
@@ -574,7 +574,7 @@ Example 1: Mount Windows NFSv4.2 share via Windows drive letter
 Mount NFSv4.2 share in Windows to drive letter 'N':
 
     $ /sbin/nfs_mount -o rw 'N' nfs://10.49.202.230//bigdisk
-    Successfully mounted '10.49.202.230@2049' to drive 'N:'
+    Successfully mounted '10.49.202.230@NFS@2049' to drive 'N:'
 
 Within WSL mount drive letter 'N' to `/mnt/n`
 
@@ -587,13 +587,13 @@ Example 2: Mount Windows NFSv4.2 share via UNC path:
 Mount NFSv4.2 share in Windows
 
     $ /sbin/nfs_mount -o rw nfs://10.49.202.230//bigdisk
-    Successfully mounted '10.49.202.230@2049' to drive '\\10.49.202.230@2049\nfs4\bigdisk'
+    Successfully mounted '10.49.202.230@NFS@2049' to drive '\\10.49.202.230@NFS@2049\bigdisk'
 
 Within WSL mount UNC path returned by `/sbin/nfs_mount`
 
     $ sudo bash
     $ mkdir /mnt/bigdisk
-    $ mount -t drvfs '\\10.49.202.230@2049\nfs4\bigdisk' /mnt/bigdisk
+    $ mount -t drvfs '\\10.49.202.230@NFS@2049\bigdisk' /mnt/bigdisk
 
 **Known issues with WSL:**
 
@@ -633,7 +633,7 @@ Within WSL mount UNC path returned by `/sbin/nfs_mount`
 - Cygwin/MSYS2 symlinks are supported, but might require
   `$ fsutil behavior set SymlinkEvaluation L2L:1 R2R:1 L2R:1 R2L:1 #`.
   This includes symlinks to UNC paths, e.g., as Administrator
-  `$ cmd /c 'mklink /d c:\home\rmainz \\derfwpc5131_ipv6@2049\nfs4\export\home2\rmainz' #`
+  `$ cmd /c 'mklink /d c:\home\rmainz \\derfwpc5131_ipv6@NFS@2049\export\home2\rmainz' #`
   and then `$ cd /cygdrive/c/home/rmainz/ #` should work
 
 - performance: All binaries are built without any optimisation, so the
@@ -771,7 +771,7 @@ Within WSL mount UNC path returned by `/sbin/nfs_mount`
   Example:
 
       {Fehler beim verzoegerten Schreibvorgang} Nicht alle Daten fuer die
-      Datei "\\34.159.25.153@2049\nfs4\export\nfs4export\gcc\lto-dump.exe"
+      Datei "\\34.159.25.153@NFS@2049\exportexport\gcc\lto-dump.exe"
       konnten gespeichert werden. Daten gingen verloren.
       Dieser Fehler wurde von dem Server zurueckgegeben, auf dem sich die
       Datei befindet. Versuchen Sie, die Datei woanders zu speichern.

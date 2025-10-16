@@ -54,17 +54,6 @@
 #define NFS41_DRIVER_SID_CACHE 1
 
 /*
- * NFS41_DRIVER_MOUNT_DOES_NFS4_PREFIX - nfs_mount.exe and
- * not nfs41_np does the \nfs4 prefix between servername and path
- * in UNC paths. As side-effect both normal and Windows UNC paths
- * always have \nfs4 in them (e.g. \\derfwnb4966_ipv4@2049\nfs4\bigdisk
- * (Windows UNC) and //derfwnb4966_ipv4@2049/nfs4/bigdisk (Cygwin UNC)
- * instead of just the the Cygwin UNC paths, which constantly confuses
- * users madly.
- */
-#define NFS41_DRIVER_MOUNT_DOES_NFS4_PREFIX 1
-
-/*
  * NFS41_DRIVER_STABILITY_HACKS - use horrible
  * hacks to improve stabilty
  */

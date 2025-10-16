@@ -72,11 +72,9 @@
 
 /*
  * In order to cooperate with other network providers,
- * we only claim paths of the format '\\server\nfs4\path' or
- * '\\server\pubnfs4\path'
+ * we only claim paths of the format '\\server@NFS@<portnum>\path'
+ * or '\\server@PUBNFS@<portnum>\path'
  */
-DECLARE_CONST_UNICODE_STRING(NfsPrefix, L"\\nfs4");
-DECLARE_CONST_UNICODE_STRING(PubNfsPrefix, L"\\pubnfs4");
 DECLARE_CONST_UNICODE_STRING(AUTH_NONE_NAME, L"none");
 DECLARE_CONST_UNICODE_STRING(AUTH_SYS_NAME, L"sys");
 DECLARE_CONST_UNICODE_STRING(AUTHGSS_KRB5_NAME, L"krb5");

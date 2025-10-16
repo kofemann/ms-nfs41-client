@@ -1,5 +1,5 @@
 #
-# ms-nfs41-client manual testing sequence, 2025-10-02
+# ms-nfs41-client manual testing sequence, 2025-10-15
 #
 # Draft version, needs to be turned into automated tests
 # if possible
@@ -264,16 +264,16 @@ ln -s /dev/zero foo && ls -l foo && rm foo
 rm -f symlink1_to_m_builds ; cmd /C 'mklink /D symlink1_to_m_builds M:\builds' ; cmd /C 'cd symlink1_to_m_builds && dir && echo test_OK'
 # 8. cmd.exe follow sublink dir to other filesystem
 # (this assumes we have an valid UNC path
-# \\derfwnb4966_ipv6linklocal@2049\nfs4\bigdisk\ with a subdir "builds")
-rm -f symlink1_to_unc ; cmd /C 'mklink /D symlink1_to_unc \\derfwnb4966_ipv6linklocal@2049\nfs4\bigdisk\builds\' ; cmd /C 'cd symlink1_to_unc && dir && echo test_OK'
+# \\derfwnb4966_ipv6linklocal@NFS@2049\bigdisk\ with a subdir "builds")
+rm -f symlink1_to_unc ; cmd /C 'mklink /D symlink1_to_unc \\derfwnb4966_ipv6linklocal@NFS@2049\bigdisk\builds\' ; cmd /C 'cd symlink1_to_unc && dir && echo test_OK'
 # 9a. powershell follow sublink dir to other filesystem
 # (this assumes we have an valid UNC path
-# \\derfwnb4966_ipv6linklocal@2049\nfs4\bigdisk\ with a subdir "builds")
-rm -f symlink1_to_unc ; cmd /C 'mklink /D symlink1_to_unc \\derfwnb4966_ipv6linklocal@2049\nfs4\bigdisk\builds\' ; powershell -Command 'cd symlink1_to_unc ; if ($?) { dir ; if ($?) { echo "test OK" } else { echo "dir failed" } } else { echo "cd failed" }'
+# \\derfwnb4966_ipv6linklocal@NFS@2049\bigdisk\ with a subdir "builds")
+rm -f symlink1_to_unc ; cmd /C 'mklink /D symlink1_to_unc \\derfwnb4966_ipv6linklocal@NFS@2049\bigdisk\builds\' ; powershell -Command 'cd symlink1_to_unc ; if ($?) { dir ; if ($?) { echo "test OK" } else { echo "dir failed" } } else { echo "cd failed" }'
 # 9b. powershell follow sublink dir to other filesystem
 # (this assumes we have an valid UNC path
-# \\derfwpc5131_ipv4@2049\nfs4\export\home2\rmainz\ with a subdir "tmp")
-rm -f symlink1_to_h_tmp ; cmd /C 'mklink /D symlink1_to_h_tmp \\derfwpc5131_ipv4@2049\nfs4\export\home2\rmainz\tmp' ; powershell -Command 'cd symlink1_to_h_tmp ; if ($?) { dir ; if ($?) { echo "test OK" } else { echo "dir failed" } } else { echo "cd failed" }'
+# \\derfwpc5131_ipv4@NFS@2049\export\home2\rmainz\ with a subdir "tmp")
+rm -f symlink1_to_h_tmp ; cmd /C 'mklink /D symlink1_to_h_tmp \\derfwpc5131_ipv4@NFS@2049\export\home2\rmainz\tmp' ; powershell -Command 'cd symlink1_to_h_tmp ; if ($?) { dir ; if ($?) { echo "test OK" } else { echo "dir failed" } } else { echo "cd failed" }'
 
 #
 # Tests for absolute (start from root "/") POSIX symlinks
@@ -392,11 +392,11 @@ Example:
 ---- snip ----
 # get UNC path for driver letterr 'L':
 $ powershell -Command 'Get-PSDrive -Name L | Select-Object -Property DisplayRoot,CurrentLocation | Format-List' | ksh93 -c 'compound c=(typeset -A ar) ; while IFS="" read -r l ; do dummy="${l/~(Elr)(.+?)[[:space:]]*:[[:space:]](.+)\015/x}" ; [[ "${.sh.match[1]-}" == "" ]] && continue ; c.ar["${.sh.match[1]}"]="${.sh.match[2]}" ; done ; cygpath -u "$(printf "%s\\\\%s\n" "${c.ar[DisplayRoot]}" "${c.ar[CurrentLocation]}")"'
-//derfwnb4966_ipv6linklocal@2049/nfs4/bigdisk/builds/bash_build1
+//derfwnb4966_ipv6linklocal@NFS@2049/bigdisk/builds/bash_build1
 # tests
-mkdir -p //derfwnb4966_ipv6linklocal@2049/nfs4/bigdisk/builds/bash_build1/a1/b1/c1 || echo FAIL
-mkdir //derfwnb4966_ipv6linklocal@2049/nfs4/bigdisk/builds/bash_build1/a2 || echo FAIL
-mkdir //derfwnb4966_ipv6linklocal@2049/nfs4/bigdisk/builds/bash_build1/a2/b2 || echo FAIL
+mkdir -p //derfwnb4966_ipv6linklocal@NFS@2049/bigdisk/builds/bash_build1/a1/b1/c1 || echo FAIL
+mkdir //derfwnb4966_ipv6linklocal@NFS@2049/bigdisk/builds/bash_build1/a2 || echo FAIL
+mkdir //derfwnb4966_ipv6linklocal@NFS@2049/bigdisk/builds/bash_build1/a2/b2 || echo FAIL
 ---- snip ----
 
 #
@@ -655,7 +655,7 @@ $ time ksh93 -c 'rm -Rf nfstmp1 gcc.x.strace.log x.c x.exe && mkdir nfstmp1 && c
 git clone -b 'v1.0.10' https://github.com/ksh93/ksh.git
 cd ksh
 git config --global --add safe.directory "$PWD"
-# add patch so UNC path support is enabled (e.g. "cd cd //derfwnb4966_ipv6linklocal@2049/nfs4/net_tmpfs")
+# add patch so UNC path support is enabled (e.g. "cd //derfwnb4966_ipv6linklocal@NFS@2049/net_tmpfs")
 patch -p1 <'../cygwin/cygwin_ksh93/ksh_1_0_8_libast_Cygwin_set_PATH_LEADING_SLASHES_for_UNC_paths.patch'
 sed -i -r 's/mkfifo.+?(-m [[:digit:]]+)/mkfifo /g' ./src/cmd/INIT/package.sh ./bin/package
 # repeat:

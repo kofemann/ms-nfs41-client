@@ -1,5 +1,6 @@
 /* NFSv4.1 client for Windows
- * Copyright © 2012 The Regents of the University of Michigan
+ * Copyright (C) 2012 The Regents of the University of Michigan
+ * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -57,26 +58,14 @@ void PrintMountLine(
     wchar_t *b;
     LPCWSTR s;
     wchar_t sc;
-#ifndef NFS41_DRIVER_MOUNT_DOES_NFS4_PREFIX
-    unsigned int backslash_counter;
-#endif
     bool is_pubfh = false;
+    bool found_unc_nfs_tag = false;
 
-    for(b = cygwin_unc_buffer, s = remote
-#ifndef NFS41_DRIVER_MOUNT_DOES_NFS4_PREFIX
-     , backslash_counter = 0
-#endif
-     ;
+    for(b = cygwin_unc_buffer, s = remote ;
         (sc = *s++) != L'\0' ; ) {
         switch(sc) {
             case L'\\':
                 *b++ = L'/';
-#ifndef NFS41_DRIVER_MOUNT_DOES_NFS4_PREFIX
-                if (backslash_counter++ == 2) {
-                    (void)wcscpy_s(b, 6, L"nfs4/");
-                    b+=5;
-                }
-#endif
                 break;
             default:
                 *b++ = sc;
@@ -128,8 +117,8 @@ void PrintMountLine(
 
     unsigned int slash_counter = 0;
     char *utf8unc = wcs2utf8str(cygwin_unc_buffer);
-    if (!utf8unc)
-        return;
+    if (utf8unc == NULL)
+        goto out;
     char *utf8unc_p = utf8unc;
     char *us = cygwin_nfsurl_buffer;
 
@@ -153,43 +142,47 @@ void PrintMountLine(
             slash_counter++;
 
         /*
-         * Skip "nfs4", but not the last '/' to make the nfs://-URL
-         * an absolute URL, not a relative nfs://-URL.
-         * (This assumes that all input strings have "nfs4/"!)
+         * Intercept "tags" in UNC hostnames, e.g.
+         * "\hostname@TAG1@TAG2@port\path"
          */
-        if (slash_counter == 1) {
-            *us++ = uc;
-            if (strncmp(utf8unc_p, "pubnfs4/", 8) == 0) {
-                /*
-                 * Skip "pubnfs4/", the trailing slash is skipped
-                 * because public nfs://-URLs must be relative to
-                 * the pubfh
-                 */
-                utf8unc_p += 8;
-                slash_counter++;
-                is_pubfh = true;
+        if (uc == '@') {
+            /* |slash_counter == 0| means we are processing the UNC hostname */
+            if (slash_counter == 0) {
+                if (found_unc_nfs_tag) {
+                    /*
+                     * Replace '@' for UNC port number with ':' for
+                     * URL port number
+                     */
+                    *us++ = ':';
+                    continue;
+                }
+                else {
+                    if (strncmp(utf8unc_p, "NFS", 3) == 0) {
+                        /* Skip "NFS" */
+                        utf8unc_p += 3;
+                        found_unc_nfs_tag = true;
+                    }
+                    else if (strncmp(utf8unc_p, "PUBNFS", 6) == 0) {
+                        /* Skip "PUBNFS" */
+                        utf8unc_p += 6;
+                        is_pubfh = true;
+                        found_unc_nfs_tag = true;
+                    }
+                    else {
+                        (void)fwprintf(stderr,
+                            L"PrintMountLine: ## Internal error, "
+                            "unknown UNC tag, utf8unc_p='%s'\n",
+                            utf8unc_p);
+                        goto out;
+                    }
+                    continue;
+                }
             }
-            else if (strncmp(utf8unc_p, "nfs4/", 5) == 0) {
-                /* Skip "nfs4" */
-                utf8unc_p += 4;
-            }
-            else {
-                (void)fwprintf(stderr,
-                    L"PrintMountLine: ## Internal error, "
-                    "unknown provider prefix, utf8unc_p='%s'\n",
-                    utf8unc_p);
-                return;
-            }
-
-            continue;
         }
 
-        if ((uc == '@') && (slash_counter == 0)) {
-            *us++ = ':';
-        }
-        else if (printURLShellSafe?
-                    (ISVALIDSHELLSAFEURLCHAR(uc)):
-                    (ISVALIDURLCHAR(uc))) {
+        if (printURLShellSafe?
+            (ISVALIDSHELLSAFEURLCHAR(uc)):
+            (ISVALIDURLCHAR(uc))) {
             *us++ = uc;
         }
         else {
@@ -220,6 +213,7 @@ void PrintMountLine(
     (void)wprintf(L"%-8ls\t%-50ls\t%-50ls\t%-50s\n",
         local, remote, cygwin_unc_buffer, cygwin_nfsurl_buffer);
 
+out:
     free(utf8unc);
 }
 
