@@ -754,6 +754,8 @@ function main
 			is_toolkit_pkg_installed itp 'gcc-g++' || (( errc++ ))
 			is_toolkit_pkg_installed itp 'autoconf' || (( errc++ ))
 			is_toolkit_pkg_installed itp 'automake' || (( errc++ ))
+			is_toolkit_pkg_installed itp 'flex' || (( errc++ ))
+			is_toolkit_pkg_installed itp 'bison' || (( errc++ ))
 			if is_cygwin ; then
 				if (( (cygwin_vers.major*1000+cygwin_vers.minor) >= 3005 )) ; then
 					print '# bash_build: Using Cygwin >= 3.5 config'
