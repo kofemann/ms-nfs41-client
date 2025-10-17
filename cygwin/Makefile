@@ -146,6 +146,7 @@ installdest32: \
 	$(VS_BUILD_DIR_I686)/nfsd.exe \
 	$(VS_BUILD_DIR_I686)/nfs_mount.exe \
 	$(VS_BUILD_DIR_I686)/nfs_install.exe \
+	$(VS_BUILD_DIR_I686)/nfsclientdctl.exe \
 	$(VS_BUILD_DIR_I686)/nfs41_driver.sys \
 	$(VS_BUILD_DIR_I686)/libtirpc.dll \
 	$(VS_BUILD_DIR_I686)/nfs41_np.dll \
@@ -162,12 +163,14 @@ installdest64: \
 	$(VS_BUILD_DIR_X64)/nfsd.exe \
 	$(VS_BUILD_DIR_X64)/nfs_mount.exe \
 	$(VS_BUILD_DIR_X64)/nfs_install.exe \
+	$(VS_BUILD_DIR_X64)/nfsclientdctl.exe \
 	$(VS_BUILD_DIR_X64)/nfs41_driver.sys \
 	$(VS_BUILD_DIR_X64)/libtirpc.dll \
 	$(VS_BUILD_DIR_X64)/nfs41_np.dll \
 	$(VS_BUILD_DIR_ARM64)/nfsd.exe \
 	$(VS_BUILD_DIR_ARM64)/nfs_mount.exe \
 	$(VS_BUILD_DIR_ARM64)/nfs_install.exe \
+	$(VS_BUILD_DIR_ARM64)/nfsclientdctl.exe \
 	$(VS_BUILD_DIR_ARM64)/nfs41_driver.sys \
 	$(VS_BUILD_DIR_ARM64)/libtirpc.dll \
 	$(VS_BUILD_DIR_ARM64)/nfs41_np.dll \

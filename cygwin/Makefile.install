@@ -49,6 +49,7 @@ installdest:
 		cp $(VS_BUILD_DIR_I686)/nfsd.*		$(DESTDIR)/lib/msnfs41client/i686/. ; \
 		cp $(VS_BUILD_DIR_I686)/libtirpc.*	$(DESTDIR)/lib/msnfs41client/i686/. ; \
 		cp $(VS_BUILD_DIR_I686)/nfs_install.*	$(DESTDIR)/lib/msnfs41client/i686/. ; \
+		cp $(VS_BUILD_DIR_I686)/nfsclientdctl.*	$(DESTDIR)/lib/msnfs41client/i686/. ; \
 	fi
 	cp $(VS_BUILD_DIR_I686)/nfs_mount.*	$(DESTDIR)/lib/msnfs41client/i686/.
 	# install 32bit nfs_mount.exe on 64bit Windows to assist with debugging 32bit issues
@@ -68,6 +69,7 @@ installdest:
 			cp $(VS_BUILD_DIR_X64)/nfsd.*		$(DESTDIR)/lib/msnfs41client/x64/. ; \
 			cp $(VS_BUILD_DIR_X64)/libtirpc.*	$(DESTDIR)/lib/msnfs41client/x64/. ; \
 			cp $(VS_BUILD_DIR_X64)/nfs_install.*	$(DESTDIR)/lib/msnfs41client/x64/. ; \
+			cp $(VS_BUILD_DIR_X64)/nfsclientdctl.*	$(DESTDIR)/lib/msnfs41client/x64/. ; \
 		fi ; \
 		cp $(VS_BUILD_DIR_X64)/nfs_mount.*	$(DESTDIR)/lib/msnfs41client/x64/. ; \
 		cp $(VS_BUILD_DIR_X64)/nfs41_np.*	$(DESTDIR)/lib/msnfs41client/x64/. ; \
@@ -83,6 +85,7 @@ installdest:
 			cp $(VS_BUILD_DIR_ARM64)/nfsd.*		$(DESTDIR)/lib/msnfs41client/arm64/. ; \
 			cp $(VS_BUILD_DIR_ARM64)/libtirpc.*	$(DESTDIR)/lib/msnfs41client/arm64/. ; \
 			cp $(VS_BUILD_DIR_ARM64)/nfs_install.*	$(DESTDIR)/lib/msnfs41client/arm64/. ; \
+			cp $(VS_BUILD_DIR_ARM64)/nfsclientdctl.*	$(DESTDIR)/lib/msnfs41client/arm64/. ; \
 		fi ; \
 		cp $(VS_BUILD_DIR_ARM64)/nfs_mount.*	$(DESTDIR)/lib/msnfs41client/arm64/. ; \
 		cp $(VS_BUILD_DIR_ARM64)/nfs41_np.*	$(DESTDIR)/lib/msnfs41client/arm64/. ; \
