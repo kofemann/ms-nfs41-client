@@ -69,7 +69,10 @@ void close_nfs41sys_device_pipe(HANDLE pipe)
 
 void usage(const char *progname)
 {
-    (void)fprintf(stderr, "Usage: %s [stopdaemon]", progname);
+    (void)fprintf(stderr,
+        "Usage: %s "
+        "[stopdaemon|setdaemondebuglevel <debuglevel>]",
+        progname);
 }
 
 static
@@ -97,6 +100,53 @@ int cmd_stopdaemon(const char *progname)
     return EXIT_SUCCESS;
 }
 
+static
+int cmd_setdaemondebuglevel(const char *progname, const char *levelstr)
+{
+    HANDLE pipe;
+    DWORD status;
+    BOOL dstatus;
+    DWORD outbuf_len;
+    LONG debuglevel;
+
+    if (levelstr == NULL) {
+        (void)fprintf(stderr,
+            "%s: setdaemondebuglevel: "
+            "Missing <debuglevel> argument\n",
+            progname);
+        return EXIT_FAILURE;
+    }
+
+    debuglevel = atol(levelstr);
+
+    pipe = create_nfs41sys_device_pipe();
+    if (pipe == INVALID_HANDLE_VALUE) {
+        status = GetLastError();
+        (void)fprintf(stderr,
+            "%s: setdaemondebuglevel: "
+            "Unable to open nfs41_driver pipe, lasterr=%d\n",
+            progname,
+            (int)status);
+        return EXIT_FAILURE;
+    }
+
+    dstatus = DeviceIoControl(pipe,
+        IOCTL_NFS41_SET_DAEMON_DEBUG_LEVEL,
+        &debuglevel, sizeof(debuglevel),
+        NULL, 0,
+        &outbuf_len, NULL);
+    if (dstatus == FALSE) {
+        status = GetLastError();
+        (void)fprintf(stderr,
+            "%s: stopdaemon: "
+            "IOCTL_NFS41_SET_DAEMON_DEBUG_LEVEL failed with lasterr=%d\n",
+            progname,
+            (int)status);
+    }
+
+    close_nfs41sys_device_pipe(pipe);
+    return EXIT_SUCCESS;
+}
 
 int main(int ac, char *av[])
 {
@@ -107,6 +157,9 @@ int main(int ac, char *av[])
 
     if (!strcmp(av[1], "stopdaemon")) {
         return cmd_stopdaemon(av[0]);
+    }
+    else if (!strcmp(av[1], "setdaemondebuglevel")) {
+        return cmd_setdaemondebuglevel(av[0], av[2]);
     }
     else {
         (void)fprintf(stderr, "%s: Unknown cmd '%s'\n",

@@ -191,6 +191,9 @@ typedef struct _updowncall_entry {
     ULONGLONG ChangeTime;
     union {
         struct {
+            LONG debuglevel;
+        } SetDaemonDebugLevel;
+        struct {
             PUNICODE_STRING srv_name; /* hostname, or hostname@port */
             PUNICODE_STRING root;
             NFS41_FILE_FS_ATTRIBUTE_INFORMATION *FsAttrs;
@@ -643,6 +646,11 @@ NTSTATUS marshall_unicode_as_utf8(
     IN OUT unsigned char **pos,
     IN PCUNICODE_STRING str);
 NTSTATUS marshal_nfs41_shutdown(
+    nfs41_updowncall_entry *entry,
+    unsigned char *buf,
+    ULONG buf_len,
+    ULONG *len);
+NTSTATUS marshal_nfs41_set_daemon_debuglevel(
     nfs41_updowncall_entry *entry,
     unsigned char *buf,
     ULONG buf_len,

@@ -53,6 +53,7 @@ extern const nfs41_upcall_op nfs41_op_queryallocatedranges;
 extern const nfs41_upcall_op nfs41_op_setzerodata;
 extern const nfs41_upcall_op nfs41_op_duplicatedata;
 extern const nfs41_upcall_op nfs41_op_offload_datacopy;
+extern const nfs41_upcall_op nfs41_op_setdaemondebuglevel;
 
 /* |_nfs41_opcodes| and |g_upcall_op_table| must be in sync! */
 static const nfs41_upcall_op *g_upcall_op_table[] = {
@@ -80,7 +81,8 @@ static const nfs41_upcall_op *g_upcall_op_table[] = {
     &nfs41_op_setzerodata,
     &nfs41_op_duplicatedata,
     &nfs41_op_offload_datacopy,
-    NULL,
+    &nfs41_op_setdaemondebuglevel,
+    NULL, /* NFS41_SYSOP_SHUTDOWN */
     NULL
 };
 static const uint32_t g_upcall_op_table_size = ARRAYSIZE(g_upcall_op_table);
@@ -164,10 +166,16 @@ int upcall_parse(
     op = g_upcall_op_table[upcall_upcode];
 
     if (op) {
-        /* |NFS41_SYSOP_UNMOUNT| has 0 payload */
-        if (upcall_upcode != NFS41_SYSOP_UNMOUNT) {
+        /*
+         * |NFS41_SYSOP_UNMOUNT| has 0 payload,
+         * |NFS41_SYSOP_SET_DAEMON_DEBUGLEVEL| has a |ULONG| payload
+         */
+        if ((upcall_upcode != NFS41_SYSOP_UNMOUNT) &&
+            (upcall_upcode != NFS41_SYSOP_SET_DAEMON_DEBUGLEVEL)) {
             EASSERT_MSG(op->arg_size >= sizeof(void*),
-                ("upcall->opcode=%u\n", (unsigned int)upcall_upcode));
+                ("upcall->opcode=%u, op->arg_size=%ld\n",
+                (unsigned int)upcall_upcode,
+                (long)op->arg_size));
         }
         (void)memset(&upcall->args, 0, op->arg_size);
     }

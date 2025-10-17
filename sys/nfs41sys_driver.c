@@ -310,6 +310,62 @@ NTSTATUS nfs41_invalidate_cache(
     return status;
 }
 
+NTSTATUS marshal_nfs41_set_daemon_debuglevel(
+    nfs41_updowncall_entry *entry,
+    unsigned char *buf,
+    ULONG buf_len,
+    ULONG *len)
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    ULONG header_len = 0;
+    unsigned char *tmp = buf;
+
+    status = marshal_nfs41_header(entry, tmp, buf_len, len);
+    if (status) goto out;
+    else tmp += *len;
+
+    header_len = *len + sizeof(LONG);
+    if (header_len > buf_len) {
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto out;
+    }
+
+    RtlCopyMemory(tmp, &entry->u.SetDaemonDebugLevel.debuglevel,
+        sizeof(entry->u.SetDaemonDebugLevel.debuglevel));
+    tmp += sizeof(entry->u.SetDaemonDebugLevel.debuglevel);
+    *len = header_len;
+
+out:
+    return status;
+}
+
+NTSTATUS nfs41_set_daemon_debuglevel(
+    DWORD version,
+    LONG debuglevel)
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    nfs41_updowncall_entry *entry = NULL;
+
+    DbgEn();
+    status = nfs41_UpcallCreate(NFS41_SYSOP_SET_DAEMON_DEBUGLEVEL, NULL,
+        INVALID_HANDLE_VALUE, INVALID_HANDLE_VALUE, version, NULL, &entry);
+    if (status) goto out;
+
+    entry->u.SetDaemonDebugLevel.debuglevel = debuglevel;
+
+    status = nfs41_UpcallWaitForReply(entry, UPCALL_TIMEOUT_DEFAULT);
+    if (status) {
+        /* Timeout - |nfs41_downcall()| will free |entry|+contents */
+        entry = NULL;
+        goto out;
+    }
+
+    nfs41_UpcallDestroy(entry);
+out:
+    DbgEx();
+    return status;
+}
+
 NTSTATUS nfs41_shutdown_daemon(
     DWORD version)
 {
@@ -575,6 +631,15 @@ NTSTATUS nfs41_DevFcbXXXControlFile(
             DbgP("RxStopMinirdr status 0x%08lx\n", status);
             if (status == STATUS_PENDING && RxContext->PostRequest == TRUE )
                 status = STATUS_MORE_PROCESSING_REQUIRED;
+            break;
+        case IOCTL_NFS41_SET_DAEMON_DEBUG_LEVEL:
+            if (in_len == sizeof(LONG)) {
+                LONG debuglevel = 0;
+                RtlCopyMemory(&debuglevel, inbuf, sizeof(debuglevel));
+                nfs41_set_daemon_debuglevel(DevExt->nfs41d_version,
+                    debuglevel);
+                status = STATUS_SUCCESS;
+            }
             break;
         default:
             status = STATUS_INVALID_DEVICE_REQUEST;

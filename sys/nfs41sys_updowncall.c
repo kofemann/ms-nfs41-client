@@ -260,6 +260,9 @@ NTSTATUS handle_upcall(
     }
 
     switch(entry->opcode) {
+    case NFS41_SYSOP_SET_DAEMON_DEBUGLEVEL:
+        status = marshal_nfs41_set_daemon_debuglevel(entry, pbOut, cbOut, len);
+        break;
     case NFS41_SYSOP_SHUTDOWN:
         status = marshal_nfs41_shutdown(entry, pbOut, cbOut, len);
         (void)KeSetEvent(&entry->cond, IO_NFS41FS_INCREMENT, FALSE);
@@ -774,6 +777,10 @@ NTSTATUS nfs41_downcall(
         case NFS41_SYSOP_FSCTL_DUPLICATE_DATA:
         case NFS41_SYSOP_FSCTL_OFFLOAD_DATACOPY:
             unmarshal_nfs41_duplicatedata(cur, &inbuf);
+            break;
+        case NFS41_SYSOP_SET_DAEMON_DEBUGLEVEL:
+        case NFS41_SYSOP_SHUTDOWN:
+            /* no unmarshal function */
             break;
         }
 

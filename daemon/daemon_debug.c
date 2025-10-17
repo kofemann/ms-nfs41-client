@@ -462,7 +462,6 @@ const char* opcode2string(nfs41_opcodes opcode)
     switch(opcode) {
 #define NFSOPCODE_TO_STRLITERAL(e) case e: return #e;
         NFSOPCODE_TO_STRLITERAL(NFS41_SYSOP_INVALID_OPCODE0)
-        NFSOPCODE_TO_STRLITERAL(NFS41_SYSOP_SHUTDOWN)
         NFSOPCODE_TO_STRLITERAL(NFS41_SYSOP_MOUNT)
         NFSOPCODE_TO_STRLITERAL(NFS41_SYSOP_UNMOUNT)
         NFSOPCODE_TO_STRLITERAL(NFS41_SYSOP_OPEN)
@@ -486,6 +485,8 @@ const char* opcode2string(nfs41_opcodes opcode)
         NFSOPCODE_TO_STRLITERAL(NFS41_SYSOP_FSCTL_SET_ZERO_DATA)
         NFSOPCODE_TO_STRLITERAL(NFS41_SYSOP_FSCTL_DUPLICATE_DATA)
         NFSOPCODE_TO_STRLITERAL(NFS41_SYSOP_FSCTL_OFFLOAD_DATACOPY)
+        NFSOPCODE_TO_STRLITERAL(NFS41_SYSOP_SET_DAEMON_DEBUGLEVEL)
+        NFSOPCODE_TO_STRLITERAL(NFS41_SYSOP_SHUTDOWN)
         NFSOPCODE_TO_STRLITERAL(NFS41_SYSOP_INVALID_OPCODE1)
         default: break;
     }
@@ -1487,3 +1488,52 @@ out:
     dprintf_out("<-- debug_print_ea()\n");
 
 }
+
+/*
+ * Handle |NFS41_SYSOP_SET_DAEMON_DEBUGLEVEL|
+ */
+#include "upcall.h"
+
+static int parse_setdaemondebuglevel(
+    const unsigned char *restrict buffer,
+    uint32_t length,
+    nfs41_upcall *upcall)
+{
+    int status;
+    setdaemondebuglevel_upcall_args *args = &upcall->args.setdaemondebuglevel;
+
+    status = safe_read(&buffer, &length, &args->debuglevel, sizeof(args->debuglevel));
+    if (status) goto out;
+
+    EASSERT(length == 0);
+
+out:
+    return status;
+}
+
+static
+int handle_setdaemondebuglevel(void *daemon_context,
+    nfs41_upcall *upcall)
+{
+    setdaemondebuglevel_upcall_args *args = &upcall->args.setdaemondebuglevel;
+
+    if ((args->debuglevel < -1L) || (args->debuglevel > 8L)) {
+        eprintf("handle_setdaemondebuglevel: invalid debug level %ld\n",
+            (long)args->debuglevel);
+        return ERROR_INVALID_PARAMETER;
+    }
+
+    DPRINTF(0,
+        ("handle_setdaemondebuglevel: Setting debug level to %ld\n",
+        (long)args->debuglevel));
+    set_debug_level(args->debuglevel);
+
+    return ERROR_SUCCESS;
+}
+
+const nfs41_upcall_op nfs41_op_setdaemondebuglevel = {
+    .parse = parse_setdaemondebuglevel,
+    .handle = handle_setdaemondebuglevel,
+    .marshall = NULL,
+    .arg_size = 0
+};

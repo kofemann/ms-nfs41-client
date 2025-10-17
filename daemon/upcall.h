@@ -226,6 +226,10 @@ typedef struct __duplicatedata_upcall_args {
     ULONGLONG           ctime;
 } duplicatedata_upcall_args;
 
+typedef struct __setdaemondebuglevel_upcall_args {
+    LONG debuglevel;
+} setdaemondebuglevel_upcall_args;
+
 typedef union __upcall_args {
     mount_upcall_args       mount;
     open_upcall_args        open;
@@ -245,6 +249,7 @@ typedef union __upcall_args {
     queryallocatedranges_upcall_args queryallocatedranges;
     setzerodata_upcall_args setzerodata;
     duplicatedata_upcall_args duplicatedata;
+    setdaemondebuglevel_upcall_args setdaemondebuglevel;
 } upcall_args;
 
 typedef enum _nfs41_opcodes nfs41_opcodes;
