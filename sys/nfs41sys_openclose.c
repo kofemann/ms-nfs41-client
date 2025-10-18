@@ -931,6 +931,37 @@ retry_on_link:
             RxFinishFcbInitialization(Fcb,
                 RDBSS_STORAGE_NTC(StorageType),
                 &InitPacket);
+
+#if 1
+            if (!entry->u.Open.sinfo.Directory) {
+                PFILE_OBJECT fo = RxContext->CurrentIrpSp->FileObject;
+
+                if ((params->CreateOptions & FILE_WRITE_THROUGH) ||
+                    pVNetRootContext->write_thru) {
+                    fo->Flags |= FO_WRITE_THROUGH;
+                }
+                else {
+                    fo->Flags &= ~FO_WRITE_THROUGH;
+                }
+
+                if ((params->CreateOptions & FILE_NO_INTERMEDIATE_BUFFERING) ||
+                    pVNetRootContext->nocache) {
+                    fo->Flags |= FO_NO_INTERMEDIATE_BUFFERING;
+                }
+                else {
+                    fo->Flags &= ~FO_NO_INTERMEDIATE_BUFFERING;
+                }
+
+                if ((fo->Flags &
+                    (FO_WRITE_THROUGH|FO_NO_INTERMEDIATE_BUFFERING)) == 0) {
+                    fo->Flags |= FO_CACHE_SUPPORTED;
+                    DbgP("nfs41_Create: set FO_CACHE_SUPPORTED\n");
+                }
+                else {
+                    fo->Flags &= ~FO_CACHE_SUPPORTED;
+                }
+            }
+#endif
         }
         else {
 #ifndef NFS41_DRIVER_HACK_DISABLE_FCB_ATTR_UPDATE_ON_OPEN
