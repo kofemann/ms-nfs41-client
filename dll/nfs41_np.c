@@ -321,10 +321,9 @@ static DWORD StoreConnectionInfo(
     pNfs41NetResource = &pSharedMemory->NetResources[i];
 
     pNfs41NetResource->InUse            = TRUE;
-    pNfs41NetResource->dwScope          = lpNetResource->dwScope;
-    pNfs41NetResource->dwType           = lpNetResource->dwType;
-    pNfs41NetResource->dwDisplayType    =
-        lpNetResource->dwDisplayType;
+    pNfs41NetResource->dwScope          = 0;
+    pNfs41NetResource->dwType           = RESOURCETYPE_DISK;
+    pNfs41NetResource->dwDisplayType    = RESOURCEDISPLAYTYPE_SHARE;
     pNfs41NetResource->dwUsage          = RESOURCEUSAGE_CONNECTABLE;
 #ifdef NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE
     pNfs41NetResource->MountAuthId      = authenticationid;
