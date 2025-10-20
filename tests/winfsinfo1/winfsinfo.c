@@ -1477,6 +1477,232 @@ done:
     return res;
 }
 
+#define BUFFER_SIZE 2048
+
+static
+wchar_t *ConvertToWideChar(const char* narrowString)
+{
+    if (narrowString == NULL)
+        return NULL;
+
+    int requiredSize = MultiByteToWideChar(CP_ACP, 0, narrowString, -1, NULL, 0);
+    if (requiredSize == 0) {
+        return NULL;
+    }
+
+    wchar_t* wideString = (wchar_t*)malloc(requiredSize * sizeof(wchar_t));
+    if (wideString == NULL) {
+        return NULL;
+    }
+
+    if (MultiByteToWideChar(CP_ACP, 0, narrowString, -1, wideString, requiredSize) == 0) {
+        free(wideString);
+        return NULL;
+    }
+
+    return wideString;
+}
+
+static
+void print_netresource(LPNETRESOURCE lpNetResource, const char *cpv_varname)
+{
+    (void)printf("\t%s=(\n", cpv_varname);
+
+    const char *scopeString;
+    switch (lpNetResource->dwScope) {
+        case RESOURCE_CONNECTED: scopeString = "RESOURCE_CONNECTED"; break;
+        case RESOURCE_GLOBALNET: scopeString = "RESOURCE_GLOBALNET"; break;
+        case RESOURCE_REMEMBERED: scopeString = "RESOURCE_REMEMBERED"; break;
+        case RESOURCE_CONTEXT: scopeString = "RESOURCE_CONTEXT"; break;
+        default: scopeString = NULL;
+    }
+    if (scopeString != NULL)
+        (void)printf("\t\tdwScope='%s'\n", scopeString);
+    else
+        (void)printf("\t\tdwScope='0' # unknown scope\n");
+
+    const char *typeString;
+    switch (lpNetResource->dwType) {
+        case RESOURCETYPE_ANY: typeString = "RESOURCETYPE_ANY"; break;
+        case RESOURCETYPE_DISK: typeString = "RESOURCETYPE_DISK"; break;
+        case RESOURCETYPE_PRINT: typeString = "RESOURCETYPE_PRINT"; break;
+        case RESOURCETYPE_RESERVED: typeString = "RESOURCETYPE_RESERVED"; break;
+        case RESOURCETYPE_UNKNOWN: typeString = "RESOURCETYPE_UNKNOWN"; break;
+        default: typeString = "Custom/Other Type";
+    }
+    (void)printf("\t\tdwType='%s'\n", typeString);
+
+    const char *displayTypeString;
+    switch (lpNetResource->dwDisplayType) {
+        case RESOURCEDISPLAYTYPE_GENERIC: displayTypeString = "RESOURCEDISPLAYTYPE_GENERIC"; break;
+        case RESOURCEDISPLAYTYPE_DOMAIN: displayTypeString = "RESOURCEDISPLAYTYPE_DOMAIN"; break;
+        case RESOURCEDISPLAYTYPE_SERVER: displayTypeString = "RESOURCEDISPLAYTYPE_SERVER"; break;
+        case RESOURCEDISPLAYTYPE_SHARE: displayTypeString = "RESOURCEDISPLAYTYPE_SHARE"; break;
+        case RESOURCEDISPLAYTYPE_GROUP: displayTypeString = "RESOURCEDISPLAYTYPE_GROUP"; break;
+        case RESOURCEDISPLAYTYPE_NETWORK: displayTypeString = "RESOURCEDISPLAYTYPE_NETWORK"; break;
+        case RESOURCEDISPLAYTYPE_ROOT: displayTypeString = "RESOURCEDISPLAYTYPE_ROOT"; break;
+//            case RESOURCEDISPLAYTYPE_SHARES: displayTypeString = "RESOURCEDISPLAYTYPE_SHARES"; break;
+        case RESOURCEDISPLAYTYPE_FILE: displayTypeString = "RESOURCEDISPLAYTYPE_FILE"; break;
+        default: displayTypeString = "UnknownDisplayType";
+    }
+    (void)printf("\t\tdwDisplayType='%s'\n", displayTypeString);
+
+    (void)printf("\t\ttypeset -A dwUsage=(\n");
+    if (lpNetResource->dwUsage & RESOURCEUSAGE_CONTAINER)
+        (void)printf("\t\t\t['RESOURCEUSAGE_CONTAINER']=0x%lx\n",   (long)RESOURCEUSAGE_CONTAINER);
+    if (lpNetResource->dwUsage & RESOURCEUSAGE_CONNECTABLE)
+        (void)printf("\t\t\t['RESOURCEUSAGE_CONNECTABLE']=0x%lx\n", (long)RESOURCEUSAGE_CONNECTABLE);
+    (void)printf("\t\t)\n");
+
+    (void)printf("\t\tlpLocalName='%ls'\n",
+        lpNetResource->lpLocalName ? lpNetResource->lpLocalName : L"(NULL)");
+
+    (void)printf("\t\tlpRemoteName='%ls'\n",
+        lpNetResource->lpRemoteName ? lpNetResource->lpRemoteName : L"(NULL)");
+
+    (void)printf("\t\tlpComment='%ls'\n",
+        lpNetResource->lpComment ? lpNetResource->lpComment : L"(NULL)");
+
+    (void)printf("\t\tlpProvider='%ls'\n",
+        lpNetResource->lpProvider ? lpNetResource->lpProvider : L"(NULL)");
+    (void)printf("\t)\n");
+}
+
+static
+int get_wnetgetresourceinformation(const char *progname, const char *sharename)
+{
+    wchar_t *lpszRemoteNameW = NULL;
+    BYTE *pBuffer = NULL;
+    int retval = EXIT_FAILURE;
+
+    lpszRemoteNameW = ConvertToWideChar(sharename);
+    if (lpszRemoteNameW == NULL) {
+        (void)fprintf(stderr,
+            "%s: Error: Could not convert remote name '%s' to wchar_t.\n",
+            progname, sharename);
+        return EXIT_FAILURE;
+    }
+
+    pBuffer = (BYTE*)malloc(BUFFER_SIZE);
+    if (pBuffer == NULL) {
+        (void)fprintf(stderr, "Error: Failed to allocate memory buffer.\n");
+        goto cleanup;
+    }
+
+    (void)memset(pBuffer, 0, BUFFER_SIZE);
+
+    LPNETRESOURCE lpNetResource = (LPNETRESOURCE)pBuffer;
+    DWORD dwBufferSize = BUFFER_SIZE;
+    wchar_t *lpSystem = NULL;
+
+    lpNetResource->lpRemoteName = lpszRemoteNameW;
+
+    DWORD dwResult = WNetGetResourceInformationW(lpNetResource,
+        pBuffer, &dwBufferSize,
+        &lpSystem);
+
+    if (dwResult == NO_ERROR) {
+        (void)printf("(\n");
+        (void)printf("\tlpRemoteName='%ls'\n", lpszRemoteNameW);
+
+        print_netresource(lpNetResource, "out_netresource");
+        (void)printf("\tout_lpSystem='%ls'\n",
+            lpSystem ? lpSystem : L"(NULL)");
+
+        (void)printf(")\n");
+
+        retval = EXIT_SUCCESS;
+    } else if (dwResult == ERROR_NOT_CONTAINER) {
+        (void)fprintf(stderr, "Error %lu: The resource is not a container.\n",
+            dwResult);
+    } else if (dwResult == ERROR_MORE_DATA) {
+        (void)fprintf(stderr,
+            "Error %lu: The buffer size (%ld bytes) was too small. Required size: %lu bytes.\n",
+            dwResult, (long)BUFFER_SIZE, dwBufferSize);
+    } else {
+        (void)fprintf(stderr,
+            "Error %lu: Failed to get resource information.\n",
+            dwResult);
+    }
+
+cleanup:
+    free(pBuffer);
+    free(lpszRemoteNameW);
+
+    return retval;
+}
+
+static
+int get_wnetgetresourceparent(const char *progname, const char *sharename, const char *provider)
+{
+    wchar_t *lpszRemoteNameW = NULL;
+    wchar_t *lpszProviderW = NULL;
+    BYTE *pBuffer = NULL;
+    int retval = EXIT_FAILURE;
+
+    lpszRemoteNameW = ConvertToWideChar(sharename);
+    if (lpszRemoteNameW == NULL) {
+        (void)fprintf(stderr,
+            "%s: Error: Could not convert remote name '%s' to wchar_t.\n",
+            progname, sharename);
+        return EXIT_FAILURE;
+    }
+
+    lpszProviderW = ConvertToWideChar(provider);
+    if (lpszProviderW == NULL) {
+        (void)fprintf(stderr,
+            "%s: Error: Could not convert provider '%s' to wchar_t.\n",
+            progname, provider);
+        return EXIT_FAILURE;
+    }
+
+    pBuffer = (BYTE*)malloc(BUFFER_SIZE);
+    if (pBuffer == NULL) {
+        (void)fprintf(stderr, "Error: Failed to allocate memory buffer.\n");
+        goto cleanup;
+    }
+
+    (void)memset(pBuffer, 0, BUFFER_SIZE);
+
+    LPNETRESOURCE lpNetResource = (LPNETRESOURCE)pBuffer;
+    DWORD dwBufferSize = BUFFER_SIZE;
+
+    lpNetResource->lpRemoteName = lpszRemoteNameW;
+    lpNetResource->lpProvider = lpszProviderW;
+
+    DWORD dwResult = WNetGetResourceParentW(lpNetResource,
+        pBuffer, &dwBufferSize);
+
+    if (dwResult == NO_ERROR) {
+        (void)printf("(\n");
+        (void)printf("\tlpRemoteName='%ls'\n", lpszRemoteNameW);
+
+        print_netresource(lpNetResource, "out_netresource");
+
+        (void)printf(")\n");
+
+        retval = EXIT_SUCCESS;
+    } else if (dwResult == ERROR_NOT_CONTAINER) {
+        (void)fprintf(stderr, "Error %lu: The resource is not a container.\n",
+            dwResult);
+    } else if (dwResult == ERROR_MORE_DATA) {
+        (void)fprintf(stderr,
+            "Error %lu: The buffer size (%ld bytes) was too small. Required size: %lu bytes.\n",
+            dwResult, (long)BUFFER_SIZE, dwBufferSize);
+    } else {
+        (void)fprintf(stderr,
+            "Error %lu: Failed to get resource information.\n",
+            dwResult);
+    }
+
+cleanup:
+    free(pBuffer);
+    free(lpszProviderW);
+    free(lpszRemoteNameW);
+
+    return retval;
+}
+
 static
 void usage(void)
 {
@@ -1502,7 +1728,10 @@ void usage(void)
         "fileremoteprotocolinfo|"
         "fileidinfo|"
         "filenetworkphysicalnameinfo|"
-        "fsctlqueryallocatedranges"
+        "fsctlqueryallocatedranges|"
+        "get_wnetgetresourceinformation|"
+        "get_wnetgetresourceparent"
+
         "> path\n");
 }
 
@@ -1583,6 +1812,12 @@ int main(int ac, char *av[])
     }
     else if (!strcmp(subcmd, "fsctlqueryallocatedranges")) {
         return fsctlqueryallocatedranges(av[0], av[2]);
+    }
+    else if (!strcmp(subcmd, "get_wnetgetresourceinformation")) {
+        return get_wnetgetresourceinformation(av[0], av[2]);
+    }
+    else if (!strcmp(subcmd, "get_wnetgetresourceparent")) {
+        return get_wnetgetresourceparent(av[0], av[2], av[3]);
     }
     else {
         (void)fprintf(stderr, "%s: Unknown subcmd '%s'\n", av[0], subcmd);

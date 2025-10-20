@@ -1,5 +1,5 @@
 #
-# ms-nfs41-client manual testing sequence, 2025-10-15
+# ms-nfs41-client manual testing sequence, 2025-10-20
 #
 # Draft version, needs to be turned into automated tests
 # if possible
@@ -632,6 +632,29 @@ winclonefile sparsefile2.bin sparsefile2_clone.bin
 diff -u <(lssparse -H sparsefile2.bin) <(lssparse -H sparsefile2_clone.bin) && echo "# Test OK" || echo "# Test FAILED"
 # both hash sums must be identical
 md5sum --binary sparsefile2.bin sparsefile2_clone.bin
+---- snip ----
+
+
+#
+# Network provider API tests
+#
+1. Test |WNetGetResourceInformationW()|, input: "\dir1\dir2\dir3", output: should be the
+directory of the mount ("\dir1"), followed by the remaining path in
+"out_lpSystem" ('\dir2\dir3')
+---- snip ----
+# this should print "# Test OK"
+winfsinfo get_wnetgetresourceinformation '\\10.49.202.230@PUBNFS@2049\dir1\dir2\dir3' | ksh93 -x -c 'set -o nounset ; compound c ; read -C c ; print -v c ; [[ "${c.lpRemoteName}" == "${c.out_netresource.lpRemoteName%*\\}${c.out_lpSystem}" ]] && print "# Test OK"'
+---- snip ----
+
+2. Test |WNetGetResourceParentW()|:
+Note that the returned information is about the parent dir/resource:
+---- snip ----
+$ winfsinfo get_wnetgetresourceparent '\\10.49.202.230@PUBNFS@2049\bigdisk\builds\aaa' 'NFS41 Network' | fgrep dwDisplayType
+                dwDisplayType='RESOURCEDISPLAYTYPE_SHARE'
+$ winfsinfo get_wnetgetresourceparent '\\10.49.202.230@PUBNFS@2049\bigdisk\builds' 'NFS41 Network' | fgrep dwDisplayType
+                dwDisplayType='RESOURCEDISPLAYTYPE_SHARE'
+$ winfsinfo get_wnetgetresourceparent '\\10.49.202.230@PUBNFS@2049\bigdisk' 'NFS41 Network' | fgrep dwDisplayType
+                dwDisplayType='RESOURCEDISPLAYTYPE_SERVER'
 ---- snip ----
 
 

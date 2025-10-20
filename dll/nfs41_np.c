@@ -36,6 +36,13 @@
 #include "nfs41_np.h"
 #include "options.h"
 
+/*
+ * Disable warning C4996 ("'wcscpy': This function or variable may be unsafe"),
+ * we only use |wcscpy()| on buffers whose size includes the |wcscpy()|'s input
+ * string length
+ */
+#pragma warning (disable : 4996)
+
 #define DBG 1
 
 #ifdef DBG
@@ -460,8 +467,11 @@ NPGetCaps(
         case WNNC_START:
             rc = 1;
             break;
-        case WNNC_USER:
         case WNNC_DIALOG:
+            rc = WNNC_DLG_GETRESOURCEINFORMATION |
+                WNNC_DLG_GETRESOURCEPARENT;
+            break;
+        case WNNC_USER:
         case WNNC_ADMIN:
         case WNNC_CONNECTION_FLAGS:
         default:
@@ -512,6 +522,27 @@ NPAddConnection(
 {
     return NPAddConnection3(NULL, lpNetResource, lpPassword,
         lpUserName, 0);
+}
+
+static bool is_nfs_server_path(const wchar_t *serverpath)
+{
+    if (serverpath[0] == L'\\') {
+        if ((wcsstr(serverpath, L"@NFS") != NULL) ||
+            (wcsstr(serverpath, L"@PUBNFS") != NULL)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static bool is_nfs_unc_path(const wchar_t *uncpath)
+{
+    if (uncpath[0] == L'\\') {
+        return is_nfs_server_path(uncpath+1);
+    }
+
+    return false;
 }
 
 DWORD APIENTRY
@@ -605,8 +636,7 @@ NPAddConnection3(
     ServerName[i] = L'\0';
 
     /* Check for "@NFS" or "@PUBNFS" tag in UNC path */
-    if ((wcsstr(ServerName, L"@NFS") == NULL) &&
-        (wcsstr(ServerName, L"@PUBNFS") == NULL)) {
+    if (is_nfs_server_path(ServerName) == false) {
         DbgP((L"ServerName name '%ls' not tagged with "
             "'@NFS' or '@PUBNFS'\n",
             ServerName));
@@ -1337,10 +1367,133 @@ NPGetResourceParent(
     LPVOID          lpBuffer,
     LPDWORD         lpBufferSize )
 {
-    DbgP((L"NPGetResourceParent(pNetResource->lpRemoteName='%ls'): "
-        "WN_NOT_SUPPORTED\n",
+    DWORD Status;
+    LPNETRESOURCEW outNetResource = lpBuffer;
+
+    DbgP((L"--> NPGetResourceParent(pNetResource->lpRemoteName='%ls')\n",
         lpNetResource->lpRemoteName));
-    return WN_NOT_SUPPORTED;
+
+    /* Check for "@NFS" or "@PUBNFS" tag in UNC path */
+    if (is_nfs_unc_path(lpNetResource->lpRemoteName) == false) {
+        DbgP((L"lpNetResource->lpRemoteName name '%ls' not tagged with "
+            "'@NFS' or '@PUBNFS'\n",
+            lpNetResource->lpRemoteName));
+        Status = WN_BAD_NETNAME;
+        goto out;
+    }
+
+    size_t requiredLen = sizeof(NETRESOURCEW) +
+        (wcslen(lpNetResource->lpRemoteName)+1)*sizeof(wchar_t);
+    if (*lpBufferSize < requiredLen) {
+        *lpBufferSize = (DWORD)requiredLen;
+        Status = WN_MORE_DATA;
+        goto out;
+    }
+
+    wchar_t *lastbackslash = NULL;
+    size_t numbackslashes = 0;
+    wchar_t *s;
+    wchar_t ch;
+
+    for (s = lpNetResource->lpRemoteName ; (ch = *s) != L'\0' ; s++ ) {
+        if ((ch == L'\\') && (*(s+1) != L'\0')) {
+            lastbackslash = s;
+            numbackslashes++;
+        }
+    }
+
+    wchar_t *outstrbuff = (void *)(outNetResource+1);
+
+    if (numbackslashes <= 3) {
+        /*
+         * |lpRemoteName|, |lpProvider|, |dwType|, |dwDisplayType|, and
+         * |dwUsage| are returned, and describe the output
+         * |lpNetResource->lpRemoteName|
+         */
+        outNetResource->dwScope = 0;
+        outNetResource->dwType = RESOURCETYPE_ANY;
+        outNetResource->dwDisplayType = RESOURCEDISPLAYTYPE_SERVER;
+        outNetResource->dwUsage = RESOURCEUSAGE_CONTAINER;
+        outNetResource->lpLocalName = NULL;
+
+        if (numbackslashes == 3) {
+            /*
+             * "First dir after server root" case:
+             * IN:  '\\10.49.202.230@NFS@2049\bigdisk'
+             * OUT: '\\10.49.202.230@NFS@2049\'
+             */
+            size_t rm_len = lastbackslash - lpNetResource->lpRemoteName;
+            (void)memcpy(outstrbuff, lpNetResource->lpRemoteName, rm_len*sizeof(wchar_t));
+            outstrbuff[rm_len] = L'\0';
+        }
+        else {
+            /*
+             * "Server root" case:
+             * IN:  '\\10.49.202.230@NFS@2049\'
+             * OUT: '\\10.49.202.230@NFS@2049\'
+             */
+            (void)wcscpy(outstrbuff, lpNetResource->lpRemoteName);
+        }
+
+        outNetResource->lpRemoteName = outstrbuff;
+        outstrbuff += wcslen(outstrbuff)+1;
+
+        outNetResource->lpComment = NULL;
+
+        (void)wcscpy(outstrbuff, NFS41_PROVIDER_NAME_U);
+        outNetResource->lpProvider = outstrbuff;
+        outstrbuff += wcslen(outstrbuff)+1;
+
+        *lpBufferSize = (DWORD)((char *)outstrbuff - (char *)lpBuffer);
+
+        Status = WN_SUCCESS;
+    }
+    else {
+        /*
+         * |lpRemoteName|, |lpProvider|, |dwType|, |dwDisplayType|, and
+         * |dwUsage| are returned, and describe the output
+         * |lpNetResource->lpRemoteName|
+         */
+        outNetResource->dwScope = 0;
+        outNetResource->dwType = RESOURCETYPE_ANY;
+        outNetResource->dwDisplayType = RESOURCEDISPLAYTYPE_SHARE;
+        outNetResource->dwUsage = RESOURCEUSAGE_CONNECTABLE;
+        outNetResource->lpLocalName = NULL;
+
+        /*
+         * "Subdir" case:
+         * IN:  '\\10.49.202.230@NFS@2049\bigdisk\abc\def'
+         * OUT: '\\10.49.202.230@NFS@2049\bigdisk\abc'
+         */
+        size_t rm_len = lastbackslash - lpNetResource->lpRemoteName;
+        (void)memcpy(outstrbuff, lpNetResource->lpRemoteName, rm_len*sizeof(wchar_t));
+        outstrbuff[rm_len] = L'\0';
+        outNetResource->lpRemoteName = outstrbuff;
+        outstrbuff += wcslen(outstrbuff)+1;
+
+        outNetResource->lpComment = NULL;
+
+        (void)wcscpy(outstrbuff, NFS41_PROVIDER_NAME_U);
+        outNetResource->lpProvider = outstrbuff;
+        outstrbuff += wcslen(outstrbuff)+1;
+
+        *lpBufferSize = (DWORD)((char *)outstrbuff - (char *)lpBuffer);
+
+        Status = WN_SUCCESS;
+    }
+
+out:
+    if (Status == WN_SUCCESS) {
+        DbgP((L"<-- NPGetResourceParent returns status=WN_SUCCESS, "
+            "outNetResource->lpRemoteName='%ls'\n",
+            outNetResource->lpRemoteName));
+    }
+    else {
+        DbgP((L"<-- NPGetResourceParent returns status=%d\n",
+            (int)Status));
+    }
+
+    return Status;
 }
 
 DWORD APIENTRY
@@ -1350,10 +1503,140 @@ NPGetResourceInformation(
     __inout LPDWORD lpBufferSize,
     __deref_out LPWSTR *lplpSystem )
 {
-    DbgP((L"NPGetResourceInformation(lpNetResource->lpRemoteName='%ls'): "
-        "WN_NOT_SUPPORTED\n",
+    DWORD Status;
+    LPNETRESOURCEW outNetResource = lpBuffer;
+
+    DbgP((L"--> NPGetResourceInformation(lpNetResource->lpRemoteName='%ls')\n",
         lpNetResource->lpRemoteName));
-    return WN_NOT_SUPPORTED;
+
+    /* Check for "@NFS" or "@PUBNFS" tag in UNC path */
+    if (is_nfs_unc_path(lpNetResource->lpRemoteName) == false) {
+        DbgP((L"lpNetResource->lpRemoteName name '%ls' not tagged with "
+            "'@NFS' or '@PUBNFS'\n",
+            lpNetResource->lpRemoteName));
+        Status = WN_BAD_NETNAME;
+        goto out;
+    }
+
+    size_t requiredLen = sizeof(NETRESOURCEW) +
+        (wcslen(lpNetResource->lpRemoteName)+4)*sizeof(wchar_t);
+    if (*lpBufferSize < requiredLen) {
+        *lpBufferSize = (DWORD)requiredLen;
+        Status = WN_MORE_DATA;
+        goto out;
+    }
+
+    wchar_t *s;
+    wchar_t *inremotename_systempart = NULL;
+    wchar_t ch;
+    int state = 0;
+    for (s = lpNetResource->lpRemoteName ; (ch = *s) != L'\0' ; s++) {
+        if ((ch == L'\\') && (state == 0)) {
+            /* s == '\...' */
+            state = 1;
+        }
+        else if ((ch == L'\\') && (*(s+1) != L'\0') && (state == 1)) {
+            /* s == '\\...' */
+            state = 2;
+        }
+        else if ((ch == L'\\') && (*(s+1) != L'\0') && (state == 2)) {
+            /* s == '\\foo\...' */
+            state = 3;
+        }
+        else if ((ch == L'\\') && (*(s+1) != L'\0') && (state == 3)) {
+            /* s == '\\foo\share1\...' */
+            inremotename_systempart = s;
+            state = 4;
+        }
+    }
+
+    /*
+     * Fill out |outNetResource|, per Windows spec the |lpRemoteName|,
+     * |lpProvider|, |dwType|, |dwDisplayType|, and |dwUsage| fields
+     * are returned containing values, all other fields being set
+     * to |NULL|.
+     */
+    wchar_t *outstrbuff = (void *)(outNetResource+1);
+
+    if (state == 2) {
+        outNetResource->dwScope = 0;
+        outNetResource->dwType = RESOURCETYPE_ANY;
+        outNetResource->dwDisplayType = RESOURCEDISPLAYTYPE_SERVER;
+        outNetResource->dwUsage = RESOURCEUSAGE_CONTAINER;
+        outNetResource->lpLocalName = NULL;
+
+        (void)wcscpy(outstrbuff, lpNetResource->lpRemoteName);
+        outNetResource->lpRemoteName = outstrbuff;
+        outstrbuff += wcslen(outstrbuff)+1;
+        outNetResource->lpComment = NULL;
+        (void)wcscpy(outstrbuff, NFS41_PROVIDER_NAME_U);
+        outNetResource->lpProvider = outstrbuff;
+        outstrbuff += wcslen(outstrbuff)+1;
+
+        if (lplpSystem)
+            *lplpSystem = NULL;
+
+        *lpBufferSize = (DWORD)((char *)outstrbuff - (char *)lpBuffer);
+
+        Status = WN_SUCCESS;
+    }
+    else if ((state == 3) || (state == 4)) {
+        outNetResource->dwScope = 0;
+        outNetResource->dwType = RESOURCETYPE_DISK;
+        outNetResource->dwDisplayType = RESOURCEDISPLAYTYPE_SHARE;
+        outNetResource->dwUsage = RESOURCEUSAGE_CONNECTABLE;
+        outNetResource->lpLocalName = NULL;
+
+        if (state == 3) {
+            (void)wcscpy(outstrbuff, lpNetResource->lpRemoteName);
+            outNetResource->lpRemoteName = outstrbuff;
+            outstrbuff += wcslen(outstrbuff)+1;
+            outNetResource->lpComment = NULL;
+            (void)wcscpy(outstrbuff, NFS41_PROVIDER_NAME_U);
+            outNetResource->lpProvider = outstrbuff;
+            outstrbuff += wcslen(outstrbuff)+1;
+
+            if (lplpSystem)
+                *lplpSystem = NULL;
+        }
+        else {
+            /* |outremotenamelen| includes the trailing '\' */
+            size_t outremotenamelen =
+                (inremotename_systempart-lpNetResource->lpRemoteName)+1;
+            (void)memcpy(outstrbuff, lpNetResource->lpRemoteName,
+                outremotenamelen*sizeof(wchar_t));
+            outstrbuff[outremotenamelen] = L'\0';
+            outNetResource->lpRemoteName = outstrbuff;
+            outstrbuff += wcslen(outstrbuff)+1;
+
+            if (lplpSystem) {
+                (void)wcscpy(outstrbuff, inremotename_systempart);
+                *lplpSystem = outstrbuff;
+                outstrbuff += wcslen(outstrbuff)+1;
+            }
+
+            outNetResource->lpComment = NULL;
+
+            (void)wcscpy(outstrbuff, NFS41_PROVIDER_NAME_U);
+            outNetResource->lpProvider = outstrbuff;
+            outstrbuff += wcslen(outstrbuff)+1;
+        }
+
+        *lpBufferSize = (DWORD)((char *)outstrbuff - (char *)lpBuffer);
+
+        Status = WN_SUCCESS;
+    }
+    else {
+        DbgP((L"Unexpected state=%d, returning WN_BAD_NETNAME\n", state));
+        Status = WN_BAD_NETNAME;
+        goto out;
+    }
+
+out:
+    DbgP((L"<-- NPGetResourceInformation returns status=%d\n",
+        (int)Status));
+
+    return Status;
 }
 
 DWORD APIENTRY
