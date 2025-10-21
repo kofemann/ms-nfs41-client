@@ -286,8 +286,6 @@ NTSTATUS nfs41_QueryDirectory(
 
     status = nfs41_UpcallWaitForReply(entry, pVNetRootContext->timeout);
 
-    (void)nfs41_UnlockKernelPages(entry->u.QueryFile.mdl);
-
     if (status) {
         /* Timeout - |nfs41_downcall()| will free |entry|+contents */
         entry = NULL;
@@ -315,10 +313,14 @@ NTSTATUS nfs41_QueryDirectory(
         /* map windows ERRORs to NTSTATUS */
         status = map_querydir_errors(entry->status);
     }
-    IoFreeMdl(entry->u.QueryFile.mdl);
-    entry->u.QueryFile.mdl = NULL;
+
 out:
     if (entry) {
+        if (entry->u.QueryFile.mdl) {
+            (void)nfs41_UnlockKernelPages(entry->u.QueryFile.mdl);
+            IoFreeMdl(entry->u.QueryFile.mdl);
+            entry->u.QueryFile.mdl = NULL;
+        }
         nfs41_UpcallDestroy(entry);
     }
 #ifdef ENABLE_TIMINGS

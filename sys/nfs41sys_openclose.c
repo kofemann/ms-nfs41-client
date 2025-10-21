@@ -746,16 +746,20 @@ retry_on_link:
 
     status = nfs41_UpcallWaitForReply(entry, pVNetRootContext->timeout);
 
-    if (entry->u.Open.EaMdl) {
-        (void)nfs41_UnlockKernelPages(entry->u.Open.EaMdl);
-        IoFreeMdl(entry->u.Open.EaMdl);
-        entry->u.Open.EaMdl = NULL;
-    }
-
     if (status) {
         /* Timeout - |nfs41_downcall()| will free |entry|+contents */
         entry = NULL;
         goto out;
+    }
+
+    /*
+     * Unlock |entry->u.Open.EaMdl| here because symlink reparse can cause
+     * more upcalls (which need |u.Open.EaMdl|)
+     */
+    if (entry->u.Open.EaMdl) {
+        (void)nfs41_UnlockKernelPages(entry->u.Open.EaMdl);
+        IoFreeMdl(entry->u.Open.EaMdl);
+        entry->u.Open.EaMdl = NULL;
     }
 
     if (entry->status == NO_ERROR && entry->errno == ERROR_REPARSE) {

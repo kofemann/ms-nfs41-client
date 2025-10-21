@@ -692,6 +692,7 @@ NTSTATUS nfs41_downcall(
                 (void)nfs41_UnmapLockedKernelPagesInNfsDaemonAddressSpace(
                     cur->u.QueryFile.mdl_buf,
                     cur->u.QueryFile.mdl);
+                (void)nfs41_UnlockKernelPages(cur->u.QueryFile.mdl);
                 IoFreeMdl(cur->u.QueryFile.mdl);
                 cur->u.QueryFile.mdl_buf = NULL;
                 cur->u.QueryFile.mdl = NULL;
@@ -702,6 +703,7 @@ NTSTATUS nfs41_downcall(
                 (void)nfs41_UnmapLockedKernelPagesInNfsDaemonAddressSpace(
                     cur->u.Open.EaBuffer,
                     cur->u.Open.EaMdl);
+                (void)nfs41_UnlockKernelPages(cur->u.Open.EaMdl);
                 IoFreeMdl(cur->u.Open.EaMdl);
                 cur->u.Open.EaBuffer = NULL;
                 cur->u.Open.EaMdl = NULL;
@@ -711,6 +713,8 @@ NTSTATUS nfs41_downcall(
             if (cur->u.QueryAllocatedRanges.BufferMdl) {
                 (void)nfs41_UnmapLockedKernelPagesInNfsDaemonAddressSpace(
                     cur->u.QueryAllocatedRanges.Buffer,
+                    cur->u.QueryAllocatedRanges.BufferMdl);
+                (void)nfs41_UnlockKernelPages(
                     cur->u.QueryAllocatedRanges.BufferMdl);
                 IoFreeMdl(cur->u.QueryAllocatedRanges.BufferMdl);
                 cur->u.QueryAllocatedRanges.Buffer = NULL;
