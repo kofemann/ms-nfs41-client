@@ -681,13 +681,16 @@ NTSTATUS nfs41_downcall(
         case NFS41_SYSOP_WRITE:
         case NFS41_SYSOP_READ:
             if (cur->buf) {
-                MmUnmapLockedPages(cur->buf, cur->u.ReadWrite.MdlAddress);
+                (void)nfs41_UnmapLockedKernelPagesInNfsDaemonAddressSpace(
+                    cur->buf,
+                    cur->u.ReadWrite.MdlAddress);
                 cur->buf = NULL;
             }
             break;
         case NFS41_SYSOP_DIR_QUERY:
             if (cur->u.QueryFile.mdl) {
-                MmUnmapLockedPages(cur->u.QueryFile.mdl_buf,
+                (void)nfs41_UnmapLockedKernelPagesInNfsDaemonAddressSpace(
+                    cur->u.QueryFile.mdl_buf,
                     cur->u.QueryFile.mdl);
                 IoFreeMdl(cur->u.QueryFile.mdl);
                 cur->u.QueryFile.mdl_buf = NULL;
@@ -696,7 +699,8 @@ NTSTATUS nfs41_downcall(
             break;
         case NFS41_SYSOP_OPEN:
             if (cur->u.Open.EaMdl) {
-                MmUnmapLockedPages(cur->u.Open.EaBuffer,
+                (void)nfs41_UnmapLockedKernelPagesInNfsDaemonAddressSpace(
+                    cur->u.Open.EaBuffer,
                     cur->u.Open.EaMdl);
                 IoFreeMdl(cur->u.Open.EaMdl);
                 cur->u.Open.EaBuffer = NULL;
@@ -705,7 +709,7 @@ NTSTATUS nfs41_downcall(
             break;
         case NFS41_SYSOP_FSCTL_QUERYALLOCATEDRANGES:
             if (cur->u.QueryAllocatedRanges.BufferMdl) {
-                MmUnmapLockedPages(
+                (void)nfs41_UnmapLockedKernelPagesInNfsDaemonAddressSpace(
                     cur->u.QueryAllocatedRanges.Buffer,
                     cur->u.QueryAllocatedRanges.BufferMdl);
                 IoFreeMdl(cur->u.QueryAllocatedRanges.BufferMdl);

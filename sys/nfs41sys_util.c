@@ -116,3 +116,81 @@ BOOLEAN is_root_directory(
 
     return RxContext->CurrentIrpSp->FileObject->FileName.Length <= RootPathLen;
 }
+
+NTSTATUS nfs41_ProbeAndLockKernelPages(
+    __inout PMDL    MemoryDescriptorList,
+    __in    LOCK_OPERATION  Operation)
+{
+    NTSTATUS status = STATUS_SUCCESS;
+
+    __try {
+        MmProbeAndLockPages(MemoryDescriptorList, KernelMode, Operation);
+    } __except(EXCEPTION_EXECUTE_HANDLER) {
+        NTSTATUS code;
+        code = GetExceptionCode();
+        print_error("marshal_nfs41_dirquery: Call to "
+            "MmMapLockedPagesSpecifyCache() failed "
+            "due to exception 0x%lx\n", (long)code);
+        status = STATUS_ACCESS_VIOLATION;
+    }
+
+    return status;
+}
+
+NTSTATUS nfs41_UnlockKernelPages(
+    __inout PMDL    MemoryDescriptorList)
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    MmUnlockPages(MemoryDescriptorList);
+    return status;
+}
+
+NTSTATUS nfs41_MapLockedPagesInNfsDaemonAddressSpace(
+    __inout PVOID               *outbuf,
+    __in    PMDL                MemoryDescriptorList,
+    __in    MEMORY_CACHING_TYPE CacheType,
+    __in    ULONG               Priority)
+{
+    NTSTATUS status = STATUS_SUCCESS;
+
+    *outbuf = NULL;
+
+    __try {
+        *outbuf =
+            MmMapLockedPagesSpecifyCache(MemoryDescriptorList,
+                UserMode, CacheType, NULL, FALSE, Priority);
+        if (*outbuf == NULL)
+            status = STATUS_INSUFFICIENT_RESOURCES;
+    } __except(EXCEPTION_EXECUTE_HANDLER) {
+        NTSTATUS code;
+        code = GetExceptionCode();
+        print_error("nfs41_MapLockedPagesInNfsDaemonAddressSpace: "
+            "Call to MmMapLockedPagesSpecifyCache() failed "
+            "due to exception 0x%lx\n", (long)code);
+        status = STATUS_ACCESS_VIOLATION;
+        goto out;
+    }
+
+out:
+    return status;
+}
+
+NTSTATUS nfs41_UnmapLockedKernelPagesInNfsDaemonAddressSpace(
+    __in PVOID BaseAddress,
+    __in PMDL  MemoryDescriptorList)
+{
+    NTSTATUS status = STATUS_SUCCESS;
+
+    __try {
+        MmUnmapLockedPages(BaseAddress, MemoryDescriptorList);
+    } __except(EXCEPTION_EXECUTE_HANDLER) {
+        NTSTATUS code;
+        code = GetExceptionCode();
+        print_error("nfs41_UnmapLockedKernelPages: "
+            "MmUnmapLockedPages thrown exception=0x%lx\n",
+            (long)code);
+        status = STATUS_ACCESS_VIOLATION;
+    }
+
+    return status;
+}

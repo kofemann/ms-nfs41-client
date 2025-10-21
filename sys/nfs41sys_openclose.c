@@ -158,26 +158,22 @@ NTSTATUS marshal_nfs41_open(
     status = marshall_unicode_as_utf8(&tmp, &entry->u.Open.symlink);
     if (status) goto out;
 
-    __try {
-        if (entry->u.Open.EaMdl) {
-            entry->u.Open.EaBuffer =
-                MmMapLockedPagesSpecifyCache(entry->u.Open.EaMdl,
-                    UserMode, MmCached, NULL, FALSE,
-                    NormalPagePriority|MdlMappingNoExecute);
-            if (entry->u.Open.EaBuffer == NULL) {
-                print_error("marshal_nfs41_open: "
-                    "MmMapLockedPagesSpecifyCache() failed to "
-                    "map pages\n");
-                status = STATUS_INSUFFICIENT_RESOURCES;
-                goto out;
-            }
+    if (entry->u.Open.EaMdl) {
+        status = nfs41_MapLockedPagesInNfsDaemonAddressSpace(
+            &entry->u.Open.EaBuffer,
+            entry->u.Open.EaMdl,
+            MmCached,
+            NormalPagePriority|MdlMappingNoExecute);
+        if (status != STATUS_SUCCESS) {
+            print_error("marshal_nfs41_open: "
+                "nfs41_MapLockedPagesInNfsDaemonAddressSpace() failed, "
+                "status=0x%lx\n",
+                (long)status);
+            goto out;
         }
-    } __except(EXCEPTION_EXECUTE_HANDLER) {
-        print_error("marshal_nfs41_open: Call to "
-            "MmMapLockedPagesSpecifyCache() failed "
-            "due to exception 0x%lx\n", (long)GetExceptionCode());
-        status = STATUS_ACCESS_VIOLATION;
-        goto out;
+    }
+    else {
+        entry->u.Open.EaBuffer = NULL;
     }
     RtlCopyMemory(tmp, &entry->u.Open.EaBuffer, sizeof(HANDLE));
     *len = header_len;
@@ -244,16 +240,10 @@ NTSTATUS unmarshal_nfs41_open(
 {
     NTSTATUS status = STATUS_SUCCESS;
 
-    __try {
-        if (cur->u.Open.EaBuffer) {
-            MmUnmapLockedPages(cur->u.Open.EaBuffer, cur->u.Open.EaMdl);
-            cur->u.Open.EaBuffer = NULL;
-        }
-    } __except(EXCEPTION_EXECUTE_HANDLER) {
-        print_error("MmUnmapLockedPages thrown exception=0x%lx\n",
-            (long)GetExceptionCode());
-        status = cur->status = STATUS_ACCESS_VIOLATION;
-        goto out;
+    if (cur->u.Open.EaBuffer) {
+        (void)nfs41_UnmapLockedKernelPagesInNfsDaemonAddressSpace(
+            cur->u.Open.EaBuffer, cur->u.Open.EaMdl);
+        cur->u.Open.EaBuffer = NULL;
     }
 
     RtlCopyMemory(&cur->u.Open.binfo, *buf, sizeof(FILE_BASIC_INFORMATION));
@@ -741,13 +731,23 @@ retry_on_link:
 #pragma warning (disable : 28145)
         entry->u.Open.EaMdl->MdlFlags |= MDL_MAPPING_CAN_FAIL;
 #pragma warning( pop )
-        MmProbeAndLockPages(entry->u.Open.EaMdl, KernelMode, IoModifyAccess);
+        status = nfs41_ProbeAndLockKernelPages(entry->u.Open.EaMdl,
+            IoModifyAccess);
+        if (status) {
+            DbgP("nfs41_Create: "
+                "nfs41_ProbeAndLockKernelPages() failed, status=0x%lx\n",
+                (long)status);
+            goto out;
+        }
+    }
+    else {
+        entry->u.Open.EaMdl = NULL;
     }
 
     status = nfs41_UpcallWaitForReply(entry, pVNetRootContext->timeout);
 
     if (entry->u.Open.EaMdl) {
-        MmUnlockPages(entry->u.Open.EaMdl);
+        (void)nfs41_UnlockKernelPages(entry->u.Open.EaMdl);
         IoFreeMdl(entry->u.Open.EaMdl);
         entry->u.Open.EaMdl = NULL;
     }

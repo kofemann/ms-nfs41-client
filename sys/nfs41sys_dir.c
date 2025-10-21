@@ -101,26 +101,20 @@ NTSTATUS marshal_nfs41_dirquery(
     tmp += sizeof(BOOLEAN);
     RtlCopyMemory(tmp, &entry->u.QueryFile.return_single, sizeof(BOOLEAN));
     tmp += sizeof(BOOLEAN);
-    __try {
-        entry->u.QueryFile.mdl_buf =
-            MmMapLockedPagesSpecifyCache(entry->u.QueryFile.mdl,
-                UserMode, MmCached, NULL, FALSE,
-                NormalPagePriority|MdlMappingNoExecute);
-        if (entry->u.QueryFile.mdl_buf == NULL) {
-            print_error("marshal_nfs41_dirquery: "
-                "MmMapLockedPagesSpecifyCache() failed to map pages\n");
-            status = STATUS_INSUFFICIENT_RESOURCES;
-            goto out;
-        }
-    } __except(EXCEPTION_EXECUTE_HANDLER) {
-        NTSTATUS code;
-        code = GetExceptionCode();
-        print_error("marshal_nfs41_dirquery: Call to "
-            "MmMapLockedPagesSpecifyCache() failed "
-            "due to exception 0x%lx\n", (long)code);
-        status = STATUS_ACCESS_VIOLATION;
+
+    status = nfs41_MapLockedPagesInNfsDaemonAddressSpace(
+        &entry->u.QueryFile.mdl_buf,
+        entry->u.QueryFile.mdl,
+        MmCached,
+        NormalPagePriority|MdlMappingNoExecute);
+    if (status != STATUS_SUCCESS) {
+        print_error("marshal_nfs41_dirquery: "
+            "nfs41_MapLockedPagesInNfsDaemonAddressSpace() failed, "
+            "status=0x%lx\n",
+            (long)status);
         goto out;
     }
+
     RtlCopyMemory(tmp, &entry->u.QueryFile.mdl_buf, sizeof(HANDLE));
     *len = header_len;
 
@@ -147,16 +141,9 @@ NTSTATUS unmarshal_nfs41_dirquery(
     DbgP("unmarshal_nfs41_dirquery: reply size %d\n", buf_len);
 #endif
     *buf += sizeof(ULONG);
-    __try {
-        MmUnmapLockedPages(cur->u.QueryFile.mdl_buf, cur->u.QueryFile.mdl);
-        cur->u.QueryFile.mdl_buf = NULL;
-    } __except(EXCEPTION_EXECUTE_HANDLER) {
-        NTSTATUS code;
-        code = GetExceptionCode();
-        print_error("MmUnmapLockedPages thrown exception=0x%lx\n",
-            (long)code);
-        status = STATUS_ACCESS_VIOLATION;
-    }
+    (void)nfs41_UnmapLockedKernelPagesInNfsDaemonAddressSpace(
+        cur->u.QueryFile.mdl_buf,
+        cur->u.QueryFile.mdl);
     if (buf_len > cur->buf_len)
         cur->status = STATUS_BUFFER_TOO_SMALL;
     cur->buf_len = buf_len;
@@ -283,7 +270,14 @@ NTSTATUS nfs41_QueryDirectory(
     entry->u.QueryFile.mdl->MdlFlags |= MDL_MAPPING_CAN_FAIL;
 #pragma warning( pop )
 
-    MmProbeAndLockPages(entry->u.QueryFile.mdl, KernelMode, IoModifyAccess);
+    status = nfs41_ProbeAndLockKernelPages(entry->u.QueryFile.mdl,
+        IoModifyAccess);
+    if (status) {
+        DbgP("nfs41_QueryDirectory: "
+            "nfs41_ProbeAndLockKernelPages() failed, status=0x%lx\n",
+            (long)status);
+        goto out;
+    }
 
     entry->u.QueryFile.filter = Filter;
     entry->u.QueryFile.initial_query = RxContext->QueryDirectory.InitialQuery;
@@ -292,7 +286,7 @@ NTSTATUS nfs41_QueryDirectory(
 
     status = nfs41_UpcallWaitForReply(entry, pVNetRootContext->timeout);
 
-    MmUnlockPages(entry->u.QueryFile.mdl);
+    (void)nfs41_UnlockKernelPages(entry->u.QueryFile.mdl);
 
     if (status) {
         /* Timeout - |nfs41_downcall()| will free |entry|+contents */

@@ -52,5 +52,17 @@ BOOLEAN isStream(
     PUNICODE_STRING name);
 BOOLEAN is_root_directory(
     PRX_CONTEXT RxContext);
-
+NTSTATUS nfs41_ProbeAndLockKernelPages(
+    __inout PMDL    MemoryDescriptorList,
+    __in    LOCK_OPERATION  Operation);
+NTSTATUS nfs41_UnlockKernelPages(
+    __inout PMDL    MemoryDescriptorList);
+NTSTATUS nfs41_MapLockedPagesInNfsDaemonAddressSpace(
+    __inout PVOID               *outbuf,
+    __in    PMDL                MemoryDescriptorList,
+    __in    MEMORY_CACHING_TYPE CacheType,
+    __in    ULONG               Priority);
+NTSTATUS nfs41_UnmapLockedKernelPagesInNfsDaemonAddressSpace(
+    __in PVOID BaseAddress,
+    __in PMDL  MemoryDescriptorList);
 #endif /* !_NFS41SYS_UTIL_H_ */

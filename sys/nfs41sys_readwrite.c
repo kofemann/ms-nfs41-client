@@ -109,43 +109,37 @@ NTSTATUS marshal_nfs41_rw(
     RtlCopyMemory(tmp, &entry->u.ReadWrite.offset,
         sizeof(entry->u.ReadWrite.offset));
     tmp += sizeof(entry->u.ReadWrite.offset);
-    __try {
+
 #pragma warning( push )
 /*
  * C28145: "The opaque MDL structure should not be modified by a
  * driver.", |MDL_MAPPING_CAN_FAIL| is the exception
  */
 #pragma warning (disable : 28145)
-        entry->u.ReadWrite.MdlAddress->MdlFlags |= MDL_MAPPING_CAN_FAIL;
+    entry->u.ReadWrite.MdlAddress->MdlFlags |= MDL_MAPPING_CAN_FAIL;
 #pragma warning( pop )
-        ULONG prio_writeflags = 0;
+    ULONG prio_writeflags = 0;
 
-        /*
-         * The userland daemon will only read from this memory for
-         * "write" requests, so make it read-only
-         */
-        if (entry->opcode == NFS41_SYSOP_WRITE)
-            prio_writeflags |= MdlMappingNoWrite;
+    /*
+     * The userland daemon will only read from this memory for
+     * "write" requests, so make it read-only
+     */
+    if (entry->opcode == NFS41_SYSOP_WRITE)
+        prio_writeflags |= MdlMappingNoWrite;
 
-        entry->buf =
-            MmMapLockedPagesSpecifyCache(entry->u.ReadWrite.MdlAddress,
-                UserMode, MmCached, NULL, FALSE,
-                (NormalPagePriority|prio_writeflags));
-        if (entry->buf == NULL) {
-            print_error("marshal_nfs41_rw: "
-                "MmMapLockedPagesSpecifyCache() failed to map pages\n");
-            status = STATUS_INSUFFICIENT_RESOURCES;
-            goto out;
-        }
-    } __except(EXCEPTION_EXECUTE_HANDLER) {
-        NTSTATUS code;
-        code = GetExceptionCode();
-        print_error("marshal_nfs41_rw: Call to "
-            "MmMapLockedPagesSpecifyCache() failed due to "
-            "exception 0x%lx\n", (long)code);
-        status = STATUS_ACCESS_VIOLATION;
+    status = nfs41_MapLockedPagesInNfsDaemonAddressSpace(
+        &entry->buf,
+        entry->u.ReadWrite.MdlAddress,
+        MmCached,
+        (NormalPagePriority|prio_writeflags));
+    if (status != STATUS_SUCCESS) {
+        print_error("marshal_nfs41_rw: "
+            "nfs41_MapLockedPagesInNfsDaemonAddressSpace() failed, "
+            "status=0x%lx\n",
+            (long)status);
         goto out;
     }
+
     RtlCopyMemory(tmp, &entry->buf, sizeof(HANDLE));
     *len = header_len;
 
@@ -174,23 +168,15 @@ NTSTATUS unmarshal_nfs41_rw(
         cur->buf_len, cur->ChangeTime);
 #endif
 #if 1
-    /* 08/27/2010: it looks like we really don't need to call
-        * MmUnmapLockedPages() eventhough we called
-        * MmMapLockedPagesSpecifyCache() as the MDL passed to us
-        * is already locked.
-        */
-    __try {
-        if (cur->buf) {
-            MmUnmapLockedPages(cur->buf, cur->u.ReadWrite.MdlAddress);
-            cur->buf = NULL;
-        }
-    } __except(EXCEPTION_EXECUTE_HANDLER) {
-        NTSTATUS code;
-        code = GetExceptionCode();
-        print_error("unmarshal_nfs41_rw: Call to MmUnmapLockedPages() "
-            "failed due to exception 0x%0x\n", (long)code);
-        status = STATUS_ACCESS_VIOLATION;
-    }
+    /*
+     * 08/27/2010: it looks like we really don't need to call
+     * MmUnmapLockedPages() eventhough we called
+     * MmMapLockedPagesSpecifyCache() as the MDL passed to us
+     * is already locked.
+     */
+    (void)nfs41_UnmapLockedKernelPagesInNfsDaemonAddressSpace(cur->buf,
+        cur->u.ReadWrite.MdlAddress);
+    cur->buf = NULL;
 #endif
     return status;
 }

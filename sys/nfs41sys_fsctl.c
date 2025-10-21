@@ -186,9 +186,15 @@ NTSTATUS nfs41_QueryAllocatedRanges(
     entry->u.QueryAllocatedRanges.BufferMdl->MdlFlags |=
         MDL_MAPPING_CAN_FAIL;
 #pragma warning( pop )
-    MmProbeAndLockPages(entry->u.QueryAllocatedRanges.BufferMdl,
-        KernelMode,
+    status = nfs41_ProbeAndLockKernelPages(
+        entry->u.QueryAllocatedRanges.BufferMdl,
         IoModifyAccess);
+    if (status) {
+        DbgP("nfs41_QueryAllocatedRanges: "
+            "nfs41_ProbeAndLockKernelPages() failed, status=0x%lx\n",
+            (long)status);
+        goto out;
+    }
 
     status = nfs41_UpcallWaitForReply(entry, pVNetRootContext->timeout);
     if (status) {
@@ -229,7 +235,8 @@ NTSTATUS nfs41_QueryAllocatedRanges(
 out:
     if (entry) {
         if (entry->u.QueryAllocatedRanges.BufferMdl) {
-            MmUnlockPages(entry->u.QueryAllocatedRanges.BufferMdl);
+            (void)nfs41_UnlockKernelPages(
+                entry->u.QueryAllocatedRanges.BufferMdl);
             IoFreeMdl(entry->u.QueryAllocatedRanges.BufferMdl);
             entry->u.QueryAllocatedRanges.BufferMdl = NULL;
         }
@@ -270,27 +277,19 @@ NTSTATUS marshal_nfs41_queryallocatedranges(
         sizeof(entry->u.QueryAllocatedRanges.BufferSize));
     tmp += sizeof(entry->u.QueryAllocatedRanges.BufferSize);
 
-    __try {
-        if (entry->u.QueryAllocatedRanges.BufferMdl) {
-            entry->u.QueryAllocatedRanges.Buffer =
-                MmMapLockedPagesSpecifyCache(
-                    entry->u.QueryAllocatedRanges.BufferMdl,
-                    UserMode, MmCached, NULL, FALSE,
-                    NormalPagePriority|MdlMappingNoExecute);
-            if (entry->u.QueryAllocatedRanges.Buffer == NULL) {
-                print_error("marshal_nfs41_queryallocatedranges: "
-                    "MmMapLockedPagesSpecifyCache() failed to "
-                    "map pages\n");
-                status = STATUS_INSUFFICIENT_RESOURCES;
-                goto out;
-            }
+    if (entry->u.QueryAllocatedRanges.BufferMdl) {
+        status = nfs41_MapLockedPagesInNfsDaemonAddressSpace(
+            &entry->u.QueryAllocatedRanges.Buffer,
+            entry->u.QueryAllocatedRanges.BufferMdl,
+            MmCached,
+            NormalPagePriority|MdlMappingNoExecute);
+        if (status != STATUS_SUCCESS) {
+            print_error("marshal_nfs41_queryallocatedranges: "
+                "nfs41_MapLockedPagesInNfsDaemonAddressSpace() failed, "
+                "status=0x%lx\n",
+                (long)status);
+            goto out;
         }
-    } __except(EXCEPTION_EXECUTE_HANDLER) {
-        print_error("marshal_nfs41_queryallocatedranges: Call to "
-            "MmMapLockedPagesSpecifyCache() failed "
-            "due to exception 0x%lx\n", (long)GetExceptionCode());
-        status = STATUS_ACCESS_VIOLATION;
-        goto out;
     }
     RtlCopyMemory(tmp, &entry->u.QueryAllocatedRanges.Buffer,
         sizeof(HANDLE));
@@ -311,19 +310,11 @@ NTSTATUS unmarshal_nfs41_queryallocatedranges(
 {
     NTSTATUS status = STATUS_SUCCESS;
 
-    __try {
-        if (cur->u.QueryAllocatedRanges.Buffer) {
-            MmUnmapLockedPages(
-                cur->u.QueryAllocatedRanges.Buffer,
-                cur->u.QueryAllocatedRanges.BufferMdl);
-            cur->u.QueryAllocatedRanges.Buffer = NULL;
-        }
-    } __except(EXCEPTION_EXECUTE_HANDLER) {
-        print_error("unmarshal_nfs41_queryallocatedranges: "
-            "MmUnmapLockedPages thrown exception=0x%lx\n",
-            (long)GetExceptionCode());
-        status = cur->status = STATUS_ACCESS_VIOLATION;
-        goto out;
+    if (cur->u.QueryAllocatedRanges.Buffer) {
+        (void)nfs41_UnmapLockedKernelPagesInNfsDaemonAddressSpace(
+            cur->u.QueryAllocatedRanges.Buffer,
+            cur->u.QueryAllocatedRanges.BufferMdl);
+        cur->u.QueryAllocatedRanges.Buffer = NULL;
     }
 
     RtlCopyMemory(&cur->u.QueryAllocatedRanges.buffer_overflow,
@@ -338,7 +329,6 @@ NTSTATUS unmarshal_nfs41_queryallocatedranges(
         (int)cur->u.QueryAllocatedRanges.buffer_overflow,
         cur->u.QueryAllocatedRanges.returned_size);
 
-out:
     return status;
 }
 
