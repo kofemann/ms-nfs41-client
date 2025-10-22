@@ -39,8 +39,8 @@ typedef unsigned long DWORD, *PDWORD, *LPDWORD;
 
 #include "nfs_ea.h"
 
-#define MAX_LIST_LEN 4096
-#define MAX_EA_VALUE 256
+#define MAX_LIST_LEN 16384
+#define MAX_EA_VALUE 8192
 
 #define MAX_GETEA (sizeof(FILE_GET_EA_INFORMATION) + MAX_EA_VALUE)
 #define MAX_FULLEA (sizeof(FILE_FULL_EA_INFORMATION) + 2 * MAX_EA_VALUE)
