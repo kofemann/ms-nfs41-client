@@ -115,8 +115,9 @@ NTSTATUS marshal_nfs41_open(
     unsigned char *tmp = buf;
 
     status = marshal_nfs41_header(entry, tmp, buf_len, len);
-    if (status) goto out;
-    else tmp += *len;
+    if (status)
+        goto out;
+    tmp += *len;
 
     header_len = *len + length_as_utf8(entry->filename) +
         1 * sizeof(tristate_bool) +
@@ -176,7 +177,15 @@ NTSTATUS marshal_nfs41_open(
         entry->u.Open.EaBuffer = NULL;
     }
     RtlCopyMemory(tmp, &entry->u.Open.EaBuffer, sizeof(HANDLE));
-    *len = header_len;
+    tmp += sizeof(HANDLE);
+
+    *len = (ULONG)(tmp - buf);
+    if (*len != header_len) {
+        DbgP("marshal_nfs41_open: *len(=%ld) != header_len(=%ld)\n",
+            (long)*len, (long)header_len);
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto out;
+    }
 
 #ifdef DEBUG_MARSHAL_DETAIL
     DbgP("marshal_nfs41_open: name='%wZ' mask=0x%x access=0x%x attrs=0x%x "
@@ -202,8 +211,9 @@ NTSTATUS marshal_nfs41_close(
     unsigned char *tmp = buf;
 
     status = marshal_nfs41_header(entry, tmp, buf_len, len);
-    if (status) goto out;
-    else tmp += *len;
+    if (status)
+        goto out;
+        tmp += *len;
 
     header_len = *len + sizeof(BOOLEAN) + sizeof(HANDLE);
     if (entry->u.Close.remove)
@@ -217,13 +227,21 @@ NTSTATUS marshal_nfs41_close(
     RtlCopyMemory(tmp, &entry->u.Close.remove, sizeof(BOOLEAN));
     tmp += sizeof(BOOLEAN);
     RtlCopyMemory(tmp, &entry->u.Close.srv_open, sizeof(HANDLE));
+    tmp += sizeof(HANDLE);
     if (entry->u.Close.remove) {
-        tmp += sizeof(HANDLE);
         status = marshall_unicode_as_utf8(&tmp, entry->filename);
         if (status) goto out;
         RtlCopyMemory(tmp, &entry->u.Close.renamed, sizeof(BOOLEAN));
+        tmp += sizeof(BOOLEAN);
     }
-    *len = header_len;
+
+    *len = (ULONG)(tmp - buf);
+    if (*len != header_len) {
+        DbgP("marshal_nfs41_close: *len(=%ld) != header_len(=%ld)\n",
+            (long)*len, (long)header_len);
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto out;
+    }
 
 #ifdef DEBUG_MARSHAL_DETAIL
     DbgP("marshal_nfs41_close: name='%wZ' remove=%d srv_open=0x%p renamed=%d\n",

@@ -79,8 +79,9 @@ NTSTATUS marshal_nfs41_easet(
     unsigned char *tmp = buf;
 
     status = marshal_nfs41_header(entry, tmp, buf_len, len);
-    if (status) goto out;
-    else tmp += *len;
+    if (status)
+        goto out;
+    tmp += *len;
 
     header_len = *len + length_as_utf8(entry->filename) +
         sizeof(ULONG) + entry->u.SetEa.buf_len  + sizeof(DWORD);
@@ -96,7 +97,15 @@ NTSTATUS marshal_nfs41_easet(
     RtlCopyMemory(tmp, &entry->u.SetEa.buf_len, sizeof(ULONG));
     tmp += sizeof(ULONG);
     RtlCopyMemory(tmp, entry->u.SetEa.buf, entry->u.SetEa.buf_len);
-    *len = header_len;
+    tmp += entry->u.SetEa.buf_len;
+
+    *len = (ULONG)(tmp - buf);
+    if (*len != header_len) {
+        DbgP("marshal_nfs41_easet: *len(=%ld) != header_len(=%ld)\n",
+            (long)*len, (long)header_len);
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto out;
+    }
 
 #ifdef DEBUG_MARSHAL_DETAIL
     DbgP("marshal_nfs41_easet: filename='%wZ', buflen=%d mode=0x%x\n",
@@ -119,8 +128,9 @@ NTSTATUS marshal_nfs41_eaget(
     unsigned char *tmp = buf;
 
     status = marshal_nfs41_header(entry, tmp, buf_len, len);
-    if (status) goto out;
-    else tmp += *len;
+    if (status)
+        goto out;
+    tmp += *len;
 
     header_len = *len + length_as_utf8(entry->filename) +
         3 * sizeof(ULONG) + entry->u.QueryEa.EaListLength + 2 * sizeof(BOOLEAN);
@@ -142,10 +152,19 @@ NTSTATUS marshal_nfs41_eaget(
     tmp += sizeof(ULONG);
     RtlCopyMemory(tmp, &entry->u.QueryEa.EaListLength, sizeof(ULONG));
     tmp += sizeof(ULONG);
-    if (entry->u.QueryEa.EaList && entry->u.QueryEa.EaListLength)
+    if (entry->u.QueryEa.EaList && entry->u.QueryEa.EaListLength) {
         RtlCopyMemory(tmp, entry->u.QueryEa.EaList,
             entry->u.QueryEa.EaListLength);
-    *len = header_len;
+        tmp += entry->u.QueryEa.EaListLength;
+    }
+
+    *len = (ULONG)(tmp - buf);
+    if (*len != header_len) {
+        DbgP("marshal_nfs41_eaget: *len(=%ld) != header_len(=%ld)\n",
+            (long)*len, (long)header_len);
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto out;
+    }
 
 #ifdef DEBUG_MARSHAL_DETAIL
     DbgP("marshal_nfs41_eaget: filename='%wZ', index=%d list_len=%d "

@@ -80,8 +80,9 @@ NTSTATUS marshal_nfs41_filequery(
     unsigned char *tmp = buf;
 
     status = marshal_nfs41_header(entry, tmp, buf_len, len);
-    if (status) goto out;
-    else tmp += *len;
+    if (status)
+        goto out;
+    tmp += *len;
 
     header_len = *len + 2 * sizeof(ULONG);
     if (header_len > buf_len) {
@@ -91,8 +92,15 @@ NTSTATUS marshal_nfs41_filequery(
     RtlCopyMemory(tmp, &entry->u.QueryFile.InfoClass, sizeof(ULONG));
     tmp += sizeof(ULONG);
     RtlCopyMemory(tmp, &entry->u.QueryFile.buf_len, sizeof(ULONG));
-    /* tmp += sizeof(ULONG); */
-    *len = header_len;
+    tmp += sizeof(ULONG);
+
+    *len = (ULONG)(tmp - buf);
+    if (*len != header_len) {
+        DbgP("marshal_nfs41_filequery: *len(=%ld) != header_len(=%ld)\n",
+            (long)*len, (long)header_len);
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto out;
+    }
 
 #ifdef DEBUG_MARSHAL_DETAIL
     DbgP("marshal_nfs41_filequery: class=%d\n", entry->u.QueryFile.InfoClass);
@@ -112,8 +120,9 @@ NTSTATUS marshal_nfs41_fileset(
     unsigned char *tmp = buf;
 
     status = marshal_nfs41_header(entry, tmp, buf_len, len);
-    if (status) goto out;
-    else tmp += *len;
+    if (status)
+        goto out;
+    tmp += *len;
 
     header_len = *len + length_as_utf8(entry->filename) +
         2 * sizeof(ULONG) + entry->u.SetFile.buf_len;
@@ -128,7 +137,15 @@ NTSTATUS marshal_nfs41_fileset(
     RtlCopyMemory(tmp, &entry->u.SetFile.buf_len, sizeof(ULONG));
     tmp += sizeof(ULONG);
     RtlCopyMemory(tmp, entry->u.SetFile.buf, entry->u.SetFile.buf_len);
-    *len = header_len;
+    tmp += entry->u.SetFile.buf_len;
+
+    *len = (ULONG)(tmp - buf);
+    if (*len != header_len) {
+        DbgP("marshal_nfs41_fileset: *len(=%ld) != header_len(=%ld)\n",
+            (long)*len, (long)header_len);
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto out;
+    }
 
 #ifdef DEBUG_MARSHAL_DETAIL
     DbgP("marshal_nfs41_fileset: filename='%wZ' class=%d\n",

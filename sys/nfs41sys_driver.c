@@ -239,8 +239,9 @@ NTSTATUS marshal_nfs41_header(
         status = STATUS_INSUFFICIENT_RESOURCES;
         goto out;
     }
-    else
-        *len = header_len;
+
+    *len = header_len;
+
     RtlCopyMemory(tmp, &entry->version, sizeof(entry->version));
     tmp += sizeof(entry->version);
     RtlCopyMemory(tmp, &entry->xid, sizeof(entry->xid));
@@ -251,6 +252,14 @@ NTSTATUS marshal_nfs41_header(
     tmp += sizeof(HANDLE);
     RtlCopyMemory(tmp, &entry->open_state, sizeof(HANDLE));
     tmp += sizeof(HANDLE);
+
+    *len = (ULONG)(tmp - buf);
+    if (*len != header_len) {
+        DbgP("marshal_nfs41_header: *len(=%ld) != header_len(=%ld)\n",
+            (long)*len, (long)header_len);
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto out;
+    }
 
 #ifdef DEBUG_MARSHAL_HEADER
     DbgP("[upcall hdr] xid=%lld op='%s'%s filename='%wZ' vers=%d "
@@ -321,8 +330,9 @@ NTSTATUS marshal_nfs41_set_daemon_debuglevel(
     unsigned char *tmp = buf;
 
     status = marshal_nfs41_header(entry, tmp, buf_len, len);
-    if (status) goto out;
-    else tmp += *len;
+    if (status)
+        goto out;
+    tmp += *len;
 
     header_len = *len + sizeof(LONG);
     if (header_len > buf_len) {
@@ -333,7 +343,15 @@ NTSTATUS marshal_nfs41_set_daemon_debuglevel(
     RtlCopyMemory(tmp, &entry->u.SetDaemonDebugLevel.debuglevel,
         sizeof(entry->u.SetDaemonDebugLevel.debuglevel));
     tmp += sizeof(entry->u.SetDaemonDebugLevel.debuglevel);
-    *len = header_len;
+
+    *len = (ULONG)(tmp - buf);
+    if (*len != header_len) {
+        DbgP("marshal_nfs41_set_daemon_debuglevel: "
+            "*len(=%ld) != header_len(=%ld)\n",
+            (long)*len, (long)header_len);
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto out;
+    }
 
 out:
     return status;

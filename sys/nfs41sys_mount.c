@@ -104,8 +104,9 @@ NTSTATUS marshal_nfs41_mount(
     unsigned char *tmp = buf;
 
     status = marshal_nfs41_header(entry, tmp, buf_len, len);
-    if (status) goto out;
-    else tmp += *len;
+    if (status)
+        goto out;
+    tmp += *len;
 
     header_len = *len + length_as_utf8(entry->u.Mount.srv_name) +
         length_as_utf8(entry->u.Mount.root) + 5 * sizeof(DWORD)
@@ -130,17 +131,23 @@ NTSTATUS marshal_nfs41_mount(
     RtlCopyMemory(tmp, &entry->u.Mount.use_nfspubfh, sizeof(DWORD));
     tmp += sizeof(DWORD);
     RtlCopyMemory(tmp, &entry->u.Mount.nfsvers, sizeof(DWORD));
-#ifdef NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS
     tmp += sizeof(DWORD);
+#ifdef NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS
     RtlCopyMemory(tmp, &entry->u.Mount.force_case_preserving,
         sizeof(tristate_bool));
     tmp += sizeof(tristate_bool);
     RtlCopyMemory(tmp, &entry->u.Mount.force_case_insensitive,
         sizeof(tristate_bool));
-    /* tmp += sizeof(tristate_bool); */
+    tmp += sizeof(tristate_bool);
 #endif /* NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS */
 
-    *len = header_len;
+    *len = (ULONG)(tmp - buf);
+    if (*len != header_len) {
+        DbgP("marshal_nfs41_mount: *len(=%ld) != header_len(=%ld)\n",
+            (long)*len, (long)header_len);
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto out;
+    }
 
 #ifdef DEBUG_MARSHAL_DETAIL
     DbgP("marshal_nfs41_mount: server name='%wZ' mount point='%wZ' "

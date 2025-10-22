@@ -94,8 +94,9 @@ NTSTATUS marshal_nfs41_rw(
     unsigned char *tmp = buf;
 
     status = marshal_nfs41_header(entry, tmp, buf_len, len);
-    if (status) goto out;
-    else tmp += *len;
+    if (status)
+        goto out;
+    tmp += *len;
 
     header_len = *len + sizeof(entry->u.ReadWrite.buf_len) +
         sizeof(entry->u.ReadWrite.offset) + sizeof(HANDLE);
@@ -142,7 +143,15 @@ NTSTATUS marshal_nfs41_rw(
     }
 
     RtlCopyMemory(tmp, &entry->u.ReadWrite.buf, sizeof(HANDLE));
-    *len = header_len;
+    tmp += sizeof(HANDLE);
+
+    *len = (ULONG)(tmp - buf);
+    if (*len != header_len) {
+        DbgP("marshal_nfs41_rw: *len(=%ld) != header_len(=%ld)\n",
+            (long)*len, (long)header_len);
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto out;
+    }
 
 #ifdef DEBUG_MARSHAL_DETAIL_RW
     DbgP("marshal_nfs41_rw: len=%lu offset=%llu "

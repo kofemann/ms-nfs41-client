@@ -81,8 +81,9 @@ NTSTATUS marshal_nfs41_lock(
     unsigned char *tmp = buf;
 
     status = marshal_nfs41_header(entry, tmp, buf_len, len);
-    if (status) goto out;
-    else tmp += *len;
+    if (status)
+        goto out;
+    tmp += *len;
 
     header_len = *len + 2 * sizeof(LONGLONG) + 2 * sizeof(BOOLEAN);
     if (header_len > buf_len) {
@@ -96,7 +97,15 @@ NTSTATUS marshal_nfs41_lock(
     RtlCopyMemory(tmp, &entry->u.Lock.exclusive, sizeof(BOOLEAN));
     tmp += sizeof(BOOLEAN);
     RtlCopyMemory(tmp, &entry->u.Lock.blocking, sizeof(BOOLEAN));
-    *len = header_len;
+    tmp += sizeof(BOOLEAN);
+
+    *len = (ULONG)(tmp - buf);
+    if (*len != header_len) {
+        DbgP("marshal_nfs41_lock: *len(=%ld) != header_len(=%ld)\n",
+            (long)*len, (long)header_len);
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto out;
+    }
 
 #ifdef DEBUG_MARSHAL_DETAIL
     DbgP("marshal_nfs41_lock: "
@@ -122,11 +131,12 @@ NTSTATUS marshal_nfs41_unlock(
     PLOWIO_LOCK_LIST lock;
 
     status = marshal_nfs41_header(entry, tmp, buf_len, len);
-    if (status) goto out;
-    else tmp += *len;
+    if (status)
+        goto out;
+    tmp += *len;
 
     header_len = *len + sizeof(ULONG) +
-        (size_t)entry->u.Unlock.count * 2 * sizeof(LONGLONG);
+        ((size_t)entry->u.Unlock.count * 2) * sizeof(LONGLONG);
     if (header_len > buf_len) {
         status = STATUS_INSUFFICIENT_RESOURCES;
         goto out;
@@ -142,7 +152,14 @@ NTSTATUS marshal_nfs41_unlock(
         tmp += sizeof(LONGLONG);
         lock = lock->Next;
     }
-    *len = header_len;
+
+    *len = (ULONG)(tmp - buf);
+    if (*len != header_len) {
+        DbgP("marshal_nfs41_unlock: *len(=%ld) != header_len(=%ld)\n",
+            (long)*len, (long)header_len);
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto out;
+    }
 
 #ifdef DEBUG_MARSHAL_DETAIL
     DbgP("marshal_nfs41_unlock: count=%u\n", entry->u.Unlock.count);

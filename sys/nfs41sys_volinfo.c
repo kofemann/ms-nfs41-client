@@ -80,8 +80,9 @@ NTSTATUS marshal_nfs41_volume(
     unsigned char *tmp = buf;
 
     status = marshal_nfs41_header(entry, tmp, buf_len, len);
-    if (status) goto out;
-    else tmp += *len;
+    if (status)
+        goto out;
+    tmp += *len;
 
     header_len = *len + sizeof(FS_INFORMATION_CLASS);
     if (header_len > buf_len) {
@@ -90,7 +91,15 @@ NTSTATUS marshal_nfs41_volume(
     }
 
     RtlCopyMemory(tmp, &entry->u.Volume.query, sizeof(FS_INFORMATION_CLASS));
-    *len = header_len;
+    tmp += sizeof(FS_INFORMATION_CLASS);
+
+    *len = (ULONG)(tmp - buf);
+    if (*len != header_len) {
+        DbgP("marshal_nfs41_volume: *len(=%ld) != header_len(=%ld)\n",
+            (long)*len, (long)header_len);
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto out;
+    }
 
 #ifdef DEBUG_MARSHAL_DETAIL
     DbgP("marshal_nfs41_volume: class=%d\n", entry->u.Volume.query);

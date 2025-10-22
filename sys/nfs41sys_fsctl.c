@@ -259,8 +259,9 @@ NTSTATUS marshal_nfs41_queryallocatedranges(
     unsigned char *tmp = buf;
 
     status = marshal_nfs41_header(entry, tmp, buf_len, len);
-    if (status) goto out;
-    else tmp += *len;
+    if (status)
+        goto out;
+    tmp += *len;
 
     header_len = *len + sizeof(FILE_ALLOCATED_RANGE_BUFFER) +
         sizeof(ULONG) +
@@ -292,8 +293,17 @@ NTSTATUS marshal_nfs41_queryallocatedranges(
         }
     }
     RtlCopyMemory(tmp, &entry->u.QueryAllocatedRanges.Buffer,
-        sizeof(HANDLE));
-    *len = header_len;
+        sizeof(entry->u.QueryAllocatedRanges.Buffer));
+    tmp += sizeof(sizeof(entry->u.QueryAllocatedRanges.Buffer));
+
+    *len = (ULONG)(tmp - buf);
+    if (*len != header_len) {
+        DbgP("marshal_nfs41_queryallocatedranges: "
+            "*len(=%ld) != header_len(=%ld)\n",
+            (long)*len, (long)header_len);
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto out;
+    }
 
     DbgP("marshal_nfs41_queryallocatedranges: name='%wZ' "
         "buffersize=0x%ld, buffer=0x%p\n",
@@ -534,8 +544,9 @@ NTSTATUS marshal_nfs41_setzerodata(
     unsigned char *tmp = buf;
 
     status = marshal_nfs41_header(entry, tmp, buf_len, len);
-    if (status) goto out;
-    else tmp += *len;
+    if (status)
+        goto out;
+    tmp += *len;
 
     header_len = *len + sizeof(FILE_ZERO_DATA_INFORMATION);
     if (header_len > buf_len) {
@@ -547,7 +558,13 @@ NTSTATUS marshal_nfs41_setzerodata(
         sizeof(entry->u.SetZeroData.setzerodata));
     tmp += sizeof(entry->u.SetZeroData.setzerodata);
 
-    *len = header_len;
+    *len = (ULONG)(tmp - buf);
+    if (*len != header_len) {
+        DbgP("marshal_nfs41_setzerodata: *len(=%ld) != header_len(=%ld)\n",
+            (long)*len, (long)header_len);
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto out;
+    }
 
     DbgP("marshal_nfs41_setzerodata: name='%wZ'\n",
          entry->filename);
@@ -842,8 +859,9 @@ NTSTATUS marshal_nfs41_duplicatedata(
     unsigned char *tmp = buf;
 
     status = marshal_nfs41_header(entry, tmp, buf_len, len);
-    if (status) goto out;
-    else tmp += *len;
+    if (status)
+        goto out;
+    tmp += *len;
 
     header_len = *len +
         sizeof(void *) +
@@ -865,7 +883,14 @@ NTSTATUS marshal_nfs41_duplicatedata(
     RtlCopyMemory(tmp, &entry->u.DuplicateData.bytecount,
         sizeof(entry->u.DuplicateData.bytecount));
     tmp += sizeof(entry->u.DuplicateData.bytecount);
-    *len = header_len;
+
+    *len = (ULONG)(tmp - buf);
+    if (*len != header_len) {
+        DbgP("marshal_nfs41_duplicatedata: *len(=%ld) != header_len(=%ld)\n",
+            (long)*len, (long)header_len);
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto out;
+    }
 
     DbgP("marshal_nfs41_duplicatedata: name='%wZ'\n",
          entry->filename);

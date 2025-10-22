@@ -80,8 +80,9 @@ NTSTATUS marshal_nfs41_getacl(
     unsigned char *tmp = buf;
 
     status = marshal_nfs41_header(entry, tmp, buf_len, len);
-    if (status) goto out;
-    else tmp += *len;
+    if (status)
+        goto out;
+    tmp += *len;
 
     header_len = *len + sizeof(SECURITY_INFORMATION);
     if (header_len > buf_len) {
@@ -90,7 +91,15 @@ NTSTATUS marshal_nfs41_getacl(
     }
 
     RtlCopyMemory(tmp, &entry->u.Acl.query, sizeof(SECURITY_INFORMATION));
-    *len = header_len;
+    tmp += sizeof(SECURITY_INFORMATION);
+
+    *len = (ULONG)(tmp - buf);
+    if (*len != header_len) {
+        DbgP("marshal_nfs41_getacl: *len(=%ld) != header_len(=%ld)\n",
+            (long)*len, (long)header_len);
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto out;
+    }
 
 #ifdef DEBUG_MARSHAL_DETAIL
     DbgP("marshal_nfs41_getacl: class=0x%x\n", (int)entry->u.Acl.query);
@@ -110,8 +119,9 @@ NTSTATUS marshal_nfs41_setacl(
     unsigned char *tmp = buf;
 
     status = marshal_nfs41_header(entry, tmp, buf_len, len);
-    if (status) goto out;
-    else tmp += *len;
+    if (status)
+        goto out;
+    tmp += *len;
 
     header_len = *len + sizeof(SECURITY_INFORMATION) +
         sizeof(ULONG) + entry->u.Acl.buf_len;
@@ -125,7 +135,15 @@ NTSTATUS marshal_nfs41_setacl(
     RtlCopyMemory(tmp, &entry->u.Acl.buf_len, sizeof(ULONG));
     tmp += sizeof(ULONG);
     RtlCopyMemory(tmp, entry->u.Acl.buf, entry->u.Acl.buf_len);
-    *len = header_len;
+    tmp += entry->u.Acl.buf_len;
+
+    *len = (ULONG)(tmp - buf);
+    if (*len != header_len) {
+        DbgP("marshal_nfs41_setacl: *len(=%ld) != header_len(=%ld)\n",
+            (long)*len, (long)header_len);
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto out;
+    }
 
 #ifdef DEBUG_MARSHAL_DETAIL
     DbgP("marshal_nfs41_setacl: class=0x%x sec_desc_len=%lu\n",

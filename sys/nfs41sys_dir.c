@@ -79,8 +79,9 @@ NTSTATUS marshal_nfs41_dirquery(
     unsigned char *tmp = buf;
 
     status = marshal_nfs41_header(entry, tmp, buf_len, len);
-    if (status) goto out;
-    else tmp += *len;
+    if (status)
+        goto out;
+    tmp += *len;
 
     header_len = *len + 2 * sizeof(ULONG) + sizeof(HANDLE) +
         length_as_utf8(entry->u.QueryFile.filter) + 3 * sizeof(BOOLEAN);
@@ -116,7 +117,15 @@ NTSTATUS marshal_nfs41_dirquery(
     }
 
     RtlCopyMemory(tmp, &entry->u.QueryFile.mdl_buf, sizeof(HANDLE));
-    *len = header_len;
+    tmp += sizeof(HANDLE);
+
+    *len = (ULONG)(tmp - buf);
+    if (*len != header_len) {
+        DbgP("marshal_nfs41_dirquery: *len(=%ld) != header_len(=%ld)\n",
+            (long)*len, (long)header_len);
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto out;
+    }
 
 #ifdef DEBUG_MARSHAL_DETAIL
     DbgP("marshal_nfs41_dirquery: filter='%wZ' class=%d len=%d "
