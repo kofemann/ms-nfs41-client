@@ -426,12 +426,16 @@ NTSTATUS SharedMemoryInit(
     status = RtlCreateSecurityDescriptor(&SecurityDesc,
         SECURITY_DESCRIPTOR_REVISION);
     if (status) {
-        print_error("RtlCreateSecurityDescriptor() failed with %08X\n", status);
+        print_error("SharedMemoryInit: "
+            "RtlCreateSecurityDescriptor() failed with status=0x%lx\n",
+            (long)status);
         goto out;
     }
     status = RtlSetDaclSecurityDescriptor(&SecurityDesc, TRUE, NULL, FALSE);
     if (status) {
-        print_error("RtlSetDaclSecurityDescriptor() failed with %08X\n", status);
+        print_error("SharedMemoryInit: "
+            "RtlSetDaclSecurityDescriptor() failed with status=0x%lx\n",
+            (long)status);
         goto out;
     }
 
@@ -480,7 +484,9 @@ NTSTATUS nfs41_Start(
 
     status = SharedMemoryInit(&DevExt->SharedMemorySection);
     if (status) {
-        print_error("InitSharedMemory failed with %08X\n", status);
+        print_error("nfs41_Start: "
+            "InitSharedMemory failed with status=0x%lx\n",
+            (long)status);
         status = STATUS_INSUFFICIENT_RESOURCES;
         goto out;
     }
@@ -698,7 +704,8 @@ NTSTATUS _nfs41_CreateSrvCall(
 #endif
 
     if (pSrvCall->pSrvCallName->Length > SERVER_NAME_BUFFER_SIZE) {
-        print_error("Server name '%wZ' too long for server entry (max %u)\n",
+        print_error("_nfs41_CreateSrvCall: "
+            "Server name '%wZ' too long for server entry (max %u)\n",
             pSrvCall->pSrvCallName, SERVER_NAME_BUFFER_SIZE);
         status = STATUS_NAME_TOO_LONG;
         goto out;
@@ -748,8 +755,9 @@ NTSTATUS nfs41_CreateSrvCall(
         status = RxDispatchToWorkerThread(nfs41_dev, DelayedWorkQueue,
            (PRX_WORKERTHREAD_ROUTINE)_nfs41_CreateSrvCall, pCallbackContext);
         if (status != STATUS_SUCCESS) {
-            print_error("RxDispatchToWorkerThread returned status 0x%08lx\n",
-                status);
+            print_error("nfs41_CreateSrvCall: "
+                "RxDispatchToWorkerThread returned status 0x%lx\n",
+                (long)status);
             pCallbackContext->Status = status;
             pCallbackContext->SrvCalldownStructure->CallBack(pCallbackContext);
             status = STATUS_PENDING;
@@ -1075,7 +1083,7 @@ NTSTATUS nfs41_FsdDispatch(
 #endif
 
     if (dev != (PDEVICE_OBJECT)nfs41_dev) {
-        print_error("*** not ours ***\n");
+        print_error("nfs41_FsdDispatch: *** not ours ***\n");
         Irp->IoStatus.Status = STATUS_INVALID_DEVICE_REQUEST;
         Irp->IoStatus.Information = 0;
         IoCompleteRequest(Irp, IO_NFS41FS_INCREMENT);
@@ -1452,7 +1460,8 @@ NTSTATUS DriverEntry(
 
     status = RxDriverEntry(drv, path);
     if (status != STATUS_SUCCESS) {
-        print_error("RxDriverEntry failed: 0x%08lx\n", status);
+        print_error("DriverEntry: RxDriverEntry failed, status=0x%lx\n",
+            (long)status);
         goto out;
     }
 
@@ -1461,11 +1470,12 @@ NTSTATUS DriverEntry(
 
     status = nfs41_init_ops();
     if (status != STATUS_SUCCESS) {
-        print_error("nfs41_init_ops failed to initialize dispatch table\n");
+        print_error("DriverEntry: "
+            "nfs41_init_ops failed to initialize dispatch table\n");
         goto out;
     }
 
-    DbgP("calling RxRegisterMinirdr\n");
+    DbgP("DriverEntry: calling RxRegisterMinirdr\n");
     status = RxRegisterMinirdr(&nfs41_dev, drv, &nfs41_ops, flags, &dev_name,
                 sizeof(NFS41_DEVICE_EXTENSION),
                 FILE_DEVICE_NETWORK_FILE_SYSTEM, FILE_REMOTE_DEVICE);
@@ -1482,10 +1492,13 @@ NTSTATUS DriverEntry(
     dev_exts->DeviceObject = nfs41_dev;
 
     RtlInitUnicodeString(&user_dev_name, NFS41_SHADOW_DEVICE_NAME);
-    DbgP("calling IoCreateSymbolicLink '%wZ' '%wZ'\n", &user_dev_name, &dev_name);
+    DbgP("DriverEntry: calling IoCreateSymbolicLink '%wZ' '%wZ'\n",
+        &user_dev_name, &dev_name);
     status = IoCreateSymbolicLink(&user_dev_name, &dev_name);
     if (status != STATUS_SUCCESS) {
-        print_error("Device name IoCreateSymbolicLink failed: 0x%08lx\n", status);
+        print_error("DriverEntry: "
+            "Device name IoCreateSymbolicLink failed: status=0x%lx\n",
+            (long)status);
         goto out_unregister;
     }
 
@@ -1568,15 +1581,17 @@ unload:
     RtlInitUnicodeString(&dev_name, NFS41_SHADOW_DEVICE_NAME);
     status = IoDeleteSymbolicLink(&dev_name);
     if (status != STATUS_SUCCESS) {
-        print_error("couldn't delete device symbolic link\n");
+        print_error("nfs41_driver_unload: "
+            "could not delete device symbolic link\n");
     }
     RtlInitUnicodeString(&pipe_name, NFS41_SHADOW_PIPE_NAME);
     status = IoDeleteSymbolicLink(&pipe_name);
     if (status != STATUS_SUCCESS) {
-        print_error("couldn't delete pipe symbolic link\n");
+        print_error("nfs41_driver_unload: "
+            "could not delete pipe symbolic link\n");
     }
     RxUnload(drv);
 
-    DbgP("driver unloaded 0x%p\n", drv);
+    DbgP("nfs41_driver_unload: driver unloaded 0x%p\n", drv);
     DbgR();
 }

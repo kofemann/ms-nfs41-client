@@ -335,7 +335,9 @@ NTSTATUS handle_upcall(
         break;
     default:
         status = STATUS_INVALID_PARAMETER;
-        print_error("Unknown nfs41 ops %d\n", entry->opcode);
+        print_error("handle_upcall: Unknown nfs41 ops %d\n",
+            (int)entry->opcode);
+        break;
     }
 
     // if (status == STATUS_SUCCESS)

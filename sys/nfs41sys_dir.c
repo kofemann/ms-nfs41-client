@@ -251,8 +251,9 @@ NTSTATUS nfs41_QueryDirectory(
     case FileIdExtdBothDirectoryInformation:
         break;
     default:
-        print_error("nfs41_QueryDirectory: unhandled dir query class %d\n",
-            InfoClass);
+        print_error("nfs41_QueryDirectory: "
+            "unhandled dir query class %d\n",
+            (int)InfoClass);
         status = STATUS_NOT_SUPPORTED;
         goto out;
     }

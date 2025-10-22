@@ -226,7 +226,8 @@ NTSTATUS nfs41_QueryFileInformation(
 
     status = check_nfs41_dirquery_args(RxContext);
     if (status) {
-        print_error("check_nfs41_dirquery_args failed.\n");
+        print_error("nfs41_QueryFileInformation: "
+            "check_nfs41_dirquery_args failed.\n");
         goto out;
     }
 
@@ -399,7 +400,8 @@ NTSTATUS nfs41_QueryFileInformation(
 #endif /* NFS41_DRIVER_WSL_SUPPORT */
         break;
     default:
-        print_error("nfs41_QueryFileInformation: unhandled class %d\n", InfoClass);
+        print_error("nfs41_QueryFileInformation: "
+            "unhandled class %d\n", (int)InfoClass);
         status = STATUS_NOT_SUPPORTED;
         goto out;
     }
@@ -408,7 +410,8 @@ NTSTATUS nfs41_QueryFileInformation(
         pVNetRootContext->session, nfs41_fobx->nfs41_open_state,
         pNetRootContext->nfs41d_version, SrvOpen->pAlreadyPrefixedName, &entry);
     if (status) {
-        print_error("nfs41_UpcallCreate() failed, status=0x%lx\n",
+        print_error("nfs41_QueryFileInformation: "
+            "nfs41_UpcallCreate() failed, status=0x%lx\n",
             (long)status);
         goto out;
     }
@@ -426,11 +429,12 @@ NTSTATUS nfs41_QueryFileInformation(
 
     if (entry->status == STATUS_BUFFER_TOO_SMALL) {
         RxContext->InformationToReturn = entry->u.QueryFile.buf_len;
-        print_error("entry->status == STATUS_BUFFER_TOO_SMALL\n");
+        print_error("nfs41_QueryFileInformation: "
+            "entry->status == STATUS_BUFFER_TOO_SMALL\n");
         status = STATUS_BUFFER_TOO_SMALL;
     } else if (entry->status == STATUS_SUCCESS) {
 #ifdef DEBUG_FILE_QUERY
-        print_error("entry->status == STATUS_SUCCESS\n");
+        print_error("nfs41_QueryFileInformation: entry->status == STATUS_SUCCESS\n");
 #endif
         BOOLEAN DeletePending = FALSE;
 #ifdef ENABLE_TIMINGS
@@ -498,11 +502,13 @@ NTSTATUS nfs41_QueryFileInformation(
 #endif /* NFS41_DRIVER_WSL_SUPPORT */
             break;
         default:
-            print_error("Unhandled/unsupported InfoClass(%d)\n", (int)InfoClass);
+            print_error("nfs41_QueryFileInformation: "
+                "Unhandled/unsupported InfoClass(%d)\n", (int)InfoClass);
         }
     } else {
         status = map_queryfile_error(entry->status);
-        print_error("status(0x%lx) = map_queryfile_error(entry->status(0x%lx));\n",
+        print_error("nfs41_QueryFileInformation: "
+            "status(0x%lx) = map_queryfile_error(entry->status(0x%lx));\n",
             (long)status, (long)entry->status);
     }
 out:

@@ -128,7 +128,7 @@ NTSTATUS nfs41_ProbeAndLockKernelPages(
     } __except(EXCEPTION_EXECUTE_HANDLER) {
         NTSTATUS code;
         code = GetExceptionCode();
-        print_error("marshal_nfs41_dirquery: Call to "
+        print_error("nfs41_ProbeAndLockKernelPages: Call to "
             "MmMapLockedPagesSpecifyCache() failed "
             "due to exception 0x%lx\n", (long)code);
         status = STATUS_ACCESS_VIOLATION;
@@ -186,8 +186,8 @@ NTSTATUS nfs41_UnmapLockedKernelPagesInNfsDaemonAddressSpace(
     } __except(EXCEPTION_EXECUTE_HANDLER) {
         NTSTATUS code;
         code = GetExceptionCode();
-        print_error("nfs41_UnmapLockedKernelPages: "
-            "MmUnmapLockedPages thrown exception=0x%lx\n",
+        print_error("nfs41_UnmapLockedKernelPagesInNfsDaemonAddressSpace: "
+            "MmUnmapLockedPages() thrown exception=0x%lx\n",
             (long)code);
         status = STATUS_ACCESS_VIOLATION;
     }
