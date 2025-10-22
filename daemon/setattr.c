@@ -174,9 +174,29 @@ static int handle_nfs41_setattr_basicinfo(void *daemon_context, setattr_upcall_a
     if (info.attrmask.count == 0)
         goto out;
 
-    /* break read delegations before SETATTR */
-    nfs41_delegation_return(state->session, &state->file,
-        OPEN_DELEGATE_READ, FALSE);
+    /*
+     * Break read delegations before SETATTR, but only for attributes
+     * which are unsafe even if we hold a read delegation.
+     *
+     * FIXME:
+     * 1. Should we do this if we own a write delegation ?
+     * 2. Should we do this for |FATTR4_WORD1_TIME_MODIFY_SET| too,
+     * even if we have the file open for writing, and/or have a write
+     * delegation (well, the NFS server will do a delegation recall
+     * via CB if it disagrees...) ?
+     * 3. The NFSv4 RFCs really should have a list of attributes which
+     * would trigger a recall for read or write delegations
+     */
+    if (bitmap_isset(&info.attrmask, 1, FATTR4_WORD1_MODE) ||
+        bitmap_isset(&info.attrmask, 1, FATTR4_WORD1_TIME_CREATE)) {
+        DPRINTF(0, ("handle_nfs41_setattr_basicinfo(args->path='%s'): "
+            "returning read delegation because of mode=%d, time_create=%d\n",
+            args->path,
+            (int)bitmap_isset(&info.attrmask, 1, FATTR4_WORD1_MODE),
+            (int)bitmap_isset(&info.attrmask, 1, FATTR4_WORD1_TIME_CREATE)));
+        nfs41_delegation_return(state->session, &state->file,
+            OPEN_DELEGATE_READ, FALSE);
+    }
 
     nfs41_open_stateid_arg(state, &stateid);
 
