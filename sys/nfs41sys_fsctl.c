@@ -1399,6 +1399,14 @@ NTSTATUS nfs41_FsCtl(
     case FSCTL_OFFLOAD_WRITE:
         status = nfs41_OffloadWrite(RxContext);
         break;
+    case FSCTL_SET_PURGE_FAILURE_MODE:
+        /*
+         * For the time being just succeed this call, as OpenAFS
+         * does in openafs.git commit #0af079f2d03d1b76bd4221cb56b27091b5635fd0
+         * (https://git.openafs.org/?p=openafs.git;a=commit;h=0af079f2d03d1b76bd4221cb56b27091b5635fd0)
+         */
+        status = STATUS_SUCCESS;
+        break;
     default:
         break;
     }
