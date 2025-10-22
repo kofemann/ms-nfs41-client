@@ -90,7 +90,7 @@ NTSTATUS marshal_nfs41_filequery(
     }
     RtlCopyMemory(tmp, &entry->u.QueryFile.InfoClass, sizeof(ULONG));
     tmp += sizeof(ULONG);
-    RtlCopyMemory(tmp, &entry->buf_len, sizeof(ULONG));
+    RtlCopyMemory(tmp, &entry->u.QueryFile.buf_len, sizeof(ULONG));
     /* tmp += sizeof(ULONG); */
     *len = header_len;
 
@@ -116,7 +116,7 @@ NTSTATUS marshal_nfs41_fileset(
     else tmp += *len;
 
     header_len = *len + length_as_utf8(entry->filename) +
-        2 * sizeof(ULONG) + entry->buf_len;
+        2 * sizeof(ULONG) + entry->u.SetFile.buf_len;
     if (header_len > buf_len) {
         status = STATUS_INSUFFICIENT_RESOURCES;
         goto out;
@@ -125,9 +125,9 @@ NTSTATUS marshal_nfs41_fileset(
     if (status) goto out;
     RtlCopyMemory(tmp, &entry->u.SetFile.InfoClass, sizeof(ULONG));
     tmp += sizeof(ULONG);
-    RtlCopyMemory(tmp, &entry->buf_len, sizeof(ULONG));
+    RtlCopyMemory(tmp, &entry->u.SetFile.buf_len, sizeof(ULONG));
     tmp += sizeof(ULONG);
-    RtlCopyMemory(tmp, entry->buf, entry->buf_len);
+    RtlCopyMemory(tmp, entry->u.SetFile.buf, entry->u.SetFile.buf_len);
     *len = header_len;
 
 #ifdef DEBUG_MARSHAL_DETAIL
@@ -154,7 +154,8 @@ void unmarshal_nfs41_getattr(
     nfs41_updowncall_entry *cur,
     const unsigned char *restrict *restrict buf)
 {
-    unmarshal_nfs41_attrget(cur, cur->buf, &cur->buf_len, buf, FALSE);
+    unmarshal_nfs41_attrget(cur,
+        cur->u.QueryFile.buf, &cur->u.QueryFile.buf_len, buf, FALSE);
     RtlCopyMemory(&cur->ChangeTime, *buf, sizeof(cur->ChangeTime));
     *buf += sizeof(cur->ChangeTime);
 #ifdef DEBUG_MARSHAL_DETAIL
@@ -396,8 +397,8 @@ NTSTATUS nfs41_QueryFileInformation(
     }
 
     entry->u.QueryFile.InfoClass = InfoClass;
-    entry->buf = RxContext->Info.Buffer;
-    entry->buf_len = RxContext->Info.LengthRemaining;
+    entry->u.QueryFile.buf = RxContext->Info.Buffer;
+    entry->u.QueryFile.buf_len = RxContext->Info.LengthRemaining;
 
     status = nfs41_UpcallWaitForReply(entry, pVNetRootContext->timeout);
     if (status) {
@@ -407,7 +408,7 @@ NTSTATUS nfs41_QueryFileInformation(
     }
 
     if (entry->status == STATUS_BUFFER_TOO_SMALL) {
-        RxContext->InformationToReturn = entry->buf_len;
+        RxContext->InformationToReturn = entry->u.QueryFile.buf_len;
         print_error("entry->status == STATUS_BUFFER_TOO_SMALL\n");
         status = STATUS_BUFFER_TOO_SMALL;
     } else if (entry->status == STATUS_SUCCESS) {
@@ -419,7 +420,7 @@ NTSTATUS nfs41_QueryFileInformation(
         InterlockedIncrement(&getattr.sops);
         InterlockedAdd64(&getattr.size, entry->u.QueryFile.buf_len);
 #endif
-        RxContext->Info.LengthRemaining -= entry->buf_len;
+        RxContext->Info.LengthRemaining -= entry->u.QueryFile.buf_len;
         status = STATUS_SUCCESS;
 
         switch (InfoClass) {
@@ -768,14 +769,14 @@ NTSTATUS nfs41_SetFileInformation(
      * thus we changed the local variable infoclass */
     if (RxContext->Info.FileInformationClass == FileDispositionInformation &&
             InfoClass == FileRenameInformation) {
-        entry->buf = &rinfo;
-        entry->buf_len = sizeof(rinfo);
+        entry->u.SetFile.buf = &rinfo;
+        entry->u.SetFile.buf_len = sizeof(rinfo);
     }
     else
 #endif /* FORCE_POSIX_SEMANTICS_DELETE */
     {
-        entry->buf = RxContext->Info.Buffer;
-        entry->buf_len = RxContext->Info.Length;
+        entry->u.SetFile.buf = RxContext->Info.Buffer;
+        entry->u.SetFile.buf_len = RxContext->Info.Length;
     }
 #ifdef ENABLE_TIMINGS
     InterlockedIncrement(&setattr.sops);

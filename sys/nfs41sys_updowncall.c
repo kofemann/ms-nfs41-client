@@ -426,7 +426,7 @@ NTSTATUS nfs41_UpcallCreate(
         switch(entry->opcode) {
             case NFS41_SYSOP_WRITE:
             case NFS41_SYSOP_READ:
-                entry->buf = NULL;
+                entry->u.ReadWrite.buf = NULL;
                 break;
             case NFS41_SYSOP_DIR_QUERY:
                 entry->u.QueryFile.mdl_buf = NULL;
@@ -680,11 +680,11 @@ NTSTATUS nfs41_downcall(
         switch(cur->opcode) {
         case NFS41_SYSOP_WRITE:
         case NFS41_SYSOP_READ:
-            if (cur->buf) {
+            if (cur->u.ReadWrite.buf) {
                 (void)nfs41_UnmapLockedKernelPagesInNfsDaemonAddressSpace(
-                    cur->buf,
+                    cur->u.ReadWrite.buf,
                     cur->u.ReadWrite.MdlAddress);
-                cur->buf = NULL;
+                cur->u.ReadWrite.buf = NULL;
             }
             break;
         case NFS41_SYSOP_DIR_QUERY:
@@ -821,7 +821,7 @@ NTSTATUS nfs41_downcall(
                     cur->u.ReadWrite.rxcontext->StoredStatus =
                         STATUS_SUCCESS;
                     cur->u.ReadWrite.rxcontext->InformationToReturn =
-                        cur->buf_len;
+                        cur->u.ReadWrite.buf_len;
                 } else {
                     cur->u.ReadWrite.rxcontext->StoredStatus =
                         map_readwrite_errors(cur->status);

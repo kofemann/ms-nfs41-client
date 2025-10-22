@@ -97,15 +97,16 @@ NTSTATUS marshal_nfs41_rw(
     if (status) goto out;
     else tmp += *len;
 
-    header_len = *len + sizeof(entry->buf_len) +
+    header_len = *len + sizeof(entry->u.ReadWrite.buf_len) +
         sizeof(entry->u.ReadWrite.offset) + sizeof(HANDLE);
     if (header_len > buf_len) {
         status = STATUS_INSUFFICIENT_RESOURCES;
         goto out;
     }
 
-    RtlCopyMemory(tmp, &entry->buf_len, sizeof(entry->buf_len));
-    tmp += sizeof(entry->buf_len);
+    RtlCopyMemory(tmp, &entry->u.ReadWrite.buf_len,
+        sizeof(entry->u.ReadWrite.buf_len));
+    tmp += sizeof(entry->u.ReadWrite.buf_len);
     RtlCopyMemory(tmp, &entry->u.ReadWrite.offset,
         sizeof(entry->u.ReadWrite.offset));
     tmp += sizeof(entry->u.ReadWrite.offset);
@@ -128,7 +129,7 @@ NTSTATUS marshal_nfs41_rw(
         prio_writeflags |= MdlMappingNoWrite;
 
     status = nfs41_MapLockedPagesInNfsDaemonAddressSpace(
-        &entry->buf,
+        &entry->u.ReadWrite.buf,
         entry->u.ReadWrite.MdlAddress,
         MmCached,
         (NormalPagePriority|prio_writeflags));
@@ -140,14 +141,14 @@ NTSTATUS marshal_nfs41_rw(
         goto out;
     }
 
-    RtlCopyMemory(tmp, &entry->buf, sizeof(HANDLE));
+    RtlCopyMemory(tmp, &entry->u.ReadWrite.buf, sizeof(HANDLE));
     *len = header_len;
 
 #ifdef DEBUG_MARSHAL_DETAIL_RW
     DbgP("marshal_nfs41_rw: len=%lu offset=%llu "
         "MdlAddress=0x%p Userspace=0x%p\n",
-        entry->buf_len, entry->u.ReadWrite.offset,
-        entry->u.ReadWrite.MdlAddress, entry->buf);
+        entry->u.ReadWrite.buf_len, entry->u.ReadWrite.offset,
+        entry->u.ReadWrite.MdlAddress, entry->u.ReadWrite.buf);
 #endif
 out:
     return status;
@@ -159,13 +160,14 @@ NTSTATUS unmarshal_nfs41_rw(
 {
     NTSTATUS status = STATUS_SUCCESS;
 
-    RtlCopyMemory(&cur->buf_len, *buf, sizeof(cur->buf_len));
-    *buf += sizeof(cur->buf_len);
+    RtlCopyMemory(&cur->u.ReadWrite.buf_len, *buf,
+        sizeof(cur->u.ReadWrite.buf_len));
+    *buf += sizeof(cur->u.ReadWrite.buf_len);
     RtlCopyMemory(&cur->ChangeTime, *buf, sizeof(cur->ChangeTime));
     *buf += sizeof(cur->ChangeTime);
 #ifdef DEBUG_MARSHAL_DETAIL_RW
     DbgP("unmarshal_nfs41_rw: returned len %lu ChangeTime %llu\n",
-        cur->buf_len, cur->ChangeTime);
+        cur->u.ReadWrite.buf_len, cur->ChangeTime);
 #endif
 #if 1
     /*
@@ -174,9 +176,10 @@ NTSTATUS unmarshal_nfs41_rw(
      * MmMapLockedPagesSpecifyCache() as the MDL passed to us
      * is already locked.
      */
-    (void)nfs41_UnmapLockedKernelPagesInNfsDaemonAddressSpace(cur->buf,
+    (void)nfs41_UnmapLockedKernelPagesInNfsDaemonAddressSpace(
+        cur->u.ReadWrite.buf,
         cur->u.ReadWrite.MdlAddress);
-    cur->buf = NULL;
+    cur->u.ReadWrite.buf = NULL;
 #endif
     return status;
 }
@@ -248,7 +251,7 @@ NTSTATUS nfs41_Read(
     if (status) goto out;
 
     entry->u.ReadWrite.MdlAddress = LowIoContext->ParamsFor.ReadWrite.Buffer;
-    entry->buf_len = LowIoContext->ParamsFor.ReadWrite.ByteCount;
+    entry->u.ReadWrite.buf_len = LowIoContext->ParamsFor.ReadWrite.ByteCount;
     entry->u.ReadWrite.offset = LowIoContext->ParamsFor.ReadWrite.ByteOffset;
     if (FlagOn(RxContext->CurrentIrpSp->FileObject->Flags,
             FO_SYNCHRONOUS_IO) == FALSE) {
@@ -258,7 +261,7 @@ NTSTATUS nfs41_Read(
 
     /* Add extra timeout depending on buffer size */
     io_delay = pVNetRootContext->timeout +
-        EXTRA_TIMEOUT_PER_BYTE(entry->buf_len);
+        EXTRA_TIMEOUT_PER_BYTE(entry->u.ReadWrite.buf_len);
     status = nfs41_UpcallWaitForReply(entry, io_delay);
     if (status) {
         /* Timeout - |nfs41_downcall()| will free |entry|+contents */
@@ -281,7 +284,7 @@ NTSTATUS nfs41_Read(
         InterlockedAdd64(&read.size, entry->u.ReadWrite.len);
 #endif
         status = RxContext->CurrentIrp->IoStatus.Status = STATUS_SUCCESS;
-        RxContext->IoStatusBlock.Information = entry->buf_len;
+        RxContext->IoStatusBlock.Information = entry->u.ReadWrite.buf_len;
 
         if ((!BooleanFlagOn(LowIoContext->ParamsFor.ReadWrite.Flags,
                 LOWIO_READWRITEFLAG_PAGING_IO) &&
@@ -374,7 +377,7 @@ NTSTATUS nfs41_Write(
     if (status) goto out;
 
     entry->u.ReadWrite.MdlAddress = LowIoContext->ParamsFor.ReadWrite.Buffer;
-    entry->buf_len = LowIoContext->ParamsFor.ReadWrite.ByteCount;
+    entry->u.ReadWrite.buf_len = LowIoContext->ParamsFor.ReadWrite.ByteCount;
     entry->u.ReadWrite.offset = LowIoContext->ParamsFor.ReadWrite.ByteOffset;
 
     if (FlagOn(RxContext->CurrentIrpSp->FileObject->Flags,
@@ -385,7 +388,7 @@ NTSTATUS nfs41_Write(
 
     /* Add extra timeout depending on buffer size */
     io_delay = pVNetRootContext->timeout +
-        EXTRA_TIMEOUT_PER_BYTE(entry->buf_len);
+        EXTRA_TIMEOUT_PER_BYTE(entry->u.ReadWrite.buf_len);
     status = nfs41_UpcallWaitForReply(entry, io_delay);
     if (status) {
         /* Timeout - |nfs41_downcall()| will free |entry|+contents */
@@ -409,7 +412,7 @@ NTSTATUS nfs41_Write(
         InterlockedAdd64(&write.size, entry->u.ReadWrite.len);
 #endif
         status = RxContext->CurrentIrp->IoStatus.Status = STATUS_SUCCESS;
-        RxContext->IoStatusBlock.Information = entry->buf_len;
+        RxContext->IoStatusBlock.Information = entry->u.ReadWrite.buf_len;
         nfs41_fcb->changeattr = entry->ChangeTime;
 
         //re-enable write buffering

@@ -91,7 +91,7 @@ NTSTATUS marshal_nfs41_dirquery(
 
     RtlCopyMemory(tmp, &entry->u.QueryFile.InfoClass, sizeof(ULONG));
     tmp += sizeof(ULONG);
-    RtlCopyMemory(tmp, &entry->buf_len, sizeof(ULONG));
+    RtlCopyMemory(tmp, &entry->u.QueryFile.buf_len, sizeof(ULONG));
     tmp += sizeof(ULONG);
     status = marshall_unicode_as_utf8(&tmp, entry->u.QueryFile.filter);
     if (status) goto out;
@@ -121,7 +121,7 @@ NTSTATUS marshal_nfs41_dirquery(
 #ifdef DEBUG_MARSHAL_DETAIL
     DbgP("marshal_nfs41_dirquery: filter='%wZ' class=%d len=%d "
          "1st\\restart\\single=%d\\%d\\%d\n", entry->u.QueryFile.filter,
-         entry->u.QueryFile.InfoClass, entry->buf_len,
+         entry->u.QueryFile.InfoClass, entry->u.QueryFile.buf_len,
          entry->u.QueryFile.initial_query, entry->u.QueryFile.restart_scan,
          entry->u.QueryFile.return_single);
 #endif
@@ -144,9 +144,9 @@ NTSTATUS unmarshal_nfs41_dirquery(
     (void)nfs41_UnmapLockedKernelPagesInNfsDaemonAddressSpace(
         cur->u.QueryFile.mdl_buf,
         cur->u.QueryFile.mdl);
-    if (buf_len > cur->buf_len)
+    if (buf_len > cur->u.QueryFile.buf_len)
         cur->status = STATUS_BUFFER_TOO_SMALL;
-    cur->buf_len = buf_len;
+    cur->u.QueryFile.buf_len = buf_len;
 
     return status;
 }
@@ -253,8 +253,7 @@ NTSTATUS nfs41_QueryDirectory(
     if (status) goto out;
 
     entry->u.QueryFile.InfoClass = InfoClass;
-    entry->buf_len = RxContext->Info.LengthRemaining;
-    entry->buf = RxContext->Info.Buffer;
+    entry->u.QueryFile.buf_len = RxContext->Info.LengthRemaining;
     entry->u.QueryFile.mdl = IoAllocateMdl(RxContext->Info.Buffer,
         RxContext->Info.LengthRemaining, FALSE, FALSE, NULL);
     if (entry->u.QueryFile.mdl == NULL) {
@@ -294,15 +293,15 @@ NTSTATUS nfs41_QueryDirectory(
 
     if (entry->status == STATUS_BUFFER_TOO_SMALL) {
         DbgP("nfs41_QueryDirectory: buffer too small provided %d need %lu\n",
-            RxContext->Info.LengthRemaining, entry->buf_len);
-        RxContext->InformationToReturn = entry->buf_len;
+            RxContext->Info.LengthRemaining, entry->u.QueryFile.buf_len);
+        RxContext->InformationToReturn = entry->u.QueryFile.buf_len;
         status = STATUS_BUFFER_TOO_SMALL;
     } else if (entry->status == STATUS_SUCCESS) {
 #ifdef ENABLE_TIMINGS
         InterlockedIncrement(&readdir.sops);
         InterlockedAdd64(&readdir.size, entry->u.QueryFile.buf_len);
 #endif
-        RxContext->Info.LengthRemaining -= entry->buf_len;
+        RxContext->Info.LengthRemaining -= entry->u.QueryFile.buf_len;
         status = STATUS_SUCCESS;
     } else if ((entry->status == STATUS_ACCESS_VIOLATION) ||
         (entry->status == STATUS_INSUFFICIENT_RESOURCES)) {

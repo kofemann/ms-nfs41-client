@@ -83,7 +83,7 @@ NTSTATUS marshal_nfs41_easet(
     else tmp += *len;
 
     header_len = *len + length_as_utf8(entry->filename) +
-        sizeof(ULONG) + entry->buf_len  + sizeof(DWORD);
+        sizeof(ULONG) + entry->u.SetEa.buf_len  + sizeof(DWORD);
     if (header_len > buf_len) {
         status = STATUS_INSUFFICIENT_RESOURCES;
         goto out;
@@ -93,15 +93,15 @@ NTSTATUS marshal_nfs41_easet(
     if (status) goto out;
     RtlCopyMemory(tmp, &entry->u.SetEa.mode, sizeof(DWORD));
     tmp += sizeof(DWORD);
-    RtlCopyMemory(tmp, &entry->buf_len, sizeof(ULONG));
+    RtlCopyMemory(tmp, &entry->u.SetEa.buf_len, sizeof(ULONG));
     tmp += sizeof(ULONG);
-    RtlCopyMemory(tmp, entry->buf, entry->buf_len);
+    RtlCopyMemory(tmp, entry->u.SetEa.buf, entry->u.SetEa.buf_len);
     *len = header_len;
 
 #ifdef DEBUG_MARSHAL_DETAIL
     DbgP("marshal_nfs41_easet: filename='%wZ', buflen=%d mode=0x%x\n",
         entry->filename,
-        (int)entry->buf_len,
+        (int)entry->u.SetEa.buf_len,
         (int)entry->u.SetEa.mode);
 #endif
 out:
@@ -138,7 +138,7 @@ NTSTATUS marshal_nfs41_eaget(
     tmp += sizeof(BOOLEAN);
     RtlCopyMemory(tmp, &entry->u.QueryEa.ReturnSingleEntry, sizeof(BOOLEAN));
     tmp += sizeof(BOOLEAN);
-    RtlCopyMemory(tmp, &entry->buf_len, sizeof(ULONG));
+    RtlCopyMemory(tmp, &entry->u.QueryEa.buf_len, sizeof(ULONG));
     tmp += sizeof(ULONG);
     RtlCopyMemory(tmp, &entry->u.QueryEa.EaListLength, sizeof(ULONG));
     tmp += sizeof(ULONG);
@@ -163,11 +163,11 @@ void unmarshal_nfs41_eaget(
 {
     RtlCopyMemory(&cur->u.QueryEa.Overflow, *buf, sizeof(ULONG));
     *buf += sizeof(ULONG);
-    RtlCopyMemory(&cur->buf_len, *buf, sizeof(ULONG));
+    RtlCopyMemory(&cur->u.QueryEa.buf_len, *buf, sizeof(ULONG));
     *buf += sizeof(ULONG);
     if (cur->u.QueryEa.Overflow != ERROR_INSUFFICIENT_BUFFER) {
-        RtlCopyMemory(cur->buf, *buf, cur->buf_len);
-        *buf += cur->buf_len;
+        RtlCopyMemory(cur->u.QueryEa.buf, *buf, cur->u.QueryEa.buf_len);
+        *buf += cur->u.QueryEa.buf_len;
     }
 }
 
@@ -375,8 +375,8 @@ NTSTATUS nfs41_SetEaInformation(
             goto out;
         }
     }
-    entry->buf = eainfo;
-    entry->buf_len = buflen;
+    entry->u.SetEa.buf = eainfo;
+    entry->u.SetEa.buf_len = buflen;
 
     status = nfs41_UpcallWaitForReply(entry, pVNetRootContext->timeout);
     if (status) {
@@ -642,8 +642,8 @@ NTSTATUS nfs41_QueryEaInformation(
         pNetRootContext->nfs41d_version, SrvOpen->pAlreadyPrefixedName, &entry);
     if (status) goto out;
 
-    entry->buf_len = buflen;
-    entry->buf = RxContext->Info.Buffer;
+    entry->u.QueryEa.buf_len = buflen;
+    entry->u.QueryEa.buf = RxContext->Info.Buffer;
     entry->u.QueryEa.EaList = query;
     entry->u.QueryEa.EaListLength = query == NULL ? 0 :
         RxContext->QueryEa.UserEaListLength;
@@ -671,7 +671,7 @@ NTSTATUS nfs41_QueryEaInformation(
             RxContext->IoStatusBlock.Status = STATUS_SUCCESS;
             break;
         }
-        RxContext->InformationToReturn = entry->buf_len;
+        RxContext->InformationToReturn = entry->u.QueryEa.buf_len;
 #ifdef ENABLE_TIMINGS
         InterlockedIncrement(&getexattr.sops);
         InterlockedAdd64(&getexattr.size, entry->u.QueryEa.buf_len);

@@ -103,7 +103,8 @@ void unmarshal_nfs41_volume(
     nfs41_updowncall_entry *cur,
     const unsigned char *restrict *restrict buf)
 {
-    unmarshal_nfs41_attrget(cur, cur->buf, &cur->buf_len, buf, TRUE);
+    unmarshal_nfs41_attrget(cur,
+        cur->u.Volume.buf, &cur->u.Volume.buf_len, buf, TRUE);
 }
 
 static void print_queryvolume_args(
@@ -201,8 +202,8 @@ NTSTATUS nfs41_QueryVolumeInformation(
     if (status) goto out;
 
     entry->u.Volume.query = InfoClass;
-    entry->buf = RxContext->Info.Buffer;
-    entry->buf_len = RxContext->Info.LengthRemaining;
+    entry->u.Volume.buf = RxContext->Info.Buffer;
+    entry->u.Volume.buf_len = RxContext->Info.LengthRemaining;
 
     status = nfs41_UpcallWaitForReply(entry, pVNetRootContext->timeout);
     if (status) {
@@ -223,7 +224,7 @@ NTSTATUS nfs41_QueryVolumeInformation(
         InterlockedIncrement(&volume.sops);
         InterlockedAdd64(&volume.size, entry->u.Volume.buf_len);
 #endif
-        RxContext->Info.LengthRemaining -= entry->buf_len;
+        RxContext->Info.LengthRemaining -= entry->u.Volume.buf_len;
         status = STATUS_SUCCESS;
     } else {
         status = map_volume_errors(entry->status);

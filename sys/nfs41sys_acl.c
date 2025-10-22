@@ -114,7 +114,7 @@ NTSTATUS marshal_nfs41_setacl(
     else tmp += *len;
 
     header_len = *len + sizeof(SECURITY_INFORMATION) +
-        sizeof(ULONG) + entry->buf_len;
+        sizeof(ULONG) + entry->u.Acl.buf_len;
     if (header_len > buf_len) {
         status = STATUS_INSUFFICIENT_RESOURCES;
         goto out;
@@ -122,14 +122,14 @@ NTSTATUS marshal_nfs41_setacl(
 
     RtlCopyMemory(tmp, &entry->u.Acl.query, sizeof(SECURITY_INFORMATION));
     tmp += sizeof(SECURITY_INFORMATION);
-    RtlCopyMemory(tmp, &entry->buf_len, sizeof(ULONG));
+    RtlCopyMemory(tmp, &entry->u.Acl.buf_len, sizeof(ULONG));
     tmp += sizeof(ULONG);
-    RtlCopyMemory(tmp, entry->buf, entry->buf_len);
+    RtlCopyMemory(tmp, entry->u.Acl.buf, entry->u.Acl.buf_len);
     *len = header_len;
 
 #ifdef DEBUG_MARSHAL_DETAIL
     DbgP("marshal_nfs41_setacl: class=0x%x sec_desc_len=%lu\n",
-         (int)entry->u.Acl.query, (long)entry->buf_len);
+         (int)entry->u.Acl.query, (long)entry->u.Acl.buf_len);
 #endif
 out:
     return status;
@@ -144,17 +144,17 @@ NTSTATUS unmarshal_nfs41_getacl(
 
     RtlCopyMemory(&buf_len, *buf, sizeof(DWORD));
     *buf += sizeof(DWORD);
-    cur->buf = RxAllocatePoolWithTag(NonPagedPoolNx,
+    cur->u.Acl.buf = RxAllocatePoolWithTag(NonPagedPoolNx,
         buf_len, NFS41_MM_POOLTAG_ACL);
-    if (cur->buf == NULL) {
+    if (cur->u.Acl.buf == NULL) {
         cur->status = status = STATUS_INSUFFICIENT_RESOURCES;
         goto out;
     }
-    RtlCopyMemory(cur->buf, *buf, buf_len);
+    RtlCopyMemory(cur->u.Acl.buf, *buf, buf_len);
     *buf += buf_len;
-    if (buf_len > cur->buf_len)
+    if (buf_len > cur->u.Acl.buf_len)
         cur->status = STATUS_BUFFER_TOO_SMALL;
-    cur->buf_len = buf_len;
+    cur->u.Acl.buf_len = buf_len;
 
 out:
     return status;
@@ -284,7 +284,7 @@ NTSTATUS nfs41_QuerySecurityInformation(
     /* we can't provide RxContext->CurrentIrp->UserBuffer to the upcall thread
      * because it becomes an invalid pointer with that execution context
      */
-    entry->buf_len = querysecuritylength;
+    entry->u.Acl.buf_len = querysecuritylength;
 
     status = nfs41_UpcallWaitForReply(entry, pVNetRootContext->timeout);
     if (status) {
@@ -298,13 +298,13 @@ NTSTATUS nfs41_QuerySecurityInformation(
             "STATUS_BUFFER_OVERFLOW for entry, "
             "got %lu, need %lu\n",
             (unsigned long)querysecuritylength,
-            (unsigned long)entry->buf_len);
+            (unsigned long)entry->u.Acl.buf_len);
         status = STATUS_BUFFER_OVERFLOW;
-        RxContext->InformationToReturn = entry->buf_len;
+        RxContext->InformationToReturn = entry->u.Acl.buf_len;
 
-        if (entry->buf) {
-            RxFreePool(entry->buf);
-            entry->buf = NULL;
+        if (entry->u.Acl.buf) {
+            RxFreePool(entry->u.Acl.buf);
+            entry->u.Acl.buf = NULL;
         }
     } else if (entry->status == STATUS_SUCCESS) {
         /*
@@ -317,9 +317,9 @@ NTSTATUS nfs41_QuerySecurityInformation(
             nfs41_fobx->acl_len = 0;
         }
 
-        nfs41_fobx->acl = entry->buf;
-        nfs41_fobx->acl_len = entry->buf_len;
-        entry->buf = NULL;
+        nfs41_fobx->acl = entry->u.Acl.buf;
+        nfs41_fobx->acl_len = entry->u.Acl.buf_len;
+        entry->u.Acl.buf = NULL;
         KeQuerySystemTime(&nfs41_fobx->time);
 
         PSECURITY_DESCRIPTOR sec_desc = (PSECURITY_DESCRIPTOR)
@@ -336,9 +336,9 @@ NTSTATUS nfs41_QuerySecurityInformation(
     } else {
         status = map_query_acl_error(entry->status);
 
-        if (entry->buf) {
-            RxFreePool(entry->buf);
-            entry->buf = NULL;
+        if (entry->u.Acl.buf) {
+            RxFreePool(entry->u.Acl.buf);
+            entry->u.Acl.buf = NULL;
         }
     }
 out:
@@ -443,8 +443,8 @@ NTSTATUS nfs41_SetSecurityInformation(
     if (status) goto out;
 
     entry->u.Acl.query = info_class;
-    entry->buf = sec_desc;
-    entry->buf_len = RtlLengthSecurityDescriptor(sec_desc);
+    entry->u.Acl.buf = sec_desc;
+    entry->u.Acl.buf_len = RtlLengthSecurityDescriptor(sec_desc);
 #ifdef ENABLE_TIMINGS
     InterlockedIncrement(&setacl.sops);
     InterlockedAdd64(&setacl.size, entry->u.Acl.buf_len);

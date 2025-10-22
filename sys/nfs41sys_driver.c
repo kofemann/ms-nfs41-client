@@ -1358,8 +1358,8 @@ VOID fcbopen_main(PVOID ctx)
             if (status) goto out;
 
             entry->u.QueryFile.InfoClass = FileBasicInformation;
-            entry->buf = &binfo;
-            entry->buf_len = sizeof(binfo);
+            entry->u.QueryFile.buf = &binfo;
+            entry->u.QueryFile.buf_len = sizeof(binfo);
 
             status = nfs41_UpcallWaitForReply(entry, UPCALL_TIMEOUT_DEFAULT);
             if (status) goto out;

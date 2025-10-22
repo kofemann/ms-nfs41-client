@@ -186,8 +186,6 @@ typedef struct _updowncall_entry {
     HANDLE open_state;
     HANDLE session;
     PUNICODE_STRING filename;
-    PVOID buf;
-    ULONG buf_len;
     ULONGLONG ChangeTime;
     union {
         struct {
@@ -211,6 +209,8 @@ typedef struct _updowncall_entry {
         struct {
             PMDL MdlAddress;
             ULONGLONG offset;
+            PVOID buf;
+            ULONG buf_len;
             PRX_CONTEXT rxcontext;
         } ReadWrite;
         struct {
@@ -263,12 +263,18 @@ typedef struct _updowncall_entry {
             BOOLEAN initial_query;
             PMDL mdl;
             PVOID mdl_buf;
+            PVOID buf;
+            ULONG buf_len;
         } QueryFile;
         struct {
             FILE_INFORMATION_CLASS InfoClass;
+            PVOID buf;
+            ULONG buf_len;
         } SetFile;
         struct {
             DWORD mode;
+            PVOID buf;
+            ULONG buf_len;
         } SetEa;
         struct {
             PVOID EaList;
@@ -277,15 +283,21 @@ typedef struct _updowncall_entry {
             ULONG EaIndex;
             BOOLEAN ReturnSingleEntry;
             BOOLEAN RestartScan;
+            PVOID buf;
+            ULONG buf_len;
         } QueryEa;
         struct {
             PUNICODE_STRING target;
         } Symlink;
         struct {
             FS_INFORMATION_CLASS query;
+            PVOID buf;
+            ULONG buf_len;
         } Volume;
         struct {
             SECURITY_INFORMATION query;
+            PVOID buf;
+            ULONG buf_len;
         } Acl;
         struct {
             FILE_ALLOCATED_RANGE_BUFFER inrange;
