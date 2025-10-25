@@ -697,10 +697,9 @@ NPAddConnection3(
 
     (void)StringCchCatW(ConnectionName,
         NFS41_SYS_MAX_PATH_LEN, &p[i]);
-    DbgP((L"Full Connect Name: '%ls'\n", ConnectionName));
-    DbgP((L"Full Connect Name Length: %d %d\n",
-        (wcslen(ConnectionName) + 1) * sizeof(WCHAR),
-        (wcslen(ConnectionName) + 1) * sizeof(WCHAR)));
+    DbgP((L"Full Connect Name: name='%ls', len=%ld\n",
+        ConnectionName,
+        (long)(((wcslen(ConnectionName) + 1) * sizeof(WCHAR)))));
 
     if (lpNetResource->lpLocalName == NULL) {
         DWORD gc_status;
