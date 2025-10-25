@@ -117,6 +117,10 @@ static int check_4_special_identifiers(const char *restrict who,
 #endif /* NFS41_DRIVER_WS2022_HACKS */
     else if (!strncmp(who, ACE4_GROUP, ACE4_GROUP_LEN-1))
         type = WinCreatorGroupSid;
+#ifdef NFS41_DRIVER_WS2022_HACKS
+    else if (!strncmp(who, ACE4_WIN_CREATOR_GROUP, ACE4_WIN_CREATOR_GROUP_LEN-1))
+        type = WinCreatorGroupSid;
+#endif /* NFS41_DRIVER_WS2022_HACKS */
     else if (!strncmp(who, ACE4_EVERYONE, ACE4_EVERYONE_LEN-1))
         type = WinWorldSid;
 #ifdef NFS41_DRIVER_WS2022_HACKS
