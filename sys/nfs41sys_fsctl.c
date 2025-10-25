@@ -1401,11 +1401,14 @@ NTSTATUS nfs41_FsCtl(
         break;
     case FSCTL_SET_PURGE_FAILURE_MODE:
         /*
-         * For the time being just succeed this call, as OpenAFS
-         * does in openafs.git commit #0af079f2d03d1b76bd4221cb56b27091b5635fd0
-         * (https://git.openafs.org/?p=openafs.git;a=commit;h=0af079f2d03d1b76bd4221cb56b27091b5635fd0)
+         * We explicitly return here |STATUS_INVALID_DEVICE_REQUEST|, because
+         * returning |STATUS_SUCCESS| like OpenAFS (see openafs.git commit
+         * #0af079f2d03d1b76bd4221cb56b27091b5635fd0
+         * (https://git.openafs.org/?p=openafs.git;a=commit;h=0af079f2d03d1b76bd4221cb56b27091b5635fd0))
+         * somehow triggers Dpc-related crashes in
+         * |KiProcessExpiredTimerList()|, e.g. when building gcc.
          */
-        status = STATUS_SUCCESS;
+        status = STATUS_INVALID_DEVICE_REQUEST;
         break;
     default:
         break;
