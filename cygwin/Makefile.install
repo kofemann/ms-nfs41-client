@@ -167,11 +167,11 @@ installdest:
 	cp $(PROJECT_BASEDIR_DIR)/tests/wintartests/wintartest_comparewinvsgnu001.bash $(DESTDIR)/usr/share/msnfs41client/tests/misc/wintartest_comparewinvsgnu001.bash
 	cp $(PROJECT_BASEDIR_DIR)/tests/wintartests/wintartest_seq001.bash $(DESTDIR)/usr/share/msnfs41client/tests/misc/wintartest_seq001.bash
 	@ printf "# Package ksh93&co (if available) since Cygwin does not ship with it yet\n"
-	if [[ -d '$(DESTDIR)/lib/msnfs41client/x64/' ]] ; then \
+	if [[ -x '$(DESTDIR)/lib/msnfs41client/i686/nfsd.exe' ]] ; then \
 		[[ -x '/cygdrive/c/cygwin/bin/ksh93.exe' ]] && cp '/cygdrive/c/cygwin/bin/ksh93.exe' '$(DESTDIR)/lib/msnfs41client/i686/ksh93.i686.exe' ; \
 		[[ -x '/cygdrive/c/cygwin/bin/shcomp.exe' ]] && cp '/cygdrive/c/cygwin/bin/shcomp.exe' '$(DESTDIR)/lib/msnfs41client/i686/shcomp.i686.exe' ; \
 	fi
-	if [[ -d '$(DESTDIR)/lib/msnfs41client/x64/' ]] ; then \
+	if [[ -x '$(DESTDIR)/lib/msnfs41client/x64/nfsd.exe' || -x '$(DESTDIR)/lib/msnfs41client/arm64/nfsd.exe' ]] ; then \
 		[[ -x '/cygdrive/c/cygwin64/bin/ksh93.exe' ]] && cp '/cygdrive/c/cygwin64/bin/ksh93.exe' '$(DESTDIR)/lib/msnfs41client/x64/ksh93.x86_64.exe' ; \
 		[[ -x '/cygdrive/c/cygwin64/bin/shcomp.exe' ]] && cp '/cygdrive/c/cygwin64/bin/shcomp.exe' '$(DESTDIR)/lib/msnfs41client/x64/shcomp.x86_64.exe' ; \
 	fi
