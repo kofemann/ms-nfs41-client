@@ -80,6 +80,8 @@ NTSTATUS check_nfs41_queryallocatedranges_args(
         (const PFILE_ALLOCATED_RANGE_BUFFER)FsCtl->pInputBuffer;
 
     if (FsCtl->pInputBuffer == NULL) {
+        DbgP("check_nfs41_queryallocatedranges_args: "
+            "FsCtl->pInputBuffer == NULL\n");
         status = STATUS_INVALID_USER_BUFFER;
         goto out;
     }
@@ -96,11 +98,15 @@ NTSTATUS check_nfs41_queryallocatedranges_args(
         (in_range_buffer->Length.QuadPart < 0LL) ||
         (in_range_buffer->Length.QuadPart >
             (MAXLONGLONG - in_range_buffer->FileOffset.QuadPart))) {
+        DbgP("check_nfs41_queryallocatedranges_args: "
+            "in_range_buffer invalid data\n");
         status = STATUS_INVALID_PARAMETER;
         goto out;
     }
 
     if (FsCtl->pOutputBuffer == NULL) {
+        DbgP("check_nfs41_queryallocatedranges_args: "
+            "FsCtl->pOutputBuffer == NULL\n");
         status = STATUS_INVALID_USER_BUFFER;
         goto out;
     }
@@ -461,6 +467,7 @@ NTSTATUS nfs41_SetZeroData(
         goto out;
 
     if (FsCtl->pInputBuffer == NULL) {
+        DbgP("nfs41_SetZeroData: FsCtl->pInputBuffer == NULL\n");
         status = STATUS_INVALID_USER_BUFFER;
         goto out;
     }
@@ -656,6 +663,8 @@ NTSTATUS nfs41_DuplicateData(
         goto out;
 
     if (FsCtl->pInputBuffer == NULL) {
+        DbgP("nfs41_DuplicateData: "
+            "FsCtl->pInputBuffer == NULL\n");
         status = STATUS_INVALID_USER_BUFFER;
         goto out;
     }

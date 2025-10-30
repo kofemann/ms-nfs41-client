@@ -220,8 +220,11 @@ NTSTATUS map_readwrite_errors(
 static NTSTATUS check_nfs41_read_args(
     IN PRX_CONTEXT RxContext)
 {
-    if (!RxContext->LowIoContext.ParamsFor.ReadWrite.Buffer)
+    if (RxContext->LowIoContext.ParamsFor.ReadWrite.Buffer == NULL) {
+        DbgP("check_nfs41_read_args: "
+            "RxContext->LowIoContext.ParamsFor.ReadWrite.Buffer == NULL\n");
         return STATUS_INVALID_USER_BUFFER;
+    }
     return STATUS_SUCCESS;
 }
 
@@ -337,7 +340,9 @@ static NTSTATUS check_nfs41_write_args(
     __notnull PNFS41_V_NET_ROOT_EXTENSION pVNetRootContext =
         NFS41GetVNetRootExtension(RxContext->pRelevantSrvOpen->pVNetRoot);
 
-    if (!RxContext->LowIoContext.ParamsFor.ReadWrite.Buffer) {
+    if (RxContext->LowIoContext.ParamsFor.ReadWrite.Buffer == NULL) {
+        DbgP("check_nfs41_write_args: "
+            "RxContext->LowIoContext.ParamsFor.ReadWrite.Buffer == NULL\n");
         status = STATUS_INVALID_USER_BUFFER;
         goto out;
     }

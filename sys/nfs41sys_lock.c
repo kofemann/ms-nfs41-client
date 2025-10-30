@@ -186,8 +186,10 @@ NTSTATUS nfs41_IsLockRealizable(
     FsRtlEnterFileSystem();
 
     /* NFS lock operations with length=0 MUST fail with NFS4ERR_INVAL */
-    if (Length->QuadPart == 0)
+    if (Length->QuadPart == 0) {
+        DbgP("nfs41_IsLockRealizable: Length->QuadPart == 0 not supported\n");
         status = STATUS_NOT_SUPPORTED;
+    }
 
     FsRtlExitFileSystem();
 #ifdef DEBUG_LOCK

@@ -520,6 +520,7 @@ NTSTATUS check_nfs41_create_args(
     }
 
     if (isStream(SrvOpen->pAlreadyPrefixedName)) {
+        DbgP("nfs41_Create: Streams not supported (yet)\n");
         status = STATUS_NOT_SUPPORTED;
         goto out;
     }

@@ -610,6 +610,8 @@ NTSTATUS check_nfs41_setattr_args(
             goto out;
         }
         if (rinfo->RootDirectory) {
+            DbgP("check_nfs41_setattr_args: "
+                "rinfo->RootDirectory != NULL not supported\n");
             status = STATUS_INVALID_PARAMETER;
             goto out;
         }
@@ -629,6 +631,8 @@ NTSTATUS check_nfs41_setattr_args(
             goto out;
         }
         if (linfo->RootDirectory) {
+            DbgP("check_nfs41_setattr_args: "
+                "linfo->RootDirectory != NULL not supported\n");
             status = STATUS_INVALID_PARAMETER;
             goto out;
         }

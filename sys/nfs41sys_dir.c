@@ -216,8 +216,10 @@ NTSTATUS map_querydir_errors(
 NTSTATUS check_nfs41_dirquery_args(
     IN PRX_CONTEXT RxContext)
 {
-    if (RxContext->Info.Buffer == NULL)
+    if (RxContext->Info.Buffer == NULL) {
+        DbgP("check_nfs41_dirquery_args: RxContext->Info.Buffer == NULL\n");
         return STATUS_INVALID_USER_BUFFER;
+    }
     return STATUS_SUCCESS;
 }
 

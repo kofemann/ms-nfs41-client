@@ -206,15 +206,19 @@ NTSTATUS check_nfs41_getacl_args(
     SECURITY_INFORMATION info_class =
         RxContext->CurrentIrpSp->Parameters.QuerySecurity.SecurityInformation;
 
-    /* we don't support sacls */
+    /* we don't support sacls (yet) */
     if (info_class == SACL_SECURITY_INFORMATION ||
             info_class == LABEL_SECURITY_INFORMATION) {
+        DbgP("check_nfs41_getacl_args: SACLs not supported (yet)\n");
         status = STATUS_NOT_SUPPORTED;
         goto out;
     }
     if (RxContext->CurrentIrp->UserBuffer == NULL &&
-            RxContext->CurrentIrpSp->Parameters.QuerySecurity.Length)
+            RxContext->CurrentIrpSp->Parameters.QuerySecurity.Length) {
+        DbgP("check_nfs41_getacl_args: "
+            "RxContext->CurrentIrp->UserBuffer == NULL\n");
         status = STATUS_INVALID_USER_BUFFER;
+    }
 out:
     return status;
 }
@@ -397,9 +401,10 @@ NTSTATUS check_nfs41_setacl_args(
         status = STATUS_MEDIA_WRITE_PROTECTED;
         goto out;
     }
-    /* we don't support sacls */
+    /* we don't support sacls (yet) */
     if (info_class == SACL_SECURITY_INFORMATION  ||
             info_class == LABEL_SECURITY_INFORMATION) {
+        DbgP("check_nfs41_setacl_args: SACLs not supported (yet)\n");
         status = STATUS_NOT_SUPPORTED;
         goto out;
     }
