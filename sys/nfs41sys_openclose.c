@@ -507,10 +507,14 @@ NTSTATUS check_nfs41_create_args(
         goto out;
     }
 
-    if (FlagOn(Fcb->FcbState, FCB_STATE_PAGING_FILE )) {
-        print_error("FCB_STATE_PAGING_FILE not implemented\n");
+    if (FlagOn(Fcb->FcbState, FCB_STATE_PAGING_FILE)) {
+#ifdef NFS41_DRIVER_HACK_ENABLE_PAGEFILE_SUPPORT
+        DbgP("nfs41_Create: FCB_STATE_PAGING_FILE set\n");
+#else
+        print_error("nfs41_Create: FCB_STATE_PAGING_FILE not implemented\n");
         status = STATUS_NOT_IMPLEMENTED;
         goto out;
+#endif /* NFS41_DRIVER_HACK_ENABLE_PAGEFILE_SUPPORT */
     }
 
     if (!pNetRootContext->mounts_init) {
