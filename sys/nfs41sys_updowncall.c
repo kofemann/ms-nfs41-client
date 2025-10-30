@@ -694,8 +694,6 @@ NTSTATUS nfs41_downcall(
                 (void)nfs41_UnmapLockedKernelPagesInNfsDaemonAddressSpace(
                     cur->u.QueryFile.mdl_buf,
                     cur->u.QueryFile.mdl);
-                (void)nfs41_UnlockKernelPages(cur->u.QueryFile.mdl);
-                IoFreeMdl(cur->u.QueryFile.mdl);
                 cur->u.QueryFile.mdl_buf = NULL;
                 cur->u.QueryFile.mdl = NULL;
             }

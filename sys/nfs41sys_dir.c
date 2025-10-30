@@ -103,6 +103,15 @@ NTSTATUS marshal_nfs41_dirquery(
     RtlCopyMemory(tmp, &entry->u.QueryFile.return_single, sizeof(BOOLEAN));
     tmp += sizeof(BOOLEAN);
 
+#pragma warning( push )
+/*
+ * C28145: "The opaque MDL structure should not be modified by a
+ * driver.", |MDL_MAPPING_CAN_FAIL| is the exception
+ */
+#pragma warning (disable : 28145)
+    entry->u.QueryFile.mdl->MdlFlags |= MDL_MAPPING_CAN_FAIL;
+#pragma warning( pop )
+
     status = nfs41_MapLockedPagesInNfsDaemonAddressSpace(
         &entry->u.QueryFile.mdl_buf,
         entry->u.QueryFile.mdl,
@@ -264,27 +273,16 @@ NTSTATUS nfs41_QueryDirectory(
 
     entry->u.QueryFile.InfoClass = InfoClass;
     entry->u.QueryFile.buf_len = RxContext->Info.LengthRemaining;
-    entry->u.QueryFile.mdl = IoAllocateMdl(RxContext->Info.Buffer,
-        RxContext->Info.LengthRemaining, FALSE, FALSE, NULL);
+    /*
+     * |RxContext->CurrentIrp->MdlAddress| is already locked by RDBSS via
+     * |RxLockUserBuffer(RxContext->CurrentIrp, IoModifyAccess, ...)| (to
+     * fill |RxContext->Info.Buffer|) before calling
+     * |nfs41_QueryDirectory()|, so we do not have to lock/unlock it
+     * ourselves
+     */
+    entry->u.QueryFile.mdl = RxContext->CurrentIrp->MdlAddress;
     if (entry->u.QueryFile.mdl == NULL) {
         status = STATUS_INTERNAL_ERROR;
-        goto out;
-    }
-#pragma warning( push )
-/*
- * C28145: "The opaque MDL structure should not be modified by a
- * driver.", |MDL_MAPPING_CAN_FAIL| is the exception
- */
-#pragma warning (disable : 28145)
-    entry->u.QueryFile.mdl->MdlFlags |= MDL_MAPPING_CAN_FAIL;
-#pragma warning( pop )
-
-    status = nfs41_ProbeAndLockKernelPages(entry->u.QueryFile.mdl,
-        IoModifyAccess);
-    if (status) {
-        DbgP("nfs41_QueryDirectory: "
-            "nfs41_ProbeAndLockKernelPages() failed, status=0x%lx\n",
-            (long)status);
         goto out;
     }
 
@@ -325,11 +323,6 @@ NTSTATUS nfs41_QueryDirectory(
 
 out:
     if (entry) {
-        if (entry->u.QueryFile.mdl) {
-            (void)nfs41_UnlockKernelPages(entry->u.QueryFile.mdl);
-            IoFreeMdl(entry->u.QueryFile.mdl);
-            entry->u.QueryFile.mdl = NULL;
-        }
         nfs41_UpcallDestroy(entry);
     }
 #ifdef ENABLE_TIMINGS
