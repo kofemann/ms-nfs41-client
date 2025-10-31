@@ -1076,7 +1076,11 @@ int get_file_remote_protocol_info(const char *progname, const char *filename)
 {
     int res = EXIT_FAILURE;
     bool ok;
-    FILE_REMOTE_PROTOCOL_INFO frpi;
+#ifdef _MSC_BUILD
+    __declspec(align(16)) FILE_REMOTE_PROTOCOL_INFO frpi;
+#else
+    FILE_REMOTE_PROTOCOL_INFO frpi __attribute__((aligned(16)));
+#endif
     int i;
     (void)memset(&frpi, 0, sizeof(frpi));
 
