@@ -1162,7 +1162,7 @@ int get_file_remote_protocol_info(const char *progname, const char *filename)
 #if (_WIN32_WINNT < _WIN32_WINNT_WIN8)
     /* ProtocolSpecificReserved */
     (void)printf("\tcompound ProtocolSpecificReserved=(\n");
-    (void)printf("\t\ttypeset -a Reserved=(\n");
+    (void)printf("\t\ttypeset -l -i -a Reserved=(\n");
     for (i=0 ; i < 16 ; i++) {
         (void)printf("\t\t\t[%d]=0x%lx\n",
             i,
@@ -1173,7 +1173,39 @@ int get_file_remote_protocol_info(const char *progname, const char *filename)
 #else
     /* ProtocolSpecific */
     (void)printf("\tcompound ProtocolSpecific=(\n");
-    (void)printf("\t\ttypeset -a Reserved=(\n");
+
+    if (frpi.Protocol == WNNC_NET_SMB) {
+        (void)printf("\t\tcompound Smb2=(\n");
+        (void)printf("\t\t\tcompound Server=(\n");
+        (void)printf("\t\t\t\tCapabilities=0x%lx\n",
+            (unsigned long)frpi.ProtocolSpecific.Smb2.Server.Capabilities);
+        (void)printf("\t\t\t)\n");
+        (void)printf("\t\t\tcompound Share=(\n");
+        (void)printf("\t\t\t\tCapabilities=0x%lx\n",
+            (unsigned long)frpi.ProtocolSpecific.Smb2.Share.Capabilities);
+        (void)printf("\t\t\t\tShareFlags=0x%lx\n",
+            (unsigned long)frpi.ProtocolSpecific.Smb2.Share.ShareFlags);
+#if 0 /* MinGW header do not have these fields yet */
+        (void)printf("\t\t\t\tCachingFlags=0x%lx\n",
+            (unsigned long)frpi.ProtocolSpecific.Smb2.Share.CachingFlags);
+        (void)printf("\t\t\t\tShareType=%d\n",
+            (int)frpi.ProtocolSpecific.Smb2.Share.ShareType);
+
+        (void)printf("\t\t\t\ttypeset -l -i -a Reserved0=(\n");
+        for (i=0 ; i < 4 ; i++) {
+            (void)printf("\t\t\t\t\t[%d]=0x%lx\n",
+                i,
+                (long)frpi.ProtocolSpecific.Smb2.Share.Reserved0[i]);
+        }
+        (void)printf("\t\t\t\t)\n");
+        (void)printf("\t\t\t\tReserved1=0x%lx\n",
+            (unsigned long)frpi.ProtocolSpecific.Smb2.Share.Reserved1);
+#endif
+        (void)printf("\t\t\t)\n");
+        (void)printf("\t\t)\n");
+    }
+
+    (void)printf("\t\ttypeset -l -i -a Reserved=(\n");
     for (i=0 ; i < 16 ; i++) {
         (void)printf("\t\t\t[%d]=0x%lx\n",
             i,
