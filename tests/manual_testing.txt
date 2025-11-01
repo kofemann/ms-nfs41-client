@@ -1,5 +1,5 @@
 #
-# ms-nfs41-client manual testing sequence, 2025-10-20
+# ms-nfs41-client manual testing sequence, 2025-11-01
 #
 # Draft version, needs to be turned into automated tests
 # if possible
@@ -1141,6 +1141,46 @@ mkdir testruns && cd testruns
 # memory-mapped IO (not async)
 ../DiskSpd/amd64/diskspd.exe -c512M -b1M -t32 -r -o64 -d120 -Sm -Nv -w50 testfile1.dat
 
+
+#
+# FileDisk
+# (use plain files as disks, disk/CDROM images)
+#
+
+#
+# install
+#
+wget 'https://www.accum.se/~bosse/filedisk/filedisk-22.zip'
+unzip filedisk-22.zip
+cd filedisk-22
+cp ./sys/Release/x64/filedisk.sys /cygdrive/c/Windows/System32/drivers/.
+cp ./sys/Release/x64/filedisk.pdb /cygdrive/c/Windows/System32/drivers/.
+cp ./exe/Release/x64/filedisk.exe /cygdrive/c/Windows/.
+chmod a+rx /cygdrive/c/Windows/filedisk.exe
+sc create filedisk binPath='C:\Windows\System32\drivers\filedisk.sys' type=kernel
+
+#
+# mounting a CD image
+#
+net start filedisk
+filedisk /mount 1 'N:\download\debian-12.4.0-amd64-DVD-1.iso' /cd V:
+cd /cygdrive/v
+cat README.txt
+cd ~
+filedisk /umount V:
+
+#
+# Create NTFS filesystem and use it
+#
+rm -f /cygdrive/n/winntfs_filedisk_001.img
+filedisk /mount 2 'N:\winntfs_filedisk_001.img' 8192G U:
+format.com U: /FS:NTFS "/V:NTFSonNFS4_001" /Q /X
+mkdir /cygdrive/u/test1 && cd /cygdrive/u/test1
+rm -Rfv bash && time nice ksh93 /home/roland_mainz/work/msnfs41_uidmapping/ms-nfs41-client/tests/nfsbuildtest/nfsbuildtest.ksh93 bash build
+cd
+filedisk /umount U:
+lssparse /cygdrive/n/winntfs_filedisk_001.img
+rm /cygdrive/n/winntfs_filedisk_001.img
 
 #
 # EOF.
