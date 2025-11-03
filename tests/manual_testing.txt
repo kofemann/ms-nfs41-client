@@ -1,5 +1,5 @@
 #
-# ms-nfs41-client manual testing sequence, 2025-11-01
+# ms-nfs41-client manual testing sequence, 2025-11-03
 #
 # Draft version, needs to be turned into automated tests
 # if possible
@@ -1146,16 +1146,25 @@ mkdir testruns && cd testruns
 # FileDisk
 # (use plain files as disks, disk/CDROM images)
 #
+# Original version is 'https://www.accum.se/~bosse/filedisk/filedisk-22.zip',
+# we use our fork which supports punching sparse file holes and minor other
+# tweaks
+#
+
+#
+# build
+#
+export PATH="/cygdrive/c/Program Files (x86)/Microsoft Visual Studio/2019/Community/MSBuild/Current/Bin/:$PATH"
+git clone https://github.com/gisburn/filedisk-sparse.git
+cd filedisk-sparse/
+MSBuild.exe filedisk.sln -t:Build -p:Configuration=Debug -p:Platform=x64
 
 #
 # install
 #
-wget 'https://www.accum.se/~bosse/filedisk/filedisk-22.zip'
-unzip filedisk-22.zip
-cd filedisk-22
-cp ./sys/Release/x64/filedisk.sys /cygdrive/c/Windows/System32/drivers/.
-cp ./sys/Release/x64/filedisk.pdb /cygdrive/c/Windows/System32/drivers/.
-cp ./exe/Release/x64/filedisk.exe /cygdrive/c/Windows/.
+cp ./sys/Debug/x64/filedisk.sys /cygdrive/c/Windows/System32/drivers/.
+cp ./sys/Debug/x64/filedisk.pdb /cygdrive/c/Windows/System32/drivers/.
+cp ./exe/Debug/x64/filedisk.exe /cygdrive/c/Windows/.
 chmod a+rx /cygdrive/c/Windows/filedisk.exe
 sc create filedisk binPath='C:\Windows\System32\drivers\filedisk.sys' type=kernel
 
@@ -1173,8 +1182,8 @@ filedisk /umount V:
 # Create NTFS filesystem and use it
 #
 rm -f /cygdrive/n/winntfs_filedisk_001.img
-filedisk /mount 2 'N:\winntfs_filedisk_001.img' 8192G U:
-format.com U: /FS:NTFS "/V:NTFSonNFS4_001" /Q /X
+filedisk /mount 2 'N:\winntfs_filedisk_001.img' 1T U:
+format.com U: /FS:NTFS /A:8192 "/V:NTFSonNFS4_001" /Q /X
 mkdir /cygdrive/u/test1 && cd /cygdrive/u/test1
 rm -Rfv bash && time nice ksh93 /home/roland_mainz/work/msnfs41_uidmapping/ms-nfs41-client/tests/nfsbuildtest/nfsbuildtest.ksh93 bash build
 cd
