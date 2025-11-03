@@ -776,6 +776,16 @@ Within WSL mount UNC path returned by `/sbin/nfs_mount`
       Dieser Fehler wurde von dem Server zurueckgegeben, auf dem sich die
       Datei befindet. Versuchen Sie, die Datei woanders zu speichern.
 
+- [VHD/VHDX
+  disks](https://learn.microsoft.com/en-us/windows-server/storage/disk-management/manage-virtual-hard-disks)
+  currently (Win10, Win11) cannot use files on ms-nfs41-client/NFSv4
+  filesystems as storage. It seems the Windows code makes explicit
+  checks for SMB filesystems, and rejects any non-SMB filesystems.
+
+  As an alternative `filedisk-sparse`
+  (<https://github.com/gisburn/filedisk-sparse/>) can be used to mount
+  (sparse) files as disks or CDROM images.
+
 # Troubleshooting && finding bugs/debugging
 
 - `nfsd_debug.exe` has the `-d` option to set a level for debug output.

@@ -875,6 +875,15 @@ konnten gespeichert werden. Daten gingen verloren.
 Dieser Fehler wurde von dem Server zurueckgegeben, auf dem sich die
 Datei befindet. Versuchen Sie, die Datei woanders zu speichern.</programlisting>
       </listitem>
+      <listitem>
+        <para><link xl:href="https://learn.microsoft.com/en-us/windows-server/storage/disk-management/manage-virtual-hard-disks">VHD/VHDX disks</link>
+        currently (Win10, Win11) cannot use files on ms-nfs41-client/NFSv4 filesystems as storage.
+        It seems the Windows code makes explicit checks for SMB filesystems,
+        and rejects any non-SMB filesystems.</para>
+        <para>As an alternative <literal>filedisk-sparse</literal>
+        (<link xl:href="https://github.com/gisburn/filedisk-sparse/">https://github.com/gisburn/filedisk-sparse/</link>)
+        can be used to mount (sparse) files as disks or CDROM images.</para>
+      </listitem>
     </itemizedlist>
   </section>
 
