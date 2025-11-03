@@ -883,6 +883,9 @@ Datei befindet. Versuchen Sie, die Datei woanders zu speichern.</programlisting>
         <para>As an alternative <literal>filedisk-sparse</literal>
         (<link xl:href="https://github.com/gisburn/filedisk-sparse/">https://github.com/gisburn/filedisk-sparse/</link>)
         can be used to mount (sparse) files as disks or CDROM images.</para>
+        <para>This can also be used to host per-machine software installations/data storage (e.g. use
+        <command>filedisk /mount 35 'N:\winntfs_filedisk_003.img' S:</command> as global mount
+        which require NTFS or ReFS, but should be physically hosted on the NFS server.</para>
       </listitem>
     </itemizedlist>
   </section>

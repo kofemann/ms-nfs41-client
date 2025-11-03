@@ -786,6 +786,12 @@ Within WSL mount UNC path returned by `/sbin/nfs_mount`
   (<https://github.com/gisburn/filedisk-sparse/>) can be used to mount
   (sparse) files as disks or CDROM images.
 
+  This can also be used to host per-machine software installations/data
+  storage (e.g. use
+  `filedisk /mount 35 'N:\winntfs_filedisk_003.img' S:` as global mount
+  which require NTFS or ReFS, but should be physically hosted on the NFS
+  server.
+
 # Troubleshooting && finding bugs/debugging
 
 - `nfsd_debug.exe` has the `-d` option to set a level for debug output.
