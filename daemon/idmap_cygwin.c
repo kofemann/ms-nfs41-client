@@ -69,6 +69,14 @@ int cygwin_getent_passwd(const char *name, char *res_loginname, uid_t *res_uid, 
         ("--> cygwin_getent_passwd(name='%s')\n",
         name));
 
+    if (name[0] == '\0') {
+        DPRINTF(0,
+            ("cygwin_getent_passwd(name='%s'): "
+            "ERROR: Empty user name.\n",
+            name));
+        goto fail;
+    }
+
     /* fixme: better quoting for |name| needed */
     (void)snprintf(cmdbuff, sizeof(cmdbuff),
         "%s nfsserver_owner2localaccount \"%s\"",
@@ -214,6 +222,14 @@ int cygwin_getent_group(const char* name, char* res_group_name, gid_t* res_gid)
     DPRINTF(CYGWINIDLVL,
         ("--> cygwin_getent_group(name='%s')\n",
         name));
+
+    if (name[0] == '\0') {
+        DPRINTF(0,
+            ("cygwin_getent_group(name='%s'): "
+            "ERROR: Empty group name.\n",
+            name));
+        goto fail;
+    }
 
     /* fixme: better quoting for |name| needed */
     (void)snprintf(cmdbuff, sizeof(cmdbuff),
