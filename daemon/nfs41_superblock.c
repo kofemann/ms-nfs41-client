@@ -169,7 +169,7 @@ static int get_superblock_attrs(
         superblock->time_delta.seconds = 1;
 
     /* initialize the default getattr mask */
-    superblock->default_getattr.count = 2;
+    superblock->default_getattr.count = 3;
     superblock->default_getattr.arr[0] = FATTR4_WORD0_TYPE
         | FATTR4_WORD0_CHANGE | FATTR4_WORD0_SIZE
         | FATTR4_WORD0_FSID | FATTR4_WORD0_FILEID
@@ -179,7 +179,10 @@ static int get_superblock_attrs(
         | FATTR4_WORD1_SYSTEM
         | FATTR4_WORD1_TIME_ACCESS | FATTR4_WORD1_TIME_CREATE
         | FATTR4_WORD1_TIME_MODIFY;
-    superblock->default_getattr.arr[2] = FATTR4_WORD2_OFFLINE;
+    superblock->default_getattr.arr[2] = 0;
+    if (root->nfsminorvers >= 2) {
+        superblock->default_getattr.arr[2] |= FATTR4_WORD2_OFFLINE;
+    }
 
     nfs41_superblock_supported_attrs(superblock, &superblock->default_getattr);
 

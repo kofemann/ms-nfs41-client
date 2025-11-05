@@ -89,6 +89,7 @@ typedef struct __nfs41_lookup_component_res {
 
 
 static void init_component_args(
+    IN nfs41_session *session,
     IN nfs41_lookup_component_args *args,
     IN nfs41_lookup_component_res *res,
     IN nfs41_abs_path *path,
@@ -107,7 +108,10 @@ static void init_component_args(
         | FATTR4_WORD1_TIME_ACCESS | FATTR4_WORD1_TIME_CREATE
         | FATTR4_WORD1_TIME_MODIFY
         | FATTR4_WORD1_OWNER | FATTR4_WORD1_OWNER_GROUP;
-    args->attr_request.arr[2] = FATTR4_WORD2_OFFLINE;
+    args->attr_request.arr[2] = 0;
+    if (session->client->root->nfsminorvers >= 2) {
+        args->attr_request.arr[2] |= FATTR4_WORD2_OFFLINE;
+    }
 
     args->getrootattr.attr_request = &args->attr_request;
     res->root.path = path;
@@ -357,7 +361,7 @@ static int server_lookup_loop(
     uint32_t count;
     int status = NO_ERROR;
 
-    init_component_args(&args, &res, path, referral);
+    init_component_args(session, &args, &res, path, referral);
     parent = NULL;
     target = NULL;
 
