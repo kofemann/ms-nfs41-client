@@ -307,6 +307,19 @@ int main(int ac, char *av[])
     retval = EXIT_SUCCESS;
 
 cleanup:
+    if ((retval != EXIT_SUCCESS) && (hDest != INVALID_HANDLE_VALUE)) {
+        (void)printf("# Failure, deleting destination file...\n");
+
+        FILE_DISPOSITION_INFO di = { .DeleteFile = TRUE };
+        bResult = SetFileInformationByHandle(hDest,
+            FileDispositionInfo, &di, sizeof(di));
+        if (!bResult) {
+            (void)fprintf(stderr,
+                "Cannot mark destination file for deletion, lasterr=%d\n",
+                (int)GetLastError());
+        }
+    }
+
     if (hSrc != INVALID_HANDLE_VALUE) {
         (void)CloseHandle(hSrc);
     }
