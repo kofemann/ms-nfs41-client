@@ -796,8 +796,13 @@ int handle_duplicatedata(void *daemon_context,
         .count = 3,
         .arr[0] = FATTR4_WORD0_SIZE|FATTR4_WORD0_FSID,
         .arr[1] = 0UL,
-        .arr[2] = FATTR4_WORD2_CLONE_BLKSIZE
+        .arr[2] = 0UL
     };
+
+    if (upcall->opcode == NFS41_SYSOP_FSCTL_DUPLICATE_DATA) {
+        dst_attr_request.arr[2] |= FATTR4_WORD2_CLONE_BLKSIZE;
+    }
+
     (void)memset(&info, 0, sizeof(info));
     status = nfs41_getattr(dst_session, dst_file, &dst_attr_request,
         &info);
