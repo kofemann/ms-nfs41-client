@@ -179,6 +179,17 @@ int query_sparsefile_datasections(nfs41_open_state *state,
             (int)data_seek_sr_eof,
             (int)hole_seek_sr_eof));
 
+        /*
+         * Check whether we reached an EOF
+         */
+        if ((data_size == 0LL) &&
+            ((data_seek_sr_eof == TRUE) || (hole_seek_sr_eof == TRUE))) {
+            DPRINTF(QARLVL,
+                ("(data_size==0)&&"
+                "(data_seek_sr_eof==TRUE||hole_seek_sr_eof==TRUE), EOF\n"));
+            break;
+        }
+
         if (i < out_maxrecords) {
             outbuffer[i].FileOffset.QuadPart = data_seek_sr_offset;
             outbuffer[i].Length.QuadPart = data_size;
