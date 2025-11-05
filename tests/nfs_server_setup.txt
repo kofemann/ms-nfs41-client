@@ -225,7 +225,12 @@ printf 'V4: /\n' >'/etc/exports'
 printf '/nfsdata -network=10.49.202.0 -mask=255.255.255.0  -sec=sys\n' >>'/etc/exports'
 service nfsd start
 
-##### 2. Misc commands:
+##### 2. ms-nfs41-client setup:
+- Normal setup
+- Add groups entry for group "wheel" if neccesary:
+$ printf 'wheel:S-1-0-0:0:\n' >>'/etc/group'
+
+##### 3. Misc commands:
 pw groupadd group -n None -g 197121
 pw groupadd group -n ced -g 197608
 pw useradd -n ced -u 197608 -g None -G None,ced -m -s /bin/sh
