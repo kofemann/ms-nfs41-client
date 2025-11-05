@@ -237,6 +237,11 @@ static int get_superblock_attrs(
             *is++ = ',';
         is = stpcpy(is, "SYSTEM");
     }
+    if (bitmap_isset(&superblock->supported_attrs, 2, FATTR4_WORD2_OFFLINE)) {
+        if (is != infobuff)
+            *is++ = ',';
+        is = stpcpy(is, "OFFLINE");
+    }
     logprintf("get_superblock_attrs(fsid=(%llu,%llu)): "
         "Supported Windows/DOS attributes: { %s }\n",
         superblock->fsid.major, superblock->fsid.minor,
