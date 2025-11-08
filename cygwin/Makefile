@@ -187,7 +187,11 @@ installdest64: \
 # in parallel
 installdest: installdest_util installdest32 .WAIT installdest64
 
-bintarball: installdest $(PROJECT_BASEDIR_DIR)/README.txt $(PROJECT_BASEDIR_DIR)/README.md
+bintarball: \
+	installdest \
+	$(PROJECT_BASEDIR_DIR)/README.txt \
+	$(PROJECT_BASEDIR_DIR)/README.html \
+	$(PROJECT_BASEDIR_DIR)/README.md
 	set -o errexit ; set -o xtrace ; \
 	base_filename="msnfs41client_cygwin_64bit32bit_binaries_$$(date +%Y%m%d_%Hh%Mm)_git$$(git rev-parse --short HEAD)" ; \
 	( \
@@ -201,14 +205,22 @@ bintarball: installdest $(PROJECT_BASEDIR_DIR)/README.txt $(PROJECT_BASEDIR_DIR)
 	archive_sha256hash="$$(openssl sha256 -r "$${base_filename}.tar.bz2" | while read a dummy ; do printf "%s\n" "$$a" ; done)" ; \
 		sed -E <"../README.txt" \
 			-e "s/\\$$\{bintarball.base_filename\}/$${base_filename}/g" \
-			-e "s/\\$$\{bintarball.archive_sha256hash\}/$${archive_sha256hash}/g" >"$${base_filename}.readme" \
+			-e "s/\\$$\{bintarball.archive_sha256hash\}/$${archive_sha256hash}/g" >"$${base_filename}.readme" ; \
+		sed -E <"../README.html" \
+			-e "s/\\$$\{bintarball.base_filename\}/$${base_filename}/g" \
+			-e "s/\\$$\{bintarball.archive_sha256hash\}/$${archive_sha256hash}/g" >"$${base_filename}.html" \
 	) ; \
 	printf "\n#\n# 32bit+64bit tarball is ready now\n#\n" ; \
 	ls -l "$(DESTDIR)/$${base_filename}.tar.bz2" ; \
-	ls -l "$(DESTDIR)/$${base_filename}.readme"
+	ls -l "$(DESTDIR)/$${base_filename}.readme" ; \
+	ls -l "$(DESTDIR)/$${base_filename}.html"
 	sync
 
-bintarball32: installdest32 $(PROJECT_BASEDIR_DIR)/README.txt $(PROJECT_BASEDIR_DIR)/README.md
+bintarball32: \
+	installdest32 \
+	$(PROJECT_BASEDIR_DIR)/README.txt \
+	$(PROJECT_BASEDIR_DIR)/README.html \
+	$(PROJECT_BASEDIR_DIR)/README.md
 	set -o errexit ; set -o xtrace ; \
 	base_filename="msnfs41client_cygwin_32bit_binaries_$$(date +%Y%m%d_%Hh%Mm)_git$$(git rev-parse --short HEAD)" ; \
 	( \
@@ -222,14 +234,22 @@ bintarball32: installdest32 $(PROJECT_BASEDIR_DIR)/README.txt $(PROJECT_BASEDIR_
 	archive_sha256hash="$$(openssl sha256 -r "$${base_filename}.tar.bz2" | while read a dummy ; do printf "%s\n" "$$a" ; done)" ; \
 		sed -E <"../README.txt" \
 			-e "s/\\$$\{bintarball.base_filename\}/$${base_filename}/g" \
-			-e "s/\\$$\{bintarball.archive_sha256hash\}/$${archive_sha256hash}/g" >"$${base_filename}.readme" \
+			-e "s/\\$$\{bintarball.archive_sha256hash\}/$${archive_sha256hash}/g" >"$${base_filename}.readme" ; \
+		sed -E <"../README.html" \
+			-e "s/\\$$\{bintarball.base_filename\}/$${base_filename}/g" \
+			-e "s/\\$$\{bintarball.archive_sha256hash\}/$${archive_sha256hash}/g" >"$${base_filename}.html" \
 	) ; \
 	printf "\n#\n# 32bit-only tarball is ready now\n#\n" ; \
 	ls -l "$(DESTDIR)/$${base_filename}.tar.bz2" ; \
-	ls -l "$(DESTDIR)/$${base_filename}.readme"
+	ls -l "$(DESTDIR)/$${base_filename}.readme" ; \
+	ls -l "$(DESTDIR)/$${base_filename}.html"
 	sync
 
-bintarball64: installdest64 $(PROJECT_BASEDIR_DIR)/README.txt $(PROJECT_BASEDIR_DIR)/README.md
+bintarball64: \
+	installdest64 \
+	$(PROJECT_BASEDIR_DIR)/README.txt \
+	$(PROJECT_BASEDIR_DIR)/README.html \
+	$(PROJECT_BASEDIR_DIR)/README.md
 	set -o errexit ; set -o xtrace ; \
 	base_filename="msnfs41client_cygwin_64bit_binaries_$$(date +%Y%m%d_%Hh%Mm)_git$$(git rev-parse --short HEAD)" ; \
 	( \
@@ -243,11 +263,15 @@ bintarball64: installdest64 $(PROJECT_BASEDIR_DIR)/README.txt $(PROJECT_BASEDIR_
 	archive_sha256hash="$$(openssl sha256 -r "$${base_filename}.tar.bz2" | while read a dummy ; do printf "%s\n" "$$a" ; done)" ; \
 		sed -E <"../README.txt" \
 			-e "s/\\$$\{bintarball.base_filename\}/$${base_filename}/g" \
-			-e "s/\\$$\{bintarball.archive_sha256hash\}/$${archive_sha256hash}/g" >"$${base_filename}.readme" \
+			-e "s/\\$$\{bintarball.archive_sha256hash\}/$${archive_sha256hash}/g" >"$${base_filename}.readme" ; \
+		sed -E <"../README.html" \
+			-e "s/\\$$\{bintarball.base_filename\}/$${base_filename}/g" \
+			-e "s/\\$$\{bintarball.archive_sha256hash\}/$${archive_sha256hash}/g" >"$${base_filename}.html" \
 	) ; \
 	printf "\n#\n# 64bit-only tarball is ready now\n#\n" ; \
 	ls -l "$(DESTDIR)/$${base_filename}.tar.bz2" ; \
-	ls -l "$(DESTDIR)/$${base_filename}.readme"
+	ls -l "$(DESTDIR)/$${base_filename}.readme" ; \
+	ls -l "$(DESTDIR)/$${base_filename}.html"
 	sync
 
 $(PROJECT_BASEDIR_DIR)/README.html: $(PROJECT_BASEDIR_DIR)/docs/README.xml
