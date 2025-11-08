@@ -854,9 +854,7 @@ Source code can be obtained from
   - WDK for Windows 10, version 2004, from
     <https://go.microsoft.com/fwlink/?linkid=2128854>
 
-  - Cygwin 64bit \>= 3.5.0 (see
-    `ms-nfs41-clientcygwin/README.bintarball.txt` for Cygwin 32bit and
-    64bit installation instructions)
+  - Cygwin 64bit \>= 3.5.0
 
   - PanDoc document converter, from
     <https://github.com/jgm/pandoc/releases/download/3.7.0.1/pandoc-3.7.0.1-windows-x86_64.msi>
@@ -875,9 +873,7 @@ Source code can be obtained from
   - WDK for Windows 11, version 1591, from
     <https://go.microsoft.com/fwlink/?linkid=2286137>
 
-  - Cygwin 64bit \>= 3.5.0 (see
-    `ms-nfs41-clientcygwin/README.bintarball.txt` for Cygwin 32bit and
-    64bit installation instructions)
+  - Cygwin 64bit \>= 3.5.0
 
   - PanDoc document converter, from
     <https://github.com/jgm/pandoc/releases/download/3.7.0.1/pandoc-3.7.0.1-windows-x86_64.msi>
@@ -896,9 +892,7 @@ Source code can be obtained from
 
         cp '/cygdrive/c/Program Files (x86)/Windows Kits/10/build/bin/Microsoft.DriverKit.Build.Tasks.16.0.dll' '/cygdrive/c/Program Files (x86)/Windows Kits/10/build/bin/Microsoft.DriverKit.Build.Tasks.18.0.dll'
 
-  - Cygwin 64bit \>= 3.5.0 (see
-    `ms-nfs41-clientcygwin/README.bintarball.txt` for Cygwin 32bit and
-    64bit installation instructions)
+  - Cygwin 64bit \>= 3.5.0
 
   - PanDoc document converter, from
     <https://github.com/jgm/pandoc/releases/download/3.7.0.1/pandoc-3.7.0.1-windows-x86_64.msi>

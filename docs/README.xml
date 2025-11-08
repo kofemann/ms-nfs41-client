@@ -950,7 +950,7 @@ Datei befindet. Versuchen Sie, die Datei woanders zu speichern.</programlisting>
                 <para>WDK for Windows 10, version 2004, from <link xl:href="https://go.microsoft.com/fwlink/?linkid=2128854">https://go.microsoft.com/fwlink/?linkid=2128854</link></para>
               </listitem>
               <listitem>
-                <para>Cygwin 64bit &gt;= 3.5.0 (see <filename>ms-nfs41-clientcygwin/README.bintarball.txt</filename> for Cygwin 32bit and 64bit installation instructions)</para>
+                <para>Cygwin 64bit &gt;= 3.5.0</para>
               </listitem>
               <listitem>
                 <para>PanDoc document converter, from <link xl:href="https://github.com/jgm/pandoc/releases/download/3.7.0.1/pandoc-3.7.0.1-windows-x86_64.msi">https://github.com/jgm/pandoc/releases/download/3.7.0.1/pandoc-3.7.0.1-windows-x86_64.msi</link></para>
@@ -971,7 +971,7 @@ Datei befindet. Versuchen Sie, die Datei woanders zu speichern.</programlisting>
                 <para>WDK for Windows 11, version 1591, from <link xl:href="https://go.microsoft.com/fwlink/?linkid=2286137">https://go.microsoft.com/fwlink/?linkid=2286137</link></para>
               </listitem>
               <listitem>
-                <para>Cygwin 64bit &gt;= 3.5.0 (see <filename>ms-nfs41-clientcygwin/README.bintarball.txt</filename> for Cygwin 32bit and 64bit installation instructions)</para>
+                <para>Cygwin 64bit &gt;= 3.5.0</para>
               </listitem>
               <listitem>
                 <para>PanDoc document converter, from <link xl:href="https://github.com/jgm/pandoc/releases/download/3.7.0.1/pandoc-3.7.0.1-windows-x86_64.msi">https://github.com/jgm/pandoc/releases/download/3.7.0.1/pandoc-3.7.0.1-windows-x86_64.msi</link></para>
@@ -993,7 +993,7 @@ Datei befindet. Versuchen Sie, die Datei woanders zu speichern.</programlisting>
                 </para>
               </listitem>
               <listitem>
-                <para>Cygwin 64bit &gt;= 3.5.0 (see <filename>ms-nfs41-clientcygwin/README.bintarball.txt</filename> for Cygwin 32bit and 64bit installation instructions)</para>
+                <para>Cygwin 64bit &gt;= 3.5.0</para>
               </listitem>
               <listitem>
                 <para>PanDoc document converter, from <link xl:href="https://github.com/jgm/pandoc/releases/download/3.7.0.1/pandoc-3.7.0.1-windows-x86_64.msi">https://github.com/jgm/pandoc/releases/download/3.7.0.1/pandoc-3.7.0.1-windows-x86_64.msi</link></para>
