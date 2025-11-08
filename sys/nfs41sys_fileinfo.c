@@ -655,7 +655,7 @@ NTSTATUS check_nfs41_setattr_args(
     case FileEndOfFileInformation:
         break;
     default:
-        print_error("nfs41_SetFileInformation: unhandled class %d\n", InfoClass);
+        print_error("check_nfs41_setattr_args: unhandled class %d\n", InfoClass);
         status = STATUS_NOT_SUPPORTED;
     }
 
@@ -663,8 +663,10 @@ out:
     return status;
 }
 
-NTSTATUS nfs41_SetFileInformation(
-    IN OUT PRX_CONTEXT RxContext)
+static
+NTSTATUS nfs41_SetFileInformationImpl(
+    IN OUT PRX_CONTEXT RxContext,
+    nfs41_opcodes opcode)
 {
     NTSTATUS status = STATUS_INVALID_PARAMETER;
     nfs41_updowncall_entry *entry = NULL;
@@ -785,7 +787,7 @@ NTSTATUS nfs41_SetFileInformation(
         }
     }
 
-    status = nfs41_UpcallCreate(NFS41_SYSOP_FILE_SET, &nfs41_fobx->sec_ctx,
+    status = nfs41_UpcallCreate(opcode, &nfs41_fobx->sec_ctx,
         pVNetRootContext->session, nfs41_fobx->nfs41_open_state,
         pNetRootContext->nfs41d_version, SrvOpen->pAlreadyPrefixedName, &entry);
     if (status) goto out;
@@ -835,7 +837,7 @@ out:
     InterlockedIncrement(&setattr.tops);
     InterlockedAdd64(&setattr.ticks, t2.QuadPart - t1.QuadPart);
 #ifdef ENABLE_INDV_TIMINGS
-    DbgP("nfs41_SetFileInformation delta = %d op=%d sum=%d\n",
+    DbgP("nfs41_SetFileInformationImpl delta = %d op=%d sum=%d\n",
         t2.QuadPart - t1.QuadPart, setattr.tops, setattr.ticks);
 #endif
 #endif
@@ -846,13 +848,21 @@ out:
     return status;
 }
 
+NTSTATUS nfs41_SetFileInformation(
+    IN OUT PRX_CONTEXT RxContext)
+{
+    return nfs41_SetFileInformationImpl(RxContext, NFS41_SYSOP_FILE_SET);
+}
+
+
 NTSTATUS nfs41_SetFileInformationAtCleanup(
       IN OUT PRX_CONTEXT RxContext)
 {
     NTSTATUS status;
-    DbgEn();
 
     FILE_INFORMATION_CLASS InfoClass = RxContext->Info.FileInformationClass;
+
+    /* Filter |MRxSetFileInfoAtCleanup()| by InfoClass */
     switch (InfoClass) {
         case FileEndOfFileInformation:
             /*
@@ -873,7 +883,8 @@ NTSTATUS nfs41_SetFileInformationAtCleanup(
             /* Timestamp updates */
             DbgP("nfs41_SetFileInformationAtCleanup: FileBasicInformation timestamp updates\n",
                 (int)InfoClass);
-            status = nfs41_SetFileInformation(RxContext);
+            status = nfs41_SetFileInformationImpl(RxContext,
+                NFS41_SYSOP_FILE_SET_AT_CLEANUP);
             break;
         default:
             DbgP("nfs41_SetFileInformationAtCleanup: unknown InfoClass=%d\n",
@@ -882,6 +893,5 @@ NTSTATUS nfs41_SetFileInformationAtCleanup(
             break;
     }
 
-    DbgEx();
     return status;
 }

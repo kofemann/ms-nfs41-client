@@ -299,6 +299,7 @@ NTSTATUS handle_upcall(
         status = marshal_nfs41_filequery(entry, pbOut, cbOut, len);
         break;
     case NFS41_SYSOP_FILE_SET:
+    case NFS41_SYSOP_FILE_SET_AT_CLEANUP:
         status = marshal_nfs41_fileset(entry, pbOut, cbOut, len);
         break;
     case NFS41_SYSOP_EA_SET:
@@ -768,6 +769,7 @@ NTSTATUS nfs41_downcall(
             status = unmarshal_nfs41_getacl(cur, &inbuf);
             break;
         case NFS41_SYSOP_FILE_SET:
+        case NFS41_SYSOP_FILE_SET_AT_CLEANUP:
             unmarshal_nfs41_setattr(cur, &cur->ChangeTime, &inbuf);
             break;
         case NFS41_SYSOP_EA_SET:

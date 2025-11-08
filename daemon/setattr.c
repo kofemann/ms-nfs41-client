@@ -41,7 +41,7 @@
 #error UPCALL_BUF_SIZE too small for rename ((NFS41_MAX_PATH_LEN*2)+2048)
 #endif
 
-/* NFS41_SYSOP_FILE_SET */
+/* NFS41_SYSOP_FILE_SET, NFS41_SYSOP_FILE_SET_AT_CLEANUP */
 static int parse_setattr(
     const unsigned char *restrict buffer,
     uint32_t length,
@@ -63,13 +63,16 @@ static int parse_setattr(
     args->root = upcall->root_ref;
     args->state = upcall->state_ref;
 
-    DPRINTF(1, ("parsing NFS41_SYSOP_FILE_SET: filename='%s' info_class=%d "
-        "buf_len=%d\n", args->path, args->set_class, args->buf_len));
+    DPRINTF(1, ("parsing '%s': filename='%s' info_class=%d "
+        "buf_len=%d\n",
+        opcode2string(upcall->opcode),
+        args->path, args->set_class, args->buf_len));
 out:
     return status;
 }
 
-static int handle_nfs41_setattr_basicinfo(void *daemon_context, setattr_upcall_args *args)
+static int handle_nfs41_setattr_basicinfo(void *daemon_context,
+    nfs41_opcodes opcode, setattr_upcall_args *args)
 {
     PFILE_BASIC_INFORMATION basic_info = (PFILE_BASIC_INFORMATION)args->buf;
     nfs41_open_state *state = args->state;
@@ -177,6 +180,9 @@ static int handle_nfs41_setattr_basicinfo(void *daemon_context, setattr_upcall_a
     /*
      * Break read delegations before SETATTR, but only for attributes
      * which are unsafe even if we hold a read delegation.
+     * We also do not break the delegation if we do updates at
+     * |NFS41_SYSOP_FILE_SET_AT_CLEANUP| time, which are usually only
+     * access time updates.
      *
      * FIXME:
      * 1. Should we do this if we own a write delegation ?
@@ -187,8 +193,9 @@ static int handle_nfs41_setattr_basicinfo(void *daemon_context, setattr_upcall_a
      * 3. The NFSv4 RFCs really should have a list of attributes which
      * would trigger a recall for read or write delegations
      */
-    if (bitmap_isset(&info.attrmask, 1, FATTR4_WORD1_MODE) ||
-        bitmap_isset(&info.attrmask, 1, FATTR4_WORD1_TIME_CREATE)) {
+    if ((opcode != NFS41_SYSOP_FILE_SET_AT_CLEANUP) &&
+        (bitmap_isset(&info.attrmask, 1, FATTR4_WORD1_MODE) ||
+        bitmap_isset(&info.attrmask, 1, FATTR4_WORD1_TIME_CREATE))) {
         DPRINTF(0, ("handle_nfs41_setattr_basicinfo(args->path='%s'): "
             "returning read delegation because of mode=%d, time_create=%d\n",
             args->path,
@@ -712,7 +719,8 @@ static int handle_setattr(void *daemon_context, nfs41_upcall *upcall)
 
     switch (args->set_class) {
     case FileBasicInformation:
-        status = handle_nfs41_setattr_basicinfo(daemon_context, args);
+        status = handle_nfs41_setattr_basicinfo(daemon_context,
+            upcall->opcode, args);
         break;
     case FileDispositionInformation:
         status = handle_nfs41_remove(daemon_context, args);
