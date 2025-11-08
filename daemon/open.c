@@ -778,25 +778,30 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
             break;
     }
 
-    EASSERT_MSG(!(args->create_opts & FILE_COMPLETE_IF_OPLOCKED),
-        ("handle_open: file='%s': "
-        "FILE_COMPLETE_IF_OPLOCKED not supported\n", args->path));
-    EASSERT_MSG(!(args->create_opts & FILE_OPEN_BY_FILE_ID),
-        ("handle_open: file='%s': "
-        "FILE_OPEN_BY_FILE_ID not supported\n", args->path));
+    DASSERT_MSG(((args->create_opts & FILE_COMPLETE_IF_OPLOCKED) == 0),
+        1,
+        ("handle_open: file='%s': FILE_COMPLETE_IF_OPLOCKED not supported\n",
+        args->path));
+    DASSERT_MSG(((args->create_opts & FILE_OPEN_BY_FILE_ID) == 0),
+        1,
+        ("handle_open: file='%s': FILE_OPEN_BY_FILE_ID not supported\n",
+        args->path));
     /*
      * Kernel rejects |FILE_OPEN_REQUIRING_OPLOCK|, we just use
      * this here as safeguard
      */
-    EASSERT_MSG(!(args->create_opts & FILE_OPEN_REQUIRING_OPLOCK),
-        ("handle_open: file='%s': "
-        "FILE_OPEN_REQUIRING_OPLOCK not supported\n", args->path));
-    EASSERT_MSG(!(args->create_opts & FILE_DISALLOW_EXCLUSIVE),
-        ("handle_open: file='%s': "
-        "FILE_DISALLOW_EXCLUSIVE not supported\n", args->path));
-    EASSERT_MSG(!(args->create_opts & FILE_RESERVE_OPFILTER),
-        ("handle_open: file='%s': "
-        "FILE_RESERVE_OPFILTER not supported\n", args->path));
+    DASSERT_MSG(((args->create_opts & FILE_OPEN_REQUIRING_OPLOCK) == 0),
+        1,
+        ("handle_open: file='%s': FILE_OPEN_REQUIRING_OPLOCK not supported\n",
+        args->path));
+    DASSERT_MSG(((args->create_opts & FILE_RESERVE_OPFILTER) == 0),
+        1,
+        ("handle_open: file='%s': FILE_RESERVE_OPFILTER not supported\n",
+        args->path));
+    DASSERT_MSG(((args->create_opts & FILE_DISALLOW_EXCLUSIVE) == 0),
+        1,
+        ("handle_open: file='%s': FILE_DISALLOW_EXCLUSIVE not supported\n",
+        args->path));
 
     status = create_open_state(args->path, args->open_owner_id, &state);
     if (status) {
