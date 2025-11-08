@@ -851,7 +851,37 @@ NTSTATUS nfs41_SetFileInformationAtCleanup(
 {
     NTSTATUS status;
     DbgEn();
-    status = nfs41_SetFileInformation(RxContext);
+
+    FILE_INFORMATION_CLASS InfoClass = RxContext->Info.FileInformationClass;
+    switch (InfoClass) {
+        case FileEndOfFileInformation:
+            /*
+             * NFS server is in charge of managing the file size. Since
+             * |nfs41_SetFileInformationAtCleanup()| is never used to
+             * truncate a file we just make this as NO-OP here
+             *
+             * This also needs to be handled with care in cases multiple
+             * machines access a file in a { lock-whole-file, append,
+             * unlock-whole-file } manner, doing a set-file-size outside
+             * the file lock causes data corruption in such cases.
+             */
+            DbgP("nfs41_SetFileInformationAtCleanup: FileEndOfFileInformation NOP\n",
+                (int)InfoClass);
+            status = STATUS_SUCCESS;
+            break;
+        case FileBasicInformation:
+            /* Timestamp updates */
+            DbgP("nfs41_SetFileInformationAtCleanup: FileBasicInformation timestamp updates\n",
+                (int)InfoClass);
+            status = nfs41_SetFileInformation(RxContext);
+            break;
+        default:
+            DbgP("nfs41_SetFileInformationAtCleanup: unknown InfoClass=%d\n",
+                (int)InfoClass);
+            status = STATUS_INVALID_PARAMETER;
+            break;
+    }
+
     DbgEx();
     return status;
 }
