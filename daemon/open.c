@@ -474,47 +474,92 @@ static int map_disposition_2_nfsopen(ULONG disposition, int in_status, bool_t pe
     return status;
 }
 
-static void map_access_2_allowdeny(ULONG access_mask, ULONG access_mode,
-                                   ULONG disposition, uint32_t *allow, uint32_t *deny)
+static void map_access_2_allowdeny(
+    IN ULONG access_mask,
+    IN ULONG access_mode,
+    IN ULONG disposition,
+    OUT uint32_t *restrict allow,
+    OUT uint32_t *restrict deny)
 {
-    if ((access_mask & 
-            (FILE_WRITE_DATA | FILE_APPEND_DATA | FILE_WRITE_ATTRIBUTES)) &&
-            (access_mask & (FILE_READ_DATA | FILE_EXECUTE)))
-        *allow = OPEN4_SHARE_ACCESS_BOTH;
-    else if (access_mask & (FILE_READ_DATA | FILE_EXECUTE))
-        *allow = OPEN4_SHARE_ACCESS_READ;
-    else if (access_mask & 
-                (FILE_WRITE_DATA | FILE_APPEND_DATA | FILE_WRITE_ATTRIBUTES))
-        *allow = OPEN4_SHARE_ACCESS_WRITE;
-    /* if we are creating a file and no data access is specified, then 
-     * do an open and request no delegations. example open with share access 0
-     * and share deny 0 (ie deny_both).
-     */
-    if ((disposition == FILE_CREATE || disposition == FILE_OPEN_IF || 
-            disposition == FILE_OVERWRITE_IF || disposition == FILE_SUPERSEDE ||
-            disposition == FILE_OVERWRITE) &&
-            !(access_mask & (FILE_WRITE_DATA | FILE_APPEND_DATA | 
-            FILE_WRITE_ATTRIBUTES | FILE_READ_DATA | FILE_EXECUTE)))
-        *allow = OPEN4_SHARE_ACCESS_READ | OPEN4_SHARE_ACCESS_WANT_NO_DELEG;
+    bool access_mask_readaccess;
+    bool access_mask_writeaccess;
 
-#define FIX_ALLOW_DENY_WIN2NFS_CONVERSION
+    /*
+     * FIXME: Why is |FILE_READ_ATTRIBUTES| missing here, but the test
+     * for |access_mask_writeaccess| includes |FILE_WRITE_ATTRIBUTES| ?
+     */
+    if (access_mask & (FILE_READ_DATA|FILE_EXECUTE)) {
+        access_mask_readaccess = true;
+    }
+    else {
+        access_mask_readaccess = false;
+    }
+    if (access_mask &
+        (FILE_WRITE_DATA|FILE_APPEND_DATA|FILE_WRITE_ATTRIBUTES)) {
+        access_mask_writeaccess = true;
+    }
+    else {
+        access_mask_writeaccess = false;
+    }
+
+    if (access_mask_readaccess && access_mask_writeaccess) {
+        *allow = OPEN4_SHARE_ACCESS_BOTH;
+    }
+    else if (access_mask_readaccess) {
+        *allow = OPEN4_SHARE_ACCESS_READ;
+    }
+    else if (access_mask_writeaccess) {
+        *allow = OPEN4_SHARE_ACCESS_WRITE;
+    }
+    else {
+        EASSERT_MSG(false,
+            ("map_access_2_allowdeny: "
+            "No access_mask_readaccess&&access_mask_writeaccess, "
+            "access_mask=0x%lx\n",
+            (unsigned long)access_mask));
+        *allow = 0;
+    }
+
+    /*
+     * If we are creating a file and no data access is specified, then
+     * do an open and request no delegations. Example open with share
+     * access 0 and share deny 0 (ie deny_both).
+     */
+    if ((disposition == FILE_CREATE ||
+        disposition == FILE_OPEN_IF ||
+        disposition == FILE_OVERWRITE_IF ||
+        disposition == FILE_SUPERSEDE ||
+        disposition == FILE_OVERWRITE)
+        &&
+        ((access_mask_readaccess == false) &&
+        (access_mask_writeaccess == false))) {
+        *allow = OPEN4_SHARE_ACCESS_READ | OPEN4_SHARE_ACCESS_WANT_NO_DELEG;
+    }
+
+#define FIX_ALLOW_DENY_WIN2NFS_CONVERSION 1
 #ifdef FIX_ALLOW_DENY_WIN2NFS_CONVERSION
-    if ((access_mode & FILE_SHARE_READ) &&
-            (access_mode & FILE_SHARE_WRITE))
+    if ((access_mode & (FILE_SHARE_READ|FILE_SHARE_WRITE)) ==
+        (FILE_SHARE_READ|FILE_SHARE_WRITE)) {
         *deny = OPEN4_SHARE_DENY_NONE;
-    else if (access_mode & FILE_SHARE_READ)
+    }
+    else if (access_mode & FILE_SHARE_READ) {
         *deny = OPEN4_SHARE_DENY_WRITE;
-    else if (access_mode & FILE_SHARE_WRITE)
+    }
+    else if (access_mode & FILE_SHARE_WRITE) {
         *deny = OPEN4_SHARE_DENY_READ;
-    else
+    }
+    else {
         *deny = OPEN4_SHARE_DENY_BOTH;
+    }
 #else
-    // AGLO: 11/13/2009.
-    // readonly file that is being opened for reading with a
-    // share read mode given above logic translates into deny
-    // write and linux server does not allow it.
+    /*
+     * AGLO: 11/13/2009:
+     * readonly file that is being opened for reading with a
+     * share read mode given above logic translates into deny
+     * write and linux server does not allow it.
+     */
     *deny = OPEN4_SHARE_DENY_NONE;
-#endif
+#endif /* FIX_ALLOW_DENY_WIN2NFS_CONVERSION */
 }
 
 static int check_execute_access(nfs41_open_state *state)
