@@ -326,6 +326,9 @@ static int parse_open(
     nfs41_upcall *upcall)
 {
     int status;
+#ifdef NFS41_DRIVER_ALLOW_CREATEFILE_ACLS
+    const void *sec_desc_ptr;
+#endif /* NFS41_DRIVER_ALLOW_CREATEFILE_ACLS */
     open_upcall_args *args = &upcall->args.open;
 
     status = get_name(&buffer, &length, &args->path);
@@ -344,6 +347,14 @@ static int parse_open(
     if (status) goto out;
     status = safe_read(&buffer, &length, &args->create_opts, sizeof(ULONG));
     if (status) goto out;
+#ifdef NFS41_DRIVER_ALLOW_CREATEFILE_ACLS
+    status = safe_read(&buffer, &length, &args->sec_desc_len, sizeof(ULONG));
+    if (status) goto out;
+    status = get_safe_read_bufferpos(&buffer, &length,
+        args->sec_desc_len, (const void **)&sec_desc_ptr);
+    if (status) goto out;
+    args->sec_desc = (PSECURITY_DESCRIPTOR)sec_desc_ptr;
+#endif /* NFS41_DRIVER_ALLOW_CREATEFILE_ACLS */
     status = safe_read(&buffer, &length, &args->disposition, sizeof(ULONG));
     if (status) goto out;
     status = safe_read(&buffer, &length, &args->open_owner_id, sizeof(LONG));
@@ -751,6 +762,12 @@ out:
 }
 #endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
 
+#ifdef NFS41_DRIVER_ALLOW_CREATEFILE_ACLS
+/* FIXME: Move this into aclutils.h */
+int map_dacl_2_nfs4acl(PACL acl, PSID sid, PSID gsid, nfsacl41 *nfs4_acl,
+    int file_type, bool named_attr_support, char *domain);
+#endif /* NFS41_DRIVER_ALLOW_CREATEFILE_ACLS */
+
 static int handle_open(void *daemon_context, nfs41_upcall *upcall)
 {
     int status = 0;
@@ -759,6 +776,14 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
     nfs41_open_state *state;
     nfs41_file_info info = { 0 };
     bool is_caseinsensitive_volume;
+
+#ifdef NFS41_DRIVER_ALLOW_CREATEFILE_ACLS
+    nfsacl41 create_nfs4_acl = {
+        .flag = 0,
+        .aces = NULL,
+        .count = 0
+    };
+#endif /* NFS41_DRIVER_ALLOW_CREATEFILE_ACLS */
 
     switch (args->is_caseinsensitive_volume) {
         case TRISTATE_BOOL_FALSE:
@@ -818,6 +843,55 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
         state->type = NF4DIR;
     else
         state->type = NF4REG;
+
+#ifdef NFS41_DRIVER_ALLOW_CREATEFILE_ACLS
+    if (args->sec_desc_len) {
+        PSID sid = NULL, gsid = NULL;
+        BOOL sid_default, gsid_default;
+        BOOL dacl_present, dacl_default;
+        PACL acl;
+        DPRINTF(0,
+            ("handle_open: args->sec_desc=0x%p args->sec_desc_len=%ld\n",
+            args->sec_desc, (long)args->sec_desc_len));
+        status = GetSecurityDescriptorDacl(args->sec_desc, &dacl_present,
+            &acl, &dacl_default);
+        if (!status) {
+            status = GetLastError();
+            eprintf("handle_open: "
+                "GetSecurityDescriptorDacl() failed, lasterr=%d\n",
+                status);
+            goto out;
+        }
+        status = GetSecurityDescriptorOwner(args->sec_desc,
+            &sid, &sid_default);
+        if (!status) {
+            status = GetLastError();
+            eprintf("handle_open: "
+                "GetSecurityDescriptorOwner() failed, lasterr=%d\n",
+                status);
+            goto out;
+        }
+        status = GetSecurityDescriptorGroup(args->sec_desc,
+            &gsid, &gsid_default);
+        if (!status) {
+            status = GetLastError();
+            eprintf("handle_open: "
+                "GetSecurityDescriptorOwner() failed, lasterr=%d\n",
+                status);
+            goto out;
+        }
+        status = map_dacl_2_nfs4acl(acl, sid, gsid, &create_nfs4_acl,
+            state->type,
+            false /* FIXME!! */,
+            nfs41dg->localdomain_name);
+        if (status) {
+            eprintf("handle_open: "
+                "map_dacl_2_nfs4acl() failed, status=%d\n",
+                status);
+            goto out;
+        }
+    }
+#endif /* NFS41_DRIVER_ALLOW_CREATEFILE_ACLS */
 
     // always do a lookup
     status = nfs41_lookup(upcall->root_ref, nfs41_root_session(upcall->root_ref),
@@ -988,6 +1062,12 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
         createattrs.attrmask.arr[0] = 0;
         createattrs.attrmask.arr[1] = FATTR4_WORD1_MODE;
         createattrs.mode = 0777;
+#ifdef NFS41_DRIVER_ALLOW_CREATEFILE_ACLS
+        if (create_nfs4_acl.aces) {
+            createattrs.acl = &create_nfs4_acl;
+            createattrs.attrmask.arr[0] |= FATTR4_WORD0_ACL;
+        }
+#endif /* NFS41_DRIVER_ALLOW_CREATEFILE_ACLS */
 
         DPRINTF(1, ("creating cygwin symlink '%s' -> '%s'\n",
             state->file.name.name, args->symlink.path));
@@ -1068,6 +1148,13 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
         createattrs.hidden = args->file_attrs & FILE_ATTRIBUTE_HIDDEN ? 1 : 0;
         createattrs.system = args->file_attrs & FILE_ATTRIBUTE_SYSTEM ? 1 : 0;
         createattrs.archive = args->file_attrs & FILE_ATTRIBUTE_ARCHIVE ? 1 : 0;
+#ifdef NFS41_DRIVER_ALLOW_CREATEFILE_ACLS
+        if (create_nfs4_acl.aces) {
+            createattrs.acl = &create_nfs4_acl;
+            createattrs.attrmask.arr[0] |= FATTR4_WORD0_ACL;
+        }
+#endif /* NFS41_DRIVER_ALLOW_CREATEFILE_ACLS */
+
         /* FIXME: What about |FILE_ATTRIBUTE_OFFLINE| ? */
 
         map_access_2_allowdeny(args->access_mask, args->access_mode,
@@ -1231,6 +1318,9 @@ create_chgrp_out:
     upcall->state_ref = state;
     nfs41_open_state_ref(upcall->state_ref);
 out:
+#ifdef NFS41_DRIVER_ALLOW_CREATEFILE_ACLS
+    free(create_nfs4_acl.aces);
+#endif /* NFS41_DRIVER_ALLOW_CREATEFILE_ACLS */
     return status;
 out_free_state:
     nfs41_open_state_deref(state);

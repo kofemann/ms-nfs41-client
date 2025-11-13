@@ -124,6 +124,9 @@ NTSTATUS marshal_nfs41_open(
         7 * sizeof(ULONG) +
         1 * sizeof(BOOLEAN) +
         2 * sizeof(HANDLE) +
+#ifdef NFS41_DRIVER_ALLOW_CREATEFILE_ACLS
+        entry->u.Open.SdLength + 1 * sizeof(ULONG) +
+#endif /* NFS41_DRIVER_ALLOW_CREATEFILE_ACLS */
         length_as_utf8(&entry->u.Open.symlink);
     if (header_len > buf_len) {
         status = STATUS_INSUFFICIENT_RESOURCES;
@@ -147,6 +150,14 @@ NTSTATUS marshal_nfs41_open(
     tmp += sizeof(entry->u.Open.attrs);
     RtlCopyMemory(tmp, &entry->u.Open.copts, sizeof(entry->u.Open.copts));
     tmp += sizeof(entry->u.Open.copts);
+#ifdef NFS41_DRIVER_ALLOW_CREATEFILE_ACLS
+    RtlCopyMemory(tmp, &entry->u.Open.SdLength, sizeof(entry->u.Open.SdLength));
+    tmp += sizeof(entry->u.Open.SdLength);
+    if (entry->u.Open.SdLength) {
+        RtlCopyMemory(tmp, entry->u.Open.SdBuffer, entry->u.Open.SdLength);
+        tmp += entry->u.Open.SdLength;
+    }
+#endif /* NFS41_DRIVER_ALLOW_CREATEFILE_ACLS */
     RtlCopyMemory(tmp, &entry->u.Open.disp, sizeof(entry->u.Open.disp));
     tmp += sizeof(entry->u.Open.disp);
     RtlCopyMemory(tmp, &entry->u.Open.open_owner_id,
@@ -644,6 +655,23 @@ NTSTATUS nfs41_Create(
     status = check_nfs41_create_args(RxContext);
     if (status) goto out;
 
+#ifdef NFS41_DRIVER_ALLOW_CREATEFILE_ACLS
+    ULONG SdLength = RxContext->Create.SdLength;
+    PSECURITY_DESCRIPTOR SdBuffer;
+    if (SdLength &&
+        params->SecurityContext &&
+        params->SecurityContext->AccessState) {
+        SdBuffer = params->SecurityContext->AccessState->SecurityDescriptor;
+    }
+    else {
+        SdBuffer = NULL;
+    }
+
+    DbgP("nfs41_Create: "
+        "SecurityDescriptor=0x%p, len=%lu\n",
+        SdBuffer, SdLength);
+#endif /* NFS41_DRIVER_ALLOW_CREATEFILE_ACLS */
+
     status = nfs41_UpcallCreate(NFS41_SYSOP_OPEN, NULL,
         pVNetRootContext->session, INVALID_HANDLE_VALUE,
         pNetRootContext->nfs41d_version,
@@ -675,6 +703,10 @@ NTSTATUS nfs41_Create(
         entry->u.Open.attrs |= FILE_ATTRIBUTE_ARCHIVE;
     entry->u.Open.disp = params->Disposition;
     entry->u.Open.copts = params->CreateOptions;
+#ifdef NFS41_DRIVER_ALLOW_CREATEFILE_ACLS
+    entry->u.Open.SdLength = SdLength;
+    entry->u.Open.SdBuffer = SdBuffer;
+#endif /* NFS41_DRIVER_ALLOW_CREATEFILE_ACLS */
     entry->u.Open.srv_open = SrvOpen;
     /* treat the NfsActOnLink ea as FILE_OPEN_REPARSE_POINT */
     if ((ea && AnsiStrEq(&NfsActOnLink, ea->EaName, ea->EaNameLength)) ||

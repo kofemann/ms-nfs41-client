@@ -1219,7 +1219,8 @@ out:
     return status;
 }
 
-static int map_dacl_2_nfs4acl(PACL acl, PSID sid, PSID gsid, nfsacl41 *nfs4_acl,
+/* FIXME: Move this into aclutils.c */
+int map_dacl_2_nfs4acl(PACL acl, PSID sid, PSID gsid, nfsacl41 *nfs4_acl,
     int file_type, bool named_attr_support, char *domain)
 {
     int status;

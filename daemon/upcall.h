@@ -62,6 +62,10 @@ typedef struct __open_upcall_args {
     ULONG file_attrs;
     ULONG disposition;
     ULONG create_opts;
+#ifdef NFS41_DRIVER_ALLOW_CREATEFILE_ACLS
+    ULONG sec_desc_len;
+    PSECURITY_DESCRIPTOR sec_desc;
+#endif /* NFS41_DRIVER_ALLOW_CREATEFILE_ACLS */
     LONG open_owner_id;
     DWORD mode;
 #ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES

@@ -235,6 +235,10 @@ typedef struct _updowncall_entry {
             ULONG access_mode;
             ULONG attrs;
             ULONG copts;
+#ifdef NFS41_DRIVER_ALLOW_CREATEFILE_ACLS
+            ULONG SdLength;
+            PSECURITY_DESCRIPTOR SdBuffer;
+#endif /* NFS41_DRIVER_ALLOW_CREATEFILE_ACLS */
             ULONG disp;
             ULONG cattrs;
             LONG open_owner_id;
