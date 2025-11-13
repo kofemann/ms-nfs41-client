@@ -178,7 +178,7 @@ static int convert_nfs4acl_2_dacl(nfs41_daemon_globals *nfs41dg,
                 curr_nfsace->who, domain?domain:"<null>"));
 
         EASSERT_MSG(!isdigit(curr_nfsace->who[0]),
-            ("convert_nfs4acl_2_dacl: aces[%d]->who='%s' uses numeric id",
+            ("convert_nfs4acl_2_dacl: aces[%d]->who='%s' uses numeric id\n",
             (int)nfs_i, curr_nfsace->who));
 
 #ifdef NFS41_DRIVER_ACLS_SETACL_SKIP_WINNULLSID_ACES
