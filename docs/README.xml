@@ -887,6 +887,15 @@ Datei befindet. Versuchen Sie, die Datei woanders zu speichern.</programlisting>
         <command>filedisk /mount 35 'N:\winntfs_filedisk_003.img' S:</command> as global mount
         which require NTFS or ReFS, but should be physically hosted on the NFS server.</para>
       </listitem>
+      <listitem>
+        <para>Creating a new Win32 file/dir with an ACL only works with NFS servers which support
+        <literal>FATTR4_ACL</literal>/<literal>FATTR4_DACL</literal> for
+        <literal>OPEN</literal>/<literal>CREATE</literal>
+        operations.</para>
+        <para>So far FreeBSD 14.3 and the NFS-Ganesha NFS servers are known to support this,
+        while Linux 6.12.*, Solaris 11.4 and Illumos NFS servers ignore the ACL on
+        <literal>OPEN</literal>/<literal>CREATE</literal> operations.</para>
+      </listitem>
     </itemizedlist>
   </section>
 

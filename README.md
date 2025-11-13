@@ -792,6 +792,14 @@ Within WSL mount UNC path returned by `/sbin/nfs_mount`
   which require NTFS or ReFS, but should be physically hosted on the NFS
   server.
 
+- Creating a new Win32 file/dir with an ACL only works with NFS servers
+  which support `FATTR4_ACL`/`FATTR4_DACL` for `OPEN`/`CREATE`
+  operations.
+
+  So far FreeBSD 14.3 and the NFS-Ganesha NFS servers are known to
+  support this, while Linux 6.12.\*, Solaris 11.4 and Illumos NFS
+  servers ignore the ACL on `OPEN`/`CREATE` operations.
+
 # Troubleshooting && finding bugs/debugging
 
 - `nfsd_debug.exe` has the `-d` option to set a level for debug output.
