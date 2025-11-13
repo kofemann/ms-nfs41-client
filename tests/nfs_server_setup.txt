@@ -212,9 +212,9 @@ sysrc nfsv4_server_enable=YES
 sysrc nfsuserd_flags="-domain GLOBAL.LOC"
 sysrc nfsuserd_enable=YES
 sysrc nfscbd_enable=YES
-sysctl vfs.nfs.enable_uidtostring=1
-sysctl vfs.nfsd.enable_stringtouid=1
-sysctl vfs.nfsd.issue_delegations=1
+printf 'vfs.nfs.enable_uidtostring=0\n' >>'/etc/sysctl.conf'
+printf 'vfs.nfsd.enable_stringtouid=0\n' >>'/etc/sysctl.conf'
+printf 'vfs.nfsd.issue_delegations=1\n' >>'/etc/sysctl.conf'
 
 mkdir /nfsdata
 chmod a+rwxt /nfsdata
@@ -230,9 +230,14 @@ service nfsd start
 - Add groups entry for group "wheel" if neccesary:
 $ printf 'wheel:S-1-0-0:0:\n' >>'/etc/group'
 
-##### 3. Misc commands:
+##### 3. Misc FreeBSD commands:
 pw groupadd group -n None -g 197121
 pw groupadd group -n ced -g 197608
 pw useradd -n ced -u 197608 -g None -G None,ced -m -s /bin/sh
+# later add more groups, and add user "ced" as member:
+pw groupadd group -n cygwingrp1 -g 197611
+pw groupadd group -n cygwingrp2 -g 197612
+pw groupmod cygwingrp1 -m ced
+pw groupmod cygwingrp2 -m ced
 
 # EOF.
