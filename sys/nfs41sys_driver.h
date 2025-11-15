@@ -240,7 +240,6 @@ typedef struct _updowncall_entry {
             PSECURITY_DESCRIPTOR SdBuffer;
 #endif /* NFS41_DRIVER_ALLOW_CREATEFILE_ACLS */
             ULONG disp;
-            ULONG cattrs;
             LONG open_owner_id;
             DWORD mode;
 #ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES
