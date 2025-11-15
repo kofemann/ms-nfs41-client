@@ -27,6 +27,7 @@
 #include <strsafe.h>
 
 #include "nfs41_build_features.h"
+#include "aclutil.h"
 #include "nfs41_ops.h"
 #include "nfs41_daemon.h"
 #include "delegation.h"
@@ -806,12 +807,6 @@ out:
         owner_group));
 }
 #endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
-
-#ifdef NFS41_DRIVER_ALLOW_CREATEFILE_ACLS
-/* FIXME: Move this into aclutils.h */
-int map_dacl_2_nfs4acl(PACL acl, PSID sid, PSID gsid, nfsacl41 *nfs4_acl,
-    int file_type, bool named_attr_support, char *domain);
-#endif /* NFS41_DRIVER_ALLOW_CREATEFILE_ACLS */
 
 static int handle_open(void *daemon_context, nfs41_upcall *upcall)
 {

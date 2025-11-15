@@ -18,6 +18,9 @@
     <ClCompile Include="..\..\daemon\acl.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\daemon\aclutil.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\daemon\callback_server.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -149,6 +152,9 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\daemon\aclutil.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\daemon\cpvparser1.h">
       <Filter>Header Files</Filter>
     </ClInclude>
