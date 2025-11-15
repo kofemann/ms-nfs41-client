@@ -564,7 +564,7 @@ int icu_strcmpcoll(UCollator *coll, const char *str1, const char *str2, int32_t 
     if (U_FAILURE(status)) {
         eprintf("icu_strcmpcoll: "
             "ucol_strcollUTF8(str1='%s',str2='%s') returned status='%s'\n",
-            u_errorName(status));
+            str1, str2, u_errorName(status));
         return -1;
     }
 
@@ -579,7 +579,7 @@ int icu_strcmpcoll(UCollator *coll, const char *str1, const char *str2, int32_t 
 
     eprintf("icu_strcmpcoll: "
         "ucol_strcollUTF8(str1='%s',str2='%s') returned unexpected result=0x%lx\n",
-        (long)result);
+        str1, str2, (long)result);
     return -1;
 }
 
@@ -1240,7 +1240,7 @@ int nfs41_name_cache_insert(
     int status;
 
     DPRINTF(NCLVL1, ("--> nfs41_name_cache_insert('%.*s')\n",
-        name->name + name->len - path, path));
+        (unsigned int)(name->name + name->len - path), path));
 
     NC_SET_NAMECMP(caseinsensitivesearch);
 

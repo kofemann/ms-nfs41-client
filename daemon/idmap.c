@@ -1156,8 +1156,8 @@ int nfs41_idmap_uid_to_name(
 
     if (FAILED(StringCchCopyA(name, len, user.username))) {
         status = ERROR_BUFFER_OVERFLOW;
-        eprintf("username buffer overflow: '%s' > %u\n",
-            user.username, len);
+        eprintf("username buffer overflow: '%s' > %lu\n",
+            user.username, (unsigned long)len);
         goto out;
     }
 
@@ -1294,8 +1294,8 @@ int nfs41_idmap_gid_to_group(
 
     if (FAILED(StringCchCopyA(name, len, group.name))) {
         status = ERROR_BUFFER_OVERFLOW;
-        eprintf("group name buffer overflow: '%s' > %u\n",
-            group.name, len);
+        eprintf("group name buffer overflow: '%s' > %lu\n",
+            group.name, (unsigned long)len);
         goto out;
     }
 
