@@ -213,7 +213,7 @@ int convert_nfs4acl_2_dacl(nfs41_daemon_globals *nfs41dg,
         win_i++;
     }
     size += sizeof(ACL) + (sizeof(ACCESS_ALLOWED_ACE)*win_i);
-    size = align8(size); /* align size on |DWORD| boundry */
+    size = align4(size); /* align size on |DWORD| boundry */
     dacl = malloc(size);
     if (dacl == NULL)
         goto out_free_sids;
