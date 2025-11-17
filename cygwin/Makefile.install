@@ -13,6 +13,11 @@ PROJECT_BASEDIR_DIR := $(shell dirname $(realpath $(CYGWIN_MAKEFILE_DIR)/))
 
 DESTDIR := $(PROJECT_BASEDIR_DIR)/destdir
 
+# Windows Kit 10 bins can be either in
+# '/cygdrive/c/Program Files/Windows Kits/10/bin/' or in
+# '/cygdrive/c/Program Files (x86)/Windows Kits/10/bin/'
+WINDOWS_KITS_10_BIN_DIR := $(shell ls -1d '/cygdrive/c/Program Files'*'/Windows Kits/10/bin/' | head -n 1)
+
 # install in DESTDIR
 installdest:
 	#
@@ -96,7 +101,7 @@ installdest:
 		[[ -f "$(DESTDIR)/lib/msnfs41client/$${infdir}/nfs41_driver.sys" ]] || continue ; \
 		( \
 			cp "$(PROJECT_BASEDIR_DIR)/nfs41rdr.inf" "$(DESTDIR)/lib/msnfs41client/$${infdir}/." && \
-			inf2catbin="$$(find '/cygdrive/c/Program Files (x86)/Windows Kits/10/bin' -iname inf2cat.exe | head -n 1)" && \
+			inf2catbin="$$(find '$(WINDOWS_KITS_10_BIN_DIR)' -iname inf2cat.exe | head -n 1)" && \
 			cd "$(DESTDIR)/lib/msnfs41client/$${infdir}/." && \
 			if [[ "$$(/usr/lib/csih/getVolInfo . | awk '/FILE_CASE_SENSITIVE_SEARCH/ { print $$3 }')" == "TRUE" ]] ; then \
 				printf "# case-sensitive filesystem, resetting TMP TMPDIR TEMP to /tmp\n" ; \
@@ -188,18 +193,18 @@ installdest:
 	cp \
 		"$$(find "$${vsbasepath}/$${vssubdir}" -ipath '*/x86/*/VCRUNTIME140D.dll' | sort -n -r | head -n 1)" \
 		"$(DESTDIR)/lib/msnfs41client/i686/." ; \
-	cp '/cygdrive/c/Program Files (x86)/Windows Kits/10/bin/x86/ucrt/ucrtbased.dll' "$(DESTDIR)/lib/msnfs41client/i686/." ; \
+	cp '$(WINDOWS_KITS_10_BIN_DIR)/x86/ucrt/ucrtbased.dll' "$(DESTDIR)/lib/msnfs41client/i686/." ; \
 	if [[ "$(VS_BUILD_DIR_X64)" != '' ]] ; then \
 		cp \
 			"$$(find "$${vsbasepath}/$${vssubdir}" -ipath '*/x64/*/VCRUNTIME140D.dll' | sort -n -r | head -n 1)" \
 			"$(DESTDIR)/lib/msnfs41client/x64/." ; \
-		cp '/cygdrive/c/Program Files (x86)/Windows Kits/10/bin/x64/ucrt/ucrtbased.dll' "$(DESTDIR)/lib/msnfs41client/x64/." ; \
+		cp '$(WINDOWS_KITS_10_BIN_DIR)/x64/ucrt/ucrtbased.dll' "$(DESTDIR)/lib/msnfs41client/x64/." ; \
 	fi ; \
 	if [[ "$(VS_BUILD_DIR_ARM64)" != '' ]] ; then \
 		cp \
 			"$$(find "$${vsbasepath}/$${vssubdir}" -ipath '*/arm64/*/VCRUNTIME140D.dll' | sort -n -r | head -n 1)" \
 			"$(DESTDIR)/lib/msnfs41client/arm64/." ; \
-		cp '/cygdrive/c/Program Files (x86)/Windows Kits/10/bin/arm64/ucrt/ucrtbased.dll' "$(DESTDIR)/lib/msnfs41client/arm64/." ; \
+		cp '$(WINDOWS_KITS_10_BIN_DIR)/arm64/ucrt/ucrtbased.dll' "$(DESTDIR)/lib/msnfs41client/arm64/." ; \
 	fi
 	@ printf "# Set file flags\n"
 	(cd $(DESTDIR)/bin/ && chmod a+rx *.exe)
