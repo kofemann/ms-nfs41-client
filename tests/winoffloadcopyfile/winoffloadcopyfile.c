@@ -37,6 +37,15 @@
 
 #define EXIT_USAGE (2) /* Traditional UNIX exit code for usage */
 
+#ifndef FSCTL_OFFLOAD_READ
+#define FSCTL_OFFLOAD_READ  \
+    CTL_CODE(FILE_DEVICE_FILE_SYSTEM, 153, METHOD_BUFFERED, FILE_READ_ACCESS)
+#endif /* !FSCTL_OFFLOAD_READ */
+#ifndef FSCTL_OFFLOAD_WRITE
+#define FSCTL_OFFLOAD_WRITE \
+    CTL_CODE(FILE_DEVICE_FILE_SYSTEM, 154, METHOD_BUFFERED, FILE_WRITE_ACCESS)
+#endif /* !FSCTL_OFFLOAD_WRITE */
+
 /* MinGW headers are currently missing these defines and types */
 #ifndef OFFLOAD_READ_FLAG_ALL_ZERO_BEYOND_CURRENT_RANGE
 typedef struct _FSCTL_OFFLOAD_READ_INPUT {

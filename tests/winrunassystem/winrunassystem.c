@@ -36,6 +36,7 @@
  */
 
 #define WIN32_LEAN_AND_MEAN 1
+#define STRSAFE_NO_DEPRECATE 1
 
 #include <windows.h>
 #include <strsafe.h>
