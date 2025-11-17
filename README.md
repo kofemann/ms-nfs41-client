@@ -40,7 +40,7 @@ title: Windows NFS 4.2 FileSystem Client Instructions
 # What is this ?
 
 NFSv4.2/NFSv4.1 filesystem driver for Windows 10/11 & Windows Server
-2019+2022
+2019+2022+2025
 
 # Features
 
@@ -260,7 +260,8 @@ NFSv4.2/NFSv4.1 filesystem driver for Windows 10/11 & Windows Server
 
 # Requirements
 
-- Windows 10 (32bit or 64bit), Windows 11 or Windows Server 2019+2022
+- Windows 10 (32bit or 64bit), Windows 11 or Windows Server
+  2019+2022+2025
 
 - Cygwin:
 

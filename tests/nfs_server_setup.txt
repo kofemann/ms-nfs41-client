@@ -78,10 +78,10 @@ service nfs-server restart
 
 
 #
-# Windows Server 2019 NFSv4.1 server setup
+# Windows Server 2019/2022/2025 NFSv4.1 server setup
 #
 
-# Install Windows Server 2019, then run these commands in an
+# Install Windows Server 2019, 2022 or 2025, then run these commands in an
 # Adminstrator PowerShell
 Install-WindowsFeature -name Telnet-Client
 
@@ -97,6 +97,7 @@ New-NfsShare -Name nfs1 -Path C:\shares\nfsfolder
 Set-NfsShare -Name nfs1 -Permission readwrite -Authentication "sys" -EnableUnmappedAccess $True -AllowRootAccess $True
 Set-NfsServerConfiguration -HideFilesBeginningInDot $True
 
+# grant machines "192.168.209.129" and "localhost" (="127.0.0.1") access
 Grant-NfsSharePermission -Name nfs1 -ClientName "192.168.209.129" -ClientType "host" -AllowRootAccess $True -Permission readwrite
 Grant-NfsSharePermission -Name nfs1 -ClientName "127.0.0.1" -ClientType "host" -AllowRootAccess $True -Permission readwrite
 

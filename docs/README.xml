@@ -10,7 +10,7 @@
 
   <section xml:id="what-is-this">
     <title>What is this ?</title>
-    <para>NFSv4.2/NFSv4.1 filesystem driver for Windows 10/11 &amp; Windows Server 2019+2022</para>
+    <para>NFSv4.2/NFSv4.1 filesystem driver for Windows 10/11 &amp; Windows Server 2019+2022+2025</para>
   </section>
 
   <section xml:id="features">
@@ -301,7 +301,7 @@
     <title>Requirements</title>
     <itemizedlist>
       <listitem>
-        <para>Windows 10 (32bit or 64bit), Windows 11 or Windows Server 2019+2022</para>
+        <para>Windows 10 (32bit or 64bit), Windows 11 or Windows Server 2019+2022+2025</para>
       </listitem>
       <listitem>
         <para>Cygwin:
