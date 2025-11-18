@@ -101,6 +101,18 @@ static int handle_nfs41_setattr_basicinfo(void *daemon_context,
         goto out;
     }
 
+    /*
+     * Set file attributes
+     *
+     * Notes:
+     * - MS-FSCC 2.6 File Attributes: "... There is no file attribute with the
+     * value 0x00000000 because a value of 0x00000000 in the FileAttributes
+     * field means that the file attributes for this file MUST NOT be changed
+     * when setting basic information for the file. ..."
+     * - Windows Explorer will set |FILE_ATTRIBUTE_NORMAL| when it wants
+     * to change flags like |FILE_ATTRIBUTE_READONLY|, |FILE_ATTRIBUTE_HIDDEN|,
+     * |FILE_ATTRIBUTE_SYSTEM|, |FILE_ATTRIBUTE_ARCHIVE|
+     */
     if (basic_info->FileAttributes) {
         info.hidden = basic_info->FileAttributes & FILE_ATTRIBUTE_HIDDEN ? 1 : 0;
         info.system = basic_info->FileAttributes & FILE_ATTRIBUTE_SYSTEM ? 1 : 0;
@@ -127,19 +139,19 @@ static int handle_nfs41_setattr_basicinfo(void *daemon_context,
             ("handle_nfs41_setattr_basicinfo(args->path='%s)': "
             "Unsupported flag FILE_ATTRIBUTE_COMPRESSED ignored.\n",
             args->path));
-    }
 
-    /* mode */
-    if (basic_info->FileAttributes & FILE_ATTRIBUTE_READONLY) {
-        info.mode = 0444;
-        info.attrmask.arr[1] |= FATTR4_WORD1_MODE;
-        info.attrmask.count = __max(info.attrmask.count, 2);
-    }
-    else {
-        if (old_info.mode == 0444) {
-            info.mode = 0644;
+        /* mode */
+        if (basic_info->FileAttributes & FILE_ATTRIBUTE_READONLY) {
+            info.mode = 0444;
             info.attrmask.arr[1] |= FATTR4_WORD1_MODE;
             info.attrmask.count = __max(info.attrmask.count, 2);
+        }
+        else {
+            if (old_info.mode == 0444) {
+                info.mode = 0644;
+                info.attrmask.arr[1] |= FATTR4_WORD1_MODE;
+                info.attrmask.count = __max(info.attrmask.count, 2);
+            }
         }
     }
 
