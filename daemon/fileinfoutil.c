@@ -628,6 +628,7 @@ void nfs41_file_info_cpy(
     }
     if (attrmask->count > 2) {
         if (attrmask->arr[2] & FATTR4_WORD2_MODE_SET_MASKED) {
+            dest->mode = src->mode;
             dest->mode_mask = src->mode_mask;
         }
         if (attrmask->arr[2] & FATTR4_WORD2_MDSTHRESHOLD) {

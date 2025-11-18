@@ -216,6 +216,7 @@ typedef struct __nfs41_file_info {
     uint32_t                numlinks;
     uint32_t                rdattr_error;
     uint32_t                mode;
+    /* |FATTR4_WORD2_MODE_SET_MASKED| uses |mode| AND |mode_mask| */
     uint32_t                mode_mask;
     char                    *owner;
     char                    *owner_group;
