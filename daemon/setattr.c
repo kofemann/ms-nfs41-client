@@ -140,17 +140,44 @@ static int handle_nfs41_setattr_basicinfo(void *daemon_context,
             "Unsupported flag FILE_ATTRIBUTE_COMPRESSED ignored.\n",
             args->path));
 
-        /* mode */
+        /* |FILE_ATTRIBUTE_READONLY| to POSIX mode */
+        bool modesetmasksupported = bitmap_isset(&superblock->supported_attrs,
+            2, FATTR4_WORD2_MODE_SET_MASKED);
+
         if (basic_info->FileAttributes & FILE_ATTRIBUTE_READONLY) {
-            info.mode = 0444;
-            info.attrmask.arr[1] |= FATTR4_WORD1_MODE;
-            info.attrmask.count = __max(info.attrmask.count, 2);
-        }
-        else {
-            if (old_info.mode == 0444) {
-                info.mode = 0644;
+            if (modesetmasksupported) {
+                /* Make sure we preserve the "x" and setuid/setgid bits */
+                info.mode = 0444;
+                info.mode_mask = 0666;
+
+                info.attrmask.arr[2] |= FATTR4_WORD2_MODE_SET_MASKED;
+                info.attrmask.count = __max(info.attrmask.count, 3);
+            }
+            else {
+                /* Make sure we preserve the "x" and setuid/setgid bits */
+                info.mode = (old_info.mode & ~0666) | 0444;
+
                 info.attrmask.arr[1] |= FATTR4_WORD1_MODE;
                 info.attrmask.count = __max(info.attrmask.count, 2);
+            }
+        }
+        else {
+            if ((old_info.mode & 0666) == 0444) {
+                if (modesetmasksupported) {
+                    /* Make sure we preserve the "x" and setuid/setgid bits */
+                    info.mode = 0644;
+                    info.mode_mask = 0666;
+
+                    info.attrmask.arr[2] |= FATTR4_WORD2_MODE_SET_MASKED;
+                    info.attrmask.count = __max(info.attrmask.count, 3);
+                }
+                else {
+                    /* Make sure we preserve the "x" and setuid/setgid bits */
+                    info.mode = (old_info.mode & ~0666) | 0644;
+
+                    info.attrmask.arr[1] |= FATTR4_WORD1_MODE;
+                    info.attrmask.count = __max(info.attrmask.count, 2);
+                }
             }
         }
     }
@@ -207,11 +234,14 @@ static int handle_nfs41_setattr_basicinfo(void *daemon_context,
      */
     if ((opcode != NFS41_SYSOP_FILE_SET_AT_CLEANUP) &&
         (bitmap_isset(&info.attrmask, 1, FATTR4_WORD1_MODE) ||
+        bitmap_isset(&info.attrmask, 2, FATTR4_WORD2_MODE_SET_MASKED) ||
         bitmap_isset(&info.attrmask, 1, FATTR4_WORD1_TIME_CREATE))) {
         DPRINTF(0, ("handle_nfs41_setattr_basicinfo(args->path='%s'): "
-            "returning read delegation because of mode=%d, time_create=%d\n",
+            "returning read delegation because of "
+            "mode=%d/mode_set_masked=%d, time_create=%d\n",
             args->path,
             (int)bitmap_isset(&info.attrmask, 1, FATTR4_WORD1_MODE),
+            (int)bitmap_isset(&info.attrmask, 2, FATTR4_WORD2_MODE_SET_MASKED),
             (int)bitmap_isset(&info.attrmask, 1, FATTR4_WORD1_TIME_CREATE)));
         nfs41_delegation_return(state->session, &state->file,
             OPEN_DELEGATE_READ, FALSE);

@@ -74,7 +74,7 @@ ULONG nfs_file_info_to_attributes(
 
     EASSERT(bitmap_isset(&info->attrmask, 1, FATTR4_WORD1_MODE));
     if (bitmap_isset(&info->attrmask, 1, FATTR4_WORD1_MODE)) {
-        if (info->mode == 0444) /* XXX: 0444 for READONLY */
+        if ((info->mode & 0666) == 0444) /* XXX: 0444 for READONLY */
             attrs |= FILE_ATTRIBUTE_READONLY;
     }
 
