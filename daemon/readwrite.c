@@ -212,6 +212,7 @@ static int read_from_mds(
     while(to_rcv > 0) {
         uint32_t bytes_read = 0, chunk = min(to_rcv, maxreadsize);
 
+retry_read:
         if (session->client->root->supports_nfs42_read_plus) {
             status = nfs42_read_plus(session, file, stateid,
                 args->offset + reloffset, chunk,
@@ -227,6 +228,9 @@ static int read_from_mds(
                     "disabling OP_READ_PLUS\n",
                     nfs_error_string(status)));
                 session->client->root->supports_nfs42_read_plus = false;
+
+                /* Retry now with |nfs41_read()| ... */
+                goto retry_read;
             }
         }
         else {
