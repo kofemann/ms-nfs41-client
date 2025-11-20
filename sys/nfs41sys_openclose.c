@@ -657,6 +657,12 @@ NTSTATUS nfs41_Create(
 
     debug_printirpecps(RxContext->CurrentIrp);
 
+    PQUERY_ON_CREATE_ECP_CONTEXT qocec =
+        get_queryoncreateecpcontext(RxContext->CurrentIrp);
+    if (qocec) {
+        DbgP("nfs41_Create: RequestedClasses=0x%lx\n", qocec->RequestedClasses);
+    }
+
 #ifdef NFS41_DRIVER_ALLOW_CREATEFILE_ACLS
     ULONG SdLength = RxContext->Create.SdLength;
     PSECURITY_DESCRIPTOR SdBuffer;

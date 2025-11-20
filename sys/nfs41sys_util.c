@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2023-2024 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -193,4 +193,31 @@ NTSTATUS nfs41_UnmapLockedKernelPagesInNfsDaemonAddressSpace(
     }
 
     return status;
+}
+
+PQUERY_ON_CREATE_ECP_CONTEXT get_queryoncreateecpcontext(
+    __in PIRP Irp)
+{
+    NTSTATUS status;
+    PECP_LIST ecpList = NULL;
+    PVOID ecpContext = NULL;
+
+    status = FsRtlGetEcpListFromIrp(Irp, &ecpList);
+
+    if ((!NT_SUCCESS(status)) || (ecpList == NULL)) {
+        return NULL;
+    }
+
+    status = FsRtlFindExtraCreateParameter(
+        ecpList,
+        &GUID_ECP_QUERY_ON_CREATE,
+        &ecpContext,
+        NULL
+    );
+
+    if (!NT_SUCCESS(status)) {
+        return NULL;
+    }
+
+    return (PQUERY_ON_CREATE_ECP_CONTEXT)ecpContext;
 }

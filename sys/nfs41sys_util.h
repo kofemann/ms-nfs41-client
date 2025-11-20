@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2023-2024 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -65,4 +65,7 @@ NTSTATUS nfs41_MapLockedPagesInNfsDaemonAddressSpace(
 NTSTATUS nfs41_UnmapLockedKernelPagesInNfsDaemonAddressSpace(
     __in PVOID BaseAddress,
     __in PMDL  MemoryDescriptorList);
+PQUERY_ON_CREATE_ECP_CONTEXT get_queryoncreateecpcontext(
+    __in PIRP Irp);
+
 #endif /* !_NFS41SYS_UTIL_H_ */
