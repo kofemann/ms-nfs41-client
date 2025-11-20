@@ -45,12 +45,14 @@ static int parse_getacl(
     int status;
     getacl_upcall_args *args = &upcall->args.getacl;
 
-    status = safe_read(&buffer, &length, &args->query, sizeof(args->query));
+    status = safe_read(&buffer, &length, &args->query_secinfo,
+        sizeof(args->query_secinfo));
     if (status) goto out;
 
     EASSERT(length == 0);
 
-    DPRINTF(1, ("parsing NFS41_SYSOP_ACL_QUERY: info_class=%d\n", args->query));
+    DPRINTF(1, ("parsing NFS41_SYSOP_ACL_QUERY: secinfo=0xlx\n",
+        (long)args->query_secinfo));
 out:
     return status;
 }
@@ -79,7 +81,7 @@ static int handle_getacl(void *daemon_context, nfs41_upcall *upcall)
     DPRINTF(ACLLVL1, ("--> handle_getacl(state->path.path='%s')\n",
         state->path.path));
 
-    if (args->query & DACL_SECURITY_INFORMATION) {
+    if (args->query_secinfo & DACL_SECURITY_INFORMATION) {
         owner_group_acl_bitmap.arr[0] |= FATTR4_WORD0_ACL;
     }
 
@@ -102,13 +104,13 @@ static int handle_getacl(void *daemon_context, nfs41_upcall *upcall)
     }
 
     EASSERT(info.attrmask.count > 1);
-    if (args->query & DACL_SECURITY_INFORMATION) {
+    if (args->query_secinfo & DACL_SECURITY_INFORMATION) {
         EASSERT(bitmap_isset(&info.attrmask, 0, FATTR4_WORD0_ACL) == true);
     }
-    if (args->query & OWNER_SECURITY_INFORMATION) {
+    if (args->query_secinfo & OWNER_SECURITY_INFORMATION) {
         EASSERT(bitmap_isset(&info.attrmask, 1, FATTR4_WORD1_OWNER) == true);
     }
-    if (args->query & GROUP_SECURITY_INFORMATION) {
+    if (args->query_secinfo & GROUP_SECURITY_INFORMATION) {
         EASSERT(bitmap_isset(&info.attrmask, 1, FATTR4_WORD1_OWNER_GROUP) == true);
     }
 
@@ -125,7 +127,7 @@ static int handle_getacl(void *daemon_context, nfs41_upcall *upcall)
       * stores pointers to the sids. thus each owner and group needs its own
       * memory. free them after creating self-relative security descriptor. 
       */
-    if (args->query & OWNER_SECURITY_INFORMATION) {
+    if (args->query_secinfo & OWNER_SECURITY_INFORMATION) {
         // parse user@domain. currently ignoring domain part XX
         convert_nfs4name_2_user_domain(info.owner, &domain);
         DPRINTF(ACLLVL2, ("handle_getacl: OWNER_SECURITY_INFORMATION: for user='%s' "
@@ -144,7 +146,7 @@ static int handle_getacl(void *daemon_context, nfs41_upcall *upcall)
         }
     }
 
-    if (args->query & GROUP_SECURITY_INFORMATION) {
+    if (args->query_secinfo & GROUP_SECURITY_INFORMATION) {
         convert_nfs4name_2_user_domain(info.owner_group, &domain);
         DPRINTF(ACLLVL2, ("handle_getacl: GROUP_SECURITY_INFORMATION: for '%s' "
                 "domain='%s'\n", info.owner_group, domain?domain:"<null>"));
@@ -162,7 +164,7 @@ static int handle_getacl(void *daemon_context, nfs41_upcall *upcall)
         }
     }
 
-    if (args->query & DACL_SECURITY_INFORMATION) {
+    if (args->query_secinfo & DACL_SECURITY_INFORMATION) {
         DPRINTF(ACLLVL2, ("handle_getacl: DACL_SECURITY_INFORMATION\n"));
         status = convert_nfs4acl_2_dacl(nfs41dg,
             info.acl, state->type, &dacl, &sids,
@@ -204,13 +206,13 @@ static int handle_getacl(void *daemon_context, nfs41_upcall *upcall)
     } else status = ERROR_SUCCESS;
 
 out:
-    if (args->query & OWNER_SECURITY_INFORMATION) {
+    if (args->query_secinfo & OWNER_SECURITY_INFORMATION) {
         if (osid) free(osid);
     }
-    if (args->query & GROUP_SECURITY_INFORMATION) {
+    if (args->query_secinfo & GROUP_SECURITY_INFORMATION) {
         if (gsid) free(gsid);
     }
-    if (args->query & DACL_SECURITY_INFORMATION) {
+    if (args->query_secinfo & DACL_SECURITY_INFORMATION) {
         if (sids) free_sids(sids, info.acl->count);
         free(dacl);
         nfsacl41_free(info.acl);
@@ -257,7 +259,8 @@ static int parse_setacl(
     const void *sec_desc_ptr;
     ULONG sec_desc_len;
 
-    status = safe_read(&buffer, &length, &args->query, sizeof(args->query));
+    status = safe_read(&buffer, &length, &args->query_secinfo,
+        sizeof(args->query_secinfo));
     if (status) goto out;
     status = safe_read(&buffer, &length, &sec_desc_len, sizeof(ULONG));
     if (status) goto out;
@@ -268,8 +271,8 @@ static int parse_setacl(
 
     EASSERT(length == 0);
 
-    DPRINTF(1, ("parsing NFS41_SYSOP_ACL_SET: info_class=%d sec_desc_len=%d\n",
-            args->query, sec_desc_len));
+    DPRINTF(1, ("parsing NFS41_SYSOP_ACL_SET: secinfo=0x%lx sec_desc_len=%d\n",
+        (long)args->query_secinfo, sec_desc_len));
 out:
     return status;
 }
@@ -297,7 +300,7 @@ static int handle_setacl(void *daemon_context, nfs41_upcall *upcall)
         goto out;
     }
 
-    if (args->query & OWNER_SECURITY_INFORMATION) {
+    if (args->query_secinfo & OWNER_SECURITY_INFORMATION) {
         DPRINTF(ACLLVL2, ("handle_setacl: OWNER_SECURITY_INFORMATION\n"));
         status = GetSecurityDescriptorOwner(args->sec_desc, &sid, &sid_default);
         if (!status) {
@@ -319,7 +322,7 @@ static int handle_setacl(void *daemon_context, nfs41_upcall *upcall)
             ("info.owner='%s'\n", info.owner));
     }
 
-    if (args->query & GROUP_SECURITY_INFORMATION) {
+    if (args->query_secinfo & GROUP_SECURITY_INFORMATION) {
         DPRINTF(ACLLVL2, ("handle_setacl: GROUP_SECURITY_INFORMATION\n"));
         status = GetSecurityDescriptorGroup(args->sec_desc, &sid, &sid_default);
         if (!status) {
@@ -341,7 +344,7 @@ static int handle_setacl(void *daemon_context, nfs41_upcall *upcall)
             ("info.owner_group='%s'\n", info.owner_group));
     }
 
-    if (args->query & DACL_SECURITY_INFORMATION) {
+    if (args->query_secinfo & DACL_SECURITY_INFORMATION) {
         BOOL dacl_present, dacl_default;
         PACL acl;
         DPRINTF(ACLLVL2, ("handle_setacl: DACL_SECURITY_INFORMATION\n"));
@@ -400,7 +403,7 @@ static int handle_setacl(void *daemon_context, nfs41_upcall *upcall)
         }
     }
 
-    if (args->query & DACL_SECURITY_INFORMATION)
+    if (args->query_secinfo & DACL_SECURITY_INFORMATION)
         free(nfs4_acl.aces);
 out:
     DPRINTF(ACLLVL1, ("<-- handle_setacl() returning %d\n", status));

@@ -298,7 +298,7 @@ typedef struct _updowncall_entry {
             ULONG buf_len;
         } Volume;
         struct {
-            SECURITY_INFORMATION query;
+            SECURITY_INFORMATION query_secinfo;
             PVOID buf;
             ULONG buf_len;
         } Acl;

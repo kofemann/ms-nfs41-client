@@ -90,7 +90,8 @@ NTSTATUS marshal_nfs41_getacl(
         goto out;
     }
 
-    RtlCopyMemory(tmp, &entry->u.Acl.query, sizeof(SECURITY_INFORMATION));
+    RtlCopyMemory(tmp,
+        &entry->u.Acl.query_secinfo, sizeof(SECURITY_INFORMATION));
     tmp += sizeof(SECURITY_INFORMATION);
 
     *len = (ULONG)(tmp - buf);
@@ -102,7 +103,8 @@ NTSTATUS marshal_nfs41_getacl(
     }
 
 #ifdef DEBUG_MARSHAL_DETAIL
-    DbgP("marshal_nfs41_getacl: class=0x%x\n", (int)entry->u.Acl.query);
+    DbgP("marshal_nfs41_getacl: class=0x%x\n",
+        (int)entry->u.Acl.query_secinfo);
 #endif
 out:
     return status;
@@ -130,7 +132,8 @@ NTSTATUS marshal_nfs41_setacl(
         goto out;
     }
 
-    RtlCopyMemory(tmp, &entry->u.Acl.query, sizeof(SECURITY_INFORMATION));
+    RtlCopyMemory(tmp,
+        &entry->u.Acl.query_secinfo, sizeof(SECURITY_INFORMATION));
     tmp += sizeof(SECURITY_INFORMATION);
     RtlCopyMemory(tmp, &entry->u.Acl.buf_len, sizeof(ULONG));
     tmp += sizeof(ULONG);
@@ -147,7 +150,7 @@ NTSTATUS marshal_nfs41_setacl(
 
 #ifdef DEBUG_MARSHAL_DETAIL
     DbgP("marshal_nfs41_setacl: class=0x%x sec_desc_len=%lu\n",
-         (int)entry->u.Acl.query, (long)entry->u.Acl.buf_len);
+         (int)entry->u.Acl.query_secinfo, (long)entry->u.Acl.buf_len);
 #endif
 out:
     return status;
@@ -204,12 +207,12 @@ NTSTATUS check_nfs41_getacl_args(
     PRX_CONTEXT RxContext)
 {
     NTSTATUS status = STATUS_SUCCESS;
-    SECURITY_INFORMATION info_class =
+    SECURITY_INFORMATION secinfo =
         RxContext->CurrentIrpSp->Parameters.QuerySecurity.SecurityInformation;
 
     /* we don't support sacls (yet) */
-    if (info_class == SACL_SECURITY_INFORMATION ||
-            info_class == LABEL_SECURITY_INFORMATION) {
+    if (secinfo == SACL_SECURITY_INFORMATION ||
+            secinfo == LABEL_SECURITY_INFORMATION) {
         DbgP("check_nfs41_getacl_args: SACLs not supported (yet)\n");
         status = STATUS_NOT_SUPPORTED;
         goto out;
@@ -235,7 +238,7 @@ NTSTATUS nfs41_QuerySecurityInformation(
         NFS41GetVNetRootExtension(SrvOpen->pVNetRoot);
     __notnull PNFS41_NETROOT_EXTENSION pNetRootContext =
         NFS41GetNetRootExtension(SrvOpen->pVNetRoot->pNetRoot);
-    SECURITY_INFORMATION info_class =
+    SECURITY_INFORMATION secinfo =
         RxContext->CurrentIrpSp->Parameters.QuerySecurity.SecurityInformation;
     ULONG querysecuritylength =
         RxContext->CurrentIrpSp->Parameters.QuerySecurity.Length;
@@ -247,7 +250,7 @@ NTSTATUS nfs41_QuerySecurityInformation(
 #ifdef DEBUG_ACL_QUERY
     DbgEn();
     print_debug_header(RxContext);
-    print_acl_args(info_class);
+    print_acl_args(secinfo);
 #endif
     FsRtlEnterFileSystem();
 
@@ -276,7 +279,7 @@ NTSTATUS nfs41_QuerySecurityInformation(
             }
 
             /* Check whether the cached info have all the info we need */
-            if ((nfs41_fobx->acl_secinfo & info_class) == info_class) {
+            if ((nfs41_fobx->acl_secinfo & secinfo) == secinfo) {
                 PSECURITY_DESCRIPTOR sec_desc = (PSECURITY_DESCRIPTOR)
                     RxContext->CurrentIrp->UserBuffer;
                 RtlCopyMemory(sec_desc, nfs41_fobx->acl, nfs41_fobx->acl_len);
@@ -293,9 +296,9 @@ NTSTATUS nfs41_QuerySecurityInformation(
             }
             else {
                 DbgP("nfs41_QuerySecurityInformation: "
-                    "cache misses requested info, acl_secinfo=0x%lx, info_class=0x%lx\n",
+                    "cache misses requested info, acl_secinfo=0x%lx, secinfo=0x%lx\n",
                     (unsigned long)nfs41_fobx->acl_secinfo,
-                    (unsigned long)info_class);
+                    (unsigned long)secinfo);
             }
         }
 
@@ -313,7 +316,7 @@ NTSTATUS nfs41_QuerySecurityInformation(
         pNetRootContext->nfs41d_version, SrvOpen->pAlreadyPrefixedName, &entry);
     if (status) goto out;
 
-    entry->u.Acl.query = info_class;
+    entry->u.Acl.query_secinfo = secinfo;
     /* we can't provide RxContext->CurrentIrp->UserBuffer to the upcall thread
      * because it becomes an invalid pointer with that execution context
      */
@@ -353,7 +356,7 @@ NTSTATUS nfs41_QuerySecurityInformation(
 
         nfs41_fobx->acl = entry->u.Acl.buf;
         nfs41_fobx->acl_len = entry->u.Acl.buf_len;
-        nfs41_fobx->acl_secinfo = entry->u.Acl.query;
+        nfs41_fobx->acl_secinfo = entry->u.Acl.query_secinfo;
         entry->u.Acl.buf = NULL;
         KeQuerySystemTime(&nfs41_fobx->time);
 
@@ -406,7 +409,7 @@ NTSTATUS check_nfs41_setacl_args(
     NTSTATUS status = STATUS_SUCCESS;
     __notnull PNFS41_V_NET_ROOT_EXTENSION pVNetRootContext =
         NFS41GetVNetRootExtension(RxContext->pRelevantSrvOpen->pVNetRoot);
-    SECURITY_INFORMATION info_class =
+    SECURITY_INFORMATION secinfo =
         RxContext->CurrentIrpSp->Parameters.SetSecurity.SecurityInformation;
 
     if (pVNetRootContext->read_only) {
@@ -415,8 +418,8 @@ NTSTATUS check_nfs41_setacl_args(
         goto out;
     }
     /* we don't support sacls (yet) */
-    if (info_class == SACL_SECURITY_INFORMATION  ||
-            info_class == LABEL_SECURITY_INFORMATION) {
+    if (secinfo == SACL_SECURITY_INFORMATION  ||
+            secinfo == LABEL_SECURITY_INFORMATION) {
         DbgP("check_nfs41_setacl_args: SACLs not supported (yet)\n");
         status = STATUS_NOT_SUPPORTED;
         goto out;
@@ -439,7 +442,7 @@ NTSTATUS nfs41_SetSecurityInformation(
     __notnull PSECURITY_DESCRIPTOR sec_desc =
         RxContext->CurrentIrpSp->Parameters.SetSecurity.SecurityDescriptor;
     __notnull PNFS41_FCB nfs41_fcb = NFS41GetFcbExtension(RxContext->pFcb);
-    SECURITY_INFORMATION info_class =
+    SECURITY_INFORMATION secinfo =
         RxContext->CurrentIrpSp->Parameters.SetSecurity.SecurityInformation;
 #ifdef ENABLE_TIMINGS
     LARGE_INTEGER t1, t2;
@@ -449,7 +452,7 @@ NTSTATUS nfs41_SetSecurityInformation(
 #ifdef DEBUG_ACL_SET
     DbgEn();
     print_debug_header(RxContext);
-    print_acl_args(info_class);
+    print_acl_args(secinfo);
 #endif
     FsRtlEnterFileSystem();
 
@@ -457,7 +460,7 @@ NTSTATUS nfs41_SetSecurityInformation(
     if (status) goto out;
 
     /* check that ACL is present */
-    if (info_class & DACL_SECURITY_INFORMATION) {
+    if (secinfo & DACL_SECURITY_INFORMATION) {
         PACL acl;
         BOOLEAN present, dacl_default;
         status = RtlGetDaclSecurityDescriptor(sec_desc, &present, &acl,
@@ -478,7 +481,7 @@ NTSTATUS nfs41_SetSecurityInformation(
         pNetRootContext->nfs41d_version, SrvOpen->pAlreadyPrefixedName, &entry);
     if (status) goto out;
 
-    entry->u.Acl.query = info_class;
+    entry->u.Acl.query_secinfo = secinfo;
     entry->u.Acl.buf = sec_desc;
     entry->u.Acl.buf_len = RtlLengthSecurityDescriptor(sec_desc);
 #ifdef ENABLE_TIMINGS

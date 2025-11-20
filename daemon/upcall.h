@@ -198,13 +198,13 @@ typedef struct __volume_upcall_args {
 } volume_upcall_args;
 
 typedef struct __getacl_upcall_args {
-    SECURITY_INFORMATION query;
+    SECURITY_INFORMATION query_secinfo;
     PSECURITY_DESCRIPTOR sec_desc;
     DWORD sec_desc_len;
 } getacl_upcall_args;
 
 typedef struct __setacl_upcall_args {
-    SECURITY_INFORMATION query;
+    SECURITY_INFORMATION query_secinfo;
     PSECURITY_DESCRIPTOR sec_desc;
     ULONGLONG ctime;
 } setacl_upcall_args;
