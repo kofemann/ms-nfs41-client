@@ -55,6 +55,8 @@
 #include <stdarg.h>
 #include <ntstrsafe.h>
 #include <winerror.h>
+#include <stdbool.h>
+#include <ntifs.h>
 
 #include "win_reparse.h"
 
@@ -1578,4 +1580,130 @@ void print_debug_header(
     print_fo_all(1, RxContext);
     if (RxContext->CurrentIrp)
         print_irp_flags(0, RxContext->CurrentIrp);
+}
+
+/*
+ * Print Extended Create Parameters (ECP)
+ */
+
+/*
+ * GUIDs for Extended Create Parameters (ECP)
+ *
+ * FIXME: These are declared in nfs41sys_driver.c and should be in a header,
+ * but nfs41sys_debug.c should not depend in nfs41sys_driver.h
+ */
+/*
+ * |GUID_ECP_OPEN_AS_BLOCK_DEVICE| - "open as a block device"
+ * From https://www.snia.org/sites/default/files/files2/files2/SDC2013/presentations/Workloads/Barreto_Kurjanowicz-Shared_VHDX-v3.pdf
+ */
+EXTERN_C const GUID FAR GUID_ECP_OPEN_AS_BLOCK_DEVICE;
+EXTERN_C const GUID FAR GUID_ECP_QUERY_ON_CREATE;
+EXTERN_C const GUID FAR GUID_ECP_CLOUDFILES_ATTRIBUTION;
+EXTERN_C const GUID FAR GUID_ECP_CREATE_USER_PROCESS;
+EXTERN_C const GUID FAR GUID_ECP_ATOMIC_CREATE;
+EXTERN_C const GUID FAR GUID_ECP_OPEN_PARAMETERS;
+
+
+typedef struct _ECP_NAME_MAP {
+    const GUID *Guid;
+    const char *Name;
+} ECP_NAME_MAP;
+
+#define ECP_ENTRY(guid) { (const GUID*)&guid, #guid }
+
+static
+const ECP_NAME_MAP KnownEcps[] = {
+//    ECP_ENTRY(GUID_ECP_FLT_CREATEFILE_TARGET),
+    ECP_ENTRY(GUID_ECP_CREATE_USER_PROCESS),
+    ECP_ENTRY(GUID_ECP_OPLOCK_KEY),
+    ECP_ENTRY(GUID_ECP_DUAL_OPLOCK_KEY),
+    ECP_ENTRY(GUID_ECP_NETWORK_OPEN_CONTEXT),
+    ECP_ENTRY(GUID_ECP_NETWORK_APP_INSTANCE),
+    ECP_ENTRY(GUID_ECP_NETWORK_APP_INSTANCE_VERSION),
+    /* GUID_ECP_PREFETCH_OPEN - Prefetch Open (Superfetch) */
+    ECP_ENTRY(GUID_ECP_PREFETCH_OPEN),
+    ECP_ENTRY(GUID_ECP_NFS_OPEN),
+    /* GUID_ECP_SRV_OPEN - SMB SRV Open */
+    ECP_ENTRY(GUID_ECP_SRV_OPEN),
+    ECP_ENTRY(GUID_ECP_RKF_BYPASS),
+    ECP_ENTRY(GUID_ECP_IO_DEVICE_HINT),
+    ECP_ENTRY(GUID_ECP_CSV_DOWN_LEVEL_OPEN),
+    ECP_ENTRY(GUID_ECP_CSV_QUERY_FILE_REVISION),
+    ECP_ENTRY(GUID_ECP_CSV_QUERY_FILE_REVISION_FILE_ID_128),
+    ECP_ENTRY(GUID_ECP_CSV_SET_HANDLE_PROPERTIES),
+    ECP_ENTRY(GUID_ECP_CREATE_REDIRECTION),
+    ECP_ENTRY(GUID_ECP_ATOMIC_CREATE),
+    ECP_ENTRY(GUID_ECP_OPEN_PARAMETERS),
+    ECP_ENTRY(GUID_ECP_QUERY_ON_CREATE),
+    ECP_ENTRY(GUID_ECP_CLOUDFILES_ATTRIBUTION),
+    /*
+     * Custom ECP not in <ntifs.h>/Windows headers
+     */
+    ECP_ENTRY(GUID_ECP_OPEN_AS_BLOCK_DEVICE),
+    { NULL, NULL }
+};
+
+static
+const char *GetEcpNameFromGuid(const GUID *restrict guid)
+{
+    for (int i = 0; KnownEcps[i].Guid != NULL; i++) {
+        if (IsEqualGUID(guid, KnownEcps[i].Guid)) {
+            return KnownEcps[i].Name;
+        }
+    }
+    return "<Unknown-ECP>";
+}
+
+void debug_printirpecps(PIRP irp)
+{
+    NTSTATUS status;
+    PECP_LIST ecpList = NULL;
+    PVOID currentContext = NULL;
+    PVOID nextContext = NULL;
+    GUID ecpGuid;
+    ULONG ecpSize = 0;
+    UNICODE_STRING guidString;
+
+    status = FsRtlGetEcpListFromIrp(irp, &ecpList);
+
+    if ((status == STATUS_NOT_FOUND) || (ecpList == NULL)) {
+        DbgP("debug_printirpecps: No ECP list found attached to the IRP.\n");
+        return;
+    } else if (!NT_SUCCESS(status)) {
+        DbgP("debug_printirpecps: Failed to retrieve ECP list, status=0x%lx\n",
+            (long)status);
+        return;
+    }
+
+    while(true) {
+        status = FsRtlGetNextExtraCreateParameter(
+            ecpList,
+            currentContext,
+            &ecpGuid,
+            &nextContext,
+            &ecpSize
+        );
+
+        if (status == STATUS_NOT_FOUND) {
+            break;
+        }
+
+        if (!NT_SUCCESS(status)) {
+            DbgP("debug_printirpecps: "
+                "FsRtlGetNextExtraCreateParameter() returned status=0x%lx\n",
+                (long)status);
+            break;
+        }
+
+        if (NT_SUCCESS(RtlStringFromGUID(&ecpGuid, &guidString))) {
+            const char *friendlyName = GetEcpNameFromGuid(&ecpGuid);
+
+            DbgP("debug_printirpecps: ECP: Name='%s', GUID='%wZ', size=%lu\n",
+                friendlyName, &guidString, ecpSize);
+
+            RtlFreeUnicodeString(&guidString);
+        }
+
+        currentContext = nextContext;
+    }
 }

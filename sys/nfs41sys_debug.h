@@ -1,5 +1,6 @@
 /* NFSv4.1 client for Windows
- * Copyright © 2012 The Regents of the University of Michigan
+ * Copyright (C) 2012 The Regents of the University of Michigan
+ * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -60,6 +61,7 @@ const char *reparsetag2string(ULONG tag);
 void print_lookasidelist_stat(const char *label, PNPAGED_LOOKASIDE_LIST ll);
 #endif /* USE_LOOKASIDELISTS_FOR_UPDOWNCALLENTRY_MEM */
 void print_debug_header(PRX_CONTEXT RxContext);
+void debug_printirpecps(PIRP irp);
 
 #define PTR2PTRDIFF_T(p) (((char *)(p))-((char *)0))
 #define PsGetCurrentProcessShortDebugId() ((int)PTR2PTRDIFF_T(PsGetCurrentProcessId()))

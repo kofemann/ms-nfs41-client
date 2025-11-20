@@ -655,6 +655,8 @@ NTSTATUS nfs41_Create(
     status = check_nfs41_create_args(RxContext);
     if (status) goto out;
 
+    debug_printirpecps(RxContext->CurrentIrp);
+
 #ifdef NFS41_DRIVER_ALLOW_CREATEFILE_ACLS
     ULONG SdLength = RxContext->Create.SdLength;
     PSECURITY_DESCRIPTOR SdBuffer;

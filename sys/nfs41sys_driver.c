@@ -52,6 +52,11 @@
 #endif
 #endif /* _MSC_VER >= 1900 */
 
+/*
+ * <initguid.h> must be included FIRST to get GUID variable declarations below
+ */
+#include <initguid.h>
+
 #define MINIRDR__NAME MRxNFS41
 #include <rx.h>
 #include <windef.h>
@@ -87,6 +92,40 @@ DECLARE_CONST_UNICODE_STRING(NetRootIpc, L"\\IPC$");
 DECLARE_CONST_ANSI_STRING(NfsV3Attributes, EA_NFSV3ATTRIBUTES);
 DECLARE_CONST_ANSI_STRING(NfsSymlinkTargetName, EA_NFSSYMLINKTARGETNAME);
 DECLARE_CONST_ANSI_STRING(NfsActOnLink, EA_NFSACTONLINK);
+
+/*
+ * |GUID_ECP_OPEN_AS_BLOCK_DEVICE| - "open as a block device"
+ * From https://www.snia.org/sites/default/files/files2/files2/SDC2013/presentations/Workloads/Barreto_Kurjanowicz-Shared_VHDX-v3.pdf
+ */
+DEFINE_GUID(GUID_ECP_OPEN_AS_BLOCK_DEVICE,
+    0x9ecfcb9c, 0xc104, 0x43e6,
+    0x98, 0x0e, 0x15, 0x8d, 0xa1, 0xf6, 0xec, 0x83);
+
+#if !(NTDDI_VERSION >= NTDDI_WIN10_RS5)
+DEFINE_GUID(GUID_ECP_QUERY_ON_CREATE,
+    0x1aca62e9, 0xabb4, 0x4ff2,
+    0xbb, 0x5c, 0x1c, 0x79, 0x2, 0x5e, 0x41, 0x7f);
+#endif /* !(NTDDI_VERSION >= NTDDI_WIN10_RS5) */
+#if !(NTDDI_VERSION >= NTDDI_WIN10_VB)
+DEFINE_GUID(GUID_ECP_CLOUDFILES_ATTRIBUTION,
+    0x2932ff52, 0x8378, 0x4fc1,
+    0x8e, 0xdb, 0x6b, 0xdc, 0x8f, 0x60, 0x27, 0x09);
+#endif /* !(NTDDI_VERSION >= NTDDI_WIN10_VB) */
+#if !(NTDDI_VERSION >= NTDDI_WINTHRESHOLD)
+DEFINE_GUID(GUID_ECP_CREATE_USER_PROCESS,
+    0xe0e429ff, 0x6ddc, 0x4e65,
+    0xaa, 0xb6, 0x45, 0xd0, 0x5a, 0x3, 0x8a, 0x8);
+#endif /* !(NTDDI_VERSION >= NTDDI_WINTHRESHOLD) */
+#if !(NTDDI_VERSION >= NTDDI_WIN10_TH2)
+DEFINE_GUID(GUID_ECP_ATOMIC_CREATE,
+    0x4720bd83, 0x52ac, 0x4104,
+    0xa1, 0x30, 0xd1, 0xec, 0x6a, 0x8c, 0xc8, 0xe5);
+#endif /* !(NTDDI_VERSION >= NTDDI_WIN10_TH2) */
+#if !(NTDDI_VERSION >= NTDDI_WIN10_RS3)
+DEFINE_GUID(GUID_ECP_OPEN_PARAMETERS,
+    0xcd0a93c3, 0x3bb7, 0x463d,
+    0xac, 0xcb, 0x96, 0x9d, 0x34, 0x35, 0xa5, 0xa5);
+#endif /* !(NTDDI_VERSION >= NTDDI_WIN10_RS3) */
 
 #ifdef USE_LOOKASIDELISTS_FOR_UPDOWNCALLENTRY_MEM
 NPAGED_LOOKASIDE_LIST updowncall_entry_upcall_lookasidelist;
