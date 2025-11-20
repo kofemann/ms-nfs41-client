@@ -496,6 +496,7 @@ typedef struct _NFS41_FOBX {
     SECURITY_CLIENT_CONTEXT sec_ctx;
     PVOID acl;
     DWORD acl_len;
+    SECURITY_INFORMATION acl_secinfo;
     LARGE_INTEGER time;
     DWORD deleg_type;
     BOOLEAN write_thru;
