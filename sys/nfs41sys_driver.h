@@ -92,7 +92,7 @@ typedef struct __nfs41_timings {
 } nfs41_timings;
 #endif /* ENABLE_TIMINGS */
 
-/* Windows SMB driver also uses |IO_NFS41FS_INCREMENT| */
+/* Windows SMB driver also uses |IO_NETWORK_INCREMENT| */
 #define IO_NFS41FS_INCREMENT IO_NETWORK_INCREMENT
 
 #define DISABLE_CACHING 0
