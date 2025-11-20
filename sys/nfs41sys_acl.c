@@ -211,8 +211,8 @@ NTSTATUS check_nfs41_getacl_args(
         RxContext->CurrentIrpSp->Parameters.QuerySecurity.SecurityInformation;
 
     /* we don't support sacls (yet) */
-    if (secinfo == SACL_SECURITY_INFORMATION ||
-            secinfo == LABEL_SECURITY_INFORMATION) {
+    if ((secinfo & SACL_SECURITY_INFORMATION) ||
+        (secinfo & LABEL_SECURITY_INFORMATION)) {
         DbgP("check_nfs41_getacl_args: SACLs not supported (yet)\n");
         status = STATUS_NOT_SUPPORTED;
         goto out;
@@ -418,8 +418,8 @@ NTSTATUS check_nfs41_setacl_args(
         goto out;
     }
     /* we don't support sacls (yet) */
-    if (secinfo == SACL_SECURITY_INFORMATION  ||
-            secinfo == LABEL_SECURITY_INFORMATION) {
+    if ((secinfo & SACL_SECURITY_INFORMATION) ||
+        (secinfo & LABEL_SECURITY_INFORMATION)) {
         DbgP("check_nfs41_setacl_args: SACLs not supported (yet)\n");
         status = STATUS_NOT_SUPPORTED;
         goto out;
