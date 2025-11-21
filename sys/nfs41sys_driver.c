@@ -906,7 +906,15 @@ NTSTATUS nfs41_Flush(
 NTSTATUS nfs41_DeallocateForFcb(
     IN OUT PMRX_FCB pFcb)
 {
+    __notnull PNFS41_FCB nfs41_fcb = NFS41GetFcbExtension(pFcb);
+
     nfs41_remove_fcb_entry(pFcb);
+
+    if (nfs41_fcb->aclcache.data) {
+        RxFreePool(nfs41_fcb->aclcache.data);
+        nfs41_fcb->aclcache.data = NULL;
+    }
+
     return STATUS_SUCCESS;
 }
 
@@ -917,11 +925,6 @@ NTSTATUS nfs41_DeallocateForFobx(
 
     nfs41_invalidate_fobx_entry(pFobx);
     nfs41_remove_offloadcontext_for_fobx(pFobx);
-
-    if (nfs41_fobx->aclcache.data) {
-        RxFreePool(nfs41_fobx->aclcache.data);
-        nfs41_fobx->aclcache.data = NULL;
-    }
 
     if (nfs41_fobx->sec_ctx.ClientToken) {
         SeDeleteClientSecurity(&nfs41_fobx->sec_ctx);

@@ -483,6 +483,12 @@ typedef struct _NFS41_FCB {
     DWORD                   owner_local_uid;       /* owner mapped into local uid */
     DWORD                   owner_group_local_gid; /* owner group mapped into local gid */
 #endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
+    struct {
+        PVOID data;
+        DWORD data_len;
+        SECURITY_INFORMATION secinfo;
+        LARGE_INTEGER time;
+    } aclcache;
     ULONGLONG               changeattr;
 } NFS41_FCB, *PNFS41_FCB;
 #define NFS41GetFcbExtension(pFcb)      \
@@ -494,12 +500,6 @@ typedef struct _NFS41_FOBX {
 
     HANDLE nfs41_open_state;
     SECURITY_CLIENT_CONTEXT sec_ctx;
-    struct {
-        PVOID data;
-        DWORD data_len;
-        SECURITY_INFORMATION secinfo;
-        LARGE_INTEGER time;
-    } aclcache;
     DWORD deleg_type;
     BOOLEAN write_thru;
     BOOLEAN nocache;
