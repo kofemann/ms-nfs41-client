@@ -267,7 +267,7 @@ NTSTATUS nfs41_QuerySecurityInformation(
             (long long)nfs41_fcb->aclcache.time.QuadPart);
 #endif
         if ((current_time.QuadPart - nfs41_fcb->aclcache.time.QuadPart)
-            <= (10*1000)) {
+            <= (10*10000000)) {
             if (querysecuritylength < nfs41_fcb->aclcache.data_len) {
                 status = STATUS_BUFFER_OVERFLOW;
                 RxContext->InformationToReturn = nfs41_fcb->aclcache.data_len;
