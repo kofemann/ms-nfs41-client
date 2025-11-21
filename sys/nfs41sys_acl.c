@@ -257,38 +257,41 @@ NTSTATUS nfs41_QuerySecurityInformation(
     status = check_nfs41_getacl_args(RxContext);
     if (status) goto out;
 
-    if (nfs41_fobx->acl && nfs41_fobx->acl_len) {
+    if (nfs41_fobx->aclcache.data && nfs41_fobx->aclcache.data_len) {
         LARGE_INTEGER current_time;
         KeQuerySystemTime(&current_time);
 #ifdef DEBUG_ACL_QUERY
         DbgP("CurrentTime 0x%llx Saved Acl time 0x%llx\n",
             (long long)current_time.QuadPart,
-            (long long)nfs41_fobx->time.QuadPart);
+            (long long)nfs41_fobx->aclcache.time.QuadPart);
 #endif
-        if ((current_time.QuadPart - nfs41_fobx->time.QuadPart) <= (10*1000)) {
-            if (querysecuritylength < nfs41_fobx->acl_len) {
+        if ((current_time.QuadPart - nfs41_fobx->aclcache.time.QuadPart)
+            <= (10*1000)) {
+            if (querysecuritylength < nfs41_fobx->aclcache.data_len) {
                 status = STATUS_BUFFER_OVERFLOW;
-                RxContext->InformationToReturn = nfs41_fobx->acl_len;
+                RxContext->InformationToReturn = nfs41_fobx->aclcache.data_len;
 
                 DbgP("nfs41_QuerySecurityInformation: "
                     "STATUS_BUFFER_OVERFLOW for cached entry, "
                     "got %lu, need %lu\n",
                     (unsigned long)querysecuritylength,
-                    (unsigned long)nfs41_fobx->acl_len);
+                    (unsigned long)nfs41_fobx->aclcache.data_len);
                 goto out;
             }
 
             /* Check whether the cached info have all the info we need */
-            if ((nfs41_fobx->acl_secinfo & secinfo) == secinfo) {
+            if ((nfs41_fobx->aclcache.secinfo & secinfo) == secinfo) {
                 PSECURITY_DESCRIPTOR sec_desc = (PSECURITY_DESCRIPTOR)
                     RxContext->CurrentIrp->UserBuffer;
-                RtlCopyMemory(sec_desc, nfs41_fobx->acl, nfs41_fobx->acl_len);
+                RtlCopyMemory(sec_desc, nfs41_fobx->aclcache.data,
+                    nfs41_fobx->aclcache.data_len);
                 RxContext->IoStatusBlock.Information =
-                    RxContext->InformationToReturn = nfs41_fobx->acl_len;
+                    RxContext->InformationToReturn =
+                        nfs41_fobx->aclcache.data_len;
                 RxContext->IoStatusBlock.Status = status = STATUS_SUCCESS;
 #ifdef ENABLE_TIMINGS
                 InterlockedIncrement(&getacl.sops);
-                InterlockedAdd64(&getacl.size, nfs41_fobx->acl_len);
+                InterlockedAdd64(&getacl.size, nfs41_fobx->aclcache.data_len);
 #endif
 
                 DbgP("nfs41_QuerySecurityInformation: using cached ACL info\n");
@@ -296,17 +299,18 @@ NTSTATUS nfs41_QuerySecurityInformation(
             }
             else {
                 DbgP("nfs41_QuerySecurityInformation: "
-                    "cache misses requested info, acl_secinfo=0x%lx, secinfo=0x%lx\n",
-                    (unsigned long)nfs41_fobx->acl_secinfo,
+                    "cache misses requested info, "
+                    "acl_secinfo=0x%lx, secinfo=0x%lx\n",
+                    (unsigned long)nfs41_fobx->aclcache.secinfo,
                     (unsigned long)secinfo);
             }
         }
 
-        if (nfs41_fobx->acl) {
-            RxFreePool(nfs41_fobx->acl);
-            nfs41_fobx->acl = NULL;
-            nfs41_fobx->acl_len = 0;
-            nfs41_fobx->acl_secinfo = 0;
+        if (nfs41_fobx->aclcache.data) {
+            RxFreePool(nfs41_fobx->aclcache.data);
+            nfs41_fobx->aclcache.data = NULL;
+            nfs41_fobx->aclcache.data_len = 0;
+            nfs41_fobx->aclcache.secinfo = 0;
         }
         DbgP("nfs41_QuerySecurityInformation: cached ACL info invalidated\n");
     }
@@ -347,24 +351,25 @@ NTSTATUS nfs41_QuerySecurityInformation(
          * Free previous ACL data. This can happen if two concurrent
          * requests are executed for the same file
          */
-        if (nfs41_fobx->acl) {
-            RxFreePool(nfs41_fobx->acl);
-            nfs41_fobx->acl = NULL;
-            nfs41_fobx->acl_len = 0;
-            nfs41_fobx->acl_secinfo = 0;
+        if (nfs41_fobx->aclcache.data) {
+            RxFreePool(nfs41_fobx->aclcache.data);
+            nfs41_fobx->aclcache.data = NULL;
+            nfs41_fobx->aclcache.data_len = 0;
+            nfs41_fobx->aclcache.secinfo = 0;
         }
 
-        nfs41_fobx->acl = entry->u.Acl.buf;
-        nfs41_fobx->acl_len = entry->u.Acl.buf_len;
-        nfs41_fobx->acl_secinfo = entry->u.Acl.query_secinfo;
+        nfs41_fobx->aclcache.data = entry->u.Acl.buf;
+        nfs41_fobx->aclcache.data_len = entry->u.Acl.buf_len;
+        nfs41_fobx->aclcache.secinfo = entry->u.Acl.query_secinfo;
         entry->u.Acl.buf = NULL;
-        KeQuerySystemTime(&nfs41_fobx->time);
+        KeQuerySystemTime(&nfs41_fobx->aclcache.time);
 
         PSECURITY_DESCRIPTOR sec_desc = (PSECURITY_DESCRIPTOR)
             RxContext->CurrentIrp->UserBuffer;
-        RtlCopyMemory(sec_desc, nfs41_fobx->acl, nfs41_fobx->acl_len);
+        RtlCopyMemory(sec_desc, nfs41_fobx->aclcache.data,
+            nfs41_fobx->aclcache.data_len);
         RxContext->IoStatusBlock.Information =
-            RxContext->InformationToReturn = nfs41_fobx->acl_len;
+            RxContext->InformationToReturn = nfs41_fobx->aclcache.data_len;
         RxContext->IoStatusBlock.Status = status = STATUS_SUCCESS;
 
 #ifdef ENABLE_TIMINGS
@@ -490,11 +495,11 @@ NTSTATUS nfs41_SetSecurityInformation(
 #endif
 
     /* Invalidate cached ACL info */
-    if (nfs41_fobx->acl) {
-        RxFreePool(nfs41_fobx->acl);
-        nfs41_fobx->acl = NULL;
-        nfs41_fobx->acl_len = 0;
-        nfs41_fobx->acl_secinfo = 0;
+    if (nfs41_fobx->aclcache.data) {
+        RxFreePool(nfs41_fobx->aclcache.data);
+        nfs41_fobx->aclcache.data = NULL;
+        nfs41_fobx->aclcache.data_len = 0;
+        nfs41_fobx->aclcache.secinfo = 0;
     }
 
     status = nfs41_UpcallWaitForReply(entry, pVNetRootContext->timeout);

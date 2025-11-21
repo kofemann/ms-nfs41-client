@@ -494,10 +494,12 @@ typedef struct _NFS41_FOBX {
 
     HANDLE nfs41_open_state;
     SECURITY_CLIENT_CONTEXT sec_ctx;
-    PVOID acl;
-    DWORD acl_len;
-    SECURITY_INFORMATION acl_secinfo;
-    LARGE_INTEGER time;
+    struct {
+        PVOID data;
+        DWORD data_len;
+        SECURITY_INFORMATION secinfo;
+        LARGE_INTEGER time;
+    } aclcache;
     DWORD deleg_type;
     BOOLEAN write_thru;
     BOOLEAN nocache;

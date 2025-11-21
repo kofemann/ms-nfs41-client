@@ -918,9 +918,9 @@ NTSTATUS nfs41_DeallocateForFobx(
     nfs41_invalidate_fobx_entry(pFobx);
     nfs41_remove_offloadcontext_for_fobx(pFobx);
 
-    if (nfs41_fobx->acl) {
-        RxFreePool(nfs41_fobx->acl);
-        nfs41_fobx->acl = NULL;
+    if (nfs41_fobx->aclcache.data) {
+        RxFreePool(nfs41_fobx->aclcache.data);
+        nfs41_fobx->aclcache.data = NULL;
     }
 
     if (nfs41_fobx->sec_ctx.ClientToken) {
