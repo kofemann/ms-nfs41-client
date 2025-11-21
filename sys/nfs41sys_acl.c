@@ -207,23 +207,13 @@ NTSTATUS check_nfs41_getacl_args(
     PRX_CONTEXT RxContext)
 {
     NTSTATUS status = STATUS_SUCCESS;
-    SECURITY_INFORMATION secinfo =
-        RxContext->CurrentIrpSp->Parameters.QuerySecurity.SecurityInformation;
 
-    /* we don't support sacls (yet) */
-    if ((secinfo & SACL_SECURITY_INFORMATION) ||
-        (secinfo & LABEL_SECURITY_INFORMATION)) {
-        DbgP("check_nfs41_getacl_args: SACLs not supported (yet)\n");
-        status = STATUS_NOT_SUPPORTED;
-        goto out;
-    }
     if (RxContext->CurrentIrp->UserBuffer == NULL &&
             RxContext->CurrentIrpSp->Parameters.QuerySecurity.Length) {
         DbgP("check_nfs41_getacl_args: "
             "RxContext->CurrentIrp->UserBuffer == NULL\n");
         status = STATUS_INVALID_USER_BUFFER;
     }
-out:
     return status;
 }
 
@@ -423,19 +413,9 @@ NTSTATUS check_nfs41_setacl_args(
     __notnull PNFS41_V_NET_ROOT_EXTENSION pVNetRootContext =
         NFS41GetVNetRootExtension(RxContext->pRelevantSrvOpen->pVNetRoot);
 
-    SECURITY_INFORMATION secinfo =
-        RxContext->CurrentIrpSp->Parameters.SetSecurity.SecurityInformation;
-
     if (pVNetRootContext->read_only) {
         print_error("check_nfs41_setacl_args: Read-only mount\n");
         status = STATUS_MEDIA_WRITE_PROTECTED;
-        goto out;
-    }
-    /* we don't support sacls (yet) */
-    if ((secinfo & SACL_SECURITY_INFORMATION) ||
-        (secinfo & LABEL_SECURITY_INFORMATION)) {
-        DbgP("check_nfs41_setacl_args: SACLs not supported (yet)\n");
-        status = STATUS_NOT_SUPPORTED;
         goto out;
     }
 out:
