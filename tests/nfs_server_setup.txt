@@ -85,6 +85,13 @@ service nfs-server restart
 # Adminstrator PowerShell
 Install-WindowsFeature -name Telnet-Client
 
+# make sure the time sync service is running and uses a valid ntp server:
+sc config w32time start=auto
+sc start w32time
+w32tm /config /update /manualpeerlist:10.49.0.6
+# wait 30sec and then verify the status:
+w32tm /query /status
+
 Import-Module ServerManager
 Add-WindowsFeature FS-NFS-Service
 Import-Module NFS
@@ -114,8 +121,8 @@ C:\cygwin64\sbin\nfs_mount -o rw N nfs://192.168.209.129//
 #
 
 ##### 1. Server setup
-# enable ntp server "10.49.0.5"
-printf "server 10.49.0.5\n" >/etc/inet/ntp.conf
+# enable ntp server "10.49.0.6"
+printf "server 10.49.0.6\n" >'/etc/inet/ntp.conf'
 svcadm enable ntp
 
 # configure&start NFS server
@@ -156,8 +163,8 @@ See https://docs.oracle.com/en/operating-systems/solaris/oracle-solaris/11.4/man
 #
 
 ##### 1. Server setup
-# enable ntp server "10.49.0.5"
-printf "server 10.49.0.5\n" >/etc/inet/ntp.conf
+# enable ntp server "10.49.0.6"
+printf "server 10.49.0.6\n" >'/etc/inet/ntp.conf'
 svcadm enable ntp
 svcadm restart ntp
 
@@ -205,6 +212,17 @@ See https://docs.oracle.com/en/operating-systems/solaris/oracle-solaris/11.4/man
 
 # Install FreeBSD (14.3) with NTP enabled
 
+# enable time server
+-- snip --
+printf 'server 10.49.0.6 prefer minpoll 5 maxpoll 8\nlogfile /var/log/ntp.log\nleapfile "/var/db/ntpd.leap-seconds.list"\n' >'/etc/ntp.conf'
+sysrc ntpd_enable="YES"
+sysrc ntpd_flags=""
+sysrc ntpd_sync_on_start="YES"
+-- snip --
+
+# Verify NTP config with
+ntpq -np
+
 # configure NFSv4.2 server with idmapping enabled
 sysrc rpcbind_enable="YES"
 sysrc mountd_enable="YES"
@@ -217,6 +235,7 @@ printf 'vfs.nfs.enable_uidtostring=0\n' >>'/etc/sysctl.conf'
 printf 'vfs.nfsd.enable_stringtouid=0\n' >>'/etc/sysctl.conf'
 printf 'vfs.nfsd.issue_delegations=1\n' >>'/etc/sysctl.conf'
 
+# configure an export
 mkdir /nfsdata
 chmod a+rwxt /nfsdata
 
@@ -226,7 +245,7 @@ printf 'V4: /\n' >'/etc/exports'
 printf '/nfsdata -network=10.49.202.0 -mask=255.255.255.0  -sec=sys\n' >>'/etc/exports'
 service nfsd start
 
-##### 2. ms-nfs41-client setup:
+##### 2. FreeBSD-specific ms-nfs41-client setup:
 - Normal setup
 - Add groups entry for group "wheel" if neccesary:
 $ printf 'wheel:S-1-0-0:0:\n' >>'/etc/group'
