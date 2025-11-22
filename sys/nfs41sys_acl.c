@@ -58,6 +58,7 @@
 #include <winerror.h>
 
 #include <Ntstrsafe.h>
+#include <stdbool.h>
 
 #include "nfs41sys_buildconfig.h"
 
@@ -233,6 +234,8 @@ NTSTATUS nfs41_QuerySecurityInformation(
         RxContext->CurrentIrpSp->Parameters.QuerySecurity.SecurityInformation;
     ULONG querysecuritylength =
         RxContext->CurrentIrpSp->Parameters.QuerySecurity.Length;
+    bool aclcache_locked = false;
+
 #ifdef ENABLE_TIMINGS
     LARGE_INTEGER t1, t2;
     t1 = KeQueryPerformanceCounter(NULL);
@@ -247,6 +250,9 @@ NTSTATUS nfs41_QuerySecurityInformation(
 
     status = check_nfs41_getacl_args(RxContext);
     if (status) goto out;
+
+    ExAcquireFastMutexUnsafe(&nfs41_fcb->aclcache.lock);
+    aclcache_locked = true;
 
     if (nfs41_fcb->aclcache.data && nfs41_fcb->aclcache.data_len) {
         LARGE_INTEGER current_time;
@@ -382,7 +388,12 @@ NTSTATUS nfs41_QuerySecurityInformation(
             entry->u.Acl.buf = NULL;
         }
     }
+
 out:
+    if (aclcache_locked) {
+        ExReleaseFastMutexUnsafe(&nfs41_fcb->aclcache.lock);
+    }
+
     if (entry) {
         nfs41_UpcallDestroy(entry);
     }
@@ -438,6 +449,7 @@ NTSTATUS nfs41_SetSecurityInformation(
     __notnull PNFS41_FCB nfs41_fcb = NFS41GetFcbExtension(RxContext->pFcb);
     SECURITY_INFORMATION secinfo =
         RxContext->CurrentIrpSp->Parameters.SetSecurity.SecurityInformation;
+
 #ifdef ENABLE_TIMINGS
     LARGE_INTEGER t1, t2;
     t1 = KeQueryPerformanceCounter(NULL);
@@ -483,7 +495,12 @@ NTSTATUS nfs41_SetSecurityInformation(
     InterlockedAdd64(&setacl.size, entry->u.Acl.buf_len);
 #endif
 
-    /* Invalidate cached ACL info */
+    /*
+     * Invalidate cached ACL info
+     * (we do not try to fill the cache afte a |NFS41_SYSOP_ACL_SET|
+     * because it is typically not read after that)
+     */
+    ExAcquireFastMutexUnsafe(&nfs41_fcb->aclcache.lock);
     if (nfs41_fcb->aclcache.data) {
         RxFreePool(nfs41_fcb->aclcache.data);
         nfs41_fcb->aclcache.data = NULL;
@@ -491,6 +508,7 @@ NTSTATUS nfs41_SetSecurityInformation(
         nfs41_fcb->aclcache.secinfo = 0;
         nfs41_fcb->aclcache.time.QuadPart = 0LL;
     }
+    ExReleaseFastMutexUnsafe(&nfs41_fcb->aclcache.lock);
 
     status = nfs41_UpcallWaitForReply(entry, pVNetRootContext->timeout);
     if (status) {

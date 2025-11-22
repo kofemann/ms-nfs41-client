@@ -655,6 +655,11 @@ NTSTATUS nfs41_Create(
     status = check_nfs41_create_args(RxContext);
     if (status) goto out;
 
+    if (nfs41_fcb->initialised == FALSE) {
+        nfs41_fcb->initialised = TRUE;
+        ExInitializeFastMutex(&nfs41_fcb->aclcache.lock);
+    }
+
     debug_printirpecps(RxContext->CurrentIrp);
 
     PQUERY_ON_CREATE_ECP_CONTEXT qocec =

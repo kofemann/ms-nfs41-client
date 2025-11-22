@@ -472,6 +472,7 @@ typedef struct _NFS41_V_NET_ROOT_EXTENSION {
 typedef struct _NFS41_FCB {
     NODE_TYPE_CODE          NodeTypeCode;
     NODE_BYTE_SIZE          NodeByteSize;
+    BOOLEAN                 initialised;
     FILE_BASIC_INFORMATION  BasicInfo;
     FILE_STANDARD_INFORMATION StandardInfo;
     ULONGLONG               fileid;
@@ -484,6 +485,7 @@ typedef struct _NFS41_FCB {
     DWORD                   owner_group_local_gid; /* owner group mapped into local gid */
 #endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
     struct {
+        FAST_MUTEX lock;
         PVOID data;
         DWORD data_len;
         SECURITY_INFORMATION secinfo;
