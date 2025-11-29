@@ -134,7 +134,9 @@ static int get_superblock_attrs(
     else {
         superblock->case_preserving = BOOL2BIT(root->force_case_preserving);
         DPRINTF(0,
-            ("get_superblock_attrs: OVERRIDING case_preserving to %d\n",
+            ("get_superblock_attrs(fsid=(%llu,%llu)): "
+            "OVERRIDING case_preserving to %d\n",
+            superblock->fsid.major, superblock->fsid.minor,
             (int)superblock->case_preserving));
     }
     if (root->force_case_insensitive == TRISTATE_BOOL_NOT_SET) {
@@ -143,7 +145,9 @@ static int get_superblock_attrs(
     else {
         superblock->case_insensitive = BOOL2BIT(root->force_case_insensitive);
         DPRINTF(0,
-            ("get_superblock_attrs: OVERRIDING case_insensitive to %d\n",
+            ("get_superblock_attrs(fsid=(%llu,%llu)): "
+            "OVERRIDING case_insensitive to %d\n",
+            superblock->fsid.major, superblock->fsid.minor,
             (int)superblock->case_insensitive));
     }
 #else
