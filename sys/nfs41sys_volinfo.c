@@ -153,6 +153,7 @@ NTSTATUS nfs41_QueryVolumeInformation(
     ULONG RemainingLength = RxContext->Info.LengthRemaining, SizeUsed;
     FS_INFORMATION_CLASS InfoClass = RxContext->Info.FsInformationClass;
     __notnull PMRX_SRV_OPEN SrvOpen = RxContext->pRelevantSrvOpen;
+    __notnull PNFS41_SRV_OPEN nfs41_srvopen = NFS41GetSrvOpenExtension(SrvOpen);
     __notnull PNFS41_V_NET_ROOT_EXTENSION pVNetRootContext =
         NFS41GetVNetRootExtension(SrvOpen->pVNetRoot);
     __notnull PNFS41_NETROOT_EXTENSION pNetRootContext =
@@ -206,7 +207,7 @@ NTSTATUS nfs41_QueryVolumeInformation(
         goto out;
     }
     status = nfs41_UpcallCreate(NFS41_SYSOP_VOLUME_QUERY, &nfs41_fobx->sec_ctx,
-        pVNetRootContext->session, nfs41_fobx->nfs41_open_state,
+        pVNetRootContext->session, nfs41_srvopen->nfs41_open_state,
         pNetRootContext->nfs41d_version, SrvOpen->pAlreadyPrefixedName, &entry);
     if (status) goto out;
 

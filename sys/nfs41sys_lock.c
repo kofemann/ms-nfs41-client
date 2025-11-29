@@ -268,6 +268,7 @@ NTSTATUS nfs41_Lock(
     PLOWIO_CONTEXT LowIoContext = &RxContext->LowIoContext;
     __notnull PNFS41_FOBX nfs41_fobx = NFS41GetFobxExtension(RxContext->pFobx);
     __notnull PMRX_SRV_OPEN SrvOpen = RxContext->pRelevantSrvOpen;
+    __notnull PNFS41_SRV_OPEN nfs41_srvopen = NFS41GetSrvOpenExtension(SrvOpen);
     __notnull PNFS41_V_NET_ROOT_EXTENSION pVNetRootContext =
         NFS41GetVNetRootExtension(SrvOpen->pVNetRoot);
     __notnull PNFS41_NETROOT_EXTENSION pNetRootContext =
@@ -301,7 +302,7 @@ NTSTATUS nfs41_Lock(
 #endif /* NFS41_DRIVER_HACK_LOCKING_STORAGE32_RANGELOCK_PROBING */
 
     status = nfs41_UpcallCreate(NFS41_SYSOP_LOCK, &nfs41_fobx->sec_ctx,
-        pVNetRootContext->session, nfs41_fobx->nfs41_open_state,
+        pVNetRootContext->session, nfs41_srvopen->nfs41_open_state,
         pNetRootContext->nfs41d_version, SrvOpen->pAlreadyPrefixedName, &entry);
     if (status) goto out;
 
@@ -379,6 +380,7 @@ NTSTATUS nfs41_Unlock(
     PLOWIO_CONTEXT LowIoContext  = &RxContext->LowIoContext;
     __notnull PNFS41_FOBX nfs41_fobx = NFS41GetFobxExtension(RxContext->pFobx);
     __notnull PMRX_SRV_OPEN SrvOpen = RxContext->pRelevantSrvOpen;
+    __notnull PNFS41_SRV_OPEN nfs41_srvopen = NFS41GetSrvOpenExtension(SrvOpen);
     __notnull PNFS41_V_NET_ROOT_EXTENSION pVNetRootContext =
         NFS41GetVNetRootExtension(SrvOpen->pVNetRoot);
     __notnull PNFS41_NETROOT_EXTENSION pNetRootContext =
@@ -415,7 +417,7 @@ NTSTATUS nfs41_Unlock(
 #endif /* NFS41_DRIVER_HACK_LOCKING_STORAGE32_RANGELOCK_PROBING */
 
     status = nfs41_UpcallCreate(NFS41_SYSOP_UNLOCK, &nfs41_fobx->sec_ctx,
-        pVNetRootContext->session, nfs41_fobx->nfs41_open_state,
+        pVNetRootContext->session, nfs41_srvopen->nfs41_open_state,
         pNetRootContext->nfs41d_version, SrvOpen->pAlreadyPrefixedName, &entry);
     if (status) goto out;
 

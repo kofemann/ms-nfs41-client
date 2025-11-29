@@ -231,6 +231,7 @@ NTSTATUS nfs41_QueryDirectory(
     FILE_INFORMATION_CLASS InfoClass = RxContext->Info.FileInformationClass;
     PUNICODE_STRING Filter = &RxContext->pFobx->UnicodeQueryTemplate;
     __notnull PMRX_SRV_OPEN SrvOpen = RxContext->pRelevantSrvOpen;
+    __notnull PNFS41_SRV_OPEN nfs41_srvopen = NFS41GetSrvOpenExtension(SrvOpen);
     __notnull PNFS41_V_NET_ROOT_EXTENSION pVNetRootContext =
         NFS41GetVNetRootExtension(SrvOpen->pVNetRoot);
     __notnull PNFS41_NETROOT_EXTENSION pNetRootContext =
@@ -269,7 +270,7 @@ NTSTATUS nfs41_QueryDirectory(
         goto out;
     }
     status = nfs41_UpcallCreate(NFS41_SYSOP_DIR_QUERY, &nfs41_fobx->sec_ctx,
-        pVNetRootContext->session, nfs41_fobx->nfs41_open_state,
+        pVNetRootContext->session, nfs41_srvopen->nfs41_open_state,
         pNetRootContext->nfs41d_version, SrvOpen->pAlreadyPrefixedName, &entry);
     if (status) goto out;
 

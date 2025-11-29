@@ -349,6 +349,7 @@ NTSTATUS nfs41_SetEaInformation(
     nfs3_attrs *attrs = NULL;
     ULONG buflen = RxContext->CurrentIrpSp->Parameters.SetEa.Length, error_offset;
     __notnull PMRX_SRV_OPEN SrvOpen = RxContext->pRelevantSrvOpen;
+    __notnull PNFS41_SRV_OPEN nfs41_srvopen = NFS41GetSrvOpenExtension(SrvOpen);
     __notnull PNFS41_V_NET_ROOT_EXTENSION pVNetRootContext =
         NFS41GetVNetRootExtension(SrvOpen->pVNetRoot);
     __notnull PNFS41_NETROOT_EXTENSION pNetRootContext =
@@ -371,7 +372,7 @@ NTSTATUS nfs41_SetEaInformation(
     if (status) goto out;
 
     status = nfs41_UpcallCreate(NFS41_SYSOP_EA_SET, &nfs41_fobx->sec_ctx,
-        pVNetRootContext->session, nfs41_fobx->nfs41_open_state,
+        pVNetRootContext->session, nfs41_srvopen->nfs41_open_state,
         pNetRootContext->nfs41d_version, SrvOpen->pAlreadyPrefixedName, &entry);
     if (status) goto out;
 
@@ -411,7 +412,7 @@ NTSTATUS nfs41_SetEaInformation(
 #endif
     status = map_setea_error(entry->status);
     if (!status) {
-        if (!nfs41_fobx->deleg_type && entry->ChangeTime &&
+        if ((nfs41_srvopen->deleg_type == 0) && entry->ChangeTime &&
                 (SrvOpen->DesiredAccess &
                 (FILE_READ_DATA | FILE_WRITE_DATA | FILE_APPEND_DATA)))
             nfs41_update_fcb_list(RxContext->pFcb, entry->ChangeTime);
@@ -479,6 +480,7 @@ NTSTATUS QueryCygwinSymlink(
     OUT PFILE_FULL_EA_INFORMATION info)
 {
     __notnull PMRX_SRV_OPEN SrvOpen = RxContext->pRelevantSrvOpen;
+    __notnull PNFS41_SRV_OPEN nfs41_srvopen = NFS41GetSrvOpenExtension(SrvOpen);
     __notnull PNFS41_V_NET_ROOT_EXTENSION VNetRootContext =
             NFS41GetVNetRootExtension(SrvOpen->pVNetRoot);
     __notnull PNFS41_NETROOT_EXTENSION NetRootContext =
@@ -501,7 +503,7 @@ NTSTATUS QueryCygwinSymlink(
         HeaderLen, 0xFFFF);
 
     status = nfs41_UpcallCreate(NFS41_SYSOP_SYMLINK_GET, &Fobx->sec_ctx,
-        VNetRootContext->session, Fobx->nfs41_open_state,
+        VNetRootContext->session, nfs41_srvopen->nfs41_open_state,
         NetRootContext->nfs41d_version, SrvOpen->pAlreadyPrefixedName, &entry);
     if (status) goto out;
 
@@ -630,6 +632,7 @@ NTSTATUS nfs41_QueryEaInformation(
             RxContext->CurrentIrpSp->Parameters.QueryEa.EaList;
     ULONG buflen = RxContext->CurrentIrpSp->Parameters.QueryEa.Length;
     __notnull PMRX_SRV_OPEN SrvOpen = RxContext->pRelevantSrvOpen;
+    __notnull PNFS41_SRV_OPEN nfs41_srvopen = NFS41GetSrvOpenExtension(SrvOpen);
     __notnull PNFS41_V_NET_ROOT_EXTENSION pVNetRootContext =
             NFS41GetVNetRootExtension(SrvOpen->pVNetRoot);
     __notnull PNFS41_NETROOT_EXTENSION pNetRootContext =
@@ -657,7 +660,7 @@ NTSTATUS nfs41_QueryEaInformation(
         goto out;
 
     status = nfs41_UpcallCreate(NFS41_SYSOP_EA_GET, &nfs41_fobx->sec_ctx,
-        pVNetRootContext->session, nfs41_fobx->nfs41_open_state,
+        pVNetRootContext->session, nfs41_srvopen->nfs41_open_state,
         pNetRootContext->nfs41d_version, SrvOpen->pAlreadyPrefixedName, &entry);
     if (status) goto out;
 

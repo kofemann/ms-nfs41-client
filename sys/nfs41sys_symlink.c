@@ -259,6 +259,7 @@ NTSTATUS nfs41_SetSymlinkReparsePoint(
         (const PREPARSE_DATA_BUFFER)FsCtl->pInputBuffer;
     __notnull PNFS41_FOBX Fobx = NFS41GetFobxExtension(RxContext->pFobx);
     __notnull PMRX_SRV_OPEN SrvOpen = RxContext->pRelevantSrvOpen;
+    __notnull PNFS41_SRV_OPEN nfs41_srvopen = NFS41GetSrvOpenExtension(SrvOpen);
     __notnull PNFS41_V_NET_ROOT_EXTENSION VNetRootContext =
         NFS41GetVNetRootExtension(SrvOpen->pVNetRoot);
     __notnull PNFS41_NETROOT_EXTENSION pNetRootContext =
@@ -416,7 +417,7 @@ NTSTATUS nfs41_SetSymlinkReparsePoint(
     }
 
     status = nfs41_UpcallCreate(NFS41_SYSOP_SYMLINK_SET, &Fobx->sec_ctx,
-        VNetRootContext->session, Fobx->nfs41_open_state,
+        VNetRootContext->session, nfs41_srvopen->nfs41_open_state,
         pNetRootContext->nfs41d_version, SrvOpen->pAlreadyPrefixedName, &entry);
     if (status) goto out;
 
@@ -569,6 +570,7 @@ NTSTATUS nfs41_GetSymlinkReparsePoint(
     XXCTL_LOWIO_COMPONENT *FsCtl = &RxContext->LowIoContext.ParamsFor.FsCtl;
     __notnull PNFS41_FOBX Fobx = NFS41GetFobxExtension(RxContext->pFobx);
     __notnull PMRX_SRV_OPEN SrvOpen = RxContext->pRelevantSrvOpen;
+    __notnull PNFS41_SRV_OPEN nfs41_srvopen = NFS41GetSrvOpenExtension(SrvOpen);
     __notnull PNFS41_V_NET_ROOT_EXTENSION VNetRootContext =
         NFS41GetVNetRootExtension(SrvOpen->pVNetRoot);
     __notnull PNFS41_NETROOT_EXTENSION pNetRootContext =
@@ -602,7 +604,7 @@ NTSTATUS nfs41_GetSymlinkReparsePoint(
     TargetName.MaximumLength = (USHORT)targetname_buffer_len;
 
     status = nfs41_UpcallCreate(NFS41_SYSOP_SYMLINK_GET, &Fobx->sec_ctx,
-        VNetRootContext->session, Fobx->nfs41_open_state,
+        VNetRootContext->session, nfs41_srvopen->nfs41_open_state,
         pNetRootContext->nfs41d_version, SrvOpen->pAlreadyPrefixedName, &entry);
     if (status) goto out;
 

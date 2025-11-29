@@ -236,6 +236,7 @@ NTSTATUS nfs41_Read(
     BOOLEAN async = FALSE;
     PLOWIO_CONTEXT LowIoContext  = &RxContext->LowIoContext;
     __notnull PMRX_SRV_OPEN SrvOpen = RxContext->pRelevantSrvOpen;
+    __notnull PNFS41_SRV_OPEN nfs41_srvopen = NFS41GetSrvOpenExtension(SrvOpen);
     __notnull PNFS41_V_NET_ROOT_EXTENSION pVNetRootContext =
         NFS41GetVNetRootExtension(SrvOpen->pVNetRoot);
     __notnull PNFS41_NETROOT_EXTENSION pNetRootContext =
@@ -258,7 +259,7 @@ NTSTATUS nfs41_Read(
     if (status) goto out;
 
     status = nfs41_UpcallCreate(NFS41_SYSOP_READ, &nfs41_fobx->sec_ctx,
-        pVNetRootContext->session, nfs41_fobx->nfs41_open_state,
+        pVNetRootContext->session, nfs41_srvopen->nfs41_open_state,
         pNetRootContext->nfs41d_version, SrvOpen->pAlreadyPrefixedName, &entry);
     if (status) goto out;
 
@@ -364,6 +365,7 @@ NTSTATUS nfs41_Write(
     BOOLEAN async = FALSE;
     PLOWIO_CONTEXT LowIoContext  = &RxContext->LowIoContext;
     __notnull PMRX_SRV_OPEN SrvOpen = RxContext->pRelevantSrvOpen;
+    __notnull PNFS41_SRV_OPEN nfs41_srvopen = NFS41GetSrvOpenExtension(SrvOpen);
     __notnull PNFS41_V_NET_ROOT_EXTENSION pVNetRootContext =
         NFS41GetVNetRootExtension(SrvOpen->pVNetRoot);
     __notnull PNFS41_NETROOT_EXTENSION pNetRootContext =
@@ -386,7 +388,7 @@ NTSTATUS nfs41_Write(
     if (status) goto out;
 
     status = nfs41_UpcallCreate(NFS41_SYSOP_WRITE, &nfs41_fobx->sec_ctx,
-        pVNetRootContext->session, nfs41_fobx->nfs41_open_state,
+        pVNetRootContext->session, nfs41_srvopen->nfs41_open_state,
         pNetRootContext->nfs41d_version, SrvOpen->pAlreadyPrefixedName, &entry);
     if (status) goto out;
 
@@ -441,7 +443,7 @@ NTSTATUS nfs41_Write(
                  FCB_STATE_WRITECACHING_ENABLED))) {
             enable_caching(SrvOpen, nfs41_fobx, nfs41_fcb->changeattr,
                 pVNetRootContext->session);
-        } else if (!nfs41_fobx->deleg_type)
+        } else if (nfs41_srvopen->deleg_type == 0)
             nfs41_update_fcb_list(RxContext->pFcb, entry->ChangeTime);
 
     } else {

@@ -619,6 +619,27 @@ out:
     return status;
 }
 
+NTSTATUS nfs41_createnetfobx(
+    PRX_CONTEXT  RxContext,
+    PMRX_SRV_OPEN SrvOpen)
+{
+    NTSTATUS status;
+    PNFS41_FOBX nfs41_fobx;
+
+    RxContext->pFobx = RxCreateNetFobx(RxContext, SrvOpen);
+    if (RxContext->pFobx == NULL) {
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto out;
+    }
+
+    nfs41_fobx = NFS41GetFobxExtension(RxContext->pFobx);
+    status = nfs41_get_sec_ctx(SecurityImpersonation, &nfs41_fobx->sec_ctx);
+
+out:
+    return status;
+}
+
+
 NTSTATUS nfs41_Create(
     IN OUT PRX_CONTEXT RxContext)
 {
@@ -628,6 +649,7 @@ NTSTATUS nfs41_Create(
     PFILE_FULL_EA_INFORMATION ea = (PFILE_FULL_EA_INFORMATION)
         RxContext->CurrentIrp->AssociatedIrp.SystemBuffer;
     __notnull PMRX_SRV_OPEN SrvOpen = RxContext->pRelevantSrvOpen;
+    __notnull PNFS41_SRV_OPEN nfs41_srvopen = NFS41GetSrvOpenExtension(SrvOpen);
     __notnull PNFS41_V_NET_ROOT_EXTENSION pVNetRootContext =
         NFS41GetVNetRootExtension(SrvOpen->pVNetRoot);
     __notnull PNFS41_NETROOT_EXTENSION pNetRootContext =
@@ -943,21 +965,16 @@ retry_on_link:
         fcb_locked_exclusive = true;
     }
 
-    RxContext->pFobx = RxCreateNetFobx(RxContext, SrvOpen);
-    if (RxContext->pFobx == NULL) {
-        status = STATUS_INSUFFICIENT_RESOURCES;
+    nfs41_srvopen->nfs41_open_state = entry->open_state;
+
+    status = nfs41_createnetfobx(RxContext, SrvOpen);
+    if (status)
         goto out;
-    }
+
 #ifdef DEBUG_OPEN
     DbgP("nfs41_Create: created FOBX 0x%p\n", RxContext->pFobx);
 #endif
     nfs41_fobx = NFS41GetFobxExtension(RxContext->pFobx);
-    nfs41_fobx->nfs41_open_state = entry->open_state;
-    if (nfs41_fobx->sec_ctx.ClientToken == NULL) {
-        status = nfs41_get_sec_ctx(SecurityImpersonation, &nfs41_fobx->sec_ctx);
-        if (status)
-            goto out;
-    }
 
     // we get attributes only for data access and file (not directories)
     if (Fcb->OpenCount == 0 ||
@@ -1104,7 +1121,7 @@ retry_on_link:
 
     if (!nfs41_fcb->StandardInfo.Directory &&
             isDataAccess(params->DesiredAccess)) {
-        nfs41_fobx->deleg_type = entry->u.Open.deleg_type;
+        nfs41_srvopen->deleg_type = entry->u.Open.deleg_type;
 #ifdef DEBUG_OPEN
         DbgP("nfs41_Create: received delegation %d\n", entry->u.Open.deleg_type);
 #endif
@@ -1168,6 +1185,7 @@ retry_on_link:
                 goto out;
             }
             oentry->fcb = RxContext->pFcb;
+            oentry->srvopen = SrvOpen;
             oentry->nfs41_fobx = nfs41_fobx;
             oentry->session = pVNetRootContext->session;
             oentry->ChangeTime = entry->ChangeTime;
@@ -1225,23 +1243,25 @@ out:
     return status;
 }
 
-NTSTATUS nfs41_CollapseOpen(
-    IN OUT PRX_CONTEXT RxContext)
-{
-    NTSTATUS status = STATUS_MORE_PROCESSING_REQUIRED;
-    DbgEn();
-    FsRtlEnterFileSystem();
-    FsRtlExitFileSystem();
-    DbgEx();
-    return status;
-}
-
 NTSTATUS nfs41_ShouldTryToCollapseThisOpen(
     IN OUT PRX_CONTEXT RxContext)
 {
     if (RxContext->pRelevantSrvOpen == NULL)
         return STATUS_SUCCESS;
-    else return STATUS_MORE_PROCESSING_REQUIRED;
+    return STATUS_MORE_PROCESSING_REQUIRED;
+}
+
+/*
+ * |nfs41_CollapseOpen()| - like |nfs41_Create()|, but use an existing
+ * |MRX_SRV_OPEN|.
+ * This means one |MRX_SRV_OPEN| can have multiple |NFS41_FOBX|/|FILE_OBJECTS|
+ * if the access parameters match.
+ */
+NTSTATUS nfs41_CollapseOpen(
+    IN OUT PRX_CONTEXT RxContext)
+{
+    NTSTATUS status = STATUS_MORE_PROCESSING_REQUIRED;
+    return status;
 }
 
 NTSTATUS map_close_errors(
@@ -1271,6 +1291,7 @@ NTSTATUS nfs41_CloseSrvOpen(
     NTSTATUS status = STATUS_INSUFFICIENT_RESOURCES;
     nfs41_updowncall_entry *entry = NULL;
     __notnull PMRX_SRV_OPEN SrvOpen = RxContext->pRelevantSrvOpen;
+    __notnull PNFS41_SRV_OPEN nfs41_srvopen = NFS41GetSrvOpenExtension(SrvOpen);
     __notnull PNFS41_V_NET_ROOT_EXTENSION pVNetRootContext =
         NFS41GetVNetRootExtension(SrvOpen->pVNetRoot);
     __notnull PNFS41_NETROOT_EXTENSION pNetRootContext =
@@ -1288,13 +1309,13 @@ NTSTATUS nfs41_CloseSrvOpen(
 #endif
     FsRtlEnterFileSystem();
 
-    if (!nfs41_fobx->deleg_type && !nfs41_fcb->StandardInfo.Directory &&
+    if ((nfs41_srvopen->deleg_type == 0) && !nfs41_fcb->StandardInfo.Directory &&
             !RxContext->pFcb->OpenCount) {
         nfs41_remove_fcb_entry(RxContext->pFcb);
     }
 
     status = nfs41_UpcallCreate(NFS41_SYSOP_CLOSE, &nfs41_fobx->sec_ctx,
-        pVNetRootContext->session, nfs41_fobx->nfs41_open_state,
+        pVNetRootContext->session, nfs41_srvopen->nfs41_open_state,
         pNetRootContext->nfs41d_version, SrvOpen->pAlreadyPrefixedName, &entry);
     if (status) goto out;
 

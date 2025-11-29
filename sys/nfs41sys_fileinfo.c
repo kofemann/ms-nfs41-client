@@ -205,6 +205,7 @@ NTSTATUS nfs41_QueryFileInformation(
     FILE_INFORMATION_CLASS InfoClass = RxContext->Info.FileInformationClass;
     nfs41_updowncall_entry *entry = NULL;
     __notnull PMRX_SRV_OPEN SrvOpen = RxContext->pRelevantSrvOpen;
+    __notnull PNFS41_SRV_OPEN nfs41_srvopen = NFS41GetSrvOpenExtension(SrvOpen);
     __notnull PNFS41_V_NET_ROOT_EXTENSION pVNetRootContext =
         NFS41GetVNetRootExtension(SrvOpen->pVNetRoot);
     __notnull PNFS41_NETROOT_EXTENSION pNetRootContext =
@@ -407,7 +408,7 @@ NTSTATUS nfs41_QueryFileInformation(
     }
 
     status = nfs41_UpcallCreate(NFS41_SYSOP_FILE_QUERY, &nfs41_fobx->sec_ctx,
-        pVNetRootContext->session, nfs41_fobx->nfs41_open_state,
+        pVNetRootContext->session, nfs41_srvopen->nfs41_open_state,
         pNetRootContext->nfs41d_version, SrvOpen->pAlreadyPrefixedName, &entry);
     if (status) {
         print_error("nfs41_QueryFileInformation: "
@@ -676,6 +677,7 @@ NTSTATUS nfs41_SetFileInformationImpl(
     FILE_RENAME_INFORMATION rinfo;
 #endif /* FORCE_POSIX_SEMANTICS_DELETE */
     __notnull PMRX_SRV_OPEN SrvOpen = RxContext->pRelevantSrvOpen;
+    __notnull PNFS41_SRV_OPEN nfs41_srvopen = NFS41GetSrvOpenExtension(SrvOpen);
     __notnull PNFS41_V_NET_ROOT_EXTENSION pVNetRootContext =
         NFS41GetVNetRootExtension(SrvOpen->pVNetRoot);
     __notnull PNFS41_NETROOT_EXTENSION pNetRootContext =
@@ -788,7 +790,7 @@ NTSTATUS nfs41_SetFileInformationImpl(
     }
 
     status = nfs41_UpcallCreate(opcode, &nfs41_fobx->sec_ctx,
-        pVNetRootContext->session, nfs41_fobx->nfs41_open_state,
+        pVNetRootContext->session, nfs41_srvopen->nfs41_open_state,
         pNetRootContext->nfs41d_version, SrvOpen->pAlreadyPrefixedName, &entry);
     if (status) goto out;
 
@@ -822,7 +824,7 @@ NTSTATUS nfs41_SetFileInformationImpl(
 
     status = map_setfile_error(entry->status);
     if (!status) {
-        if (!nfs41_fobx->deleg_type && entry->ChangeTime &&
+        if ((nfs41_srvopen->deleg_type != 0) && entry->ChangeTime &&
                 (SrvOpen->DesiredAccess &
                 (FILE_READ_DATA | FILE_WRITE_DATA | FILE_APPEND_DATA)))
             nfs41_update_fcb_list(RxContext->pFcb, entry->ChangeTime);

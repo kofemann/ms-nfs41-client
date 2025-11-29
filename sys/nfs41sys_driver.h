@@ -95,6 +95,9 @@ typedef struct __nfs41_timings {
 /* Windows SMB driver also uses |IO_NETWORK_INCREMENT| */
 #define IO_NFS41FS_INCREMENT IO_NETWORK_INCREMENT
 
+/* Number of bytes needed to store an SID */
+#define SID_BUF_SIZE (SECURITY_MAX_SID_SIZE)
+
 #define DISABLE_CACHING 0
 #define ENABLE_READ_CACHING 1
 #define ENABLE_WRITE_CACHING 2
@@ -496,13 +499,22 @@ typedef struct _NFS41_FCB {
 #define NFS41GetFcbExtension(pFcb)      \
         (((pFcb) == NULL) ? NULL : (PNFS41_FCB)((pFcb)->Context))
 
+typedef struct _NFS41_SRV_OPEN {
+    HANDLE          nfs41_open_state;
+    DWORD           deleg_type;
+} NFS41_SRV_OPEN, *PNFS41_SRV_OPEN;
+#define NFS41GetSrvOpenExtension(pSrvOpen)  \
+        (((pSrvOpen) == NULL) ? NULL : (PNFS41_SRV_OPEN)((pSrvOpen)->Context))
+
 typedef struct _NFS41_FOBX {
     NODE_TYPE_CODE          NodeTypeCode;
     NODE_BYTE_SIZE          NodeByteSize;
 
-    HANDLE nfs41_open_state;
+    /*
+     * |sec_ctx| must be per |FILE_OBJECT| to handle newgrp()1/|setgid()|
+     * support
+     */
     SECURITY_CLIENT_CONTEXT sec_ctx;
-    DWORD deleg_type;
     BOOLEAN write_thru;
     BOOLEAN nocache;
     BOOLEAN timebasedcoherency;
@@ -533,6 +545,7 @@ typedef struct _NFS41_DEVICE_EXTENSION {
 typedef struct _nfs41_fcb_list_entry {
     LIST_ENTRY next;
     PMRX_FCB fcb;
+    PMRX_SRV_OPEN srvopen;
     HANDLE session;
     PNFS41_FOBX nfs41_fobx;
     ULONGLONG ChangeTime;

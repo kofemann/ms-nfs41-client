@@ -128,6 +128,7 @@ NTSTATUS nfs41_QueryAllocatedRanges(
     NTSTATUS status = STATUS_INVALID_DEVICE_REQUEST;
     nfs41_updowncall_entry *entry = NULL;
     __notnull PMRX_SRV_OPEN SrvOpen = RxContext->pRelevantSrvOpen;
+    __notnull PNFS41_SRV_OPEN nfs41_srvopen = NFS41GetSrvOpenExtension(SrvOpen);
     __notnull PNFS41_V_NET_ROOT_EXTENSION pVNetRootContext =
         NFS41GetVNetRootExtension(SrvOpen->pVNetRoot);
     __notnull PNFS41_NETROOT_EXTENSION pNetRootContext =
@@ -161,7 +162,7 @@ NTSTATUS nfs41_QueryAllocatedRanges(
     status = nfs41_UpcallCreate(NFS41_SYSOP_FSCTL_QUERYALLOCATEDRANGES,
         &nfs41_fobx->sec_ctx,
         pVNetRootContext->session,
-        nfs41_fobx->nfs41_open_state,
+        nfs41_srvopen->nfs41_open_state,
         pNetRootContext->nfs41d_version,
         SrvOpen->pAlreadyPrefixedName,
         &entry);
@@ -448,6 +449,7 @@ NTSTATUS nfs41_SetZeroData(
     NTSTATUS status = STATUS_INVALID_DEVICE_REQUEST;
     nfs41_updowncall_entry *entry = NULL;
     __notnull PMRX_SRV_OPEN SrvOpen = RxContext->pRelevantSrvOpen;
+    __notnull PNFS41_SRV_OPEN nfs41_srvopen = NFS41GetSrvOpenExtension(SrvOpen);
     __notnull PNFS41_V_NET_ROOT_EXTENSION pVNetRootContext =
         NFS41GetVNetRootExtension(SrvOpen->pVNetRoot);
     __notnull PNFS41_NETROOT_EXTENSION pNetRootContext =
@@ -501,7 +503,7 @@ NTSTATUS nfs41_SetZeroData(
     status = nfs41_UpcallCreate(NFS41_SYSOP_FSCTL_SET_ZERO_DATA,
         &nfs41_fobx->sec_ctx,
         pVNetRootContext->session,
-        nfs41_fobx->nfs41_open_state,
+        nfs41_srvopen->nfs41_open_state,
         pNetRootContext->nfs41d_version,
         SrvOpen->pAlreadyPrefixedName,
         &entry);
@@ -629,6 +631,7 @@ NTSTATUS nfs41_DuplicateData(
     NTSTATUS status = STATUS_INVALID_DEVICE_REQUEST;
     nfs41_updowncall_entry *entry = NULL;
     __notnull PMRX_SRV_OPEN SrvOpen = RxContext->pRelevantSrvOpen;
+    __notnull PNFS41_SRV_OPEN nfs41_srvopen = NFS41GetSrvOpenExtension(SrvOpen);
     __notnull PNFS41_V_NET_ROOT_EXTENSION pVNetRootContext =
         NFS41GetVNetRootExtension(SrvOpen->pVNetRoot);
     __notnull PNFS41_NETROOT_EXTENSION pNetRootContext =
@@ -751,6 +754,7 @@ NTSTATUS nfs41_DuplicateData(
     PFCB srcfcb = srcfo->FsContext;
     PFOBX srcfox = srcfo->FsContext2;
     PNFS41_FCB nfs41_src_fcb = NFS41GetFcbExtension(srcfcb);
+    PNFS41_SRV_OPEN src_nfs41_srvopen = NFS41GetSrvOpenExtension(srcfox->SrvOpen);
     PNFS41_FOBX nfs41_src_fobx = NFS41GetFobxExtension(srcfox);
 
     if (!nfs41_src_fcb) {
@@ -807,7 +811,7 @@ NTSTATUS nfs41_DuplicateData(
     status = nfs41_UpcallCreate(NFS41_SYSOP_FSCTL_DUPLICATE_DATA,
         &nfs41_fobx->sec_ctx,
         pVNetRootContext->session,
-        nfs41_fobx->nfs41_open_state,
+        nfs41_srvopen->nfs41_open_state,
         pNetRootContext->nfs41d_version,
         SrvOpen->pAlreadyPrefixedName,
         &entry);
@@ -815,7 +819,7 @@ NTSTATUS nfs41_DuplicateData(
     if (status)
         goto out;
 
-    entry->u.DuplicateData.src_state = nfs41_src_fobx->nfs41_open_state;
+    entry->u.DuplicateData.src_state = src_nfs41_srvopen->nfs41_open_state;
     entry->u.DuplicateData.srcfileoffset = dd.srcfileoffset;
     entry->u.DuplicateData.destfileoffset = dd.destfileoffset;
     entry->u.DuplicateData.bytecount = dd.bytecount;
@@ -949,7 +953,7 @@ typedef struct _offloadcontext_entry
      */
     ERESOURCE               resource;
     STORAGE_OFFLOAD_TOKEN   token;
-    PNFS41_FOBX             src_fobx;
+    PMRX_FOBX               src_fobx;
     ULONGLONG               src_fileoffset;
     ULONGLONG               src_length;
 } offloadcontext_entry;
@@ -960,7 +964,6 @@ void nfs41_remove_offloadcontext_for_fobx(
 {
     PLIST_ENTRY pEntry;
     offloadcontext_entry *cur, *found = NULL;
-    __notnull PNFS41_FOBX nfs41_fobx = NFS41GetFobxExtension(pFobx);
 
     ExAcquireFastMutexUnsafe(&offloadcontextlist.lock);
 
@@ -968,7 +971,7 @@ void nfs41_remove_offloadcontext_for_fobx(
     while (!IsListEmpty(&offloadcontextlist.head)) {
         cur = (offloadcontext_entry *)CONTAINING_RECORD(pEntry,
             offloadcontext_entry, next);
-        if (cur->src_fobx == nfs41_fobx) {
+        if (cur->src_fobx == pFobx) {
             found = cur;
             break;
         }
@@ -1054,7 +1057,6 @@ NTSTATUS nfs41_OffloadRead(
     __notnull const XXCTL_LOWIO_COMPONENT *FsCtl =
         &RxContext->LowIoContext.ParamsFor.FsCtl;
     __notnull PNFS41_FCB nfs41_fcb = NFS41GetFcbExtension(RxContext->pFcb);
-    __notnull PNFS41_FOBX nfs41_fobx = NFS41GetFobxExtension(RxContext->pFobx);
 
     DbgEn();
 
@@ -1124,7 +1126,7 @@ NTSTATUS nfs41_OffloadRead(
     *((USHORT *)(&oce->token.TokenIdLength[0])) =
         STORAGE_OFFLOAD_TOKEN_ID_LENGTH;
     *((void **)(&oce->token.Token[0])) = oce;
-    oce->src_fobx = nfs41_fobx;
+    oce->src_fobx = RxContext->pFobx;
     oce->src_fileoffset = ori->FileOffset;
     oce->src_length = ori->CopyLength;
 
@@ -1180,6 +1182,7 @@ NTSTATUS nfs41_OffloadWrite(
     NTSTATUS status = STATUS_INVALID_DEVICE_REQUEST;
     nfs41_updowncall_entry *entry = NULL;
     __notnull PMRX_SRV_OPEN SrvOpen = RxContext->pRelevantSrvOpen;
+    __notnull PNFS41_SRV_OPEN nfs41_srvopen = NFS41GetSrvOpenExtension(SrvOpen);
     __notnull PNFS41_V_NET_ROOT_EXTENSION pVNetRootContext =
         NFS41GetVNetRootExtension(SrvOpen->pVNetRoot);
     __notnull PNFS41_NETROOT_EXTENSION pNetRootContext =
@@ -1291,12 +1294,13 @@ NTSTATUS nfs41_OffloadWrite(
         goto out;
     }
 
-    PNFS41_FOBX nfs41_src_fobx = src_oce->src_fobx;
+    PNFS41_FOBX nfs41_src_fobx = NFS41GetFobxExtension(src_oce->src_fobx);
     if (!nfs41_src_fobx) {
         DbgP("nfs41_OffloadWrite: No nfs41_src_fobx\n");
         status = STATUS_INVALID_PARAMETER;
         goto out;
     }
+    PNFS41_SRV_OPEN src_nfs41_srvopen = NFS41GetSrvOpenExtension(((PFOBX)src_oce->src_fobx)->SrvOpen);
 
     /*
      * Disable caching because NFSv4.2 COPY is basically a
@@ -1314,7 +1318,7 @@ NTSTATUS nfs41_OffloadWrite(
     status = nfs41_UpcallCreate(NFS41_SYSOP_FSCTL_OFFLOAD_DATACOPY,
         &nfs41_fobx->sec_ctx,
         pVNetRootContext->session,
-        nfs41_fobx->nfs41_open_state,
+        nfs41_srvopen->nfs41_open_state,
         pNetRootContext->nfs41d_version,
         SrvOpen->pAlreadyPrefixedName,
         &entry);
@@ -1322,7 +1326,7 @@ NTSTATUS nfs41_OffloadWrite(
     if (status)
         goto out;
 
-    entry->u.DuplicateData.src_state = nfs41_src_fobx->nfs41_open_state;
+    entry->u.DuplicateData.src_state = src_nfs41_srvopen->nfs41_open_state;
     entry->u.DuplicateData.srcfileoffset = dd.srcfileoffset;
     entry->u.DuplicateData.destfileoffset = dd.destfileoffset;
     entry->u.DuplicateData.bytecount = dd.bytecount;

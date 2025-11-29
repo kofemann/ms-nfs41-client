@@ -1030,6 +1030,7 @@ void enable_caching(
     ULONGLONG ChangeTime,
     HANDLE session)
 {
+    PNFS41_SRV_OPEN nfs41_srvopen = NFS41GetSrvOpenExtension(SrvOpen);
     ULONG flag = 0;
     PLIST_ENTRY pEntry;
     nfs41_fcb_list_entry *cur;
@@ -1078,7 +1079,7 @@ void enable_caching(
         }
         pEntry = pEntry->Flink;
     }
-    if (!found && nfs41_fobx->deleg_type) {
+    if (!found && (nfs41_srvopen->deleg_type != 0)) {
         nfs41_fcb_list_entry *oentry;
 #ifdef DEBUG_TIME_BASED_COHERENCY
         DbgP("enable_caching: delegation recalled: srv_open=0x%p\n", SrvOpen);
@@ -1092,7 +1093,7 @@ void enable_caching(
         oentry->ChangeTime = ChangeTime;
         oentry->skip = FALSE;
         InsertTailList(&openlist.head, &oentry->next);
-        nfs41_fobx->deleg_type = 0;
+        nfs41_srvopen->deleg_type = 0;
     }
 out_release_fcblistlock:
     ExReleaseFastMutexUnsafe(&openlist.lock);
@@ -1227,12 +1228,14 @@ NTSTATUS nfs41_init_ops(void)
     nfs41_ops.MRxFlags = (RDBSS_MANAGE_NET_ROOT_EXTENSION |
                             RDBSS_MANAGE_V_NET_ROOT_EXTENSION |
                             RDBSS_MANAGE_FCB_EXTENSION |
+                            RDBSS_MANAGE_SRV_OPEN_EXTENSION |
                             RDBSS_MANAGE_FOBX_EXTENSION);
 
     nfs41_ops.MRxSrvCallSize  = 0; // srvcall extension is not handled in rdbss
     nfs41_ops.MRxNetRootSize  = sizeof(NFS41_NETROOT_EXTENSION);
     nfs41_ops.MRxVNetRootSize = sizeof(NFS41_V_NET_ROOT_EXTENSION);
     nfs41_ops.MRxFcbSize      = sizeof(NFS41_FCB);
+    nfs41_ops.MRxSrvOpenSize  = sizeof(NFS41_SRV_OPEN);
     nfs41_ops.MRxFobxSize     = sizeof(NFS41_FOBX);
 
     // Mini redirector cancel routine
@@ -1417,11 +1420,14 @@ VOID fcbopen_main(PVOID ctx)
 
             pNetRootContext =
                 NFS41GetNetRootExtension(cur->fcb->pNetRoot);
+            PNFS41_SRV_OPEN nfs41_srvopen =
+                NFS41GetSrvOpenExtension(cur->srvopen);
+
             /* place an upcall for this srv_open */
             status = nfs41_UpcallCreate(
                 NFS41_SYSOP_FILE_QUERY_TIME_BASED_COHERENCY,
                 &cur->nfs41_fobx->sec_ctx, cur->session,
-                cur->nfs41_fobx->nfs41_open_state,
+                nfs41_srvopen->nfs41_open_state,
                 pNetRootContext->nfs41d_version, NULL, &entry);
             if (status) goto out;
 
