@@ -1167,7 +1167,7 @@ retry_on_link:
 
         if (!(params->CreateOptions & FILE_WRITE_THROUGH) &&
                 !pVNetRootContext->write_thru &&
-                (entry->u.Open.deleg_type == 2 ||
+                (entry->u.Open.deleg_type == NFS41_OPEN_DELEGATE_WRITE ||
                 (params->DesiredAccess & (FILE_WRITE_DATA | FILE_APPEND_DATA)))) {
 #ifdef DEBUG_OPEN
             DbgP("nfs41_Create: enabling write buffering\n");
@@ -1178,8 +1178,9 @@ retry_on_link:
         } else if (params->CreateOptions & FILE_WRITE_THROUGH ||
                     pVNetRootContext->write_thru)
             nfs41_fobx->write_thru = TRUE;
-        if (entry->u.Open.deleg_type >= 1 ||
-                params->DesiredAccess & FILE_READ_DATA) {
+        if ((entry->u.Open.deleg_type == NFS41_OPEN_DELEGATE_READ) ||
+            (entry->u.Open.deleg_type == NFS41_OPEN_DELEGATE_WRITE) ||
+            (params->DesiredAccess & FILE_READ_DATA)) {
 #ifdef DEBUG_OPEN
             DbgP("nfs41_Create: enabling read buffering\n");
 #endif
@@ -1195,7 +1196,7 @@ retry_on_link:
 #endif
             SrvOpen->BufferingFlags = FCB_STATE_DISABLE_LOCAL_BUFFERING;
             nfs41_fobx->nocache = TRUE;
-        } else if (!entry->u.Open.deleg_type && !Fcb->OpenCount) {
+        } else if ((entry->u.Open.deleg_type == NFS41_OPEN_DELEGATE_NONE) && !Fcb->OpenCount) {
             nfs41_fcb_list_entry *oentry;
 #ifdef DEBUG_OPEN
             DbgP("nfs41_Create: received no delegations: srv_open=0x%p "
@@ -1458,8 +1459,9 @@ NTSTATUS nfs41_CloseSrvOpen(
 #endif
     FsRtlEnterFileSystem();
 
-    if ((nfs41_srvopen->deleg_type == 0) && !nfs41_fcb->StandardInfo.Directory &&
-            !RxContext->pFcb->OpenCount) {
+    if ((nfs41_srvopen->deleg_type == NFS41_OPEN_DELEGATE_NONE) &&
+        !nfs41_fcb->StandardInfo.Directory &&
+        RxContext->pFcb->OpenCount == 0) {
         nfs41_remove_fcb_entry(RxContext->pFcb);
     }
 

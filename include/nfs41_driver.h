@@ -97,6 +97,14 @@ typedef enum _nfs41_opcodes {
     NFS41_SYSOP_INVALID_OPCODE1
 } nfs41_opcodes;
 
+/* Same as "daemon/nfs41_ops.h" |open_delegation_type4| */
+typedef enum _nfs41_open_delegation_type {
+    NFS41_OPEN_DELEGATE_NONE      = 0,
+    NFS41_OPEN_DELEGATE_READ      = 1,
+    NFS41_OPEN_DELEGATE_WRITE     = 2,
+    NFS41_OPEN_DELEGATE_NONE_EXT  = 3
+} nfs41_open_delegation_type;
+
 /*
  * Same as |FILE_FS_ATTRIBUTE_INFORMATION| but with inline buffer
  * for 32 characters

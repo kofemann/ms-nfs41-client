@@ -621,6 +621,7 @@ enum {
     OPEN4_SHARE_ACCESS_WANT_PUSH_DELEG_WHEN_UNCONTENDED = 0x20000
 };
 
+/* Same as "include/nfs41_driver.h" |nfs41_open_delegation_type| */
 enum open_delegation_type4 {
     OPEN_DELEGATE_NONE      = 0,
     OPEN_DELEGATE_READ      = 1,

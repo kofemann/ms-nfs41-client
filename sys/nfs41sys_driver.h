@@ -504,7 +504,7 @@ typedef struct _NFS41_FCB {
 typedef struct _NFS41_SRV_OPEN {
     BOOLEAN         initialised;
     HANDLE          nfs41_open_state;
-    DWORD           deleg_type;
+    nfs41_open_delegation_type deleg_type;
 #ifdef WINBUG_NO_COLLAPSE_IF_PRIMARYGROUPS_DIFFER
     /*
      * |open_pg_sidbuff| - Note that buffers with SID values must be 16byte

@@ -1090,7 +1090,7 @@ void enable_caching(
         }
         pEntry = pEntry->Flink;
     }
-    if (!found && (nfs41_srvopen->deleg_type != 0)) {
+    if (!found && (nfs41_srvopen->deleg_type != NFS41_OPEN_DELEGATE_NONE)) {
         nfs41_fcb_list_entry *oentry;
 #ifdef DEBUG_TIME_BASED_COHERENCY
         DbgP("enable_caching: delegation recalled: srv_open=0x%p\n", SrvOpen);
@@ -1104,7 +1104,7 @@ void enable_caching(
         oentry->ChangeTime = ChangeTime;
         oentry->skip = FALSE;
         InsertTailList(&openlist.head, &oentry->next);
-        nfs41_srvopen->deleg_type = 0;
+        nfs41_srvopen->deleg_type = NFS41_OPEN_DELEGATE_NONE;
     }
 out_release_fcblistlock:
     ExReleaseFastMutexUnsafe(&openlist.lock);

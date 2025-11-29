@@ -824,7 +824,7 @@ NTSTATUS nfs41_SetFileInformationImpl(
 
     status = map_setfile_error(entry->status);
     if (!status) {
-        if ((nfs41_srvopen->deleg_type != 0) && entry->ChangeTime &&
+        if ((nfs41_srvopen->deleg_type != NFS41_OPEN_DELEGATE_NONE) && entry->ChangeTime &&
                 (SrvOpen->DesiredAccess &
                 (FILE_READ_DATA | FILE_WRITE_DATA | FILE_APPEND_DATA)))
             nfs41_update_fcb_list(RxContext->pFcb, entry->ChangeTime);
