@@ -24,6 +24,8 @@
 #ifndef _NFS41SYS_UTIL_H_
 #define _NFS41SYS_UTIL_H_ 1
 
+#include <stdbool.h>
+
 static INLINE BOOL AnsiStrEq(
     IN const ANSI_STRING *lhs,
     IN const CHAR *rhs,
@@ -67,5 +69,6 @@ NTSTATUS nfs41_UnmapLockedKernelPagesInNfsDaemonAddressSpace(
     __in PMDL  MemoryDescriptorList);
 PQUERY_ON_CREATE_ECP_CONTEXT get_queryoncreateecpcontext(
     __in PIRP Irp);
+bool get_primarygroup_id(__out SID *restrict ret_sid);
 
 #endif /* !_NFS41SYS_UTIL_H_ */

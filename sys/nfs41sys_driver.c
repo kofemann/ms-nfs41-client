@@ -787,6 +787,17 @@ NTSTATUS nfs41_CreateSrvCall(
     ASSERT( pSrvCall );
     ASSERT( NodeType(pSrvCall) == RDBSS_NTC_SRVCALL );
 
+#ifdef ENABLE_COLLAPSEOPEN
+    /*
+     * FIXME: This should be a tuneable
+     *
+     * Notes:
+     * - Windows 10 limit is 1023 per
+     * $ powershell -Command 'Get-SmbClientConfiguration | Select DormantFileLimit'
+     */
+    pSrvCall->MaximumNumberOfCloseDelayedFiles = 8192;
+#endif /* ENABLE_COLLAPSEOPEN */
+
     if (IoGetCurrentProcess() == RxGetRDBSSProcess()) {
         DbgP("executing with RDBSS context\n");
         status = _nfs41_CreateSrvCall(pCallbackContext);

@@ -500,8 +500,23 @@ typedef struct _NFS41_FCB {
         (((pFcb) == NULL) ? NULL : (PNFS41_FCB)((pFcb)->Context))
 
 typedef struct _NFS41_SRV_OPEN {
+    BOOLEAN         initialised;
     HANDLE          nfs41_open_state;
     DWORD           deleg_type;
+#ifdef WINBUG_NO_COLLAPSE_IF_PRIMARYGROUPS_DIFFER
+    /*
+     * |open_pg_sidbuff| - Note that buffers with SID values must be 16byte
+     * aligned on Windows 10/32bit
+     */
+#ifdef _MSC_BUILD
+    __declspec(align(16)) char open_pg_sidbuff[SID_BUF_SIZE];
+#else
+    char open_pg_sidbuff[SID_BUF_SIZE] __attribute__((aligned(16)));
+#endif /* _MSC_BUILD */
+
+    /* |open_pg_sid| - PrimaryGroup SID used for opening this NFS handle */
+    PSID            open_pg_sid;
+#endif /* WINBUG_NO_COLLAPSE_IF_PRIMARYGROUPS_DIFFER */
 } NFS41_SRV_OPEN, *PNFS41_SRV_OPEN;
 #define NFS41GetSrvOpenExtension(pSrvOpen)  \
         (((pSrvOpen) == NULL) ? NULL : (PNFS41_SRV_OPEN)((pSrvOpen)->Context))

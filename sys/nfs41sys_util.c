@@ -221,3 +221,62 @@ PQUERY_ON_CREATE_ECP_CONTEXT get_queryoncreateecpcontext(
 
     return (PQUERY_ON_CREATE_ECP_CONTEXT)ecpContext;
 }
+
+bool get_primarygroup_id(__out SID *restrict ret_sid)
+{
+    PACCESS_TOKEN token = NULL;
+    PVOID infoBuffer = NULL;
+    NTSTATUS status;
+    bool retval = false;
+
+    BOOLEAN copyOnOpen = FALSE;
+    BOOLEAN effectiveOnly = FALSE;
+    SECURITY_IMPERSONATION_LEVEL impLevel;
+    token = PsReferenceImpersonationToken(PsGetCurrentThread(),
+        &copyOnOpen, &effectiveOnly, &impLevel);
+    if (token == NULL) {
+        token = PsReferencePrimaryToken(PsGetCurrentProcess());
+        if (token == NULL) {
+            DbgP("get_primarygroup_id: Failed to get token\n");
+            return false;
+        }
+    }
+
+    status = SeQueryInformationToken(token,
+        TokenPrimaryGroup, &infoBuffer);
+    if (!NT_SUCCESS(status) || (infoBuffer == NULL)) {
+        DbgPrint("get_primarygroup_id: "
+            "SeQueryInformationToken(TokenPrimaryGroup) failed: 0x%lx\n",
+            (long)status);
+        goto out_cleanup_sequeryinfotok;
+    }
+
+    TOKEN_PRIMARY_GROUP *primaryGroup = (TOKEN_PRIMARY_GROUP *)infoBuffer;
+    if ((primaryGroup == NULL) || (primaryGroup->PrimaryGroup == NULL)) {
+        DbgP("get_primarygroup_id: "
+            "primaryGroup or PrimaryGroup SID is NULL\n");
+        goto out_cleanup_sequeryinfotok;
+    }
+
+    ULONG sidLength = RtlLengthSid(primaryGroup->PrimaryGroup);
+    if ((sidLength == 0UL) || (sidLength > SID_BUF_SIZE)) {
+        DbgP("get_primarygroup_id: "
+            "SID length (%lu) invalid or too large for buffer (%u)\n",
+            sidLength, (unsigned)SID_BUF_SIZE);
+        goto out_cleanup_sequeryinfotok;
+    }
+
+    (void)memcpy(ret_sid, primaryGroup->PrimaryGroup, sidLength);
+    retval = true;
+
+out_cleanup_sequeryinfotok:
+    if (infoBuffer) {
+        ExFreePool(infoBuffer);
+    }
+
+    if (token) {
+        ObDereferenceObject(token);
+    }
+
+    return retval;
+}

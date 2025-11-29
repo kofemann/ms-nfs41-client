@@ -50,6 +50,52 @@
 // #define LOOKASIDELISTS_STATS 1
 #endif /* (NTDDI_VERSION >= NTDDI_WIN10_VB) */
 
+/*
+ * |ENABLE_COLLAPSEOPEN| - SRV_OPEN collapse support
+ *
+ * This will re-use an existing SRV_OPEN
+ * when opening a file with matching parameters/flags, avoiding an
+ * upcall to the NFS server.
+ *
+ * This is currently experimental (and shoud be a mount option),
+ * requires more testing.
+ *
+ * Note this only has limited benefits (because it only short-cuts
+ * duplicate file opening requests to the NFS server) except in a
+ * benchmark which measures pure file |open()| performance:
+ * ---- snip ----
+ * $ cat "open_x_c_100000times.c"
+ * #include <windows.h>
+ * int main() {
+ *     CreateFileA("x.c", GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, 0, 0);
+ *     for(int i=0;i<100000;i++) {
+ *         HANDLE h;
+ *         h = CreateFileA("x.c", GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, 0, 0);
+ *         CloseHandle(h);
+ *     }
+ *     return 0;
+ * }
+ *
+ * # with collapsing enabled:
+ * $ time ./open_x_c_100000times.c
+ *
+ * real    3m20.027s
+ * user    0m0.562s
+ * sys     0m34.296s
+ * # collapsing disabled:
+ * $ time ./open_x_c_100000times.c
+ *
+ * real    6m59.528s
+ * user    0m1.155s
+ * sys     0m48.936s
+ * ---- snip ----
+ */
+#define ENABLE_COLLAPSEOPEN 1
+#ifdef ENABLE_COLLAPSEOPEN
+#define WINBUG_NO_COLLAPSE_IF_PRIMARYGROUPS_DIFFER 1
+#define WINBUG_WORKAROUND_CLOSESRVOPEN_CALLED_AFTER_FOXB_CLEANUP 1
+#endif /* ENABLE_COLLAPSEOPEN */
+
 /* debugging printout defines */
 #if defined(_DEBUG)
 /* Debug build defines follow... */

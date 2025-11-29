@@ -682,6 +682,28 @@ NTSTATUS nfs41_Create(
         ExInitializeFastMutex(&nfs41_fcb->aclcache.lock);
     }
 
+    if (nfs41_srvopen->initialised == FALSE) {
+        nfs41_srvopen->initialised = TRUE;
+#ifdef WINBUG_NO_COLLAPSE_IF_PRIMARYGROUPS_DIFFER
+        /* PrimaryGroup SID used for opening this NFS handle */
+        nfs41_srvopen->open_pg_sid = (PSID)nfs41_srvopen->open_pg_sidbuff;
+
+        /*
+         * Store PrimaryGroup SID used to create the |SRV_OPEN|
+         *
+         * This is used to test whether the PrimaryGroup of a
+         * collapsing request is the same as this SID, and reject
+         * the collapsing request if the groups do not match,
+         * to avoid that a |SRV_OPEN| with the wrong group is reused.
+         */
+        if (!get_primarygroup_id(nfs41_srvopen->open_pg_sid)) {
+            DbgP("nfs41_Create: get_primarygroup_id() failed\n");
+            status = STATUS_INSUFFICIENT_RESOURCES;
+            goto out;
+        }
+#endif /* WINBUG_NO_COLLAPSE_IF_PRIMARYGROUPS_DIFFER */
+    }
+
     debug_printirpecps(RxContext->CurrentIrp);
 
     PQUERY_ON_CREATE_ECP_CONTEXT qocec =
@@ -1246,9 +1268,100 @@ out:
 NTSTATUS nfs41_ShouldTryToCollapseThisOpen(
     IN OUT PRX_CONTEXT RxContext)
 {
+#ifdef ENABLE_COLLAPSEOPEN
+    NTSTATUS status = STATUS_SUCCESS;
+    PNFS41_FCB nfs41_fcb = NFS41GetFcbExtension(RxContext->pFcb);
+    PMRX_SRV_OPEN SrvOpen = RxContext->pRelevantSrvOpen;
+    PNFS41_SRV_OPEN nfs41_srvopen = NFS41GetSrvOpenExtension(SrvOpen);
+
+    if (SrvOpen == NULL) {
+        DbgP("nfs41_ShouldTryToCollapseThisOpen: "
+            "SrvOpen==NULL, status=STATUS_SUCCESS\n");
+        return STATUS_SUCCESS;
+    }
+
+    if (nfs41_fcb->StandardInfo.Directory) {
+        status = STATUS_MORE_PROCESSING_REQUIRED;
+        goto out;
+    }
+
+#ifdef WINBUG_NO_COLLAPSE_IF_PRIMARYGROUPS_DIFFER
+    /*
+     * Reject srvopens if the primary group used to create
+     * |RxContext->pRelevantSrvOpen| does not match the current primary group
+     *
+     * Example:
+     * $ bash -c $'command exec {n}<x.c ; newgrp cygwingrp2 bash -c \'id -a ; \
+     * for ((i=0 ; i < 5 ; i++)) ; do (command exec {nn}<x.c) done\''
+     *
+     * What happens here is that we start with primarygroup="None",
+     * start bash.exe, obtain a read file handle for file "x.c".
+     * Then we call newgrp to run a new bash.exe with a different primarygroup
+     * ("cygwingrp2", but same user), and request read file handles for "x.c"
+     * again.
+     * |MRxCollapseOpen()| is called to collapse the open request for "x.c"
+     * with primarygroup="cygwingrp2" into the SRV_OPEN which was created for
+     * primarygroup="Kein" - which leads to a privilege escalation if group
+     * "Kein" has access to the file but group "cygwingrp2" does not.
+     */
+
+    /*
+     * |pg_sidbuff| - Note that buffers with SID values must be 16byte
+     * aligned on Windows 10/32bit
+     */
+#ifdef _MSC_BUILD
+    __declspec(align(16)) char pg_sidbuff[SID_BUF_SIZE];
+#else
+    char pg_sidbuff[SID_BUF_SIZE] __attribute__((aligned(16)));
+#endif /* _MSC_BUILD */
+    PSID pg_sid = (PSID)pg_sidbuff;
+
+    (void)get_primarygroup_id(pg_sid);
+
+    if (RtlEqualSid(pg_sid, nfs41_srvopen->open_pg_sid)) {
+        status = STATUS_SUCCESS;
+    }
+    else {
+        wchar_t pg_sid_string_buf[200];
+        UNICODE_STRING pg_sid_string = {
+            .Buffer = pg_sid_string_buf,
+            .Length = 0,
+            .MaximumLength = sizeof(pg_sid_string_buf)
+        };
+
+        wchar_t srvopen_pg_sid_string_buf[200];
+        UNICODE_STRING srvopen_pg_sid_string = {
+            .Buffer = srvopen_pg_sid_string_buf,
+            .Length = 0,
+            .MaximumLength = sizeof(srvopen_pg_sid_string_buf)
+        };
+
+        (void)RtlConvertSidToUnicodeString(&pg_sid_string, pg_sid, FALSE);
+        (void)RtlConvertSidToUnicodeString(&srvopen_pg_sid_string,
+            nfs41_srvopen->open_pg_sid, FALSE);
+        DbgP("nfs41_ShouldTryToCollapseThisOpen: "
+            "Threads pg SID('%wZ') != nfs41_srvopen->open_pg_sid('%wZ')\n",
+            &pg_sid_string,
+            &srvopen_pg_sid_string);
+
+        status = STATUS_MORE_PROCESSING_REQUIRED;
+        goto out;
+    }
+#else
+    status = STATUS_SUCCESS;
+#endif /* WINBUG_NO_COLLAPSE_IF_PRIMARYGROUPS_DIFFER */
+
+out:
+    DbgP("nfs41_ShouldTryToCollapseThisOpen: filename='%wZ', status=0x%lx\n",
+        SrvOpen->pAlreadyPrefixedName,
+        (long)status);
+
+    return status;
+#else
     if (RxContext->pRelevantSrvOpen == NULL)
         return STATUS_SUCCESS;
     return STATUS_MORE_PROCESSING_REQUIRED;
+#endif /* ENABLE_COLLAPSEOPEN */
 }
 
 /*
@@ -1260,7 +1373,43 @@ NTSTATUS nfs41_ShouldTryToCollapseThisOpen(
 NTSTATUS nfs41_CollapseOpen(
     IN OUT PRX_CONTEXT RxContext)
 {
+#ifdef ENABLE_COLLAPSEOPEN
+    NTSTATUS status;
+    PMRX_SRV_OPEN SrvOpen = RxContext->pRelevantSrvOpen;
+
+    FsRtlEnterFileSystem();
+
+    /*
+     * FIXME/ToDo:
+     * - Check whether ECP (Extended Create Parameters) must be handled
+     * - Check whether Cygwin/SFU EA must be handled
+     */
+
+    debug_printirpecps(RxContext->CurrentIrp);
+
+    PQUERY_ON_CREATE_ECP_CONTEXT qocec =
+        get_queryoncreateecpcontext(RxContext->CurrentIrp);
+    if (qocec) {
+        DbgP("nfs41_CollapseOpen: RequestedClasses=0x%lx\n",
+            qocec->RequestedClasses);
+    }
+
+    status = nfs41_createnetfobx(RxContext, SrvOpen);
+    if (status)
+        goto out;
+
+    RxContext->pFobx->OffsetOfNextEaToReturn = 1; /* FIXME: Why ? */
+    status = STATUS_SUCCESS;
+
+out:
+    DbgP("nfs41_CollapseOpen: collapsingopen for '%wZ', status=0x%lx\n",
+        SrvOpen->pAlreadyPrefixedName,
+        (long)status);
+
+    FsRtlExitFileSystem();
+#else
     NTSTATUS status = STATUS_MORE_PROCESSING_REQUIRED;
+#endif /* ENABLE_COLLAPSEOPEN */
     return status;
 }
 
