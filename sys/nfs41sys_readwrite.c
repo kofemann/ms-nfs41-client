@@ -443,7 +443,7 @@ NTSTATUS nfs41_Write(
                  FCB_STATE_WRITECACHING_ENABLED))) {
             enable_caching(SrvOpen, nfs41_fobx, nfs41_fcb->changeattr,
                 pVNetRootContext->session);
-        } else if (nfs41_srvopen->deleg_type == NFS41_OPEN_DELEGATE_NONE) {
+        } else if (IS_NFS41_OPEN_DELEGATE_NONE(nfs41_srvopen->deleg_type)) {
             nfs41_update_fcb_list(RxContext->pFcb, entry->ChangeTime);
         }
     } else {

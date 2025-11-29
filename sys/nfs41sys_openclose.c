@@ -1196,7 +1196,8 @@ retry_on_link:
 #endif
             SrvOpen->BufferingFlags = FCB_STATE_DISABLE_LOCAL_BUFFERING;
             nfs41_fobx->nocache = TRUE;
-        } else if ((entry->u.Open.deleg_type == NFS41_OPEN_DELEGATE_NONE) && !Fcb->OpenCount) {
+        } else if (IS_NFS41_OPEN_DELEGATE_NONE(entry->u.Open.deleg_type) &&
+            (Fcb->OpenCount == 0)) {
             nfs41_fcb_list_entry *oentry;
 #ifdef DEBUG_OPEN
             DbgP("nfs41_Create: received no delegations: srv_open=0x%p "
@@ -1459,7 +1460,7 @@ NTSTATUS nfs41_CloseSrvOpen(
 #endif
     FsRtlEnterFileSystem();
 
-    if ((nfs41_srvopen->deleg_type == NFS41_OPEN_DELEGATE_NONE) &&
+    if (IS_NFS41_OPEN_DELEGATE_NONE(nfs41_srvopen->deleg_type) &&
         !nfs41_fcb->StandardInfo.Directory &&
         RxContext->pFcb->OpenCount == 0) {
         nfs41_remove_fcb_entry(RxContext->pFcb);

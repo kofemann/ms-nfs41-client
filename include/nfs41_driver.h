@@ -105,6 +105,10 @@ typedef enum _nfs41_open_delegation_type {
     NFS41_OPEN_DELEGATE_NONE_EXT  = 3
 } nfs41_open_delegation_type;
 
+#define IS_NFS41_OPEN_DELEGATE_NONE(dt) \
+    (((dt) == NFS41_OPEN_DELEGATE_NONE) || \
+     ((dt) == NFS41_OPEN_DELEGATE_NONE_EXT))
+
 /*
  * Same as |FILE_FS_ATTRIBUTE_INFORMATION| but with inline buffer
  * for 32 characters

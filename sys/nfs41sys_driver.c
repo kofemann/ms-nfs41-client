@@ -1090,7 +1090,7 @@ void enable_caching(
         }
         pEntry = pEntry->Flink;
     }
-    if (!found && (nfs41_srvopen->deleg_type != NFS41_OPEN_DELEGATE_NONE)) {
+    if (!found && (!IS_NFS41_OPEN_DELEGATE_NONE(nfs41_srvopen->deleg_type))) {
         nfs41_fcb_list_entry *oentry;
 #ifdef DEBUG_TIME_BASED_COHERENCY
         DbgP("enable_caching: delegation recalled: srv_open=0x%p\n", SrvOpen);
