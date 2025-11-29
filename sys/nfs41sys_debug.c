@@ -671,7 +671,7 @@ void print_caching_level(int on, ULONG flag, PUNICODE_STRING name)
     }
 }
 
-const char *opcode2string(int opcode)
+const char *opcode2string(nfs41_opcodes opcode)
 {
     switch(opcode) {
     case NFS41_SYSOP_SHUTDOWN: return "NFS41_SYSOP_SHUTDOWN";

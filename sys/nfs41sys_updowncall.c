@@ -349,7 +349,7 @@ out:
 }
 
 NTSTATUS nfs41_UpcallCreate(
-    IN DWORD opcode,
+    IN nfs41_opcodes opcode,
     IN PSECURITY_CLIENT_CONTEXT clnt_sec_ctx,
     IN HANDLE session,
     IN HANDLE open_state,

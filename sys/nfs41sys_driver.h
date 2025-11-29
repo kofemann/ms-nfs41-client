@@ -34,6 +34,8 @@
 
 #include "nfs_ea.h"
 
+typedef enum _nfs41_opcodes nfs41_opcodes;
+
 #if (NTDDI_VERSION >= NTDDI_WIN10_VB)
 #define EXALLOCATEPOOLWITHTAG_DEPRECATED 1
 #endif /* (NTDDI_VERSION >= NTDDI_WIN10_VB) */
@@ -928,7 +930,7 @@ void unmarshal_nfs41_attrget(
     const unsigned char *restrict *restrict buf,
     BOOL copy_partial);
 NTSTATUS nfs41_UpcallCreate(
-    IN DWORD opcode,
+    IN nfs41_opcodes opcode,
     IN PSECURITY_CLIENT_CONTEXT clnt_sec_ctx,
     IN HANDLE session,
     IN HANDLE open_state,

@@ -24,6 +24,8 @@
 #ifndef NFS41SYS_DEBUG_H
 #define NFS41SYS_DEBUG_H 1
 
+typedef enum _nfs41_opcodes nfs41_opcodes;
+
 #define _DRIVER_NAME_ "NFS4.1 Driver"
 
 ULONG __cdecl DbgP(IN PCCH fmt, ...);
@@ -50,7 +52,7 @@ void print_std_info(int on, PFILE_STANDARD_INFORMATION info);
 void print_ea_info(PFILE_FULL_EA_INFORMATION info);
 void print_get_ea(int on, PFILE_GET_EA_INFORMATION info);
 void print_caching_level(int on, ULONG flag, PUNICODE_STRING s);
-const char *opcode2string(int opcode);
+const char *opcode2string(nfs41_opcodes opcode);
 void print_open_error(int on, int status);
 void print_wait_status(int on, const char *str, NTSTATUS status,
                        const char *opcode, PVOID entry, LONGLONG xid);
