@@ -870,6 +870,9 @@ NTSTATUS nfs41_AreFilesAliased(
     PFCB b);
 NTSTATUS nfs41_DeallocateForFobx(
     IN OUT PMRX_FOBX pFobx);
+NTSTATUS
+nfs41_CleanupFobx(
+    IN PRX_CONTEXT RxContext);
 NTSTATUS nfs41_Create(
     IN OUT PRX_CONTEXT RxContext);
 NTSTATUS nfs41_CollapseOpen(

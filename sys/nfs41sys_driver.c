@@ -1210,6 +1210,8 @@ NTSTATUS nfs41_init_ops(void)
         (PMRX_EXTENDFILE_CALLDOWN)nfs41_ExtendForCache;
     nfs41_ops.MRxExtendForNonCache =
         (PMRX_EXTENDFILE_CALLDOWN)nfs41_ExtendForCache;
+    nfs41_ops.MRxCleanupFobx      =
+        (PMRX_CALLDOWN)nfs41_CleanupFobx;
     nfs41_ops.MRxCloseSrvOpen      =
         (PMRX_CALLDOWN)nfs41_CloseSrvOpen;
     nfs41_ops.MRxFlush             =
@@ -1218,6 +1220,8 @@ NTSTATUS nfs41_init_ops(void)
         (PMRX_DEALLOCATE_FOR_FCB)nfs41_DeallocateForFcb;
     nfs41_ops.MRxDeallocateForFobx =
         (PMRX_DEALLOCATE_FOR_FOBX)nfs41_DeallocateForFobx;
+
+
     nfs41_ops.MRxIsLockRealizable  =
         (PMRX_IS_LOCK_REALIZABLE)nfs41_IsLockRealizable;
 

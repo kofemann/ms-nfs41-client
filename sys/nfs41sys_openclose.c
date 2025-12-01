@@ -417,22 +417,6 @@ VOID nfs41_invalidate_fobx_entry(
     ExReleaseFastMutexUnsafe(&openlist.lock);
 }
 
-NTSTATUS nfs41_DeallocateForFobx(
-    IN OUT PMRX_FOBX pFobx)
-{
-    __notnull PNFS41_FOBX nfs41_fobx = NFS41GetFobxExtension(pFobx);
-
-    nfs41_invalidate_fobx_entry(pFobx);
-    nfs41_remove_offloadcontext_for_fobx(pFobx);
-
-    if (nfs41_fobx->sec_ctx.ClientToken) {
-        SeDeleteClientSecurity(&nfs41_fobx->sec_ctx);
-        nfs41_fobx->sec_ctx.ClientToken = NULL;
-    }
-
-    return STATUS_SUCCESS;
-}
-
 static BOOLEAN isDataAccess(
     ACCESS_MASK mask)
 {
@@ -1522,6 +1506,20 @@ NTSTATUS map_close_errors(
     }
 }
 
+/* |MRxCleanupFobx()| is usually called before |MRxCloseSrvOpen()| */
+NTSTATUS
+nfs41_CleanupFobx(
+    IN PRX_CONTEXT RxContext)
+{
+#ifdef DEBUG_CLOSE
+    DbgP("nfs41_CleanupFobx: FileName is '%wZ'\n",
+        &RxContext->CurrentIrpSp->FileObject->FileName);
+#endif /* DEBUG_CLOSE */
+
+    return STATUS_SUCCESS;
+}
+
+
 NTSTATUS nfs41_CloseSrvOpen(
     IN OUT PRX_CONTEXT RxContext)
 {
@@ -1598,4 +1596,26 @@ out:
     DbgEx();
 #endif
     return status;
+}
+
+/* |MRxDeallocateForFobx()| is usually called after |MRxCloseSrvOpen()| */
+NTSTATUS nfs41_DeallocateForFobx(
+    IN OUT PMRX_FOBX pFobx)
+{
+    __notnull PNFS41_FOBX nfs41_fobx = NFS41GetFobxExtension(pFobx);
+
+#ifdef DEBUG_CLOSE
+    DbgP("nfs41_DeallocateForFobx: FileName is '%wZ'\n",
+        pFobx->pSrvOpen->pAlreadyPrefixedName);
+#endif /* DEBUG_CLOSE */
+
+    nfs41_invalidate_fobx_entry(pFobx);
+    nfs41_remove_offloadcontext_for_fobx(pFobx);
+
+    if (nfs41_fobx->sec_ctx.ClientToken) {
+        SeDeleteClientSecurity(&nfs41_fobx->sec_ctx);
+        nfs41_fobx->sec_ctx.ClientToken = NULL;
+    }
+
+    return STATUS_SUCCESS;
 }
