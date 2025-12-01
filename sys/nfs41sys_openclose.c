@@ -351,8 +351,8 @@ NTSTATUS nfs41_AreFilesAliased(
     PFCB a,
     PFCB b)
 {
-    __notnull PNFS41_FCB nfs41_fcb_a = (PNFS41_FCB)a;
-    __notnull PNFS41_FCB nfs41_fcb_b = (PNFS41_FCB)b;
+    __notnull PNFS41_FCB nfs41_fcb_a = NFS41GetFcbExtension(a);
+    __notnull PNFS41_FCB nfs41_fcb_b = NFS41GetFcbExtension(b);
 
     if ((nfs41_fcb_a->fileid == nfs41_fcb_b->fileid) &&
         (nfs41_fcb_a->fsid_major == nfs41_fcb_b->fsid_major) &&
