@@ -196,7 +196,7 @@ bintarball: \
 	base_filename="msnfs41client_cygwin_64bit32bit_binaries_$$(date +%Y%m%d_%Hh%Mm)_git$$(git rev-parse --short HEAD)" ; \
 	( \
 	cd "$(DESTDIR)" && \
-	tar -cvf - \
+	tar -cvvf - \
 		--owner=SYSTEM:18 \
 		--group=SYSTEM:18 \
 		sbin bin usr lib etc \
@@ -225,7 +225,7 @@ bintarball32: \
 	base_filename="msnfs41client_cygwin_32bit_binaries_$$(date +%Y%m%d_%Hh%Mm)_git$$(git rev-parse --short HEAD)" ; \
 	( \
 	cd "$(DESTDIR)" && \
-	tar -cvf - \
+	tar -cvvf - \
 		--owner=SYSTEM:18 \
 		--group=SYSTEM:18 \
 		sbin bin usr lib etc \
@@ -254,7 +254,7 @@ bintarball64: \
 	base_filename="msnfs41client_cygwin_64bit_binaries_$$(date +%Y%m%d_%Hh%Mm)_git$$(git rev-parse --short HEAD)" ; \
 	( \
 	cd "$(DESTDIR)" && \
-	tar -cvf - \
+	tar -cvvf - \
 		--owner=SYSTEM:18 \
 		--group=SYSTEM:18 \
 		sbin bin usr lib etc \
