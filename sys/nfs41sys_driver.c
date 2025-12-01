@@ -871,40 +871,6 @@ VOID nfs41_remove_fcb_entry(
     ExReleaseFastMutexUnsafe(&openlist.lock);
 }
 
-static
-VOID nfs41_invalidate_fobx_entry(
-    IN OUT PMRX_FOBX pFobx)
-{
-    PLIST_ENTRY pEntry;
-    nfs41_fcb_list_entry *cur;
-    __notnull PNFS41_FOBX nfs41_fobx = NFS41GetFobxExtension(pFobx);
-
-    ExAcquireFastMutexUnsafe(&openlist.lock);
-
-    pEntry = openlist.head.Flink;
-    while (!IsListEmpty(&openlist.head)) {
-        cur = (nfs41_fcb_list_entry *)CONTAINING_RECORD(pEntry,
-                nfs41_fcb_list_entry, next);
-        if (cur->nfs41_fobx == nfs41_fobx) {
-#ifdef DEBUG_CLOSE
-            DbgP("nfs41_invalidate_fobx_entry: Found match for nfs41_fobx=0x%p\n",
-                nfs41_fobx);
-#endif
-            cur->nfs41_fobx = NULL;
-            break;
-        }
-        if (pEntry->Flink == &openlist.head) {
-#ifdef DEBUG_CLOSE
-            DbgP("nfs41_invalidate_fobx_entry: reached EOL looking "
-                "for nfs41_fobx=0x%p\n", nfs41_fobx);
-#endif
-            break;
-        }
-        pEntry = pEntry->Flink;
-    }
-    ExReleaseFastMutexUnsafe(&openlist.lock);
-}
-
 NTSTATUS nfs41_Flush(
     IN OUT PRX_CONTEXT RxContext)
 {
@@ -924,22 +890,6 @@ NTSTATUS nfs41_DeallocateForFcb(
     if (nfs41_fcb->aclcache.data) {
         RxFreePool(nfs41_fcb->aclcache.data);
         nfs41_fcb->aclcache.data = NULL;
-    }
-
-    return STATUS_SUCCESS;
-}
-
-NTSTATUS nfs41_DeallocateForFobx(
-    IN OUT PMRX_FOBX pFobx)
-{
-    __notnull PNFS41_FOBX nfs41_fobx = NFS41GetFobxExtension(pFobx);
-
-    nfs41_invalidate_fobx_entry(pFobx);
-    nfs41_remove_offloadcontext_for_fobx(pFobx);
-
-    if (nfs41_fobx->sec_ctx.ClientToken) {
-        SeDeleteClientSecurity(&nfs41_fobx->sec_ctx);
-        nfs41_fobx->sec_ctx.ClientToken = NULL;
     }
 
     return STATUS_SUCCESS;
@@ -1162,42 +1112,6 @@ NTSTATUS nfs41_Unimplemented(
     PRX_CONTEXT RxContext)
 {
     return STATUS_NOT_IMPLEMENTED;
-}
-
-NTSTATUS nfs41_AreFilesAliased(
-    PFCB a,
-    PFCB b)
-{
-    __notnull PNFS41_FCB nfs41_fcb_a = (PNFS41_FCB)a;
-    __notnull PNFS41_FCB nfs41_fcb_b = (PNFS41_FCB)b;
-
-    if ((nfs41_fcb_a->fileid == nfs41_fcb_b->fileid) &&
-        (nfs41_fcb_a->fsid_major == nfs41_fcb_b->fsid_major) &&
-        (nfs41_fcb_a->fsid_minor == nfs41_fcb_b->fsid_minor)) {
-
-        DbgP("nfs41_AreFilesAliased: "
-            "a=0x%p b=0x%p aliases, fileid=0x%llx "
-            "fsid_major=0x%llx fsid_minor=0x%llx\n",
-            (void *)a, (void *)b,
-            (long long)nfs41_fcb_a->fileid,
-            (long long)nfs41_fcb_a->fsid_major,
-            (long long)nfs41_fcb_a->fsid_minor);
-        return STATUS_MORE_PROCESSING_REQUIRED;
-    }
-    else {
-        DbgP("nfs41_AreFilesAliased: "
-            "a=0x%p b=0x%p NOT aliases, "
-            "a=(fileid=0x%llx fsid_major=0x%llx fsid_minor=0x%llx) "
-            "b=(fileid=0x%llx fsid_major=0x%llx fsid_minor=0x%llx)\n",
-            (void *)a, (void *)b,
-            (long long)nfs41_fcb_a->fileid,
-            (long long)nfs41_fcb_a->fsid_major,
-            (long long)nfs41_fcb_a->fsid_minor,
-            (long long)nfs41_fcb_b->fileid,
-            (long long)nfs41_fcb_b->fsid_major,
-            (long long)nfs41_fcb_b->fsid_minor);
-        return STATUS_SUCCESS;
-    }
 }
 
 static

@@ -865,6 +865,11 @@ NTSTATUS marshal_nfs41_close(
 NTSTATUS unmarshal_nfs41_open(
     nfs41_updowncall_entry *cur,
     const unsigned char *restrict *restrict buf);
+NTSTATUS nfs41_AreFilesAliased(
+    PFCB a,
+    PFCB b);
+NTSTATUS nfs41_DeallocateForFobx(
+    IN OUT PMRX_FOBX pFobx);
 NTSTATUS nfs41_Create(
     IN OUT PRX_CONTEXT RxContext);
 NTSTATUS nfs41_CollapseOpen(
