@@ -760,8 +760,8 @@ NTSTATUS marshal_nfs41_duplicatedata(
 NTSTATUS unmarshal_nfs41_duplicatedata(
     nfs41_updowncall_entry *cur,
     const unsigned char *restrict *restrict buf);
-void nfs41_remove_offloadcontext_for_fobx(
-    IN PMRX_FOBX pFobx);
+void nfs41_remove_offloadcontext_for_srvopen(
+    IN PMRX_SRV_OPEN pSrvopen);
 
 /* nfs41sys_ioctl.c */
 NTSTATUS nfs41_IoCtl(

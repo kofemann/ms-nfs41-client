@@ -755,16 +755,9 @@ NTSTATUS nfs41_DuplicateData(
     PFOBX srcfox = srcfo->FsContext2;
     PNFS41_FCB nfs41_src_fcb = NFS41GetFcbExtension(srcfcb);
     PNFS41_SRV_OPEN src_nfs41_srvopen = NFS41GetSrvOpenExtension(srcfox->SrvOpen);
-    PNFS41_FOBX nfs41_src_fobx = NFS41GetFobxExtension(srcfox);
 
     if (!nfs41_src_fcb) {
         DbgP("nfs41_DuplicateData: No nfs41_src_fcb\n");
-        status = STATUS_INVALID_PARAMETER;
-        goto out;
-    }
-
-    if (!nfs41_src_fobx) {
-        DbgP("nfs41_DuplicateData: No nfs41_src_fobx\n");
         status = STATUS_INVALID_PARAMETER;
         goto out;
     }
@@ -953,14 +946,14 @@ typedef struct _offloadcontext_entry
      */
     ERESOURCE               resource;
     STORAGE_OFFLOAD_TOKEN   token;
-    PMRX_FOBX               src_fobx;
+    PMRX_SRV_OPEN           src_srvopen;
     ULONGLONG               src_fileoffset;
     ULONGLONG               src_length;
 } offloadcontext_entry;
 
 
-void nfs41_remove_offloadcontext_for_fobx(
-    IN PMRX_FOBX pFobx)
+void nfs41_remove_offloadcontext_for_srvopen(
+    IN PMRX_SRV_OPEN pSrvopen)
 {
     PLIST_ENTRY pEntry;
     offloadcontext_entry *cur, *found = NULL;
@@ -971,7 +964,7 @@ void nfs41_remove_offloadcontext_for_fobx(
     while (!IsListEmpty(&offloadcontextlist.head)) {
         cur = (offloadcontext_entry *)CONTAINING_RECORD(pEntry,
             offloadcontext_entry, next);
-        if (cur->src_fobx == pFobx) {
+        if (cur->src_srvopen == pSrvopen) {
             found = cur;
             break;
         }
@@ -982,9 +975,9 @@ void nfs41_remove_offloadcontext_for_fobx(
     }
 
     if (found) {
-        DbgP("nfs41_remove_offloadcontext(pFobx=0x%p): "
+        DbgP("nfs41_remove_offloadcontext_for_srvopen(pSrvopen=0x%p): "
             "removing found=0x%p\n",
-            pFobx,
+            pSrvopen,
             found);
 
         /* Wait for any shared access in |nfs41_OffloadWrite()| to finish */
@@ -998,8 +991,9 @@ void nfs41_remove_offloadcontext_for_fobx(
     }
     else {
 #ifdef DEBUG_FSCTL_OFFLOAD_READWRITE
-        DbgP("nfs41_remove_offloadcontext(pFobx=0x%p): Nothing found.\n",
-            pFobx);
+        DbgP("nfs41_remove_offloadcontext_for_srvopen(pSrvopen=0x%p): "
+            "Nothing found.\n",
+            pSrvopen);
 #endif /* DEBUG_FSCTL_OFFLOAD_READWRITE */
     }
 
@@ -1126,7 +1120,7 @@ NTSTATUS nfs41_OffloadRead(
     *((USHORT *)(&oce->token.TokenIdLength[0])) =
         STORAGE_OFFLOAD_TOKEN_ID_LENGTH;
     *((void **)(&oce->token.Token[0])) = oce;
-    oce->src_fobx = RxContext->pFobx;
+    oce->src_srvopen = RxContext->pRelevantSrvOpen;
     oce->src_fileoffset = ori->FileOffset;
     oce->src_length = ori->CopyLength;
 
@@ -1294,13 +1288,8 @@ NTSTATUS nfs41_OffloadWrite(
         goto out;
     }
 
-    PNFS41_FOBX nfs41_src_fobx = NFS41GetFobxExtension(src_oce->src_fobx);
-    if (!nfs41_src_fobx) {
-        DbgP("nfs41_OffloadWrite: No nfs41_src_fobx\n");
-        status = STATUS_INVALID_PARAMETER;
-        goto out;
-    }
-    PNFS41_SRV_OPEN src_nfs41_srvopen = NFS41GetSrvOpenExtension(((PFOBX)src_oce->src_fobx)->SrvOpen);
+    PNFS41_SRV_OPEN src_nfs41_srvopen =
+        NFS41GetSrvOpenExtension(src_oce->src_srvopen);
 
     /*
      * Disable caching because NFSv4.2 COPY is basically a

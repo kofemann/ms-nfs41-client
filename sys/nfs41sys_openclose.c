@@ -1578,6 +1578,10 @@ NTSTATUS nfs41_CloseSrvOpen(
 
     /* map windows ERRORs to NTSTATUS */
     status = map_close_errors(entry->status);
+
+    if (NT_SUCCESS(status)) {
+        nfs41_remove_offloadcontext_for_srvopen(SrvOpen);
+    }
 out:
     if (entry) {
         nfs41_UpcallDestroy(entry);
@@ -1610,7 +1614,6 @@ NTSTATUS nfs41_DeallocateForFobx(
 #endif /* DEBUG_CLOSE */
 
     nfs41_invalidate_fobx_entry(pFobx);
-    nfs41_remove_offloadcontext_for_fobx(pFobx);
 
     if (nfs41_fobx->sec_ctx.ClientToken) {
         SeDeleteClientSecurity(&nfs41_fobx->sec_ctx);
