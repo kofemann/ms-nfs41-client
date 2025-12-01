@@ -95,8 +95,22 @@ installdest:
 		cp $(VS_BUILD_DIR_ARM64)/nfs_mount.*	$(DESTDIR)/lib/msnfs41client/arm64/. ; \
 		cp $(VS_BUILD_DIR_ARM64)/nfs41_np.*	$(DESTDIR)/lib/msnfs41client/arm64/. ; \
 	fi
+	#
 	# Copy kernel driver INF file and generate signature catalog
-	# (inf2cat.exe cannot handle case-sensitive filesystems like NFS for temporary files, so we reset TMP&co)
+	#
+	# Notes:
+	# - inf2cat.exe cannot handle case-sensitive filesystems like NFS
+	# for temporary files
+	# - inf2cat.exe uses exactly the same temp file names if working
+	# with the same filenames, which can cause file permission
+	# errors if two different users build exactly the same code
+	# at the same time
+	#
+	# Workaround:
+	# We reset TMP&co to a per-user+timestamped subdir in /tmp_inf2catdir_...
+	# to avoid that multiple builds of different users can collide
+	# with each other
+	#
 	for infdir in "i686" "x64" "arm64" ; do \
 		[[ -f "$(DESTDIR)/lib/msnfs41client/$${infdir}/nfs41_driver.sys" ]] || continue ; \
 		( \
@@ -104,11 +118,13 @@ installdest:
 			inf2catbin="$$(find '$(WINDOWS_KITS_10_BIN_DIR)' -iname inf2cat.exe | head -n 1)" && \
 			cd "$(DESTDIR)/lib/msnfs41client/$${infdir}/." && \
 			if [[ "$$(/usr/lib/csih/getVolInfo . | awk '/FILE_CASE_SENSITIVE_SEARCH/ { print $$3 }')" == "TRUE" ]] ; then \
-				printf "# case-sensitive filesystem, resetting TMP TMPDIR TEMP to /tmp\n" ; \
-				export TMP=/tmp TMPDIR=/tmp TEMP=/tmp ; \
+				tmpdir="/tmp/tmp_inf2catdir_$$(/usr/bin/id -u -n)_$$(date "+%Y%m%d_%H%M%S_%N")" ; \
+				mkdir -p "$${tmpdir}" ; \
+				printf "# case-sensitive filesystem, resetting TMP TMPDIR TEMP to '%q/'\n" "$${tmpdir}" ; \
+				export TMP="$${tmpdir}" TMPDIR="$${tmpdir}" TEMP="$${tmpdir}" ; \
 			fi && \
 			set -o xtrace ; \
-			"$$inf2catbin" /driver:. /os:10_X86,10_X64,10_VB_ARM64 \
+			"$$inf2catbin" /driver:. /os:10_X86,10_X64,10_VB_ARM64 /verbose \
 		) ; \
 	done
 	# Platform-independent files
