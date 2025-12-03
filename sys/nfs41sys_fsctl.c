@@ -756,7 +756,7 @@ NTSTATUS nfs41_DuplicateData(
     DbgP("nfs41_DuplicateData: "
         "srcfo=0x%p srcfo->FileName='%wZ'\n",
         srcfo,
-        srcfo->FileName);
+        &srcfo->FileName);
 
     if (srcfo->DeviceObject !=
         RxContext->CurrentIrpSp->FileObject->DeviceObject) {
