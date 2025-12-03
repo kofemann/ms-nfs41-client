@@ -249,6 +249,7 @@ function nfsclient_install
 		'bin/winoffloadcopyfile'
 		'bin/winsg'
 		'bin/nfs_ea'
+		'sbin/catdbgprint'
 		'sbin/winrunassystem'
 		'sbin/nfs_globalmount'
 		'usr/share/msnfs41client/tests/misc/qsortonmmapedfile1'
@@ -939,29 +940,10 @@ function attach_debugger_to_daemon
 
 function watch_kernel_debuglog
 {
-	typeset dbgview_cmd
-
 	printf "# logging start...\n" 1>&2
 
-	case "$(uname -m)" in
-		'x86_64') dbgview_cmd='dbgview64' ;;
-		'i686')   dbgview_cmd='dbgview' ;;
-		*)
-			printf $"%s: Unknown machine type\n" "$0" 1>&2
-			return 1
-			;;
-	esac
+	catdbgprint
 
-	# seperate process so SIGINT works
-	# use DebugView (https://learn.microsoft.com/en-gb/sysinternals/downloads/debugview) to print kernel log
-	dbgview_cmd="${dbgview_cmd}" bash -c '
-		klogname="msnfs41client_watch_kernel_debuglog$$.log"
-		$dbgview_cmd /t /k /l "$klogname" &
-		(( dbgview_pid=$! ))
-		trap "(( dbgview_pid != 0)) && kill $dbgview_pid && wait ; (( dbgview_pid=0 ))" INT TERM EXIT
-		sleep 2
-		printf "# logging %s ...\n" "$klogname" 1>&2
-		tail -n0 -f "$klogname"'
 	printf '# logging done\n' 1>&2
 	return 0
 }
@@ -1302,14 +1284,7 @@ function main
 			;;
 		'watch_kernel_debuglog')
 			check_machine_arch || (( numerr++ ))
-			case "$(uname -m)" in
-				'x86_64') require_cmd 'dbgview64' || (( numerr++ )) ;;
-				'i686')   require_cmd 'dbgview' || (( numerr++ )) ;;
-				*)
-					printf $"%s: Unknown machine type\n" "$0" 1>&2
-					(( numerr++ ))
-					;;
-			esac
+			require_cmd 'catdbgprint' || (( numerr++ ))
 			if ! is_windows_admin_account ; then
 				printf $"%s: %q requires Windows Adminstator permissions.\n" "$0" "$cmd"
 				(( numerr++ ))
