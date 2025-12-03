@@ -1189,21 +1189,25 @@ retry_on_link:
     print_std_info(1, &nfs41_fcb->StandardInfo);
 #endif
 
-    /* aglo: 05/10/2012. it seems like always have to invalid the cache if the
+    /*
+     * aglo: 05/10/2012: it seems like always have to invalid the cache if the
      * file has been opened before and being opened again for data access.
      * If the file was opened before, RDBSS might have cached (unflushed) data
      * and by opening it again, we will not have the correct representation of
      * the file size and data content. fileio tests 208, 219, 221.
+     * gisburn 2025-12-02: Switching from |RxChangeBufferingState()| with
+     * |DISABLE_CACHING| to |RxFlushFcbInSystemCache(fcb, TRUE)| incl.
+     * syncing with lazywriter (testing with parallel gcc build shows that
+     * just waiting for the lazy writer is not sufficient).
      */
     if (Fcb->OpenCount > 0 && (isDataAccess(params->DesiredAccess) ||
             nfs41_fcb->changeattr != entry->ChangeTime) &&
                 !nfs41_fcb->StandardInfo.Directory) {
-        ULONG flag = DISABLE_CACHING;
 #ifdef DEBUG_OPEN
         DbgP("nfs41_Create: reopening (changed) file '%wZ'\n",
             SrvOpen->pAlreadyPrefixedName);
 #endif
-        RxChangeBufferingState((PSRV_OPEN)SrvOpen, ULongToPtr(flag), 1);
+        (void)RxFlushFcbInSystemCache((PFCB)RxContext->pFcb, TRUE);
     }
 
     if (!nfs41_fcb->StandardInfo.Directory &&
