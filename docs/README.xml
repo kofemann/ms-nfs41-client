@@ -500,7 +500,7 @@ chmod a+x 'msys2-x86_64-20250830.exe'
     </orderedlist>
     <note>
         <title>Installing MSYS on NFS filesystem</title>
-        <para>NFS filesystem used the MSYS root filesystem must be mounted as global filesystem</para>
+        <para>NFS filesystem used as MSYS root filesystem (<filename>/</filename>) must be mounted as global filesystem (e.g. use <command>nfs_globalmount.exe</command>)</para>
         <orderedlist>
             <title>Known issues</title>
             <listitem><para>Edit <filename>/etc/pacman.conf</filename> and set <programlisting>SigLevel = Never</programlisting>, because due to a Cygwin/MSYS2 bug there is a mismatch between Cygwin/MSYS2 POSIX uid/gid and Win32 owner/owner_group SIDs</para></listitem>

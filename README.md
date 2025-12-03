@@ -367,8 +367,8 @@ Cygwin 32bit can be installed like this:
         pacman -S --noconfirm base-devel gcc clang sed time coreutils util-linux grep sed emacs gdb make autoconf automake gettext gettext-devel git subversion flex bison unzip pax tar libiconv-devel ncurses-devel gmp-devel mpfr-devel mpc-devel isl-devel procps-ng libiconv-devel
 
 > [!NOTE]
-> NFS filesystem used the MSYS root filesystem must be mounted as global
-> filesystem
+> NFS filesystem used as MSYS root filesystem (`/`) must be mounted as
+> global filesystem (e.g. use `nfs_globalmount.exe`)
 >
 > <div>
 >
