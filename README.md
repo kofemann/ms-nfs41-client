@@ -260,8 +260,18 @@ NFSv4.2/NFSv4.1 filesystem driver for Windows 10/11 & Windows Server
 
 # Requirements
 
-- Windows 10 (32bit or 64bit), Windows 11 or Windows Server
-  2019+2022+2025
+- Operarting system:
+
+  - Windows 10 (32bit or 64bit)
+  - Windows 11 (64bit)
+  - Windows Server 2019 (64bit)
+  - Windows Server 2022 (64bit)
+  - Windows Server 2025 (64bit)
+
+  (Requires `NTFS`, `ReFS` or
+  [`WinBTRFS`](https://github.com/maharmstone/btrfs) for System Volume
+  (`C:`); the installer requires hardlink support, which `FAT` does not
+  support)
 
 - Cygwin:
 

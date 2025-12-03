@@ -301,7 +301,22 @@
     <title>Requirements</title>
     <itemizedlist>
       <listitem>
-        <para>Windows 10 (32bit or 64bit), Windows 11 or Windows Server 2019+2022+2025</para>
+        <para>Operarting system:
+          <itemizedlist>
+            <listitem>Windows 10 (32bit or 64bit)</listitem>
+            <listitem>Windows 11 (64bit)</listitem>
+            <listitem>Windows Server 2019 (64bit)</listitem>
+            <listitem>Windows Server 2022 (64bit)</listitem>
+            <listitem>Windows Server 2025 (64bit)</listitem>
+          </itemizedlist>
+        </para>
+        <para>(Requires <literal>NTFS</literal>,
+          <literal>ReFS</literal> or
+          <link xl:href="https://github.com/maharmstone/btrfs"><literal>WinBTRFS</literal></link>
+          for System Volume (<filename>C:</filename>); the installer
+          requires hardlink support, which <literal>FAT</literal>
+          does not support)
+        </para>
       </listitem>
       <listitem>
         <para>Cygwin:
