@@ -1187,8 +1187,13 @@ int get_file_remote_protocol_info(const char *progname, const char *filename)
         (void)printf("\t\t\tcompound Share=(\n");
         (void)printf("\t\t\t\tCapabilities=0x%lx\n",
             (unsigned long)frpi.ProtocolSpecific.Smb2.Share.Capabilities);
+#if NTDDI_VERSION >= NTDDI_WIN10_NI
         (void)printf("\t\t\t\tShareFlags=0x%lx\n",
             (unsigned long)frpi.ProtocolSpecific.Smb2.Share.ShareFlags);
+#else
+        (void)printf("\t\t\t\tCachingFlags=0x%lx\n",
+            (unsigned long)frpi.ProtocolSpecific.Smb2.Share.CachingFlags);
+#endif /* NTDDI_VERSION >= NTDDI_WIN10_NI */
 #if 0 /* MinGW header do not have these fields yet */
         (void)printf("\t\t\t\tCachingFlags=0x%lx\n",
             (unsigned long)frpi.ProtocolSpecific.Smb2.Share.CachingFlags);
