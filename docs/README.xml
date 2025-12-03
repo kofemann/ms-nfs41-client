@@ -907,9 +907,15 @@ Datei befindet. Versuchen Sie, die Datei woanders zu speichern.</programlisting>
         <literal>FATTR4_ACL</literal>/<literal>FATTR4_DACL</literal> for
         <literal>OPEN</literal>/<literal>CREATE</literal>
         operations.</para>
-        <para>So far FreeBSD 14.3 and the NFS-Ganesha NFS servers are known to support this,
-        while Linux 6.12.*, Solaris 11.4 and Illumos NFS servers ignore the ACL on
-        <literal>OPEN</literal>/<literal>CREATE</literal> operations.</para>
+        <para>Status:
+          <itemizedlist>
+            <listitem><para>FreeBSD 14.3 nfsd: Works</para></listitem>
+            <listitem><para>NFS-Ganesha NFS server: Works</para></listitem>
+            <listitem><para>Linux kernel server: Requires patch</para><para>(<link xl:href="https://git.kernel.org/pub/scm/linux/kernel/git/cel/linux.git/commit/?h=nfsd-testing&amp;id=f9a48423f6ff5198257e508c5ef1ff0ec1be4465">f9a48423f6ff5198257e508c5ef1ff0ec1be4465 - "NFSD: NFSv4 file creation neglects setting ACL"</link>)</para></listitem>
+            <listitem><para>Solaris 11.4 nfsd: Does not work</para><para>(ignores the ACL on <literal>OPEN</literal>/<literal>CREATE</literal> operations)</para></listitem>
+            <listitem><para>Illumos NFSv4.2 nfsd: Does not work</para><para>(ignores the ACL on <literal>OPEN</literal>/<literal>CREATE</literal> operations)</para></listitem>
+          </itemizedlist>
+        </para>
       </listitem>
     </itemizedlist>
   </section>

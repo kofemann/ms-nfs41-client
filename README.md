@@ -807,9 +807,25 @@ Within WSL mount UNC path returned by `/sbin/nfs_mount`
   which support `FATTR4_ACL`/`FATTR4_DACL` for `OPEN`/`CREATE`
   operations.
 
-  So far FreeBSD 14.3 and the NFS-Ganesha NFS servers are known to
-  support this, while Linux 6.12.\*, Solaris 11.4 and Illumos NFS
-  servers ignore the ACL on `OPEN`/`CREATE` operations.
+  Status:
+
+  - FreeBSD 14.3 nfsd: Works
+
+  - NFS-Ganesha NFS server: Works
+
+  - Linux kernel server: Requires patch
+
+    ([f9a48423f6ff5198257e508c5ef1ff0ec1be4465 - "NFSD: NFSv4 file
+    creation neglects setting
+    ACL"](https://git.kernel.org/pub/scm/linux/kernel/git/cel/linux.git/commit/?h=nfsd-testing&id=f9a48423f6ff5198257e508c5ef1ff0ec1be4465))
+
+  - Solaris 11.4 nfsd: Does not work
+
+    (ignores the ACL on `OPEN`/`CREATE` operations)
+
+  - Illumos NFSv4.2 nfsd: Does not work
+
+    (ignores the ACL on `OPEN`/`CREATE` operations)
 
 # Troubleshooting && finding bugs/debugging
 
