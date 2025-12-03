@@ -459,6 +459,7 @@ NTSTATUS nfs41_SetZeroData(
     __notnull const PFILE_ZERO_DATA_INFORMATION setzerodatabuffer =
         (const PFILE_ZERO_DATA_INFORMATION)FsCtl->pInputBuffer;
     __notnull PNFS41_FOBX nfs41_fobx = NFS41GetFobxExtension(RxContext->pFobx);
+    bool fcb_locked_exclusive = false;
 
     DbgEn();
 
@@ -482,23 +483,29 @@ NTSTATUS nfs41_SetZeroData(
         goto out;
     }
 
+    status = RxAcquireExclusiveFcbResourceInMRx(RxContext->pFcb);
+    if (!NT_SUCCESS(status)) {
+        DbgP("nfs41_SetZeroData: "
+            "RxAcquireExclusiveFcbResourceInMRx() failed, status=0x%lx\n",
+            status);
+        goto out;
+    }
+    fcb_locked_exclusive = true;
+
     DbgP("nfs41_SetZeroData: "
         "setzerodatabuffer=(FileOffset=%lld,BeyondFinalZero=%lld)\n",
         (long long)setzerodatabuffer->FileOffset.QuadPart,
         (long long)setzerodatabuffer->BeyondFinalZero.QuadPart);
 
     /*
-     * Disable caching because NFSv4.2 DEALLOCATE is basically a
-     * "write" operation. AFAIK we should flush the cache and wait
-     * for the kernel lazy writer (which |RxChangeBufferingState()|
-     * AFAIK does) before doing the DEALLOCATE, to avoid that we
-     * have outstanding writes in the kernel cache at the same
-     * location where the DEALLOCATE should do it's work
+     * NFSv4.2 DEALLOCATE is basically a "write" operation, but happens
+     * only on the NFS server side. We need to flush our NFS client
+     * cache and wait for the kernel lazy writer before doing the
+     * DEALLOCATE, to avoid that we have outstanding writes in the
+     * kernel cache at the same location where the DEALLOCATE should
+     * do it's work.
      */
-    ULONG flag = DISABLE_CACHING;
-    DbgP("nfs41_SetZeroData: disableing caching for file '%wZ'\n",
-        SrvOpen->pAlreadyPrefixedName);
-    RxChangeBufferingState((PSRV_OPEN)SrvOpen, ULongToPtr(flag), 1);
+    (void)RxFlushFcbInSystemCache((PFCB)RxContext->pFcb, TRUE);
 
     status = nfs41_UpcallCreate(NFS41_SYSOP_FSCTL_SET_ZERO_DATA,
         &nfs41_fobx->sec_ctx,
@@ -534,6 +541,10 @@ NTSTATUS nfs41_SetZeroData(
     }
 
 out:
+    if (fcb_locked_exclusive) {
+        RxReleaseFcbResourceInMRx(RxContext->pFcb);
+    }
+
     if (entry) {
         nfs41_UpcallDestroy(entry);
     }
@@ -639,6 +650,10 @@ NTSTATUS nfs41_DuplicateData(
     __notnull XXCTL_LOWIO_COMPONENT *FsCtl =
         &RxContext->LowIoContext.ParamsFor.FsCtl;
     __notnull PNFS41_FOBX nfs41_fobx = NFS41GetFobxExtension(RxContext->pFobx);
+    PFCB srcfcb = NULL;
+    PFOBX srcfox = NULL;
+    bool src_fcb_locked_exclusive = false;
+    bool dest_fcb_locked_exclusive = false;
 
     /*
      * Temporary store |FSCTL_DUPLICATE_EXTENTS_TO_FILE| data here, which
@@ -751,8 +766,8 @@ NTSTATUS nfs41_DuplicateData(
         goto out;
     }
 
-    PFCB srcfcb = srcfo->FsContext;
-    PFOBX srcfox = srcfo->FsContext2;
+    srcfcb = srcfo->FsContext;
+    srcfox = srcfo->FsContext2;
     PNFS41_FCB nfs41_src_fcb = NFS41GetFcbExtension(srcfcb);
     PNFS41_SRV_OPEN src_nfs41_srvopen = NFS41GetSrvOpenExtension(srcfox->SrvOpen);
 
@@ -768,38 +783,39 @@ NTSTATUS nfs41_DuplicateData(
         goto out;
     }
 
-    IO_STATUS_BLOCK flushIoStatus;
-    DbgP("nfs41_DuplicateData: flushing src file buffers\n");
-    status = ZwFlushBuffersFile(dd.handle, &flushIoStatus);
-    if (status) {
-        if (status == STATUS_ACCESS_DENIED) {
-            /*
-             * |ZwFlushBuffersFile()| can fail if |dd.handle| was not opened
-             * for write access
-             */
-            DbgP("nfs41_DuplicateData: "
-                "ZwFlushBuffersFile() failed with STATUS_ACCESS_DENIED\n");
-        }
-        else {
-            DbgP("nfs41_DuplicateData: "
-                "ZwFlushBuffersFile() failed, status=0x%lx\n",
-                (long)status);
-            goto out;
-        }
+    status = RxAcquireExclusiveFcbResourceInMRx((PMRX_FCB)srcfcb);
+    if (!NT_SUCCESS(status)) {
+        DbgP("nfs41_DuplicateData: "
+            "RxAcquireExclusiveFcbResourceInMRx() failed, status=0x%lx\n",
+            status);
+        goto out;
     }
+    src_fcb_locked_exclusive = true;
+
+    status = RxAcquireExclusiveFcbResourceInMRx(RxContext->pFcb);
+    if (!NT_SUCCESS(status)) {
+        DbgP("nfs41_DuplicateData: "
+            "RxAcquireExclusiveFcbResourceInMRx() failed, status=0x%lx\n",
+            status);
+        goto out;
+    }
+    dest_fcb_locked_exclusive = true;
 
     /*
-     * Disable caching because NFSv4.2 CLONE is basically a
-     * "write" operation. AFAIK we should flush the cache and wait
-     * for the kernel lazy writer (which |RxChangeBufferingState()|
-     * AFAIK does) before doing the CLONE, to avoid that we
-     * have outstanding writes in the kernel cache at the same
-     * location where the CLONE should do it's work
+     * NFSv4.2 CLONE is basically a "write" operation, but happens
+     * only on the NFS server side. We need to flush our NFS client
+     * cache (for both src and dest files!!) and wait in both cases
+     * for the kernel lazy writer before doing the CLONE, to avoid
+     * that we have outstanding writes in the kernel cache at the
+     * same location where the CLONE should do it's work.
      */
-    ULONG flag = DISABLE_CACHING;
-    DbgP("nfs41_DuplicateData: disableing caching for file '%wZ'\n",
-        SrvOpen->pAlreadyPrefixedName);
-    RxChangeBufferingState((PSRV_OPEN)SrvOpen, ULongToPtr(flag), 1);
+    DbgP("nfs41_DuplicateData: flushing src file '%wZ'\n",
+        srcfox->SrvOpen->pAlreadyPrefixedName);
+    (void)RxFlushFcbInSystemCache((PFCB)srcfcb, TRUE);
+
+    DbgP("nfs41_DuplicateData: flushing dest file '%wZ'\n",
+        RxContext->pRelevantSrvOpen->pAlreadyPrefixedName);
+    (void)RxFlushFcbInSystemCache((PFCB)RxContext->pFcb, TRUE);
 
     status = nfs41_UpcallCreate(NFS41_SYSOP_FSCTL_DUPLICATE_DATA,
         &nfs41_fobx->sec_ctx,
@@ -842,6 +858,14 @@ NTSTATUS nfs41_DuplicateData(
     }
 
 out:
+    if (src_fcb_locked_exclusive) {
+        RxReleaseFcbResourceInMRx((PMRX_FCB)srcfcb);
+    }
+
+    if (dest_fcb_locked_exclusive) {
+        RxReleaseFcbResourceInMRx(RxContext->pFcb);
+    }
+
     if (entry) {
         nfs41_UpcallDestroy(entry);
     }
@@ -1185,6 +1209,8 @@ NTSTATUS nfs41_OffloadWrite(
         &RxContext->LowIoContext.ParamsFor.FsCtl;
     __notnull PNFS41_FOBX nfs41_fobx = NFS41GetFobxExtension(RxContext->pFobx);
     offloadcontext_entry *src_oce = NULL;
+    bool src_fcb_locked_exclusive = false;
+    bool dest_fcb_locked_exclusive = false;
 
     struct {
         LONGLONG    srcfileoffset;
@@ -1291,18 +1317,39 @@ NTSTATUS nfs41_OffloadWrite(
     PNFS41_SRV_OPEN src_nfs41_srvopen =
         NFS41GetSrvOpenExtension(src_oce->src_srvopen);
 
+    status = RxAcquireExclusiveFcbResourceInMRx(src_oce->src_srvopen->pFcb);
+    if (!NT_SUCCESS(status)) {
+        DbgP("nfs41_OffloadWrite: "
+            "RxAcquireExclusiveFcbResourceInMRx() failed, status=0x%lx\n",
+            status);
+        goto out;
+    }
+    src_fcb_locked_exclusive = true;
+
+    status = RxAcquireExclusiveFcbResourceInMRx(RxContext->pFcb);
+    if (!NT_SUCCESS(status)) {
+        DbgP("nfs41_OffloadWrite: "
+            "RxAcquireExclusiveFcbResourceInMRx() failed, status=0x%lx\n",
+            status);
+        goto out;
+    }
+    dest_fcb_locked_exclusive = true;
+
     /*
-     * Disable caching because NFSv4.2 COPY is basically a
-     * "write" operation. AFAIK we should flush the cache and wait
-     * for the kernel lazy writer (which |RxChangeBufferingState()|
-     * AFAIK does) before doing the COPY, to avoid that we
-     * have outstanding writes in the kernel cache at the same
-     * location where the COPY should do it's work
+     * NFSv4.2 COPY is basically a "write" operation, but happens
+     * only on the NFS server side. We need to flush our NFS client
+     * cache (for both src and dest files!!) and wait in both cases
+     * for the kernel lazy writer before doing the COPY, to avoid
+     * that we have outstanding writes in the kernel cache at the
+     * same location where the COPY should do it's work.
      */
-    ULONG flag = DISABLE_CACHING;
-    DbgP("nfs41_OffloadWrite: disableing caching for file '%wZ'\n",
-        SrvOpen->pAlreadyPrefixedName);
-    RxChangeBufferingState((PSRV_OPEN)SrvOpen, ULongToPtr(flag), 1);
+    DbgP("nfs41_OffloadWrite: flushing src file '%wZ'\n",
+        src_oce->src_srvopen->pAlreadyPrefixedName);
+    (void)RxFlushFcbInSystemCache((PFCB)src_oce->src_srvopen->pFcb, TRUE);
+
+    DbgP("nfs41_OffloadWrite: flushing dest file '%wZ'\n",
+        RxContext->pRelevantSrvOpen->pAlreadyPrefixedName);
+    (void)RxFlushFcbInSystemCache((PFCB)RxContext->pFcb, TRUE);
 
     status = nfs41_UpcallCreate(NFS41_SYSOP_FSCTL_OFFLOAD_DATACOPY,
         &nfs41_fobx->sec_ctx,
@@ -1350,6 +1397,14 @@ NTSTATUS nfs41_OffloadWrite(
     }
 
 out:
+    if (src_fcb_locked_exclusive) {
+        RxReleaseFcbResourceInMRx(src_oce->src_srvopen->pFcb);
+    }
+
+    if (dest_fcb_locked_exclusive) {
+        RxReleaseFcbResourceInMRx(RxContext->pFcb);
+    }
+
     if (src_oce) {
         /* Release resource we obtained in shared mode */
         ExReleaseResourceLite(&src_oce->resource);
