@@ -500,12 +500,12 @@ NTSTATUS nfs41_SetZeroData(
     /*
      * NFSv4.2 DEALLOCATE is basically a "write" operation, but happens
      * only on the NFS server side. We need to flush our NFS client
-     * cache and wait for the kernel lazy writer before doing the
-     * DEALLOCATE, to avoid that we have outstanding writes in the
-     * kernel cache at the same location where the DEALLOCATE should
-     * do it's work.
+     * cache, wait for the kernel lazy writer and purge the cache map
+     * before doing the DEALLOCATE, to avoid that we have outstanding
+     * writes in the kernel cache at the same location where the
+     * DEALLOCATE should do it's work.
      */
-    (void)RxFlushFcbInSystemCache((PFCB)RxContext->pFcb, TRUE);
+    (void)RxPurgeFcbInSystemCache((PFCB)RxContext->pFcb, NULL, 0L, TRUE, TRUE);
 
     status = nfs41_UpcallCreate(NFS41_SYSOP_FSCTL_SET_ZERO_DATA,
         &nfs41_fobx->sec_ctx,
@@ -804,18 +804,18 @@ NTSTATUS nfs41_DuplicateData(
     /*
      * NFSv4.2 CLONE is basically a "write" operation, but happens
      * only on the NFS server side. We need to flush our NFS client
-     * cache (for both src and dest files!!) and wait in both cases
-     * for the kernel lazy writer before doing the CLONE, to avoid
-     * that we have outstanding writes in the kernel cache at the
-     * same location where the CLONE should do it's work.
+     * cache for the src file, flush+purge the dest file, and wait
+     * in both cases for the kernel lazy writer before doing the CLONE,
+     * to avoid that we have outstanding writes in the kernel cache at
+     * the same location where the CLONE should do it's work.
      */
     DbgP("nfs41_DuplicateData: flushing src file '%wZ'\n",
         srcfox->SrvOpen->pAlreadyPrefixedName);
     (void)RxFlushFcbInSystemCache((PFCB)srcfcb, TRUE);
 
-    DbgP("nfs41_DuplicateData: flushing dest file '%wZ'\n",
+    DbgP("nfs41_DuplicateData: flush+purge dest file '%wZ'\n",
         RxContext->pRelevantSrvOpen->pAlreadyPrefixedName);
-    (void)RxFlushFcbInSystemCache((PFCB)RxContext->pFcb, TRUE);
+    (void)RxPurgeFcbInSystemCache((PFCB)RxContext->pFcb, NULL, 0L, TRUE, TRUE);
 
     status = nfs41_UpcallCreate(NFS41_SYSOP_FSCTL_DUPLICATE_DATA,
         &nfs41_fobx->sec_ctx,
@@ -1338,18 +1338,18 @@ NTSTATUS nfs41_OffloadWrite(
     /*
      * NFSv4.2 COPY is basically a "write" operation, but happens
      * only on the NFS server side. We need to flush our NFS client
-     * cache (for both src and dest files!!) and wait in both cases
-     * for the kernel lazy writer before doing the COPY, to avoid
-     * that we have outstanding writes in the kernel cache at the
-     * same location where the COPY should do it's work.
+     * cache for the src file, flush+purge the dest file, and wait
+     * in both cases for the kernel lazy writer before doing the COPY,
+     * to avoid that we have outstanding writes in the kernel cache at
+     * the same location where the COPY should do it's work.
      */
     DbgP("nfs41_OffloadWrite: flushing src file '%wZ'\n",
         src_oce->src_srvopen->pAlreadyPrefixedName);
     (void)RxFlushFcbInSystemCache((PFCB)src_oce->src_srvopen->pFcb, TRUE);
 
-    DbgP("nfs41_OffloadWrite: flushing dest file '%wZ'\n",
+    DbgP("nfs41_OffloadWrite: flush+purge dest file '%wZ'\n",
         RxContext->pRelevantSrvOpen->pAlreadyPrefixedName);
-    (void)RxFlushFcbInSystemCache((PFCB)RxContext->pFcb, TRUE);
+    (void)RxPurgeFcbInSystemCache((PFCB)RxContext->pFcb, NULL, 0L, TRUE, TRUE);
 
     status = nfs41_UpcallCreate(NFS41_SYSOP_FSCTL_OFFLOAD_DATACOPY,
         &nfs41_fobx->sec_ctx,
