@@ -385,6 +385,8 @@ NTSTATUS nfs41_UpcallCreate(
 
     if (clnt_sec_ctx == NULL) {
         SeCaptureSubjectContext(&sec_ctx);
+        SeLockSubjectContext(&sec_ctx);
+
         sec_qos.ContextTrackingMode = SECURITY_STATIC_TRACKING;
         sec_qos.ImpersonationLevel = SecurityImpersonation;
         sec_qos.Length = sizeof(SECURITY_QUALITY_OF_SERVICE);
@@ -408,6 +410,7 @@ NTSTATUS nfs41_UpcallCreate(
             entry = NULL;
         }
 
+        SeUnlockSubjectContext(&sec_ctx);
         SeReleaseSubjectContext(&sec_ctx);
     } else {
         entry->psec_ctx = clnt_sec_ctx;

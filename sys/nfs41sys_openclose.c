@@ -79,6 +79,8 @@ NTSTATUS nfs41_get_sec_ctx(
     SECURITY_QUALITY_OF_SERVICE sec_qos;
 
     SeCaptureSubjectContext(&ctx);
+    SeLockSubjectContext(&ctx);
+
     sec_qos.ContextTrackingMode = SECURITY_STATIC_TRACKING;
     sec_qos.ImpersonationLevel = level;
     sec_qos.Length = sizeof(SECURITY_QUALITY_OF_SERVICE);
@@ -99,6 +101,8 @@ NTSTATUS nfs41_get_sec_ctx(
 #ifdef DEBUG_SECURITY_TOKEN
     DbgP("Created client security token 0x%p\n", out_ctx->ClientToken);
 #endif
+
+    SeUnlockSubjectContext(&ctx);
     SeReleaseSubjectContext(&ctx);
 
     return status;

@@ -750,6 +750,8 @@ NTSTATUS nfs41_GetLUID(
     SECURITY_CLIENT_CONTEXT clnt_sec_ctx;
 
     SeCaptureSubjectContext(&sec_ctx);
+    SeLockSubjectContext(&sec_ctx);
+
     sec_qos.ContextTrackingMode = SECURITY_STATIC_TRACKING;
     sec_qos.ImpersonationLevel = SecurityIdentification;
     sec_qos.Length = sizeof(SECURITY_QUALITY_OF_SERVICE);
@@ -778,6 +780,7 @@ NTSTATUS nfs41_GetLUID(
 release_clnt_sec_ctx:
     SeDeleteClientSecurity(&clnt_sec_ctx);
 release_sec_ctx:
+    SeUnlockSubjectContext(&sec_ctx);
     SeReleaseSubjectContext(&sec_ctx);
 
     return status;
