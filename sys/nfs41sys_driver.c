@@ -966,16 +966,21 @@ NTSTATUS nfs41_ComputeNewBufferingState(
     case ENABLE_READ_CACHING:
         pSrvOpen->BufferingFlags |=
             (FCB_STATE_READBUFFERING_ENABLED | FCB_STATE_READCACHING_ENABLED);
+        pSrvOpen->BufferingFlags &= ~FCB_STATE_DISABLE_LOCAL_BUFFERING;
         break;
     case ENABLE_WRITE_CACHING:
         pSrvOpen->BufferingFlags |=
             (FCB_STATE_WRITECACHING_ENABLED | FCB_STATE_WRITEBUFFERING_ENABLED);
+        pSrvOpen->BufferingFlags &= ~FCB_STATE_DISABLE_LOCAL_BUFFERING;
         break;
     case ENABLE_READWRITE_CACHING:
-        pSrvOpen->BufferingFlags =
+        pSrvOpen->BufferingFlags |=
             (FCB_STATE_READBUFFERING_ENABLED | FCB_STATE_READCACHING_ENABLED |
             FCB_STATE_WRITECACHING_ENABLED | FCB_STATE_WRITEBUFFERING_ENABLED);
+        pSrvOpen->BufferingFlags &= ~FCB_STATE_DISABLE_LOCAL_BUFFERING;
+        break;
     }
+
 #ifdef DEBUG_TIME_BASED_COHERENCY
     DbgP("nfs41_ComputeNewBufferingState: '%wZ' pSrvOpen 0x%p Old %08x New %08x\n",
          pSrvOpen->pAlreadyPrefixedName, pSrvOpen, oldFlags,
