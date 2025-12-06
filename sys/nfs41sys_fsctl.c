@@ -140,7 +140,6 @@ NTSTATUS nfs41_QueryAllocatedRanges(
     __notnull PFILE_ALLOCATED_RANGE_BUFFER out_range_buffer =
         (PFILE_ALLOCATED_RANGE_BUFFER)FsCtl->pOutputBuffer;
     ULONG out_range_buffer_len = FsCtl->OutputBufferLength;
-    __notnull PNFS41_FOBX nfs41_fobx = NFS41GetFobxExtension(RxContext->pFobx);
 
     DbgEn();
 
@@ -160,7 +159,7 @@ NTSTATUS nfs41_QueryAllocatedRanges(
         (long long)in_range_buffer->Length.QuadPart);
 
     status = nfs41_UpcallCreate(NFS41_SYSOP_FSCTL_QUERYALLOCATEDRANGES,
-        &nfs41_fobx->sec_ctx,
+        &nfs41_srvopen->sec_ctx,
         pVNetRootContext->session,
         nfs41_srvopen->nfs41_open_state,
         pNetRootContext->nfs41d_version,
@@ -458,7 +457,6 @@ NTSTATUS nfs41_SetZeroData(
         &RxContext->LowIoContext.ParamsFor.FsCtl;
     __notnull const PFILE_ZERO_DATA_INFORMATION setzerodatabuffer =
         (const PFILE_ZERO_DATA_INFORMATION)FsCtl->pInputBuffer;
-    __notnull PNFS41_FOBX nfs41_fobx = NFS41GetFobxExtension(RxContext->pFobx);
     bool fcb_locked_exclusive = false;
 
     DbgEn();
@@ -508,7 +506,7 @@ NTSTATUS nfs41_SetZeroData(
     (void)RxPurgeFcbInSystemCache((PFCB)RxContext->pFcb, NULL, 0L, TRUE, TRUE);
 
     status = nfs41_UpcallCreate(NFS41_SYSOP_FSCTL_SET_ZERO_DATA,
-        &nfs41_fobx->sec_ctx,
+        &nfs41_srvopen->sec_ctx,
         pVNetRootContext->session,
         nfs41_srvopen->nfs41_open_state,
         pNetRootContext->nfs41d_version,
@@ -649,7 +647,6 @@ NTSTATUS nfs41_DuplicateData(
         NFS41GetNetRootExtension(SrvOpen->pVNetRoot->pNetRoot);
     __notnull XXCTL_LOWIO_COMPONENT *FsCtl =
         &RxContext->LowIoContext.ParamsFor.FsCtl;
-    __notnull PNFS41_FOBX nfs41_fobx = NFS41GetFobxExtension(RxContext->pFobx);
     PFCB srcfcb = NULL;
     PFOBX srcfox = NULL;
     bool src_fcb_locked_exclusive = false;
@@ -818,7 +815,7 @@ NTSTATUS nfs41_DuplicateData(
     (void)RxPurgeFcbInSystemCache((PFCB)RxContext->pFcb, NULL, 0L, TRUE, TRUE);
 
     status = nfs41_UpcallCreate(NFS41_SYSOP_FSCTL_DUPLICATE_DATA,
-        &nfs41_fobx->sec_ctx,
+        &nfs41_srvopen->sec_ctx,
         pVNetRootContext->session,
         nfs41_srvopen->nfs41_open_state,
         pNetRootContext->nfs41d_version,
@@ -1207,7 +1204,6 @@ NTSTATUS nfs41_OffloadWrite(
         NFS41GetNetRootExtension(SrvOpen->pVNetRoot->pNetRoot);
     __notnull const XXCTL_LOWIO_COMPONENT *FsCtl =
         &RxContext->LowIoContext.ParamsFor.FsCtl;
-    __notnull PNFS41_FOBX nfs41_fobx = NFS41GetFobxExtension(RxContext->pFobx);
     offloadcontext_entry *src_oce = NULL;
     bool src_fcb_locked_exclusive = false;
     bool dest_fcb_locked_exclusive = false;
@@ -1352,7 +1348,7 @@ NTSTATUS nfs41_OffloadWrite(
     (void)RxPurgeFcbInSystemCache((PFCB)RxContext->pFcb, NULL, 0L, TRUE, TRUE);
 
     status = nfs41_UpcallCreate(NFS41_SYSOP_FSCTL_OFFLOAD_DATACOPY,
-        &nfs41_fobx->sec_ctx,
+        &nfs41_srvopen->sec_ctx,
         pVNetRootContext->session,
         nfs41_srvopen->nfs41_open_state,
         pNetRootContext->nfs41d_version,

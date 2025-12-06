@@ -383,38 +383,6 @@ NTSTATUS nfs41_UpcallCreate(
     KeInitializeEvent(&entry->cond, SynchronizationEvent, FALSE);
     ExInitializeFastMutex(&entry->lock);
 
-#ifdef WINBUG_WORKAROUND_CLOSESRVOPEN_CALLED_AFTER_FOXB_CLEANUP
-    /*
-     * HACK: Workaround the RDBSS bug where |RxPurgeRelatedFobxs()| first
-     * destroyes a FOBX via |RxFinalizeNetFobx()|,and then calls
-     * |nfs41_CloseSrvOpen()| to close the SRV_OPEN with the same FOBX,
-     * which results in |clnt_sec_ctx->ClientToken == NULL|.
-     *
-     * Without the workaround we crash like this, because
-     * |clnt_sec_ctx->ClientToken == NULL|:
-     * ---- snip ----
-     * nt!ObfReferenceObject
-     * nfs41_driver!nfs41_UpcallCreate
-     * nfs41_driver!nfs41_CloseSrvOpen
-     * nfs41_driver!RxCloseAssociatedSrvOpen
-     * nfs41_driver!RxFinalizeNetFobx
-     * nfs41_driver!RxDereference
-     * nfs41_driver!RxPurgeRelatedFobxs
-     * nfs41_driver!RxCommonSetInformation
-     * nfs41_driver!RxFsdCommonDispatch
-     * nfs41_driver!RxFsdDispatch
-     * nfs41_driver!nfs41_FsdDispatch
-     * ---- snip ----
-     */
-    if (opcode == NFS41_SYSOP_CLOSE) {
-        if (clnt_sec_ctx) {
-            if (clnt_sec_ctx->ClientToken == NULL) {
-                clnt_sec_ctx = NULL;
-            }
-        }
-    }
-#endif /* WINBUG_WORKAROUND_CLOSESRVOPEN_CALLED_AFTER_FOXB_CLEANUP */
-
     if (clnt_sec_ctx == NULL) {
         SeCaptureSubjectContext(&sec_ctx);
         sec_qos.ContextTrackingMode = SECURITY_STATIC_TRACKING;

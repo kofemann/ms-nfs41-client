@@ -383,40 +383,6 @@ NTSTATUS nfs41_AreFilesAliased(
     }
 }
 
-static
-VOID nfs41_invalidate_fobx_entry(
-    IN OUT PMRX_FOBX pFobx)
-{
-    PLIST_ENTRY pEntry;
-    nfs41_fcb_list_entry *cur;
-    __notnull PNFS41_FOBX nfs41_fobx = NFS41GetFobxExtension(pFobx);
-
-    ExAcquireFastMutexUnsafe(&openlist.lock);
-
-    pEntry = openlist.head.Flink;
-    while (!IsListEmpty(&openlist.head)) {
-        cur = (nfs41_fcb_list_entry *)CONTAINING_RECORD(pEntry,
-                nfs41_fcb_list_entry, next);
-        if (cur->nfs41_fobx == nfs41_fobx) {
-#ifdef DEBUG_CLOSE
-            DbgP("nfs41_invalidate_fobx_entry: Found match for nfs41_fobx=0x%p\n",
-                nfs41_fobx);
-#endif
-            cur->nfs41_fobx = NULL;
-            break;
-        }
-        if (pEntry->Flink == &openlist.head) {
-#ifdef DEBUG_CLOSE
-            DbgP("nfs41_invalidate_fobx_entry: reached EOL looking "
-                "for nfs41_fobx=0x%p\n", nfs41_fobx);
-#endif
-            break;
-        }
-        pEntry = pEntry->Flink;
-    }
-    ExReleaseFastMutexUnsafe(&openlist.lock);
-}
-
 static BOOLEAN isDataAccess(
     ACCESS_MASK mask)
 {
@@ -693,17 +659,13 @@ NTSTATUS nfs41_createnetfobx(
     PRX_CONTEXT  RxContext,
     PMRX_SRV_OPEN SrvOpen)
 {
-    NTSTATUS status;
-    PNFS41_FOBX nfs41_fobx;
+    NTSTATUS status = STATUS_SUCCESS;
 
     RxContext->pFobx = RxCreateNetFobx(RxContext, SrvOpen);
     if (RxContext->pFobx == NULL) {
         status = STATUS_INSUFFICIENT_RESOURCES;
         goto out;
     }
-
-    nfs41_fobx = NFS41GetFobxExtension(RxContext->pFobx);
-    status = nfs41_get_sec_ctx(SecurityImpersonation, &nfs41_fobx->sec_ctx);
 
 out:
     return status;
@@ -750,6 +712,16 @@ NTSTATUS nfs41_Create(
     if (nfs41_fcb->initialised == FALSE) {
         nfs41_fcb->initialised = TRUE;
         ExInitializeFastMutex(&nfs41_fcb->aclcache.lock);
+    }
+
+    if (nfs41_srvopen->sec_ctx.ClientToken == NULL) {
+        status = nfs41_get_sec_ctx(SecurityImpersonation,
+            &nfs41_srvopen->sec_ctx);
+        if (status) {
+            DbgP("nfs41_Create: nfs41_get_sec_ctx() failed, status=0x%lx\n",
+                (long)status);
+            goto out;
+        }
     }
 
     if (nfs41_srvopen->initialised == FALSE) {
@@ -799,7 +771,7 @@ NTSTATUS nfs41_Create(
         SdBuffer, SdLength);
 #endif /* NFS41_DRIVER_ALLOW_CREATEFILE_ACLS */
 
-    status = nfs41_UpcallCreate(NFS41_SYSOP_OPEN, NULL,
+    status = nfs41_UpcallCreate(NFS41_SYSOP_OPEN, &nfs41_srvopen->sec_ctx,
         pVNetRootContext->session, INVALID_HANDLE_VALUE,
         pNetRootContext->nfs41d_version,
         SrvOpen->pAlreadyPrefixedName, &entry);
@@ -1262,7 +1234,6 @@ retry_on_link:
                 (FCB_STATE_READBUFFERING_ENABLED |
                 FCB_STATE_READCACHING_ENABLED);
         }
-        nfs41_fobx->timebasedcoherency = pVNetRootContext->timebasedcoherency;
         if (pVNetRootContext->nocache ||
                 (params->CreateOptions & FILE_NO_INTERMEDIATE_BUFFERING)) {
 #ifdef DEBUG_OPEN
@@ -1282,10 +1253,7 @@ retry_on_link:
                 status = STATUS_INSUFFICIENT_RESOURCES;
                 goto out;
             }
-            oentry->fcb = RxContext->pFcb;
             oentry->srvopen = SrvOpen;
-            oentry->nfs41_fobx = nfs41_fobx;
-            oentry->session = pVNetRootContext->session;
             oentry->ChangeTime = entry->ChangeTime;
             oentry->skip = FALSE;
             nfs41_AddEntry(openlist.lock, openlist, oentry);
@@ -1305,6 +1273,13 @@ retry_on_link:
     status = RxContext->CurrentIrp->IoStatus.Status = STATUS_SUCCESS;
 
 out:
+    if (status) {
+        if (nfs41_srvopen->sec_ctx.ClientToken) {
+            SeDeleteClientSecurity(&nfs41_srvopen->sec_ctx);
+            nfs41_srvopen->sec_ctx.ClientToken = NULL;
+        }
+    }
+
     if (fcb_locked_exclusive) {
         RxReleaseFcbResourceInMRx(Fcb);
     }
@@ -1536,7 +1511,6 @@ NTSTATUS nfs41_CloseSrvOpen(
     __notnull PNFS41_NETROOT_EXTENSION pNetRootContext =
         NFS41GetNetRootExtension(SrvOpen->pVNetRoot->pNetRoot);
     __notnull PNFS41_FCB nfs41_fcb = NFS41GetFcbExtension(RxContext->pFcb);
-    __notnull PNFS41_FOBX nfs41_fobx = NFS41GetFobxExtension(RxContext->pFobx);
 #ifdef ENABLE_TIMINGS
     LARGE_INTEGER t1, t2;
     t1 = KeQueryPerformanceCounter(NULL);
@@ -1548,13 +1522,14 @@ NTSTATUS nfs41_CloseSrvOpen(
 #endif
     FsRtlEnterFileSystem();
 
-    if (IS_NFS41_OPEN_DELEGATE_NONE(nfs41_srvopen->deleg_type) &&
-        !nfs41_fcb->StandardInfo.Directory &&
-        RxContext->pFcb->OpenCount == 0) {
-        nfs41_remove_fcb_entry(RxContext->pFcb);
-    }
+    /*
+     * Remove these BEOFRE doing the |NFS41_SYSOP_CLOSE|, so noone can issue
+     * a request while the NFS file handle is being destroyed
+     */
+    nfs41_remove_fcb_entry(SrvOpen);
+    nfs41_remove_offloadcontext_for_srvopen(SrvOpen);
 
-    status = nfs41_UpcallCreate(NFS41_SYSOP_CLOSE, &nfs41_fobx->sec_ctx,
+    status = nfs41_UpcallCreate(NFS41_SYSOP_CLOSE, &nfs41_srvopen->sec_ctx,
         pVNetRootContext->session, nfs41_srvopen->nfs41_open_state,
         pNetRootContext->nfs41d_version, SrvOpen->pAlreadyPrefixedName, &entry);
     if (status) goto out;
@@ -1580,12 +1555,14 @@ NTSTATUS nfs41_CloseSrvOpen(
         goto out;
     }
 
+    if (nfs41_srvopen->sec_ctx.ClientToken != NULL) {
+        SeDeleteClientSecurity(&nfs41_srvopen->sec_ctx);
+        nfs41_srvopen->sec_ctx.ClientToken = NULL;
+    }
+
     /* map windows ERRORs to NTSTATUS */
     status = map_close_errors(entry->status);
 
-    if (NT_SUCCESS(status)) {
-        nfs41_remove_offloadcontext_for_srvopen(SrvOpen);
-    }
 out:
     if (entry) {
         nfs41_UpcallDestroy(entry);
@@ -1610,19 +1587,10 @@ out:
 NTSTATUS nfs41_DeallocateForFobx(
     IN OUT PMRX_FOBX pFobx)
 {
-    __notnull PNFS41_FOBX nfs41_fobx = NFS41GetFobxExtension(pFobx);
-
 #ifdef DEBUG_CLOSE
     DbgP("nfs41_DeallocateForFobx: FileName is '%wZ'\n",
         pFobx->pSrvOpen->pAlreadyPrefixedName);
 #endif /* DEBUG_CLOSE */
-
-    nfs41_invalidate_fobx_entry(pFobx);
-
-    if (nfs41_fobx->sec_ctx.ClientToken) {
-        SeDeleteClientSecurity(&nfs41_fobx->sec_ctx);
-        nfs41_fobx->sec_ctx.ClientToken = NULL;
-    }
 
     return STATUS_SUCCESS;
 }

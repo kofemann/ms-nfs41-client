@@ -355,7 +355,6 @@ NTSTATUS nfs41_SetEaInformation(
     __notnull PNFS41_NETROOT_EXTENSION pNetRootContext =
         NFS41GetNetRootExtension(SrvOpen->pVNetRoot->pNetRoot);
     __notnull PNFS41_FCB nfs41_fcb = NFS41GetFcbExtension(RxContext->pFcb);
-    __notnull PNFS41_FOBX nfs41_fobx = NFS41GetFobxExtension(RxContext->pFobx);
 #ifdef ENABLE_TIMINGS
     LARGE_INTEGER t1, t2;
     t1 = KeQueryPerformanceCounter(NULL);
@@ -371,7 +370,7 @@ NTSTATUS nfs41_SetEaInformation(
     status = check_nfs41_setea_args(RxContext);
     if (status) goto out;
 
-    status = nfs41_UpcallCreate(NFS41_SYSOP_EA_SET, &nfs41_fobx->sec_ctx,
+    status = nfs41_UpcallCreate(NFS41_SYSOP_EA_SET, &nfs41_srvopen->sec_ctx,
         pVNetRootContext->session, nfs41_srvopen->nfs41_open_state,
         pNetRootContext->nfs41d_version, SrvOpen->pAlreadyPrefixedName, &entry);
     if (status) goto out;
@@ -486,7 +485,6 @@ NTSTATUS QueryCygwinSymlink(
             NFS41GetVNetRootExtension(SrvOpen->pVNetRoot);
     __notnull PNFS41_NETROOT_EXTENSION NetRootContext =
             NFS41GetNetRootExtension(SrvOpen->pVNetRoot->pNetRoot);
-    __notnull PNFS41_FOBX Fobx = NFS41GetFobxExtension(RxContext->pFobx);
     nfs41_updowncall_entry *entry = NULL;
     UNICODE_STRING TargetName;
     const USHORT HeaderLen = FIELD_OFFSET(FILE_FULL_EA_INFORMATION, EaName) +
@@ -503,7 +501,7 @@ NTSTATUS QueryCygwinSymlink(
     TargetName.MaximumLength = (USHORT)min(RxContext->Info.LengthRemaining -
         HeaderLen, 0xFFFF);
 
-    status = nfs41_UpcallCreate(NFS41_SYSOP_SYMLINK_GET, &Fobx->sec_ctx,
+    status = nfs41_UpcallCreate(NFS41_SYSOP_SYMLINK_GET, &nfs41_srvopen->sec_ctx,
         VNetRootContext->session, nfs41_srvopen->nfs41_open_state,
         NetRootContext->nfs41d_version, SrvOpen->pAlreadyPrefixedName, &entry);
     if (status) goto out;
@@ -638,7 +636,6 @@ NTSTATUS nfs41_QueryEaInformation(
             NFS41GetVNetRootExtension(SrvOpen->pVNetRoot);
     __notnull PNFS41_NETROOT_EXTENSION pNetRootContext =
             NFS41GetNetRootExtension(SrvOpen->pVNetRoot->pNetRoot);
-    __notnull PNFS41_FOBX nfs41_fobx = NFS41GetFobxExtension(RxContext->pFobx);
 #ifdef ENABLE_TIMINGS
     LARGE_INTEGER t1, t2;
     t1 = KeQueryPerformanceCounter(NULL);
@@ -660,7 +657,7 @@ NTSTATUS nfs41_QueryEaInformation(
     if (status != STATUS_NONEXISTENT_EA_ENTRY)
         goto out;
 
-    status = nfs41_UpcallCreate(NFS41_SYSOP_EA_GET, &nfs41_fobx->sec_ctx,
+    status = nfs41_UpcallCreate(NFS41_SYSOP_EA_GET, &nfs41_srvopen->sec_ctx,
         pVNetRootContext->session, nfs41_srvopen->nfs41_open_state,
         pNetRootContext->nfs41d_version, SrvOpen->pAlreadyPrefixedName, &entry);
     if (status) goto out;

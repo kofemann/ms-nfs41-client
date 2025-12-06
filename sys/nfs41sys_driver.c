@@ -841,7 +841,7 @@ out:
 }
 
 VOID nfs41_remove_fcb_entry(
-    PMRX_FCB fcb)
+    PMRX_SRV_OPEN SrvOpen)
 {
     PLIST_ENTRY pEntry;
     nfs41_fcb_list_entry *cur;
@@ -851,9 +851,11 @@ VOID nfs41_remove_fcb_entry(
     while (!IsListEmpty(&openlist.head)) {
         cur = (nfs41_fcb_list_entry *)CONTAINING_RECORD(pEntry,
                 nfs41_fcb_list_entry, next);
-        if (cur->fcb == fcb) {
+        if (cur->srvopen == SrvOpen) {
 #ifdef DEBUG_CLOSE
-            DbgP("nfs41_remove_fcb_entry: Found match for fcb=0x%p\n", fcb);
+            DbgP("nfs41_remove_fcb_entry: "
+                "Found match for fcb=0x%p srvopen=0x%p\n",
+                cur->srvopen->pFcb, cur->srvopen);
 #endif
             RemoveEntryList(pEntry);
             nfs41_free_nfs41_fcb_list_entry(cur);
@@ -862,7 +864,7 @@ VOID nfs41_remove_fcb_entry(
         if (pEntry->Flink == &openlist.head) {
 #ifdef DEBUG_CLOSE
             DbgP("nfs41_remove_fcb_entry: reached EOL looking "
-                "for fcb 0x%p\n", fcb);
+                "for SrvOpen=0x%p\n", SrvOpen);
 #endif
             break;
         }
@@ -885,8 +887,6 @@ NTSTATUS nfs41_DeallocateForFcb(
 {
     __notnull PNFS41_FCB nfs41_fcb = NFS41GetFcbExtension(pFcb);
 
-    nfs41_remove_fcb_entry(pFcb);
-
     if (nfs41_fcb->aclcache.data) {
         RxFreePool(nfs41_fcb->aclcache.data);
         nfs41_fcb->aclcache.data = NULL;
@@ -906,8 +906,8 @@ VOID nfs41_update_fcb_list(
     while (!IsListEmpty(&openlist.head)) {
         cur = (nfs41_fcb_list_entry *)CONTAINING_RECORD(pEntry,
                 nfs41_fcb_list_entry, next);
-        if (cur->fcb == fcb &&
-                cur->ChangeTime != ChangeTime) {
+        if ((cur->srvopen->pFcb == fcb) &&
+            (cur->ChangeTime != ChangeTime)) {
 #if defined(DEBUG_FILE_SET) || defined(DEBUG_ACL_SET) || \
     defined(DEBUG_WRITE) || defined(DEBUG_EA_SET)
             DbgP("nfs41_update_fcb_list: Found match for fcb 0x%p: "
@@ -1022,7 +1022,8 @@ void enable_caching(
     while (!IsListEmpty(&openlist.head)) {
         cur = (nfs41_fcb_list_entry *)CONTAINING_RECORD(pEntry,
                 nfs41_fcb_list_entry, next);
-        if (cur->fcb == SrvOpen->pFcb) {
+        if ((cur->srvopen != NULL) &&
+            (cur->srvopen->pFcb == SrvOpen->pFcb)) {
 #ifdef DEBUG_TIME_BASED_COHERENCY
             DbgP("enable_caching: Looked&Found match for fcb=0x%p '%wZ'\n",
                 SrvOpen->pFcb, SrvOpen->pAlreadyPrefixedName);
@@ -1048,9 +1049,7 @@ void enable_caching(
         oentry = nfs41_allocate_nfs41_fcb_list_entry();
         if (oentry == NULL)
             goto out_release_fcblistlock;
-        oentry->fcb = SrvOpen->pFcb;
-        oentry->session = session;
-        oentry->nfs41_fobx = nfs41_fobx;
+        oentry->srvopen = SrvOpen;
         oentry->ChangeTime = ChangeTime;
         oentry->skip = FALSE;
         InsertTailList(&openlist.head, &oentry->next);
@@ -1326,36 +1325,45 @@ VOID fcbopen_main(PVOID ctx)
                     nfs41_fcb_list_entry, next);
 
 #ifdef DEBUG_TIME_BASED_COHERENCY
-            DbgP("fcbopen_main: Checking attributes for fcb=0x%p "
-                "change_time=%llu skipping=%d\n", cur->fcb,
-                cur->ChangeTime, cur->skip);
+            DbgP("fcbopen_main: Checking attributes for srvopen=%0x%p fcb=0x%p "
+                "change_time=%llu skipping=%d\n",
+                cur->srvopen,
+                ((cur->srvopen != NULL)?cur->srvopen->pFcb:NULL),
+                cur->ChangeTime,
+                cur->skip);
 #endif
             if (cur->skip) goto out;
 
+            PNFS41_SRV_OPEN nfs41_srvopen =
+                NFS41GetSrvOpenExtension(cur->srvopen);
+
             /*
-             * This can only happen if |nfs41_DeallocateForFobx()|
+             * This can only happen if |nfs41_CloseSrvOpen()|
              * was called
              */
-            if ((!cur->nfs41_fobx) || (!cur->nfs41_fobx->sec_ctx.ClientToken))
+            if ((nfs41_srvopen == NULL) ||
+                (nfs41_srvopen->sec_ctx.ClientToken == NULL)) {
                 goto out;
+            }
 
-            if (!cur->nfs41_fobx->timebasedcoherency) {
+            PNFS41_V_NET_ROOT_EXTENSION pVNetRootContext =
+                NFS41GetVNetRootExtension(cur->srvopen->pVNetRoot);
+
+            if (!pVNetRootContext->timebasedcoherency) {
 #ifdef DEBUG_TIME_BASED_COHERENCY
                 DbgP("fcbopen_main: timebasedcoherency disabled for "
-                    "fcb=0x%p, nfs41_fobx=0x%p\n", cur->fcb, cur->nfs41_fobx);
+                    "fcb=0x%p\n", cur->srvopen->pFcb);
 #endif
                 goto out;
             }
 
             pNetRootContext =
-                NFS41GetNetRootExtension(cur->fcb->pNetRoot);
-            PNFS41_SRV_OPEN nfs41_srvopen =
-                NFS41GetSrvOpenExtension(cur->srvopen);
+                NFS41GetNetRootExtension(cur->srvopen->pFcb->pNetRoot);
 
             /* place an upcall for this srv_open */
             status = nfs41_UpcallCreate(
                 NFS41_SYSOP_FILE_QUERY_TIME_BASED_COHERENCY,
-                &cur->nfs41_fobx->sec_ctx, cur->session,
+                &nfs41_srvopen->sec_ctx, pVNetRootContext->session,
                 nfs41_srvopen->nfs41_open_state,
                 pNetRootContext->nfs41d_version, NULL, &entry);
             if (status) goto out;
@@ -1377,9 +1385,9 @@ VOID fcbopen_main(PVOID ctx)
 #endif
                 cur->ChangeTime = entry->ChangeTime;
                 cur->skip = TRUE;
-                psrvEntry = &cur->fcb->SrvOpenList;
+                psrvEntry = &cur->srvopen->pFcb->SrvOpenList;
                 psrvEntry = psrvEntry->Flink;
-                while (!IsListEmpty(&cur->fcb->SrvOpenList)) {
+                while (!IsListEmpty(&cur->srvopen->pFcb->SrvOpenList)) {
                     srv_open = (PMRX_SRV_OPEN)CONTAINING_RECORD(psrvEntry,
                             MRX_SRV_OPEN, SrvOpenQLinks);
                     if (srv_open->DesiredAccess &
@@ -1389,20 +1397,20 @@ VOID fcbopen_main(PVOID ctx)
                              "************\n", srv_open->pAlreadyPrefixedName);
 #endif
                         RxIndicateChangeOfBufferingStateForSrvOpen(
-                            cur->fcb->pNetRoot->pSrvCall, srv_open,
+                            cur->srvopen->pFcb->pNetRoot->pSrvCall, srv_open,
                             srv_open->Key, ULongToPtr(flag));
                     }
-                    if (psrvEntry->Flink == &cur->fcb->SrvOpenList) {
+                    if (psrvEntry->Flink == &cur->srvopen->pFcb->SrvOpenList) {
 #ifdef DEBUG_TIME_BASED_COHERENCY
                         DbgP("fcbopen_main: reached end of srvopen for fcb 0x%p\n",
-                            cur->fcb);
+                            cur->srvopen->pFcb);
 #endif
                         break;
                     }
                     psrvEntry = psrvEntry->Flink;
                 };
             }
-            nfs41_fcb = NFS41GetFcbExtension(cur->fcb);
+            nfs41_fcb = NFS41GetFcbExtension(cur->srvopen->pFcb);
             nfs41_fcb->changeattr = entry->ChangeTime;
 out:
             nfs41_UpcallDestroy(entry);

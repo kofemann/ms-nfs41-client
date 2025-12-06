@@ -236,7 +236,6 @@ NTSTATUS nfs41_QueryDirectory(
         NFS41GetVNetRootExtension(SrvOpen->pVNetRoot);
     __notnull PNFS41_NETROOT_EXTENSION pNetRootContext =
         NFS41GetNetRootExtension(SrvOpen->pVNetRoot->pNetRoot);
-    __notnull PNFS41_FOBX nfs41_fobx = NFS41GetFobxExtension(RxContext->pFobx);
 #ifdef ENABLE_TIMINGS
     LARGE_INTEGER t1, t2;
     t1 = KeQueryPerformanceCounter(NULL);
@@ -269,7 +268,7 @@ NTSTATUS nfs41_QueryDirectory(
         status = STATUS_NOT_SUPPORTED;
         goto out;
     }
-    status = nfs41_UpcallCreate(NFS41_SYSOP_DIR_QUERY, &nfs41_fobx->sec_ctx,
+    status = nfs41_UpcallCreate(NFS41_SYSOP_DIR_QUERY, &nfs41_srvopen->sec_ctx,
         pVNetRootContext->session, nfs41_srvopen->nfs41_open_state,
         pNetRootContext->nfs41d_version, SrvOpen->pAlreadyPrefixedName, &entry);
     if (status) goto out;

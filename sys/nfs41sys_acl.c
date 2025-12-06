@@ -223,7 +223,6 @@ NTSTATUS nfs41_QuerySecurityInformation(
 {
     NTSTATUS status = STATUS_NOT_SUPPORTED;
     nfs41_updowncall_entry *entry = NULL;
-    __notnull PNFS41_FOBX nfs41_fobx = NFS41GetFobxExtension(RxContext->pFobx);
     __notnull PMRX_SRV_OPEN SrvOpen = RxContext->pRelevantSrvOpen;
     __notnull PNFS41_SRV_OPEN nfs41_srvopen = NFS41GetSrvOpenExtension(SrvOpen);
     __notnull PNFS41_FCB nfs41_fcb = NFS41GetFcbExtension(RxContext->pFcb);
@@ -319,7 +318,7 @@ NTSTATUS nfs41_QuerySecurityInformation(
         DbgP("nfs41_QuerySecurityInformation: cached ACL info invalidated\n");
     }
 
-    status = nfs41_UpcallCreate(NFS41_SYSOP_ACL_QUERY, &nfs41_fobx->sec_ctx,
+    status = nfs41_UpcallCreate(NFS41_SYSOP_ACL_QUERY, &nfs41_srvopen->sec_ctx,
         pVNetRootContext->session, nfs41_srvopen->nfs41_open_state,
         pNetRootContext->nfs41d_version, SrvOpen->pAlreadyPrefixedName, &entry);
     if (status) goto out;
@@ -439,7 +438,6 @@ NTSTATUS nfs41_SetSecurityInformation(
 {
     NTSTATUS status = STATUS_NOT_SUPPORTED;
     nfs41_updowncall_entry *entry = NULL;
-    __notnull PNFS41_FOBX nfs41_fobx = NFS41GetFobxExtension(RxContext->pFobx);
     __notnull PMRX_SRV_OPEN SrvOpen = RxContext->pRelevantSrvOpen;
     __notnull PNFS41_SRV_OPEN nfs41_srvopen = NFS41GetSrvOpenExtension(SrvOpen);
     __notnull PNFS41_V_NET_ROOT_EXTENSION pVNetRootContext =
@@ -484,7 +482,7 @@ NTSTATUS nfs41_SetSecurityInformation(
         }
     }
 
-    status = nfs41_UpcallCreate(NFS41_SYSOP_ACL_SET, &nfs41_fobx->sec_ctx,
+    status = nfs41_UpcallCreate(NFS41_SYSOP_ACL_SET, &nfs41_srvopen->sec_ctx,
         pVNetRootContext->session, nfs41_srvopen->nfs41_open_state,
         pNetRootContext->nfs41d_version, SrvOpen->pAlreadyPrefixedName, &entry);
     if (status) goto out;

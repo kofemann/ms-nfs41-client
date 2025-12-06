@@ -503,6 +503,12 @@ typedef struct _NFS41_FCB {
 
 typedef struct _NFS41_SRV_OPEN {
     BOOLEAN         initialised;
+    /*
+     * |sec_ctx| must be per |SRV_OPEN| to handle newgrp()/|setgid()|
+     * support. But this only works if we prevent |SRV_OPEN| collapsing
+     * if the PrimaryGroups of the SRV_OPENs are not the same
+     */
+    SECURITY_CLIENT_CONTEXT sec_ctx;
     HANDLE          nfs41_open_state;
     nfs41_open_delegation_type deleg_type;
 #ifdef WINBUG_NO_COLLAPSE_IF_PRIMARYGROUPS_DIFFER
@@ -527,14 +533,8 @@ typedef struct _NFS41_FOBX {
     NODE_TYPE_CODE          NodeTypeCode;
     NODE_BYTE_SIZE          NodeByteSize;
 
-    /*
-     * |sec_ctx| must be per |FILE_OBJECT| to handle newgrp()1/|setgid()|
-     * support
-     */
-    SECURITY_CLIENT_CONTEXT sec_ctx;
     BOOLEAN write_thru;
     BOOLEAN nocache;
-    BOOLEAN timebasedcoherency;
 } NFS41_FOBX, *PNFS41_FOBX;
 #define NFS41GetFobxExtension(pFobx)  \
         (((pFobx) == NULL) ? NULL : (PNFS41_FOBX)((pFobx)->Context))
@@ -561,10 +561,7 @@ typedef struct _NFS41_DEVICE_EXTENSION {
 
 typedef struct _nfs41_fcb_list_entry {
     LIST_ENTRY next;
-    PMRX_FCB fcb;
     PMRX_SRV_OPEN srvopen;
-    HANDLE session;
-    PNFS41_FOBX nfs41_fobx;
     ULONGLONG ChangeTime;
     BOOLEAN skip;
 } nfs41_fcb_list_entry;
@@ -652,7 +649,7 @@ NTSTATUS map_symlink_errors(
     NTSTATUS status);
 
 VOID nfs41_remove_fcb_entry(
-    PMRX_FCB fcb);
+    PMRX_SRV_OPEN SrvOpen);
 
 /* nfs41sys_acl.c */
 NTSTATUS marshal_nfs41_getacl(
