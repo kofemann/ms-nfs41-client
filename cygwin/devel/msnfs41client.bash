@@ -942,9 +942,12 @@ function watch_kernel_debuglog
 {
 	printf "# logging start...\n" 1>&2
 
-	catdbgprint
+	trap 'catdbgprint stoptrace ; trap "" INT TERM EXIT ; printf "# logging done\n" 1>&2' INT TERM EXIT
 
-	printf '# logging done\n' 1>&2
+	catdbgprint starttrace
+	catdbgprint processtrace
+	# catdbgprint stoptrace
+
 	return 0
 }
 

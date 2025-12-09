@@ -39,8 +39,13 @@
 #include <evntcons.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <stddef.h>
 #include <ctype.h>
+
+#define KERNEL_LOGGER_NAME_A "NT Kernel Logger"
+
+#define EXIT_USAGE (2) /* Traditional UNIX exit code for usage */
 
 typedef struct _DBGPRINT_EVENT {
     ULONG ComponentId;   /* DPFLTR_xxx_ID */
@@ -62,13 +67,13 @@ void int_to_octal3(int value, unsigned char *restrict out)
 }
 
 static
-VOID WINAPI EventCallback(PEVENT_RECORD ev)
+VOID WINAPI trace_eventcallback(PEVENT_RECORD ev)
 {
     unsigned char buffer[2048];
     unsigned char *b = buffer;
 
     if (ev->UserDataLength >= offsetof(DBGPRINT_EVENT, Message)) {
-        size_t i;
+        ssize_t i;
         unsigned char c;
         const DBGPRINT_EVENT *dpe = (const DBGPRINT_EVENT *)ev->UserData;
         const unsigned char *msg = (const unsigned char *)dpe->Message;
@@ -136,70 +141,152 @@ VOID WINAPI EventCallback(PEVENT_RECORD ev)
     }
 }
 
-int main(int ac, char *av[])
-{
-    TRACEHANDLE hSession = 0;
-    TRACEHANDLE hTrace = 0;
-    ULONG status;
-    int retval = EXIT_SUCCESS;
 
-    (void)ac;
+static
+int do_starttrace(const char *progname)
+{
+    ULONG status = 0;
 
     size_t propsSize = sizeof(EVENT_TRACE_PROPERTIES) + 1024;
     EVENT_TRACE_PROPERTIES *props = (EVENT_TRACE_PROPERTIES*)calloc(1, propsSize);
-    if (props == NULL) {
-        (void)fprintf(stderr, "%s: Malloc failed\n", av[0]);
-        retval = EXIT_FAILURE;
-        goto done;
+    if (!props) {
+        (void)fprintf(stderr, "%s:[!] malloc() EVENT_TRACE_PROPERTIES failed\n",
+            progname);
+        return EXIT_FAILURE;
     }
 
-    props->Wnode.BufferSize = (ULONG)propsSize;
-    props->Wnode.Flags = WNODE_FLAG_TRACED_GUID;
-    props->LogFileMode = EVENT_TRACE_REAL_TIME_MODE;
-    props->EnableFlags = EVENT_TRACE_FLAG_DBGPRINT;
-    props->LoggerNameOffset = sizeof(EVENT_TRACE_PROPERTIES);
-#if 1
-    /* Increase buffer size to 32MB */
-    props->BufferSize = 64;             /* Buffer size in KB (64KB per buffer) */
-    props->MinimumBuffers = 512;        /* Minimum buffers */
-    props->MaximumBuffers = 512;        /* Maximum buffers */
-#endif
-
-    status = StartTraceW(&hSession, KERNEL_LOGGER_NAME, props);
-    if (status == ERROR_ALREADY_EXISTS) {
-        (void)fprintf(stderr,
-            "#### Kernel Logger already running, attaching...\n");
-        hSession = 0;
-    } else if (status != ERROR_SUCCESS) {
-        (void)fprintf(stderr, "%s: StartTraceA() failed with error=%d\n",
-            av[0], (int)status);
-        retval = EXIT_FAILURE;
-        goto done;
-    } else {
-        (void)fprintf(stderr,
-            "#### Started Kernel Logger session.\n");
-    }
-
-    EVENT_TRACE_LOGFILE log = {
-        .LoggerName = KERNEL_LOGGER_NAME,
-        .ProcessTraceMode =
-            PROCESS_TRACE_MODE_REAL_TIME |
-            PROCESS_TRACE_MODE_EVENT_RECORD,
-        .EventRecordCallback = EventCallback
+    *props = (EVENT_TRACE_PROPERTIES){
+        .Wnode = (WNODE_HEADER){
+            .BufferSize = (ULONG)propsSize,
+            .Flags      = WNODE_FLAG_TRACED_GUID
+        },
+        .LogFileMode    = EVENT_TRACE_REAL_TIME_MODE,
+        .EnableFlags    = EVENT_TRACE_FLAG_DBGPRINT,
+        .BufferSize     = 64,   /* KB per buffer */
+        .MinimumBuffers = 512,  /* 64KB * 512 = 32MB */
+        .MaximumBuffers = 512
     };
 
-    hTrace = OpenTrace(&log);
-    if (hTrace == INVALID_PROCESSTRACE_HANDLE) {
-        (void)fprintf(stderr, "%s: OpenTrace() failed with error=%d\n",
-            av[0], (int)GetLastError());
-        retval = EXIT_FAILURE;
-        goto done;
+    TRACEHANDLE hSession = 0;
+    status = StartTraceA(&hSession, KERNEL_LOGGER_NAME_A, props);
+    if (status == ERROR_ALREADY_EXISTS) {
+        (void)fprintf(stderr, "#### Kernel Logger already running\n");
+        free(props);
+        return EXIT_SUCCESS;
+    }
+    else if (status != ERROR_SUCCESS) {
+        (void)fprintf(stderr, "%s: StartTraceA() failed, lasterr=%d\n",
+            progname,
+            (int)status);
+        free(props);
+        return EXIT_FAILURE;
     }
 
-    (void)fprintf(stderr,
-        "#### Listening for |DbgPrint*()| messages...\n");
-    status = ProcessTrace(&hTrace, 1, NULL, NULL);
+    (void)fprintf(stderr, "#### Started Kernel Logger\n");
+    free(props);
 
-done:
-    return retval;
+    return EXIT_SUCCESS;
+}
+
+static TRACEHANDLE g_hTrace = 0;
+
+static
+BOOL WINAPI processtrace_ctrlhandler(DWORD type)
+{
+    if ((type == CTRL_C_EVENT) ||
+        (type == CTRL_BREAK_EVENT) ||
+        (type == CTRL_CLOSE_EVENT)) {
+
+        (void)fprintf(stderr, "#### <CTRL-C>\n");
+        if (g_hTrace) {
+            (void)CloseTrace(g_hTrace);
+            g_hTrace = 0;
+        }
+
+        exit(EXIT_SUCCESS);
+    }
+
+    return FALSE;
+}
+
+static
+int do_processtrace(const char *progname)
+{
+    ULONG status;
+    EVENT_TRACE_LOGFILEA log = {
+        .LoggerName        = (LPSTR)KERNEL_LOGGER_NAME_A,
+        .ProcessTraceMode  = PROCESS_TRACE_MODE_REAL_TIME | PROCESS_TRACE_MODE_EVENT_RECORD,
+        .EventRecordCallback = trace_eventcallback
+    };
+
+    g_hTrace = OpenTraceA(&log);
+    if (g_hTrace == INVALID_PROCESSTRACE_HANDLE) {
+        (void)fprintf(stderr, "%s: OpenTraceA() failed, lasterr=%d\n",
+            progname, (int)GetLastError());
+        return EXIT_FAILURE;
+    }
+
+    (void)SetConsoleCtrlHandler(processtrace_ctrlhandler, TRUE);
+
+    status = ProcessTrace(&g_hTrace, 1, NULL, NULL);
+    (void)fprintf(stderr, "#### ProcessTrace() returned, lasterr=%d\n",
+        (int)status);
+
+    (void)CloseTrace(g_hTrace);
+    g_hTrace = 0;
+
+    /* Treat non-zero status as failure */
+    return (status == ERROR_SUCCESS) ? EXIT_SUCCESS : EXIT_FAILURE;
+}
+
+static
+int do_stoptrace(const char *progname)
+{
+    EVENT_TRACE_PROPERTIES props = {
+        .Wnode = (WNODE_HEADER){ .BufferSize = sizeof(EVENT_TRACE_PROPERTIES) }
+    };
+    ULONG status = StopTraceA(0, KERNEL_LOGGER_NAME_A, &props);
+
+    if ((status != ERROR_SUCCESS) && (status != ERROR_MORE_DATA)) {
+        (void)fprintf(stderr, "%s: StopTraceA() failed, lasterr=%d\n",
+            progname, (int)status);
+        return EXIT_FAILURE;
+    }
+
+    (void)fprintf(stderr, "#### Stopped Kernel Logger.\n");
+
+    return EXIT_SUCCESS;
+}
+
+static
+void usage(const char *progname)
+{
+    (void)fprintf(stderr,
+        "Usage:\n"
+        "\t%s starttrace   - start NT Kernel Logger with DbgPrint capture\n"
+        "\t%s processtrace - open and process DbgPrint events\n"
+        "\t%s stoptrace    - stop NT Kernel Logger session\n",
+        progname, progname, progname);
+}
+
+int main(int argc, char *av[])
+{
+    if (argc < 2) {
+        usage(av[0]);
+        return EXIT_USAGE;
+    }
+
+    /*
+     * Subcmd dispatcher
+     */
+    if (strcmp(av[1], "starttrace") == 0) {
+        return do_starttrace(av[0]);
+    } else if (strcmp(av[1], "processtrace") == 0) {
+        return do_processtrace(av[0]);
+    } else if (strcmp(av[1], "stoptrace") == 0) {
+        return do_stoptrace(av[0]);
+    } else {
+        (void)fprintf(stderr, "%s: Unknown option '%s\n", av[0], av[1]);
+        return EXIT_FAILURE;
+    }
 }
