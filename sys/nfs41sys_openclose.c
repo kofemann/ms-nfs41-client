@@ -755,7 +755,8 @@ NTSTATUS nfs41_Create(
     PQUERY_ON_CREATE_ECP_CONTEXT qocec =
         get_queryoncreateecpcontext(RxContext->CurrentIrp);
     if (qocec) {
-        DbgP("nfs41_Create: RequestedClasses=0x%lx\n", qocec->RequestedClasses);
+        DbgP("nfs41_Create: QUERY_ON_CREATE_ECP_CONTEXT.RequestedClasses=0x%lx\n",
+            qocec->RequestedClasses);
     }
 
 #ifdef NFS41_DRIVER_ALLOW_CREATEFILE_ACLS
@@ -1445,7 +1446,7 @@ NTSTATUS nfs41_CollapseOpen(
     PQUERY_ON_CREATE_ECP_CONTEXT qocec =
         get_queryoncreateecpcontext(RxContext->CurrentIrp);
     if (qocec) {
-        DbgP("nfs41_CollapseOpen: RequestedClasses=0x%lx\n",
+        DbgP("nfs41_CollapseOpen: QUERY_ON_CREATE_ECP_CONTEXT.RequestedClasses=0x%lx\n",
             qocec->RequestedClasses);
     }
 
