@@ -341,7 +341,7 @@ NTSTATUS unmarshal_nfs41_queryallocatedranges(
     *buf += sizeof(ULONG);
 
     DbgP("unmarshal_nfs41_queryallocatedranges: "
-        "buffer_overflow=%d returned_size=%llu\n",
+        "buffer_overflow=%d returned_size=%lu\n",
         (int)cur->u.QueryAllocatedRanges.buffer_overflow,
         cur->u.QueryAllocatedRanges.returned_size);
 

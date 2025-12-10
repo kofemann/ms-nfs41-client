@@ -876,14 +876,14 @@ NTSTATUS nfs41_SetFileInformationAtCleanup(
              * unlock-whole-file } manner, doing a set-file-size outside
              * the file lock causes data corruption in such cases.
              */
-            DbgP("nfs41_SetFileInformationAtCleanup: FileEndOfFileInformation NOP\n",
-                (int)InfoClass);
+            DbgP("nfs41_SetFileInformationAtCleanup: "
+                "FileEndOfFileInformation NOP\n");
             status = STATUS_SUCCESS;
             break;
         case FileBasicInformation:
             /* Timestamp updates */
-            DbgP("nfs41_SetFileInformationAtCleanup: FileBasicInformation timestamp updates\n",
-                (int)InfoClass);
+            DbgP("nfs41_SetFileInformationAtCleanup: "
+                "FileBasicInformation timestamp updates\n");
             status = nfs41_SetFileInformationImpl(RxContext,
                 NFS41_SYSOP_FILE_SET_AT_CLEANUP);
             break;

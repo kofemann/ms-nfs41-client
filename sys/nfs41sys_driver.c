@@ -302,7 +302,7 @@ NTSTATUS marshal_nfs41_header(
 
 #ifdef DEBUG_MARSHAL_HEADER
     DbgP("[upcall hdr] xid=%lld op='%s'%s filename='%wZ' vers=%d "
-        "sess=0x%p open_state=0x%x\n",
+        "sess=0x%p open_state=0x%p\n",
         entry->xid,
         opcode2string(entry->opcode),
         (entry->async_op?"(async)":""),
@@ -1330,7 +1330,7 @@ VOID fcbopen_main(PVOID ctx)
                     nfs41_fcb_list_entry, next);
 
 #ifdef DEBUG_TIME_BASED_COHERENCY
-            DbgP("fcbopen_main: Checking attributes for srvopen=%0x%p fcb=0x%p "
+            DbgP("fcbopen_main: Checking attributes for srvopen=0x%p fcb=0x%p "
                 "change_time=%llu skipping=%d\n",
                 cur->srvopen,
                 ((cur->srvopen != NULL)?cur->srvopen->pFcb:NULL),

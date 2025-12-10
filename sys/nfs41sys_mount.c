@@ -411,7 +411,7 @@ NTSTATUS nfs41_MountConfig_ParseINT64(
     }
     else {
         print_error("nfs41_MountConfig_ParseINT64: "
-            "Failed to convert '%s'='%wZ' to unsigned long.\n",
+            "Failed to convert '%ls'='%wZ' to unsigned long.\n",
             Name, usValue);
     }
 
@@ -1288,8 +1288,9 @@ NTSTATUS nfs41_CreateVNetRoot(
         ASSERT(existing_mount != NULL);
         /* modify existing mount entry */
 #ifdef DEBUG_MOUNT
-        DbgP("Using existing %d flavor session 0x%x\n",
-            (int)pVNetRootContext->sec_flavor);
+        DbgP("Using existing %d flavor session 0x%p\n",
+            (int)pVNetRootContext->sec_flavor,
+            pVNetRootContext->session);
 #endif
         switch (pVNetRootContext->sec_flavor) {
         case RPCSEC_AUTH_NONE:

@@ -333,7 +333,7 @@ NTSTATUS unmarshal_nfs41_open(
     }
 #ifdef DEBUG_MARSHAL_DETAIL
     DbgP("unmarshal_nfs41_open: "
-        "open_state 0x%x fileid=0x%llx fsid=(0x%llx.0x%llx) mode 0%o "
+        "open_state 0x%p fileid=0x%llx fsid=(0x%llx.0x%llx) mode 0%o "
 #ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES
         "owner_local_uid %u owner_group_local_gid %u "
 #endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */

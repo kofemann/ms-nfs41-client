@@ -62,7 +62,11 @@
 
 //#define INCLUDE_TIMESTAMPS
 
-ULONG __cdecl DbgP(IN PCCH fmt, ...)
+#ifdef _MSC_VER
+ULONG DbgP(_In_z_ _Printf_format_string_ const char *restrict fmt, ...)
+#else
+ULONG DbgP(const char *restrict fmt, ...)
+#endif /* _MSC_VER */
 {
     CHAR msg[512];
     va_list args;
@@ -100,7 +104,11 @@ ULONG __cdecl DbgP(IN PCCH fmt, ...)
     return 0;
 }
 
-ULONG __cdecl print_error(IN PCCH fmt, ...)
+#ifdef _MSC_VER
+ULONG print_error(_In_z_ _Printf_format_string_ const char *restrict fmt, ...)
+#else
+ULONG print_error(const char *restrict fmt, ...)
+#endif /* _MSC_VER */
 {
     CHAR msg[512];
     va_list args;
@@ -342,7 +350,10 @@ void print_file_object(int on, PFILE_OBJECT file)
     DbgP("FsContext 0x%p FsContext2 0x%p\n",
         file->FsContext, file->FsContext2);
     DbgP("DeletePending %d ReadAccess %d WriteAccess %d DeleteAccess %d\n",
-        file->DeletePending, file->WriteAccess, file->DeleteAccess);
+        file->DeletePending,
+        file->ReadAccess,
+        file->WriteAccess,
+        file->DeleteAccess);
     DbgP("SharedRead %d SharedWrite %d SharedDelete %d Flags 0x%x\n",
         file->SharedRead, file->SharedWrite, file->SharedDelete,
         file->Flags);
@@ -526,7 +537,9 @@ void print_nt_create_params(int on, NT_CREATE_PARAMETERS params)
         (params.ShareAccess & FILE_SHARE_DELETE)?"DELETE":"");
 
     DbgP("Desired Access: "
-        "0x%x '%s' '%s' '%s' '%s' '%s' '%s' '%s' '%s' '%s' '%s' '%s'\n",
+        "0x%x "
+        "'%s' '%s' '%s' '%s' '%s' '%s' '%s' '%s' '%s' '%s' '%s' '%s' '%s' "
+        "'%s' '%s' '%s' '%s'\n",
         params.DesiredAccess,
         (params.DesiredAccess & FILE_READ_DATA)?"READ":"",
         (params.DesiredAccess & STANDARD_RIGHTS_READ)?"READ_ACL":"",
@@ -706,7 +719,7 @@ const char *opcode2string(nfs41_opcodes opcode)
 void print_acl_args(
     SECURITY_INFORMATION info)
 {
-    DbgP("Security query: '%s' '%s' '%s'\n",
+    DbgP("Security query: '%s' '%s' '%s' '%s'\n",
         (info & OWNER_SECURITY_INFORMATION)?"OWNER":"",
         (info & GROUP_SECURITY_INFORMATION)?"GROUP":"",
         (info & DACL_SECURITY_INFORMATION)?"DACL":"",

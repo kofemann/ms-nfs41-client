@@ -28,8 +28,13 @@ typedef enum _nfs41_opcodes nfs41_opcodes;
 
 #define _DRIVER_NAME_ "NFS4.1 Driver"
 
-ULONG __cdecl DbgP(IN PCCH fmt, ...);
-ULONG __cdecl print_error(IN PCCH fmt, ...);
+#ifdef _MSC_VER
+ULONG DbgP(_In_z_ _Printf_format_string_ const char *restrict fmt, ...);
+ULONG print_error(_In_z_ _Printf_format_string_ const char *restrict fmt, ...);
+#else
+ULONG DbgP(const char *restrict fmt, ...);
+ULONG print_error(const char *restrict fmt, ...);
+#endif /* _MSC_VER */
 VOID print_fo_all(int on, IN PRX_CONTEXT c);
 VOID print_srv_call(IN PMRX_SRV_CALL p);
 VOID print_net_root(IN PMRX_NET_ROOT p);
