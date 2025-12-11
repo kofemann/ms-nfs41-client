@@ -1269,6 +1269,28 @@ retry_on_link:
             !pVNetRootContext->read_only)
         nfs41_fcb->StandardInfo.DeletePending = TRUE;
 
+    if (qocec) {
+        if (qocec->RequestedClasses & QoCFileStatInformation) {
+            qocec_file_stat_information(&qocec->StatInformation, nfs41_fcb);
+
+            qocec->ClassesProcessed |= QoCFileStatInformation;
+        }
+
+#ifdef NFS41_DRIVER_WSL_SUPPORT
+        if (qocec->RequestedClasses & QoCFileLxInformation) {
+            qocec_file_stat_lx_information(&qocec->LxInformation,
+                nfs41_fcb, pVNetRootContext);
+
+            qocec->ClassesProcessed |= QoCFileLxInformation;
+        }
+#endif /* NFS41_DRIVER_WSL_SUPPORT */
+
+        qocec->ClassesWithErrors = 0;
+        qocec->ClassesWithNoData = 0;
+
+        FsRtlAcknowledgeEcp(qocec);
+    }
+
     RxContext->Create.ReturnedCreateInformation =
         map_disposition_to_create_retval(params->Disposition, entry->errno);
 
@@ -1432,12 +1454,15 @@ NTSTATUS nfs41_CollapseOpen(
 #ifdef ENABLE_COLLAPSEOPEN
     NTSTATUS status;
     PMRX_SRV_OPEN SrvOpen = RxContext->pRelevantSrvOpen;
+    PNFS41_V_NET_ROOT_EXTENSION pVNetRootContext =
+        NFS41GetVNetRootExtension(SrvOpen->pVNetRoot);
+    PMRX_FCB Fcb = RxContext->pFcb;
+    PNFS41_FCB nfs41_fcb = NFS41GetFcbExtension(Fcb);
 
     FsRtlEnterFileSystem();
 
     /*
      * FIXME/ToDo:
-     * - Check whether ECP (Extended Create Parameters) must be handled
      * - Check whether Cygwin/SFU EA must be handled
      */
 
@@ -1454,7 +1479,30 @@ NTSTATUS nfs41_CollapseOpen(
     if (status)
         goto out;
 
+    if (qocec) {
+        if (qocec->RequestedClasses & QoCFileStatInformation) {
+            qocec_file_stat_information(&qocec->StatInformation, nfs41_fcb);
+
+            qocec->ClassesProcessed |= QoCFileStatInformation;
+        }
+
+#ifdef NFS41_DRIVER_WSL_SUPPORT
+        if (qocec->RequestedClasses & QoCFileLxInformation) {
+            qocec_file_stat_lx_information(&qocec->LxInformation,
+                nfs41_fcb, pVNetRootContext);
+
+            qocec->ClassesProcessed |= QoCFileLxInformation;
+        }
+#endif /* NFS41_DRIVER_WSL_SUPPORT */
+
+        qocec->ClassesWithErrors = 0;
+        qocec->ClassesWithNoData = 0;
+
+        FsRtlAcknowledgeEcp(qocec);
+    }
+
     RxContext->pFobx->OffsetOfNextEaToReturn = 1; /* FIXME: Why ? */
+
     status = STATUS_SUCCESS;
 
 out:

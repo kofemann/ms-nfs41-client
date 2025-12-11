@@ -301,6 +301,10 @@ void nfs_to_stat_info(
         GENERIC_EXECUTE|GENERIC_WRITE|GENERIC_READ; /* FIXME */
 }
 
+/*
+ * Note: Kernel module |qocec_file_stat_lx_information()| and userland
+ * daemon |nfs_to_stat_lx_info()| should be kept in sync!
+ */
 void nfs_to_stat_lx_info(
     IN void *daemon_context,
     IN const char *restrict name,

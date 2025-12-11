@@ -285,3 +285,106 @@ out_cleanup_sequeryinfotok:
 
     return retval;
 }
+
+void qocec_file_stat_information(
+    OUT QUERY_ON_CREATE_FILE_STAT_INFORMATION *restrict qocfsi,
+    IN const NFS41_FCB *restrict nfs41_fcb)
+{
+    DbgP("qocec_file_stat_information: "
+        "qocfsi=0x%p, nfs41_fcb=0x%p\n",
+        qocfsi, nfs41_fcb);
+
+    qocfsi->FileId.QuadPart = nfs41_fcb->fileid;
+    qocfsi->CreationTime    = nfs41_fcb->BasicInfo.CreationTime;
+    qocfsi->LastAccessTime  = nfs41_fcb->BasicInfo.LastAccessTime;
+    qocfsi->LastWriteTime   = nfs41_fcb->BasicInfo.LastWriteTime;
+    qocfsi->ChangeTime      = nfs41_fcb->BasicInfo.ChangeTime;
+    qocfsi->AllocationSize  = nfs41_fcb->StandardInfo.AllocationSize;
+    qocfsi->EndOfFile       = nfs41_fcb->StandardInfo.EndOfFile;
+    qocfsi->FileAttributes  = nfs41_fcb->BasicInfo.FileAttributes;
+    if (nfs41_fcb->BasicInfo.FileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) {
+        qocfsi->ReparseTag = IO_REPARSE_TAG_SYMLINK;
+    }
+    else {
+        qocfsi->ReparseTag = 0;
+    }
+    qocfsi->NumberOfLinks   = nfs41_fcb->StandardInfo.NumberOfLinks;
+}
+
+#ifdef NFS41_DRIVER_WSL_SUPPORT
+/*
+ * Note: Kernel module |qocec_file_stat_lx_information()| and userland
+ * daemon |nfs_to_stat_lx_info()| should be kept in sync!
+ */
+void qocec_file_stat_lx_information(
+    OUT QUERY_ON_CREATE_FILE_LX_INFORMATION *restrict qocflxi,
+    IN const NFS41_FCB *restrict nfs41_fcb,
+    IN const NFS41_V_NET_ROOT_EXTENSION *restrict pVNetRootContext)
+{
+    ULONG fsattrs;
+
+    DbgP("qocec_file_stat_lx_information: "
+        "qocflxi=0x%p, nfs41_fcb=0x%p, pVNetRootContext=0x%p\n",
+        qocflxi, nfs41_fcb, pVNetRootContext);
+
+    qocflxi->EffectiveAccess =
+        GENERIC_EXECUTE|GENERIC_WRITE|GENERIC_READ; /* FIXME */
+    qocflxi->LxFlags =
+        LX_FILE_METADATA_HAS_UID |
+        LX_FILE_METADATA_HAS_GID |
+        LX_FILE_METADATA_HAS_MODE;
+
+    qocflxi->LxUid = nfs41_fcb->owner_local_uid;
+    qocflxi->LxGid = nfs41_fcb->owner_group_local_gid;
+
+    qocflxi->LxMode = 0UL;
+
+/* NFSv4 Mode bits from "daemon/nfs41_const.h" */
+#define MODE4_SUID 0x800    /* set user id on execution     */
+#define MODE4_SGID 0x400    /* set group id on execution    */
+#define MODE4_SVTX 0x200    /* save text even after use     */
+#define MODE4_RUSR 0x100    /* read permission: owner       */
+#define MODE4_WUSR 0x080    /* write permission: owner      */
+#define MODE4_XUSR 0x040    /* execute permission: owner    */
+#define MODE4_RGRP 0x020    /* read permission: group       */
+#define MODE4_WGRP 0x010    /* write permission: group      */
+#define MODE4_XGRP 0x008    /* execute permission: group    */
+#define MODE4_ROTH 0x004    /* read permission: other       */
+#define MODE4_WOTH 0x002    /* write permission: other      */
+#define MODE4_XOTH 0x001    /* execute permission: other    */
+
+/* FIXME: This should go into a new header in include/ */
+#define LX_MODE_S_IFMT      0xF000 /* file type mask */
+#define LX_MODE_S_IFREG     0x8000 /* regular */
+#define LX_MODE_S_IFDIR     0x4000 /* directory */
+#define LX_MODE_S_IFCHR     0x2000 /* character special */
+#define LX_MODE_S_IFIFO     0x1000 /* pipe */
+#define LX_MODE_S_IREAD     0x0100 /* read permission, owner */
+#define LX_MODE_S_IWRITE    0x0080 /* write permission, owner */
+#define LX_MODE_S_IEXEC     0x0040 /* execute/search permission, owner */
+
+    /*
+     * Symlinks are handled via
+     * |QUERY_ON_CREATE_FILE_STAT_INFORMATION.ReparseTag|
+     */
+    if (nfs41_fcb->StandardInfo.Directory)
+        qocflxi->LxMode |= LX_MODE_S_IFDIR;
+    else
+        qocflxi->LxMode |= LX_MODE_S_IFREG;
+
+    if (nfs41_fcb->mode & MODE4_RUSR)
+        qocflxi->LxMode |= LX_MODE_S_IREAD;
+    if (nfs41_fcb->mode & MODE4_WUSR)
+        qocflxi->LxMode |= LX_MODE_S_IWRITE;
+    if (nfs41_fcb->mode & MODE4_XUSR)
+        qocflxi->LxMode |= LX_MODE_S_IEXEC;
+
+    fsattrs = pVNetRootContext->FsAttrs.FileSystemAttributes;
+    if (fsattrs & FILE_CASE_SENSITIVE_SEARCH)
+        qocflxi->LxMode |= LX_FILE_CASE_SENSITIVE_DIR;
+
+    /* FIXME: We should support devices */
+    qocflxi->LxDeviceIdMajor = 0;
+    qocflxi->LxDeviceIdMinor = 0;
+}
+#endif /* NFS41_DRIVER_WSL_SUPPORT */

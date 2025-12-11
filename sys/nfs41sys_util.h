@@ -24,6 +24,8 @@
 #ifndef _NFS41SYS_UTIL_H_
 #define _NFS41SYS_UTIL_H_ 1
 
+#include "nfs41_build_features.h"
+
 #include <stdbool.h>
 
 static INLINE BOOL AnsiStrEq(
@@ -72,5 +74,14 @@ PQUERY_ON_CREATE_ECP_CONTEXT get_queryoncreateecpcontext(
 _Success_(return == true) bool
 get_primarygroup_id(
     _Out_writes_bytes_(SID_BUF_SIZE) SID *restrict ret_sid);
+void qocec_file_stat_information(
+    OUT QUERY_ON_CREATE_FILE_STAT_INFORMATION *restrict qocfsi,
+    IN const NFS41_FCB *restrict nfs41_fcb);
+#ifdef NFS41_DRIVER_WSL_SUPPORT
+void qocec_file_stat_lx_information(
+    OUT QUERY_ON_CREATE_FILE_LX_INFORMATION *restrict qocflxi,
+    IN const NFS41_FCB *restrict nfs41_fcb,
+    IN const NFS41_V_NET_ROOT_EXTENSION *restrict pVNetRootContext);
+#endif /* NFS41_DRIVER_WSL_SUPPORT */
 
 #endif /* !_NFS41SYS_UTIL_H_ */
