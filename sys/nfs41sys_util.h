@@ -69,6 +69,8 @@ NTSTATUS nfs41_UnmapLockedKernelPagesInNfsDaemonAddressSpace(
     __in PMDL  MemoryDescriptorList);
 PQUERY_ON_CREATE_ECP_CONTEXT get_queryoncreateecpcontext(
     __in PIRP Irp);
-bool get_primarygroup_id(__out SID *restrict ret_sid);
+_Success_(return == true) bool
+get_primarygroup_id(
+    _Out_writes_bytes_(SID_BUF_SIZE) SID *restrict ret_sid);
 
 #endif /* !_NFS41SYS_UTIL_H_ */

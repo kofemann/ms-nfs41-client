@@ -732,7 +732,7 @@ NTSTATUS nfs41_Create(
         nfs41_srvopen->initialised = TRUE;
 #ifdef WINBUG_NO_COLLAPSE_IF_PRIMARYGROUPS_DIFFER
         /* PrimaryGroup SID used for opening this NFS handle */
-        nfs41_srvopen->open_pg_sid = (PSID)nfs41_srvopen->open_pg_sidbuff;
+        nfs41_srvopen->open_pg_sid = (PSID)&nfs41_srvopen->open_pg_sidbuff[0];
 
         /*
          * Store PrimaryGroup SID used to create the |SRV_OPEN|
@@ -1370,7 +1370,7 @@ NTSTATUS nfs41_ShouldTryToCollapseThisOpen(
 #else
     char pg_sidbuff[SID_BUF_SIZE] __attribute__((aligned(16)));
 #endif /* _MSC_BUILD */
-    PSID pg_sid = (PSID)pg_sidbuff;
+    PSID pg_sid = (PSID)&pg_sidbuff[0];
 
     (void)get_primarygroup_id(pg_sid);
 

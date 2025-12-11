@@ -222,12 +222,14 @@ PQUERY_ON_CREATE_ECP_CONTEXT get_queryoncreateecpcontext(
     return (PQUERY_ON_CREATE_ECP_CONTEXT)ecpContext;
 }
 
-bool get_primarygroup_id(__out SID *restrict ret_sid)
+_Success_(return == true) bool
+get_primarygroup_id(
+    _Out_writes_bytes_(SID_BUF_SIZE) SID *restrict ret_sid)
 {
     PACCESS_TOKEN token = NULL;
     PVOID infoBuffer = NULL;
     NTSTATUS status;
-    bool retval = false;
+    bool retval;
 
     BOOLEAN copyOnOpen = FALSE;
     BOOLEAN effectiveOnly = FALSE;
@@ -248,6 +250,7 @@ bool get_primarygroup_id(__out SID *restrict ret_sid)
         DbgPrint("get_primarygroup_id: "
             "SeQueryInformationToken(TokenPrimaryGroup) failed: 0x%lx\n",
             (long)status);
+        retval = false;
         goto out_cleanup_sequeryinfotok;
     }
 
@@ -255,6 +258,7 @@ bool get_primarygroup_id(__out SID *restrict ret_sid)
     if ((primaryGroup == NULL) || (primaryGroup->PrimaryGroup == NULL)) {
         DbgP("get_primarygroup_id: "
             "primaryGroup or PrimaryGroup SID is NULL\n");
+        retval = false;
         goto out_cleanup_sequeryinfotok;
     }
 
@@ -263,6 +267,7 @@ bool get_primarygroup_id(__out SID *restrict ret_sid)
         DbgP("get_primarygroup_id: "
             "SID length (%lu) invalid or too large for buffer (%u)\n",
             sidLength, (unsigned)SID_BUF_SIZE);
+        retval = false;
         goto out_cleanup_sequeryinfotok;
     }
 
