@@ -36,17 +36,17 @@
 # - build bash:
 #   $ ksh93 nfsbuildtest.ksh93 bash clean
 #   $ ksh93 nfsbuildtest.ksh93 bash createcache
-#   $ ksh93 nfsbuildtest.ksh93 bash build
+#   $ ksh93 nfsbuildtest.ksh93 bash build.parallel
 #
 # - build gcc:
 #   $ ksh93 nfsbuildtest.ksh93 gcc clean
 #   $ ksh93 nfsbuildtest.ksh93 gcc createcache
-#   $ ksh93 nfsbuildtest.ksh93 gcc build
+#   $ ksh93 nfsbuildtest.ksh93 gcc build.parallel
 #
 # - build ms-nfs41-client:
 #   $ ksh93 nfsbuildtest.ksh93 msnfs41client clean
 #   $ ksh93 nfsbuildtest.ksh93 msnfs41client createcache
-#   $ ksh93 nfsbuildtest.ksh93 msnfs41client build
+#   $ ksh93 nfsbuildtest.ksh93 msnfs41client build.serial
 #
 
 function gcc_createcache
@@ -97,6 +97,18 @@ function gcc_build
 	set -o xtrace
 	set -o errexit
 	set -o nounset
+
+	typeset subcmd="$1"
+	integer build_parallel
+
+	if [[ "$subcmd" == *.serial* ]] ; then
+		(( build_parallel=0 ))
+	elif [[ "$subcmd" == *.parallel* ]] ; then
+		(( build_parallel=1 ))
+	else
+		print -u2 -f $"Neither '.serial' or '.parallel' set in subcmd='%q'.\n" "$subcmd"
+		return 1
+	fi
 
 	#
 	# build config
@@ -235,10 +247,24 @@ function gcc_build
 	# during $ make -j32 all # missing
 	#
 	(
+		typeset -a make_options=( )
+
+		if (( build_parallel == 1 )) ; then
+			make_options+=(
+				'--load-average 32'
+				'-j16'
+			)
+		else
+			make_options+=(
+				'--load-average 32'
+				'-j1'
+			)
+		fi
+
 		set -o xtrace
-		time ksh93 -c 'export SHELL=/bin/ksh93 ; (yes | make --load-average 32 -j12 all)'
+		time ksh93 -c 'set -o xtrace ; export SHELL=/bin/ksh93 ; (yes | make "$@" all)' dummy "${make_options[@]}"
 		printf "######## gcc build make all returned %d\n" $?
-		time ksh93 -c 'export SHELL=/bin/ksh93 ; (yes | make --load-average 32 -j12 install DESTDIR="$PWD/install_root")'
+		time ksh93 -c 'set -o xtrace ; export SHELL=/bin/ksh93 ; (yes | make "$@" install DESTDIR="$PWD/install_root")' dummy "${make_options[@]}"
 		printf "######## gcc build make install returned %d\n" $?
 	)
 
@@ -284,6 +310,18 @@ function bash_build
 	set -o xtrace
 	set -o errexit
 	set -o nounset
+
+	typeset subcmd="$1"
+	integer build_parallel
+
+	if [[ "$subcmd" == *.serial* ]] ; then
+		(( build_parallel=0 ))
+	elif [[ "$subcmd" == *.parallel* ]] ; then
+		(( build_parallel=1 ))
+	else
+		print -u2 -f $"Neither '.serial' or '.parallel' set in subcmd='%q'.\n" "$subcmd"
+		return 1
+	fi
 
 	compound cygwin_vers
 
@@ -413,17 +451,26 @@ function bash_build
 	#
 	# build bash
 	#
+	typeset -a make_options=( )
+
+	if (( build_parallel == 1 )) ; then
+		make_options+=( '-j16' )
+	else
+		make_options+=( '-j1' )
+	fi
+
+	set -o xtrace
 	if $config_use_posix_ksh93_builtins ; then
 		if is_cygwin && (( (cygwin_vers.major*1000+cygwin_vers.minor) >= 3005 )) ; then
-			time ksh93 -c 'export SHELL=/bin/ksh93 ; bmake -j16 install DESTDIR="$PWD/install_root"'
+			time ksh93 -c 'set -o xtrace ; export SHELL=/bin/ksh93 ; bmake "$@" install DESTDIR="$PWD/install_root"' dummy "${make_options[@]}"
 		else
-			time ksh93 -c 'export SHELL=/bin/ksh93 ; make -j16 install DESTDIR="$PWD/install_root"'
+			time ksh93 -c 'set -o xtrace ; export SHELL=/bin/ksh93 ; make "$@" install DESTDIR="$PWD/install_root"' dummy "${make_options[@]}"
 		fi
 	else
 		if is_cygwin && (( (cygwin_vers.major*1000+cygwin_vers.minor) >= 3005 )) ; then
-			time bash -c 'export SHELL=/bin/bash ; bmake -j16 install DESTDIR="$PWD/install_root"'
+			time bash -c 'set -o xtrace ; export SHELL=/bin/bash ; bmake "$@" install DESTDIR="$PWD/install_root"' dummy "${make_options[@]}"
 		else
-			time bash -c 'export SHELL=/bin/bash ; make -j16 install DESTDIR="$PWD/install_root"'
+			time bash -c 'set -o xtrace ; export SHELL=/bin/bash ; make "$@" install DESTDIR="$PWD/install_root"' dummy "${make_options[@]}"
 		fi
 	fi
 	echo $?
@@ -469,6 +516,45 @@ function msnfs41client_build
 	set -o xtrace
 	set -o errexit
 	set -o nounset
+
+	typeset subcmd="$1"
+	integer build_parallel
+
+	if [[ "$subcmd" == *.serial* ]] ; then
+		(( build_parallel=0 ))
+	elif [[ "$subcmd" == *.parallel* ]] ; then
+		typeset file_case_sensitive_search_val
+
+		#
+		# Visual Studio 2019/2022 randomly fails to do a parallel build
+		# on a case-sensitive filesystem, usually project include
+		# files cannot be found.
+		# (looking at the kernel debug log it seems the characters
+		# in the include filename path are turned into uppercase
+		# letters, but we do not know whether this a kernel or Visual
+		# Studio issue)
+		#
+		file_case_sensitive_search_val="$(/usr/lib/csih/getVolInfo "$PWD" | awk '/FILE_CASE_SENSITIVE_SEARCH/ { print $NF; exit }')"
+
+		case "$file_case_sensitive_search_val" in
+			'FALSE')
+				# OK
+				;;
+			'TRUE')
+				print -u2 -f $"ERROR: Visual Studio MSBuild+compiler require a case-insensitive filesystem for parallel builds.\n"
+				return 1
+				;;
+			*)
+				print -u2 -f $"ERROR: Unexpected value from getVolInfo/FILE_CASE_SENSITIVE_SEARCH '%q'\n" "$file_case_sensitive_search_val"
+				return 1
+				;;
+		esac
+
+		(( build_parallel=1 ))
+	else
+		print -u2 -f $"Neither '.serial' or '.parallel' set in subcmd='%q'.\n" "$subcmd"
+		return 1
+	fi
 
 	#
 	# build config
@@ -549,6 +635,14 @@ function msnfs41client_build
 	# build ms-nfs41-client
 	#
 	(
+		typeset -a make_options=( )
+
+		if (( build_parallel == 1 )) ; then
+			make_options+=( '-j8' )
+		else
+			make_options+=( '-j1' )
+		fi
+
 		#
 		# We assume here:
 		# Visual Studio 2019 --> Win10 64bit+32bit build,
@@ -564,9 +658,9 @@ function msnfs41client_build
 			sed -i -E 's/<PlatformToolset>v...<\/PlatformToolset>/<PlatformToolset>v143<\/PlatformToolset>/g' $(find 'build.vc19' -name \*.vcxproj)
 
 			# build
-			time make -j1 -f cygwin/Makefile build64
-			time make -j1 -f cygwin/Makefile installdest64
-			time make -j1 -f cygwin/Makefile bintarball64
+			time make "${make_options[@]}" -f cygwin/Makefile build64
+			time make "${make_options[@]}" -f cygwin/Makefile installdest64
+			time make "${make_options[@]}" -f cygwin/Makefile bintarball64
 		elif [[ -x '/cygdrive/c/Program Files/Microsoft Visual Studio/2019/Community/MSBuild/Current/Bin/MSBuild.exe' || \
 			-x '/cygdrive/c/Program Files (x86)/Microsoft Visual Studio/2019/Community/MSBuild/Current/Bin/MSBuild.exe' ]] ; then
 			# Visual Studio 19 64bit+32bit kernel codepath
@@ -582,9 +676,9 @@ function msnfs41client_build
 			sed -i -E 's/<PlatformToolset>v...<\/PlatformToolset>/<PlatformToolset>v142<\/PlatformToolset>/g' $(find 'build.vc19' -name \*.vcxproj)
 
 			# build
-			time make -j1 -f cygwin/Makefile build
-			time make -j1 -f cygwin/Makefile installdest
-			time make -j1 -f cygwin/Makefile bintarball
+			time make "${make_options[@]}" -f cygwin/Makefile build
+			time make "${make_options[@]}" -f cygwin/Makefile installdest
+			time make "${make_options[@]}" -f cygwin/Makefile bintarball
 		else
 			print -u2 -f "%s: Unknown compiler.\n" "$0"
 			exit 5
@@ -718,7 +812,7 @@ function main
 			gcc_createcache
 			return $?
 			;;
-		'gcc_build')
+		'gcc_build'*)
 			is_toolkit_pkg_installed itp 'git' || (( errc++ ))
 			is_toolkit_pkg_installed itp 'gcc-core' || (( errc++ ))
 			is_toolkit_pkg_installed itp 'gcc-g++' || (( errc++ ))
@@ -736,7 +830,7 @@ function main
 			is_toolkit_pkg_installed itp 'gettext' || (( errc++ ))
 			is_toolkit_pkg_installed itp 'gettext-devel' || (( errc++ ))
 			(( errc > 0 )) && return 1
-			gcc_build
+			gcc_build "${subcmd}"
 			return $?
 			;;
 		'gcc_clean')
@@ -748,7 +842,7 @@ function main
 			bash_createcache
 			return $?
 			;;
-		'bash_build')
+		'bash_build'*)
 			is_toolkit_pkg_installed itp 'git' || (( errc++ ))
 			is_toolkit_pkg_installed itp 'gcc-core' || (( errc++ ))
 			is_toolkit_pkg_installed itp 'gcc-g++' || (( errc++ ))
@@ -776,7 +870,7 @@ function main
 			is_toolkit_pkg_installed itp 'gettext-devel' || (( errc++ ))
 			is_toolkit_pkg_installed itp 'texinfo' || (( errc++ ))
 			(( errc > 0 )) && return 1
-			bash_build
+			bash_build "${subcmd}"
 			return $?
 			;;
 		'bash_clean')
@@ -788,7 +882,7 @@ function main
 			msnfs41client_createcache
 			return $?
 			;;
-		'msnfs41client_build')
+		'msnfs41client_build'*)
 			is_toolkit_pkg_installed itp 'git' || (( errc++ ))
 			is_toolkit_pkg_installed itp 'gcc-core' || (( errc++ ))
 			is_toolkit_pkg_installed itp 'gcc-g++' || (( errc++ ))
@@ -799,7 +893,7 @@ function main
 			is_toolkit_pkg_installed itp 'bzip2' || (( errc++ ))
 			is_toolkit_pkg_installed itp 'openssl' || (( errc++ ))
 			(( errc > 0 )) && return 1
-			msnfs41client_build
+			msnfs41client_build "${subcmd}"
 			return $?
 			;;
 		'msnfs41client_clean')

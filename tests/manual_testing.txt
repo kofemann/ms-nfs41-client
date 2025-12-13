@@ -1,5 +1,5 @@
 #
-# ms-nfs41-client manual testing sequence, 2025-11-03
+# ms-nfs41-client manual testing sequence, 2025-12-12
 #
 # Draft version, needs to be turned into automated tests
 # if possible
@@ -1185,7 +1185,7 @@ rm -f /cygdrive/n/winntfs_filedisk_001.img
 filedisk /mount 2 'N:\winntfs_filedisk_001.img' 1T U:
 format.com U: /FS:NTFS /A:8192 "/V:NTFSonNFS4_001" /Q /X
 mkdir /cygdrive/u/test1 && cd /cygdrive/u/test1
-rm -Rfv bash && time nice ksh93 /home/roland_mainz/work/msnfs41_uidmapping/ms-nfs41-client/tests/nfsbuildtest/nfsbuildtest.ksh93 bash build
+rm -Rfv bash && time nice ksh93 /home/roland_mainz/work/msnfs41_uidmapping/ms-nfs41-client/tests/nfsbuildtest/nfsbuildtest.ksh93 bash build.parallel
 cd
 filedisk /umount U:
 lssparse /cygdrive/n/winntfs_filedisk_001.img
