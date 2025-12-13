@@ -713,17 +713,18 @@ make clean && make -j4 all
 
 
 #
-# ms-nfs41-client
+# ms-nfs41-client with Visual Studio 2019 on Windows 10/64bit
 #
 git clone https://github.com/kofemann/ms-nfs41-client.git
 cd ms-nfs41-client
-export PATH+=":/cygdrive/c/Program Files (x86)/Microsoft Visual Studio/2019/Community/MSBuild/Current/Bin/"
+git config --global --add safe.directory "$PWD"
+
+export PATH="/cygdrive/c/Program Files (x86)/Microsoft Visual Studio/2019/Community/MSBuild/Current/Bin/:$PATH" CERTIFICATE_THUMBPRINT="$(powershell -c 'Get-ChildItem -Path Cert:\CurrentUser\My | Where-Object {$_.Subject -like "*WDKTestCert*"} | Select-Object -ExpandProperty Thumbprint')"
 # repeat:
 # clean
-rm -vRf $(find . -name Debug -o -name Release)
+make -f cygwin/Makefile clean ; rm -Rfv destdir
 # build
-MSBuild.exe build.vc19/nfs41-client.sln -t:Build  -p:Configuration=Debug -p:Platform=x64
-MSBuild.exe build.vc19/nfs41-client.sln -t:Build  -p:Configuration=Release -p:Platform=x64
+time ksh93 -c 'make -j8 -f cygwin/Makefile build && make -j8 -f cygwin/Makefile installdest && make -j8 -f cygwin/Makefile bintarball'
 
 
 #
