@@ -924,15 +924,28 @@ Datei befindet. Versuchen Sie, die Datei woanders zu speichern.</programlisting>
     <title>Troubleshooting &amp;&amp; finding bugs/debugging</title>
     <itemizedlist>
       <listitem>
+        <para>Debug level of NFS Client daemon:</para>
         <para><filename>nfsd_debug.exe</filename> has the <literal>-d</literal> option to set a level for debug output. Edit <filename>/sbin/msnfs41client</filename> to set the <literal>"-d"</literal> option.</para>
       </listitem>
       <listitem>
-        <para>The "msnfs41client" script has the option "<literal>watch_kernel_debuglog</literal>" to get the debug output of the kernel module.</para>
-        <para>Run as Administrator: <command>$ /sbin/msnfs41client watch_kernel_debuglog #</command></para>
-        <para>Currently requires DebugView (<link xl:href="https://learn.microsoft.com/en-gb/sysinternals/downloads/debugview">https://learn.microsoft.com/en-gb/sysinternals/downloads/debugview</link>) to be installed.</para>
+        <para>Viewing kernel debug output:</para>
+        <para>
+          <itemizedlist>
+            <listitem>
+              <para>The <command>/sbin/msnfs41client</command> script has the option "<literal>watch_kernel_debuglog</literal>"
+              to get the debug output of the kernel module.</para>
+              <para>Run as Administrator: <command>$ /sbin/msnfs41client watch_kernel_debuglog #</command></para>
+            </listitem>
+            <listitem>
+              <para>Use Windows Internals <command>DebugView</command>
+              (<link xl:href="https://learn.microsoft.com/en-gb/sysinternals/downloads/debugview">https://learn.microsoft.com/en-gb/sysinternals/downloads/debugview</link>).</para>
+            </listitem>
+          </itemizedlist>
+        </para>
       </listitem>
       <listitem>
-        <para>Watching network traffic:
+        <para>Watching network traffic:</para>
+        <para>
           <itemizedlist>
             <listitem><para>Use <command>$ /sbin/msnfs41client watch_nfs_traffic #</command> to watch the NFS network traffic</para></listitem>
             <listitem>

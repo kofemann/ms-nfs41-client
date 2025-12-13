@@ -829,17 +829,22 @@ Within WSL mount UNC path returned by `/sbin/nfs_mount`
 
 # Troubleshooting && finding bugs/debugging
 
-- `nfsd_debug.exe` has the `-d` option to set a level for debug output.
+- Debug level of NFS Client daemon:
+
+  `nfsd_debug.exe` has the `-d` option to set a level for debug output.
   Edit `/sbin/msnfs41client` to set the `"-d"` option.
 
-- The "msnfs41client" script has the option "`watch_kernel_debuglog`" to
-  get the debug output of the kernel module.
+- Viewing kernel debug output:
 
-  Run as Administrator: `$ /sbin/msnfs41client watch_kernel_debuglog #`
+  - The `/sbin/msnfs41client` script has the option
+    "`watch_kernel_debuglog`" to get the debug output of the kernel
+    module.
 
-  Currently requires DebugView
-  (<https://learn.microsoft.com/en-gb/sysinternals/downloads/debugview>)
-  to be installed.
+    Run as Administrator:
+    `$ /sbin/msnfs41client watch_kernel_debuglog #`
+
+  - Use Windows Internals `DebugView`
+    (<https://learn.microsoft.com/en-gb/sysinternals/downloads/debugview>).
 
 - Watching network traffic:
 
