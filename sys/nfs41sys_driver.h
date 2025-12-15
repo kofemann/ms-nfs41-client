@@ -97,9 +97,6 @@ typedef struct __nfs41_timings {
 /* Windows SMB driver also uses |IO_NETWORK_INCREMENT| */
 #define IO_NFS41FS_INCREMENT IO_NETWORK_INCREMENT
 
-/* Number of bytes needed to store an SID */
-#define SID_BUF_SIZE (SECURITY_MAX_SID_SIZE)
-
 #define DISABLE_CACHING 0
 #define ENABLE_READ_CACHING 1
 #define ENABLE_WRITE_CACHING 2
@@ -517,9 +514,9 @@ typedef struct _NFS41_SRV_OPEN {
      * aligned on Windows 10/32bit
      */
 #ifdef _MSC_BUILD
-    __declspec(align(16)) char open_pg_sidbuff[SID_BUF_SIZE];
+    __declspec(align(16)) char open_pg_sidbuff[MAX_SID_BUFFER_SIZE];
 #else
-    char open_pg_sidbuff[SID_BUF_SIZE] __attribute__((aligned(16)));
+    char open_pg_sidbuff[MAX_SID_BUFFER_SIZE] __attribute__((aligned(16)));
 #endif /* _MSC_BUILD */
 
     /* |open_pg_sid| - PrimaryGroup SID used for opening this NFS handle */

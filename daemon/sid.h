@@ -56,11 +56,11 @@ extern sidcache group_sidcache;
 #ifdef _MSC_BUILD
 /* Visual Studio */
 #define DECLARE_SID_BUFFER(varname) \
-    __declspec(align(16)) char (varname)[SECURITY_MAX_SID_SIZE+1]
+    __declspec(align(16)) char (varname)[MAX_SID_BUFFER_SIZE]
 #else
 /* clang */
 #define DECLARE_SID_BUFFER(varname) \
-    char (varname)[SECURITY_MAX_SID_SIZE+1] __attribute__((aligned(16)))
+    char (varname)[MAX_SID_BUFFER_SIZE] __attribute__((aligned(16)))
 #endif /* _MSC_BUILD */
 
 

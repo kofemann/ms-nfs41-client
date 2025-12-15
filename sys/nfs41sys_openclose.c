@@ -1388,9 +1388,9 @@ NTSTATUS nfs41_ShouldTryToCollapseThisOpen(
      * aligned on Windows 10/32bit
      */
 #ifdef _MSC_BUILD
-    __declspec(align(16)) char pg_sidbuff[SID_BUF_SIZE];
+    __declspec(align(16)) char pg_sidbuff[MAX_SID_BUFFER_SIZE];
 #else
-    char pg_sidbuff[SID_BUF_SIZE] __attribute__((aligned(16)));
+    char pg_sidbuff[MAX_SID_BUFFER_SIZE] __attribute__((aligned(16)));
 #endif /* _MSC_BUILD */
     PSID pg_sid = (PSID)&pg_sidbuff[0];
 

@@ -47,7 +47,7 @@ int create_unknownsid(WELL_KNOWN_SID_TYPE type, PSID *sid, DWORD *sid_len)
     int status;
     int lasterr;
 
-    *sid_len = SECURITY_MAX_SID_SIZE+1;
+    *sid_len = MAX_SID_BUFFER_SIZE;
     *sid = malloc(*sid_len);
     if (*sid == NULL) {
         status = ERROR_INSUFFICIENT_BUFFER;
@@ -338,7 +338,7 @@ void sidcache_addwithalias(sidcache *cache, const char *win32name, const char *a
     /* Replace the cache entry */
     sidcache_entry *e = &cache->entries[freeEntryIndex];
     DWORD sid_len = GetLengthSid(value);
-    EASSERT_MSG((sid_len <= SECURITY_MAX_SID_SIZE),
+    EASSERT_MSG((sid_len <= MAX_SID_BUFFER_SIZE),
         ("sid_len=%ld\n", (long)sid_len));
     e->sid = (PSID)e->sid_buffer;
     if (!CopySid(sid_len, e->sid, value)) {
@@ -510,12 +510,12 @@ int map_nfs4servername_2_sid(nfs41_daemon_globals *nfs41dg, int query, DWORD *si
     }
 #endif /* NFS41_DRIVER_FEATURE_MAP_UNMAPPED_USER_TO_UNIXUSER_SID */
 
-    *sid = malloc(SECURITY_MAX_SID_SIZE+1);
+    *sid = malloc(MAX_SID_BUFFER_SIZE);
     if (*sid == NULL) {
         status = GetLastError();
         goto out;
     }
-    *sid_len = SECURITY_MAX_SID_SIZE;
+    *sid_len = MAX_SID_BUFFER_SIZE;
     domain_len = sizeof(domain_buff);
 
     status = lookupaccountnameutf8(NULL, nfsname, *sid, sid_len,
@@ -547,8 +547,8 @@ int map_nfs4servername_2_sid(nfs41_daemon_globals *nfs41dg, int query, DWORD *si
     switch(status) {
     case ERROR_INSUFFICIENT_BUFFER:
         /*
-         * This should never happen, as |SECURITY_MAX_SID_SIZE| is
-         * the largest possible SID buffer size for Windows
+         * This should never happen, as |MAX_SID_BUFFER_SIZE| should be
+         * larger than the largest possible SID buffer size for Windows
          */
         eprintf("map_nfs4servername_2_sid(query=0x%x,nfsname='%s'): "
                 "LookupAccountName failed with "

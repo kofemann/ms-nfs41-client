@@ -65,6 +65,13 @@
  */
 #define NFS41_SYS_MAX_PATH_LEN          4096
 
+/*
+ * |MAX_SID_BUFFER_SIZE| - Number of bytes needed to store an SID,
+ * rounded up to 64byte boundaries
+ * (note this must ALWAYS be equal or larger than |SECURITY_MAX_SID_SIZE|)
+ */
+#define MAX_SID_BUFFER_SIZE (128)
+
 /* |_nfs41_opcodes| and |g_upcall_op_table| must be in sync! */
 typedef enum _nfs41_opcodes {
     NFS41_SYSOP_INVALID_OPCODE0,

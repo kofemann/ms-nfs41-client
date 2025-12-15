@@ -73,7 +73,7 @@ PQUERY_ON_CREATE_ECP_CONTEXT get_queryoncreateecpcontext(
     __in PIRP Irp);
 _Success_(return == true) bool
 get_primarygroup_id(
-    _Out_writes_bytes_(SID_BUF_SIZE) SID *restrict ret_sid);
+    _Out_writes_bytes_(MAX_SID_BUFFER_SIZE) SID *restrict ret_sid);
 void qocec_file_stat_information(
     OUT QUERY_ON_CREATE_FILE_STAT_INFORMATION *restrict qocfsi,
     IN const NFS41_FCB *restrict nfs41_fcb);

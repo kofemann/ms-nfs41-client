@@ -63,6 +63,13 @@
     L"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"
 
 /*
+ * |MAX_SID_BUFFER_SIZE| - Number of bytes needed to store an SID,
+ * rounded up to 64byte boundaries
+ * (note this must ALWAYS be equal or larger than |SECURITY_MAX_SID_SIZE|)
+ */
+#define MAX_SID_BUFFER_SIZE (128)
+
+/*
  * DECLARE_SID_BUFFER - declare a buffer for a SID value
  * Note that buffers with SID values must be 16byte aligned
  * on Windows 10/32bit, othewise the kernel might return
@@ -71,11 +78,11 @@
 #ifdef _MSC_BUILD
 /* Visual Studio */
 #define DECLARE_SID_BUFFER(varname) \
-    __declspec(align(16)) char (varname)[SECURITY_MAX_SID_SIZE+1]
+    __declspec(align(16)) char (varname)[MAX_SID_BUFFER_SIZE]
 #else
 /* clang */
 #define DECLARE_SID_BUFFER(varname) \
-    char (varname)[SECURITY_MAX_SID_SIZE+1] __attribute__((aligned(16)))
+    char (varname)[MAX_SID_BUFFER_SIZE] __attribute__((aligned(16)))
 #endif /* _MSC_BUILD */
 
 /*
@@ -492,7 +499,7 @@ int wmain(int ac, wchar_t *av[])
 
     DECLARE_SID_BUFFER(sidbuff);
     PSID pgsid = (PSID)sidbuff;
-    DWORD pgsid_size = SECURITY_MAX_SID_SIZE;
+    DWORD pgsid_size = MAX_SID_BUFFER_SIZE;
 
     if (!get_group_sid(newgrpname, pgsid, &pgsid_size)) {
         (void)fwprintf(stderr, L"%ls: Could not find group '%ls'.\n",

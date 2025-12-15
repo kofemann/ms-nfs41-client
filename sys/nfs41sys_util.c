@@ -224,7 +224,7 @@ PQUERY_ON_CREATE_ECP_CONTEXT get_queryoncreateecpcontext(
 
 _Success_(return == true) bool
 get_primarygroup_id(
-    _Out_writes_bytes_(SID_BUF_SIZE) SID *restrict ret_sid)
+    _Out_writes_bytes_(MAX_SID_BUFFER_SIZE) SID *restrict ret_sid)
 {
     PACCESS_TOKEN token = NULL;
     PVOID infoBuffer = NULL;
@@ -263,10 +263,10 @@ get_primarygroup_id(
     }
 
     ULONG sidLength = RtlLengthSid(primaryGroup->PrimaryGroup);
-    if ((sidLength == 0UL) || (sidLength > SID_BUF_SIZE)) {
+    if ((sidLength == 0UL) || (sidLength > MAX_SID_BUFFER_SIZE)) {
         DbgP("get_primarygroup_id: "
             "SID length (%lu) invalid or too large for buffer (%u)\n",
-            sidLength, (unsigned)SID_BUF_SIZE);
+            sidLength, (unsigned)MAX_SID_BUFFER_SIZE);
         retval = false;
         goto out_cleanup_sequeryinfotok;
     }
