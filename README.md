@@ -901,14 +901,38 @@ Source code can be obtained from
 
 - **Option 2:** Windows 11 with Visual Studio 2022 Community
 
-  - Start Visual Studio 2022 installer and import the installer config
-    file `ms-nfs41-client/build.vc19/ms-nfs41-client_vs2022.vsconfig`,
-    and then install Visual Studio.
+  - Compiler:
 
-    > [!NOTE]
-    > Due to a bug in the VS installer, it is sometimes required to
-    > manually add another (random) component to be installed;
-    > otherwise, the imported config might be ignored.
+    - **Option 2a:**Use GUI installer
+
+      Start Visual Studio 2022 installer and import the installer config
+      file `ms-nfs41-client/build.vc19/ms-nfs41-client_vs2022.vsconfig`,
+      and then install Visual Studio.
+
+      > [!NOTE]
+      > Due to a bug in the VS installer, it is sometimes required to
+      > manually add another (random) component to be installed;
+      > otherwise, the imported config might be ignored.
+
+    - **Option 2b:**Use command-line
+
+      <div class="example">
+
+      <div class="title">
+
+      Install VS2022 Community Edition from a Cygwin Administrator shell
+
+      </div>
+
+      ``` bash
+      # get Visual Studio 2022 installer config
+      wget 'https://raw.githubusercontent.com/kofemann/ms-nfs41-client/refs/heads/master/build.vc19/ms-nfs41-client_vs2022.vsconfig'
+
+      # install Visual Studio 2022 via winget(1)
+      winget install -e --id Microsoft.VisualStudio.2022.Community --silent --accept-package-agreements --accept-source-agreements --override "--quiet --wait --norestart --config \"$(cygpath -w "$PWD/ms-nfs41-client_vs2022.vsconfig")\""
+      ```
+
+      </div>
 
   - WDK for Windows 11, version 1591, from
     <https://go.microsoft.com/fwlink/?linkid=2286137>
