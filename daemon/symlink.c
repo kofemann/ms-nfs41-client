@@ -26,9 +26,14 @@
 
 #include "nfs41_driver.h"
 #include "nfs41_ops.h"
+#include "nfs41_daemon.h" /* Required for |nfs41_daemon_globals| */
 #include "upcall.h"
 #include "util.h"
 #include "daemon_debug.h"
+#ifdef NFS41_DRIVER_SETGID_NEWGRP_SUPPORT
+#include "accesstoken.h"
+#endif /* NFS41_DRIVER_SETGID_NEWGRP_SUPPORT */
+
 
 /* |DPRINTF()| levels for acl logging */
 #define SYMLLVL1 1
@@ -369,6 +374,7 @@ out:
 static int handle_symlink_set(void *daemon_context, nfs41_upcall *upcall)
 {
     symlink_upcall_args *args = &upcall->args.symlink;
+    nfs41_daemon_globals *nfs41dg = daemon_context;
     nfs41_open_state *state = upcall->state_ref;
     int status = NO_ERROR;
 
@@ -404,9 +410,8 @@ static int handle_symlink_set(void *daemon_context, nfs41_upcall *upcall)
     createattrs.attrmask.count = 2;
     createattrs.attrmask.arr[0] = 0;
     createattrs.attrmask.arr[1] = FATTR4_WORD1_MODE;
+    /* FIXME: We should get the "mode" value from the kernel */
     createattrs.mode = 0777;
-
-    /* FIXME: What about newgrp support ? */
 
     status = nfs41_create(state->session, NF4LNK, &createattrs,
         args->target_set, &state->parent, &state->file, &info);
@@ -417,6 +422,59 @@ static int handle_symlink_set(void *daemon_context, nfs41_upcall *upcall)
         status = map_symlink_errors(status);
         goto out;
     }
+
+#ifdef NFS41_DRIVER_SETGID_NEWGRP_SUPPORT
+    /*
+     * Hack: Support |setgid()|/newgrp(1)/sg(1)/winsg(1) by
+     * fetching groupname from auth token for new files and
+     * do a "manual" chgrp on the new file
+     *
+     * Note that |RPCSEC_AUTH_NONE| does not have any
+     * user/group information, therefore newgrp will be a
+     * NOP here.
+     */
+    if (state->session->client->rpc->sec_flavor != RPCSEC_AUTH_NONE) {
+        char *s;
+        int chgrp_status;
+        stateid_arg stateid;
+        nfs41_file_info createchgrpattrs = {
+            .attrmask.count = 2,
+            .attrmask.arr[0] = 0,
+            .attrmask.arr[1] = FATTR4_WORD1_OWNER_GROUP,
+            .owner_group = createchgrpattrs.owner_group_buf
+        };
+
+        /* fixme: we should store the |owner_group| name in |upcall| */
+        if (!get_token_primarygroup_name(upcall->currentthread_token,
+            createchgrpattrs.owner_group)) {
+            eprintf("handle_symlink_set(args->path='%s'): "
+                "get_token_primarygroup_name() failed.\n",
+                args->path);
+            goto create_symlink_chgrp_out;
+        }
+        s = createchgrpattrs.owner_group+strlen(createchgrpattrs.owner_group);
+        s = stpcpy(s, "@");
+        (void)stpcpy(s, nfs41dg->localdomain_name);
+        DPRINTF(1, ("handle_symlink_set(state->file.name.name='%s'): "
+            "owner_group='%s'\n",
+            state->file.name.name,
+            createchgrpattrs.owner_group));
+
+        nfs41_open_stateid_arg(state, &stateid);
+        chgrp_status = nfs41_setattr(state->session,
+            &state->file, &stateid, &createchgrpattrs);
+        if (chgrp_status) {
+            eprintf("handle_symlink_set(args->path='%s'): "
+                "nfs41_setattr(owner_group='%s') "
+                "failed with error '%s'.\n",
+                args->path,
+                createchgrpattrs.owner_group,
+                nfs_error_string(chgrp_status));
+        }
+create_symlink_chgrp_out:
+        ;
+    }
+#endif /* NFS41_DRIVER_SETGID_NEWGRP_SUPPORT */
 
 out:
     return status;
