@@ -37,7 +37,6 @@
 #include "fileinfoutil.h"
 #include "util.h"
 #include "idmap.h"
-#include "accesstoken.h"
 
 static int create_open_state(
     IN const char *path,
@@ -1134,49 +1133,9 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
          * user/group information, therefore newgrp will be a
          * NOP here.
          */
-        if (state->session->client->rpc->sec_flavor != RPCSEC_AUTH_NONE) {
-            char *s;
-            int chgrp_status;
-            stateid_arg stateid;
-            nfs41_file_info createchgrpattrs = {
-                .attrmask.count = 2,
-                .attrmask.arr[0] = 0,
-                .attrmask.arr[1] = FATTR4_WORD1_OWNER_GROUP,
-                .owner_group = createchgrpattrs.owner_group_buf
-            };
-
-            /* fixme: we should store the |owner_group| name in |upcall| */
-            if (!get_token_primarygroup_name(upcall->currentthread_token,
-                createchgrpattrs.owner_group)) {
-                eprintf("handle_open(args->path='%s')/cygwin symlink: "
-                    "get_token_primarygroup_name() failed.\n",
-                    args->path);
-                goto create_symlink_chgrp_out;
-            }
-            s = createchgrpattrs.owner_group+
-                strlen(createchgrpattrs.owner_group);
-            s = stpcpy(s, "@");
-            (void)stpcpy(s, nfs41dg->localdomain_name);
-            DPRINTF(1,
-                ("handle_open(state->file.name.name='%s')/cygwin symlink: "
-                "owner_group='%s'\n",
-                state->file.name.name,
-                createchgrpattrs.owner_group));
-
-            nfs41_open_stateid_arg(state, &stateid);
-            chgrp_status = nfs41_setattr(state->session,
-                &state->file, &stateid, &createchgrpattrs);
-            if (chgrp_status) {
-                eprintf("handle_open(args->path='%s')/cygwin symlink: "
-                    "nfs41_setattr(owner_group='%s') "
-                    "failed with error '%s'.\n",
-                    args->path,
-                    createchgrpattrs.owner_group,
-                    nfs_error_string(chgrp_status));
-            }
-create_symlink_chgrp_out:
-            ;
-        }
+        (void)chgrp_to_primarygroup(nfs41dg,
+            upcall->currentthread_token,
+            state);
 #endif /* NFS41_DRIVER_SETGID_NEWGRP_SUPPORT */
 
         nfs_to_basic_info(state->file.name.name,
@@ -1305,58 +1264,19 @@ supersede_retry:
             goto out_free_state;
         } else {
 #ifdef NFS41_DRIVER_SETGID_NEWGRP_SUPPORT
-            /*
-             * Hack: Support |setgid()|/newgrp(1)/sg(1)/winsg(1) by
-             * fetching groupname from auth token for new files and
-             * do a "manual" chgrp on the new file
-             *
-             * Note that |RPCSEC_AUTH_NONE| does not have any
-             * user/group information, therefore newgrp will be a
-             * NOP here.
-             */
-            if ((create == OPEN4_CREATE) &&
-                (state->session->client->rpc->sec_flavor !=
-                    RPCSEC_AUTH_NONE)) {
-                char *s;
-                int chgrp_status;
-                stateid_arg stateid;
-                nfs41_file_info createchgrpattrs;
-
-                createchgrpattrs.attrmask.count = 2;
-                createchgrpattrs.attrmask.arr[0] = 0;
-                createchgrpattrs.attrmask.arr[1] = FATTR4_WORD1_OWNER_GROUP;
-                createchgrpattrs.owner_group = createchgrpattrs.owner_group_buf;
-                /* fixme: we should store the |owner_group| name in |upcall| */
-                if (!get_token_primarygroup_name(upcall->currentthread_token,
-                    createchgrpattrs.owner_group)) {
-                    eprintf("handle_open(args->path='%s'): "
-                        "OPEN4_CREATE: "
-                        "get_token_primarygroup_name() failed.\n",
-                        args->path);
-                    goto create_chgrp_out;
-                }
-                s = createchgrpattrs.owner_group+strlen(createchgrpattrs.owner_group);
-                s = stpcpy(s, "@");
-                (void)stpcpy(s, nfs41dg->localdomain_name);
-                DPRINTF(1, ("handle_open(state->file.name.name='%s'): "
-                    "OPEN4_CREATE: owner_group='%s'\n",
-                    state->file.name.name,
-                    createchgrpattrs.owner_group));
-
-                nfs41_open_stateid_arg(state, &stateid);
-                chgrp_status = nfs41_setattr(state->session,
-                    &state->file, &stateid, &createchgrpattrs);
-                if (chgrp_status) {
-                    eprintf("handle_open(args->path='%s'): "
-                        "OPEN4_CREATE: "
-                        "nfs41_setattr(owner_group='%s') "
-                        "failed with error '%s'.\n",
-                        args->path,
-                        createchgrpattrs.owner_group,
-                        nfs_error_string(chgrp_status));
-                }
-create_chgrp_out:
-                ;
+            if (create == OPEN4_CREATE) {
+                /*
+                 * Hack: Support |setgid()|/newgrp(1)/sg(1)/winsg(1) by
+                 * fetching groupname from auth token for new files and
+                 * do a "manual" chgrp on the new file
+                 *
+                 * Note that |RPCSEC_AUTH_NONE| does not have any
+                 * user/group information, therefore newgrp will be a
+                 * NOP here.
+                 */
+                (void)chgrp_to_primarygroup(nfs41dg,
+                    upcall->currentthread_token,
+                    state);
             }
 #endif /* NFS41_DRIVER_SETGID_NEWGRP_SUPPORT */
 

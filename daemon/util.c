@@ -33,6 +33,9 @@
 #include "nfs41_ops.h"
 #include <devioctl.h>
 #include "nfs41_driver.h" /* for |delayxid()| */
+#ifdef NFS41_DRIVER_SETGID_NEWGRP_SUPPORT
+#include "accesstoken.h"
+#endif /* NFS41_DRIVER_SETGID_NEWGRP_SUPPORT */
 
 
 char *stpcpy(char *restrict s1, const char *restrict s2)
@@ -853,3 +856,69 @@ int delayxid(LONGLONG xid, LONGLONG moredelaysecs)
 
     return status;
 }
+
+#ifdef NFS41_DRIVER_SETGID_NEWGRP_SUPPORT
+/*
+ * Hack: Support |setgid()|/newgrp(1)/sg(1)/winsg(1) by
+ * fetching groupname from auth token for new files and
+ * do a "manual" chgrp on the new file
+ */
+int chgrp_to_primarygroup(
+    IN nfs41_daemon_globals *nfs41dg,
+    IN HANDLE currentthread_token,
+    IN nfs41_open_state *state)
+{
+    int chgrp_status = NO_ERROR;
+
+    /*
+     * |RPCSEC_AUTH_NONE| does not have any
+     * user/group information, therefore newgrp will be a
+     * NOP here.
+     */
+    if (state->session->client->rpc->sec_flavor == RPCSEC_AUTH_NONE) {
+        return NO_ERROR;
+    }
+
+    char *s;
+    stateid_arg stateid;
+    nfs41_file_info createchgrpattrs = {
+        .attrmask.count = 2,
+        .attrmask.arr[0] = 0,
+        .attrmask.arr[1] = FATTR4_WORD1_OWNER_GROUP,
+        .owner_group = createchgrpattrs.owner_group_buf
+    };
+
+    /* fixme: we should store the |owner_group| name in |upcall| */
+    if (!get_token_primarygroup_name(currentthread_token,
+        createchgrpattrs.owner_group)) {
+        eprintf("chgrp_to_primarygroup(state->file.name.name='%s'): "
+            "get_token_primarygroup_name() failed.\n",
+            state->file.name.name);
+        goto create_symlink_chgrp_out;
+    }
+    s = createchgrpattrs.owner_group+strlen(createchgrpattrs.owner_group);
+    s = stpcpy(s, "@");
+    (void)stpcpy(s, nfs41dg->localdomain_name);
+    DPRINTF(1, ("chgrp_to_primarygroup(state->file.name.name='%s'): "
+        "owner_group='%s'\n",
+        state->file.name.name,
+        createchgrpattrs.owner_group));
+
+    nfs41_open_stateid_arg(state, &stateid);
+    chgrp_status = nfs41_setattr(state->session,
+        &state->file, &stateid, &createchgrpattrs);
+    if (chgrp_status) {
+        eprintf("chgrp_to_primarygroup(state->file.name.name='%s'): "
+            "nfs41_setattr(owner_group='%s') "
+            "failed with error '%s'.\n",
+            state->file.name.name,
+            createchgrpattrs.owner_group,
+            nfs_error_string(chgrp_status));
+    }
+
+create_symlink_chgrp_out:
+    ;
+
+    return chgrp_status;
+}
+#endif /* NFS41_DRIVER_SETGID_NEWGRP_SUPPORT */
