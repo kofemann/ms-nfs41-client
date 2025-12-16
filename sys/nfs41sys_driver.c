@@ -792,10 +792,16 @@ NTSTATUS nfs41_CreateSrvCall(
      * FIXME: This should be a tuneable
      *
      * Notes:
-     * - Windows 10 limit is 1023 per
+     * - This has only an effect if |nfs41_Create()| enables
+     * |SrvOpen->BufferingFlags |= FCB_STATE_COLLAPSING_ENABLED|
+     * - A large value like |8191| will almost double the build time of a parallel
+     * bash build
+     * - Windows 10 limit is |1023| per
      * $ powershell -Command 'Get-SmbClientConfiguration | Select DormantFileLimit'
+     * - It seems most RDBSS users use |2^n-1| values, but we do not know yet
+     * *WHY* they use this formula.
      */
-    pSrvCall->MaximumNumberOfCloseDelayedFiles = 8192;
+    pSrvCall->MaximumNumberOfCloseDelayedFiles = 64-1;
 #endif /* ENABLE_COLLAPSEOPEN */
 
     if (IoGetCurrentProcess() == RxGetRDBSSProcess()) {
