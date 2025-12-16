@@ -173,7 +173,9 @@ installdest:
 	cp "$(PROJECT_BASEDIR_DIR)/tests/winrunassystem/winrunassystem.i686.exe" $(DESTDIR)/sbin/winrunassystem.i686.exe
 	cp "$(PROJECT_BASEDIR_DIR)/tests/winrunassystem/nfs_globalmount.x86_64.exe" $(DESTDIR)/sbin/nfs_globalmount.x86_64.exe
 	cp "$(PROJECT_BASEDIR_DIR)/tests/winrunassystem/nfs_globalmount.i686.exe" $(DESTDIR)/sbin/nfs_globalmount.i686.exe
-	cp "$(PROJECT_BASEDIR_DIR)/tests/lssparse/lssparse.x86_64.exe" $(DESTDIR)/bin/lssparse.x86_64.exe
+	if [[ "$$(uname -m)" != 'i686' ]] ; then \
+		cp "$(PROJECT_BASEDIR_DIR)/tests/lssparse/lssparse.x86_64.exe" $(DESTDIR)/bin/lssparse.x86_64.exe ; \
+	fi
 	cp "$(PROJECT_BASEDIR_DIR)/tests/winsg/winsg.x86_64.exe" $(DESTDIR)/bin/winsg.x86_64.exe
 	cp "$(PROJECT_BASEDIR_DIR)/tests/winsg/winsg.i686.exe" $(DESTDIR)/bin/winsg.i686.exe
 	cp "$(PROJECT_BASEDIR_DIR)/tests/ea/nfs_ea.x86_64.exe" $(DESTDIR)/bin/nfs_ea.x86_64.exe
