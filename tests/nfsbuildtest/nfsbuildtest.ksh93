@@ -251,7 +251,7 @@ function gcc_build
 
 		if (( build_parallel == 1 )) ; then
 			make_options+=(
-				'--load-average 32'
+				'--load-average' '32'
 				'-j16'
 			)
 		else
