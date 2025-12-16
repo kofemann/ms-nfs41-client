@@ -1187,6 +1187,10 @@ retry_on_link:
         (void)RxFlushFcbInSystemCache((PFCB)RxContext->pFcb, TRUE);
     }
 
+    if (!nfs41_fcb->StandardInfo.Directory) {
+        SrvOpen->BufferingFlags |= FCB_STATE_COLLAPSING_ENABLED;
+    }
+
     if (!nfs41_fcb->StandardInfo.Directory &&
         isAttributeOnlyDesiredAccess(params)) {
         SrvOpen->Flags |= SRVOPEN_FLAG_NO_BUFFERING_STATE_CHANGE;
