@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2023-2026 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -83,19 +83,6 @@ BOOLEAN isFilenameTooLong(
             if (count > len) return TRUE;
             count++;
         }
-        p++;
-    }
-    return FALSE;
-}
-
-BOOLEAN isStream(
-    PUNICODE_STRING name)
-{
-    LONG i;
-    PWCH p = name->Buffer;
-    for (i = 0; i < name->Length / 2; i++) {
-        if (p[0] == L':') return TRUE;
-        else if (p[0] == L'\0') return FALSE;
         p++;
     }
     return FALSE;

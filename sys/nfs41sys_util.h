@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2023-2026 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -52,8 +52,6 @@ static INLINE ULONG length_as_utf8(
 BOOLEAN isFilenameTooLong(
     PUNICODE_STRING name,
     PNFS41_V_NET_ROOT_EXTENSION pVNetRootContext);
-BOOLEAN isStream(
-    PUNICODE_STRING name);
 BOOLEAN is_root_directory(
     PRX_CONTEXT RxContext);
 NTSTATUS nfs41_ProbeAndLockKernelPages(

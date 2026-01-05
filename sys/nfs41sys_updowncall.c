@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2023-2026 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -799,21 +799,27 @@ NTSTATUS nfs41_downcall(
 
         /*
          * Verify that we really read all bytes send by the userland daemon!
-         * (|NFS41_SYSOP_VOLUME_QUERY| is exempt from this test, because most
-         * volume queries allows partial reads from |inbuf| if the caller
-         * passes a buffer which is too small)
+         *
+         * (|NFS41_SYSOP_VOLUME_QUERY| and getting |FileStreamInformation| are
+         * exempt from this test, because most volume queries and
+         * |FileStreamInformation| allows partial reads from |inbuf| if the
+         * caller passes a buffer which is too small)
          */
         ULONG bytesread_from_inbuf = (ULONG)(inbuf - inbuf_orig);
         if ((header_tmp->opcode != NFS41_SYSOP_VOLUME_QUERY) &&
+            (!((header_tmp->opcode == NFS41_SYSOP_FILE_QUERY) &&
+                (cur->u.QueryFile.InfoClass == FileStreamInformation))) &&
             (bytesread_from_inbuf != inbuf_len)) {
             print_error("nfs41_downcall: ASSERT: '%s' (xid=%lld): "
-                "(inbuf(=0x%p)-inbuf_orig(=0x%p))(=%ld) != inbuf_len(=%ld)\n",
+                "(inbuf(=0x%p)-inbuf_orig(=0x%p))(=%ld) != inbuf_len(=%ld), "
+                "cur->status=%d\n",
                 opcode2string(header_tmp->opcode),
                 cur->xid,
                 inbuf,
                 inbuf_orig,
                 (long)bytesread_from_inbuf,
-                (long)inbuf_len);
+                (long)inbuf_len,
+                cur->status);
             status = STATUS_BUFFER_OVERFLOW;
         }
     }

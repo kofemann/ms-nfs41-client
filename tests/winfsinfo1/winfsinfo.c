@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (c) 2023-2026 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -1518,6 +1518,85 @@ done:
     return res;
 }
 
+static
+int get_filestreaminfo(const char *progname, const char *filename)
+{
+    int res = EXIT_FAILURE;
+    NTSTATUS status;
+    IO_STATUS_BLOCK iostatus;
+    PFILE_STREAM_INFORMATION fsi = NULL;
+
+    HANDLE fileHandle = CreateFileA(filename,
+        GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING,
+        FILE_FLAG_BACKUP_SEMANTICS, NULL);
+    if (fileHandle == INVALID_HANDLE_VALUE) {
+        (void)fprintf(stderr,
+            "%s: Error opening file '%s'. Last error was %d.\n",
+            progname,
+            filename,
+            (int)GetLastError());
+        return EXIT_FAILURE;
+    }
+
+#define MAX_STREAM_INFOS (16)
+#define FSI_MAXCHARS (256)
+    fsi = calloc(1,
+        (sizeof(FILE_STREAM_INFORMATION)+sizeof(wchar_t)*FSI_MAXCHARS)*MAX_STREAM_INFOS);
+    if (fsi == NULL) {
+         (void)fprintf(stderr,
+            "%s: Out of memory.\n",
+            progname);
+        return EXIT_FAILURE;
+    }
+
+    status = ZwQueryInformationFile(fileHandle,
+        &iostatus,
+        fsi,
+        ((sizeof(FILE_STREAM_INFORMATION)+sizeof(wchar_t)*FSI_MAXCHARS)*MAX_STREAM_INFOS),
+        FileStreamInformation);
+
+    if (status != STATUS_SUCCESS) {
+        (void)fprintf(stderr, "%s: ZwQueryInformationFile() "
+            "error. status==0x%lx.\n",
+            progname,
+            (long)status);
+        res = EXIT_FAILURE;
+        goto done;
+    }
+
+    int streamindex;
+    FILE_STREAM_INFORMATION *stream;
+
+    (void)printf("(\n");
+    (void)printf("\tfilename='%s'\n", filename);
+    (void)printf("\ttypeset -a streams=(\n");
+    for (stream = fsi, streamindex = 0 ; ; streamindex++) {
+        (void)printf("\t\t[%d]=(\n", streamindex);
+        (void)printf("\t\t\tStreamName='%.*ls'\n",
+            (int)(stream->StreamNameLength/sizeof(WCHAR)),
+            stream->StreamName);
+        (void)printf("\t\t\tStreamSize=%lld\n",
+            (long long)stream->StreamSize.QuadPart);
+        (void)printf("\t\t\tStreamAllocationSize=%lld\n",
+            (long long)stream->StreamAllocationSize.QuadPart);
+        (void)printf("\t\t)\n");
+
+        if (stream->NextEntryOffset == 0)
+            break;
+
+        stream = (FILE_STREAM_INFORMATION *)((char *)stream + stream->NextEntryOffset);
+    }
+    (void)printf("\t)\n");
+
+    (void)printf(")\n");
+    res = EXIT_SUCCESS;
+
+done:
+    free(fsi);
+    (void)CloseHandle(fileHandle);
+    return res;
+}
+
 #define BUFFER_SIZE 2048
 
 static
@@ -1769,6 +1848,7 @@ void usage(void)
         "fileremoteprotocolinfo|"
         "fileidinfo|"
         "filenetworkphysicalnameinfo|"
+        "filestreaminfo|"
         "fsctlqueryallocatedranges|"
         "get_wnetgetresourceinformation|"
         "get_wnetgetresourceparent"
@@ -1850,6 +1930,9 @@ int main(int ac, char *av[])
     }
     else if (!strcmp(subcmd, "filenetworkphysicalnameinfo")) {
         return get_filenetworkphysicalnameinfo(av[0], av[2]);
+    }
+    else if (!strcmp(subcmd, "filestreaminfo")) {
+        return get_filestreaminfo(av[0], av[2]);
     }
     else if (!strcmp(subcmd, "fsctlqueryallocatedranges")) {
         return fsctlqueryallocatedranges(av[0], av[2]);

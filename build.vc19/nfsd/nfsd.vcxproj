@@ -331,6 +331,7 @@
     <ClCompile Include="..\..\daemon\upcall.c" />
     <ClCompile Include="..\..\daemon\util.c" />
     <ClCompile Include="..\..\daemon\volume.c" />
+    <ClCompile Include="..\..\daemon\winstreams.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\daemon\accesstoken.h" />
@@ -356,6 +357,7 @@
     <ClInclude Include="..\..\daemon\tree.h" />
     <ClInclude Include="..\..\daemon\upcall.h" />
     <ClInclude Include="..\..\daemon\util.h" />
+    <ClInclude Include="..\..\daemon\winstreams.h" />
     <ClInclude Include="..\..\include\from_kernel.h" />
     <ClInclude Include="..\..\include\nfs_ea.h" />
   </ItemGroup>

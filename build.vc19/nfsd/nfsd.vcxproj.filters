@@ -147,6 +147,9 @@
     <ClCompile Include="..\..\daemon\volume.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\daemon\winstreams.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\daemon\accesstoken.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -225,6 +228,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\daemon\accesstoken.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\daemon\winstreams.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

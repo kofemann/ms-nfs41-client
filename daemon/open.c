@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2023-2026 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -37,6 +37,7 @@
 #include "fileinfoutil.h"
 #include "util.h"
 #include "idmap.h"
+#include "winstreams.h"
 
 static int create_open_state(
     IN const char *path,
@@ -282,8 +283,24 @@ static int open_or_delegate(
 {
     int status;
 
+#ifdef NFS41_WINSTREAMS_SUPPORT
+    /*
+     * FIXME: We get |NFS4ERR_BAD_STATEID| from Solaris 11.4 nfsd if we try
+     * to read a NFS named attribute if the base file has a delegation.
+     * The "why ?" is currently being investigated, for now we just skip the
+     * delegation lookup for NFS named attributes.
+     */
+    if (!is_stream_path_fh(&state->file)) {
+        /* check for existing delegation */
+        status = nfs41_delegate_open(state, create, createattrs, info);
+    }
+    else {
+        status = 1;
+    }
+#else
     /* check for existing delegation */
     status = nfs41_delegate_open(state, create, createattrs, info);
+#endif /* NFS41_WINSTREAMS_SUPPORT */
 
     /* get an open stateid if we have no delegation stateid */
     if (status)
@@ -880,8 +897,12 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
     // first check if windows told us it's a directory
     if (args->create_opts & FILE_DIRECTORY_FILE)
         state->type = NF4DIR;
-    else
-        state->type = NF4REG;
+    else {
+        if (strstr(args->path, ":"))
+            state->type = NF4NAMEDATTR;
+        else
+            state->type = NF4REG;
+    }
 
 #ifdef NFS41_DRIVER_ALLOW_CREATEFILE_ACLS
     if (args->sec_desc_len) {
@@ -1007,20 +1028,26 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
                     goto out_free_state;
                 }
             }
-        } else if (info.type == NF4REG) {
+        } else if ((info.type == NF4REG) || (info.type == NF4NAMEDATTR)) {
             DPRINTF(2, ("handle nfs41_open: FILE\n"));
             if (args->create_opts & FILE_DIRECTORY_FILE) {
-                DPRINTF(1, ("trying to open file '%s' as a directory\n",
-                    state->path.path));
+                DPRINTF(1,
+                    ("trying to open file state->path.path='%s',"
+                    "info.type=%d as a directory\n",
+                    state->path.path, (int)info.type));
                 /*
                  * Notes:
                  * - SMB returns |STATUS_OBJECT_TYPE_MISMATCH|
                  * while NTFS returns |STATUS_NOT_A_DIRECTORY|
                  * - See |map_open_errors()| for the mapping to
                  * |STATUS_*|
+                 * - We do not return |ERROR_DIRECTORY| when opening a Win32
+                 * stream
                  */
-                status = ERROR_DIRECTORY;
-                goto out_free_state;
+                if (is_stream_path(&state->path) == false) {
+                    status = ERROR_DIRECTORY;
+                    goto out_free_state;
+                }
             }
         } else if (info.type == NF4LNK) {
             DPRINTF(2, ("handle nfs41_open: SYMLINK\n"));
@@ -1324,7 +1351,7 @@ supersede_retry:
 
 #ifdef DEBUG_OPEN_SPARSE_FILES
     if ((status == 0) &&
-        (info.type == NF4REG) &&
+        ((info.type == NF4REG) || (info.type == NF4NAMEDATTR)) &&
         (state->session->client->root->supports_nfs42_seek)) {
         //debug_list_sparsefile_holes(state);
         debug_list_sparsefile_datasections(state);
@@ -1524,7 +1551,7 @@ static int handle_close(void *deamon_context, nfs41_upcall *upcall)
     nfs41_open_state *state = upcall->state_ref;
 
     /* return associated file layouts if necessary */
-    if (state->type == NF4REG)
+    if (state->type == NF4REG || state->type == NF4NAMEDATTR)
         pnfs_layout_state_close(state->session, state, args->remove);
 
     if (state->srv_open == args->srv_open)

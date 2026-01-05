@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2023-2026 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -59,7 +59,7 @@ ULONG nfs_file_info_to_attributes(
         if (info->symlink_dir)
             attrs |= FILE_ATTRIBUTE_DIRECTORY;
     }
-    else if (info->type == NF4REG) {
+    else if ((info->type == NF4REG) || (info->type == NF4NAMEDATTR)) {
         if (superblock->sparse_file_support) {
             /* FIXME: What about pNFS ? */
             attrs |= FILE_ATTRIBUTE_SPARSE_FILE;
@@ -383,6 +383,7 @@ void nfs_to_stat_lx_info(
     stat_lx_out->LxMode = 0UL;
     switch(info->type) {
         case NF4REG:
+        case NF4NAMEDATTR:
             stat_lx_out->LxMode |= LX_MODE_S_IFREG;
             break;
         case NF4DIR:

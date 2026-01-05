@@ -1,5 +1,5 @@
 #
-# ms-nfs41-client manual testing sequence, 2025-12-12
+# ms-nfs41-client manual testing sequence, 2026-01-03
 #
 # Draft version, needs to be turned into automated tests
 # if possible
@@ -216,6 +216,25 @@ $ rm -f d1 d2 d1.diff ; printf '1\n2\n' >d1 ; cp d1 d2 ; printf '3\n' >> d2 ; di
 ---- snip ----
 
 The test should print "# test OK"
+
+
+#
+# Tests for Win32 streams
+#
+
+# this test should print $'dir_line1\ndir_line2\n'
+rm -Rf dir1 && mkdir dir1 && cmd /c 'echo dir_line1 >>dir1:dirstr1 & echo dir_line2 >>dir1:dirstr1 & cat <dir1:dirstr1'
+
+# these five tests should print $'file1data\nfile1_line1\nfile1_line2\n'
+rm -f file1 && echo "file1data" >file1 && cmd /c 'echo file1_line1 >>file1:filestr1 & echo file1_line2 >>file1:filestr1:$DATA & C:\cygwin64\bin\cat.exe <file1 & C:\cygwin64\bin\cat.exe <file1:filestr1'
+rm -f file1 && echo "file1data" >file1 && cmd /c 'echo file1_line1 >>file1:filestr1 & echo file1_line2 >>file1:filestr1:$DATA && type file1' && powershell -Command 'Get-Content -Path .\file1 -Stream filestr1'# this should list stream "filestr1"
+rm -f file1 && echo "file1data" >file1 && cmd /c 'echo file1_line1 >>file1:filestr1 & type file1' && powershell -Command 'Add-Content .\file1 -Stream filestr1 -Value "file1_line2" ; Get-Content -Path .\file1 -Stream filestr1'
+rm -f file1 && echo "file1data" >file1 && cmd /c 'echo file1_line1 >>file1:filestr1 & type file1' && powershell -Command 'Add-Content .\file1:filestr1 -Value "file1_line2" ; Get-Content -Path .\file1 -Stream filestr1'
+rm -f file1 && echo "file1data" >file1 && cmd /c 'echo file1_line1 >>file1:filestr1' && powershell -Command 'Add-Content .\file1:filestr1 -Value "file1_line2" ; Get-Content -Path .\file1 -Stream ":DATA" ; Get-Content -Path .\file1 -Stream filestr1'
+# list all streams for file "file1" (should be "filestr1")
+powershell -Command 'Get-Item -LiteralPath file1 -Stream * | Select *'
+
+# FIXME: tests for stream removal, enumeration and sparse data
 
 
 #

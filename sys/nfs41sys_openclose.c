@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2023-2026 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -571,12 +571,6 @@ NTSTATUS check_nfs41_create_args(
     if (!pNetRootContext->mounts_init) {
         print_error("nfs41_Create: No valid session established\n");
         status = STATUS_INSUFFICIENT_RESOURCES;
-        goto out;
-    }
-
-    if (isStream(SrvOpen->pAlreadyPrefixedName)) {
-        DbgP("nfs41_Create: Streams not supported (yet)\n");
-        status = STATUS_NOT_SUPPORTED;
         goto out;
     }
 

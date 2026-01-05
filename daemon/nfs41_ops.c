@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2024-2025 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2024-2026 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -36,6 +36,9 @@
 #include "delegation.h"
 #include "daemon_debug.h"
 #include "util.h"
+#ifdef NFS41_WINSTREAMS_SUPPORT
+#include "winstreams.h"
+#endif /* NFS41_WINSTREAMS_SUPPORT */
 
 #ifdef NFS41_DRIVER_STABILITY_HACKS
 /*
@@ -453,8 +456,8 @@ int nfs41_open(
 {
     int status;
     nfs41_compound compound;
-    nfs_argop4 argops[8];
-    nfs_resop4 resops[8];
+    nfs_argop4 argops[12];
+    nfs_resop4 resops[12];
     nfs41_sequence_args sequence_args;
     nfs41_sequence_res sequence_res;
     nfs41_putfh_args putfh_args[2];
@@ -471,9 +474,38 @@ int nfs41_open(
     bool_t current_fh_is_dir;
     bool_t already_delegated = delegation->type == OPEN_DELEGATE_READ
         || delegation->type == OPEN_DELEGATE_WRITE;
+#ifdef NFS41_WINSTREAMS_SUPPORT
+    char base_buf[NFS41_MAX_PATH_LEN+1];
+    char stream_buf[NFS41_MAX_COMPONENT_LEN+1];
+    bool is_stream = false;
+    nfs41_component base_comp = {0};
+    nfs41_component stream_comp = {0};
+    nfs41_lookup_args lookup_args;
+    nfs41_lookup_res lookup_res;
+    nfs41_openattr_args openattr_args;
+    nfs41_openattr_res openattr_res;
+#endif /* NFS41_WINSTREAMS_SUPPORT */
 
     EASSERT_IS_VALID_NON_NULL_PTR(parent);
     EASSERT_IS_VALID_NON_NULL_PTR(parent->fh.superblock);
+
+#ifdef NFS41_WINSTREAMS_SUPPORT
+    if (file->name.name) {
+        if (is_stream_path_fh(file)) {
+            status = parse_win32stream_name(file->name.name,
+                &is_stream, base_buf, stream_buf);
+            if (status)
+                goto out;
+
+            if (is_stream) {
+                base_comp.name = base_buf;
+                base_comp.len = (unsigned short)strlen(base_buf);
+                stream_comp.name = stream_buf;
+                stream_comp.len = (unsigned short)strlen(stream_buf);
+            }
+        }
+    }
+#endif /* NFS41_WINSTREAMS_SUPPORT */
 
     /* depending on the claim type, OPEN expects CURRENT_FH set
      * to either the parent directory, or to the file itself */
@@ -524,6 +556,16 @@ int nfs41_open(
         putfh_args[0].in_recovery = 0;
     }
 
+#ifdef NFS41_WINSTREAMS_SUPPORT
+    if (is_stream && (stream_comp.len > 0)) {
+        compound_add_op(&compound, OP_LOOKUP, &lookup_args, &lookup_res);
+        lookup_args.name = &base_comp;
+        compound_add_op(&compound, OP_OPENATTR, &openattr_args, &openattr_res);
+        /* If we are creating the stream, we should allow creating the attr dir */
+        openattr_args.createdir = (create == OPEN4_CREATE) ? TRUE : FALSE;
+    }
+#endif /* NFS41_WINSTREAMS_SUPPORT */
+
     compound_add_op(&compound, OP_OPEN, &open_args, &open_res);
     open_args.seqid = 0;
 #ifdef DISABLE_FILE_DELEGATIONS
@@ -549,6 +591,27 @@ int nfs41_open(
             parent->fh.superblock, &createattrs->attrmask);
     }
     open_args.claim = claim;
+
+#ifdef NFS41_WINSTREAMS_SUPPORT
+    if (is_stream &&
+        ((claim->claim == CLAIM_NULL) ||
+            (claim->claim == CLAIM_DELEGATE_CUR))) {
+        if (claim->claim == CLAIM_NULL) {
+            if (stream_comp.len > 0)
+                claim->u.null.filename = &stream_comp;
+            else
+                claim->u.null.filename = &base_comp;
+        }
+        else if (claim->claim == CLAIM_DELEGATE_CUR) {
+            claim->u.deleg_cur.name = &stream_comp;
+            if (stream_comp.len > 0)
+                claim->u.deleg_cur.name = &stream_comp;
+            else
+                claim->u.deleg_cur.name = &base_comp;
+        }
+    }
+#endif /* NFS41_WINSTREAMS_SUPPORT */
+
     open_res.resok4.stateid = stateid;
     open_res.resok4.delegation = delegation;
 
@@ -582,7 +645,13 @@ int nfs41_open(
     if (compound_error(status = compound.res.status))
         goto out;
 
+    /* This can happen if |nfs41_open()| is called by the EA code */
     if (dir_info.type == NF4ATTRDIR) {
+#ifdef NFS41_WINSTREAMS_SUPPORT
+        /* This codepath should not be triggered by Win32 streams! */
+        EASSERT(!(is_stream && (stream_comp.len > 0)));
+#endif /* NFS41_WINSTREAMS_SUPPORT */
+
         file->fh.superblock = parent->fh.superblock;
         goto out;
     }
@@ -614,8 +683,8 @@ int nfs41_create(
 {
     int status;
     nfs41_compound compound;
-    nfs_argop4 argops[8];
-    nfs_resop4 resops[8];
+    nfs_argop4 argops[12];
+    nfs_resop4 resops[12];
     nfs41_sequence_args sequence_args;
     nfs41_sequence_res sequence_res;
     nfs41_putfh_args putfh_args;
@@ -629,6 +698,33 @@ int nfs41_create(
     nfs41_file_info dir_info;
     nfs41_savefh_res savefh_res;
     nfs41_restorefh_res restorefh_res;
+#ifdef NFS41_WINSTREAMS_SUPPORT
+    char base_buf[NFS41_MAX_PATH_LEN+1];
+    char stream_buf[NFS41_MAX_COMPONENT_LEN+1];
+    bool is_stream = false;
+    nfs41_component base_comp = {0};
+    nfs41_component stream_comp = {0};
+    nfs41_lookup_args lookup_args;
+    nfs41_lookup_res lookup_res;
+    nfs41_openattr_args openattr_args;
+    nfs41_openattr_res openattr_res;
+
+    if (file->name.name) {
+        if (is_stream_path_fh(file)) {
+            status = parse_win32stream_name(file->name.name,
+                &is_stream, base_buf, stream_buf);
+            if (status)
+                goto out;
+
+            if (is_stream) {
+                base_comp.name = base_buf;
+                base_comp.len = (unsigned short)strlen(base_buf);
+                stream_comp.name = stream_buf;
+                stream_comp.len = (unsigned short)strlen(stream_buf);
+            }
+        }
+    }
+#endif /* NFS41_WINSTREAMS_SUPPORT */
 
     nfs41_superblock_getattr_mask(parent->fh.superblock, &attr_request);
 
@@ -644,13 +740,34 @@ int nfs41_create(
 
     compound_add_op(&compound, OP_SAVEFH, NULL, &savefh_res);
 
+#ifdef NFS41_WINSTREAMS_SUPPORT
+    if (is_stream && (stream_comp.len > 0)) {
+        compound_add_op(&compound, OP_LOOKUP, &lookup_args, &lookup_res);
+        lookup_args.name = &base_comp;
+        compound_add_op(&compound, OP_OPENATTR, &openattr_args, &openattr_res);
+        openattr_args.createdir = TRUE;
+    }
+#endif /* NFS41_WINSTREAMS_SUPPORT */
+
     compound_add_op(&compound, OP_CREATE, &create_args, &create_res);
     create_args.objtype.type = type;
     if (type == NF4LNK) {
         create_args.objtype.u.lnk.linkdata = symlink;
         create_args.objtype.u.lnk.linkdata_len = (uint32_t)strlen(symlink);
     }
-    create_args.name = &file->name;
+
+#ifdef NFS41_WINSTREAMS_SUPPORT
+    if (is_stream) {
+        if (stream_comp.len > 0)
+            create_args.name = &stream_comp;
+        else
+            create_args.name = &base_comp;
+    }
+    else
+#endif /* NFS41_WINSTREAMS_SUPPORT */
+    {
+        create_args.name = &file->name;
+    }
     create_args.createattrs = createattrs;
     nfs41_superblock_supported_attrs(
                 parent->fh.superblock, &createattrs->attrmask);
@@ -1283,8 +1400,8 @@ int nfs41_remove(
 {
     int status;
     nfs41_compound compound;
-    nfs_argop4 argops[4];
-    nfs_resop4 resops[4];
+    nfs_argop4 argops[8];
+    nfs_resop4 resops[8];
     nfs41_sequence_args sequence_args;
     nfs41_sequence_res sequence_res;
     nfs41_putfh_args putfh_args;
@@ -1295,6 +1412,33 @@ int nfs41_remove(
     nfs41_getattr_res getattr_res NDSH(= { 0 });
     bitmap4 attr_request;
     nfs41_file_info info;
+#ifdef NFS41_WINSTREAMS_SUPPORT
+    char base_buf[NFS41_MAX_PATH_LEN+1];
+    char stream_buf[NFS41_MAX_COMPONENT_LEN+1];
+    bool is_stream = false;
+    nfs41_component base_comp = {0};
+    nfs41_component stream_comp = {0};
+    nfs41_lookup_args lookup_args;
+    nfs41_lookup_res lookup_res;
+    nfs41_openattr_args openattr_args;
+    nfs41_openattr_res openattr_res;
+
+    if (target->name) {
+        if (is_stream_component(target)) {
+            status = parse_win32stream_name(target->name,
+                &is_stream, base_buf, stream_buf);
+            if (status)
+                goto out;
+
+            if (is_stream) {
+                base_comp.name = base_buf;
+                base_comp.len = (unsigned short)strlen(base_buf);
+                stream_comp.name = stream_buf;
+                stream_comp.len = (unsigned short)strlen(stream_buf);
+            }
+        }
+    }
+#endif /* NFS41_WINSTREAMS_SUPPORT */
 
     nfs41_superblock_getattr_mask(parent->fh.superblock, &attr_request);
 
@@ -1308,8 +1452,28 @@ int nfs41_remove(
     putfh_args.file = parent;
     putfh_args.in_recovery = 0;
 
+#ifdef NFS41_WINSTREAMS_SUPPORT
+    if (is_stream && (stream_comp.len > 0)) {
+        compound_add_op(&compound, OP_LOOKUP, &lookup_args, &lookup_res);
+        lookup_args.name = &base_comp;
+        compound_add_op(&compound, OP_OPENATTR, &openattr_args, &openattr_res);
+        openattr_args.createdir = FALSE;
+    }
+#endif /* NFS41_WINSTREAMS_SUPPORT */
+
     compound_add_op(&compound, OP_REMOVE, &remove_args, &remove_res);
-    remove_args.target = target;
+#ifdef NFS41_WINSTREAMS_SUPPORT
+    if (is_stream) {
+        if (stream_comp.len > 0)
+            remove_args.target = &stream_comp;
+        else
+            remove_args.target = &base_comp;
+    }
+    else
+#endif /* NFS41_WINSTREAMS_SUPPORT */
+    {
+        remove_args.target = target;
+    }
 
     compound_add_op(&compound, OP_GETATTR, &getattr_args, &getattr_res);
     getattr_args.attr_request = &attr_request;
@@ -1368,6 +1532,17 @@ int nfs41_rename(
     nfs41_file_info src_info, dst_info;
     bitmap4 attr_request;
     nfs41_restorefh_res restorefh_res;
+
+#ifdef NFS41_WINSTREAMS_SUPPORT
+    if (src_name->name) {
+        EASSERT_MSG(is_stream_component(src_name) == false,
+            ("nfs41_rename: Streams not implemented yet\n"));
+    }
+    if (dst_name->name) {
+        EASSERT_MSG(is_stream_component(dst_name) == false,
+            ("nfs41_rename: Streams not implemented yet\n"));
+    }
+#endif /* NFS41_WINSTREAMS_SUPPORT */
 
     nfs41_superblock_getattr_mask(src_dir->fh.superblock, &attr_request);
 
@@ -1555,6 +1730,21 @@ int nfs41_link(
     nfs41_file_info info = { 0 };
     nfs41_path_fh file;
 
+#ifdef NFS41_WINSTREAMS_SUPPORT
+    if (src->name.name) {
+        EASSERT_MSG(is_stream_path_fh(src) == false,
+            ("nfs41_link: Streams not implemented yet\n"));
+    }
+    if (dst_dir->name.name) {
+        EASSERT_MSG(is_stream_path_fh(dst_dir) == false,
+            ("nfs41_link: Streams not implemented yet\n"));
+    }
+    if (target->name) {
+        EASSERT_MSG(is_stream_component(target) == false,
+            ("nfs41_link: Streams not implemented yet\n"));
+    }
+#endif /* NFS41_WINSTREAMS_SUPPORT */
+
 #ifdef NFS41_DRIVER_STABILITY_HACKS
     /* gisburn: fixme, see comment about |NDSH| above */
     (void)memset(getattr_res, 0, sizeof(getattr_res));
@@ -1654,6 +1844,13 @@ int nfs41_readlink(
     nfs41_putfh_args putfh_args;
     nfs41_putfh_res putfh_res;
     nfs41_readlink_res readlink_res;
+
+#ifdef NFS41_WINSTREAMS_SUPPORT
+    if (file->name.name) {
+        EASSERT_MSG(is_stream_path_fh(file) == false,
+            ("nfs41_readlink: Streams not implemented yet\n"));
+    }
+#endif /* NFS41_WINSTREAMS_SUPPORT */
 
     compound_init(&compound, session->client->root->nfsminorvers,
         argops, resops, "readlink");
@@ -1936,6 +2133,13 @@ int nfs41_secinfo(
     nfs41_putfh_res putfh_res;
     nfs41_secinfo_args secinfo_args;
     nfs41_secinfo_no_name_res secinfo_res;
+
+#ifdef NFS41_WINSTREAMS_SUPPORT
+    if (name->name) {
+        EASSERT_MSG(is_stream_component(name) == false,
+            ("nfs41_secinfo: Streams not implemented yet\n"));
+    }
+#endif /* NFS41_WINSTREAMS_SUPPORT */
 
     compound_init(&compound, session->client->root->nfsminorvers,
         argops, resops, "secinfo");

@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2023-2026 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -171,8 +171,19 @@ void unmarshal_nfs41_getattr(
     nfs41_updowncall_entry *cur,
     const unsigned char *restrict *restrict buf)
 {
-    unmarshal_nfs41_attrget(cur,
-        cur->u.QueryFile.buf, &cur->u.QueryFile.buf_len, buf, FALSE);
+#ifdef NFS41_WINSTREAMS_SUPPORT
+    if (cur->u.QueryFile.InfoClass == FileStreamInformation) {
+        /* FIXME: If we do a partial read, what happens to ChangeTime below ? */
+        unmarshal_nfs41_attrget(cur,
+            cur->u.QueryFile.buf, &cur->u.QueryFile.buf_len, buf, TRUE);
+    }
+    else
+#endif /* NFS41_WINSTREAMS_SUPPORT */
+    {
+        unmarshal_nfs41_attrget(cur,
+            cur->u.QueryFile.buf, &cur->u.QueryFile.buf_len, buf, FALSE);
+    }
+
     RtlCopyMemory(&cur->ChangeTime, *buf, sizeof(cur->ChangeTime));
     *buf += sizeof(cur->ChangeTime);
 #ifdef DEBUG_MARSHAL_DETAIL
@@ -188,6 +199,7 @@ NTSTATUS map_queryfile_error(
     case ERROR_ACCESS_DENIED:       return STATUS_ACCESS_DENIED;
     case ERROR_NETNAME_DELETED:     return STATUS_NETWORK_NAME_DELETED;
     case ERROR_INVALID_PARAMETER:   return STATUS_INVALID_PARAMETER;
+    case ERROR_NOT_SUPPORTED:       return STATUS_NOT_SUPPORTED;
     case ERROR_INTERNAL_ERROR:      return STATUS_INTERNAL_ERROR;
     default:
         print_error("map_queryfile_error: "
@@ -398,6 +410,9 @@ NTSTATUS nfs41_QueryFileInformation(
     case FileStatInformation:
     case FileStatLxInformation:
 #endif /* NFS41_DRIVER_WSL_SUPPORT */
+#ifdef NFS41_WINSTREAMS_SUPPORT
+    case FileStreamInformation:
+#endif /* NFS41_WINSTREAMS_SUPPORT */
         break;
     default:
         print_error("nfs41_QueryFileInformation: "
@@ -432,7 +447,23 @@ NTSTATUS nfs41_QueryFileInformation(
         print_error("nfs41_QueryFileInformation: "
             "entry->status == STATUS_BUFFER_TOO_SMALL\n");
         status = STATUS_BUFFER_TOO_SMALL;
-    } else if (entry->status == STATUS_SUCCESS) {
+    }
+    else
+#ifdef NFS41_WINSTREAMS_SUPPORT
+    if ((InfoClass == FileStreamInformation) &&
+        (entry->status == STATUS_BUFFER_OVERFLOW)) {
+        /*
+         * |FileStreamInformation| must return |STATUS_BUFFER_OVERFLOW| if
+         * the buffer is too small to store all data
+         */
+        RxContext->InformationToReturn = entry->u.QueryFile.buf_len;
+        print_error("nfs41_QueryFileInformation: "
+            "FileStreamInformation: "
+            "entry->status == STATUS_BUFFER_OVERFLOW\n");
+        status = STATUS_BUFFER_OVERFLOW;
+    } else
+#endif /* NFS41_WINSTREAMS_SUPPORT */
+    if (entry->status == STATUS_SUCCESS) {
 #ifdef DEBUG_FILE_QUERY
         print_error("nfs41_QueryFileInformation: entry->status == STATUS_SUCCESS\n");
 #endif
@@ -500,6 +531,9 @@ NTSTATUS nfs41_QueryFileInformation(
         case FileStatInformation:
         case FileStatLxInformation:
 #endif /* NFS41_DRIVER_WSL_SUPPORT */
+#ifdef NFS41_WINSTREAMS_SUPPORT
+        case FileStreamInformation:
+#endif /* NFS41_WINSTREAMS_SUPPORT */
             break;
         default:
             print_error("nfs41_QueryFileInformation: "

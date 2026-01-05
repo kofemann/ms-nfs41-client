@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2023-2026 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -303,8 +303,12 @@ void nfs41_superblock_fs_attributes(
         FsAttrs->FileSystemAttributes |= FILE_SUPPORTS_HARD_LINKS;
     if (superblock->symlink_support)
         FsAttrs->FileSystemAttributes |= FILE_SUPPORTS_REPARSE_POINTS;
-    if (superblock->ea_support)
+    if (superblock->ea_support) {
         FsAttrs->FileSystemAttributes |= FILE_SUPPORTS_EXTENDED_ATTRIBUTES;
+#ifdef NFS41_WINSTREAMS_SUPPORT
+        FsAttrs->FileSystemAttributes |= FILE_NAMED_STREAMS;
+#endif /* NFS41_WINSTREAMS_SUPPORT */
+    }
     if (superblock->case_preserving)
         FsAttrs->FileSystemAttributes |= FILE_CASE_PRESERVED_NAMES;
     if (!superblock->case_insensitive)

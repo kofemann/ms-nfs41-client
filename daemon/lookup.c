@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2023-2026 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -25,12 +25,16 @@
 #include <strsafe.h>
 #include <time.h>
 
+#include "nfs41_build_features.h"
 #include "nfs41_compound.h"
 #include "nfs41_ops.h"
 #include "name_cache.h"
 #include "fileinfoutil.h"
 #include "util.h"
 #include "daemon_debug.h"
+#ifdef NFS41_WINSTREAMS_SUPPORT
+#include "winstreams.h"
+#endif /* NFS41_WINSTREAMS_SUPPORT */
 
 
 #define LULVL 2 /* dprintf level for lookup logging */
@@ -501,6 +505,156 @@ int nfs41_lookup(
     path_end = path.path + path.len;
 
     DPRINTF(LULVL, ("--> nfs41_lookup('%s')\n", path.path));
+
+#ifdef NFS41_WINSTREAMS_SUPPORT
+    /* Fast check for potential stream: Look for a colon */
+    if (is_stream_path(path_inout)) {
+        char base_name[NFS41_MAX_PATH_LEN+1];
+        char stream_name[NFS41_MAX_COMPONENT_LEN+1];
+        bool is_stream = false;
+
+        /* Parse the stream syntax */
+        status = parse_win32stream_name(path.path, &is_stream, base_name, stream_name);
+        if (status)
+            goto out;
+
+        if (is_stream) {
+            if (stream_name[0] == '\0') {
+                /* "foo::$DATA" case -> treat as "foo" */
+                DPRINTF(2, ("nfs41_lookup: 'foo::$DATA' case -> treat as 'foo'\n"));
+                size_t base_len = strlen(base_name);
+
+                (void)memcpy(path.path, base_name, base_len);
+                path.path[base_len] = '\0';
+                path.len = (unsigned short)base_len;
+                path_pos = path.path;
+                path_end = path.path + path.len;
+
+                /* Continue to normal lookup with stripped name */
+            } else {
+                /* "foo:bar" case */
+                DPRINTF(2, ("nfs41_lookup: base_name='%s', stream_name='%s'\n",
+                    base_name, stream_name));
+
+                /*
+                 * Recursively lookup the base file ...
+                 */
+                nfs41_abs_path base_path = path;
+                size_t base_len = strlen(base_name);
+
+                (void)memcpy(base_path.path, base_name, base_len);
+                base_path.path[base_len] = '\0';
+                base_path.len = (unsigned short)base_len;
+
+                nfs41_path_fh attr_target;
+                if (target_out == NULL) {
+                    target_out = &attr_target;
+                }
+
+                status = nfs41_lookup(root, session, casesensitive, &base_path,
+                    parent_out, target_out, info_out, session_out);
+                if (status)
+                    goto out;
+
+                /*
+                 * ... and then lookup the NFSv4 named attribute
+                 */
+                nfs41_session *lookup_session;
+                nfs41_compound compound;
+                nfs_argop4 argops[8];
+                nfs_resop4 resops[8];
+                nfs41_sequence_args sequence_args;
+                nfs41_sequence_res sequence_res;
+                nfs41_openattr_args openattr_args;
+                nfs41_openattr_res openattr_res;
+                nfs41_putfh_args putfh_args = { 0 };
+                nfs41_putfh_res putfh_res;
+                nfs41_lookup_args lookup_args = { 0 };
+                nfs41_lookup_res lookup_res;
+                nfs41_getfh_res getfh_res;
+                nfs41_getattr_args getattr_args = { 0 };
+                nfs41_getattr_res getattr_res = { 0 };
+                nfs41_component stream_comp = {
+                    .name = stream_name,
+                    .len = (unsigned short)strlen(stream_name)
+                };
+                /* Minimal attributes for stream */
+                bitmap4 attr_request = {
+                    .count = 2,
+                    .arr = {
+                        [0] = FATTR4_WORD0_TYPE | FATTR4_WORD0_CHANGE |
+                            FATTR4_WORD0_SIZE | FATTR4_WORD0_FSID |
+                            FATTR4_WORD0_FILEID,
+                        [1] = FATTR4_WORD1_MODE | FATTR4_WORD1_SPACE_USED |
+                            FATTR4_WORD1_TIME_ACCESS |
+                            FATTR4_WORD1_TIME_CREATE |
+                            FATTR4_WORD1_TIME_MODIFY |
+                            FATTR4_WORD1_OWNER | FATTR4_WORD1_OWNER_GROUP,
+                        [2] = 0
+                    }
+                };
+
+                DPRINTF(1,
+                    ("nfs41_lookup: "
+                    "Looking up base_name='%s'/stream_name='%s'\n",
+                    base_name, stream_name));
+
+                /* Use the session returned by the base lookup if applicable */
+                if ((session_out != NULL) && (*session_out != NULL))
+                    lookup_session = *session_out;
+                else
+                    lookup_session = session;
+
+                compound_init(&compound,
+                    lookup_session->client->root->nfsminorvers,
+                    argops, resops, "lookup_win32stream");
+
+                compound_add_op(&compound, OP_SEQUENCE, &sequence_args, &sequence_res);
+                nfs41_session_sequence(&sequence_args, lookup_session, 0);
+
+                compound_add_op(&compound, OP_PUTFH, &putfh_args, &putfh_res);
+                putfh_args.file = target_out;
+                putfh_args.in_recovery = FALSE;
+
+                compound_add_op(&compound, OP_OPENATTR, &openattr_args, &openattr_res);
+                openattr_args.createdir = FALSE;
+
+                compound_add_op(&compound, OP_LOOKUP, &lookup_args, &lookup_res);
+                lookup_args.name = &stream_comp;
+
+                compound_add_op(&compound, OP_GETFH, NULL, &getfh_res);
+                getfh_res.fh = &target_out->fh;
+
+                compound_add_op(&compound, OP_GETATTR, &getattr_args, &getattr_res);
+                getattr_args.attr_request = &attr_request;
+                /* If caller wanted info, fill it; else dummy */
+                nfs41_file_info dummy_info;
+                if (info_out)
+                    getattr_res.info = info_out;
+                else
+                    getattr_res.info = &dummy_info;
+                getattr_res.obj_attributes.attr_vals_len = NFS4_OPAQUE_LIMIT_ATTR;
+
+                status = compound_encode_send_decode(lookup_session, &compound, TRUE);
+
+                if (status == 0)
+                    status = compound.res.status;
+
+                if (status == 0) {
+                    /* We MUST return a |NF4NAMEDATTR|, and never a |NF4ATTRDIR| */
+                    EASSERT(getattr_res.info->type != NF4ATTRDIR);
+                    EASSERT(getattr_res.info->type == NF4NAMEDATTR);
+                }
+                else {
+                    DPRINTF(1, ("nfs41_lookup: failed for attr, status=%d\n",
+                        (int)status));
+                }
+
+                goto out;
+            }
+        }
+    }
+#endif /* NFS41_WINSTREAMS_SUPPORT */
 
     if (parent_out == NULL) parent_out = &parent;
     if (target_out == NULL) target_out = &target;
