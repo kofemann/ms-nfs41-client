@@ -41,11 +41,11 @@
 #endif
 
 /*
- * |WIN_NFS4_EA_NAME_PREFIX| - Prefix for Windows EA in NFSv4
- * XATTR (extended attributes) namespace
+ * |WIN_NFS4_EA_NAME_PREFIX| - Prefix for Windows EAs in NFSv4
+ * named attribute namespace
  *
  * We need such a prefix to avoid colliding with other users
- * in the NFSv4 XATTR namespace - for example SUN Microsystrems
+ * in the NFSv4 named attribute namespace - for example SUN Microsystrems
  * (Solaris, Illumos, ...) uses "SUNWattr_" as prefix, and setting
  * such attributes can cause data corruption (or in case of
  * "SUNWattr_ro" will fail, because the attribute file is
