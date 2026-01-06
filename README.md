@@ -139,6 +139,14 @@ NFSv4.2/NFSv4.1 filesystem driver for Windows 10/11 & Windows Server
     sparse files. Requires on Win11 \>= 22H2 because it relies on
     `|CopyFile2()|` flag `|COPY_FILE_ENABLE_SPARSE_COPY|`.
 
+- Windows "named streams"/[Alternate Data
+  Stream](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fscc/c54dec26-1551-4d3a-a0ea-4fa40f848eb3)
+  support
+
+  - Supports Win32 APIs `|FileStreamInformation|`
+
+  - Requires NFSv4.1 server which supports the NFSv4.1 named attributes.
+
 - Case-insensitive filesystem support
 
   - Requires NFSv4.1 server which supports the
