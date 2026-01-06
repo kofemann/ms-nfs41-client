@@ -205,7 +205,7 @@ See https://docs.oracle.com/en/operating-systems/solaris/oracle-solaris/11.4/man
 
 #
 # FreeBSD NFSv4.2 server setup
-# (tested with FreeBSD 14.3)
+# (tested with FreeBSD 14.3 and FreeBSD 15.0)
 #
 
 ##### 1. Server setup
@@ -239,6 +239,11 @@ printf 'vfs.nfsd.issue_delegations=1\n' >>'/etc/sysctl.conf'
 mkdir /nfsdata
 chmod a+rwxt /nfsdata
 
+# configure ZFS pool so it can support NFSv4 named attributes
+# (NFSv4 named attributes require FreeBSD >= 15.0-only)
+zfs set xattr=dir zroot
+zfs set xattr=dir zroot/ROOT/default
+
 # NFSv4.1 exports must come after the 'V4: /' line,
 # otherwise you get a NFS4ERR_NOFILEHANDLE
 printf 'V4: /\n' >'/etc/exports'
@@ -251,6 +256,8 @@ service nfsd start
 $ printf 'wheel:S-1-0-0:0:\n' >>'/etc/group'
 
 ##### 3. Misc FreeBSD commands:
+# (assumes we want to add an account+groups for a Windows user called "ced"
+# on a Windows with English locale)
 pw groupadd group -n None -g 197121
 pw groupadd group -n ced -g 197608
 pw useradd -n ced -u 197608 -g None -G None,ced -m -s /bin/sh
