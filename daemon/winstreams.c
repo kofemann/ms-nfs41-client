@@ -478,13 +478,46 @@ int get_streaminformation(
     status = nfs41_rpc_openattr(state->session, &state->file, FALSE,
         &parent.fh);
 
-    /* No named attribute directory ? */
+    /*
+     * No named attribute directory ?
+     *
+     * (Solaris+Illumos always have an NFSv4.1 attribute directory because
+     * they store their SUNW_* attribute data there, but FreeBSD 15.0 does
+     * not have an attribute directory by default)
+     */
     if (status == NFS4ERR_NOENT) {
-        /* FIXME: We should return a default "file::$DATA" entry */
+        FILE_STREAM_INFORMATION *stream;
+        size_t streamsize;
+
+        /* Return a default "file::$DATA" entry */
         DPRINTF(0,
             ("get_streaminformation(name='%.*s'): "
             "no named attribute directory\n",
             (int)state->file.name.len, state->file.name.name));
+
+        FILE_STREAM_INFORMATION base_stream = {
+            .NextEntryOffset = 0,
+            /* "::$DATA" == 8*sizeof(wchar_t) */
+            .StreamNameLength = 8*sizeof(wchar_t),
+            .StreamSize.QuadPart = basefile_info->size,
+            .StreamAllocationSize.QuadPart = basefile_info->space_used
+        };
+
+        streamsize = ALIGNED_STREAMINFOSIZE(base_stream.StreamNameLength);
+        stream = calloc(1, streamsize);
+        if (stream == NULL) {
+            status = GetLastError();
+            goto out;
+        }
+        (void)memcpy(stream, &base_stream, sizeof(base_stream));
+        (void)memcpy(stream->StreamName, L"::$DATA", 8*sizeof(wchar_t));
+        stream->NextEntryOffset = 0;
+
+        *streamlist_out = stream;
+        *streamlist_out_size = (ULONG)streamsize;
+
+        status = NO_ERROR;
+        goto out;
     } else if (status) {
         eprintf("get_streaminformation(name='%.*s'): "
             "nfs41_rpc_openattr() failed with '%s'\n",
