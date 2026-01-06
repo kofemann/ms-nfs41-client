@@ -206,100 +206,6 @@ int parse_win32stream_name(
     return NO_ERROR;
 }
 
-#define READDIR_LEN_INITIAL 8192
-#define READDIR_LEN_MIN 2048
-
-/* call readdir repeatedly to get a complete list of entries */
-static
-int read_entire_dir(
-    IN nfs41_session *session,
-    IN nfs41_path_fh *dir,
-    OUT unsigned char **restrict buffer_out,
-    OUT uint32_t *restrict length_out)
-{
-    nfs41_readdir_cookie cookie = { 0 };
-    nfs41_readdir_entry *last_entry;
-    unsigned char *buffer;
-    uint32_t buffer_len, len, total_len;
-    bool_t eof;
-    int status = NO_ERROR;
-    /* Attributes for stream */
-    bitmap4 attr_request = {
-        .count = 2,
-        .arr = {
-            [0] = FATTR4_WORD0_TYPE | FATTR4_WORD0_CHANGE |
-                FATTR4_WORD0_SIZE | FATTR4_WORD0_FSID |
-                FATTR4_WORD0_FILEID,
-            [1] = FATTR4_WORD1_SPACE_USED,
-            [2] = 0
-        }
-    };
-
-    /* allocate the buffer for readdir entries */
-    buffer_len = READDIR_LEN_INITIAL;
-    buffer = calloc(1, buffer_len);
-    if (buffer == NULL) {
-        status = GetLastError();
-        goto out;
-    }
-
-    last_entry = NULL;
-    total_len = 0;
-    eof = FALSE;
-
-    while (!eof) {
-        len = buffer_len - total_len;
-        if (len < READDIR_LEN_MIN) {
-            const ptrdiff_t diff = (unsigned char*)last_entry - buffer;
-            /* realloc the buffer to fit more entries */
-            unsigned char *tmp = realloc(buffer, (size_t)buffer_len * 2L);
-            if (tmp == NULL) {
-                status = GetLastError();
-                goto out_free;
-            }
-
-            if (last_entry) /* Fix last_entry pointer */
-                last_entry = (nfs41_readdir_entry *)(tmp + diff);
-            buffer = tmp;
-            buffer_len *= 2;
-            len = buffer_len - total_len;
-        }
-
-        /* Fetch the next group of entries */
-        status = nfs41_readdir(session, dir, &attr_request,
-            &cookie, buffer + total_len, &len, &eof);
-        if (status)
-            goto out_free;
-
-        if (last_entry == NULL) {
-            /* Initialize last_entry to the front of the list */
-            last_entry = (nfs41_readdir_entry *)(buffer + total_len);
-        } else if (len) {
-            /* Link the previous list to the new one */
-            last_entry->next_entry_offset = (uint32_t)FIELD_OFFSET(
-                nfs41_readdir_entry, name) + last_entry->name_len;
-        }
-
-        /* Find the new last entry */
-        while (last_entry->next_entry_offset) {
-            last_entry = (nfs41_readdir_entry*)((char*)last_entry +
-                last_entry->next_entry_offset);
-        }
-
-        cookie.cookie = last_entry->cookie;
-        total_len += len;
-    }
-
-    *buffer_out = buffer;
-    *length_out = total_len;
-out:
-    return status;
-
-out_free:
-    free(buffer);
-    goto out;
-}
-
 #define ALIGNED_STREAMINFOSIZE(namebytelen) \
     (align8(sizeof(FILE_STREAM_INFORMATION) + (namebytelen)))
 
@@ -488,9 +394,21 @@ int get_stream_list(
     PFILE_STREAM_INFORMATION stream_list;
     uint32_t entry_len, stream_list_size;
     int status = NO_ERROR;
+    /* Attributes for stream */
+    bitmap4 attr_request = {
+        .count = 2,
+        .arr = {
+            [0] = FATTR4_WORD0_TYPE | FATTR4_WORD0_CHANGE |
+                FATTR4_WORD0_SIZE | FATTR4_WORD0_FSID |
+                FATTR4_WORD0_FILEID,
+            [1] = FATTR4_WORD1_SPACE_USED,
+            [2] = 0
+        }
+    };
 
     /* read the entire directory into a |nfs41_readdir_entry| buffer */
     status = read_entire_dir(state->session, streamfile,
+        &attr_request,
         &entry_list, &entry_len);
     if (status)
         goto out;
@@ -517,7 +435,7 @@ int get_stream_list(
     *streamlist_out = stream_list;
     *streamlist_out_size = stream_list_size;
 out_free:
-    free(entry_list); /* allocated by |read_entire_dir()| */
+    free_entire_dir(entry_list); /* allocated by |read_entire_dir()| */
 out:
     return status;
 }

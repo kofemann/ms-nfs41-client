@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2023-2026 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -922,3 +922,93 @@ create_symlink_chgrp_out:
     return chgrp_status;
 }
 #endif /* NFS41_DRIVER_SETGID_NEWGRP_SUPPORT */
+
+
+#define READDIR_LEN_INITIAL 8192
+#define READDIR_LEN_MIN 2048
+
+/* call readdir repeatedly to get a complete list of entries */
+int read_entire_dir(
+    IN nfs41_session *session,
+    IN nfs41_path_fh *dir,
+    IN bitmap4 *attr_request,
+    OUT unsigned char **restrict buffer_out,
+    OUT uint32_t *restrict length_out)
+{
+    nfs41_readdir_cookie cookie = { 0 };
+    nfs41_readdir_entry *last_entry;
+    unsigned char *buffer;
+    uint32_t buffer_len, len, total_len;
+    bool_t eof;
+    int status = NO_ERROR;
+
+    /* Allocate the buffer for readdir entries */
+    buffer_len = READDIR_LEN_INITIAL;
+    buffer = calloc(1, buffer_len);
+    if (buffer == NULL) {
+        status = GetLastError();
+        goto out;
+    }
+
+    last_entry = NULL;
+    total_len = 0;
+    eof = FALSE;
+
+    while (!eof) {
+        len = buffer_len - total_len;
+        if (len < READDIR_LEN_MIN) {
+            const ptrdiff_t diff = (unsigned char*)last_entry - buffer;
+            /* Reallocate the buffer to fit more entries */
+            unsigned char *tmp = realloc(buffer, (size_t)buffer_len * 2L);
+            if (tmp == NULL) {
+                status = GetLastError();
+                goto out_free;
+            }
+
+            if (last_entry) /* Fix last_entry pointer */
+                last_entry = (nfs41_readdir_entry *)(tmp + diff);
+            buffer = tmp;
+            buffer_len *= 2;
+            len = buffer_len - total_len;
+        }
+
+        /* Fetch the next group of entries */
+        status = nfs41_readdir(session, dir, attr_request,
+            &cookie, buffer + total_len, &len, &eof);
+        if (status)
+            goto out_free;
+
+        if (last_entry == NULL) {
+            /* Initialize last_entry to the front of the list */
+            last_entry = (nfs41_readdir_entry *)(buffer + total_len);
+        } else if (len) {
+            /* Link the previous list to the new one */
+            last_entry->next_entry_offset = (uint32_t)FIELD_OFFSET(
+                nfs41_readdir_entry, name) + last_entry->name_len;
+        }
+
+        /* Find the new last entry */
+        while (last_entry->next_entry_offset) {
+            last_entry = (nfs41_readdir_entry*)((char*)last_entry +
+                last_entry->next_entry_offset);
+        }
+
+        cookie.cookie = last_entry->cookie;
+        total_len += len;
+    }
+
+    *buffer_out = buffer;
+    *length_out = total_len;
+out:
+    return status;
+
+out_free:
+    free_entire_dir(buffer);
+    goto out;
+}
+
+void free_entire_dir(
+    unsigned char *restrict buffer)
+{
+    free(buffer);
+}

@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2023-2026 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -458,4 +458,16 @@ int chgrp_to_primarygroup(
     IN nfs41_open_state *state);
 #endif /* NFS41_DRIVER_SETGID_NEWGRP_SUPPORT */
 
+typedef struct __bitmap4 bitmap4;
+typedef struct __nfs41_path_fh nfs41_path_fh;
+typedef struct __nfs41_session nfs41_session;
+
+int read_entire_dir(
+    IN nfs41_session *session,
+    IN nfs41_path_fh *dir,
+    IN bitmap4 *attr_request,
+    OUT unsigned char **restrict buffer_out,
+    OUT uint32_t *restrict length_out);
+void free_entire_dir(
+    unsigned char *restrict buffer);
 #endif /* !__NFS41_DAEMON_UTIL_H__ */

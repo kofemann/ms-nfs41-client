@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2024-2025 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2024-2026 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -302,91 +302,6 @@ out:
     return status;
 }
 
-#define READDIR_LEN_INITIAL 8192
-#define READDIR_LEN_MIN 2048
-
-/* call readdir repeatedly to get a complete list of entries */
-static int read_entire_dir(
-    IN nfs41_session *session,
-    IN nfs41_path_fh *eadir,
-    OUT unsigned char **buffer_out,
-    OUT uint32_t *length_out)
-{
-    nfs41_readdir_cookie cookie = { 0 };
-    bitmap4 attr_request;
-    nfs41_readdir_entry *last_entry;
-    unsigned char *buffer;
-    uint32_t buffer_len, len, total_len;
-    bool_t eof;
-    int status = NO_ERROR;
-
-    attr_request.count = 0; /* don't request attributes */
-
-    /* allocate the buffer for readdir entries */
-    buffer_len = READDIR_LEN_INITIAL;
-    buffer = calloc(1, buffer_len);
-    if (buffer == NULL) {
-        status = GetLastError();
-        goto out;
-    }
-
-    last_entry = NULL;
-    total_len = 0;
-    eof = FALSE;
-
-    while (!eof) {
-        len = buffer_len - total_len;
-        if (len < READDIR_LEN_MIN) {
-            const ptrdiff_t diff = (unsigned char*)last_entry - buffer;
-            /* realloc the buffer to fit more entries */
-            unsigned char *tmp = realloc(buffer, (size_t)buffer_len * 2L);
-            if (tmp == NULL) {
-                status = GetLastError();
-                goto out_free;
-            }
-
-            if (last_entry) /* fix last_entry pointer */
-                last_entry = (nfs41_readdir_entry*)(tmp + diff);
-            buffer = tmp;
-            buffer_len *= 2;
-            len = buffer_len - total_len;
-        }
-
-        /* fetch the next group of entries */
-        status = nfs41_readdir(session, eadir, &attr_request,
-            &cookie, buffer + total_len, &len, &eof);
-        if (status)
-            goto out_free;
-
-        if (last_entry == NULL) {
-            /* initialize last_entry to the front of the list */
-            last_entry = (nfs41_readdir_entry*)(buffer + total_len);
-        } else if (len) {
-            /* link the previous list to the new one */
-            last_entry->next_entry_offset = (uint32_t)FIELD_OFFSET(
-                nfs41_readdir_entry, name) + last_entry->name_len;
-        }
-
-        /* find the new last entry */
-        while (last_entry->next_entry_offset) {
-            last_entry = (nfs41_readdir_entry*)((char*)last_entry +
-                last_entry->next_entry_offset);
-        }
-
-        cookie.cookie = last_entry->cookie;
-        total_len += len;
-    }
-
-    *buffer_out = buffer;
-    *length_out = total_len;
-out:
-    return status;
-
-out_free:
-    free(buffer);
-    goto out;
-}
-
 #define ALIGNED_EASIZE(len) \
     (align4(sizeof(FILE_GET_EA_INFORMATION) + (len)))
 
@@ -481,6 +396,9 @@ static int get_ea_list(
     PFILE_GET_EA_INFORMATION ea_list;
     uint32_t entry_len, ea_size;
     int status = NO_ERROR;
+    bitmap4 attr_request = {
+        .count = 0 /* don't request attributes */
+    };
 
     EnterCriticalSection(&state->ea.lock);
 
@@ -492,7 +410,8 @@ static int get_ea_list(
     }
 
     /* read the entire directory into a nfs41_readdir_entry buffer */
-    status = read_entire_dir(state->session, eadir, &entry_list, &entry_len);
+    status = read_entire_dir(state->session, eadir, &attr_request,
+        &entry_list, &entry_len);
     if (status)
         goto out;
 
@@ -512,7 +431,7 @@ static int get_ea_list(
     *ealist_out = state->ea.list = ea_list;
     *eaindex_out = state->ea.index;
 out_free:
-    free(entry_list); /* allocated by read_entire_dir() */
+    free_entire_dir(entry_list); /* allocated by read_entire_dir() */
 out:
     LeaveCriticalSection(&state->ea.lock);
     return status;
