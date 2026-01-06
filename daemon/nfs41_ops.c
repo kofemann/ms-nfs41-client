@@ -864,13 +864,18 @@ int nfs41_close(
     if (compound_error(status = compound.res.status))
         goto out;
 
-    if (info.type == NF4NAMEDATTR)
-        goto out;
+    bool update_cache = true;
+    if ((info.type == NF4NAMEDATTR) && (is_stream_path_fh(file) == false)) {
+        /* This should only happen for Windows EAs */
+        update_cache = false;
+    }
 
-    /* update the attributes of the parent directory */
-    bitmap4_cpy(&info.attrmask, &getattr_res.obj_attributes.attrmask);
-    nfs41_attr_cache_update(session_name_cache(session),
-        file->fh.fileid, &info);
+    if (update_cache) {
+        /* update the attributes of the parent directory */
+        bitmap4_cpy(&info.attrmask, &getattr_res.obj_attributes.attrmask);
+        nfs41_attr_cache_update(session_name_cache(session),
+            file->fh.fileid, &info);
+    }
 out:
     return status;
 }
@@ -947,7 +952,13 @@ int nfs41_write(
     if (compound_error(status = compound.res.status))
         goto out;
 
-    if (stable != UNSTABLE4 && pinfo->type != NF4NAMEDATTR) {
+    bool update_cache = (stable != UNSTABLE4);
+    if ((pinfo->type == NF4NAMEDATTR) && (is_stream_path_fh(file) == false)) {
+        /* This should only happen for Windows EAs */
+        update_cache = false;
+    }
+
+    if (update_cache) {
         /* update the attribute cache */
         bitmap4_cpy(&pinfo->attrmask, &getattr_res.obj_attributes.attrmask);
         nfs41_attr_cache_update(session_name_cache(session),
