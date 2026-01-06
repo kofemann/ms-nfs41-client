@@ -470,7 +470,7 @@ int get_streaminformation(
     if (basefile_info->type == NF4NAMEDATTR) {
         DPRINTF(0,
             ("get_streaminformation(name='%.*s'): "
-            "stream into for NF4NAMEDATTR not implemented yet\n",
+            "stream info for NF4NAMEDATTR not implemented yet\n",
             (int)state->file.name.len, state->file.name.name));
         return ERROR_NOT_SUPPORTED;
     }
