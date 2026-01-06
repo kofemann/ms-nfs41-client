@@ -51,7 +51,7 @@ static int parse_getacl(
 
     EASSERT(length == 0);
 
-    DPRINTF(1, ("parsing NFS41_SYSOP_ACL_QUERY: secinfo=0xlx\n",
+    DPRINTF(1, ("parsing NFS41_SYSOP_ACL_QUERY: secinfo=0x%lx\n",
         (long)args->query_secinfo));
 out:
     return status;
