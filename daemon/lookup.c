@@ -539,12 +539,13 @@ int nfs41_lookup(
                 /*
                  * Recursively lookup the base file ...
                  */
-                nfs41_abs_path base_path = path;
+                nfs41_abs_path base_path;
                 size_t base_len = strlen(base_name);
 
                 (void)memcpy(base_path.path, base_name, base_len);
                 base_path.path[base_len] = '\0';
                 base_path.len = (unsigned short)base_len;
+                InitializeSRWLock(&base_path.lock);
 
                 nfs41_path_fh attr_target;
                 if (target_out == NULL) {
