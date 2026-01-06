@@ -449,7 +449,7 @@ int get_streaminformation(
     int status;
     nfs41_path_fh parent = { 0 };
 
-    if (!state->file.fh.superblock->ea_support) {
+    if (!state->file.fh.superblock->nfs_namedattr_support) {
         return ERROR_NOT_SUPPORTED;
     }
 

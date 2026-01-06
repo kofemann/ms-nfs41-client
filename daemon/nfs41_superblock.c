@@ -125,7 +125,7 @@ static int get_superblock_attrs(
     superblock->aclsupport = info.aclsupport;
     superblock->link_support = info.link_support;
     superblock->symlink_support = info.symlink_support;
-    superblock->ea_support = supports_named_attrs;
+    superblock->nfs_namedattr_support = supports_named_attrs;
 
 #ifdef NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS
     if (root->force_case_preserving == TRISTATE_BOOL_NOT_SET) {
@@ -303,7 +303,7 @@ void nfs41_superblock_fs_attributes(
         FsAttrs->FileSystemAttributes |= FILE_SUPPORTS_HARD_LINKS;
     if (superblock->symlink_support)
         FsAttrs->FileSystemAttributes |= FILE_SUPPORTS_REPARSE_POINTS;
-    if (superblock->ea_support) {
+    if (superblock->nfs_namedattr_support) {
         FsAttrs->FileSystemAttributes |= FILE_SUPPORTS_EXTENDED_ATTRIBUTES;
 #ifdef NFS41_WINSTREAMS_SUPPORT
         FsAttrs->FileSystemAttributes |= FILE_NAMED_STREAMS;
@@ -335,7 +335,7 @@ void nfs41_superblock_fs_attributes(
     DPRINTF(SBLVL, ("FileFsAttributeInformation: "
         "link_support=%u, "
         "symlink_support=%u, "
-        "ea_support=%u, "
+        "nfs_namedattr_support=%u, "
         "case_preserving=%u, "
         "case_insensitive=%u, "
         "aclsupport=%u, "
@@ -343,7 +343,7 @@ void nfs41_superblock_fs_attributes(
         "FileSystemAttributes=0x%lx\n",
         superblock->link_support,
         superblock->symlink_support,
-        superblock->ea_support,
+        superblock->nfs_namedattr_support,
         (int)superblock->case_preserving,
         (int)superblock->case_insensitive,
         superblock->aclsupport,

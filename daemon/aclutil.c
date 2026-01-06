@@ -43,9 +43,9 @@
 static void map_winace2nfs4aceflags(BYTE win_aceflags, uint32_t *nfs4_aceflags);
 static void map_nfs4aceflags2winaceflags(uint32_t nfs4_aceflags, DWORD *win_aceflags);
 static void map_winaccessmask2nfs4acemask(ACCESS_MASK win_mask,
-    int file_type, bool named_attr_support, uint32_t *nfs4_mask);
+    int file_type, bool nfs_namedattr_support, uint32_t *nfs4_mask);
 static void map_nfs4acemask2winaccessmask(uint32_t nfs4_mask,
-    int file_type, bool named_attr_support, ACCESS_MASK *win_mask);
+    int file_type, bool nfs_namedattr_support, ACCESS_MASK *win_mask);
 
  void convert_nfs4name_2_user_domain(LPSTR nfs4name,
     LPSTR *domain)
@@ -116,7 +116,7 @@ static int check_4_special_identifiers(const char *restrict who,
 
 int convert_nfs4acl_2_dacl(nfs41_daemon_globals *nfs41dg,
     nfsacl41 *acl, int file_type, PACL *dacl_out, PSID **sids_out,
-    bool named_attr_support)
+    bool nfs_namedattr_support)
 {
     int status = ERROR_NOT_SUPPORTED, size = 0;
     uint32_t nfs_i = 0, win_i = 0;
@@ -127,9 +127,9 @@ int convert_nfs4acl_2_dacl(nfs41_daemon_globals *nfs41dg,
     BOOLEAN flag;
 
     DPRINTF(ACLLVL2, ("--> convert_nfs4acl_2_dacl(acl=0x%p,"
-        "file_type='%s'(=%d), named_attr_support=%d)\n",
+        "file_type='%s'(=%d), nfs_namedattr_support=%d)\n",
         acl, map_nfs_ftype2str(file_type), file_type,
-        (int)named_attr_support));
+        (int)nfs_namedattr_support));
 
     bool *skip_aces = _alloca(acl->count * sizeof(bool));
 
@@ -231,7 +231,7 @@ int convert_nfs4acl_2_dacl(nfs41_daemon_globals *nfs41dg,
             map_nfs4aceflags2winaceflags(curr_nfsace->aceflag,
                 &win_aceflags);
             map_nfs4acemask2winaccessmask(curr_nfsace->acemask,
-                file_type, named_attr_support, &mask);
+                file_type, nfs_namedattr_support, &mask);
 
             if (DPRINTF_LEVEL_ENABLED(ACLLVL1)) {
                 dprintf_out("nfs2win: acl->aces[%d].who='%s': "
@@ -444,7 +444,7 @@ static void map_nfs4aceflags2winaceflags(uint32_t nfs4_aceflags, DWORD *win_acef
 
 static
 void map_winaccessmask2nfs4acemask(ACCESS_MASK win_mask,
-    int file_type, bool named_attr_support, uint32_t *nfs4_mask)
+    int file_type, bool nfs_namedattr_support, uint32_t *nfs4_mask)
 {
     *nfs4_mask = 0;
 
@@ -458,7 +458,7 @@ void map_winaccessmask2nfs4acemask(ACCESS_MASK win_mask,
         uint32_t ace4_all_dir_filt = ACE4_ALL_DIR;
 
 #ifdef MAP_WIN32GENERIC2ACE4GENERIC
-        if (!named_attr_support) {
+        if (!nfs_namedattr_support) {
             /*
              * Filter out unsupported features for
              * |GENERIC_*| --> |ACE_*ATTR| conversion.
@@ -568,7 +568,7 @@ void map_winaccessmask2nfs4acemask(ACCESS_MASK win_mask,
 
 static
 void map_nfs4acemask2winaccessmask(uint32_t nfs4_mask,
-    int file_type, bool named_attr_support, ACCESS_MASK *win_mask)
+    int file_type, bool nfs_namedattr_support, ACCESS_MASK *win_mask)
 {
     *win_mask = 0;
 
@@ -582,7 +582,7 @@ void map_nfs4acemask2winaccessmask(uint32_t nfs4_mask,
     uint32_t ace4_all_file_filt = ACE4_ALL_FILE;
     uint32_t ace4_all_dir_filt = ACE4_ALL_DIR;
 
-    if (!named_attr_support) {
+    if (!nfs_namedattr_support) {
         /*
          * Filter out unsupported features for
          * |ACE_*ATTR| --> |GENERIC_*| conversion.
@@ -974,7 +974,7 @@ out:
 }
 
 int map_dacl_2_nfs4acl(PACL acl, PSID sid, PSID gsid, nfsacl41 *nfs4_acl,
-    int file_type, bool named_attr_support, char *domain)
+    int file_type, bool nfs_namedattr_support, char *domain)
 {
     int status;
     if (acl == NULL) {
@@ -993,7 +993,7 @@ int map_dacl_2_nfs4acl(PACL acl, PSID sid, PSID gsid, nfsacl41 *nfs4_acl,
             uint32_t ace4_all_dir_filt = ACE4_ALL_DIR;
 #ifdef MAP_WIN32GENERIC2ACE4GENERIC
             /* Filter out unsupported features */
-            if (!named_attr_support) {
+            if (!nfs_namedattr_support) {
                 ace4_all_dir_filt &= ~ACE4_RW_NAMED_ATTRS;
             }
 #endif /* MAP_WIN32GENERIC2ACE4GENERIC */
@@ -1003,7 +1003,7 @@ int map_dacl_2_nfs4acl(PACL acl, PSID sid, PSID gsid, nfsacl41 *nfs4_acl,
             uint32_t ace4_all_file_filt = ACE4_ALL_FILE;
 #ifdef MAP_WIN32GENERIC2ACE4GENERIC
             /* Filter out unsupported features */
-            if (!named_attr_support) {
+            if (!nfs_namedattr_support) {
                 ace4_all_file_filt &= ~ACE4_RW_NAMED_ATTRS;
             }
 #endif /* MAP_WIN32GENERIC2ACE4GENERIC */
@@ -1099,7 +1099,7 @@ int map_dacl_2_nfs4acl(PACL acl, PSID sid, PSID gsid, nfsacl41 *nfs4_acl,
             map_winace2nfs4aceflags(ace->AceFlags,
                 &curr_nfsace->aceflag);
             map_winaccessmask2nfs4acemask(win_mask,
-                file_type, named_attr_support,
+                file_type, nfs_namedattr_support,
                 &curr_nfsace->acemask);
 
             /*

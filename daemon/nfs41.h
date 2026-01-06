@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2024-2025 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2024-2026 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -57,7 +57,7 @@ typedef struct __nfs41_superblock {
     unsigned int cansettime : 1;
     unsigned int link_support : 1;
     unsigned int symlink_support : 1;
-    unsigned int ea_support : 1;
+    unsigned int nfs_namedattr_support : 1;
     unsigned int case_preserving : 1;
     unsigned int case_insensitive : 1;
     unsigned int sparse_file_support : 1;

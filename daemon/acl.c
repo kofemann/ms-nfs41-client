@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2023-2026 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -168,7 +168,7 @@ static int handle_getacl(void *daemon_context, nfs41_upcall *upcall)
         DPRINTF(ACLLVL2, ("handle_getacl: DACL_SECURITY_INFORMATION\n"));
         status = convert_nfs4acl_2_dacl(nfs41dg,
             info.acl, state->type, &dacl, &sids,
-            state->file.fh.superblock->ea_support?true:false);
+            state->file.fh.superblock->nfs_namedattr_support?true:false);
         if (status)
             goto out;
         status = SetSecurityDescriptorDacl(&sec_desc, TRUE, dacl, TRUE);
@@ -369,7 +369,7 @@ static int handle_setacl(void *daemon_context, nfs41_upcall *upcall)
         }
         status = map_dacl_2_nfs4acl(acl, sid, gsid, &nfs4_acl,
              state->type,
-             state->file.fh.superblock->ea_support?true:false,
+             state->file.fh.superblock->nfs_namedattr_support?true:false,
             nfs41dg->localdomain_name);
         if (status)
             goto out;
