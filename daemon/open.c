@@ -1254,6 +1254,13 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
              */
             if (createhowmode == EXCLUSIVE4_1)
                 createhowmode = GUARDED4;
+
+            /*
+             * Windows fsutil can set the |FILE_EXECUTE| bit when opening
+             * Win32 named streams, but NFS does not allow access checks
+             * with the X bit for NFS named attributes
+             */
+            args->access_mask &= ~FILE_EXECUTE;
         }
 
         if (args->access_mask & FILE_EXECUTE && state->file.fh.len) {
