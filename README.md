@@ -145,6 +145,10 @@ NFSv4.2/NFSv4.1 filesystem driver for Windows 10/11 & Windows Server
 
   - Supports Win32 APIs `|FileStreamInformation|`
 
+  - Supports sparse streams (e.g. supports Win32 APIs
+    `|FSCTL_QUERY_ALLOCATED_RANGES|`, `|FSCTL_SET_SPARSE|`,
+    `|FSCTL_SET_ZERO_DATA|` etc. on Win32 named streams)
+
   - Requires NFSv4.1 server which supports the NFSv4.1 named attributes.
 
 - Case-insensitive filesystem support

@@ -148,6 +148,9 @@
               <para>Supports Win32 APIs <literal>|<link xl:href="https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/ns-ntifs-_file_stream_information">FileStreamInformation</link>|</literal></para>
             </listitem>
             <listitem>
+              <para>Supports sparse streams (e.g. supports Win32 APIs <literal>|FSCTL_QUERY_ALLOCATED_RANGES|</literal>, <literal>|FSCTL_SET_SPARSE|</literal>, <literal>|FSCTL_SET_ZERO_DATA|</literal> etc. on Win32 named streams)</para>
+            </listitem>
+            <listitem>
               <para>Requires NFSv4.1 server which supports the NFSv4.1 named attributes.</para>
             </listitem>
           </itemizedlist>
