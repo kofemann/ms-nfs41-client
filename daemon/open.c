@@ -1247,6 +1247,15 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
         if (status)
             goto out_free_state;
 
+        if (is_stream_path(&state->path)) {
+            /*
+             * NFSv4.1 does not allow |EXCLUSIVE4|/|EXCLUSIVE4_1| for NFS
+             * named attributes
+             */
+            if (createhowmode == EXCLUSIVE4_1)
+                createhowmode = GUARDED4;
+        }
+
         if (args->access_mask & FILE_EXECUTE && state->file.fh.len) {
             status = check_execute_access(state);
             if (status)
