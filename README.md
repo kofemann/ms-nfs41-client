@@ -136,8 +136,9 @@ NFSv4.2/NFSv4.1 filesystem driver for Windows 10/11 & Windows Server
     itself supports an unlimited number of data ranges)
 
   - `/cygdrive/c/Windows/system32/xcopy /sparse` can be used to copy
-    sparse files. Requires on Win11 \>= 22H2 because it relies on
-    `|CopyFile2()|` flag `|COPY_FILE_ENABLE_SPARSE_COPY|`.
+    sparse files+sparse named streams. Requires on Win11 \>= 22H2
+    because it relies on `|CopyFile2()|` flag
+    `|COPY_FILE_ENABLE_SPARSE_COPY|`.
 
 - Windows "named streams"/[Alternate Data
   Stream](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fscc/c54dec26-1551-4d3a-a0ea-4fa40f848eb3)
@@ -148,6 +149,8 @@ NFSv4.2/NFSv4.1 filesystem driver for Windows 10/11 & Windows Server
   - Supports sparse streams (e.g. supports Win32 APIs
     `|FSCTL_QUERY_ALLOCATED_RANGES|`, `|FSCTL_SET_SPARSE|`,
     `|FSCTL_SET_ZERO_DATA|` etc. on Win32 named streams)
+
+  - Supports Win32 named streams on directories.
 
   - Requires NFSv4.1 server which supports the NFSv4.1 named attributes.
 
@@ -165,7 +168,8 @@ NFSv4.2/NFSv4.1 filesystem driver for Windows 10/11 & Windows Server
   - Requires NFSv4.2 server which supports the NFSv4.2 operations
     "COPY", "DEALLOCATE", "SEEK"
 
-  - Sparse files are correctly copied including all hole and data ranges
+  - Sparse files+sparse Win32 named streams are correctly copied
+    including all hole and data ranges
 
   - Windows 10 `|CopyFile2()|` API uses
     `|FSCTL_OFFLOAD_READ|`+`|FSCTL_OFFLOAD_WRITE|` by default
@@ -183,8 +187,8 @@ NFSv4.2/NFSv4.1 filesystem driver for Windows 10/11 & Windows Server
     "CLONE", "DEALLOCATE", "SEEK", and exports a filesystem which
     supports block cloning (e.g. Linux BTRFS+XFS, but NOT Linux tmpfs)
 
-  - Sparse files are correctly cloned, including all hole and data
-    ranges
+  - Sparse files+sparse Win32 named streams are correctly cloned,
+    including all hole and data ranges
 
   - `/usr/bin/winclonefile.exe` can be used to clone a file
 

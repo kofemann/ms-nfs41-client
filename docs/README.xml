@@ -136,7 +136,7 @@
               <para><filename>/cygdrive/c/Windows/system32/fsutil sparse queryrange myfile.dat</filename> can be used to enumerate ranges where data are allocated (BUG: Win10+Win11 fsutil only support 64 data ranges, the filesystem itself supports an unlimited number of data ranges)</para>
             </listitem>
             <listitem>
-              <para><filename>/cygdrive/c/Windows/system32/xcopy /sparse</filename> can be used to copy sparse files. Requires on Win11 &gt;= 22H2 because it relies on <literal>|CopyFile2()|</literal> flag <literal>|COPY_FILE_ENABLE_SPARSE_COPY|</literal>.</para>
+              <para><filename>/cygdrive/c/Windows/system32/xcopy /sparse</filename> can be used to copy sparse files+sparse named streams. Requires on Win11 &gt;= 22H2 because it relies on <literal>|CopyFile2()|</literal> flag <literal>|COPY_FILE_ENABLE_SPARSE_COPY|</literal>.</para>
             </listitem>
           </itemizedlist>
         </para>
@@ -149,6 +149,9 @@
             </listitem>
             <listitem>
               <para>Supports sparse streams (e.g. supports Win32 APIs <literal>|FSCTL_QUERY_ALLOCATED_RANGES|</literal>, <literal>|FSCTL_SET_SPARSE|</literal>, <literal>|FSCTL_SET_ZERO_DATA|</literal> etc. on Win32 named streams)</para>
+            </listitem>
+            <listitem>
+              <para>Supports Win32 named streams on directories.</para>
             </listitem>
             <listitem>
               <para>Requires NFSv4.1 server which supports the NFSv4.1 named attributes.</para>
@@ -175,7 +178,7 @@
               <para>Requires NFSv4.2 server which supports the NFSv4.2 operations "COPY", "DEALLOCATE", "SEEK"</para>
             </listitem>
             <listitem>
-              <para>Sparse files are correctly copied including all hole and data ranges</para>
+              <para>Sparse files+sparse Win32 named streams are correctly copied including all hole and data ranges</para>
             </listitem>
             <listitem>
               <para>Windows 10 <literal>|CopyFile2()|</literal> API uses <literal>|FSCTL_OFFLOAD_READ|</literal>+<literal>|FSCTL_OFFLOAD_WRITE|</literal> by default</para>
@@ -196,7 +199,7 @@
               <para>Requires NFSv4.2 server which supports the NFSv4.2 operations "CLONE", "DEALLOCATE", "SEEK", and exports a filesystem which supports block cloning (e.g. Linux BTRFS+XFS, but NOT Linux tmpfs)</para>
             </listitem>
             <listitem>
-              <para>Sparse files are correctly cloned, including all hole and data ranges</para>
+              <para>Sparse files+sparse Win32 named streams are correctly cloned, including all hole and data ranges</para>
             </listitem>
             <listitem>
               <para><filename>/usr/bin/winclonefile.exe</filename> can be used to clone a file</para>
