@@ -189,6 +189,7 @@ installdest:
 	cp $(PROJECT_BASEDIR_DIR)/tests/sparsefiles/testsparsefile1.ksh $(DESTDIR)/usr/share/msnfs41client/tests/sparsefiles/testsparsefile1.ksh
 	cp $(PROJECT_BASEDIR_DIR)/tests/sparsefiles/testsparseexe1.ksh $(DESTDIR)/usr/share/msnfs41client/tests/sparsefiles/testsparseexe1.ksh
 	cp $(PROJECT_BASEDIR_DIR)/tests/sparsefiles/multisparsefiletest.ksh $(DESTDIR)/usr/share/msnfs41client/tests/sparsefiles/multisparsefiletest.ksh
+	cp $(PROJECT_BASEDIR_DIR)/tests/sparsefiles/winsparsestream1.ksh $(DESTDIR)/usr/share/msnfs41client/tests/sparsefiles/winsparsestream1.ksh
 	cp $(PROJECT_BASEDIR_DIR)/tests/fstest_make_numtree1/fstest_make_numtree1.ksh93 $(DESTDIR)/usr/share/msnfs41client/tests/misc/fstest_make_numtree1.ksh93
 	cp $(PROJECT_BASEDIR_DIR)/tests/wintartests/wintartest_comparewinvsgnu001.bash $(DESTDIR)/usr/share/msnfs41client/tests/misc/wintartest_comparewinvsgnu001.bash
 	cp $(PROJECT_BASEDIR_DIR)/tests/wintartests/wintartest_seq001.bash $(DESTDIR)/usr/share/msnfs41client/tests/misc/wintartest_seq001.bash
