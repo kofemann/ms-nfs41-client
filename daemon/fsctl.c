@@ -278,6 +278,9 @@ int handle_queryallocatedranges(void *daemon_context,
             "got space for %ld records\n",
             (int)num_records));
 
+    nfs41_delegation_return(state->session, &state->file,
+        OPEN_DELEGATE_READ, FALSE);
+
     args->buffer_overflow = FALSE;
     args->returned_size = 0;
 
@@ -409,6 +412,9 @@ int handle_setzerodata(void *daemon_context,
         DPRINTF(SZDLVL, ("handle_setzerodata: len == 0, NOP\n"));
         goto out;
     }
+
+    nfs41_delegation_return(state->session, &state->file,
+        OPEN_DELEGATE_READ, FALSE);
 
     nfs41_open_stateid_arg(state, &stateid);
 
@@ -762,6 +768,11 @@ int handle_duplicatedata(void *daemon_context,
             dst_state->path.path);
         goto out;
     }
+
+    nfs41_delegation_return(src_state->session, &src_state->file,
+        OPEN_DELEGATE_READ, FALSE);
+    nfs41_delegation_return(dst_state->session, &dst_state->file,
+        OPEN_DELEGATE_READ, FALSE);
 
     nfs41_open_stateid_arg(src_state, &src_stateid);
     nfs41_open_stateid_arg(dst_state, &dst_stateid);
