@@ -920,7 +920,7 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
             eprintf("handle_open: "
                 "GetSecurityDescriptorDacl() failed, lasterr=%d\n",
                 status);
-            goto out;
+            goto out_free_state;
         }
         status = GetSecurityDescriptorOwner(args->sec_desc,
             &sid, &sid_default);
@@ -929,7 +929,7 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
             eprintf("handle_open: "
                 "GetSecurityDescriptorOwner() failed, lasterr=%d\n",
                 status);
-            goto out;
+            goto out_free_state;
         }
         status = GetSecurityDescriptorGroup(args->sec_desc,
             &gsid, &gsid_default);
@@ -938,7 +938,7 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
             eprintf("handle_open: "
                 "GetSecurityDescriptorOwner() failed, lasterr=%d\n",
                 status);
-            goto out;
+            goto out_free_state;
         }
         status = map_dacl_2_nfs4acl(acl, sid, gsid, &create_nfs4_acl,
             state->type,
@@ -948,7 +948,7 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
             eprintf("handle_open: "
                 "map_dacl_2_nfs4acl() failed, status=%d\n",
                 status);
-            goto out;
+            goto out_free_state;
         }
     }
 #endif /* NFS41_DRIVER_ALLOW_CREATEFILE_ACLS */
