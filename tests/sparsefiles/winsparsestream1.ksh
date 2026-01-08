@@ -37,6 +37,8 @@ function test_sparse_streams
     set -o errexit
     set -o nounset
 
+    # Windows path to printf.exe, Cygwin can use "C:\cygwin64" or "C:\cygwin"
+    typeset -r wpath_printf="$(cygpath -w /bin/printf.exe)"
     compound fsutilout
 
     rm -f ii
@@ -52,19 +54,19 @@ function test_sparse_streams
 
         fsutil file createnew ${streamname} 0
         fsutil sparse setflag ${streamname} 1
-        cmd /C "C:\cygwin64\bin\printf.exe \"MARK1\\n\" >>${streamname}"
+        cmd /C "${wpath_printf} \"MARK1\\n\" >>${streamname}"
 
         fsutil file seteof ${streamname} 0x100000000
-        cmd /C "C:\cygwin64\bin\printf.exe \"MARK2\\n\" >>${streamname}"
+        cmd /C "${wpath_printf} \"MARK2\\n\" >>${streamname}"
 
         fsutil file seteof ${streamname} 0x200000000
-        cmd /C "C:\cygwin64\bin\printf.exe \"MARK3\\n\" >>${streamname}"
+        cmd /C "${wpath_printf} \"MARK3\\n\" >>${streamname}"
 
         fsutil file seteof ${streamname} 0x300000000
-        cmd /C "C:\cygwin64\bin\printf.exe \"MARK4\\n\" >>${streamname}"
+        cmd /C "${wpath_printf} \"MARK4\\n\" >>${streamname}"
 
         fsutil file seteof ${streamname} 0x400000000
-        cmd /C "C:\cygwin64\bin\printf.exe \"EOF.\\n\" >>${streamname}"
+        cmd /C "${wpath_printf} \"EOF.\\n\" >>${streamname}"
 
         # check whether we really have five data sections
         fsutilout.stderr="${ fsutilout.stdout="${ fsutil sparse queryrange ${streamname} || true ; }" 2>&1 ; }"
