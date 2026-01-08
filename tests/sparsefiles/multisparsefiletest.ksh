@@ -3,7 +3,7 @@
 #
 # MIT License
 #
-# Copyright (c) 2025 Roland Mainz <roland.mainz@nrubsig.org>
+# Copyright (c) 2025-2026 Roland Mainz <roland.mainz@nrubsig.org>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -26,6 +26,7 @@
 
 #
 # multisparsefiletest1.ksh - test many combinations of sparse file layouts
+# via POSIX/SUS/Cygwin-only APIs (e.g. no fsutil)
 #
 # Written by Roland Mainz <roland.mainz@nrubsig.org>
 #
