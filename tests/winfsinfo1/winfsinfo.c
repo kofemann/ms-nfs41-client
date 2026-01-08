@@ -1522,9 +1522,8 @@ static
 int get_filestreaminfo(const char *progname, const char *filename)
 {
     int res = EXIT_FAILURE;
-    NTSTATUS status;
-    IO_STATUS_BLOCK iostatus;
-    PFILE_STREAM_INFORMATION fsi = NULL;
+    bool ok;
+    PFILE_STREAM_INFO fsi = NULL;
 
     HANDLE fileHandle = CreateFileA(filename,
         GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING,
@@ -1540,8 +1539,8 @@ int get_filestreaminfo(const char *progname, const char *filename)
 
 #define MAX_STREAM_INFOS (16)
 #define FSI_MAXCHARS (256)
-    fsi = calloc(1,
-        (sizeof(FILE_STREAM_INFORMATION)+sizeof(wchar_t)*FSI_MAXCHARS)*MAX_STREAM_INFOS);
+    size_t fsi_size = (sizeof(FILE_STREAM_INFO)+sizeof(wchar_t)*FSI_MAXCHARS)*MAX_STREAM_INFOS;
+    fsi = calloc(1, fsi_size);
     if (fsi == NULL) {
          (void)fprintf(stderr,
             "%s: Out of memory.\n",
@@ -1549,23 +1548,21 @@ int get_filestreaminfo(const char *progname, const char *filename)
         return EXIT_FAILURE;
     }
 
-    status = ZwQueryInformationFile(fileHandle,
-        &iostatus,
-        fsi,
-        ((sizeof(FILE_STREAM_INFORMATION)+sizeof(wchar_t)*FSI_MAXCHARS)*MAX_STREAM_INFOS),
-        FileStreamInformation);
+    ok = GetFileInformationByHandleEx(fileHandle,
+        FileStreamInfo,
+        fsi, fsi_size);
 
-    if (status != STATUS_SUCCESS) {
-        (void)fprintf(stderr, "%s: ZwQueryInformationFile() "
-            "error. status==0x%lx.\n",
+    if (!ok) {
+        (void)fprintf(stderr, "%s: GetFileInformationByHandleEx() "
+            "error, lasterr=%d.\n",
             progname,
-            (long)status);
+            (int)GetLastError());
         res = EXIT_FAILURE;
         goto done;
     }
 
     int streamindex;
-    FILE_STREAM_INFORMATION *stream;
+    const FILE_STREAM_INFO *stream;
 
     (void)printf("(\n");
     (void)printf("\tfilename='%s'\n", filename);
@@ -1584,7 +1581,7 @@ int get_filestreaminfo(const char *progname, const char *filename)
         if (stream->NextEntryOffset == 0)
             break;
 
-        stream = (FILE_STREAM_INFORMATION *)((char *)stream + stream->NextEntryOffset);
+        stream = (const FILE_STREAM_INFO *)((char *)stream + stream->NextEntryOffset);
     }
     (void)printf("\t)\n");
 
