@@ -131,9 +131,7 @@ NFSv4.2/NFSv4.1 filesystem driver for Windows 10/11 & Windows Server
     `$ /usr/bin/cp --sparse=auto src dest #`
 
   - `/cygdrive/c/Windows/system32/fsutil sparse queryrange myfile.dat`
-    can be used to enumerate ranges where data are allocated (BUG:
-    Win10+Win11 fsutil only support 64 data ranges, the filesystem
-    itself supports an unlimited number of data ranges)
+    can be used to enumerate ranges where data are allocated
 
   - `/cygdrive/c/Windows/system32/xcopy /sparse` can be used to copy
     sparse files+sparse named streams. Requires on Win11 \>= 22H2

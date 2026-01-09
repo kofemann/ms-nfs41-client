@@ -133,7 +133,7 @@
               <para>Cygwin sparse file support requires &gt;= Cygwin 3.6 to support POSIX-1.2024 <literal>|lseek(...,SEEK_HOLE/SEEK_DATA,...)|</literal>, which is needed for coreutils <filename>/usr/bin/fallocate</filename> and <command>$ /usr/bin/cp --sparse=auto src dest #</command></para>
             </listitem>
             <listitem>
-              <para><filename>/cygdrive/c/Windows/system32/fsutil sparse queryrange myfile.dat</filename> can be used to enumerate ranges where data are allocated (BUG: Win10+Win11 fsutil only support 64 data ranges, the filesystem itself supports an unlimited number of data ranges)</para>
+              <para><filename>/cygdrive/c/Windows/system32/fsutil sparse queryrange myfile.dat</filename> can be used to enumerate ranges where data are allocated</para>
             </listitem>
             <listitem>
               <para><filename>/cygdrive/c/Windows/system32/xcopy /sparse</filename> can be used to copy sparse files+sparse named streams. Requires on Win11 &gt;= 22H2 because it relies on <literal>|CopyFile2()|</literal> flag <literal>|COPY_FILE_ENABLE_SPARSE_COPY|</literal>.</para>
