@@ -39,6 +39,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <limits.h>
 #include <errno.h>
 
 #define EXIT_USAGE	(2) /* Traditional UNIX exit code for usage */
@@ -47,8 +48,12 @@ static
 void
 usage(const char *progname)
 {
-	(void) fprintf(stderr, "Usage: %s [-h] [-xdH] <sparse_file>\n"
+	(void) fprintf(stderr,
+		"Usage: %s [-h] [-s startoffset] [-n len] [xdH] "
+			"<sparse_file>\n"
 		"  -h: Display this help message\n"
+		"  -s: Start offset in file\n"
+		"  -n: Number of file bytes to scan\n"
 		"  -x: Print offsets in hexadecimal (base 16)\n"
 		"  -d: Print offsets in decimal (base 10)\n"
 		"  -H: Print hole information\n",
@@ -65,6 +70,9 @@ main(int argc, char *argv[])
 {
 	/* Arguments */
 	const char *progname = argv[0];
+	off_t start_offset = 0LL;
+	off_t end_offset = LLONG_MIN;
+	off_t max_scan_len = -1LL;
 	printbase pb = pb_hex;
 	bool print_holes = false;
 	const char *filename;
@@ -82,12 +90,18 @@ main(int argc, char *argv[])
 	off_t data_len;
 	off_t hole_len;
 
-	while ((opt = getopt(argc, argv, "hxdH")) != -1) {
+	while ((opt = getopt(argc, argv, "hs:n:xdH")) != -1) {
 		switch (opt) {
 			case '?':
 			case 'h':
 				usage(progname);
 				return (EXIT_USAGE);
+			case 's':
+				start_offset = atoll(optarg);
+				break;
+			case 'n':
+				max_scan_len = atoll(optarg);
+				break;
 			case 'x':
 				pb = pb_hex;
 				break;
@@ -127,6 +141,15 @@ main(int argc, char *argv[])
 	}
 	(void) lseek(fd, 0, SEEK_SET);
 
+	if (start_offset > 0LL) {
+		offset = start_offset;
+		(void) printf("# ... starting at offset %lld\n",
+			(long long)offset);
+	}
+
+	if (max_scan_len > 0LL) {
+		end_offset = start_offset + max_scan_len;
+	}
 
 	/*
 	 * Loop over hole&&data sections
@@ -223,6 +246,11 @@ main(int argc, char *argv[])
 	}
 
 	offset = hole_end;
+
+		if ((max_scan_len != -1LL) && (offset >= end_offset)) {
+			(void) printf("# ... stopping at offset %lld\n",
+				(long long)offset);
+		}
 	}
 
 	if ((data_start == -1) && (errno == ENXIO) && (offset == 0)) {
