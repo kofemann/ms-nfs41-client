@@ -1,5 +1,5 @@
 /* NFSv4.1 client for Windows
- * Copyright (C) 2024-2025 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2024-2026 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Roland Mainz <roland.mainz@nrubsig.org>
  *
@@ -22,6 +22,7 @@
 #include <stdio.h>
 
 #include "nfs41_ops.h"
+#include "delegation.h"
 #include "name_cache.h"
 #include "upcall.h"
 #include "daemon_debug.h"
