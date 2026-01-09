@@ -42,7 +42,7 @@
 #include <limits.h>
 #include <errno.h>
 
-#define EXIT_USAGE	(2) /* Traditional UNIX exit code for usage */
+#define	EXIT_USAGE	(2)	/* Traditional UNIX exit code for usage */
 
 static
 void
@@ -61,8 +61,8 @@ usage(const char *progname)
 }
 
 typedef enum _printbase {
-    pb_hex = 1,
-    pb_dec = 2
+	pb_hex = 1,
+	pb_dec = 2
 } printbase;
 
 int
@@ -222,30 +222,33 @@ main(int argc, char *argv[])
 			if (errno == ENXIO) {
 			/* No more holes ? */
 			hole_end = file_size;
-		} else {
-			(void) fprintf(stderr,
-				"%s: "
-				"lseek(..., SEEK_DATA, ...) failed with [%s]\n",
-				progname,
-				strerror(errno));
-			retval = EXIT_FAILURE;
-			goto done;
+			} else {
+				(void) fprintf(stderr,
+					"%s: "
+					"lseek(..., SEEK_DATA, ...) "
+					"failed with [%s]\n",
+					progname,
+					strerror(errno));
+				retval = EXIT_FAILURE;
+				goto done;
+			}
 		}
-	}
 
-	hole_len = hole_end - hole_start;
+		hole_len = hole_end - hole_start;
 
-	if (print_holes && (hole_len > 0LL)) {
-		(void) printf((pb == pb_hex)?
-			"Hole range[%ld]: offset=0x%llx,\tlength=0x%llx\n":
-			"Hole range[%ld]: offset=%lld,\tlength=%lld\n",
-			(long)i,
-			(long long)hole_start,
-			(long long)hole_len);
-		i++;
-	}
+		if (print_holes && (hole_len > 0LL)) {
+			(void) printf((pb == pb_hex)?
+				"Hole range[%ld]: "
+				"offset=0x%llx,\tlength=0x%llx\n":
+				"Hole range[%ld]: "
+				"offset=%lld,\tlength=%lld\n",
+				(long)i,
+				(long long)hole_start,
+				(long long)hole_len);
+			i++;
+		}
 
-	offset = hole_end;
+		offset = hole_end;
 
 		if ((max_scan_len != -1LL) && (offset >= end_offset)) {
 			(void) printf("# ... stopping at offset %lld\n",
