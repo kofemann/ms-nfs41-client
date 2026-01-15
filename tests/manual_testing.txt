@@ -1,5 +1,5 @@
 #
-# ms-nfs41-client manual testing sequence, 2026-01-03
+# ms-nfs41-client manual testing sequence, 2026-01-15
 #
 # Draft version, needs to be turned into automated tests
 # if possible
@@ -1210,6 +1210,35 @@ cd
 filedisk /umount U:
 lssparse /cygdrive/n/winntfs_filedisk_001.img
 rm /cygdrive/n/winntfs_filedisk_001.img
+
+
+#
+# Build ReactOS
+# (free Windows NT clone)
+#
+
+#### Setup:
+- Mount case-insensitive filesystem
+- Install RosBE (ReactOS Build Environment)
+$ curl --remote-name 'https://downloads.sourceforge.net/reactos/RosBE-2.2.1.exe'
+$ chmod a+x RosBE-2.2.1.exe
+$ ./RosBE-2.2.1.exe
+
+#### Build ReactOS/i386 (green terminal, $ cmd.exe /t:0B /k "C:\RosBE\RosBE.cmd" #):
+<inside RosBE command prompt>
+git clone https://github.com/reactos/reactos
+cd reactos
+configure.cmd
+cd output-MinGW-i386
+ninja bootcd livecd
+
+#### Build ReactOS/AMD64 (blue terminal, $ cmd.exe /t:0B /k "C:\RosBE\RosBE.cmd" amd64 #):
+<inside RosBE command prompt>
+git clone https://github.com/reactos/reactos
+cd reactos
+configure.cmd -DARCH=amd64
+cd output-MinGW-amd64
+ninja bootcd livecd
 
 #
 # EOF.
