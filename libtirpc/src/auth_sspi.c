@@ -929,7 +929,8 @@ void log_hexdump(bool_t on, const char *title, const u_char *buf,
 
     if (!on) return;
 
-	fprintf(fd_out, "%04x: %s (len=%d)\n", GetCurrentThreadId(), title, len);
+	fprintf(fd_out, "%04lx: %s (len=%d)\n",
+		(unsigned long)GetCurrentThreadId(), title, len);
 	for (i = 0; i < len; i += 0x10) {
 		fprintf(fd_out, "  %04x: ", (u_int)(i + offset));
 		jm = len - i;
@@ -962,7 +963,8 @@ void log_debug(const char *fmt, ...)
 	va_list ap;
 
 	va_start(ap, fmt);
-	fprintf(fd_out, "%04x: rpcsec_gss: ", GetCurrentThreadId());
+	fprintf(fd_out, "%04lx: rpcsec_gss: ",
+		(unsigned long)GetCurrentThreadId());
 	vfprintf(fd_out, fmt, ap);
 	fprintf(fd_out, "\n");
     fflush(fd_out);

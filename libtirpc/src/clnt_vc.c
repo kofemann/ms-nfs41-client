@@ -216,7 +216,7 @@ static const char __no_mem_str[] = "out of memory";
 		(void)fprintf(stderr, \
 			"#### FATAL: exception in " \
 			"thr=%04lx'%s'/%ld ####\n", \
-			(long)GetCurrentThreadId(), \
+			(unsigned long)GetCurrentThreadId(), \
 			__FILE__, (long)__LINE__); }
 #else
 #define TIRPCDbgEnter()
@@ -238,7 +238,8 @@ static unsigned int WINAPI clnt_cb_thread(void *args)
     char cred_area[2 * MAX_AUTH_BYTES + RQCRED_SIZE];
 
     (void)fprintf(stderr/*stdout*/,
-        "%04lx: cb: Callback thread running\n", (long)GetCurrentThreadId());
+        "%04lx: cb: Callback thread running\n",
+        (unsigned long)GetCurrentThreadId());
 
 #ifdef DEBUG_TIRPC_CB_DEADLOCKS
     int cond_wait_timed_fails;
@@ -550,9 +551,9 @@ clnt_vc_create(
         cl->cb_thread = (HANDLE)_beginthreadex(NULL,
             0, clnt_cb_thread, cl, 0, NULL);
         if (cl->cb_thread == INVALID_HANDLE_VALUE) {
-            (void)fprintf(stderr, "%04lx: _beginthreadex() failed %d\n",
+            (void)fprintf(stderr, "%04lx: _beginthreadex() failed, lasterr=%d\n",
                 (long)GetCurrentThreadId(),
-                GetLastError());
+                (int)GetLastError());
             goto err;
         } else
             fprintf(stdout, "%04lx: started the callback thread %04lx\n",

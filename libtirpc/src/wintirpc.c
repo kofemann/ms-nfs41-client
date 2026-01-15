@@ -519,7 +519,8 @@ void wintirpc_syslog(int prio, const char *format, ...)
 		default:		prio_s = "UNKNOWN_ERROR"; break;
 	}
 
-	(void)fprintf(stderr, "%04x: %s: ", GetCurrentThreadId(), prio_s);
+	(void)fprintf(stderr, "%04lx: %s: ",
+		(unsigned long)GetCurrentThreadId(), prio_s);
 	(void)vfprintf(stderr, format, args);
 	(void)fputc('\n', stderr);
 	(void)fflush(stderr);
@@ -531,7 +532,8 @@ void wintirpc_warnx(const char *format, ...)
 {
     va_list args;
     va_start(args, format);
-    (void)fprintf(stderr, "%04x: ", GetCurrentThreadId());
+    (void)fprintf(stderr, "%04lx: ",
+	(unsigned long)GetCurrentThreadId());
     (void)vfprintf(stderr, format, args);
     (void)fflush(stderr);
     va_end(args);
