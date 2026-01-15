@@ -28,7 +28,8 @@
 #include "nfs41_types.h"
 #include "from_kernel.h"
 
-#define STREAMINFO_NEXT_ENTRY(str) ((PBYTE)(str) + (str)->NextEntryOffset)
+#define STREAMINFO_NEXT_ENTRY(str) \
+    ((PFILE_STREAM_INFORMATION)((PBYTE)(str) + (str)->NextEntryOffset))
 
 static __inline
 bool is_stream_path(const nfs41_abs_path *restrict path)

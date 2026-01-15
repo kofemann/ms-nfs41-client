@@ -299,7 +299,7 @@ void populate_stream_list(
     stream->NextEntryOffset =
         ALIGNED_STREAMINFOSIZE(stream->StreamNameLength);
     last_win_stream = stream;
-    stream = (PFILE_STREAM_INFORMATION)STREAMINFO_NEXT_ENTRY(stream);
+    stream = STREAMINFO_NEXT_ENTRY(stream);
 
     /*
      * Enumerate streams
@@ -375,7 +375,7 @@ next_readdir_entry:
         if (is_win_stream) {
             stream->NextEntryOffset =
                 ALIGNED_STREAMINFOSIZE(stream->StreamNameLength);
-            stream = (PFILE_STREAM_INFORMATION)STREAMINFO_NEXT_ENTRY(stream);
+            stream = STREAMINFO_NEXT_ENTRY(stream);
         }
 
         position += entry->next_entry_offset;
@@ -387,7 +387,7 @@ int get_stream_list(
     IN OUT nfs41_open_state *state,
     IN nfs41_path_fh *streamfile,
     IN const nfs41_file_info *basefile_info,
-    OUT PFILE_STREAM_INFORMATION *restrict streamlist_out,
+    OUT FILE_STREAM_INFORMATION *restrict *restrict streamlist_out,
     OUT ULONG *streamlist_out_size)
 {
     unsigned char *entry_list;
