@@ -1076,11 +1076,15 @@ int get_file_remote_protocol_info(const char *progname, const char *filename)
 {
     int res = EXIT_FAILURE;
     bool ok;
-#ifdef _MSC_BUILD
+#if defined(_MSC_BUILD)
+    /* Visual Studio */
     __declspec(align(16)) FILE_REMOTE_PROTOCOL_INFO frpi;
-#else
+#elif defined(__clang__)
+    /* clang */
     FILE_REMOTE_PROTOCOL_INFO frpi __attribute__((aligned(16)));
-#endif
+#else
+#error Compiler not supported yet
+#endif /* |_MSC_BUILD| */
     int i;
     (void)memset(&frpi, 0, sizeof(frpi));
 

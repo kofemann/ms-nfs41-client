@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2023-2026 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -513,11 +513,15 @@ typedef struct _NFS41_SRV_OPEN {
      * |open_pg_sidbuff| - Note that buffers with SID values must be 16byte
      * aligned on Windows 10/32bit
      */
-#ifdef _MSC_BUILD
+#if defined(_MSC_BUILD)
+    /* Visual Studio */
     __declspec(align(16)) char open_pg_sidbuff[MAX_SID_BUFFER_SIZE];
-#else
+#elif defined(__clang__)
+    /* clang */
     char open_pg_sidbuff[MAX_SID_BUFFER_SIZE] __attribute__((aligned(16)));
-#endif /* _MSC_BUILD */
+#else
+#error Compiler not supported yet
+#endif /* |_MSC_BUILD| */
 
     /* |open_pg_sid| - PrimaryGroup SID used for opening this NFS handle */
     PSID            open_pg_sid;

@@ -2,7 +2,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2024-2025 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (c) 2024-2026 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -70,20 +70,22 @@
 #define MAX_SID_BUFFER_SIZE (128)
 
 /*
- * DECLARE_SID_BUFFER - declare a buffer for a SID value
+ * |DECLARE_SID_BUFFER| - declare a buffer for a SID value
  * Note that buffers with SID values must be 16byte aligned
  * on Windows 10/32bit, othewise the kernel might return
  * |ERROR_NOACCESS|(=998) - "Invalid access to memory location".
  */
-#ifdef _MSC_BUILD
+#if defined(_MSC_BUILD)
 /* Visual Studio */
 #define DECLARE_SID_BUFFER(varname) \
     __declspec(align(16)) char (varname)[MAX_SID_BUFFER_SIZE]
-#else
+#elif defined(__clang__)
 /* clang */
 #define DECLARE_SID_BUFFER(varname) \
     char (varname)[MAX_SID_BUFFER_SIZE] __attribute__((aligned(16)))
-#endif /* _MSC_BUILD */
+#else
+#error Compiler not supported yet
+#endif /* |_MSC_BUILD| */
 
 /*
  * Performance hack:
