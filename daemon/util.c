@@ -772,7 +772,7 @@ int parse_fs_location_server_address(IN const char *restrict inaddr,
     int colon_count = count_chars(inaddr, ':');
 
     if (((dot_count == 5) && (colon_count == 0)) ||
-        (colon_count == 7) && (dot_count == 2)) {
+        ((colon_count == 7) && (dot_count == 2))) {
         int num1, num2;
         const char *begin_dot = NULL;
         if (parse_last_two_numbers(inaddr, &begin_dot, &num1, &num2)) {
