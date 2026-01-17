@@ -45,8 +45,8 @@
  * "SUNWattr_ro" will fail, because the attribute file is
  * read-only).
  */
-#define WIN_NFS4_STREAMS_NAME_PREFIX "win32.streams."
-#define WIN_NFS4_STREAMS_NAME_PREFIX_LEN (14)
+#define WIN_NFS4_STREAMS_NAME_PREFIX "win32.stream."
+#define WIN_NFS4_STREAMS_NAME_PREFIX_LEN (13)
 
 
 static
