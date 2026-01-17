@@ -198,6 +198,7 @@ NTSTATUS map_queryfile_error(
     switch (error) {
     case ERROR_ACCESS_DENIED:       return STATUS_ACCESS_DENIED;
     case ERROR_NETNAME_DELETED:     return STATUS_NETWORK_NAME_DELETED;
+    case ERROR_INVALID_NAME:        return STATUS_OBJECT_NAME_INVALID;
     case ERROR_INVALID_PARAMETER:   return STATUS_INVALID_PARAMETER;
     case ERROR_NOT_SUPPORTED:       return STATUS_NOT_SUPPORTED;
     case ERROR_INTERNAL_ERROR:      return STATUS_INTERNAL_ERROR;
@@ -590,6 +591,7 @@ NTSTATUS map_setfile_error(
     case ERROR_FILE_TOO_LARGE:          return STATUS_FILE_TOO_LARGE;
     case ERROR_INSUFFICIENT_BUFFER:     return STATUS_BUFFER_TOO_SMALL;
     case ERROR_MORE_DATA:               return STATUS_BUFFER_OVERFLOW;
+    case ERROR_INVALID_NAME:            return STATUS_OBJECT_NAME_INVALID;
     case ERROR_INTERNAL_ERROR:          return STATUS_INTERNAL_ERROR;
     default:
         print_error("map_setfile_error: "
