@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2023-2026 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -86,6 +86,9 @@ NTSTATUS marshal_nfs41_easet(
     header_len = *len + length_as_utf8(entry->filename) +
         sizeof(ULONG) + entry->u.SetEa.buf_len  + sizeof(DWORD);
     if (header_len > buf_len) {
+        DbgP("marshal_nfs41_easet: "
+            "upcall buffer too small: header_len(=%ld) > buf_len(=%ld)\n",
+            (long)header_len, (long)buf_len);
         status = STATUS_INSUFFICIENT_RESOURCES;
         goto out;
     }
@@ -136,6 +139,9 @@ NTSTATUS marshal_nfs41_eaget(
         3 * sizeof(ULONG) + entry->u.QueryEa.EaListLength + 2 * sizeof(BOOLEAN);
 
     if (header_len > buf_len) {
+        DbgP("marshal_nfs41_eaget: "
+            "upcall buffer too small: header_len(=%ld) > buf_len(=%ld)\n",
+            (long)header_len, (long)buf_len);
         status = STATUS_INSUFFICIENT_RESOURCES;
         goto out;
     }

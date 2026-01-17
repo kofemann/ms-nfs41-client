@@ -133,6 +133,9 @@ NTSTATUS marshal_nfs41_open(
 #endif /* NFS41_DRIVER_ALLOW_CREATEFILE_ACLS */
         length_as_utf8(&entry->u.Open.symlink);
     if (header_len > buf_len) {
+        DbgP("marshal_nfs41_open: "
+            "upcall buffer too small: header_len(=%ld) > buf_len(=%ld)\n",
+            (long)header_len, (long)buf_len);
         status = STATUS_INSUFFICIENT_RESOURCES;
         goto out;
     }
@@ -236,6 +239,9 @@ NTSTATUS marshal_nfs41_close(
             sizeof(BOOLEAN);
 
     if (header_len > buf_len) {
+        DbgP("marshal_nfs41_close: "
+            "upcall buffer too small: header_len(=%ld) > buf_len(=%ld)\n",
+            (long)header_len, (long)buf_len);
         status = STATUS_INSUFFICIENT_RESOURCES;
         goto out;
     }

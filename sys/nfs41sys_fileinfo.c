@@ -86,6 +86,9 @@ NTSTATUS marshal_nfs41_filequery(
 
     header_len = *len + 2 * sizeof(ULONG);
     if (header_len > buf_len) {
+        DbgP("marshal_nfs41_filequery: "
+            "upcall buffer too small: header_len(=%ld) > buf_len(=%ld)\n",
+            (long)header_len, (long)buf_len);
         status = STATUS_INSUFFICIENT_RESOURCES;
         goto out;
     }
@@ -127,6 +130,9 @@ NTSTATUS marshal_nfs41_fileset(
     header_len = *len + length_as_utf8(entry->filename) +
         2 * sizeof(ULONG) + entry->u.SetFile.buf_len;
     if (header_len > buf_len) {
+        DbgP("marshal_nfs41_fileset: "
+            "upcall buffer too small: header_len(=%ld) > buf_len(=%ld)\n",
+            (long)header_len, (long)buf_len);
         status = STATUS_INSUFFICIENT_RESOURCES;
         goto out;
     }
