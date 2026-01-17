@@ -59,6 +59,7 @@ bool is_stream_component(const nfs41_component *restrict comp)
 
 int parse_win32stream_name(
     IN const char *restrict path,
+    IN bool allow_empty_base_name,
     OUT bool *restrict is_stream,
     OUT char *restrict base_name,
     OUT char *restrict stream_name);

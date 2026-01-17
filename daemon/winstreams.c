@@ -91,9 +91,11 @@ int parse_stream_filename_streamname_streamtype(
         return NO_ERROR;
     }
 
-    /* First colon exists: filename before ':' must be non-empty */
-    if (c1 == base)
-        return ERROR_INVALID_NAME;
+    /*
+     * First colon exists: filename before ':' can be empty in case if a
+     * rename destination. |filename| should then be obtained from the
+     * rename src filename
+     */
 
     /*
      * One colon case
@@ -143,6 +145,7 @@ int parse_stream_filename_streamname_streamtype(
 
 int parse_win32stream_name(
     IN const char *restrict path,
+    IN bool allow_empty_base_name,
     OUT bool *restrict is_stream,
     OUT char *restrict base_name,
     OUT char *restrict stream_name)
@@ -161,6 +164,11 @@ int parse_win32stream_name(
             "parsing for path='%s' failed, status=%d\n",
             path, status);
         return status;
+    }
+
+    if ((allow_empty_base_name == false) &&
+        (filenamebuff[0] == '\0')) {
+        return ERROR_INVALID_NAME;
     }
 
     DPRINTF(WINSTRLVL,

@@ -514,7 +514,8 @@ int nfs41_lookup(
         bool is_stream = false;
 
         /* Parse the stream syntax */
-        status = parse_win32stream_name(path.path, &is_stream, base_name, stream_name);
+        status = parse_win32stream_name(path.path, false,
+            &is_stream, base_name, stream_name);
         if (status)
             goto out;
 

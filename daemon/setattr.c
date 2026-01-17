@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2023-2026 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -489,6 +489,51 @@ static int handle_nfs41_rename(void *daemon_context, setattr_upcall_args *args)
         status = ERROR_INVALID_PARAMETER;
         goto out;
     }
+
+#ifdef NFS41_WINSTREAMS_SUPPORT
+    /*
+     * Handle NTFS-style renaming of a Win32 named stream to another stream
+     * name of the same base filename, e.g.
+     * $ renamestream 'F:\namedstreamtest\file1:stream9' ':stream9_rename1' #
+     * (this is the only known way for NTFS on Win10 to rename a stream)
+     *
+     * |rename->FileName| will contain a "relative stream name", i.e. starting
+     * with ":<streamname>", and we have to add the base filename from the src
+     * filename.
+     */
+    if ((dst_path.len > 1) && (dst_path.path[0] == ':')) {
+        char *s;
+        s = strchr(src_name->name, ':');
+        if (s == NULL) {
+            eprintf("handle_nfs41_rename: dst is stream, src is '%s'\n",
+                src_name->name);
+            status = ERROR_INVALID_PARAMETER;
+            goto out;
+        }
+
+        size_t len = s - src_name->name;
+
+        if ((dst_path.len+len+1) >= NFS41_MAX_COMPONENT_LEN) {
+            eprintf("handle_nfs41_rename: "
+                "(dst_path.len(=%d)+len=(=%d)+1) >= NFS41_MAX_COMPONENT_LEN, "
+                "src is '%s'\n",
+                (int)dst_path.len,
+                (int)len,
+                src_name->name);
+            status = ERROR_INVALID_PARAMETER;
+            goto out;
+        }
+
+        (void)memmove(&dst_path.path[len], &dst_path.path[0], dst_path.len+1);
+        (void)memcpy(&dst_path.path[0], src_name->name, len);
+        dst_path.len += (unsigned short)len;
+        DPRINTF(1,
+            ("handle_nfs41_rename: "
+            "streams: src_name->name='%s' dst_path.name='%s'\n",
+            src_name->name, dst_path.path));
+    }
+#endif /* NFS41_WINSTREAMS_SUPPORT */
+
     path_fh_init(&dst_dir, &dst_path);
 
     /* the destination path is absolute, so start from the root session */

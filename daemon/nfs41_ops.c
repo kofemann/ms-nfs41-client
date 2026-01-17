@@ -36,9 +36,7 @@
 #include "delegation.h"
 #include "daemon_debug.h"
 #include "util.h"
-#ifdef NFS41_WINSTREAMS_SUPPORT
 #include "winstreams.h"
-#endif /* NFS41_WINSTREAMS_SUPPORT */
 
 #ifdef NFS41_DRIVER_STABILITY_HACKS
 /*
@@ -492,7 +490,7 @@ int nfs41_open(
 #ifdef NFS41_WINSTREAMS_SUPPORT
     if (file->name.name) {
         if (is_stream_path_fh(file)) {
-            status = parse_win32stream_name(file->name.name,
+            status = parse_win32stream_name(file->name.name, false,
                 &is_stream, base_buf, stream_buf);
             if (status)
                 goto out;
@@ -711,7 +709,7 @@ int nfs41_create(
 
     if (file->name.name) {
         if (is_stream_path_fh(file)) {
-            status = parse_win32stream_name(file->name.name,
+            status = parse_win32stream_name(file->name.name, false,
                 &is_stream, base_buf, stream_buf);
             if (status)
                 goto out;
@@ -1436,7 +1434,7 @@ int nfs41_remove(
 
     if (target->name) {
         if (is_stream_component(target)) {
-            status = parse_win32stream_name(target->name,
+            status = parse_win32stream_name(target->name, false,
                 &is_stream, base_buf, stream_buf);
             if (status)
                 goto out;
@@ -1527,8 +1525,8 @@ int nfs41_rename(
 {
     int status;
     nfs41_compound compound;
-    nfs_argop4 argops[8];
-    nfs_resop4 resops[8];
+    nfs_argop4 argops[16];
+    nfs_resop4 resops[16];
     nfs41_sequence_args sequence_args;
     nfs41_sequence_res sequence_res;
     nfs41_putfh_args src_putfh_args;
@@ -1542,16 +1540,74 @@ int nfs41_rename(
     nfs41_getattr_res src_getattr_res NDSH(= { 0 }), dst_getattr_res NDSH(= { 0 });
     nfs41_file_info src_info, dst_info;
     bitmap4 attr_request;
-    nfs41_restorefh_res restorefh_res;
+
+    DPRINTF(1, ("--> nfs41_rename("
+        "src_dir=(path='%.*s' name='%.*s'), src_name='%.*s', "
+        "dst_dir=(path='%.*s' name='%.*s'), dst_name='%.*s')\n",
+        (int)src_dir->path->len, src_dir->path->path,
+        (int)src_dir->name.len,  src_dir->name.name,
+        (int)src_name->len,      src_name->name,
+        (int)dst_dir->path->len, dst_dir->path->path,
+        (int)dst_dir->name.len,  dst_dir->name.name,
+        (int)dst_name->len,      dst_name->name));
 
 #ifdef NFS41_WINSTREAMS_SUPPORT
+    char src_base_buf[NFS41_MAX_PATH_LEN+1];
+    char src_stream_buf[NFS41_MAX_COMPONENT_LEN+1];
+    char dst_base_buf[NFS41_MAX_PATH_LEN+1];
+    char dst_stream_buf[NFS41_MAX_COMPONENT_LEN+1];
+    bool src_is_stream = false;
+    bool dst_is_stream = false;
+    nfs41_component src_base_comp = {0};
+    nfs41_component src_stream_comp = {0};
+    nfs41_lookup_args src_lookup_args;
+    nfs41_lookup_res src_lookup_res;
+    nfs41_openattr_args src_openattr_args;
+    nfs41_openattr_res src_openattr_res;
+    nfs41_component dst_base_comp = {0};
+    nfs41_component dst_stream_comp = {0};
+    nfs41_lookup_args dst_lookup_args;
+    nfs41_lookup_res dst_lookup_res;
+    nfs41_openattr_args dst_openattr_args;
+    nfs41_openattr_res dst_openattr_res;
+
     if (src_name->name) {
-        EASSERT_MSG(is_stream_component(src_name) == false,
-            ("nfs41_rename: Streams not implemented yet\n"));
+        if (is_stream_component(src_name)) {
+            status = parse_win32stream_name(src_name->name, false,
+                &src_is_stream, src_base_buf, src_stream_buf);
+            if (status)
+                goto out;
+
+            if (src_is_stream) {
+                src_base_comp.name = src_base_buf;
+                src_base_comp.len = (unsigned short)strlen(src_base_buf);
+                src_stream_comp.name = src_stream_buf;
+                src_stream_comp.len = (unsigned short)strlen(src_stream_buf);
+            }
+        }
     }
+
     if (dst_name->name) {
-        EASSERT_MSG(is_stream_component(dst_name) == false,
-            ("nfs41_rename: Streams not implemented yet\n"));
+        if (is_stream_component(dst_name)) {
+            status = parse_win32stream_name(dst_name->name, false,
+                &dst_is_stream, dst_base_buf, dst_stream_buf);
+            if (status)
+                goto out;
+
+            if (dst_is_stream) {
+                dst_base_comp.name = dst_base_buf;
+                dst_base_comp.len = (unsigned short)strlen(dst_base_buf);
+                dst_stream_comp.name = dst_stream_buf;
+                dst_stream_comp.len = (unsigned short)strlen(dst_stream_buf);
+            }
+        }
+    }
+
+    if (src_is_stream && dst_is_stream) {
+        if (dst_dir->name.len == 0) {
+            DPRINTF(1, ("nfs41_rename: dst_dir = src_dir\n"));
+            dst_dir = src_dir;
+        }
     }
 #endif /* NFS41_WINSTREAMS_SUPPORT */
 
@@ -1567,22 +1623,76 @@ int nfs41_rename(
     src_putfh_args.file = src_dir;
     src_putfh_args.in_recovery = 0;
 
+#ifdef NFS41_WINSTREAMS_SUPPORT
+    if (src_is_stream && (src_stream_comp.len > 0)) {
+        compound_add_op(&compound, OP_LOOKUP, &src_lookup_args, &src_lookup_res);
+        src_lookup_args.name = &src_base_comp;
+        compound_add_op(&compound, OP_OPENATTR, &src_openattr_args, &src_openattr_res);
+        /* Do not create the src named attr dir */
+        src_openattr_args.createdir = FALSE;
+    }
+#endif /* NFS41_WINSTREAMS_SUPPORT */
+
     compound_add_op(&compound, OP_SAVEFH, NULL, &savefh_res);
 
     compound_add_op(&compound, OP_PUTFH, &dst_putfh_args, &dst_putfh_res);
     dst_putfh_args.file = dst_dir;
     dst_putfh_args.in_recovery = 0;
 
+#ifdef NFS41_WINSTREAMS_SUPPORT
+    if (dst_is_stream && (dst_stream_comp.len > 0)) {
+        compound_add_op(&compound, OP_LOOKUP, &dst_lookup_args, &dst_lookup_res);
+        dst_lookup_args.name = &dst_base_comp;
+        compound_add_op(&compound, OP_OPENATTR, &dst_openattr_args, &dst_openattr_res);
+        /*
+         * Create the dst named attr dir.
+         * (Technically the NFS spec does not allow renaming between different
+         * src and dst named attr dirs, but we do this for correctness reasons)
+         */
+        dst_openattr_args.createdir = TRUE;
+    }
+#endif /* NFS41_WINSTREAMS_SUPPORT */
+
     compound_add_op(&compound, OP_RENAME, &rename_args, &rename_res);
-    rename_args.oldname = src_name;
-    rename_args.newname = dst_name;
+
+#ifdef NFS41_WINSTREAMS_SUPPORT
+    if (src_is_stream) {
+        if (src_stream_comp.len > 0)
+            rename_args.oldname = &src_stream_comp;
+        else
+            rename_args.oldname = &src_base_comp;
+    }
+    else
+#endif /* NFS41_WINSTREAMS_SUPPORT */
+    {
+        rename_args.oldname = src_name;
+    }
+
+#ifdef NFS41_WINSTREAMS_SUPPORT
+    if (dst_is_stream) {
+        if (dst_stream_comp.len > 0)
+            rename_args.newname = &dst_stream_comp;
+        else
+            rename_args.newname = &dst_base_comp;
+    }
+    else
+#endif /* NFS41_WINSTREAMS_SUPPORT */
+    {
+        rename_args.newname = dst_name;
+    }
+
+    compound_add_op(&compound, OP_PUTFH, &dst_putfh_args, &dst_putfh_res);
+    dst_putfh_args.file = dst_dir;
+    dst_putfh_args.in_recovery = 0;
 
     compound_add_op(&compound, OP_GETATTR, &getattr_args, &dst_getattr_res);
     getattr_args.attr_request = &attr_request;
     dst_getattr_res.obj_attributes.attr_vals_len = NFS4_OPAQUE_LIMIT_ATTR;
     dst_getattr_res.info = &dst_info;
 
-    compound_add_op(&compound, OP_RESTOREFH, NULL, &restorefh_res);
+    compound_add_op(&compound, OP_PUTFH, &src_putfh_args, &src_putfh_res);
+    src_putfh_args.file = src_dir;
+    src_putfh_args.in_recovery = 0;
 
     compound_add_op(&compound, OP_GETATTR, &getattr_args, &src_getattr_res);
     src_getattr_res.obj_attributes.attr_vals_len = NFS4_OPAQUE_LIMIT_ATTR;
@@ -1630,6 +1740,8 @@ int nfs41_rename(
         ReleaseSRWLockShared(&dst_dir->path->lock);
     }
 out:
+    DPRINTF(1, ("<-- nfs41_rename(), status=%d\n", (int)status));
+
     return status;
 }
 
