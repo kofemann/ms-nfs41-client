@@ -225,6 +225,19 @@ static int get_superblock_attrs(
             superblock->fsid.major, superblock->fsid.minor);
     }
 
+    /* Windows features */
+    is = infobuff;
+    *is = '\0';
+    if (superblock->nfs_namedattr_support) {
+        is = stpcpy(is, "Win32 named streams");
+        *is++ = ',';
+        is = stpcpy(is, "Win32 extended attributes");
+    }
+    logprintf("get_superblock_attrs(fsid=(%llu,%llu)): "
+        "Supported Windows features: { %s }\n",
+        superblock->fsid.major, superblock->fsid.minor,
+        infobuff);
+
     /* Windows/DOS attributes */
     is = infobuff;
     *is = '\0';
