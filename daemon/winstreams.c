@@ -471,17 +471,20 @@ int get_streaminformation(
     }
 
     /*
-     * FIXME: |FileStreamInformation| for |NF4NAMEDATTR| is not supported
+     * FIXME: |FileStreamInformation| for streams is not supported
      * (yet), the expectation is that doing this for stream "abc:str1" will
      * return all streams for "abc"
      */
-    if (basefile_info->type == NF4NAMEDATTR) {
+    if (is_stream_path_fh(&state->file)) {
         DPRINTF(0,
             ("get_streaminformation(name='%.*s'): "
-            "stream info for NF4NAMEDATTR not implemented yet\n",
+            "stream info with stream name not implemented yet\n",
             (int)state->file.name.len, state->file.name.name));
         return ERROR_NOT_SUPPORTED;
     }
+
+    EASSERT(basefile_info->type != NF4ATTRDIR);
+    EASSERT(basefile_info->type != NF4NAMEDATTR);
 
     status = nfs41_rpc_openattr(state->session, &state->file, FALSE,
         &parent.fh);

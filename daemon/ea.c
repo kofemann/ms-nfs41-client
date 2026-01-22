@@ -25,12 +25,16 @@
 #include <stdio.h>
 #include <strsafe.h>
 
+#include "nfs41_build_features.h"
 #include "from_kernel.h"
 #include "nfs41_ops.h"
 #include "delegation.h"
 #include "upcall.h"
 #include "daemon_debug.h"
 #include "nfs_ea.h"
+#ifdef NFS41_WINSTREAMS_SUPPORT
+#include "winstreams.h"
+#endif /* NFS41_WINSTREAMS_SUPPORT */
 
 /*
  * Compile safeguard to see whether |NFS4_EASIZE+header| will still fit into
@@ -225,6 +229,24 @@ static int handle_setexattr(void *daemon_context, nfs41_upcall *upcall)
         status = ERROR_INVALID_PARAMETER;
         goto out;
     }
+
+#ifdef NFS41_WINSTREAMS_SUPPORT
+    /*
+     * FIXME: Setting EA with stream name is not supported
+     * (yet), the expectation is that doing this for stream "abc:str1" will
+     * set the EA for "abc"
+     *
+     * FIXME: What about setting mode etc. with Cygwin/SFU EAs ?
+     * This should effect the stream itself, right ?
+     */
+    if (is_stream_path_fh(&state->file)) {
+        DPRINTF(0,
+            ("handle_setexattr(name='%.*s'): "
+            "Setting EA with stream name not implemented yet\n",
+            (int)state->file.name.len, state->file.name.name));
+        return ERROR_NOT_SUPPORTED;
+    }
+#endif /* NFS41_WINSTREAMS_SUPPORT */
 
     /* break read delegations before SETATTR */
     nfs41_delegation_return(state->session, &state->file,
@@ -582,6 +604,24 @@ static int handle_getexattr(void *daemon_context, nfs41_upcall *upcall)
     nfs41_path_fh parent = { 0 };
     uint32_t remaining, needed, index = 0;
     int status;
+
+#ifdef NFS41_WINSTREAMS_SUPPORT
+    /*
+     * FIXME: Getting EA with stream name is not supported
+     * (yet), the expectation is that doing this for stream "abc:str1" will
+     * return EAs for "abc"
+     *
+     * FIXME: What about getting mode etc. with Cygwin/SFU EAs ?
+     * This should effect the stream itself, right ?
+     */
+    if (is_stream_path_fh(&state->file)) {
+        DPRINTF(0,
+            ("handle_getexattr(name='%.*s'): "
+            "Getting EA with stream name not implemented yet\n",
+            (int)state->file.name.len, state->file.name.name));
+        return ERROR_NOT_SUPPORTED;
+    }
+#endif /* NFS41_WINSTREAMS_SUPPORT */
 
     status = nfs41_rpc_openattr(state->session, &state->file, FALSE, &parent.fh);
     if (status == NFS4ERR_NOENT) { /* no named attribute directory */
