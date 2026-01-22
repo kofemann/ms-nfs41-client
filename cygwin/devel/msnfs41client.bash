@@ -247,6 +247,7 @@ function nfsclient_install
 		'bin/winfsinfo'
 		'bin/winclonefile'
 		'bin/winoffloadcopyfile'
+		'bin/winstreamsutil'
 		'bin/winsg'
 		'bin/nfs_ea'
 		'sbin/catdbgprint'

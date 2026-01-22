@@ -1,5 +1,5 @@
 #
-# ms-nfs41-client manual testing sequence, 2026-01-17
+# ms-nfs41-client manual testing sequence, 2026-01-22
 #
 # Draft version, needs to be turned into automated tests
 # if possible
@@ -235,8 +235,10 @@ rm -f file1 && echo "file1data" >file1 && cmd /c 'echo file1_line1 >>file1:files
 powershell -Command 'Get-Item -LiteralPath file1 -Stream * | Select *'
 
 # FIXME: tests for stream removal, enumeration and sparse data
-# FIXME: Add tests for stream NTFS-style renaming (e.g. FileRenameInformation with "relative stream name", e.g. ':mystrname1:$DATA')
 
+# NTFS-style renaming (e.g. FileRenameInformation with "relative stream name", e.g. ':mystrname1:$DATA')
+# (last line should print "file1_line1")
+rm -f file1 && touch file1 && cmd /c 'echo file1_line1 >>file1:mystrname1' && winstreamsutil renamestream file1 ':mystrname1' ':mystrname1_renamed' && cmd /C 'C:\cygwin64\bin\cat.exe <file1:mystrname1_renamed'
 
 #
 # Tests for Cycgwin/UWIN/SFU Nfs3Attr EA-based local uid/gid

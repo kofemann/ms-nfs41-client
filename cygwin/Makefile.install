@@ -167,6 +167,8 @@ installdest:
 	cp "$(PROJECT_BASEDIR_DIR)/tests/winclonefile/winclonefile.i686.exe" $(DESTDIR)/bin/winclonefile.i686.exe
 	cp "$(PROJECT_BASEDIR_DIR)/tests/winoffloadcopyfile/winoffloadcopyfile.x86_64.exe" $(DESTDIR)/bin/winoffloadcopyfile.x86_64.exe
 	cp "$(PROJECT_BASEDIR_DIR)/tests/winoffloadcopyfile/winoffloadcopyfile.i686.exe" $(DESTDIR)/bin/winoffloadcopyfile.i686.exe
+	cp "$(PROJECT_BASEDIR_DIR)/tests/winstreamsutil/winstreamsutil.x86_64.exe" $(DESTDIR)/bin/winstreamsutil.x86_64.exe
+	cp "$(PROJECT_BASEDIR_DIR)/tests/winstreamsutil/winstreamsutil.i686.exe" $(DESTDIR)/bin/winstreamsutil.i686.exe
 	cp "$(PROJECT_BASEDIR_DIR)/tests/catdbgprint/catdbgprint.x86_64.exe" $(DESTDIR)/sbin/catdbgprint.x86_64.exe
 	cp "$(PROJECT_BASEDIR_DIR)/tests/catdbgprint/catdbgprint.i686.exe" $(DESTDIR)/sbin/catdbgprint.i686.exe
 	cp "$(PROJECT_BASEDIR_DIR)/tests/winrunassystem/winrunassystem.x86_64.exe" $(DESTDIR)/sbin/winrunassystem.x86_64.exe
