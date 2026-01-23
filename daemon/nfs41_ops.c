@@ -1204,6 +1204,7 @@ int nfs41_unlock(
     compound_add_op(&compound, OP_LOCKU, &locku_args, &locku_res);
     /* 18.12.3: the server MUST accept any legal value for locktype */
     locku_args.locktype = READ_LT;
+    locku_args.seqid = 0; /* ignored */
     locku_args.offset = offset;
     locku_args.length = length;
     locku_args.lock_stateid = stateid;
