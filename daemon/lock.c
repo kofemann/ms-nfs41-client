@@ -250,7 +250,14 @@ static int handle_lock_retry(void *deamon_context, nfs41_upcall *upcall)
     status = nfs41_lock(state->session, &state->file, &state->owner,
         type, lock->offset, lock->length, FALSE, TRUE, &stateid);
     if (status) {
-        DPRINTF(LKLVL, ("nfs41_lock failed with '%s'\n",
+        DPRINTF(0/*LKLVL*/,
+            ("handle_lock_retry(state->path.path='%s' "
+            "args->(offset=%llu,length=%llu,exclusive=%d)): "
+            "nfs41_lock() failed with '%s'\n",
+            state->path.path,
+            (unsigned long long)args->offset,
+            (unsigned long long)args->length,
+            (int)args->exclusive,
             nfs_error_string(status)));
         status = nfs_to_windows_error(status, ERROR_BAD_NET_RESP);
         LeaveCriticalSection(&state->locks.lock);
@@ -343,6 +350,16 @@ static void cancel_lock(IN nfs41_upcall *upcall)
 
     status = nfs41_unlock(state->session, &state->file,
         args->offset, args->length, &stateid);
+    if (status) {
+        DPRINTF(0/*LKLVL*/,
+            ("cancel_lock(state->path.path='%s' "
+            "args->(offset=%llu,length=%llu)): "
+            "nfs41_unlock() failed with '%s'\n",
+            state->path.path,
+            (unsigned long long)args->offset,
+            (unsigned long long)args->length,
+            nfs_error_string(status)));
+    }
 
     open_unlock_remove(state, &stateid, &input);
     LeaveCriticalSection(&state->locks.lock);
@@ -405,6 +422,20 @@ static int handle_unlock(void *daemon_context, nfs41_upcall *upcall)
 
         status = nfs41_unlock(state->session, &state->file,
             input.offset, input.length, &stateid);
+
+        if (status) {
+            DPRINTF(0/*LKLVL*/,
+                ("handle_unlock(state->path.path='%s' "
+                "args->count=%d i=%d\n"
+                "input.(offset=%llu,length=%llu)): "
+                "nfs41_unlock() failed with '%s'\n",
+                state->path.path,
+                (int)args->count,
+                (int)i,
+                (unsigned long long)input.offset,
+                (unsigned long long)input.length,
+                nfs_error_string(status)));
+        }
 
         open_unlock_remove(state, &stateid, &input);
         LeaveCriticalSection(&state->locks.lock);
