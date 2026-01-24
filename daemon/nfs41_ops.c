@@ -1176,6 +1176,7 @@ out:
 int nfs41_unlock(
     IN nfs41_session *session,
     IN nfs41_path_fh *file,
+    IN uint32_t type,
     IN uint64_t offset,
     IN uint64_t length,
     IN OUT stateid_arg *stateid)
@@ -1202,8 +1203,12 @@ int nfs41_unlock(
     putfh_args.in_recovery = 0;
 
     compound_add_op(&compound, OP_LOCKU, &locku_args, &locku_res);
-    /* 18.12.3: the server MUST accept any legal value for locktype */
-    locku_args.locktype = READ_LT;
+    /*
+     * https://datatracker.ietf.org/doc/html/rfc5661 Section 18.12.3 says:
+     * "... the server MUST accept any legal value for locktype ..."
+     * but we try to be nice and pass the correct value anyway.
+     */
+    locku_args.locktype = type;
     locku_args.seqid = 0; /* ignored */
     locku_args.offset = offset;
     locku_args.length = length;

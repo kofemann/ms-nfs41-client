@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2023-2026 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -187,9 +187,14 @@ static int parse_lock(
 
     EASSERT(length == 0);
 
-    DPRINTF(1, ("parsing NFS41_SYSOP_LOCK: offset=0x%llx length=0x%llx exclusive=%u "
-            "blocking=%u\n", args->offset, args->length, args->exclusive,
-            args->blocking));
+    /* Catch non-boolean values */
+    EASSERT((args->exclusive == TRUE) || (args->exclusive == FALSE));
+    EASSERT((args->blocking == TRUE) || (args->blocking == FALSE));
+
+    DPRINTF(1, ("parsing NFS41_SYSOP_LOCK: offset=0x%llx length=0x%llx exclusive=%d "
+            "blocking=%d\n", args->offset, args->length,
+            (int)args->exclusive,
+            (int)args->blocking));
 out:
     return status;
 }
@@ -329,6 +334,7 @@ static void cancel_lock(IN nfs41_upcall *upcall)
     lock_upcall_args *args = &upcall->args.lock;
     nfs41_open_state *state = upcall->state_ref;
     int status = NO_ERROR;
+    bool exclusivelock;
 
     DPRINTF(1, ("--> cancel_lock()\n"));
 
@@ -339,6 +345,11 @@ static void cancel_lock(IN nfs41_upcall *upcall)
 
     input.offset = args->offset;
     input.length = args->length;
+    exclusivelock = (bool)args->exclusive;
+
+    /* Catch non-boolean values */
+    EASSERT((exclusivelock == TRUE) || (exclusivelock == FALSE));
+
 
     /* search for the range to unlock, and remove if delegated */
     status = open_unlock_delegate(state, &input);
@@ -349,15 +360,17 @@ static void cancel_lock(IN nfs41_upcall *upcall)
     lock_stateid_arg(state, &stateid);
 
     status = nfs41_unlock(state->session, &state->file,
-        args->offset, args->length, &stateid);
+        (exclusivelock?WRITE_LT:READ_LT), args->offset, args->length,
+        &stateid);
     if (status) {
         DPRINTF(0/*LKLVL*/,
             ("cancel_lock(state->path.path='%s' "
-            "args->(offset=%llu,length=%llu)): "
+            "args->(offset=%llu,length=%llu,exclusive=%d)): "
             "nfs41_unlock() failed with '%s'\n",
             state->path.path,
             (unsigned long long)args->offset,
             (unsigned long long)args->length,
+            (int)args->exclusive,
             nfs_error_string(status)));
     }
 
@@ -381,7 +394,7 @@ static int parse_unlock(
 
     status = safe_read(&buffer, &length, &args->count, sizeof(ULONG));
     if (status) goto out;
-    args->buf_len = args->count*2L*sizeof(LONGLONG);
+    args->buf_len = args->count*(2L*sizeof(LONGLONG)+sizeof(BOOLEAN));
     status = get_safe_read_bufferpos(&buffer, &length,
         args->buf_len, (const void **)&args->buf);
     if (status) goto out;
@@ -405,8 +418,14 @@ static int handle_unlock(void *daemon_context, nfs41_upcall *upcall)
     int status = NO_ERROR;
 
     for (i = 0; i < args->count; i++) {
+        BOOLEAN exclusivelock;
+
         if (safe_read(&buf, &buf_len, &input.offset, sizeof(LONGLONG))) break;
         if (safe_read(&buf, &buf_len, &input.length, sizeof(LONGLONG))) break;
+        if (safe_read(&buf, &buf_len, &exclusivelock, sizeof(BOOLEAN))) break;
+
+        /* Catch non-boolean values */
+        EASSERT((exclusivelock == TRUE) || (exclusivelock == FALSE));
 
         /* do the same translation as LOCK, or the ranges won't match */
         if (input.length >= NFS4_UINT64_MAX - input.offset)
@@ -421,19 +440,21 @@ static int handle_unlock(void *daemon_context, nfs41_upcall *upcall)
         lock_stateid_arg(state, &stateid);
 
         status = nfs41_unlock(state->session, &state->file,
-            input.offset, input.length, &stateid);
+            (exclusivelock?WRITE_LT:READ_LT), input.offset, input.length,
+            &stateid);
 
         if (status) {
             DPRINTF(0/*LKLVL*/,
                 ("handle_unlock(state->path.path='%s' "
                 "args->count=%d i=%d\n"
-                "input.(offset=%llu,length=%llu)): "
+                "input.(offset=%llu,length=%llu) exclusivelock=%d): "
                 "nfs41_unlock() failed with '%s'\n",
                 state->path.path,
                 (int)args->count,
                 (int)i,
                 (unsigned long long)input.offset,
                 (unsigned long long)input.length,
+                (int)exclusivelock,
                 nfs_error_string(status)));
         }
 

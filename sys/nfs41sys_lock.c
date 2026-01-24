@@ -139,7 +139,7 @@ NTSTATUS marshal_nfs41_unlock(
     tmp += *len;
 
     header_len = *len + sizeof(ULONG) +
-        ((size_t)entry->u.Unlock.count * 2) * sizeof(LONGLONG);
+        ((size_t)entry->u.Unlock.count) * (2L*sizeof(LONGLONG)+sizeof(BOOLEAN));
     if (header_len > buf_len) {
         DbgP("marshal_nfs41_unlock: "
             "upcall buffer too small: header_len(=%ld) > buf_len(=%ld)\n",
@@ -152,10 +152,42 @@ NTSTATUS marshal_nfs41_unlock(
 
     lock = &entry->u.Unlock.locks;
     while (lock) {
+        BOOLEAN exclusivelock;
+
         RtlCopyMemory(tmp, &lock->ByteOffset, sizeof(LONGLONG));
         tmp += sizeof(LONGLONG);
         RtlCopyMemory(tmp, &lock->Length, sizeof(LONGLONG));
         tmp += sizeof(LONGLONG);
+#define WINDOWS_LOWIO_OP_UNLOCK_HAS_RANDOM_VALUE_IN_LOWIO_LOCK_LIST_BUG 1
+
+#ifdef WINDOWS_LOWIO_OP_UNLOCK_HAS_RANDOM_VALUE_IN_LOWIO_LOCK_LIST_BUG
+        if (entry->u.Unlock.lowio_operation == LOWIO_OP_UNLOCK_MULTIPLE) {
+            /*
+             * Windows 10 bugs:
+             * 1. For |LOWIO_OP_UNLOCK_MULTIPLE| |lock->ExclusiveLock| has
+             *   random(uninitialised var ?)
+             * 2. For |LOWIO_OP_UNLOCK| |lock->ExclusiveLock| is always |0|
+             *
+             * As workaround for both [1] and [2] we always set the value
+             * to |TRUE| for now.
+             * This only works because |nfs41_unlock()| states:
+             * ---- snip ----
+             * https://datatracker.ietf.org/doc/html/rfc5661 Section 18.12.3 says:
+             * "... the server MUST accept any legal value for locktype ..."
+             * ---- snip ----
+             */
+            exclusivelock = TRUE/*lock->ExclusiveLock?TRUE:FALSE*/;
+        }
+        else {
+            exclusivelock = TRUE/*lock->ExclusiveLock?TRUE:FALSE*/;
+        }
+#else
+        exclusivelock = lock->ExclusiveLock?TRUE:FALSE;
+#endif /* WINDOWS_LOWIO_OP_UNLOCK_HAS_RANDOM_VALUE_IN_LOWIO_LOCK_LIST_BUG */
+
+        RtlCopyMemory(tmp, &exclusivelock, sizeof(BOOLEAN));
+        tmp += sizeof(BOOLEAN);
+
         lock = lock->Next;
     }
 
@@ -355,14 +387,21 @@ static void print_unlock_args(
         PLOWIO_LOCK_LIST lock = LowIoContext->ParamsFor.Locks.LockList;
         DbgP("LOWIO_OP_UNLOCK_MULTIPLE:");
         while (lock) {
-            DbgP(" (offset=%llu, length=%llu)", lock->ByteOffset, lock->Length);
+            DbgP(" (offset=%llu, length=%llu, exclusivelock=%d)",
+                lock->ByteOffset,
+                lock->Length,
+                (int)lock->ExclusiveLock);
             lock = lock->Next;
         }
         DbgP("\n");
     } else {
-        DbgP("LOWIO_OP_UNLOCK: offset=%llu, length=%llu\n",
+        ULONG flags = LowIoContext->ParamsFor.Locks.Flags;
+        DbgP("LOWIO_OP_UNLOCK: "
+            "offset=%llu, length=%llu, exclusivelock=%d, flags=0x%lx\n",
             LowIoContext->ParamsFor.Locks.ByteOffset,
-            LowIoContext->ParamsFor.Locks.Length);
+            LowIoContext->ParamsFor.Locks.Length,
+            (int)BooleanFlagOn(flags, SL_EXCLUSIVE_LOCK),
+            (long)flags);
     }
 }
 
@@ -406,6 +445,8 @@ NTSTATUS nfs41_Unlock(
 /*  RxReleaseFcbResourceForThreadInMRx(RxContext, RxContext->pFcb,
         LowIoContext->ResourceThreadId); */
 
+    print_unlock_args(RxContext);
+
 #ifdef NFS41_DRIVER_HACK_LOCKING_STORAGE32_RANGELOCK_PROBING
     /*
      * FIXME: This does NOT handle |LOWIO_OP_UNLOCK_MULTIPLE|
@@ -425,7 +466,9 @@ NTSTATUS nfs41_Unlock(
         pNetRootContext->nfs41d_version, SrvOpen->pAlreadyPrefixedName, &entry);
     if (status) goto out;
 
-    if (LowIoContext->Operation == LOWIO_OP_UNLOCK_MULTIPLE) {
+    entry->u.Unlock.lowio_operation = LowIoContext->Operation;
+
+    if (entry->u.Unlock.lowio_operation == LOWIO_OP_UNLOCK_MULTIPLE) {
         entry->u.Unlock.count = unlock_list_count(
             LowIoContext->ParamsFor.Locks.LockList);
         RtlCopyMemory(&entry->u.Unlock.locks,
@@ -437,6 +480,9 @@ NTSTATUS nfs41_Unlock(
             LowIoContext->ParamsFor.Locks.ByteOffset;
         entry->u.Unlock.locks.Length =
             LowIoContext->ParamsFor.Locks.Length;
+        entry->u.Unlock.locks.ExclusiveLock =
+            BooleanFlagOn(LowIoContext->ParamsFor.Locks.Flags, SL_EXCLUSIVE_LOCK);
+        entry->u.Unlock.locks.Next = NULL;
     }
 
     status = nfs41_UpcallWaitForReply(entry, pVNetRootContext->timeout);

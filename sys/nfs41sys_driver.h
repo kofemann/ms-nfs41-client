@@ -222,6 +222,7 @@ typedef struct _updowncall_entry {
             BOOLEAN blocking;
         } Lock;
         struct {
+            USHORT lowio_operation;
             ULONG count;
             LOWIO_LOCK_LIST locks;
         } Unlock;
