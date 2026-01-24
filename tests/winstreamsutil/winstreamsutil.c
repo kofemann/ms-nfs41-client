@@ -197,6 +197,118 @@ int cmd_find(int ac, wchar_t *av[])
     return EXIT_SUCCESS;
 }
 
+static
+bool CopyHANDLEToHANDLE(HANDLE hSrc, HANDLE hDest)
+{
+    BYTE buffer[4096];
+    DWORD dwBytesRead = 0;
+    DWORD dwBytesWritten = 0;
+    BOOL bSuccess = FALSE;
+    bool retval = false;
+
+    while (ReadFile(hSrc, buffer, sizeof(buffer), &dwBytesRead, NULL) &&
+        (dwBytesRead > 0)) {
+        bSuccess = WriteFile(hDest,
+            buffer,
+            dwBytesRead,
+            &dwBytesWritten,
+            NULL);
+
+        if (!bSuccess || (dwBytesRead != dwBytesWritten)) {
+            (void)fwprintf(stderr,
+                L"Failed to write to the destination file, lasterr=%d\n",
+                (int)GetLastError());
+            retval = false;
+            goto done;
+        }
+    }
+
+    retval = true;
+
+done:
+    return retval;
+}
+
+static
+int cmd_catstream(int ac, wchar_t *av[])
+{
+    int res;
+    HANDLE h;
+    bool ok;
+    bool print_usage = false;
+    int i;
+    const wchar_t *progname = av[0];
+    wchar_t *base_path = NULL;
+    wchar_t *src_streamname = NULL;
+
+    for (i=2 ; i < ac ; i++) {
+        if (av[i][0] == L'/') {
+            if (wcscmp(av[i], L"/?") == 0)
+                print_usage = true;
+            else {
+                (void)fwprintf(stderr, L"%ls: Unknown option '%ls'\n",
+                    progname, av[i]);
+                return EXIT_FAILURE;
+            }
+        }
+        else {
+            if (base_path == NULL)
+                base_path = av[i];
+            else if (src_streamname == NULL)
+                src_streamname = av[i];
+            else {
+                (void)fwprintf(stderr,
+                    L"%ls: Too many filenames\n", progname);
+                return EXIT_FAILURE;
+            }
+        }
+    }
+
+    if ((base_path == NULL) && (src_streamname == NULL))
+        print_usage = true;
+
+    if (print_usage) {
+        (void)fwprintf(stderr,
+            L"Usage: winstreamutil catstream path srcstreamname\n"
+            L"\tpath\tPath of base file/dir (e.g. C:\\foo.txt)\n"
+            L"\tsrcstreamname\tsrc stream name (e.g. \":mystr1:$DATA\")\n");
+        return EXIT_USAGE;
+    }
+
+    if ((base_path == NULL) || (src_streamname == NULL)) {
+        (void)fwprintf(stderr,
+            L"%ls: Missing paths/stream.\n", progname);
+            return EXIT_FAILURE;
+    }
+
+    if (src_streamname[0] != L':') {
+        (void)fwprintf(stderr,
+            L"%ls: Stream name must start with ':'\n", progname);
+            return EXIT_FAILURE;
+    }
+
+    wchar_t src_stream_path[NT_MAX_LONG_PATH];
+    (void)swprintf(src_stream_path, NT_MAX_LONG_PATH,
+        L"%ls%ls", base_path, src_streamname);
+
+    h = CreateFileW(src_stream_path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
+    if (h == INVALID_HANDLE_VALUE) {
+        (void)fwprintf(stderr,
+            L"%ls: Cannot open src stream '%ls', lasterr=%d\n",
+            progname,
+            src_stream_path, (int)GetLastError());
+        return EXIT_FAILURE;
+    }
+
+    ok = CopyHANDLEToHANDLE(h, GetStdHandle(STD_OUTPUT_HANDLE));
+    res = ok?EXIT_SUCCESS:EXIT_FAILURE;
+
+    (void)CloseHandle(h);
+
+    return res;
+}
+
+
 typedef LONG NTSTATUS;
 #ifndef NT_SUCCESS
 #define NT_SUCCESS(Status) (((NTSTATUS)(Status)) >= 0)
@@ -551,6 +663,7 @@ void usage(const wchar_t *restrict progname)
         L"Available commands:\n"
         L"info\tprint info about a stream as ksh93 compound variable\n"
         L"find\tfind all non-default named streams in path\n"
+        L"catstream\tCopy data of stream to stdout\n"
         L"renamestream\trename stream\n"
         L"deletestream\tdelete stream\n",
         progname);
@@ -573,6 +686,9 @@ int wmain(int ac, wchar_t *av[])
     }
     else if (wcscmp(av[1], L"find") == 0) {
         return cmd_find(ac, av);
+    }
+    else if (wcscmp(av[1], L"catstream") == 0) {
+        return cmd_catstream(ac, av);
     }
     else if (wcscmp(av[1], L"renamestream") == 0) {
         return cmd_renamestream(ac, av);
