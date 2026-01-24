@@ -331,7 +331,7 @@ NTSTATUS nfs41_Lock(
 
 #ifdef NFS41_DRIVER_HACK_LOCKING_STORAGE32_RANGELOCK_PROBING
     if (rangelock_hack_skiplock(LowIoContext, nfs41_fcb)) {
-        DbgP("nfs41_Lock: RANGELOCK hack 0x%ld\n",
+        DbgP("nfs41_Lock: RANGELOCK hack 0x%lx\n",
             (long)LowIoContext->ParamsFor.Locks.ByteOffset);
         status = STATUS_SUCCESS;
         goto out;
@@ -454,7 +454,7 @@ NTSTATUS nfs41_Unlock(
      * use it
      */
     if (rangelock_hack_skiplock(LowIoContext, nfs41_fcb)) {
-        DbgP("nfs41_Unlock: RANGELOCK hack 0x%ld\n",
+        DbgP("nfs41_Unlock: RANGELOCK hack 0x%lx\n",
             (long)LowIoContext->ParamsFor.Locks.ByteOffset);
         status = STATUS_SUCCESS;
         goto out;

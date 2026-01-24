@@ -315,7 +315,7 @@ NTSTATUS marshal_nfs41_queryallocatedranges(
     }
 
     DbgP("marshal_nfs41_queryallocatedranges: name='%wZ' "
-        "buffersize=0x%ld, buffer=0x%p\n",
+        "buffersize=0x%lx, buffer=0x%p\n",
          entry->filename,
          (long)entry->u.QueryAllocatedRanges.BufferSize,
          (void *)entry->u.QueryAllocatedRanges.Buffer);
