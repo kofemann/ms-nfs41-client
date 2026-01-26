@@ -849,7 +849,8 @@ int handle_duplicatedata(void *daemon_context,
         DPRINTF(DDLVL,
             ("handle_duplicatedata: "
             "src_file_fsid(major=%llu,minor=%llu) != "
-            "dst_file_fsid(major=%llu,minor=%llu)\n",
+            "dst_file_fsid(major=%llu,minor=%llu) "
+            "status = ERROR_NOT_SAME_DEVICE\n",
             (unsigned long long)src_file_fsid.major,
             (unsigned long long)src_file_fsid.minor,
             (unsigned long long)info.fsid.major,

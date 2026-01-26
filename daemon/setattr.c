@@ -579,10 +579,23 @@ static int handle_nfs41_rename(void *daemon_context, setattr_upcall_args *args)
         goto out;
     }
 
-    /* http://tools.ietf.org/html/rfc5661#section-18.26.3
+    /*
+     * Check whether we are on the same superblock
+     * - http://tools.ietf.org/html/rfc5661#section-18.26.3 says;
      * "Source and target directories MUST reside on the same
-     * file system on the server." */
+     * file system on the server."
+     */
     if (state->parent.fh.superblock != dst_dir.fh.superblock) {
+        DPRINTF(1,
+            ("handle_nfs41_rename: "
+            "state->parent.fh.superblock->fsid(major=%llu,minor=%llu) != "
+            "dst_dir.fh.superblock->fsid(major=%llu,minor=%llu) "
+            "status = ERROR_NOT_SAME_DEVICE\n",
+            (unsigned long long)state->parent.fh.superblock->fsid.major,
+            (unsigned long long)state->parent.fh.superblock->fsid.minor,
+            (unsigned long long)dst_dir.fh.superblock->fsid.major,
+            (unsigned long long)dst_dir.fh.superblock->fsid.minor));
+
         status = ERROR_NOT_SAME_DEVICE;
         goto out;
     }
@@ -760,6 +773,16 @@ static int handle_nfs41_link(void *daemon_context, setattr_upcall_args *args)
      * "The existing file and the target directory must reside within
      * the same file system on the server." */
     if (state->file.fh.superblock != dst_dir.fh.superblock) {
+        DPRINTF(1,
+            ("handle_nfs41_link: "
+            "state->file.fh.superblock->fsid(major=%llu,minor=%llu) != "
+            "dst_dir.fh.superblock->fsid(major=%llu,minor=%llu) "
+            "status = ERROR_NOT_SAME_DEVICE\n",
+            (unsigned long long)state->file.fh.superblock->fsid.major,
+            (unsigned long long)state->file.fh.superblock->fsid.minor,
+            (unsigned long long)dst_dir.fh.superblock->fsid.major,
+            (unsigned long long)dst_dir.fh.superblock->fsid.minor));
+
         status = ERROR_NOT_SAME_DEVICE;
         goto out;
     }
