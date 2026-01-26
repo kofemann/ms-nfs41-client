@@ -491,6 +491,8 @@ static int handle_nfs41_rename(void *daemon_context, setattr_upcall_args *args)
     }
 
 #ifdef NFS41_WINSTREAMS_SUPPORT
+    bool rename_stream = false;
+
     /*
      * Handle NTFS-style renaming of a Win32 named stream to another stream
      * name of the same base filename, e.g.
@@ -531,6 +533,8 @@ static int handle_nfs41_rename(void *daemon_context, setattr_upcall_args *args)
             ("handle_nfs41_rename: "
             "streams: src_name->name='%s' dst_path.name='%s'\n",
             src_name->name, dst_path.path));
+
+        rename_stream = true;
     }
 #endif /* NFS41_WINSTREAMS_SUPPORT */
 
@@ -584,8 +588,14 @@ static int handle_nfs41_rename(void *daemon_context, setattr_upcall_args *args)
      * - http://tools.ietf.org/html/rfc5661#section-18.26.3 says;
      * "Source and target directories MUST reside on the same
      * file system on the server."
+     * - FIXME: Solaris 11.4 reports different superblock for streams
+     * than the parent dir. We should investigate why this happens
      */
-    if (state->parent.fh.superblock != dst_dir.fh.superblock) {
+    if (
+#ifdef NFS41_WINSTREAMS_SUPPORT
+        (rename_stream == false) &&
+#endif /* NFS41_WINSTREAMS_SUPPORT */
+        (state->parent.fh.superblock != dst_dir.fh.superblock)) {
         DPRINTF(1,
             ("handle_nfs41_rename: "
             "state->parent.fh.superblock->fsid(major=%llu,minor=%llu) != "
