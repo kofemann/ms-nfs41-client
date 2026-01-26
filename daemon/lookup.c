@@ -226,7 +226,14 @@ static int server_lookup(
     if (dir == &res->root) {
         nfs41_component name = { 0 };
 
+        bitmap4_cpy(&res->getrootattr.info->attrmask,
+            &res->getrootattr.obj_attributes.attrmask);
+
         /* fill in the file handle's fileid and superblock */
+        EASSERT(bitmap_isset(&res->getrootattr.info->attrmask,
+            0, FATTR4_WORD0_FILEID));
+        EASSERT(bitmap_isset(&res->getrootattr.info->attrmask,
+            0, FATTR4_WORD0_FSID));
         dir->fh.fileid = res->getrootattr.info->fileid;
         status = nfs41_superblock_for_fh(session,
             &res->getrootattr.info->fsid, NULL, dir);
@@ -237,8 +244,6 @@ static int server_lookup(
         last_component(path, count ? args->lookup[0].name->name : path_end, &name);
 
         /* add the file handle and attributes to the name cache */
-        bitmap4_cpy(&res->getrootattr.info->attrmask,
-            &res->getrootattr.obj_attributes.attrmask);
         nfs41_name_cache_insert(session_name_cache(session),
             BIT2BOOL(dir->fh.superblock->case_insensitive),
             path, &name,
@@ -283,7 +288,14 @@ static int server_lookup(
         parent = file;
         file = &res->file[i];
 
+        bitmap4_cpy(&res->getattr[i].info->attrmask,
+            &res->getattr[i].obj_attributes.attrmask);
+
         /* fill in the file handle's fileid and superblock */
+        EASSERT(bitmap_isset(&res->getattr[i].info->attrmask,
+            0, FATTR4_WORD0_FILEID));
+        EASSERT(bitmap_isset(&res->getattr[i].info->attrmask,
+            0, FATTR4_WORD0_FSID));
         file->fh.fileid = res->getattr[i].info->fileid;
         status = nfs41_superblock_for_fh(session,
             &res->getattr[i].info->fsid, &parent->fh, file);
@@ -291,8 +303,6 @@ static int server_lookup(
             break;
 
         /* add the file handle and attributes to the name cache */
-        bitmap4_cpy(&res->getattr[i].info->attrmask,
-            &res->getattr[i].obj_attributes.attrmask);
         nfs41_name_cache_insert(session_name_cache(session),
             BIT2BOOL(parent->fh.superblock->case_insensitive),
             path, args->lookup[i].name, &res->file[i].fh,

@@ -654,7 +654,11 @@ int nfs41_open(
         goto out;
     }
 
+    bitmap4_cpy(&info->attrmask, &getattr_res.obj_attributes.attrmask);
+
     /* fill in the file handle's fileid and superblock */
+    EASSERT(bitmap_isset(&info->attrmask, 0, FATTR4_WORD0_FILEID));
+    EASSERT(bitmap_isset(&info->attrmask, 0, FATTR4_WORD0_FSID));
     file->fh.fileid = info->fileid;
     status = nfs41_superblock_for_fh(session, &info->fsid, &parent->fh, file);
     if (status)
@@ -1931,7 +1935,11 @@ int nfs41_link(
     if (compound_error(status = compound.res.status))
         goto out;
 
+    bitmap4_cpy(&cinfo->attrmask, &getattr_res[1].obj_attributes.attrmask);
+
     /* fill in the file handle's fileid and superblock */
+    EASSERT(bitmap_isset(&cinfo->attrmask, 0, FATTR4_WORD0_FILEID));
+    EASSERT(bitmap_isset(&cinfo->attrmask, 0, FATTR4_WORD0_FSID));
     file.fh.fileid = cinfo->fileid;
     status = nfs41_superblock_for_fh(session,
         &cinfo->fsid, &dst_dir->fh, &file);
@@ -1944,7 +1952,6 @@ int nfs41_link(
         info.fileid, &info);
 
     /* add the new file handle and attributes to the name cache */
-    bitmap4_cpy(&cinfo->attrmask, &getattr_res[1].obj_attributes.attrmask);
     AcquireSRWLockShared(&dst_dir->path->lock);
     nfs41_name_cache_insert(session_name_cache(session),
         BIT2BOOL(dst_dir->fh.superblock->case_insensitive),
