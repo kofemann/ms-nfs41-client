@@ -32,6 +32,7 @@
 #include "upcall.h"
 #include "util.h"
 #include "daemon_debug.h"
+#include "winstreams.h"
 
 /*
  * |UPCALL_BUF_SIZE| must fit at least twice (for rename) the
@@ -491,8 +492,6 @@ static int handle_nfs41_rename(void *daemon_context, setattr_upcall_args *args)
     }
 
 #ifdef NFS41_WINSTREAMS_SUPPORT
-    bool rename_stream = false;
-
     /*
      * Handle NTFS-style renaming of a Win32 named stream to another stream
      * name of the same base filename, e.g.
@@ -505,36 +504,52 @@ static int handle_nfs41_rename(void *daemon_context, setattr_upcall_args *args)
      */
     if ((dst_path.len > 1) && (dst_path.path[0] == ':')) {
         char *s;
-        s = strchr(src_name->name, ':');
-        if (s == NULL) {
-            eprintf("handle_nfs41_rename: dst is stream, src is '%s'\n",
-                src_name->name);
+        nfs41_abs_path *src_path = &state->path;
+
+        AcquireSRWLockShared(&src_path->lock);
+
+        if (!is_stream_component(src_name)) {
+            eprintf("handle_nfs41_rename: dst(='%.*s') is stream, src is '%.*s'\n",
+                (int)dst_path.len, dst_path.path,
+                (int)src_path->len, src_path->path);
             status = ERROR_INVALID_PARAMETER;
+            ReleaseSRWLockShared(&src_path->lock);
             goto out;
         }
 
-        size_t len = s - src_name->name;
+        s = strchr(src_name->name, ':');
+        if (s == NULL) {
+            eprintf("handle_nfs41_rename: internal error: "
+                "dst(='%.*s') is stream, src is '%.*s'\n",
+                (int)dst_path.len, dst_path.path,
+                (int)src_path->len, src_path->path);
+            status = ERROR_INVALID_PARAMETER;
+            ReleaseSRWLockShared(&src_path->lock);
+            goto out;
+        }
+
+        size_t len = s - src_path->path;
 
         if ((dst_path.len+len+1) >= NFS41_MAX_COMPONENT_LEN) {
             eprintf("handle_nfs41_rename: "
                 "(dst_path.len(=%d)+len=(=%d)+1) >= NFS41_MAX_COMPONENT_LEN, "
-                "src is '%s'\n",
+                "src is '%.*s'\n",
                 (int)dst_path.len,
                 (int)len,
-                src_name->name);
+                (int)src_path->len, src_path->path);
             status = ERROR_INVALID_PARAMETER;
+            ReleaseSRWLockShared(&src_path->lock);
             goto out;
         }
 
         (void)memmove(&dst_path.path[len], &dst_path.path[0], dst_path.len+1);
-        (void)memcpy(&dst_path.path[0], src_name->name, len);
+        (void)memcpy(&dst_path.path[0], src_path->path, len);
         dst_path.len += (unsigned short)len;
         DPRINTF(1,
             ("handle_nfs41_rename: "
-            "streams: src_name->name='%s' dst_path.name='%s'\n",
-            src_name->name, dst_path.path));
-
-        rename_stream = true;
+            "streams: src_path->path='%s' dst_path.name='%s'\n",
+            src_path->path, dst_path.path));
+        ReleaseSRWLockShared(&src_path->lock);
     }
 #endif /* NFS41_WINSTREAMS_SUPPORT */
 
@@ -588,15 +603,9 @@ static int handle_nfs41_rename(void *daemon_context, setattr_upcall_args *args)
      * - http://tools.ietf.org/html/rfc5661#section-18.26.3 says;
      * "Source and target directories MUST reside on the same
      * file system on the server."
-     * - FIXME: Solaris 11.4 reports different superblock for streams
-     * than the parent dir. We should investigate why this happens
      */
-    if (
-#ifdef NFS41_WINSTREAMS_SUPPORT
-        (rename_stream == false) &&
-#endif /* NFS41_WINSTREAMS_SUPPORT */
-        (state->parent.fh.superblock != dst_dir.fh.superblock)) {
-        DPRINTF(1,
+    if (state->parent.fh.superblock != dst_dir.fh.superblock) {
+        DPRINTF(0,
             ("handle_nfs41_rename: "
             "state->parent.fh.superblock->fsid(major=%llu,minor=%llu) != "
             "dst_dir.fh.superblock->fsid(major=%llu,minor=%llu) "
