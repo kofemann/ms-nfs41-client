@@ -551,7 +551,53 @@ static int handle_nfs41_rename(void *daemon_context, setattr_upcall_args *args)
             src_path->path, dst_path.path));
         ReleaseSRWLockShared(&src_path->lock);
     }
+    else
 #endif /* NFS41_WINSTREAMS_SUPPORT */
+    if ((dst_path.len > 2) && (dst_path.path[0] == '\\') &&
+        (dst_path.path[1] == '\\')) {
+        DPRINTF(0,
+            ("handle_nfs41_rename: "
+            "UNC dest paths not supported, "
+            "src_name->name='%s' dst_path.name='%s', "
+            "status = ERROR_NOT_SAME_DEVICE\n",
+            src_name->name, dst_path.path));
+        /*
+         * We return |ERROR_NOT_SAME_DEVICE| so Windows rename will make a
+         * { copy src dst, delete src } sequence
+         */
+        status = ERROR_NOT_SAME_DEVICE;
+        goto out;
+    }
+    else if ((dst_path.len >= 2) && (dst_path.path[1] == ':') &&
+        (((dst_path.path[0] >= 'a') && (dst_path.path[0] <= 'z')) ||
+        ((dst_path.path[0] >= 'A') && (dst_path.path[0] <= 'Z'))) ) {
+        DPRINTF(0,
+            ("handle_nfs41_rename: "
+            "DOS drive dest paths not supported, "
+            "src_name->name='%s' dst_path.name='%s', "
+            "status = ERROR_NOT_SAME_DEVICE\n",
+            src_name->name, dst_path.path));
+        /*
+         * We return |ERROR_NOT_SAME_DEVICE| so Windows rename will make a
+         * { copy src dst, delete src } sequence
+         */
+        status = ERROR_NOT_SAME_DEVICE;
+        goto out;
+    }
+    else if ((dst_path.len > 0) && (dst_path.path[0] != '\\')) {
+        DPRINTF(0,
+            ("handle_nfs41_rename: "
+            "relative dest paths not supported, "
+            "src_name->name='%s' dst_path.name='%s', "
+            "status = ERROR_NOT_SAME_DEVICE\n",
+            src_name->name, dst_path.path));
+        /*
+         * We return |ERROR_NOT_SAME_DEVICE| so Windows rename will make a
+         * { copy src dst, delete src } sequence
+         */
+        status = ERROR_NOT_SAME_DEVICE;
+        goto out;
+    }
 
     path_fh_init(&dst_dir, &dst_path);
 
@@ -723,12 +769,14 @@ static int handle_nfs41_link(void *daemon_context, setattr_upcall_args *args)
     nfs41_session *dst_session;
     nfs41_abs_path dst_path = { 0 };
     nfs41_path_fh dst_dir, dst;
-    nfs41_component dst_name;
+    nfs41_component dst_name, *src_name;
     uint32_t depth = 0;
     nfs41_file_info info;
     int status;
 
     (void)memset(&info, 0, sizeof(info));
+
+    src_name = &state->file.name;
 
     EASSERT((link->FileNameLength%sizeof(WCHAR)) == 0);
 
@@ -746,6 +794,41 @@ static int handle_nfs41_link(void *daemon_context, setattr_upcall_args *args)
         status = ERROR_INVALID_PARAMETER;
         goto out;
     }
+
+    if ((dst_path.len > 2) && (dst_path.path[0] == '\\') &&
+        (dst_path.path[1] == '\\')) {
+        DPRINTF(0,
+            ("handle_nfs41_link: "
+            "UNC dest paths not supported, "
+            "src_name->name='%s' dst_path.name='%s', "
+            "status = ERROR_NOT_SUPPORTED\n",
+            src_name->name, dst_path.path));
+        status = ERROR_NOT_SUPPORTED;
+        goto out;
+    }
+    else if ((dst_path.len >= 2) && (dst_path.path[1] == ':') &&
+        (((dst_path.path[0] >= 'a') && (dst_path.path[0] <= 'z')) ||
+        ((dst_path.path[0] >= 'A') && (dst_path.path[0] <= 'Z'))) ) {
+        DPRINTF(0,
+            ("handle_nfs41_link: "
+            "DOS drive dest paths not supported, "
+            "src_name->name='%s' dst_path.name='%s', "
+            "status = ERROR_NOT_SUPPORTED\n",
+            src_name->name, dst_path.path));
+        status = ERROR_NOT_SUPPORTED;
+        goto out;
+    }
+    else if ((dst_path.len > 0) && (dst_path.path[0] != '\\')) {
+        DPRINTF(0,
+            ("handle_nfs41_link: "
+            "relative dest paths not supported, "
+            "src_name->name='%s' dst_path.name='%s', "
+            "status = ERROR_NOT_SUPPORTED\n",
+            src_name->name, dst_path.path));
+        status = ERROR_NOT_SUPPORTED;
+        goto out;
+    }
+
     path_fh_init(&dst_dir, &dst_path);
 
     /* the destination path is absolute, so start from the root session */
