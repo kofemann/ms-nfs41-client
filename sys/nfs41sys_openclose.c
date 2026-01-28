@@ -484,6 +484,7 @@ NTSTATUS map_open_errors(
     case ERROR_REPARSE:                 return STATUS_REPARSE;
     case ERROR_TOO_MANY_LINKS:          return STATUS_TOO_MANY_LINKS;
     case ERROR_INVALID_PARAMETER:       return STATUS_INVALID_PARAMETER;
+    case ERROR_NOT_SUPPORTED:           return STATUS_NOT_SUPPORTED;
     /* See |handle_open()| for |ERROR_DIRECTORY| */
     case ERROR_DIRECTORY:               return STATUS_NOT_A_DIRECTORY;
     /* See |handle_open()| for |ERROR_DIRECTORY_NOT_SUPPORTED| */

@@ -652,15 +652,16 @@ int nfs41_lookup(
                 if (status == 0)
                     status = compound.res.status;
 
-                if (status == 0) {
-                    /* We MUST return a |NF4NAMEDATTR|, and never a |NF4ATTRDIR| */
-                    EASSERT(getattr_res.info->type != NF4ATTRDIR);
-                    EASSERT(getattr_res.info->type == NF4NAMEDATTR);
-                }
-                else {
-                    DPRINTF(1, ("nfs41_lookup: failed for attr, status=%d\n",
+                if (status != 0) {
+                    DPRINTF(1, ("nfs41_lookup: failed for attr, nfserr=%d\n",
                         (int)status));
+                    status = map_lookup_error(status, true);
+                    goto out;
                 }
+
+                /* We MUST return a |NF4NAMEDATTR|, and never a |NF4ATTRDIR| */
+                EASSERT(getattr_res.info->type != NF4ATTRDIR);
+                EASSERT(getattr_res.info->type == NF4NAMEDATTR);
 
                 goto out;
             }
