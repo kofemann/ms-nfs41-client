@@ -458,7 +458,14 @@ int get_streaminformation(
     nfs41_path_fh parent = { 0 };
 
     if (!state->file.fh.superblock->nfs_namedattr_support) {
-        return ERROR_NOT_SUPPORTED;
+        /*
+         * |MRxQueryFileInfo()| should return |STATUS_INVALID_PARAMETER|
+         * for unsupported/invalid fs information classes.
+         * Without NFS named attr support we cannot support Win32 named
+         * streams, so we return |ERROR_INVALID_PARAMETER| which the kernel
+         * module will translate into |STATUS_INVALID_PARAMETER|
+         */
+        return ERROR_INVALID_PARAMETER;
     }
 
     EASSERT_MSG((basefile_info->type != NF4ATTRDIR),
