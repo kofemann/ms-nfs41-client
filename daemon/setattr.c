@@ -542,7 +542,8 @@ static int handle_nfs41_rename(void *daemon_context, setattr_upcall_args *args)
             goto out;
         }
 
-        (void)memmove(&dst_path.path[len], &dst_path.path[0], dst_path.len+1);
+        (void)memmove(&dst_path.path[len], &dst_path.path[0],
+            (size_t)dst_path.len+1L);
         (void)memcpy(&dst_path.path[0], src_path->path, len);
         dst_path.len += (unsigned short)len;
         DPRINTF(1,
