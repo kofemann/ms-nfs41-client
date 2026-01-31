@@ -1,5 +1,5 @@
 #
-# ms-nfs41-client manual testing sequence, 2026-01-22
+# ms-nfs41-client manual testing sequence, 2026-01-31
 #
 # Draft version, needs to be turned into automated tests
 # if possible
@@ -882,6 +882,7 @@ bash /usr/share/msnfs41client/tests/misc/wintartests/wintartest_seq001.bash
 cd /cygdrive/n/xxx/
 bash /usr/share/msnfs41client/tests/misc/wintartest_comparewinvsgnu001.bash mytarfile.tar.bz2
 
+
 #
 # Test "silly rename"
 #
@@ -893,12 +894,19 @@ bash /usr/share/msnfs41client/tests/misc/wintartest_comparewinvsgnu001.bash myta
 # are more than a week old to deal with .nfs* files from NFS clients which
 # crashed while having deleted files open.
 #
-# The test here comes in two variations, one using "rm myfile" (which triggers
+#
+
+# The following two tests should print "# test OK"" and come in two
+# variations, one using "rm myfile" (which triggers
 # Cygwin "silly rename" (see newlib-cygwin/winsup/cygwin/syscalls.cc,
 # function |try_to_bin()|), and one using $ cmd /C "del myfile" #, which
 # bypasses the Cygwin code
 bash -c 'set -o errexit ; rm -Rf sillytestdir ; mkdir sillytestdir ; cd sillytestdir ; touch sillytest ; ( command exec {n}<"sillytest" ; printf "fd=%d\n" $n ; sleep 10) & sleep 1 ; ls -la ; cmd /C "del sillytest" ; ls -la ; if [[ "$(ls -1 .nfs*)" != "" ]] ; then echo "# test OK" ; else echo "# test FAILED" ; fi ; wait'
 bash -c 'set -o errexit ; rm -Rf sillytestdir ; mkdir sillytestdir ; cd sillytestdir ; touch sillytest ; ( command exec {n}<"sillytest" ; printf "fd=%d\n" $n ; sleep 10) & sleep 1 ; ls -la ; rm -f sillytest ; ls -la ; if [[ "$(ls -1 .nfs*)" != "" ]] ; then echo "# test OK" ; else echo "# test FAILED" ; fi ; wait'
+
+# The following test should print $'# Test 1 OK\n# Test 2 OK\n'
+$ ksh93 -c 'set -o errexit ; rm -Rf sillytestdir1 ; mkdir sillytestdir1 ; cd sillytestdir1 ; touch x ; command exec 0<>x ; echo "# Test 1 OK" >&0 ; rm x ; ls -la ; exec <#((0)) ; cat <&0 ; [ -f .nfs* ] && echo "# Test 2 OK" ; true'
+
 
 #
 # Test rm on read-only dir
