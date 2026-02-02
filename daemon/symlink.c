@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2023-2026 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -320,6 +320,9 @@ static int marshall_symlink_get(
         status = ERROR_BUFFER_OVERFLOW;
         goto out;
     }
+
+    /* Win32 spec says that the buffer string must not contain L'\0' chars */
+    EASSERT(((wchar_t *)buffer)[wc_len-1] != L'\0');
 
     *wc_len_out = (unsigned short)(wc_len*sizeof(wchar_t));
     *length -= *wc_len_out;

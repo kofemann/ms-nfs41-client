@@ -1493,6 +1493,9 @@ static int marshall_open(
             goto out;
         }
 
+        /* Win32 spec says that the buffer string must not contain L'\0' chars */
+        EASSERT(((wchar_t *)buffer)[wc_len-1] != L'\0');
+
         *wc_len_out = (unsigned short)(wc_len*sizeof(wchar_t));
         *length -= *wc_len_out;
     }

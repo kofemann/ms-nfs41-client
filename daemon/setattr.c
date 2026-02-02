@@ -423,7 +423,22 @@ static int handle_nfs41_rename(void *daemon_context, setattr_upcall_args *args)
         goto out;
     }
 
-    EASSERT((rename->FileNameLength%sizeof(WCHAR)) == 0);
+    size_t ren_fnl = rename->FileNameLength / sizeof(wchar_t);
+
+    if (rename->FileName[ren_fnl-1] == L'\0') {
+        /*
+         * |FILE_RENAME_INFORMATION.FileName| must not contain L'\0'
+         * characters, NTFS rejects this
+         */
+        eprintf("handle_nfs41_rename(args->path='%s'): ERROR: "
+            "last wchar_t in '%.*ls'==L'\\0'\n",
+            args->path,
+            (int)ren_fnl,
+            rename->FileName);
+        return ERROR_INVALID_NAME;
+    }
+
+    EASSERT((rename->FileNameLength%sizeof(wchar_t)) == 0);
 
 #ifdef STOMP_SILLY_RENAME_INVALID_UTF16_SEQUENCE_SUPPORT
     /*
@@ -484,12 +499,14 @@ static int handle_nfs41_rename(void *daemon_context, setattr_upcall_args *args)
             "WideCharToMultiByte() failed to convert destination "
             "filename '%.*S', lasterr=%d.\n",
             args->path,
-            (int)(rename->FileNameLength/sizeof(WCHAR)),
+            (int)ren_fnl,
             rename->FileName,
             (int)GetLastError());
         status = ERROR_INVALID_PARAMETER;
         goto out;
     }
+
+    dst_path.path[dst_path.len] = '\0';
 
 #ifdef NFS41_WINSTREAMS_SUPPORT
     /*
@@ -779,6 +796,21 @@ static int handle_nfs41_link(void *daemon_context, setattr_upcall_args *args)
 
     src_name = &state->file.name;
 
+    size_t link_fnl = link->FileNameLength / sizeof(wchar_t);
+
+    if (link->FileName[link_fnl-1] == L'\0') {
+        /*
+         * |FILE_LINK_INFORMATION.FileName| must not contain L'\0'
+         * characters, NTFS rejects this
+         */
+        eprintf("handle_nfs41_link(args->path='%s'): ERROR: "
+            "last wchar_t in '%.*ls'==L'\\0'\n",
+            args->path,
+            (int)link_fnl,
+            link->FileName);
+        return ERROR_INVALID_NAME;
+    }
+
     EASSERT((link->FileNameLength%sizeof(WCHAR)) == 0);
 
     dst_path.len = (unsigned short)WideCharToMultiByte(CP_UTF8,
@@ -790,11 +822,13 @@ static int handle_nfs41_link(void *daemon_context, setattr_upcall_args *args)
             "WideCharToMultiByte() failed to convert destination "
             "filename '%.*S', lasterr=%d.\n",
             args->path,
-            (int)(link->FileNameLength/sizeof(WCHAR)),
+            (int)link_fnl,
             link->FileName, (int)GetLastError());
         status = ERROR_INVALID_PARAMETER;
         goto out;
     }
+
+    dst_path.path[dst_path.len] = '\0';
 
     if ((dst_path.len > 2) && (dst_path.path[0] == '\\') &&
         (dst_path.path[1] == '\\')) {
