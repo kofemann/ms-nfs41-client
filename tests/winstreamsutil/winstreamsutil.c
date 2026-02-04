@@ -40,9 +40,11 @@
 
 #include <windows.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <wchar.h>
+#include <locale.h>
 
 #define	EXIT_USAGE (2) /* Traditional UNIX exit code for usage */
 
@@ -227,6 +229,171 @@ bool CopyHANDLEToHANDLE(HANDLE hSrc, HANDLE hDest)
 
 done:
     return retval;
+}
+
+static
+bool set_file_sparse(HANDLE h)
+{
+    DWORD dummyBytesReturned = 0;
+
+    /*
+     * Per https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_set_sparse
+     * if |pInBuffer| is |NULL|, |FSCTL_SET_SPARSE| behaves as if
+     * |SetSparse=TRUE|
+     */
+    return DeviceIoControl(h, FSCTL_SET_SPARSE, NULL, 0, NULL, 0, &dummyBytesReturned, NULL) != 0;
+}
+
+static
+bool set_logical_filesize(HANDLE h, int64_t sizeBytes)
+{
+    LARGE_INTEGER li = { .QuadPart = sizeBytes };
+
+    if (!SetFilePointerEx(h, li, NULL, FILE_BEGIN))
+        return false;
+
+    return SetEndOfFile(h) != 0;
+}
+
+static
+bool write_mbsstring(HANDLE h, const wchar_t* wstr)
+{
+    errno = 0;
+    size_t needed = wcstombs(NULL, wstr, 0);
+    if (needed == (size_t)-1L) {
+        return false;
+    }
+
+    char *mb = (char*)malloc(needed);
+    if (mb == NULL)
+        return false;
+
+    size_t bytes_converted = wcstombs(mb, wstr, needed);
+    if (bytes_converted == (size_t)-1L) {
+        free(mb);
+        return false;
+    }
+
+    DWORD bytes_written = 0;
+    bool ok = WriteFile(h, mb, (DWORD)bytes_converted, &bytes_written, NULL);
+    free(mb);
+
+    return ok && (bytes_written == bytes_converted);
+}
+
+static
+int cmd_createstream(int ac, wchar_t *av[])
+{
+    int res;
+    HANDLE h;
+    bool print_usage = false;
+    int i;
+    const wchar_t *progname = av[0];
+    bool overwrite_stream = false;
+    bool make_file_sparse = true;
+    int64_t filesize = -1LL;
+    wchar_t *write_text = NULL;
+    wchar_t *base_path = NULL;
+    wchar_t *src_streamname = NULL;
+
+    for (i=2 ; i < ac ; i++) {
+        if (av[i][0] == L'/') {
+            if (wcscmp(av[i], L"/?") == 0)
+                print_usage = true;
+            else if (wcscmp(av[i], L"/O") == 0)
+                overwrite_stream = true;
+            else if (wcscmp(av[i], L"/S") == 0)
+                make_file_sparse = true;
+            else if (wcscmp(av[i], L"/-S") == 0)
+                make_file_sparse = false;
+            else if (wcscmp(av[i], L"/s") == 0)
+                filesize = wcstoll(av[++i], NULL, 0);
+            else if (wcscmp(av[i], L"/t") == 0)
+                write_text = av[++i];
+            else {
+                (void)fwprintf(stderr, L"%ls: Unknown option '%ls'\n",
+                    progname, av[i]);
+                return EXIT_FAILURE;
+            }
+        }
+        else {
+            if (base_path == NULL)
+                base_path = av[i];
+            else if (src_streamname == NULL)
+                src_streamname = av[i];
+            else {
+                (void)fwprintf(stderr,
+                    L"%ls: Too many filenames\n", progname);
+                return EXIT_FAILURE;
+            }
+        }
+    }
+
+    if ((base_path == NULL) && (src_streamname == NULL))
+        print_usage = true;
+
+    if (print_usage) {
+        (void)fwprintf(stderr,
+            L"Usage: winstreamutil createstream [/O] [/S] [/s filesize] [/t string] path newstreamname\n"
+            L"\t/O\tOverwrite/truncate if stream exists, otherwise create.\n"
+            L"\t/S\tMake file sparse (default).\n"
+            L"\t/s\tFile size.\n"
+            L"\t/t\tWrite string at the beginning of the stream.\n"
+            L"\tpath\tPath of base file/dir (e.g. C:\\foo.txt)\n"
+            L"\tnewstreamname\tstream name (e.g. \":mystr1:$DATA\")\n");
+        return EXIT_USAGE;
+    }
+
+    if ((base_path == NULL) || (src_streamname == NULL)) {
+        (void)fwprintf(stderr,
+            L"%ls: Missing paths/stream.\n", progname);
+            return EXIT_FAILURE;
+    }
+
+    if (src_streamname[0] != L':') {
+        (void)fwprintf(stderr,
+            L"%ls: Stream name must start with ':'\n", progname);
+            return EXIT_FAILURE;
+    }
+
+    wchar_t src_stream_path[NT_MAX_LONG_PATH];
+    (void)swprintf(src_stream_path, NT_MAX_LONG_PATH,
+        L"%ls%ls", base_path, src_streamname);
+
+    h = CreateFileW(src_stream_path, GENERIC_WRITE,
+        FILE_SHARE_READ|FILE_SHARE_WRITE,
+        NULL,
+        (overwrite_stream?CREATE_ALWAYS:CREATE_NEW),
+        FILE_ATTRIBUTE_NORMAL,
+        NULL);
+    if (h == INVALID_HANDLE_VALUE) {
+        (void)fwprintf(stderr,
+            L"%ls: Cannot create stream '%ls', lasterr=%d\n",
+            progname,
+            src_stream_path, (int)GetLastError());
+        return EXIT_FAILURE;
+    }
+
+    if (make_file_sparse) {
+        (void)set_file_sparse(h);
+    }
+
+    if (filesize != -1LL) {
+        (void)set_logical_filesize(h, filesize);
+    }
+
+    if (write_text != NULL) {
+        LARGE_INTEGER li = { .QuadPart = 0LL };
+
+        (void)SetFilePointerEx(h, li, NULL, FILE_BEGIN);
+        (void)write_mbsstring(h, write_text);
+    }
+
+    res = EXIT_SUCCESS;
+
+    (void)CloseHandle(h);
+
+    return res;
 }
 
 static
@@ -663,6 +830,7 @@ void usage(const wchar_t *restrict progname)
         L"Available commands:\n"
         L"info\tprint info about a stream as ksh93 compound variable\n"
         L"find\tfind all non-default named streams in path\n"
+        L"createstream\tCreate new stream\n"
         L"catstream\tCopy data of stream to stdout\n"
         L"renamestream\trename stream\n"
         L"deletestream\tdelete stream\n",
@@ -671,21 +839,21 @@ void usage(const wchar_t *restrict progname)
 
 int wmain(int ac, wchar_t *av[])
 {
+    (void)setlocale(LC_ALL, "");
+
     if (ac < 2) {
         (void)usage(av[0]);
         return EXIT_USAGE;
     }
-
-    /*
-     * FIXME: ToDO: Add more sub commands:
-     * createnew, cat
-     */
 
     if (wcscmp(av[1], L"info") == 0) {
         return cmd_info(ac, av);
     }
     else if (wcscmp(av[1], L"find") == 0) {
         return cmd_find(ac, av);
+    }
+    else if (wcscmp(av[1], L"createstream") == 0) {
+        return cmd_createstream(ac, av);
     }
     else if (wcscmp(av[1], L"catstream") == 0) {
         return cmd_catstream(ac, av);
