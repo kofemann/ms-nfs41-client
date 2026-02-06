@@ -603,18 +603,63 @@ static int handle_nfs41_rename(void *daemon_context, setattr_upcall_args *args)
         goto out;
     }
     else if ((dst_path.len > 0) && (dst_path.path[0] != '\\')) {
-        DPRINTF(0,
-            ("handle_nfs41_rename: "
-            "relative dest paths not supported, "
-            "src_name->name='%s' dst_path.name='%s', "
-            "status = ERROR_NOT_SAME_DEVICE\n",
-            src_name->name, dst_path.path));
+        nfs41_abs_path *src_path = &state->path;
+
+        AcquireSRWLockShared(&src_path->lock);
+
         /*
-         * We return |ERROR_NOT_SAME_DEVICE| so Windows rename will make a
-         * { copy src dst, delete src } sequence
+         * FIXME: We do not support relative paths like "abc\def\x.txt" yet,
+         * this would require support for
+         * |FILE_RENAME_INFORMATION.RootDirectory|
          */
-        status = ERROR_NOT_SAME_DEVICE;
-        goto out;
+        if (memchr(dst_path.path, '\\', dst_path.len)) {
+            eprintf("handle_nfs41_rename(src_path->path='%s'): "
+                "relative path in dst_path.name='%s' not supported\n",
+                src_path->path, dst_path.path);
+            status = ERROR_INVALID_PARAMETER;
+            ReleaseSRWLockShared(&src_path->lock);
+            goto out;
+        }
+
+        if (dst_path.len > NFS41_MAX_COMPONENT_LEN) {
+            eprintf("handle_nfs41_rename(src_path->path='%s'): "
+                "relative path dst_path.name='%s' length > NFS41_MAX_COMPONENT_LEN\n",
+                src_path->path, dst_path.path);
+            status = ERROR_INVALID_PARAMETER;
+            ReleaseSRWLockShared(&src_path->lock);
+            goto out;
+        }
+
+        char tmprelname[NFS41_MAX_COMPONENT_LEN+1];
+
+        /*
+         * Save relative destination filename because we first copy the src
+         * path to dst_path and then append our saved filename
+         */
+        (void)memcpy(tmprelname, dst_path.path, dst_path.len);
+        size_t tmprelname_len = dst_path.len;
+
+        DPRINTF(1,
+            ("handle_nfs41_rename: "
+            "relative destfile, "
+            "src_path->path='%s' dst_path.name='%s'\n",
+            src_path->path, dst_path.path));
+
+        abs_path_copy(&dst_path, &state->path);
+        ReleaseSRWLockShared(&src_path->lock);
+
+        fh_copy(&dst_dir.fh, &state->parent.fh);
+
+        /*
+         * Take the src path and replace the last path element with the
+         * relative filename
+         */
+        last_component(dst_path.path, dst_path.path + dst_path.len, &dst_name);
+        char *dst_name_name = (char *)dst_name.name;
+        (void)memcpy(dst_name_name, tmprelname, tmprelname_len);
+        dst_name_name[tmprelname_len] = '\0';
+        dst_path.len = (unsigned short)
+            (&dst_name_name[tmprelname_len] - &dst_path.path[0]);
     }
 
     path_fh_init(&dst_dir, &dst_path);
