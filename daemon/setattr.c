@@ -662,6 +662,10 @@ static int handle_nfs41_rename(void *daemon_context, setattr_upcall_args *args)
             (&dst_name_name[tmprelname_len] - &dst_path.path[0]);
     }
 
+    /* |dst_path| should be non-empty and start with a backslash */
+    EASSERT(dst_path.len > 0);
+    EASSERT(dst_path.path[0] == '\\');
+
     path_fh_init(&dst_dir, &dst_path);
 
     /* the destination path is absolute, so start from the root session */
@@ -908,6 +912,10 @@ static int handle_nfs41_link(void *daemon_context, setattr_upcall_args *args)
         status = ERROR_NOT_SUPPORTED;
         goto out;
     }
+
+    /* |dst_path| should be non-empty and start with a backslash */
+    EASSERT(dst_path.len > 0);
+    EASSERT(dst_path.path[0] == '\\');
 
     path_fh_init(&dst_dir, &dst_path);
 
