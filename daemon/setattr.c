@@ -513,9 +513,11 @@ static int handle_nfs41_rename(void *daemon_context, setattr_upcall_args *args)
     if (is_cygwin_silly_rename && (state->type != NF4REG)) {
         DPRINTF(0,
             ("handle_nfs41_rename: "
-            "rejecting Cygwin silly rename for dirs, "
+            "rejecting Cygwin silly rename for dirs "
+            "src_name->name='%s' rename->FileName='%.*ls', "
             "status = ERROR_NOT_SAME_DEVICE\n",
-            src_name->name, dst_path.path));
+            src_name->name,
+            (int)ren_fnl, rename->FileName));
         status = ERROR_NOT_SAME_DEVICE;
         goto out;
     }
