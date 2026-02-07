@@ -639,9 +639,7 @@ static int handle_nfs41_rename(void *daemon_context, setattr_upcall_args *args)
         AcquireSRWLockShared(&src_path->lock);
 
         /*
-         * FIXME: We do not support relative paths like "abc\def\x.txt" yet,
-         * this would require support for
-         * |FILE_RENAME_INFORMATION.RootDirectory|
+         * Relative paths like "abc\def\x.txt" are not allowed here
          */
         if (memchr(dst_path.path, '\\', dst_path.len)) {
             eprintf("handle_nfs41_rename(src_path->path='%s'): "
@@ -655,6 +653,25 @@ static int handle_nfs41_rename(void *daemon_context, setattr_upcall_args *args)
         if (dst_path.len > NFS41_MAX_COMPONENT_LEN) {
             eprintf("handle_nfs41_rename(src_path->path='%s'): "
                 "relative path dst_path.name='%s' length > NFS41_MAX_COMPONENT_LEN\n",
+                src_path->path, dst_path.path);
+            status = ERROR_INVALID_PARAMETER;
+            ReleaseSRWLockShared(&src_path->lock);
+            goto out;
+        }
+
+        if (rename->RootDirectory != NULL) {
+            /*
+             * The Windows 10 kernel automatically adds the
+             * |FILE_RENAME_INFORMATION.RootDirectory| name before the original
+             * |FILE_RENAME_INFORMATION.FileName| to turn
+             * |FILE_RENAME_INFORMATION.FileName| an absolute path.
+             * If we ever hit this codepath (maybe in older Windows versions),
+             * then we have to manually add the path in front of
+             * |FILE_RENAME_INFORMATION.FileName|
+             */
+            eprintf("handle_nfs41_rename(src_path->path='%s'): "
+                "rename->RootDirectory != NULL "
+                "without absolute dst_path.name='%s'\n",
                 src_path->path, dst_path.path);
             status = ERROR_INVALID_PARAMETER;
             ReleaseSRWLockShared(&src_path->lock);
@@ -691,6 +708,13 @@ static int handle_nfs41_rename(void *daemon_context, setattr_upcall_args *args)
         dst_name_name[tmprelname_len] = '\0';
         dst_path.len = (unsigned short)
             (&dst_name_name[tmprelname_len] - &dst_path.path[0]);
+    }
+    else {
+        DPRINTF(1,
+            ("handle_nfs41_rename: "
+            "absolute dst path, "
+            "src_name->name='%s' dst_path.name='%s'\n",
+            src_name->name, dst_path.path));
     }
 
     /* |dst_path| should be non-empty and start with a backslash */
