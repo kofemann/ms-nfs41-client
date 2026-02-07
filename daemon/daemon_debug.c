@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2023-2026 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -429,13 +429,13 @@ void print_file_id_both_dir_info(int level, const FILE_ID_BOTH_DIR_INFORMATION *
     (void)fprintf(dlog_file, "\tShortNameLength=%d %zd\n",
         pboth_dir_info->ShortNameLength,
         sizeof(pboth_dir_info->ShortNameLength));
-    (void)fprintf(dlog_file, "\tShortName='%S' %zd\n",
+    (void)fprintf(dlog_file, "\tShortName='%ls' %zd\n",
         pboth_dir_info->ShortName,
         sizeof(pboth_dir_info->ShortName));
     (void)fprintf(dlog_file, "\tFileId=0x%llx %zd\n",
         (long long)pboth_dir_info->FileId.QuadPart,
         sizeof(pboth_dir_info->FileId));
-    (void)fprintf(dlog_file, "\tFileName='%S' 0x%p\n",
+    (void)fprintf(dlog_file, "\tFileName='%ls' 0x%p\n",
         pboth_dir_info->FileName,
         pboth_dir_info->FileName);
 }

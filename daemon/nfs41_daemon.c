@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2023-2026 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -314,7 +314,7 @@ static bool_t check_for_files()
 
 static void PrintUsage(const wchar_t *argv0)
 {
-    (void)fprintf(stderr, "Usage: %S [options]\n"
+    (void)fprintf(stderr, "Usage: %ls [options]\n"
         "\t-h, --help, /?\thelp\n"
         "\t-V, --version, /?\tversion\n"
         "\t-d <debug_level>\n"
@@ -383,7 +383,7 @@ bool_t parse_cmdlineargs(int argc, wchar_t *argv[], nfsd_args *out)
                 ++i;
                 if (i >= argc) {
                     (void)fprintf(stderr,
-                        "%S: Missing debug level value\n", argv[0]);
+                        "%ls: Missing debug level value\n", argv[0]);
                     return FALSE;
                 }
                 out->debug_level = wcstol(argv[i], NULL, 0);
@@ -394,7 +394,7 @@ bool_t parse_cmdlineargs(int argc, wchar_t *argv[], nfsd_args *out)
                 const wchar_t *memdbgoptions = argv[i];
                 if (i >= argc) {
                     (void)fprintf(stderr,
-                        "%S: Missing options for --crtdbgmem\n",
+                        "%ls: Missing options for --crtdbgmem\n",
                         argv[0]);
                     return FALSE;
                 }
@@ -432,7 +432,7 @@ bool_t parse_cmdlineargs(int argc, wchar_t *argv[], nfsd_args *out)
             else if (!wcscmp(argv[i], L"--uid")) { /* no LDAP, setting default uid */
                 ++i;
                 if (i >= argc) {
-                    (void)fprintf(stderr, "%S: Missing uid value\n", argv[0]);
+                    (void)fprintf(stderr, "%ls: Missing uid value\n", argv[0]);
                     return FALSE;
                 }
                 nfs41_dg.default_uid = wcstol(argv[i], NULL, 0);
@@ -440,7 +440,7 @@ bool_t parse_cmdlineargs(int argc, wchar_t *argv[], nfsd_args *out)
             else if (!wcscmp(argv[i], L"--gid")) { /* no LDAP, setting default gid */
                 ++i;
                 if (i >= argc) {
-                    (void)fprintf(stderr, "%S: Missing gid value\n", argv[0]);
+                    (void)fprintf(stderr, "%ls: Missing gid value\n", argv[0]);
                     return FALSE;
                 }
                 nfs41_dg.default_gid = wcstol(argv[i], NULL, 0);
@@ -449,19 +449,19 @@ bool_t parse_cmdlineargs(int argc, wchar_t *argv[], nfsd_args *out)
                 ++i;
                 if (i >= argc) {
                     (void)fprintf(stderr,
-                        "%S: Missing value for num_worker_threads\n",
+                        "%ls: Missing value for num_worker_threads\n",
                         argv[0]);
                     return FALSE;
                 }
                 nfs41_dg.num_worker_threads = wcstol(argv[i], NULL, 0);
                 if (nfs41_dg.num_worker_threads < 16) {
                     (void)fprintf(stderr,
-                        "%S: --numworkerthreads requires at least "
+                        "%ls: --numworkerthreads requires at least "
                         "16 worker threads\n", argv[0]);
                     return FALSE;
                 }
                 if (nfs41_dg.num_worker_threads >= MAX_NUM_THREADS) {
-                    (void)fprintf(stderr, "%S: "
+                    (void)fprintf(stderr, "%ls: "
                         "--numworkerthreads supports a maximum of "
                         "%d worker threads\n",
                         argv[0], MAX_NUM_THREADS);
@@ -477,7 +477,7 @@ bool_t parse_cmdlineargs(int argc, wchar_t *argv[], nfsd_args *out)
             }
             else {
                 (void)fprintf(stderr,
-                    "%S: Unrecognized option '%S'\n",
+                    "%ls: Unrecognized option '%ls'\n",
                     argv[0], argv[i]);
                 return FALSE;
             }
