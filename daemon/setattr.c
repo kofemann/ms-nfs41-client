@@ -638,6 +638,25 @@ static int handle_nfs41_rename(void *daemon_context, setattr_upcall_args *args)
 
         AcquireSRWLockShared(&src_path->lock);
 
+        if (rename->RootDirectory != NULL) {
+            /*
+             * The Windows 10 kernel automatically adds the
+             * |FILE_RENAME_INFORMATION.RootDirectory| name before the original
+             * |FILE_RENAME_INFORMATION.FileName| to turn
+             * |FILE_RENAME_INFORMATION.FileName| an absolute path.
+             * If we ever hit this codepath (maybe in older Windows versions),
+             * then we have to manually add the path in front of
+             * |FILE_RENAME_INFORMATION.FileName|
+             */
+            eprintf("handle_nfs41_rename(src_path->path='%s'): "
+                "rename->RootDirectory != NULL "
+                "without absolute dst_path.name='%s'\n",
+                src_path->path, dst_path.path);
+            status = ERROR_INVALID_PARAMETER;
+            ReleaseSRWLockShared(&src_path->lock);
+            goto out;
+        }
+
         /*
          * Relative paths like "abc\def\x.txt" are not allowed here
          */
@@ -653,25 +672,6 @@ static int handle_nfs41_rename(void *daemon_context, setattr_upcall_args *args)
         if (dst_path.len > NFS41_MAX_COMPONENT_LEN) {
             eprintf("handle_nfs41_rename(src_path->path='%s'): "
                 "relative path dst_path.name='%s' length > NFS41_MAX_COMPONENT_LEN\n",
-                src_path->path, dst_path.path);
-            status = ERROR_INVALID_PARAMETER;
-            ReleaseSRWLockShared(&src_path->lock);
-            goto out;
-        }
-
-        if (rename->RootDirectory != NULL) {
-            /*
-             * The Windows 10 kernel automatically adds the
-             * |FILE_RENAME_INFORMATION.RootDirectory| name before the original
-             * |FILE_RENAME_INFORMATION.FileName| to turn
-             * |FILE_RENAME_INFORMATION.FileName| an absolute path.
-             * If we ever hit this codepath (maybe in older Windows versions),
-             * then we have to manually add the path in front of
-             * |FILE_RENAME_INFORMATION.FileName|
-             */
-            eprintf("handle_nfs41_rename(src_path->path='%s'): "
-                "rename->RootDirectory != NULL "
-                "without absolute dst_path.name='%s'\n",
                 src_path->path, dst_path.path);
             status = ERROR_INVALID_PARAMETER;
             ReleaseSRWLockShared(&src_path->lock);
@@ -962,6 +962,25 @@ static int handle_nfs41_link(void *daemon_context, setattr_upcall_args *args)
 
         AcquireSRWLockShared(&src_path->lock);
 
+        if (link->RootDirectory != NULL) {
+            /*
+             * The Windows 10 kernel automatically adds the
+             * |FILE_LINK_INFORMATION.RootDirectory| name before the original
+             * |FILE_LINK_INFORMATION.FileName| to turn
+             * |FILE_LINK_INFORMATION.FileName| an absolute path.
+             * If we ever hit this codepath (maybe in older Windows versions),
+             * then we have to manually add the path in front of
+             * |FILE_LINK_INFORMATION.FileName|
+             */
+            eprintf("handle_nfs41_link(src_path->path='%s'): "
+                "link->RootDirectory != NULL "
+                "without absolute dst_path.name='%s'\n",
+                src_path->path, dst_path.path);
+            status = ERROR_INVALID_PARAMETER;
+            ReleaseSRWLockShared(&src_path->lock);
+            goto out;
+        }
+
         /*
          * Relative paths like "abc\def\x.txt" are not allowed here
          */
@@ -977,25 +996,6 @@ static int handle_nfs41_link(void *daemon_context, setattr_upcall_args *args)
         if (dst_path.len > NFS41_MAX_COMPONENT_LEN) {
             eprintf("handle_nfs41_link(src_path->path='%s'): "
                 "relative path dst_path.name='%s' length > NFS41_MAX_COMPONENT_LEN\n",
-                src_path->path, dst_path.path);
-            status = ERROR_INVALID_PARAMETER;
-            ReleaseSRWLockShared(&src_path->lock);
-            goto out;
-        }
-
-        if (link->RootDirectory != NULL) {
-            /*
-             * The Windows 10 kernel automatically adds the
-             * |FILE_LINK_INFORMATION.RootDirectory| name before the original
-             * |FILE_LINK_INFORMATION.FileName| to turn
-             * |FILE_LINK_INFORMATION.FileName| an absolute path.
-             * If we ever hit this codepath (maybe in older Windows versions),
-             * then we have to manually add the path in front of
-             * |FILE_LINK_INFORMATION.FileName|
-             */
-            eprintf("handle_nfs41_link(src_path->path='%s'): "
-                "link->RootDirectory != NULL "
-                "without absolute dst_path.name='%s'\n",
                 src_path->path, dst_path.path);
             status = ERROR_INVALID_PARAMETER;
             ReleaseSRWLockShared(&src_path->lock);
