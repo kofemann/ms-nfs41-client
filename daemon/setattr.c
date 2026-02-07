@@ -940,9 +940,9 @@ static int handle_nfs41_link(void *daemon_context, setattr_upcall_args *args)
             ("handle_nfs41_link: "
             "UNC dest paths not supported, "
             "src_name->name='%s' dst_path.name='%s', "
-            "status = ERROR_NOT_SUPPORTED\n",
+            "status = ERROR_INVALID_PARAMETER\n",
             src_name->name, dst_path.path));
-        status = ERROR_NOT_SUPPORTED;
+        status = ERROR_INVALID_PARAMETER;
         goto out;
     }
     else if ((dst_path.len >= 2) && (dst_path.path[1] == ':') &&
@@ -952,20 +952,93 @@ static int handle_nfs41_link(void *daemon_context, setattr_upcall_args *args)
             ("handle_nfs41_link: "
             "DOS drive dest paths not supported, "
             "src_name->name='%s' dst_path.name='%s', "
-            "status = ERROR_NOT_SUPPORTED\n",
+            "status = ERROR_INVALID_PARAMETER\n",
             src_name->name, dst_path.path));
-        status = ERROR_NOT_SUPPORTED;
+        status = ERROR_INVALID_PARAMETER;
         goto out;
     }
     else if ((dst_path.len > 0) && (dst_path.path[0] != '\\')) {
-        DPRINTF(0,
+        nfs41_abs_path *src_path = &state->path;
+
+        AcquireSRWLockShared(&src_path->lock);
+
+        /*
+         * Relative paths like "abc\def\x.txt" are not allowed here
+         */
+        if (memchr(dst_path.path, '\\', dst_path.len)) {
+            eprintf("handle_nfs41_link(src_path->path='%s'): "
+                "relative path in dst_path.name='%s' not supported\n",
+                src_path->path, dst_path.path);
+            status = ERROR_INVALID_PARAMETER;
+            ReleaseSRWLockShared(&src_path->lock);
+            goto out;
+        }
+
+        if (dst_path.len > NFS41_MAX_COMPONENT_LEN) {
+            eprintf("handle_nfs41_link(src_path->path='%s'): "
+                "relative path dst_path.name='%s' length > NFS41_MAX_COMPONENT_LEN\n",
+                src_path->path, dst_path.path);
+            status = ERROR_INVALID_PARAMETER;
+            ReleaseSRWLockShared(&src_path->lock);
+            goto out;
+        }
+
+        if (link->RootDirectory != NULL) {
+            /*
+             * The Windows 10 kernel automatically adds the
+             * |FILE_LINK_INFORMATION.RootDirectory| name before the original
+             * |FILE_LINK_INFORMATION.FileName| to turn
+             * |FILE_LINK_INFORMATION.FileName| an absolute path.
+             * If we ever hit this codepath (maybe in older Windows versions),
+             * then we have to manually add the path in front of
+             * |FILE_LINK_INFORMATION.FileName|
+             */
+            eprintf("handle_nfs41_link(src_path->path='%s'): "
+                "link->RootDirectory != NULL "
+                "without absolute dst_path.name='%s'\n",
+                src_path->path, dst_path.path);
+            status = ERROR_INVALID_PARAMETER;
+            ReleaseSRWLockShared(&src_path->lock);
+            goto out;
+        }
+
+        char tmprelname[NFS41_MAX_COMPONENT_LEN+1];
+
+        /*
+         * Save relative destination filename because we first copy the src
+         * path to dst_path and then append our saved filename
+         */
+        (void)memcpy(tmprelname, dst_path.path, dst_path.len);
+        size_t tmprelname_len = dst_path.len;
+
+        DPRINTF(1,
             ("handle_nfs41_link: "
-            "relative dest paths not supported, "
-            "src_name->name='%s' dst_path.name='%s', "
-            "status = ERROR_NOT_SUPPORTED\n",
+            "relative destfile, "
+            "src_path->path='%s' dst_path.name='%s'\n",
+            src_path->path, dst_path.path));
+
+        abs_path_copy(&dst_path, &state->path);
+        ReleaseSRWLockShared(&src_path->lock);
+
+        fh_copy(&dst_dir.fh, &state->parent.fh);
+
+        /*
+         * Take the src path and replace the last path element with the
+         * relative filename
+         */
+        last_component(dst_path.path, dst_path.path + dst_path.len, &dst_name);
+        char *dst_name_name = (char *)dst_name.name;
+        (void)memcpy(dst_name_name, tmprelname, tmprelname_len);
+        dst_name_name[tmprelname_len] = '\0';
+        dst_path.len = (unsigned short)
+            (&dst_name_name[tmprelname_len] - &dst_path.path[0]);
+    }
+    else {
+        DPRINTF(1,
+            ("handle_nfs41_link: "
+            "absolute dst path, "
+            "src_name->name='%s' dst_path.name='%s'\n",
             src_name->name, dst_path.path));
-        status = ERROR_NOT_SUPPORTED;
-        goto out;
     }
 
     /* |dst_path| should be non-empty and start with a backslash */

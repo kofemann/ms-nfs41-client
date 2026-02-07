@@ -667,12 +667,6 @@ NTSTATUS check_nfs41_setattr_args(
             status = STATUS_OBJECT_NAME_INVALID;
             goto out;
         }
-        if (linfo->RootDirectory) {
-            DbgP("check_nfs41_setattr_args: "
-                "linfo->RootDirectory != NULL not supported\n");
-            status = STATUS_INVALID_PARAMETER;
-            goto out;
-        }
         break;
     }
     case FileDispositionInformation:
