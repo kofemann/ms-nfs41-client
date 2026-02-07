@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include <strsafe.h>
 
+#include "nfs41_build_features.h"
 #include "from_kernel.h"
 #include "nfs41_ops.h"
 #include "delegation.h"
@@ -387,6 +388,9 @@ static int handle_nfs41_rename(void *daemon_context, setattr_upcall_args *args)
     nfs41_path_fh dst_dir, dst;
     nfs41_component dst_name, *src_name;
     uint32_t depth = 0;
+#ifdef NFS41_REJECT_CYGWIN_SILLYRENAME_FOR_DIRS
+    bool is_cygwin_silly_rename = false;
+#endif /* NFS41_REJECT_CYGWIN_SILLYRENAME_FOR_DIRS */
     int status;
 
     src_name = &state->file.name;
@@ -484,11 +488,38 @@ static int handle_nfs41_rename(void *daemon_context, setattr_upcall_args *args)
                 "'%s' sillyrename prefix "
                 "detected, squishing prefix to '%ls'\n",
                 args->path, srs->name, srs->out_sequence));
-                (void)memcpy(rename->FileName, srs->out_sequence,
+            (void)memcpy(rename->FileName, srs->out_sequence,
                 srs->size*sizeof(wchar_t));
+#ifdef NFS41_REJECT_CYGWIN_SILLYRENAME_FOR_DIRS
+            is_cygwin_silly_rename = true;
+#endif /* NFS41_REJECT_CYGWIN_SILLYRENAME_FOR_DIRS */
+            break;
         }
     }
 #endif /* STOMP_SILLY_RENAME_INVALID_UTF16_SEQUENCE_SUPPORT */
+
+#ifdef NFS41_REJECT_CYGWIN_SILLYRENAME_FOR_DIRS
+    if (is_cygwin_silly_rename == false) {
+        if ((ren_fnl > 4) &&
+            (memcmp(rename->FileName, L".cyg", 4*sizeof(wchar_t)) == 0)) {
+            is_cygwin_silly_rename = true;
+        }
+    }
+
+    /*
+     * Reject Cygwin "silly rename" for anything except normal file
+     * FIXME: This should be a configuration/mount option
+     */
+    if (is_cygwin_silly_rename && (state->type != NF4REG)) {
+        DPRINTF(0,
+            ("handle_nfs41_rename: "
+            "rejecting Cygwin silly rename for dirs, "
+            "status = ERROR_NOT_SAME_DEVICE\n",
+            src_name->name, dst_path.path));
+        status = ERROR_NOT_SAME_DEVICE;
+        goto out;
+    }
+#endif /* NFS41_REJECT_CYGWIN_SILLYRENAME_FOR_DIRS */
 
     dst_path.len = (unsigned short)WideCharToMultiByte(CP_UTF8,
         WC_ERR_INVALID_CHARS|WC_NO_BEST_FIT_CHARS,

@@ -292,4 +292,11 @@
  */
 #define WORKAROUND_FOR_FREEBSD15_0_CREATIONFAILSWITHEPERM_BUG292283 1
 
+/*
+ * |NFS41_REJECT_CYGWIN_SILLYRENAME_FOR_DIRS| - Reject Cygwin sillyrename
+ * (i.e. files/dirs with open handles get renamed to '.cyg*' on delete)
+ * for directories, as this breaks parallel git checkouts
+ */
+#define NFS41_REJECT_CYGWIN_SILLYRENAME_FOR_DIRS 1
+
 #endif /* !_NFS41_DRIVER_BUILDFEATURES_ */
