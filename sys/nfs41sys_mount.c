@@ -108,8 +108,9 @@ NTSTATUS marshal_nfs41_mount(
         goto out;
     tmp += *len;
 
-    header_len = *len + length_as_utf8(entry->u.Mount.srv_name) +
-        length_as_utf8(entry->u.Mount.root) + 5 * sizeof(DWORD)
+    header_len = *len +
+        unicode_string_length_as_utf8(entry->u.Mount.srv_name) +
+        unicode_string_length_as_utf8(entry->u.Mount.root) + 5 * sizeof(DWORD)
 #ifdef NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS
         + 2 * sizeof(tristate_bool)
 #endif /* NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS */
@@ -121,9 +122,9 @@ NTSTATUS marshal_nfs41_mount(
         status = STATUS_INSUFFICIENT_RESOURCES;
         goto out;
     }
-    status = marshall_unicode_as_utf8(&tmp, entry->u.Mount.srv_name);
+    status = marshall_unicode_string_as_utf8(&tmp, entry->u.Mount.srv_name);
     if (status) goto out;
-    status = marshall_unicode_as_utf8(&tmp, entry->u.Mount.root);
+    status = marshall_unicode_string_as_utf8(&tmp, entry->u.Mount.root);
     if (status) goto out;
     RtlCopyMemory(tmp, &entry->u.Mount.sec_flavor, sizeof(DWORD));
     tmp += sizeof(DWORD);

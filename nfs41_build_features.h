@@ -293,6 +293,40 @@
 #define WORKAROUND_FOR_FREEBSD15_0_CREATIONFAILSWITHEPERM_BUG292283 1
 
 /*
+ * |NFS41_DRIVER_STOMP_CYGWIN_SILLYRENAME_INVALID_UTF16_SEQUENCE_SUPPORT| -
+ * support for stomping old+new Cygwin+MSYS2 "silly rename" invalid
+ * Unicode sequences
+ *
+ * Cygwin+MSYS2 has it's own variation of "silly rename" (i.e. if
+ * someone deletes a file while someone else still has
+ * a valid fd to that file it first renames that file with a
+ * special prefix, see
+ * newlib-cygwin/winsup/cygwin/syscalls.cc, function
+ * |try_to_bin()|).
+ *
+ * Unfortunately on filesystems supporting Unicode
+ * (i.e. |FILE_UNICODE_ON_DISK|) older Cygwin (before Cygwin
+ * commit "Cygwin: try_to_bin: transpose deleted file name to
+ * valid Unicode chars") adds the prefix
+ * L".\xdc63\xdc79\xdc67", which is NOT a valid UTF-16 sequence,
+ * and will be rejected by a filesystem validating the
+ * UTF-16 sequence (e.g. SAMBA, ReFS, OpenZFS, ...; for SAMBA
+ * Cygwin uses the ".cyg" prefix used for
+ * non-|FILE_UNICODE_ON_DISK| filesystems).
+ *
+ * In our case the NFSv4.1 protocol requires valid UTF-8
+ * sequences, and the NFS server will reject filenames if either
+ * the server or the exported filesystem will validate the UTF-8
+ * sequence.
+ *
+ * We ignore the side-effects here, e.g. that Win32 will still
+ * "remember" the original filename in the file name cache.
+ *
+ * For MSYS2+newer Cygwin we do the same.
+ */
+#define NFS41_DRIVER_STOMP_CYGWIN_SILLYRENAME_INVALID_UTF16_SEQUENCE_SUPPORT 1
+
+/*
  * |NFS41_REJECT_CYGWIN_SILLYRENAME_FOR_DIRS| - Reject Cygwin sillyrename
  * (i.e. files/dirs with open handles get renamed to '.cyg*' on delete)
  * for directories, as this breaks parallel git checkouts

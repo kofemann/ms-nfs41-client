@@ -213,7 +213,7 @@ void nfs41_free_nfs41_fcb_list_entry(nfs41_fcb_list_entry *entry)
 #endif /* USE_LOOKASIDELISTS_FOR_FCBLISTENTRY_MEM */
 }
 
-NTSTATUS marshall_unicode_as_utf8(
+NTSTATUS marshall_unicode_string_as_utf8(
     IN OUT unsigned char **pos,
     IN PCUNICODE_STRING str)
 {
@@ -231,13 +231,13 @@ NTSTATUS marshall_unicode_as_utf8(
 
     /*
      * Convert the string directly into the upcall buffer
-     * (We assume that the caller has used |length_as_utf8()|
+     * (We assume that the caller has used |unicode_string_length_as_utf8()|
      * to make sure the buffer is big enougth)
      */
     status = RtlUnicodeToUTF8N(out_str, 0xFFFF,
         &ActualCount, str->Buffer, str->Length);
     if (status) {
-        print_error("marshall_unicode_as_utf8: "
+        print_error("marshall_unicode_string_as_utf8: "
             "RtlUnicodeToUTF8N(str='%wZ',str->Length=%ld) failed with 0x%lx\n",
             str, (long)str->Length, (long)status);
         goto out;
@@ -259,6 +259,44 @@ out_copy:
     /* Add string size to buffer pointer */
     *pos += out_str_len;
 out:
+
+    return status;
+}
+
+NTSTATUS marshall_unicode_filename_as_utf8(
+    IN OUT unsigned char **pos,
+    IN PCUNICODE_STRING arg_str)
+{
+    NTSTATUS status;
+
+#ifdef NFS41_DRIVER_STOMP_CYGWIN_SILLYRENAME_INVALID_UTF16_SEQUENCE_SUPPORT
+    if ((arg_str->Buffer != NULL) && (arg_str->Length > 0) &&
+        ((memchr(arg_str->Buffer, '\xdc', arg_str->Length) != NULL) ||
+        (memchr(arg_str->Buffer, '\xf7', arg_str->Length) != NULL))) {
+        UNICODE_STRING dup_str;
+
+        status = RtlDuplicateUnicodeString(0, arg_str, &dup_str);
+        if (!NT_SUCCESS(status))
+            return status;
+
+        substitute_cygwin_sillyrename_unicode_path(&dup_str);
+
+        DbgP("marshall_unicode_filename_as_utf8: "
+            "cygwin sillyrename str='%wZ'\n",
+            &dup_str);
+
+        /* FIXME: What about |STATUS_SOME_NOT_MAPPED| ? */
+        status = marshall_unicode_string_as_utf8(pos, &dup_str);
+
+        RtlFreeUnicodeString(&dup_str);
+    }
+    else
+#endif /* NFS41_DRIVER_STOMP_CYGWIN_SILLYRENAME_INVALID_UTF16_SEQUENCE_SUPPORT */
+    {
+        /* FIXME: What about |STATUS_SOME_NOT_MAPPED| ? */
+        status = marshall_unicode_string_as_utf8(pos, arg_str);
+    }
+
     return status;
 }
 

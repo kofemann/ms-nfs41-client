@@ -123,7 +123,7 @@ NTSTATUS marshal_nfs41_open(
         goto out;
     tmp += *len;
 
-    header_len = *len + length_as_utf8(entry->filename) +
+    header_len = *len + unicode_filename_length_as_utf8(entry->filename) +
         1 * sizeof(tristate_bool) +
         7 * sizeof(ULONG) +
         1 * sizeof(BOOLEAN) +
@@ -131,7 +131,7 @@ NTSTATUS marshal_nfs41_open(
 #ifdef NFS41_DRIVER_ALLOW_CREATEFILE_ACLS
         entry->u.Open.SdLength + 1 * sizeof(ULONG) +
 #endif /* NFS41_DRIVER_ALLOW_CREATEFILE_ACLS */
-        length_as_utf8(&entry->u.Open.symlink);
+        unicode_filename_length_as_utf8(&entry->u.Open.symlink);
     if (header_len > buf_len) {
         DbgP("marshal_nfs41_open: "
             "upcall buffer too small: header_len(=%ld) > buf_len(=%ld)\n",
@@ -139,7 +139,7 @@ NTSTATUS marshal_nfs41_open(
         status = STATUS_INSUFFICIENT_RESOURCES;
         goto out;
     }
-    status = marshall_unicode_as_utf8(&tmp, entry->filename);
+    status = marshall_unicode_filename_as_utf8(&tmp, entry->filename);
     if (status) goto out;
     RtlCopyMemory(tmp, &entry->u.Open.is_caseinsensitive_volume,
         sizeof(entry->u.Open.is_caseinsensitive_volume));
@@ -174,7 +174,7 @@ NTSTATUS marshal_nfs41_open(
     tmp += sizeof(DWORD);
     RtlCopyMemory(tmp, &entry->u.Open.srv_open, sizeof(HANDLE));
     tmp += sizeof(HANDLE);
-    status = marshall_unicode_as_utf8(&tmp, &entry->u.Open.symlink);
+    status = marshall_unicode_filename_as_utf8(&tmp, &entry->u.Open.symlink);
     if (status) goto out;
 
     if (entry->u.Open.EaMdl) {
@@ -235,7 +235,7 @@ NTSTATUS marshal_nfs41_close(
 
     header_len = *len + sizeof(BOOLEAN) + sizeof(HANDLE);
     if (entry->u.Close.remove)
-        header_len += length_as_utf8(entry->filename) +
+        header_len += unicode_filename_length_as_utf8(entry->filename) +
             sizeof(BOOLEAN);
 
     if (header_len > buf_len) {
@@ -250,7 +250,7 @@ NTSTATUS marshal_nfs41_close(
     RtlCopyMemory(tmp, &entry->u.Close.srv_open, sizeof(HANDLE));
     tmp += sizeof(HANDLE);
     if (entry->u.Close.remove) {
-        status = marshall_unicode_as_utf8(&tmp, entry->filename);
+        status = marshall_unicode_filename_as_utf8(&tmp, entry->filename);
         if (status) goto out;
         RtlCopyMemory(tmp, &entry->u.Close.renamed, sizeof(BOOLEAN));
         tmp += sizeof(BOOLEAN);

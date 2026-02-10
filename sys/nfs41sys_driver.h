@@ -691,7 +691,10 @@ NTSTATUS nfs41_QueryDirectory(
 /* nfs41sys_driver.c */
 nfs41_fcb_list_entry *nfs41_allocate_nfs41_fcb_list_entry(void);
 void nfs41_free_nfs41_fcb_list_entry(nfs41_fcb_list_entry *entry);
-NTSTATUS marshall_unicode_as_utf8(
+NTSTATUS marshall_unicode_string_as_utf8(
+    IN OUT unsigned char **pos,
+    IN PCUNICODE_STRING str);
+NTSTATUS marshall_unicode_filename_as_utf8(
     IN OUT unsigned char **pos,
     IN PCUNICODE_STRING str);
 NTSTATUS marshal_nfs41_shutdown(

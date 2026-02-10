@@ -87,9 +87,9 @@ NTSTATUS marshal_nfs41_symlink(
         goto out;
     tmp += *len;
 
-    header_len = *len + length_as_utf8(entry->filename);
+    header_len = *len + unicode_filename_length_as_utf8(entry->filename);
     if (entry->opcode == NFS41_SYSOP_SYMLINK_SET)
-        header_len += length_as_utf8(entry->u.Symlink.target);
+        header_len += unicode_filename_length_as_utf8(entry->u.Symlink.target);
     if (header_len > buf_len) {
         DbgP("marshal_nfs41_symlink: "
             "upcall buffer too small: header_len(=%ld) > buf_len(=%ld)\n",
@@ -98,10 +98,10 @@ NTSTATUS marshal_nfs41_symlink(
         goto out;
     }
 
-    status = marshall_unicode_as_utf8(&tmp, entry->filename);
+    status = marshall_unicode_filename_as_utf8(&tmp, entry->filename);
     if (status) goto out;
     if (entry->opcode == NFS41_SYSOP_SYMLINK_SET) {
-        status = marshall_unicode_as_utf8(&tmp, entry->u.Symlink.target);
+        status = marshall_unicode_filename_as_utf8(&tmp, entry->u.Symlink.target);
         if (status) goto out;
     }
 

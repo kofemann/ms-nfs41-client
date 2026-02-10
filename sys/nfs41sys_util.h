@@ -37,18 +37,15 @@ static INLINE BOOL AnsiStrEq(
         RtlCompareMemory(lhs->Buffer, rhs, rhs_len) == rhs_len;
 }
 
-/* convert strings from unicode -> ansi during marshalling to
- * save space in the upcall buffers and avoid extra copies */
-static INLINE ULONG length_as_utf8(
-    PCUNICODE_STRING str)
-{
-    ULONG ActualCount = 0;
-    RtlUnicodeToUTF8N(NULL, 0xffff, &ActualCount, str->Buffer, str->Length);
-    /* Length of length field + string length + '\0'*/
-    return sizeof(USHORT) + ActualCount + 1;
-}
-
 /* Prototypes */
+ULONG unicode_string_length_as_utf8(
+    PCUNICODE_STRING str);
+#ifdef NFS41_DRIVER_STOMP_CYGWIN_SILLYRENAME_INVALID_UTF16_SEQUENCE_SUPPORT
+void substitute_cygwin_sillyrename_unicode_filename(PUNICODE_STRING str);
+void substitute_cygwin_sillyrename_unicode_path(UNICODE_STRING *str);
+#endif /* NFS41_DRIVER_STOMP_CYGWIN_SILLYRENAME_INVALID_UTF16_SEQUENCE_SUPPORT */
+ULONG unicode_filename_length_as_utf8(
+    PCUNICODE_STRING arg_str);
 BOOLEAN isFilenameTooLong(
     PUNICODE_STRING name,
     PNFS41_V_NET_ROOT_EXTENSION pVNetRootContext);

@@ -83,7 +83,7 @@ NTSTATUS marshal_nfs41_easet(
         goto out;
     tmp += *len;
 
-    header_len = *len + length_as_utf8(entry->filename) +
+    header_len = *len + unicode_filename_length_as_utf8(entry->filename) +
         sizeof(ULONG) + entry->u.SetEa.buf_len  + sizeof(DWORD);
     if (header_len > buf_len) {
         DbgP("marshal_nfs41_easet: "
@@ -93,7 +93,7 @@ NTSTATUS marshal_nfs41_easet(
         goto out;
     }
 
-    status = marshall_unicode_as_utf8(&tmp, entry->filename);
+    status = marshall_unicode_filename_as_utf8(&tmp, entry->filename);
     if (status) goto out;
     RtlCopyMemory(tmp, &entry->u.SetEa.mode, sizeof(DWORD));
     tmp += sizeof(DWORD);
@@ -135,7 +135,7 @@ NTSTATUS marshal_nfs41_eaget(
         goto out;
     tmp += *len;
 
-    header_len = *len + length_as_utf8(entry->filename) +
+    header_len = *len + unicode_filename_length_as_utf8(entry->filename) +
         3 * sizeof(ULONG) + entry->u.QueryEa.EaListLength + 2 * sizeof(BOOLEAN);
 
     if (header_len > buf_len) {
@@ -146,7 +146,7 @@ NTSTATUS marshal_nfs41_eaget(
         goto out;
     }
 
-    status = marshall_unicode_as_utf8(&tmp, entry->filename);
+    status = marshall_unicode_filename_as_utf8(&tmp, entry->filename);
     if (status) goto out;
     RtlCopyMemory(tmp, &entry->u.QueryEa.EaIndex, sizeof(ULONG));
     tmp += sizeof(ULONG);

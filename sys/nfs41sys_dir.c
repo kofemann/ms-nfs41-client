@@ -84,7 +84,8 @@ NTSTATUS marshal_nfs41_dirquery(
     tmp += *len;
 
     header_len = *len + 2 * sizeof(ULONG) + sizeof(HANDLE) +
-        length_as_utf8(entry->u.QueryFile.filter) + 3 * sizeof(BOOLEAN);
+        unicode_filename_length_as_utf8(entry->u.QueryFile.filter) +
+        3 * sizeof(BOOLEAN);
     if (header_len > buf_len) {
         DbgP("marshal_nfs41_dirquery: "
             "upcall buffer too small: header_len(=%ld) > buf_len(=%ld)\n",
@@ -97,7 +98,7 @@ NTSTATUS marshal_nfs41_dirquery(
     tmp += sizeof(ULONG);
     RtlCopyMemory(tmp, &entry->u.QueryFile.buf_len, sizeof(ULONG));
     tmp += sizeof(ULONG);
-    status = marshall_unicode_as_utf8(&tmp, entry->u.QueryFile.filter);
+    status = marshall_unicode_filename_as_utf8(&tmp, entry->u.QueryFile.filter);
     if (status) goto out;
     RtlCopyMemory(tmp, &entry->u.QueryFile.initial_query, sizeof(BOOLEAN));
     tmp += sizeof(BOOLEAN);

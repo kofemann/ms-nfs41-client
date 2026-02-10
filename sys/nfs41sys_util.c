@@ -68,6 +68,105 @@
 #include "nfs41sys_driver.h"
 #include "nfs41sys_util.h"
 
+/* convert strings from unicode -> ansi during marshalling to
+ * save space in the upcall buffers and avoid extra copies */
+ULONG unicode_string_length_as_utf8(
+    PCUNICODE_STRING str)
+{
+    ULONG ActualCount = 0;
+    RtlUnicodeToUTF8N(NULL, 0xffff, &ActualCount, str->Buffer, str->Length);
+    /* Length of length field + string length + '\0'*/
+    return sizeof(USHORT) + ActualCount + 1;
+}
+
+#ifdef NFS41_DRIVER_STOMP_CYGWIN_SILLYRENAME_INVALID_UTF16_SEQUENCE_SUPPORT
+void substitute_cygwin_sillyrename_unicode_filename(PUNICODE_STRING str)
+{
+    if ((str->Buffer == NULL) || (str->Length == 0))
+        return;
+
+#define CYGWIN_SR_SEQMSYS2 L".\xdc6d\xdc73\xdc79\xdc73"
+#define CYGWIN_SR_SEQMSYS2_BYTELEN (5*sizeof(wchar_t))
+    if ((str->Length >= CYGWIN_SR_SEQMSYS2_BYTELEN) &&
+        (memcmp(str->Buffer,
+            CYGWIN_SR_SEQMSYS2, CYGWIN_SR_SEQMSYS2_BYTELEN) == 0)) {
+        (void)memcpy(str->Buffer, L".msys", CYGWIN_SR_SEQMSYS2_BYTELEN);
+        return;
+    }
+
+#define CYGWIN_SR_SEQCYGOLD L".\xdc63\xdc79\xdc67"
+#define CYGWIN_SR_SEQCYGOLD_BYTELEN (4*sizeof(wchar_t))
+    if ((str->Length >= CYGWIN_SR_SEQCYGOLD_BYTELEN) &&
+        (memcmp(str->Buffer,
+            CYGWIN_SR_SEQCYGOLD, CYGWIN_SR_SEQCYGOLD_BYTELEN) == 0)) {
+        (void)memcpy(str->Buffer, L".cyg", CYGWIN_SR_SEQCYGOLD_BYTELEN);
+        return;
+    }
+#define CYGWIN_SR_SEQCYGNEW L".\xf763\xf779\xf767"
+#define CYGWIN_SR_SEQCYGNEW_BYTELEN (4*sizeof(wchar_t))
+    if ((str->Length >= CYGWIN_SR_SEQCYGNEW_BYTELEN) &&
+        (memcmp(str->Buffer,
+            CYGWIN_SR_SEQCYGNEW, CYGWIN_SR_SEQCYGNEW_BYTELEN) == 0)) {
+        (void)memcpy(str->Buffer, L".cyg", CYGWIN_SR_SEQCYGNEW_BYTELEN);
+        return;
+    }
+}
+
+void substitute_cygwin_sillyrename_unicode_path(PUNICODE_STRING str)
+{
+    if ((str->Buffer == NULL) || (str->Length == 0))
+        return;
+
+    const wchar_t *buf = str->Buffer;
+    const USHORT charCount = str->Length / (USHORT)sizeof(wchar_t);
+
+    for (USHORT i = 0; (i + 1) < charCount; i++) {
+        if (buf[i] == L'\\') {
+            UNICODE_STRING sub = {
+                .Buffer = (PWCH)(buf + i + 1),
+                .Length = (USHORT)
+                    (str->Length - (USHORT)((i + 1) * sizeof(wchar_t))),
+                .MaximumLength = (USHORT)
+                    (str->Length - (USHORT)((i + 1) * sizeof(wchar_t)))
+            };
+
+            substitute_cygwin_sillyrename_unicode_filename(&sub);
+        }
+    }
+}
+#endif /* NFS41_DRIVER_STOMP_CYGWIN_SILLYRENAME_INVALID_UTF16_SEQUENCE_SUPPORT */
+
+ULONG unicode_filename_length_as_utf8(
+    PCUNICODE_STRING arg_str)
+{
+    ULONG len;
+
+    if ((arg_str->Buffer != NULL) && (arg_str->Length > 0) &&
+        ((memchr(arg_str->Buffer, '\xdc', arg_str->Length) != NULL) ||
+        (memchr(arg_str->Buffer, '\xf7', arg_str->Length) != NULL))) {
+        NTSTATUS status;
+        UNICODE_STRING dup_str;
+
+        status = RtlDuplicateUnicodeString(0, arg_str, &dup_str);
+        if (!NT_SUCCESS(status))
+            return 0;
+
+#ifdef NFS41_DRIVER_STOMP_CYGWIN_SILLYRENAME_INVALID_UTF16_SEQUENCE_SUPPORT
+        substitute_cygwin_sillyrename_unicode_path(&dup_str);
+#endif /* NFS41_DRIVER_STOMP_CYGWIN_SILLYRENAME_INVALID_UTF16_SEQUENCE_SUPPORT */
+
+        /* FIXME: What about |STATUS_SOME_NOT_MAPPED| ? */
+        len = unicode_string_length_as_utf8(&dup_str);
+
+        RtlFreeUnicodeString(&dup_str);
+    }
+    else {
+        /* FIXME: What about |STATUS_SOME_NOT_MAPPED| ? */
+        len = unicode_string_length_as_utf8(arg_str);
+    }
+
+    return len;
+}
 
 BOOLEAN isFilenameTooLong(
     PUNICODE_STRING name,

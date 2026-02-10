@@ -127,7 +127,7 @@ NTSTATUS marshal_nfs41_fileset(
         goto out;
     tmp += *len;
 
-    header_len = *len + length_as_utf8(entry->filename) +
+    header_len = *len + unicode_filename_length_as_utf8(entry->filename) +
         2 * sizeof(ULONG) + entry->u.SetFile.buf_len;
     if (header_len > buf_len) {
         DbgP("marshal_nfs41_fileset: "
@@ -136,13 +136,57 @@ NTSTATUS marshal_nfs41_fileset(
         status = STATUS_INSUFFICIENT_RESOURCES;
         goto out;
     }
-    status = marshall_unicode_as_utf8(&tmp, entry->filename);
+    status = marshall_unicode_filename_as_utf8(&tmp, entry->filename);
     if (status) goto out;
     RtlCopyMemory(tmp, &entry->u.SetFile.InfoClass, sizeof(ULONG));
     tmp += sizeof(ULONG);
     RtlCopyMemory(tmp, &entry->u.SetFile.buf_len, sizeof(ULONG));
     tmp += sizeof(ULONG);
     RtlCopyMemory(tmp, entry->u.SetFile.buf, entry->u.SetFile.buf_len);
+    if (entry->u.SetFile.InfoClass == FileRenameInformation) {
+        PFILE_RENAME_INFORMATION fri = (PFILE_RENAME_INFORMATION)tmp;
+#ifdef NFS41_DRIVER_STOMP_CYGWIN_SILLYRENAME_INVALID_UTF16_SEQUENCE_SUPPORT
+        UNICODE_STRING fn = {
+            .Buffer = fri->FileName,
+            .Length = (USHORT)fri->FileNameLength,
+            .MaximumLength = (USHORT)fri->FileNameLength
+        };
+
+        if (fn.Length > 0) {
+            if (fn.Buffer[0] == L'\\')
+                substitute_cygwin_sillyrename_unicode_path(&fn);
+            else
+                substitute_cygwin_sillyrename_unicode_filename(&fn);
+        }
+#endif /* NFS41_DRIVER_STOMP_CYGWIN_SILLYRENAME_INVALID_UTF16_SEQUENCE_SUPPORT */
+
+        DbgP("marshal_nfs41_fileset: "
+            "FILE_RENAME_INFORMATION.(FileNameLength=%d FileName='%.*ls')\n",
+            (int)fri->FileNameLength,
+            (int)(fri->FileNameLength/sizeof(wchar_t)), fri->FileName);
+    }
+    else if (entry->u.SetFile.InfoClass == FileLinkInformation) {
+        PFILE_LINK_INFORMATION fli = (PFILE_LINK_INFORMATION)tmp;
+#ifdef NFS41_DRIVER_STOMP_CYGWIN_SILLYRENAME_INVALID_UTF16_SEQUENCE_SUPPORT
+        UNICODE_STRING fn = {
+            .Buffer = fli->FileName,
+            .Length = (USHORT)fli->FileNameLength,
+            .MaximumLength = (USHORT)fli->FileNameLength
+        };
+
+        if (fn.Length > 0) {
+            if (fn.Buffer[0] == L'\\')
+                substitute_cygwin_sillyrename_unicode_path(&fn);
+            else
+                substitute_cygwin_sillyrename_unicode_filename(&fn);
+        }
+#endif /* NFS41_DRIVER_STOMP_CYGWIN_SILLYRENAME_INVALID_UTF16_SEQUENCE_SUPPORT */
+
+        DbgP("marshal_nfs41_fileset: "
+            "FILE_LINK_INFORMATION.(FileNameLength=%d FileName='%.*ls')\n",
+            (int)fli->FileNameLength,
+            (int)(fli->FileNameLength/sizeof(wchar_t)), fli->FileName);
+    }
     tmp += entry->u.SetFile.buf_len;
 
     *len = (ULONG)(tmp - buf);
