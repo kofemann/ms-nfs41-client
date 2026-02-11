@@ -1188,7 +1188,16 @@ retry_on_link:
         (void)RxFlushFcbInSystemCache((PFCB)RxContext->pFcb, TRUE);
     }
 
-    if (!nfs41_fcb->StandardInfo.Directory) {
+    /*
+     * Enable SRVOpen collapsing for regular files
+     *
+     * Notes:
+     * - RDBSS does not support collapsing for directories
+     * - We cannot collapse symlinks, otherwise we get |NFS4ERR_STALE|
+     * if we do $ ln -f -s ... # for the same symlink multiple times
+     */
+    if ((nfs41_fcb->StandardInfo.Directory == FALSE) &&
+        (!BooleanFlagOn(entry->u.Open.copts, FILE_OPEN_REPARSE_POINT))) {
         SrvOpen->BufferingFlags |= FCB_STATE_COLLAPSING_ENABLED;
     }
 

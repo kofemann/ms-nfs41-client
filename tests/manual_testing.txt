@@ -1,5 +1,5 @@
 #
-# ms-nfs41-client manual testing sequence, 2026-01-31
+# ms-nfs41-client manual testing sequence, 2026-02-11
 #
 # Draft version, needs to be turned into automated tests
 # if possible
@@ -303,6 +303,18 @@ rm -f symlink1_to_h_tmp ; cmd /C 'mklink /D symlink1_to_h_tmp \\derfwpc5131_ipv4
 # all test should print "OK test <testnum>"
 # ("." is a relative symlink, just included here for more coverage)
 ksh93 -c 'typeset -a a=( "/" "/usr" "/usr/" "/tmp" "/usr/bin" "$PWD" "/dev/null" "." ) ; for ((i=0 ; i < ${#a[@]} ; i++ )) ; do rm -f "syml$i" ; ln -sf "${a[$i]}" "syml$i" ; l="$(readlink "syml$i")" ; if [[ "$l" == "${a[$i]}" ]] ; then printf "OK test %d\n" i ; else printf "FAIL test %d\n" i ; fi ; done'
+
+#
+# Repeatedly create the same symlink with $ ln -f -s ... #
+#
+# This can cause |NFS4ERR_STALE| issues if SRVOpen collapsing is not disabled for symlinks
+#
+# All three tests should print $'# Test OK'
+---- snip ----
+bash -c 'set -o errexit ; rm -Rf symlinktest1 ; mkdir symlinktest1 ; cd symlinktest1 ; mkdir -p dir1/dir2 ; touch dir1/x ; cd dir1/dir2 ; /bin/ln -f -s ../../dir1/x . ; /bin/ln -f -s ../../dir1/x . ; /bin/ln -f -s ../../dir1/x ; readlink x ; printf "# Test OK"'
+bash -c 'set -o errexit ; rm -Rf symlinktest2 ; mkdir symlinktest2 ; cd symlinktest2 ; mkdir -p dir1/dir2 ; touch dir1/x ; cd dir1/dir2 ; /bin/ln -f -s ../../dir1/x . ; /bin/ln -f -s ../../dir1/x . ; /bin/ln -f -s ../../dir1/x ; ls -l x ; printf "# Test OK"'
+bash -c 'set -o errexit ; rm -Rf symlinktest3 ; mkdir symlinktest3 ; cd symlinktest3 ; mkdir -p dir1/dir2 ; touch dir1/x ; cd dir1/dir2 ; for (( i=0 ; i < 100 ; i++ )) ; do /bin/ln -f -s ../../dir1/x . ; done ; ls -l x ; printf "# Test OK"'
+---- snip ----
 
 #
 # Tests for symlinks with characters outside the BMP (Basic Multilingual Plane)
