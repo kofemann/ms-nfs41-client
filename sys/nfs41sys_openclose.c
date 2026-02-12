@@ -1365,12 +1365,19 @@ NTSTATUS nfs41_ShouldTryToCollapseThisOpen(
     NTSTATUS status = STATUS_SUCCESS;
     PNFS41_FCB nfs41_fcb = NFS41GetFcbExtension(RxContext->pFcb);
     PMRX_SRV_OPEN SrvOpen = RxContext->pRelevantSrvOpen;
+    PNFS41_V_NET_ROOT_EXTENSION pVNetRootContext =
+        NFS41GetVNetRootExtension(RxContext->Create.pVNetRoot);
     PNFS41_SRV_OPEN nfs41_srvopen = NFS41GetSrvOpenExtension(SrvOpen);
 
     if (SrvOpen == NULL) {
         DbgP("nfs41_ShouldTryToCollapseThisOpen: "
             "SrvOpen==NULL, status=STATUS_SUCCESS\n");
         return STATUS_SUCCESS;
+    }
+
+    if (!pVNetRootContext->srvopencollapse) {
+        status = STATUS_MORE_PROCESSING_REQUIRED;
+        goto out;
     }
 
     if (nfs41_fcb->StandardInfo.Directory) {

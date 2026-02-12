@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2023-2026 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -158,6 +158,11 @@ void PrintMountUsage(LPWSTR pProcess)
         "\tnocache\tturns off rdbss caching\n"
         "\ttimebasedcoherency\tturns on time-based coherency\n"
         "\tnotimebasedcoherency\tturns off time-based coherency (default, due to bugs)\n"
+        "\tsrvopencollapse\t"
+            "turns on collapsing of multiple file opens into a single NFS handle\n"
+        "\tnosrvopencollapse\t"
+            "turns off collapsing of multiple file opens into a single NFS handle "
+            "(default, due to bugs)\n"
         "\twsize=#\twrite buffer size in bytes\n"
         "\tcreatemode=\tspecify default POSIX permission mode\n"
             "\t\tfor new directories and files created on the NFS share.\n"
