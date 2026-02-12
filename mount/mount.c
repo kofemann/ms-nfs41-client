@@ -158,11 +158,13 @@ void PrintMountUsage(LPWSTR pProcess)
         "\tnocache\tturns off rdbss caching\n"
         "\ttimebasedcoherency\tturns on time-based coherency\n"
         "\tnotimebasedcoherency\tturns off time-based coherency (default, due to bugs)\n"
+#ifdef NFS41_DRIVER_COLLAPSEOPEN
         "\tsrvopencollapse\t"
             "turns on collapsing of multiple file opens into a single NFS handle\n"
         "\tnosrvopencollapse\t"
             "turns off collapsing of multiple file opens into a single NFS handle "
             "(default, due to bugs)\n"
+#endif /* NFS41_DRIVER_COLLAPSEOPEN */
         "\twsize=#\twrite buffer size in bytes\n"
         "\tcreatemode=\tspecify default POSIX permission mode\n"
             "\t\tfor new directories and files created on the NFS share.\n"

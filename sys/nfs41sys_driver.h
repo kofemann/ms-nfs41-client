@@ -355,7 +355,9 @@ typedef struct _NFS41_MOUNT_CONFIG {
     BOOLEAN write_thru;
     BOOLEAN nocache;
     BOOLEAN timebasedcoherency;
+#ifdef NFS41_DRIVER_COLLAPSEOPEN
     BOOLEAN srvopencollapse;
+#endif /* NFS41_DRIVER_COLLAPSEOPEN */
     WCHAR srv_buffer[SERVER_NAME_BUFFER_SIZE];
     UNICODE_STRING SrvName; /* hostname, or hostname@port */
     WCHAR mntpt_buffer[NFS41_SYS_MAX_PATH_LEN];
@@ -464,7 +466,9 @@ typedef struct _NFS41_V_NET_ROOT_EXTENSION {
     BOOLEAN                 write_thru;
     BOOLEAN                 nocache;
     BOOLEAN                 timebasedcoherency;
+#ifdef NFS41_DRIVER_COLLAPSEOPEN
     BOOLEAN                 srvopencollapse;
+#endif /* NFS41_DRIVER_COLLAPSEOPEN */
 #ifdef NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS
     tristate_bool           force_case_preserving;
     tristate_bool           force_case_insensitive;

@@ -333,4 +333,55 @@
  */
 #define NFS41_REJECT_CYGWIN_SILLYRENAME_FOR_DIRS 1
 
+/*
+ * |NFS41_DRIVER_COLLAPSEOPEN| - SRV_OPEN collapse support
+ *
+ * If enabled via the "srvopencollapse" mount option the client will re-use
+ * an existing SRV_OPEN when opening a file with matching parameters/flags,
+ * avoiding an upcall to the NFS server.
+ *
+ * This is currently experimental, and requires more testing.
+ * Use nfs_mount(1M) options "srvopencollapse" and "nosrvopencollapse"
+ * to turn this feature on/off on a per server basis.
+ *
+ * Currently this feature is OFF by default ("nosrvopencollapse") because it
+ * breaks checkouts with the native git, e.g.
+ * $ '/cygdrive/c/Program Files/Git/cmd/git' clone \
+ *      https://github.com/kofemann/ms-nfs41-client.git #
+ * fails with FreeBSD 15.0 nfsd (but not Linux nfsd).
+ *
+ * Note this only has limited benefits (because it only short-cuts
+ * duplicate file opening requests to the NFS server) except in a
+ * benchmark which measures pure file |open()| performance:
+ * ---- snip ----
+ * $ cat "open_x_c_100000times.c"
+ * #include <windows.h>
+ * int main() {
+ *      CreateFileA("x.c",
+ *          GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, 0, 0);
+ *      for(int i=0;i<100000;i++) {
+ *          HANDLE h;
+ *          h = CreateFileA("x.c",
+ *              GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, 0, 0);
+ *          CloseHandle(h);
+ *      }
+ *      return 0;
+ * }
+ *
+ * # with collapsing enabled:
+ * $ time ./open_x_c_100000times.c
+ *
+ * real    3m20.027s
+ * user    0m0.562s
+ * sys     0m34.296s
+ * # collapsing disabled:
+ * $ time ./open_x_c_100000times.c
+ *
+ * real    6m59.528s
+ * user    0m1.155s
+ * sys     0m48.936s
+ * ---- snip ----
+ */
+#define NFS41_DRIVER_COLLAPSEOPEN 1
+
 #endif /* !_NFS41_DRIVER_BUILDFEATURES_ */

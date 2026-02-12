@@ -344,7 +344,9 @@ void nfs41_MountConfig_InitDefaults(
     Config->write_thru = FALSE;
     Config->nocache = FALSE;
     Config->timebasedcoherency = FALSE; /* disabled by default because of bugs */
+#ifdef NFS41_DRIVER_COLLAPSEOPEN
     Config->srvopencollapse = FALSE; /* disabled by default because of bugs */
+#endif /* NFS41_DRIVER_COLLAPSEOPEN */
     Config->SrvName.Length = 0;
     Config->SrvName.MaximumLength = SERVER_NAME_BUFFER_SIZE;
     Config->SrvName.Buffer = Config->srv_buffer;
@@ -519,6 +521,7 @@ NTSTATUS nfs41_MountConfig_ParseOptions(
             status = nfs41_MountConfig_ParseBoolean(Option, &usValue,
                 TRUE, &Config->timebasedcoherency);
         }
+#ifdef NFS41_DRIVER_COLLAPSEOPEN
         else if (wcsncmp(L"srvopencollapse", Name, NameLen) == 0) {
             status = nfs41_MountConfig_ParseBoolean(Option, &usValue,
                 FALSE, &Config->srvopencollapse);
@@ -527,6 +530,7 @@ NTSTATUS nfs41_MountConfig_ParseOptions(
             status = nfs41_MountConfig_ParseBoolean(Option, &usValue,
                 TRUE, &Config->srvopencollapse);
         }
+#endif /* NFS41_DRIVER_COLLAPSEOPEN */
         else if (wcsncmp(L"timeout", Name, NameLen) == 0) {
             status = nfs41_MountConfig_ParseDword(Option, &usValue,
                 &Config->timeout, 15,
@@ -987,7 +991,9 @@ NTSTATUS nfs41_CreateVNetRoot(
         pVNetRootContext->write_thru = Config->write_thru;
         pVNetRootContext->nocache = Config->nocache;
         pVNetRootContext->timebasedcoherency = Config->timebasedcoherency;
+#ifdef NFS41_DRIVER_COLLAPSEOPEN
         pVNetRootContext->srvopencollapse = Config->srvopencollapse;
+#endif /* NFS41_DRIVER_COLLAPSEOPEN */
     } else {
         /*
          * Codepath for \\server@NFS@port\path or
@@ -1111,7 +1117,9 @@ NTSTATUS nfs41_CreateVNetRoot(
         pVNetRootContext->write_thru = Config->write_thru;
         pVNetRootContext->nocache = Config->nocache;
         pVNetRootContext->timebasedcoherency = Config->timebasedcoherency;
+#ifdef NFS41_DRIVER_COLLAPSEOPEN
         pVNetRootContext->srvopencollapse = Config->srvopencollapse;
+#endif /* NFS41_DRIVER_COLLAPSEOPEN */
     }
 
     Config->use_nfspubfh = pubfh_tag;
@@ -1125,7 +1133,9 @@ NTSTATUS nfs41_CreateVNetRoot(
         "writethru=%d, "
         "nocache=%d "
         "timebasedcoherency=%d "
+#ifdef NFS41_DRIVER_COLLAPSEOPEN
         "srvopencollapse=%d "
+#endif /* NFS41_DRIVER_COLLAPSEOPEN */
         "timeout=%d "
         "dir_cmode=(usenfsv3attrs=%d mode=0%o) "
         "file_cmode=(usenfsv3attrs=%d mode=0%o) "
@@ -1142,7 +1152,9 @@ NTSTATUS nfs41_CreateVNetRoot(
         Config->write_thru?1:0,
         Config->nocache?1:0,
         Config->timebasedcoherency?1:0,
+#ifdef NFS41_DRIVER_COLLAPSEOPEN
         Config->srvopencollapse?1:0,
+#endif /* NFS41_DRIVER_COLLAPSEOPEN */
         Config->timeout,
         Config->dir_createmode.use_nfsv3attrsea_mode?1:0,
         Config->dir_createmode.mode,

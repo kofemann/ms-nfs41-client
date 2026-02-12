@@ -61,11 +61,11 @@
 #include <wchar.h>
 #include <stdbool.h>
 
+#include "nfs41_build_features.h"
 #include "nfs41sys_buildconfig.h"
 
 #include "nfs41_driver.h"
 #include "nfs41sys_debug.h"
-#include "nfs41_build_features.h"
 
 #include "nfs41sys_driver.h"
 #include "nfs41sys_util.h"
@@ -1361,7 +1361,7 @@ out:
 NTSTATUS nfs41_ShouldTryToCollapseThisOpen(
     IN OUT PRX_CONTEXT RxContext)
 {
-#ifdef ENABLE_COLLAPSEOPEN
+#ifdef NFS41_DRIVER_COLLAPSEOPEN
     NTSTATUS status = STATUS_SUCCESS;
     PNFS41_FCB nfs41_fcb = NFS41GetFcbExtension(RxContext->pFcb);
     PMRX_SRV_OPEN SrvOpen = RxContext->pRelevantSrvOpen;
@@ -1465,7 +1465,7 @@ out:
     if (RxContext->pRelevantSrvOpen == NULL)
         return STATUS_SUCCESS;
     return STATUS_MORE_PROCESSING_REQUIRED;
-#endif /* ENABLE_COLLAPSEOPEN */
+#endif /* NFS41_DRIVER_COLLAPSEOPEN */
 }
 
 /*
@@ -1477,7 +1477,7 @@ out:
 NTSTATUS nfs41_CollapseOpen(
     IN OUT PRX_CONTEXT RxContext)
 {
-#ifdef ENABLE_COLLAPSEOPEN
+#ifdef NFS41_DRIVER_COLLAPSEOPEN
     NTSTATUS status;
     PMRX_SRV_OPEN SrvOpen = RxContext->pRelevantSrvOpen;
     PNFS41_V_NET_ROOT_EXTENSION pVNetRootContext =
@@ -1539,7 +1539,7 @@ out:
     FsRtlExitFileSystem();
 #else
     NTSTATUS status = STATUS_MORE_PROCESSING_REQUIRED;
-#endif /* ENABLE_COLLAPSEOPEN */
+#endif /* NFS41_DRIVER_COLLAPSEOPEN */
     return status;
 }
 

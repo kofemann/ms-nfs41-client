@@ -831,7 +831,7 @@ NTSTATUS nfs41_CreateSrvCall(
     ASSERT( pSrvCall );
     ASSERT( NodeType(pSrvCall) == RDBSS_NTC_SRVCALL );
 
-#ifdef ENABLE_COLLAPSEOPEN
+#ifdef NFS41_DRIVER_COLLAPSEOPEN
     /*
      * FIXME: This should be a tuneable
      *
@@ -846,7 +846,7 @@ NTSTATUS nfs41_CreateSrvCall(
      * *WHY* they use this formula.
      */
     pSrvCall->MaximumNumberOfCloseDelayedFiles = 64-1;
-#endif /* ENABLE_COLLAPSEOPEN */
+#endif /* NFS41_DRIVER_COLLAPSEOPEN */
 
     if (IoGetCurrentProcess() == RxGetRDBSSProcess()) {
         DbgP("executing with RDBSS context\n");
