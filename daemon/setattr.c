@@ -23,6 +23,14 @@
 
 #include <Windows.h>
 #include <stdio.h>
+#include <wchar.h>
+#ifdef _DEBUG
+/*
+ * #undef _malloca - HACK to avoid "crtdbg.h(307,1): warning C4005: '_malloca':
+ * macro redefinition" with VS2019 witg WDK10
+ */
+#undef _malloca
+#endif /* _DEBUG */
 #include <strsafe.h>
 
 #include "nfs41_build_features.h"
@@ -394,7 +402,7 @@ static int handle_nfs41_rename(void *daemon_context, setattr_upcall_args *args)
 
 #ifdef NFS41_REJECT_CYGWIN_SILLYRENAME_FOR_DIRS
     if ((ren_fnl > 4) &&
-        (memcmp(rename->FileName, L".cyg", 4*sizeof(wchar_t)) == 0)) {
+        (wmemcmp(rename->FileName, L".cyg", 4) == 0)) {
         is_cygwin_silly_rename = true;
     }
 

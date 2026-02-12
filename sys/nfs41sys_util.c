@@ -56,6 +56,7 @@
 #include <rx.h>
 #include <windef.h>
 #include <winerror.h>
+#include <wchar.h>
 
 #include <Ntstrsafe.h>
 
@@ -86,28 +87,28 @@ void substitute_cygwin_sillyrename_unicode_filename(PUNICODE_STRING str)
         return;
 
 #define CYGWIN_SR_SEQMSYS2 L".\xdc6d\xdc73\xdc79\xdc73"
-#define CYGWIN_SR_SEQMSYS2_BYTELEN (5*sizeof(wchar_t))
-    if ((str->Length >= CYGWIN_SR_SEQMSYS2_BYTELEN) &&
-        (memcmp(str->Buffer,
-            CYGWIN_SR_SEQMSYS2, CYGWIN_SR_SEQMSYS2_BYTELEN) == 0)) {
-        (void)memcpy(str->Buffer, L".msys", CYGWIN_SR_SEQMSYS2_BYTELEN);
+#define CYGWIN_SR_SEQMSYS2_LEN (5)
+    if ((str->Length >= CYGWIN_SR_SEQMSYS2_LEN) &&
+        (wmemcmp(str->Buffer,
+            CYGWIN_SR_SEQMSYS2, CYGWIN_SR_SEQMSYS2_LEN) == 0)) {
+        (void)wmemcpy(str->Buffer, L".msys", CYGWIN_SR_SEQMSYS2_LEN);
         return;
     }
 
 #define CYGWIN_SR_SEQCYGOLD L".\xdc63\xdc79\xdc67"
-#define CYGWIN_SR_SEQCYGOLD_BYTELEN (4*sizeof(wchar_t))
-    if ((str->Length >= CYGWIN_SR_SEQCYGOLD_BYTELEN) &&
-        (memcmp(str->Buffer,
-            CYGWIN_SR_SEQCYGOLD, CYGWIN_SR_SEQCYGOLD_BYTELEN) == 0)) {
-        (void)memcpy(str->Buffer, L".cyg", CYGWIN_SR_SEQCYGOLD_BYTELEN);
+#define CYGWIN_SR_SEQCYGOLD_LEN (4)
+    if ((str->Length >= CYGWIN_SR_SEQCYGOLD_LEN) &&
+        (wmemcmp(str->Buffer,
+            CYGWIN_SR_SEQCYGOLD, CYGWIN_SR_SEQCYGOLD_LEN) == 0)) {
+        (void)wmemcpy(str->Buffer, L".cyg", CYGWIN_SR_SEQCYGOLD_LEN);
         return;
     }
 #define CYGWIN_SR_SEQCYGNEW L".\xf763\xf779\xf767"
-#define CYGWIN_SR_SEQCYGNEW_BYTELEN (4*sizeof(wchar_t))
-    if ((str->Length >= CYGWIN_SR_SEQCYGNEW_BYTELEN) &&
-        (memcmp(str->Buffer,
-            CYGWIN_SR_SEQCYGNEW, CYGWIN_SR_SEQCYGNEW_BYTELEN) == 0)) {
-        (void)memcpy(str->Buffer, L".cyg", CYGWIN_SR_SEQCYGNEW_BYTELEN);
+#define CYGWIN_SR_SEQCYGNEW_LEN (4)
+    if ((str->Length >= CYGWIN_SR_SEQCYGNEW_LEN) &&
+        (wmemcmp(str->Buffer,
+            CYGWIN_SR_SEQCYGNEW, CYGWIN_SR_SEQCYGNEW_LEN) == 0)) {
+        (void)wmemcpy(str->Buffer, L".cyg", CYGWIN_SR_SEQCYGNEW_LEN);
         return;
     }
 }

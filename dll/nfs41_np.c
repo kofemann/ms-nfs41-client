@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2023-2026 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -29,6 +29,7 @@
 #include <npapi.h>
 #include <devioctl.h>
 #include <strsafe.h>
+#include <wchar.h>
 #include <stdbool.h>
 
 #include "nfs41_build_features.h"
@@ -1421,7 +1422,7 @@ NPGetResourceParent(
              * OUT: '\\10.49.202.230@NFS@2049\'
              */
             size_t rm_len = lastbackslash - lpNetResource->lpRemoteName;
-            (void)memcpy(outstrbuff, lpNetResource->lpRemoteName, rm_len*sizeof(wchar_t));
+            (void)wmemcpy(outstrbuff, lpNetResource->lpRemoteName, rm_len);
             outstrbuff[rm_len] = L'\0';
         }
         else {
@@ -1464,7 +1465,7 @@ NPGetResourceParent(
          * OUT: '\\10.49.202.230@NFS@2049\bigdisk\abc'
          */
         size_t rm_len = lastbackslash - lpNetResource->lpRemoteName;
-        (void)memcpy(outstrbuff, lpNetResource->lpRemoteName, rm_len*sizeof(wchar_t));
+        (void)wmemcpy(outstrbuff, lpNetResource->lpRemoteName, rm_len);
         outstrbuff[rm_len] = L'\0';
         outNetResource->lpRemoteName = outstrbuff;
         outstrbuff += wcslen(outstrbuff)+1;

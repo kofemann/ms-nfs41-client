@@ -58,6 +58,7 @@
 #include <winerror.h>
 
 #include <Ntstrsafe.h>
+#include <wchar.h>
 #include <stdbool.h>
 
 #include "nfs41sys_buildconfig.h"
@@ -837,11 +838,11 @@ NTSTATUS netroot_has_nfs_tag(
     DbgP("netroot_has_nfs_tag: state=%d, nfstag=0x%p\n", state, nfstag);
 
     if (((state == 2) || (state == 3)) && (nfstag != NULL)) {
-        if (memcmp(nfstag, L"@NFS", (4*sizeof(wchar_t))) == 0) {
+        if (wmemcmp(nfstag, L"@NFS", 4) == 0) {
             *pubfh_tag = false;
             status = STATUS_SUCCESS;
         }
-        else if (memcmp(nfstag, L"@PUBNFS", (7*sizeof(wchar_t))) == 0) {
+        else if (wmemcmp(nfstag, L"@PUBNFS", 7) == 0) {
             *pubfh_tag = true;
             status = STATUS_SUCCESS;
         }

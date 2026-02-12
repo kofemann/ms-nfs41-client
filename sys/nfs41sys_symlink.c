@@ -58,6 +58,7 @@
 #include <winerror.h>
 
 #include <Ntstrsafe.h>
+#include <wchar.h>
 #include <stdbool.h>
 
 #include "nfs41sys_buildconfig.h"
@@ -312,9 +313,7 @@ NTSTATUS nfs41_SetSymlinkReparsePoint(
 
         /* UNC path ? */
         if ((TargetName.Length > 8*sizeof(wchar_t)) &&
-            (!memcmp(&TargetName.Buffer[0], L"\\??\\UNC\\",
-            (8*sizeof(wchar_t))))) {
-
+            (wmemcmp(&TargetName.Buffer[0], L"\\??\\UNC\\", 8) == 0)) {
             /* Strip "\\??\\" prefix */
             TargetName.Buffer += 4;
             TargetName.MaximumLength = TargetName.Length =
@@ -336,8 +335,7 @@ NTSTATUS nfs41_SetSymlinkReparsePoint(
         }
         /* DEVICELETTR path ? */
         else if ((TargetName.Length >= 6*sizeof(wchar_t)) &&
-            (!memcmp(&TargetName.Buffer[0], L"\\??\\",
-            (4*sizeof(wchar_t)))) &&
+            (wmemcmp(&TargetName.Buffer[0], L"\\??\\", 4) == 0) &&
             (TargetName.Buffer[5] == L':')) {
             wchar_t devletter;
 
@@ -495,17 +493,17 @@ bool is_us_relative_path(UNICODE_STRING *restrict us)
 
     /* Match exactly ".." (double dot) */
     if ((us->Length == (2*sizeof(wchar_t)) &&
-        (!memcmp(&us->Buffer[0], L"..", (2*sizeof(wchar_t))))))
+        (wmemcmp(&us->Buffer[0], L"..", 2) == 0)))
         return true;
 
     /* Match "..\..." */
     if ((us->Length >= (3*sizeof(wchar_t))) &&
-        (!memcmp(&us->Buffer[0], L"..\\", (3*sizeof(wchar_t)))))
+        (wmemcmp(&us->Buffer[0], L"..\\", 3) == 0))
         return true;
 
     /* Match ".\..." */
     if ((us->Length >= (2*sizeof(wchar_t))) &&
-        (!memcmp(&us->Buffer[0], L".\\", (2*sizeof(wchar_t)))))
+        (wmemcmp(&us->Buffer[0], L".\\", 2) == 0))
         return true;
 
     /* Reject any absolute paths or similar stuff */
@@ -536,7 +534,7 @@ bool is_us_relative_path(UNICODE_STRING *restrict us)
 static
 bool is_us_unc_path(UNICODE_STRING *restrict us)
 {
-    if (!memcmp(&us->Buffer[0], L"\\\\", (2*sizeof(wchar_t))))
+    if (wmemcmp(&us->Buffer[0], L"\\\\", 2) == 0)
         return true;
     return false;
 }
@@ -548,8 +546,7 @@ bool is_us_cygdrive_path(UNICODE_STRING *restrict us)
 
     /* "/cygdrive/l" == 11 characters */
     if ((us->Length >= (11*sizeof(wchar_t))) &&
-        (!memcmp(&us->Buffer[0],
-            L"\\cygdrive\\", (10*sizeof(wchar_t)))))
+        (wmemcmp(&us->Buffer[0], L"\\cygdrive\\", 10) == 0))
         return true;
     return false;
 }
@@ -558,8 +555,7 @@ static
 bool is_us_posixroot_path(UNICODE_STRING *restrict us)
 {
     if ((us->Length >= (1*sizeof(wchar_t))) &&
-        (!memcmp(&us->Buffer[0],
-            L"\\", (1*sizeof(wchar_t)))))
+        (wmemcmp(&us->Buffer[0], L"\\", 1) == 0))
         return true;
     return false;
 }

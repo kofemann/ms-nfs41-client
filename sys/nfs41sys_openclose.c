@@ -58,6 +58,7 @@
 #include <winerror.h>
 
 #include <Ntstrsafe.h>
+#include <wchar.h>
 #include <stdbool.h>
 
 #include "nfs41sys_buildconfig.h"
@@ -454,9 +455,9 @@ static BOOLEAN isFileNameTheVolumeMountPoint(PUNICODE_STRING fileName,
     PNFS41_V_NET_ROOT_EXTENSION pVNetRootContext) {
     /* Check whether this is the mount point for this volume */
     if ((fileName->Length == pVNetRootContext->MntPt.Length) &&
-        (memcmp(fileName->Buffer,
+        (wmemcmp(fileName->Buffer,
             pVNetRootContext->MntPt.Buffer,
-            pVNetRootContext->MntPt.Length) == 0)) {
+            (pVNetRootContext->MntPt.Length/sizeof(wchar_t))) == 0)) {
         return TRUE;
     }
     return FALSE;

@@ -19,6 +19,14 @@
  */
 
 #include <stdlib.h>
+#include <wchar.h>
+#ifdef _DEBUG
+/*
+ * #undef _malloca - HACK to avoid "crtdbg.h(307,1): warning C4005: '_malloca':
+ * macro redefinition" with VS2019 witg WDK10
+ */
+#undef _malloca
+#endif /* _DEBUG */
 #include <stdbool.h>
 
 #include "nfs41_build_features.h"
@@ -303,7 +311,7 @@ void populate_stream_list(
         .StreamAllocationSize.QuadPart = basefile_info->space_used
     };
     (void)memcpy(stream, &base_stream, sizeof(base_stream));
-    (void)memcpy(stream->StreamName, L"::$DATA", 8*sizeof(wchar_t));
+    (void)wmemcpy(stream->StreamName, L"::$DATA", 8);
     stream->NextEntryOffset =
         ALIGNED_STREAMINFOSIZE(stream->StreamNameLength);
     last_win_stream = stream;
@@ -528,7 +536,7 @@ int get_streaminformation(
             goto out;
         }
         (void)memcpy(stream, &base_stream, sizeof(base_stream));
-        (void)memcpy(stream->StreamName, L"::$DATA", 8*sizeof(wchar_t));
+        (void)wmemcpy(stream->StreamName, L"::$DATA", 8);
         stream->NextEntryOffset = 0;
 
         *streamlist_out = stream;
