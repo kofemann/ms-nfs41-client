@@ -140,6 +140,11 @@ typedef struct __setattr_upcall_args {
     uint32_t buf_len;
     int set_class;
     ULONGLONG ctime;
+    /* Downcall info */
+#ifdef NFS41_DRIVER_MARK_OVERWRITTEN_RENAME_DST_PATH_SRVOPEN_AS_STALE
+    BOOLEAN rename_stale_dst_path_replaced;
+    nfs41_abs_path rename_stale_dst_path;
+#endif /* NFS41_DRIVER_MARK_OVERWRITTEN_RENAME_DST_PATH_SRVOPEN_AS_STALE */
 } setattr_upcall_args;
 
 typedef struct __getexattr_upcall_args {

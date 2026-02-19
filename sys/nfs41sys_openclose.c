@@ -1385,6 +1385,16 @@ NTSTATUS nfs41_ShouldTryToCollapseThisOpen(
         goto out;
     }
 
+#ifdef NFS41_DRIVER_MARK_OVERWRITTEN_RENAME_DST_PATH_SRVOPEN_AS_STALE
+    if (nfs41_srvopen->stale) {
+        DbgP("nfs41_ShouldTryToCollapseThisOpen: "
+            "filename='%wZ' nfs41_srvopen->stale set, cannot collapse\n",
+            SrvOpen->pAlreadyPrefixedName);
+        status = STATUS_MORE_PROCESSING_REQUIRED;
+        goto out;
+    }
+#endif /* NFS41_DRIVER_MARK_OVERWRITTEN_RENAME_DST_PATH_SRVOPEN_AS_STALE */
+
 #ifdef WINBUG_NO_COLLAPSE_IF_PRIMARYGROUPS_DIFFER
     /*
      * Reject srvopens if the primary group used to create

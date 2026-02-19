@@ -160,8 +160,14 @@ NTSTATUS marshal_nfs41_fileset(
         }
 #endif /* NFS41_DRIVER_STOMP_CYGWIN_SILLYRENAME_INVALID_UTF16_SEQUENCE_SUPPORT */
 
+        /*
+         * We use %lu here for |ReplaceIfExists| because of
+         * |FileRenameInformationEx| uses a ULONG flags field
+         */
         DbgP("marshal_nfs41_fileset: "
-            "FILE_RENAME_INFORMATION.(FileNameLength=%d FileName='%.*ls')\n",
+            "FILE_RENAME_INFORMATION."
+            "(ReplaceIfExists=%lu FileNameLength=%d FileName='%.*ls')\n",
+            (unsigned long)fri->ReplaceIfExists,
             (int)fri->FileNameLength,
             (int)(fri->FileNameLength/sizeof(wchar_t)), fri->FileName);
     }
@@ -207,14 +213,27 @@ out:
 
 void unmarshal_nfs41_setattr(
     nfs41_updowncall_entry *cur,
-    PULONGLONG dest_buf,
     const unsigned char *restrict *restrict buf)
 {
-    RtlCopyMemory(dest_buf, *buf, sizeof(*dest_buf));
-    *buf += sizeof(*dest_buf);
-#ifdef DEBUG_MARSHAL_DETAIL
-    DbgP("unmarshal_nfs41_setattr: returned ChangeTime %llu\n", *dest_buf);
-#endif
+    RtlCopyMemory(&cur->ChangeTime, *buf, sizeof(cur->ChangeTime));
+    *buf += sizeof(cur->ChangeTime);
+
+#ifdef NFS41_DRIVER_MARK_OVERWRITTEN_RENAME_DST_PATH_SRVOPEN_AS_STALE
+    if (cur->u.SetFile.InfoClass == FileRenameInformation) {
+        RtlCopyMemory(&cur->u.SetFile.rename_stale_dst.path_replaced,
+            *buf, sizeof(cur->u.SetFile.rename_stale_dst.path_replaced));
+        *buf += sizeof(cur->u.SetFile.rename_stale_dst.path_replaced);
+
+        if (cur->u.SetFile.rename_stale_dst.path_replaced) {
+            RtlCopyMemory(&cur->u.SetFile.rename_stale_dst.path_len,
+                *buf, sizeof(cur->u.SetFile.rename_stale_dst.path_len));
+            *buf += sizeof(cur->u.SetFile.rename_stale_dst.path_len);
+
+            cur->u.SetFile.rename_stale_dst.path_buf = *buf;
+            *buf += cur->u.SetFile.rename_stale_dst.path_len;
+        }
+    }
+#endif /* NFS41_DRIVER_MARK_OVERWRITTEN_RENAME_DST_PATH_SRVOPEN_AS_STALE */
 }
 
 void unmarshal_nfs41_getattr(
@@ -737,6 +756,58 @@ out:
     return status;
 }
 
+#ifdef NFS41_DRIVER_MARK_OVERWRITTEN_RENAME_DST_PATH_SRVOPEN_AS_STALE
+VOID nfs41_mark_file_as_non_collapsible(
+    PNET_ROOT netroot,
+    PUNICODE_STRING nonc_filename)
+{
+    PFCB fcb;
+    PNFS41_SRV_OPEN nfs41_srvopen;
+
+    DbgP("nfs41_mark_file_as_non_collapsible: "
+        "argument filename='%wZ'\n",
+        nonc_filename);
+
+    RxAcquireFcbTableLockExclusive(&netroot->FcbTable, TRUE);
+
+    fcb = RxFcbTableLookupFcb(&netroot->FcbTable, nonc_filename);
+
+    RxReleaseFcbTableLock(&netroot->FcbTable);
+
+    if (fcb) {
+        PLIST_ENTRY pSrvOpenListEntry;
+        PSRV_OPEN srv_open;
+
+        pSrvOpenListEntry = fcb->SrvOpenList.Flink;
+
+        for (;;) {
+            if (pSrvOpenListEntry == &fcb->SrvOpenList) {
+                break;
+            }
+
+            srv_open = (PSRV_OPEN)
+                CONTAINING_RECORD(pSrvOpenListEntry, SRV_OPEN, SrvOpenQLinks);
+            nfs41_srvopen = NFS41GetSrvOpenExtension(srv_open);
+
+            DbgP("nfs41_mark_file_as_non_collapsible: "
+                "marking filename='%wZ'/fcb=0x%p/srv_open=0x%p as stale\n",
+                nonc_filename, (void *)fcb, (void *)srv_open);
+
+            nfs41_srvopen->stale = TRUE;
+
+            pSrvOpenListEntry = pSrvOpenListEntry->Flink;
+        }
+
+        RxpDereferenceNetFcb(fcb);
+    }
+    else {
+        DbgP("nfs41_mark_file_as_non_collapsible: "
+            "nothing found for filename='%wZ'\n",
+            nonc_filename);
+    }
+}
+#endif /* NFS41_DRIVER_MARK_OVERWRITTEN_RENAME_DST_PATH_SRVOPEN_AS_STALE */
+
 static
 NTSTATUS nfs41_SetFileInformationImpl(
     IN OUT PRX_CONTEXT RxContext,
@@ -902,6 +973,49 @@ NTSTATUS nfs41_SetFileInformationImpl(
                 (FILE_READ_DATA | FILE_WRITE_DATA | FILE_APPEND_DATA)))
             nfs41_update_fcb_list(RxContext->pFcb, entry->ChangeTime);
         nfs41_fcb->changeattr = entry->ChangeTime;
+
+#ifdef NFS41_DRIVER_MARK_OVERWRITTEN_RENAME_DST_PATH_SRVOPEN_AS_STALE
+        if (RxContext->Info.FileInformationClass == FileRenameInformation) {
+            DbgP("nfs41_SetFileInformationImpl: "
+                "finishig FileRenameInformation for filename='%wZ', "
+                "rename_stale_dst.path_replaced=%d\n",
+                entry->filename,
+                (int)entry->u.SetFile.rename_stale_dst.path_replaced);
+
+            if (entry->u.SetFile.rename_stale_dst.path_replaced) {
+                DbgP("nfs41_SetFileInformationImpl: "
+                    "rename_stale_dst.path_len=%d inbuf='%.*s'\n",
+                    (int)entry->u.SetFile.rename_stale_dst.path_len,
+                    (int)entry->u.SetFile.rename_stale_dst.path_len,
+                    entry->u.SetFile.rename_stale_dst.path_buf);
+                UTF8_STRING stale_utf8filename = {
+                    .Length = (USHORT)
+                        entry->u.SetFile.rename_stale_dst.path_len,
+                    .MaximumLength = (USHORT)
+                        entry->u.SetFile.rename_stale_dst.path_len,
+                    .Buffer = (PCHAR)
+                        entry->u.SetFile.rename_stale_dst.path_buf
+                };
+
+                UNICODE_STRING stale_filename;
+
+                status = RtlUTF8StringToUnicodeString(&stale_filename,
+                    &stale_utf8filename, TRUE);
+                if (NT_SUCCESS(status)) {
+                    DbgP("nfs41_SetFileInformationImpl/stale: "
+                        "stale_filename='%wZ'\n",
+                        &stale_filename);
+
+                    nfs41_mark_file_as_non_collapsible(
+                        (PNET_ROOT)SrvOpen->pVNetRoot->pNetRoot,
+                        &stale_filename);
+
+                    RtlFreeUnicodeString(&stale_filename);
+                    status = STATUS_SUCCESS;
+                }
+            }
+        }
+#endif /* NFS41_DRIVER_MARK_OVERWRITTEN_RENAME_DST_PATH_SRVOPEN_AS_STALE */
     }
 out:
     if (entry) {

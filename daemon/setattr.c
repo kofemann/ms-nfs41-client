@@ -349,6 +349,9 @@ static int handle_nfs41_rename(void *daemon_context, setattr_upcall_args *args)
 #endif /* NFS41_REJECT_CYGWIN_SILLYRENAME_FOR_DIRS */
     int status;
 
+#ifdef NFS41_DRIVER_MARK_OVERWRITTEN_RENAME_DST_PATH_SRVOPEN_AS_STALE
+    args->rename_stale_dst_path_replaced = FALSE;
+#endif /* NFS41_DRIVER_MARK_OVERWRITTEN_RENAME_DST_PATH_SRVOPEN_AS_STALE */
     src_name = &state->file.name;
 
     if (rename->FileNameLength == 0) {
@@ -720,10 +723,24 @@ static int handle_nfs41_rename(void *daemon_context, setattr_upcall_args *args)
         DPRINTF(1, ("nfs41_rename() failed with error '%s'.\n",
             nfs_error_string(status)));
         status = nfs_to_windows_error(status, ERROR_ACCESS_DENIED);
-    } else {
-        /* rename state->path on success */
-        open_state_rename(state, &dst_path);
+        goto out;
     }
+
+#ifdef NFS41_DRIVER_MARK_OVERWRITTEN_RENAME_DST_PATH_SRVOPEN_AS_STALE
+    if (rename->ReplaceIfExists) {
+        /*
+         * Send the (processed) destination path back to the kernel so it can
+         * be marked there as "stale". Otherwise we can do a SRVOPEN collapsing
+         * for a SRVOPEN which has been replaced
+         */
+        abs_path_copy(&args->rename_stale_dst_path, &dst_path);
+        args->rename_stale_dst_path_replaced = TRUE;
+    }
+#endif /* NFS41_DRIVER_MARK_OVERWRITTEN_RENAME_DST_PATH_SRVOPEN_AS_STALE */
+
+    /* rename state->path on success */
+    open_state_rename(state, &dst_path);
+
 out:
     return status;
 }
@@ -1080,8 +1097,30 @@ static int marshall_setattr(
     uint32_t *restrict length,
     nfs41_upcall *restrict upcall)
 {
+    int status;
     const setattr_upcall_args *args = &upcall->args.setattr;
-    return safe_write(&buffer, length, &args->ctime, sizeof(args->ctime));
+    status = safe_write(&buffer, length, &args->ctime, sizeof(args->ctime));
+    if (status) goto out;
+
+#ifdef NFS41_DRIVER_MARK_OVERWRITTEN_RENAME_DST_PATH_SRVOPEN_AS_STALE
+    if (args->set_class == FileRenameInformation) {
+        status = safe_write(&buffer, length,
+            &args->rename_stale_dst_path_replaced,
+            sizeof(args->rename_stale_dst_path_replaced));
+        if (status) goto out;
+        if (args->rename_stale_dst_path_replaced) {
+            USHORT dst_path_len = args->rename_stale_dst_path.len;
+            status = safe_write(&buffer, length, &dst_path_len, sizeof(dst_path_len));
+            if (status) goto out;
+            status = safe_write(&buffer, length,
+                &args->rename_stale_dst_path.path[0], dst_path_len);
+            if (status) goto out;
+        }
+    }
+#endif /* NFS41_DRIVER_MARK_OVERWRITTEN_RENAME_DST_PATH_SRVOPEN_AS_STALE */
+
+out:
+    return status;
 }
 
 

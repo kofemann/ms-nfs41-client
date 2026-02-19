@@ -998,7 +998,6 @@ NTSTATUS nfs41_ComputeNewBufferingState(
 #ifdef DEBUG_TIME_BASED_COHERENCY
     ULONG oldFlags = pSrvOpen->BufferingFlags;
 #endif
-
     switch(flag) {
     case DISABLE_CACHING:
         if (pSrvOpen->BufferingFlags &

@@ -193,6 +193,19 @@ void unmarshal_nfs41_attrget(
     *buf += buf_len;
 }
 
+void unmarshal_nfs41_getchangetime(
+    nfs41_updowncall_entry *cur,
+    PULONGLONG dest_buf,
+    const unsigned char *restrict *restrict buf)
+{
+    RtlCopyMemory(dest_buf, *buf, sizeof(*dest_buf));
+    *buf += sizeof(*dest_buf);
+#ifdef DEBUG_MARSHAL_DETAIL
+    DbgP("unmarshal_nfs41_getchangetime: "
+        "returned ChangeTime %llu\n", *dest_buf);
+#endif
+}
+
 NTSTATUS handle_upcall(
     IN PRX_CONTEXT RxContext,
     IN nfs41_updowncall_entry *entry,
@@ -773,13 +786,13 @@ NTSTATUS nfs41_downcall(
             break;
         case NFS41_SYSOP_FILE_SET:
         case NFS41_SYSOP_FILE_SET_AT_CLEANUP:
-            unmarshal_nfs41_setattr(cur, &cur->ChangeTime, &inbuf);
+            unmarshal_nfs41_setattr(cur, &inbuf);
             break;
         case NFS41_SYSOP_EA_SET:
-            unmarshal_nfs41_setattr(cur, &cur->ChangeTime, &inbuf);
+            unmarshal_nfs41_getchangetime(cur, &cur->ChangeTime, &inbuf);
             break;
         case NFS41_SYSOP_ACL_SET:
-            unmarshal_nfs41_setattr(cur, &cur->ChangeTime, &inbuf);
+            unmarshal_nfs41_getchangetime(cur, &cur->ChangeTime, &inbuf);
             break;
         case NFS41_SYSOP_FSCTL_QUERYALLOCATEDRANGES:
             unmarshal_nfs41_queryallocatedranges(cur, &inbuf);

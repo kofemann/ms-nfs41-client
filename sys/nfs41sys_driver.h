@@ -276,6 +276,13 @@ typedef struct _updowncall_entry {
             FILE_INFORMATION_CLASS InfoClass;
             PVOID buf;
             ULONG buf_len;
+#ifdef NFS41_DRIVER_MARK_OVERWRITTEN_RENAME_DST_PATH_SRVOPEN_AS_STALE
+            struct {
+                BOOLEAN path_replaced;
+                USHORT path_len;
+                const unsigned char *path_buf;
+            } rename_stale_dst;
+#endif /* NFS41_DRIVER_MARK_OVERWRITTEN_RENAME_DST_PATH_SRVOPEN_AS_STALE */
         } SetFile;
         struct {
             DWORD mode;
@@ -507,6 +514,10 @@ typedef struct _NFS41_FCB {
 
 typedef struct _NFS41_SRV_OPEN {
     BOOLEAN         initialised;
+#ifdef NFS41_DRIVER_MARK_OVERWRITTEN_RENAME_DST_PATH_SRVOPEN_AS_STALE
+    BOOLEAN                 stale;
+#endif /* NFS41_DRIVER_MARK_OVERWRITTEN_RENAME_DST_PATH_SRVOPEN_AS_STALE */
+
     /*
      * |sec_ctx| must be per |SRV_OPEN| to handle newgrp()/|setgid()|
      * support. But this only works if we prevent |SRV_OPEN| collapsing
@@ -945,6 +956,10 @@ void unmarshal_nfs41_attrget(
     ULONG *attr_len,
     const unsigned char *restrict *restrict buf,
     BOOL copy_partial);
+void unmarshal_nfs41_getchangetime(
+    nfs41_updowncall_entry *cur,
+    PULONGLONG dest_buf,
+    const unsigned char *restrict *restrict buf);
 NTSTATUS nfs41_UpcallCreate(
     IN nfs41_opcodes opcode,
     IN PSECURITY_CLIENT_CONTEXT clnt_sec_ctx,
@@ -977,7 +992,6 @@ NTSTATUS marshal_nfs41_fileset(
     ULONG *len);
 void unmarshal_nfs41_setattr(
     nfs41_updowncall_entry *cur,
-    PULONGLONG dest_buf,
     const unsigned char *restrict *restrict buf);
 void unmarshal_nfs41_getattr(
     nfs41_updowncall_entry *cur,
