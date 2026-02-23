@@ -238,6 +238,14 @@ void nfs_to_remote_protocol_info(
      * disconnects/failover with proper replay handling"
      */
     rpi_out->Flags |= REMOTE_PROTOCOL_INFO_FLAG_PERSISTENT_HANDLE;
+    /*
+     * FIXME: |FILE_REMOTE_PROTOCOL_INFORMATION.Flags| should include
+     * |REMOTE_PROTOCOL_FLAG_PRIVACY| (krb5p) and
+     * |REMOTE_PROTOCOL_FLAG_INTEGRITY| (krb5i) conditionally in case of
+     * Krb5 auth
+     */
+    rpi_out->Flags |= REMOTE_PROTOCOL_FLAG_PRIVACY;
+    rpi_out->Flags |= REMOTE_PROTOCOL_FLAG_INTEGRITY;
 }
 
 #ifdef NFS41_DRIVER_WSL_SUPPORT
