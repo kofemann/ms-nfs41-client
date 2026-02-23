@@ -276,13 +276,13 @@ typedef struct _updowncall_entry {
             FILE_INFORMATION_CLASS InfoClass;
             PVOID buf;
             ULONG buf_len;
-#ifdef NFS41_DRIVER_MARK_OVERWRITTEN_RENAME_DST_PATH_SRVOPEN_AS_STALE
+#ifdef NFS41_DRIVER_MARK_OVERWRITTEN_LINKRENAME_DST_PATH_SRVOPEN_AS_STALE
             struct {
                 BOOLEAN path_replaced;
                 USHORT path_len;
                 const unsigned char *path_buf;
-            } rename_stale_dst;
-#endif /* NFS41_DRIVER_MARK_OVERWRITTEN_RENAME_DST_PATH_SRVOPEN_AS_STALE */
+            } linkrename_stale_dst;
+#endif /* NFS41_DRIVER_MARK_OVERWRITTEN_LINKRENAME_DST_PATH_SRVOPEN_AS_STALE */
         } SetFile;
         struct {
             DWORD mode;
@@ -514,9 +514,9 @@ typedef struct _NFS41_FCB {
 
 typedef struct _NFS41_SRV_OPEN {
     BOOLEAN         initialised;
-#ifdef NFS41_DRIVER_MARK_OVERWRITTEN_RENAME_DST_PATH_SRVOPEN_AS_STALE
+#ifdef NFS41_DRIVER_MARK_OVERWRITTEN_LINKRENAME_DST_PATH_SRVOPEN_AS_STALE
     BOOLEAN                 stale;
-#endif /* NFS41_DRIVER_MARK_OVERWRITTEN_RENAME_DST_PATH_SRVOPEN_AS_STALE */
+#endif /* NFS41_DRIVER_MARK_OVERWRITTEN_LINKRENAME_DST_PATH_SRVOPEN_AS_STALE */
 
     /*
      * |sec_ctx| must be per |SRV_OPEN| to handle newgrp()/|setgid()|

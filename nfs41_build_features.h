@@ -385,7 +385,7 @@
 #define NFS41_DRIVER_COLLAPSEOPEN 1
 
 /*
- * |NFS41_DRIVER_MARK_OVERWRITTEN_RENAME_DST_PATH_SRVOPEN_AS_STALE| - mark
+ * |NFS41_DRIVER_MARK_OVERWRITTEN_LINKRENAME_DST_PATH_SRVOPEN_AS_STALE| - mark
  * the destination path of a |FileRenameInformation| as "stale" if we
  * replace that file/dir.
  * Otherwise we can use the old SRVOPEN (of the file/dir which was already
@@ -396,6 +396,6 @@
  * "warning: remote HEAD refers to nonexistent ref, unable to checkout"
  * because we use the old NFS handle for ".git/HEAD".
  */
-#define NFS41_DRIVER_MARK_OVERWRITTEN_RENAME_DST_PATH_SRVOPEN_AS_STALE 1
+#define NFS41_DRIVER_MARK_OVERWRITTEN_LINKRENAME_DST_PATH_SRVOPEN_AS_STALE 1
 
 #endif /* !_NFS41_DRIVER_BUILDFEATURES_ */
