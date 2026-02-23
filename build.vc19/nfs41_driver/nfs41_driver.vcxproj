@@ -226,14 +226,15 @@
     <ClCompile Include="..\..\sys\nfs41sys_dir.c" />
     <ClCompile Include="..\..\sys\nfs41sys_driver.c" />
     <ClCompile Include="..\..\sys\nfs41sys_ea.c" />
-    <ClCompile Include="..\..\sys\nfs41sys_fileinfo.c" />
     <ClCompile Include="..\..\sys\nfs41sys_fsctl.c" />
+    <ClCompile Include="..\..\sys\nfs41sys_getfileinfo.c" />
     <ClCompile Include="..\..\sys\nfs41sys_ioctl.c" />
     <ClCompile Include="..\..\sys\nfs41sys_lock.c" />
     <ClCompile Include="..\..\sys\nfs41sys_mount.c" />
     <ClCompile Include="..\..\sys\nfs41sys_openclose.c" />
     <ClCompile Include="..\..\sys\nfs41sys_readwrite.c" />
     <ClCompile Include="..\..\sys\nfs41sys_reparse.c" />
+    <ClCompile Include="..\..\sys\nfs41sys_setfileinfo.c" />
     <ClCompile Include="..\..\sys\nfs41sys_symlink.c" />
     <ClCompile Include="..\..\sys\nfs41sys_util.c" />
     <ClCompile Include="..\..\sys\nfs41sys_updowncall.c" />

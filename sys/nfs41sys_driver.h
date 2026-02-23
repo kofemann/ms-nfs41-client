@@ -979,12 +979,19 @@ NTSTATUS nfs41_downcall(
 NTSTATUS nfs41_delayxid(
     IN PRX_CONTEXT RxContext);
 
-/* nfs41sys_fileinfo.c */
+/* nfs41sys_getfileinfo.c */
 NTSTATUS marshal_nfs41_filequery(
     nfs41_updowncall_entry *entry,
     unsigned char *buf,
     ULONG buf_len,
     ULONG *len);
+void unmarshal_nfs41_getattr(
+    nfs41_updowncall_entry *cur,
+    const unsigned char *restrict *restrict buf);
+NTSTATUS nfs41_QueryFileInformation(
+    IN OUT PRX_CONTEXT RxContext);
+
+/* nfs41sys_setfileinfo.c */
 NTSTATUS marshal_nfs41_fileset(
     nfs41_updowncall_entry *entry,
     unsigned char *buf,
@@ -993,11 +1000,6 @@ NTSTATUS marshal_nfs41_fileset(
 void unmarshal_nfs41_setattr(
     nfs41_updowncall_entry *cur,
     const unsigned char *restrict *restrict buf);
-void unmarshal_nfs41_getattr(
-    nfs41_updowncall_entry *cur,
-    const unsigned char *restrict *restrict buf);
-NTSTATUS nfs41_QueryFileInformation(
-    IN OUT PRX_CONTEXT RxContext);
 NTSTATUS nfs41_SetFileInformation(
     IN OUT PRX_CONTEXT RxContext);
 NTSTATUS nfs41_SetFileInformationAtCleanup(
