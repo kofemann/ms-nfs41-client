@@ -92,6 +92,28 @@ EOF
     return $?
 }
 
+function patch_gcc13_1_0_workaround_bogus_have_setlocale_check
+{
+{
+cat <<EOF
+diff --git a/libcpp/system.h b/libcpp/system.h
+index 81033527a3f..8ccaa4f0084 100644
+--- a/libcpp/system.h
++++ b/libcpp/system.h
+@@ -272,7 +272,7 @@ extern int errno;
+ #endif
+ 
+ #ifndef HAVE_SETLOCALE
+-# define setlocale(category, locale) (locale)
++//# define setlocale(category, locale) (locale)
+ #endif
+ 
+ #ifdef ENABLE_NLS
+EOF
+} | patch -p1 --ignore-whitespace
+    return $?
+}
+
 function gcc_build
 {
 	set -o xtrace
@@ -188,6 +210,7 @@ function gcc_build
 	#
 
 	patch_gcc13_1_0_libiberty_strsignal_psignal_prototype
+	patch_gcc13_1_0_workaround_bogus_have_setlocale_check # requird for Cygwin 3.7.0
 
 	# original mkinstalldirs cannot handle UNC paths
 	printf '#!/bin/sh\n# original mkinstalldirs cannot handle Cygwin UNC paths\nmkdir -p "$@"\nexit $?\n' >'mkinstalldirs'
