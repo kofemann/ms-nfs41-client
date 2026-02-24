@@ -345,7 +345,7 @@ void nfs41_MountConfig_InitDefaults(
     Config->nocache = FALSE;
     Config->timebasedcoherency = FALSE; /* disabled by default because of bugs */
 #ifdef NFS41_DRIVER_COLLAPSEOPEN
-    Config->srvopencollapse = FALSE; /* disabled by default because of bugs */
+    Config->srvopencollapse = TRUE;
 #endif /* NFS41_DRIVER_COLLAPSEOPEN */
     Config->SrvName.Length = 0;
     Config->SrvName.MaximumLength = SERVER_NAME_BUFFER_SIZE;
