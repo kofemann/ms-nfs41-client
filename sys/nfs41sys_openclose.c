@@ -677,6 +677,36 @@ out:
     return status;
 }
 
+void nfs41_set_fileobject_flags(
+    PNT_CREATE_PARAMETERS params,
+    PNFS41_V_NET_ROOT_EXTENSION pVNetRootContext,
+    PFILE_OBJECT fo)
+{
+    if ((params->CreateOptions & FILE_WRITE_THROUGH) ||
+        pVNetRootContext->write_thru) {
+        fo->Flags |= FO_WRITE_THROUGH;
+    }
+    else {
+        fo->Flags &= ~FO_WRITE_THROUGH;
+    }
+
+    if ((params->CreateOptions & FILE_NO_INTERMEDIATE_BUFFERING) ||
+        pVNetRootContext->nocache) {
+        fo->Flags |= FO_NO_INTERMEDIATE_BUFFERING;
+    }
+    else {
+        fo->Flags &= ~FO_NO_INTERMEDIATE_BUFFERING;
+    }
+
+    if ((fo->Flags &
+        (FO_WRITE_THROUGH|FO_NO_INTERMEDIATE_BUFFERING)) == 0) {
+        fo->Flags |= FO_CACHE_SUPPORTED;
+        DbgP("nfs41_set_fileobject_flags: set FO_CACHE_SUPPORTED\n");
+    }
+    else {
+        fo->Flags &= ~FO_CACHE_SUPPORTED;
+    }
+}
 
 NTSTATUS nfs41_Create(
     IN OUT PRX_CONTEXT RxContext)
@@ -1091,37 +1121,6 @@ retry_on_link:
             RxFinishFcbInitialization(Fcb,
                 RDBSS_STORAGE_NTC(StorageType),
                 &InitPacket);
-
-#if 1
-            if (!entry->u.Open.sinfo.Directory) {
-                PFILE_OBJECT fo = RxContext->CurrentIrpSp->FileObject;
-
-                if ((params->CreateOptions & FILE_WRITE_THROUGH) ||
-                    pVNetRootContext->write_thru) {
-                    fo->Flags |= FO_WRITE_THROUGH;
-                }
-                else {
-                    fo->Flags &= ~FO_WRITE_THROUGH;
-                }
-
-                if ((params->CreateOptions & FILE_NO_INTERMEDIATE_BUFFERING) ||
-                    pVNetRootContext->nocache) {
-                    fo->Flags |= FO_NO_INTERMEDIATE_BUFFERING;
-                }
-                else {
-                    fo->Flags &= ~FO_NO_INTERMEDIATE_BUFFERING;
-                }
-
-                if ((fo->Flags &
-                    (FO_WRITE_THROUGH|FO_NO_INTERMEDIATE_BUFFERING)) == 0) {
-                    fo->Flags |= FO_CACHE_SUPPORTED;
-                    DbgP("nfs41_Create: set FO_CACHE_SUPPORTED\n");
-                }
-                else {
-                    fo->Flags &= ~FO_CACHE_SUPPORTED;
-                }
-            }
-#endif
         }
         else {
 #ifndef NFS41_DRIVER_HACK_DISABLE_FCB_ATTR_UPDATE_ON_OPEN
@@ -1167,6 +1166,11 @@ retry_on_link:
     print_basic_info(1, &nfs41_fcb->BasicInfo);
     print_std_info(1, &nfs41_fcb->StandardInfo);
 #endif
+
+    if (entry->u.Open.sinfo.Directory == FALSE) {
+        nfs41_set_fileobject_flags(params, pVNetRootContext,
+            RxContext->CurrentIrpSp->FileObject);
+    }
 
     /*
      * aglo: 05/10/2012: it seems like always have to invalid the cache if the
@@ -1489,6 +1493,7 @@ NTSTATUS nfs41_CollapseOpen(
 {
 #ifdef NFS41_DRIVER_COLLAPSEOPEN
     NTSTATUS status;
+    PNT_CREATE_PARAMETERS params = &RxContext->Create.NtCreateParameters;
     PMRX_SRV_OPEN SrvOpen = RxContext->pRelevantSrvOpen;
     PNFS41_V_NET_ROOT_EXTENSION pVNetRootContext =
         NFS41GetVNetRootExtension(SrvOpen->pVNetRoot);
@@ -1535,6 +1540,11 @@ NTSTATUS nfs41_CollapseOpen(
         qocec->ClassesWithNoData = 0;
 
         FsRtlAcknowledgeEcp(qocec);
+    }
+
+    if (nfs41_fcb->StandardInfo.Directory == FALSE) {
+        nfs41_set_fileobject_flags(params, pVNetRootContext,
+            RxContext->CurrentIrpSp->FileObject);
     }
 
     RxContext->pFobx->OffsetOfNextEaToReturn = 1; /* FIXME: Why ? */
