@@ -845,7 +845,7 @@ NTSTATUS nfs41_CreateSrvCall(
      * - It seems most RDBSS users use |2^n-1| values, but we do not know yet
      * *WHY* they use this formula.
      */
-    pSrvCall->MaximumNumberOfCloseDelayedFiles = 64-1;
+    pSrvCall->MaximumNumberOfCloseDelayedFiles = 128-1;
 #endif /* NFS41_DRIVER_COLLAPSEOPEN */
 
     if (IoGetCurrentProcess() == RxGetRDBSSProcess()) {
