@@ -1777,6 +1777,12 @@ NTSTATUS nfs41_DeleteConnection(
                 "pNetRoot=0x%p from VNetRoot=0x%p\n",
                 pNetRoot, VNetRoot);
 #endif
+            (void)RxPurgeRelatedFobxs((PNET_ROOT)pNetRoot,
+                RxContext,
+                ATTEMPT_FINALIZE_ON_PURGE,
+                NULL);
+            RxScavengeFobxsForNetRoot((PNET_ROOT)pNetRoot, NULL, TRUE);
+
             if ((pNetRoot->NumberOfFcbs > 0) ||
                 (pNetRoot->NumberOfSrvOpens > 0)) {
                 DbgP("nfs41_DeleteConnection: "
