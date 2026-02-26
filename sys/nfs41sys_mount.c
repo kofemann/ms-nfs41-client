@@ -1744,12 +1744,25 @@ NTSTATUS nfs41_DeleteConnection(
         // VNetRoot exists as FOBx in the FsContext2
         VNetRoot = (PV_NET_ROOT) pFileObject->FsContext2;
         // make sure the node looks right
-        if (NodeType(VNetRoot) == RDBSS_NTC_V_NETROOT)
-        {
+        if (NodeType(VNetRoot) == RDBSS_NTC_V_NETROOT) {
+            PMRX_NET_ROOT pNetRoot = (PMRX_NET_ROOT)VNetRoot->NetRoot;
 #ifdef DEBUG_MOUNT
-            DbgP("Calling RxFinalizeConnection for NetRoot 0x%p from VNetRoot 0x%p\n",
-                VNetRoot->NetRoot, VNetRoot);
+            DbgP("nfs41_DeleteConnection: "
+                "Calling RxFinalizeConnection() for "
+                "pNetRoot=0x%p from VNetRoot=0x%p\n",
+                pNetRoot, VNetRoot);
 #endif
+            if ((pNetRoot->NumberOfFcbs > 0) ||
+                (pNetRoot->NumberOfSrvOpens > 0)) {
+                DbgP("nfs41_DeleteConnection: "
+                    "NumberOfFcbs=%ld NumberOfSrvOpens=%ld\n",
+                    (long)pNetRoot->NumberOfFcbs,
+                    (long)pNetRoot->NumberOfSrvOpens);
+
+                status = STATUS_FILES_OPEN;
+                goto out;
+            }
+
             status = RxFinalizeConnection(VNetRoot->NetRoot, VNetRoot, TRUE);
         }
         else

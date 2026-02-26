@@ -612,6 +612,7 @@ static void print_op_stat(
 }
 #endif
 
+
 NTSTATUS nfs41_DevFcbXXXControlFile(
     IN OUT PRX_CONTEXT RxContext)
 {
@@ -652,12 +653,6 @@ NTSTATUS nfs41_DevFcbXXXControlFile(
             status = nfs41_CreateConnection(RxContext, &RxContext->PostRequest);
             break;
         case IOCTL_NFS41_DELCONN:
-            if (RxContext->RxDeviceObject->NumberOfActiveFcbs > 0) {
-                DbgP("device has open handles %d\n",
-                    RxContext->RxDeviceObject->NumberOfActiveFcbs);
-                status = STATUS_REDIRECTOR_HAS_OPEN_HANDLES;
-                break;
-            }
             status = nfs41_DeleteConnection(RxContext, &RxContext->PostRequest);
             break;
         case IOCTL_NFS41_GETSTATE:
@@ -722,9 +717,10 @@ NTSTATUS nfs41_DevFcbXXXControlFile(
         case IOCTL_NFS41_STOP:
             if (nfs41_start_state == NFS41_START_DRIVER_STARTED)
                 nfs41_shutdown_daemon(DevExt->nfs41d_version);
+
             if (RxContext->RxDeviceObject->NumberOfActiveFcbs > 0) {
-                DbgP("device has open handles %d\n",
-                    RxContext->RxDeviceObject->NumberOfActiveFcbs);
+                DbgP("IOCTL_NFS41_STOP: device has open handles %ld\n",
+                    (long)RxContext->RxDeviceObject->NumberOfActiveFcbs);
                 status = STATUS_REDIRECTOR_HAS_OPEN_HANDLES;
                 break;
             }
