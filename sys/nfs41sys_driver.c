@@ -612,6 +612,106 @@ static void print_op_stat(
 }
 #endif
 
+#ifdef DEBUG_OPENFILES
+void
+print_open_files_netroot(IN OUT PNET_ROOT NetRoot)
+{
+    PLIST_ENTRY ListEntry;
+    PLIST_ENTRY NextListEntry;
+    BOOLEAN PrefixTableLockAcquired;
+    BOOLEAN FcbTableLockAcquired;
+    PRX_PREFIX_TABLE  pRxNetNameTable;
+    USHORT BucketNumber;
+    PFCB Fcb;
+    PRX_FCB_TABLE_ENTRY FcbTableEntry;
+
+    pRxNetNameTable = NetRoot->SrvCall->RxDeviceObject->pRxNetNameTable;
+
+    PrefixTableLockAcquired = RxAcquirePrefixTableLockExclusive(pRxNetNameTable,
+        TRUE);
+
+    FcbTableLockAcquired = RxAcquireFcbTableLockExclusive(&NetRoot->FcbTable,
+        TRUE);
+
+    for (BucketNumber = 0;
+        (BucketNumber < NetRoot->FcbTable.NumberOfBuckets);
+        BucketNumber++) {
+        PLIST_ENTRY ListHeader;
+
+        ListHeader = &NetRoot->FcbTable.HashBuckets[BucketNumber];
+
+        for (ListEntry = ListHeader->Flink ;
+             ListEntry != ListHeader ;
+             ListEntry = NextListEntry ) {
+
+            NextListEntry = ListEntry->Flink;
+
+            FcbTableEntry = CONTAINING_RECORD(ListEntry,
+                RX_FCB_TABLE_ENTRY,
+                HashLinks);
+
+            Fcb = CONTAINING_RECORD(
+                FcbTableEntry,
+                FCB,
+                FcbTableEntry);
+
+            ASSERT(NodeTypeIsFcb(Fcb));
+
+            if (Fcb->UncleanCount > 0) {
+                DbgP("fcb(addr=0x%p,ntype=%d,path='%wZ' still has %ld references\n",
+                    (void *)Fcb,
+                    (int)NodeType(Fcb),
+                    &Fcb->FcbTableEntry.Path,
+                    (long)Fcb->NodeReferenceCount);
+                continue;
+            }
+        }
+    }
+
+    if (FcbTableLockAcquired) {
+        RxReleaseFcbTableLock(&NetRoot->FcbTable);
+    }
+
+    if (PrefixTableLockAcquired) {
+        RxReleasePrefixTableLock(pRxNetNameTable);
+    }
+}
+
+void
+print_open_files_in_devobj(PRDBSS_DEVICE_OBJECT RxDeviceObject)
+{
+    PLIST_ENTRY pListEntry;
+    PRX_PREFIX_TABLE pRxNetNameTable;
+
+    pRxNetNameTable = RxDeviceObject->pRxNetNameTable;
+
+    RxAcquirePrefixTableLockExclusive(pRxNetNameTable, TRUE);
+
+    for (pListEntry = pRxNetNameTable->MemberQueue.Flink ;
+        pListEntry != &(pRxNetNameTable->MemberQueue) ;) {
+        PVOID            pContainer;
+        PRX_PREFIX_ENTRY PrefixEntry;
+
+        PrefixEntry = CONTAINING_RECORD(pListEntry, RX_PREFIX_ENTRY,
+            MemberQLinks);
+        ASSERT(NodeType(PrefixEntry) == RDBSS_NTC_PREFIX_ENTRY);
+
+        pContainer = PrefixEntry->ContainingRecord;
+
+        pListEntry = pListEntry->Flink;
+
+        if (pContainer != NULL) {
+            switch (NodeType(pContainer)) {
+                case RDBSS_NTC_NETROOT:
+                    print_open_files_netroot((PNET_ROOT)pContainer);
+                    break;
+            }
+        }
+    }
+
+    RxReleasePrefixTableLock(pRxNetNameTable);
+}
+#endif /* DEBUG_OPENFILES */
 
 NTSTATUS nfs41_DevFcbXXXControlFile(
     IN OUT PRX_CONTEXT RxContext)
@@ -721,6 +821,9 @@ NTSTATUS nfs41_DevFcbXXXControlFile(
             if (RxContext->RxDeviceObject->NumberOfActiveFcbs > 0) {
                 DbgP("IOCTL_NFS41_STOP: device has open handles %ld\n",
                     (long)RxContext->RxDeviceObject->NumberOfActiveFcbs);
+#ifdef DEBUG_OPENFILES
+                print_open_files_in_devobj(RxContext->RxDeviceObject);
+#endif /* DEBUG_OPENFILES */
                 status = STATUS_REDIRECTOR_HAS_OPEN_HANDLES;
                 break;
             }

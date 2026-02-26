@@ -1453,19 +1453,32 @@ NTSTATUS nfs41_FinalizeNetRoot(
 #endif
     FsRtlEnterFileSystem();
 
-    if (pNetRoot->Type != NET_ROOT_DISK && pNetRoot->Type != NET_ROOT_WILD) {
+    DbgP("nfs41_FinalizeNetRoot(pNetRoot=0x%p)\n",
+        pNetRoot);
+
+    if ((pNetRoot->Type != NET_ROOT_DISK) &&
+        (pNetRoot->Type != NET_ROOT_WILD)) {
+        DbgP("nfs41_FinalizeNetRoot(pNetRoot=0x%p): "
+            "pNetRoot->Type=%d not supported\n",
+            pNetRoot,
+            (int)pNetRoot->Type);
         status = STATUS_NOT_SUPPORTED;
         goto out;
     }
 
     if (pNetRootContext == NULL || !pNetRootContext->mounts_init) {
-        print_error("nfs41_FinalizeNetRoot: No valid session established\n");
+        DbgP("nfs41_FinalizeNetRoot(pNetRoot=0x%p): "
+            "No valid session established\n",
+            pNetRoot);
         goto out;
     }
 
-    if (pNetRoot->NumberOfFcbs > 0 || pNetRoot->NumberOfSrvOpens > 0) {
-        print_error("%d open Fcbs %d open SrvOpens\n", pNetRoot->NumberOfFcbs,
-            pNetRoot->NumberOfSrvOpens);
+    if ((pNetRoot->NumberOfFcbs > 0) || (pNetRoot->NumberOfSrvOpens > 0)) {
+        DbgP("nfs41_FinalizeNetRoot(pNetRoot=0x%p): "
+            "NumberOfFcbs=%ld NumberOfSrvOpens=%ld\n",
+            pNetRoot,
+            (long)pNetRoot->NumberOfFcbs,
+            (long)pNetRoot->NumberOfSrvOpens);
         goto out;
     }
 
@@ -1560,10 +1573,22 @@ NTSTATUS nfs41_FinalizeVNetRoot(
 #endif
     FsRtlEnterFileSystem();
 
-    if (pVNetRoot->pNetRoot->Type != NET_ROOT_DISK &&
-            pVNetRoot->pNetRoot->Type != NET_ROOT_WILD)
-        status = STATUS_NOT_SUPPORTED;
+    DbgP("nfs41_FinalizeVNetRoot(pVNetRoot=0x%p,pNetRoot=0x%p)\n",
+        pVNetRoot,
+        pVNetRoot->pNetRoot);
 
+    if ((pVNetRoot->pNetRoot->Type != NET_ROOT_DISK) &&
+        (pVNetRoot->pNetRoot->Type != NET_ROOT_WILD)) {
+        DbgP("nfs41_FinalizeVNetRoot(pVNetRoot=0x%p,pNetRoot=0x%p): "
+            "pNetRoot->Type=%d not supported\n",
+            pVNetRoot,
+            pVNetRoot->pNetRoot,
+            (int)pVNetRoot->pNetRoot->Type);
+        status = STATUS_NOT_SUPPORTED;
+        goto out;
+    }
+
+out:
     FsRtlExitFileSystem();
 #ifdef DEBUG_MOUNT
     DbgEx();
@@ -1758,6 +1783,9 @@ NTSTATUS nfs41_DeleteConnection(
                     "NumberOfFcbs=%ld NumberOfSrvOpens=%ld\n",
                     (long)pNetRoot->NumberOfFcbs,
                     (long)pNetRoot->NumberOfSrvOpens);
+#ifdef DEBUG_OPENFILES
+                print_open_files_netroot((PNET_ROOT)pNetRoot);
+#endif /* DEBUG_OPENFILES */
 
                 status = STATUS_FILES_OPEN;
                 goto out;

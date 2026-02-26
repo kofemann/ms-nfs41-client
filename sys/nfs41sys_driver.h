@@ -732,6 +732,10 @@ void enable_caching(
 VOID nfs41_update_fcb_list(
     PMRX_FCB fcb,
     ULONGLONG ChangeTime);
+#ifdef DEBUG_OPENFILES
+void print_open_files_netroot(
+    IN OUT PNET_ROOT NetRoot);
+#endif /* DEBUG_OPENFILES */
 
 /* nfs41sys_ea.c */
 NTSTATUS marshal_nfs41_easet(
