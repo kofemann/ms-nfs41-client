@@ -447,8 +447,6 @@ typedef struct _nfs41_mount_list {
 
 
 typedef struct _NFS41_NETROOT_EXTENSION {
-    NODE_TYPE_CODE          NodeTypeCode;
-    NODE_BYTE_SIZE          NodeByteSize;
     DWORD                   nfs41d_version;
     BOOLEAN                 mounts_init;
     nfs41_mount_list        mounts;
@@ -458,8 +456,6 @@ typedef struct _NFS41_NETROOT_EXTENSION {
         (PNFS41_NETROOT_EXTENSION)((pNetRoot)->Context))
 
 typedef struct _NFS41_V_NET_ROOT_EXTENSION {
-    NODE_TYPE_CODE          NodeTypeCode;
-    NODE_BYTE_SIZE          NodeByteSize;
     HANDLE                  session;
     NFS41_FILE_FS_ATTRIBUTE_INFORMATION FsAttrs;
     DWORD                   sec_flavor;
@@ -486,8 +482,6 @@ typedef struct _NFS41_V_NET_ROOT_EXTENSION {
         (PNFS41_V_NET_ROOT_EXTENSION)((pVNetRoot)->Context))
 
 typedef struct _NFS41_FCB {
-    NODE_TYPE_CODE          NodeTypeCode;
-    NODE_BYTE_SIZE          NodeByteSize;
     BOOLEAN                 initialised;
     FILE_BASIC_INFORMATION  BasicInfo;
     FILE_STANDARD_INFORMATION StandardInfo;
@@ -549,9 +543,6 @@ typedef struct _NFS41_SRV_OPEN {
         (((pSrvOpen) == NULL) ? NULL : (PNFS41_SRV_OPEN)((pSrvOpen)->Context))
 
 typedef struct _NFS41_FOBX {
-    NODE_TYPE_CODE          NodeTypeCode;
-    NODE_BYTE_SIZE          NodeByteSize;
-
     BOOLEAN write_thru;
     BOOLEAN nocache;
 } NFS41_FOBX, *PNFS41_FOBX;
@@ -565,10 +556,7 @@ typedef struct _NFS41_SERVER_ENTRY {
 } NFS41_SERVER_ENTRY, *PNFS41_SERVER_ENTRY;
 
 typedef struct _NFS41_DEVICE_EXTENSION {
-    NODE_TYPE_CODE          NodeTypeCode;
-    NODE_BYTE_SIZE          NodeByteSize;
     PRDBSS_DEVICE_OBJECT    DeviceObject;
-    ULONG                   ActiveNodes;
     HANDLE                  SharedMemorySection;
     DWORD                   nfs41d_version;
     HANDLE                  openlistHandle;
@@ -596,13 +584,6 @@ typedef struct _nfs41_offloadcontext_list {
     LIST_ENTRY head;
 } nfs41_offloadcontext_list;
 extern nfs41_offloadcontext_list offloadcontextlist;
-
-typedef enum _NULMRX_STORAGE_TYPE_CODES {
-    NTC_NFS41_DEVICE_EXTENSION      =   (NODE_TYPE_CODE)0xFC00,
-} NFS41_STORAGE_TYPE_CODES;
-#define RxDefineNode( node, type )          \
-        (node)->NodeTypeCode = NTC_##type;  \
-        (node)->NodeByteSize = sizeof(type);
 
 #define RDR_NULL_STATE  0
 #define RDR_UNLOADED    1
