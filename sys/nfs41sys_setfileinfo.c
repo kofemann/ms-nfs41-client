@@ -168,10 +168,12 @@ out:
     return status;
 }
 
-void unmarshal_nfs41_setattr(
+NTSTATUS unmarshal_nfs41_setattr(
     nfs41_updowncall_entry *cur,
     const unsigned char *restrict *restrict buf)
 {
+    NTSTATUS status = STATUS_SUCCESS;
+
     RtlCopyMemory(&cur->ChangeTime, *buf, sizeof(cur->ChangeTime));
     *buf += sizeof(cur->ChangeTime);
 
@@ -187,11 +189,23 @@ void unmarshal_nfs41_setattr(
                 *buf, sizeof(cur->u.SetFile.linkrename_stale_dst.path_len));
             *buf += sizeof(cur->u.SetFile.linkrename_stale_dst.path_len);
 
-            cur->u.SetFile.linkrename_stale_dst.path_buf = *buf;
+            void *path_buf = RxAllocatePoolWithTag(NonPagedPoolNx,
+                cur->u.SetFile.linkrename_stale_dst.path_len,
+                NFS41_MM_POOLTAG);
+            if (path_buf == NULL) {
+                status = STATUS_INSUFFICIENT_RESOURCES;
+                goto out;
+            }
+            RtlCopyMemory(path_buf,
+                *buf, cur->u.SetFile.linkrename_stale_dst.path_len);
+            cur->u.SetFile.linkrename_stale_dst.path_buf = path_buf;
             *buf += cur->u.SetFile.linkrename_stale_dst.path_len;
         }
     }
 #endif /* NFS41_DRIVER_MARK_OVERWRITTEN_LINKRENAME_DST_PATH_SRVOPEN_AS_STALE */
+
+out:
+    return status;
 }
 
 NTSTATUS map_setfile_error(
@@ -515,6 +529,14 @@ NTSTATUS nfs41_SetFileInformationImpl(
     InterlockedAdd64(&setattr.size, entry->u.SetFile.buf_len);
 #endif
 
+#ifdef NFS41_DRIVER_MARK_OVERWRITTEN_LINKRENAME_DST_PATH_SRVOPEN_AS_STALE
+    if ((RxContext->Info.FileInformationClass == FileRenameInformation) ||
+        (RxContext->Info.FileInformationClass == FileLinkInformation)) {
+        entry->u.SetFile.linkrename_stale_dst.path_replaced = FALSE;
+        entry->u.SetFile.linkrename_stale_dst.path_buf = NULL;
+    }
+#endif /* NFS41_DRIVER_MARK_OVERWRITTEN_LINKRENAME_DST_PATH_SRVOPEN_AS_STALE */
+
     status = nfs41_UpcallWaitForReply(entry, pVNetRootContext->timeout);
     if (status) {
         /* Timeout - |nfs41_downcall()| will free |entry|+contents */
@@ -579,6 +601,16 @@ NTSTATUS nfs41_SetFileInformationImpl(
     }
 out:
     if (entry) {
+#ifdef NFS41_DRIVER_MARK_OVERWRITTEN_LINKRENAME_DST_PATH_SRVOPEN_AS_STALE
+        if ((entry->u.SetFile.InfoClass == FileRenameInformation) ||
+            (entry->u.SetFile.InfoClass == FileLinkInformation)) {
+            if (entry->u.SetFile.linkrename_stale_dst.path_buf) {
+                RxFreePool(entry->u.SetFile.linkrename_stale_dst.path_buf);
+                entry->u.SetFile.linkrename_stale_dst.path_buf = NULL;
+            }
+        }
+#endif /* NFS41_DRIVER_MARK_OVERWRITTEN_LINKRENAME_DST_PATH_SRVOPEN_AS_STALE */
+
         nfs41_UpcallDestroy(entry);
     }
 #ifdef ENABLE_TIMINGS

@@ -280,7 +280,7 @@ typedef struct _updowncall_entry {
             struct {
                 BOOLEAN path_replaced;
                 USHORT path_len;
-                const unsigned char *path_buf;
+                unsigned char *path_buf;
             } linkrename_stale_dst;
 #endif /* NFS41_DRIVER_MARK_OVERWRITTEN_LINKRENAME_DST_PATH_SRVOPEN_AS_STALE */
         } SetFile;
@@ -982,7 +982,7 @@ NTSTATUS marshal_nfs41_fileset(
     unsigned char *buf,
     ULONG buf_len,
     ULONG *len);
-void unmarshal_nfs41_setattr(
+NTSTATUS unmarshal_nfs41_setattr(
     nfs41_updowncall_entry *cur,
     const unsigned char *restrict *restrict buf);
 NTSTATUS nfs41_SetFileInformation(

@@ -738,6 +738,18 @@ NTSTATUS nfs41_downcall(
                 cur->u.QueryAllocatedRanges.BufferMdl = NULL;
             }
             break;
+#ifdef NFS41_DRIVER_MARK_OVERWRITTEN_LINKRENAME_DST_PATH_SRVOPEN_AS_STALE
+        case NFS41_SYSOP_FILE_SET:
+        case NFS41_SYSOP_FILE_SET_AT_CLEANUP:
+            if ((cur->u.SetFile.InfoClass == FileRenameInformation) ||
+                (cur->u.SetFile.InfoClass == FileLinkInformation)) {
+                if (cur->u.SetFile.linkrename_stale_dst.path_buf) {
+                    RxFreePool(cur->u.SetFile.linkrename_stale_dst.path_buf);
+                    cur->u.SetFile.linkrename_stale_dst.path_buf = NULL;
+                }
+            }
+            break;
+#endif /* NFS41_DRIVER_MARK_OVERWRITTEN_LINKRENAME_DST_PATH_SRVOPEN_AS_STALE */
         }
         ExReleaseFastMutexUnsafe(&cur->lock);
         nfs41_RemoveEntry(downcalllist.lock, cur);
@@ -786,7 +798,7 @@ NTSTATUS nfs41_downcall(
             break;
         case NFS41_SYSOP_FILE_SET:
         case NFS41_SYSOP_FILE_SET_AT_CLEANUP:
-            unmarshal_nfs41_setattr(cur, &inbuf);
+            status = unmarshal_nfs41_setattr(cur, &inbuf);
             break;
         case NFS41_SYSOP_EA_SET:
             unmarshal_nfs41_getchangetime(cur, &cur->ChangeTime, &inbuf);
