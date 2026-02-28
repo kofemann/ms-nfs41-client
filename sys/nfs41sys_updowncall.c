@@ -743,9 +743,10 @@ NTSTATUS nfs41_downcall(
         case NFS41_SYSOP_FILE_SET_AT_CLEANUP:
             if ((cur->u.SetFile.InfoClass == FileRenameInformation) ||
                 (cur->u.SetFile.InfoClass == FileLinkInformation)) {
-                if (cur->u.SetFile.linkrename_stale_dst.path_buf) {
-                    RxFreePool(cur->u.SetFile.linkrename_stale_dst.path_buf);
-                    cur->u.SetFile.linkrename_stale_dst.path_buf = NULL;
+                if (cur->u.SetFile.linkrename_stale_dst.path.Buffer != NULL) {
+                    RtlFreeUnicodeString(
+                        &cur->u.SetFile.linkrename_stale_dst.path);
+                    cur->u.SetFile.linkrename_stale_dst.path.Buffer = NULL;
                 }
             }
             break;

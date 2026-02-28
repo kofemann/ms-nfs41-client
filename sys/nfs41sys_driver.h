@@ -279,8 +279,8 @@ typedef struct _updowncall_entry {
 #ifdef NFS41_DRIVER_MARK_OVERWRITTEN_LINKRENAME_DST_PATH_SRVOPEN_AS_STALE
             struct {
                 BOOLEAN path_replaced;
-                USHORT path_len;
-                unsigned char *path_buf;
+                USHORT path_len; /* Path len in UTF-8 bytes */
+                UNICODE_STRING path; /* wchar_t buffer converted from UTF-8 */
             } linkrename_stale_dst;
 #endif /* NFS41_DRIVER_MARK_OVERWRITTEN_LINKRENAME_DST_PATH_SRVOPEN_AS_STALE */
         } SetFile;

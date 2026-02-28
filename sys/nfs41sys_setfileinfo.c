@@ -189,16 +189,21 @@ NTSTATUS unmarshal_nfs41_setattr(
                 *buf, sizeof(cur->u.SetFile.linkrename_stale_dst.path_len));
             *buf += sizeof(cur->u.SetFile.linkrename_stale_dst.path_len);
 
-            void *path_buf = RxAllocatePoolWithTag(NonPagedPoolNx,
-                cur->u.SetFile.linkrename_stale_dst.path_len,
-                NFS41_MM_POOLTAG);
-            if (path_buf == NULL) {
-                status = STATUS_INSUFFICIENT_RESOURCES;
+            UTF8_STRING stale_utf8filename = {
+                .Length = (USHORT)
+                    cur->u.SetFile.linkrename_stale_dst.path_len,
+                .MaximumLength = (USHORT)
+                    cur->u.SetFile.linkrename_stale_dst.path_len,
+                .Buffer = (PCHAR)*buf
+            };
+
+            status = RtlUTF8StringToUnicodeString(
+                &cur->u.SetFile.linkrename_stale_dst.path,
+                &stale_utf8filename, TRUE);
+            if (!NT_SUCCESS(status)) {
                 goto out;
             }
-            RtlCopyMemory(path_buf,
-                *buf, cur->u.SetFile.linkrename_stale_dst.path_len);
-            cur->u.SetFile.linkrename_stale_dst.path_buf = path_buf;
+
             *buf += cur->u.SetFile.linkrename_stale_dst.path_len;
         }
     }
@@ -533,7 +538,7 @@ NTSTATUS nfs41_SetFileInformationImpl(
     if ((RxContext->Info.FileInformationClass == FileRenameInformation) ||
         (RxContext->Info.FileInformationClass == FileLinkInformation)) {
         entry->u.SetFile.linkrename_stale_dst.path_replaced = FALSE;
-        entry->u.SetFile.linkrename_stale_dst.path_buf = NULL;
+        entry->u.SetFile.linkrename_stale_dst.path.Buffer = NULL;
     }
 #endif /* NFS41_DRIVER_MARK_OVERWRITTEN_LINKRENAME_DST_PATH_SRVOPEN_AS_STALE */
 
@@ -566,35 +571,15 @@ NTSTATUS nfs41_SetFileInformationImpl(
 
             if (entry->u.SetFile.linkrename_stale_dst.path_replaced) {
                 DbgP("nfs41_SetFileInformationImpl: "
-                    "linkrename_stale_dst.path_len=%d inbuf='%.*s'\n",
+                    "linkrename_stale_dst.path_len=%d path='%wZ'\n",
                     (int)entry->u.SetFile.linkrename_stale_dst.path_len,
-                    (int)entry->u.SetFile.linkrename_stale_dst.path_len,
-                    entry->u.SetFile.linkrename_stale_dst.path_buf);
-                UTF8_STRING stale_utf8filename = {
-                    .Length = (USHORT)
-                        entry->u.SetFile.linkrename_stale_dst.path_len,
-                    .MaximumLength = (USHORT)
-                        entry->u.SetFile.linkrename_stale_dst.path_len,
-                    .Buffer = (PCHAR)
-                        entry->u.SetFile.linkrename_stale_dst.path_buf
-                };
+                    &entry->u.SetFile.linkrename_stale_dst.path);
 
-                UNICODE_STRING stale_filename;
+                nfs41_mark_file_as_non_collapsible(
+                    (PNET_ROOT)SrvOpen->pVNetRoot->pNetRoot,
+                    &entry->u.SetFile.linkrename_stale_dst.path);
 
-                status = RtlUTF8StringToUnicodeString(&stale_filename,
-                    &stale_utf8filename, TRUE);
-                if (NT_SUCCESS(status)) {
-                    DbgP("nfs41_SetFileInformationImpl/stale: "
-                        "stale_filename='%wZ'\n",
-                        &stale_filename);
-
-                    nfs41_mark_file_as_non_collapsible(
-                        (PNET_ROOT)SrvOpen->pVNetRoot->pNetRoot,
-                        &stale_filename);
-
-                    RtlFreeUnicodeString(&stale_filename);
-                    status = STATUS_SUCCESS;
-                }
+                status = STATUS_SUCCESS;
             }
         }
 #endif /* NFS41_DRIVER_MARK_OVERWRITTEN_LINKRENAME_DST_PATH_SRVOPEN_AS_STALE */
@@ -604,9 +589,10 @@ out:
 #ifdef NFS41_DRIVER_MARK_OVERWRITTEN_LINKRENAME_DST_PATH_SRVOPEN_AS_STALE
         if ((entry->u.SetFile.InfoClass == FileRenameInformation) ||
             (entry->u.SetFile.InfoClass == FileLinkInformation)) {
-            if (entry->u.SetFile.linkrename_stale_dst.path_buf) {
-                RxFreePool(entry->u.SetFile.linkrename_stale_dst.path_buf);
-                entry->u.SetFile.linkrename_stale_dst.path_buf = NULL;
+            if (entry->u.SetFile.linkrename_stale_dst.path.Buffer != NULL) {
+                RtlFreeUnicodeString(
+                    &entry->u.SetFile.linkrename_stale_dst.path);
+                entry->u.SetFile.linkrename_stale_dst.path.Buffer = NULL;
             }
         }
 #endif /* NFS41_DRIVER_MARK_OVERWRITTEN_LINKRENAME_DST_PATH_SRVOPEN_AS_STALE */
