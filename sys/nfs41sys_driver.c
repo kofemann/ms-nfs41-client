@@ -1624,9 +1624,8 @@ NTSTATUS DriverEntry(
     nfs41_dev->Flags |= DO_BUFFERED_IO;
 
     dev_exts = (PNFS41_DEVICE_EXTENSION)
-        ((PBYTE)(nfs41_dev) + sizeof(RDBSS_DEVICE_OBJECT));
+        (((PBYTE)nfs41_dev) + sizeof(RDBSS_DEVICE_OBJECT));
 
-    RxDefineNode(dev_exts, NFS41_DEVICE_EXTENSION);
     dev_exts->DeviceObject = nfs41_dev;
 
     RtlInitUnicodeString(&user_dev_name, NFS41_SHADOW_DEVICE_NAME);
