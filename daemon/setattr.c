@@ -1133,6 +1133,14 @@ static int marshall_setattr(
             status = safe_write(&buffer, length,
                 &args->rename_stale_dst_path.path[0], dst_path_len);
             if (status) goto out;
+#ifdef WINDOWSBUG_WORKAROUND_RTLUTF8STRINGTOUNICODESTRING_READS_BEYOND_BUFFER
+            void *padding_for_rtlutf8stringtounicodestring = NULL;
+            status = safe_write(&buffer,
+                length,
+                &padding_for_rtlutf8stringtounicodestring,
+                sizeof(padding_for_rtlutf8stringtounicodestring));
+            if (status) goto out;
+#endif /* WINDOWSBUG_WORKAROUND_RTLUTF8STRINGTOUNICODESTRING_READS_BEYOND_BUFFER */
         }
     }
 #endif /* NFS41_DRIVER_MARK_OVERWRITTEN_LINKRENAME_DST_PATH_SRVOPEN_AS_STALE */

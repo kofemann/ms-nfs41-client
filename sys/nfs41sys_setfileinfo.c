@@ -205,6 +205,16 @@ NTSTATUS unmarshal_nfs41_setattr(
             }
 
             *buf += cur->u.SetFile.linkrename_stale_dst.path_len;
+
+#ifdef WINDOWSBUG_WORKAROUND_RTLUTF8STRINGTOUNICODESTRING_READS_BEYOND_BUFFER
+            /*
+             * Windows bug: |RtlUTF8StringToUnicodeString()| can read beyond
+             * the maximum size of the input buffer, which can cause "Blue
+             * Screens" with Windows verifer. As workaround we add some
+             * padding (|sizeof(void *)|), which we can safely skip here...
+             */
+            *buf += sizeof(void *);
+#endif /* WINDOWSBUG_WORKAROUND_RTLUTF8STRINGTOUNICODESTRING_READS_BEYOND_BUFFER */
         }
     }
 #endif /* NFS41_DRIVER_MARK_OVERWRITTEN_LINKRENAME_DST_PATH_SRVOPEN_AS_STALE */
