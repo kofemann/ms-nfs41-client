@@ -3,7 +3,7 @@
 #
 # MIT License
 #
-# Copyright (c) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
+# Copyright (c) 2023-2026 Roland Mainz <roland.mainz@nrubsig.org>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -75,6 +75,24 @@ function is_windows_64bit
 	else
 		return 1
 	fi
+}
+
+function print_secureboot_status
+{
+	typeset -r uefisecurebootenabled_regfile='/proc/registry/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Control/SecureBoot/State/UEFISecureBootEnabled'
+
+	if [[ ! -r "${uefisecurebootenabled_regfile}" ]] ; then
+		print -u2 -f $"%s: '%q' not found, cannot determinate SecureBoot status.\n" "$0" "${uefisecurebootenabled_regfile}"
+		return 0
+	fi
+
+	if [[ "$(od -t x1 "${uefisecurebootenabled_regfile}")" == "0000000 00 00 00 00"* ]] ; then
+		printf '# SecureBoot disabled, nfs41_driver kernel module should work\n'
+	else
+		printf '#\n# WARNING:\n# SecureBoot enabled, nfs41_driver kernel module might not work\n# if not signed for SecureBoot\n#\n'
+	fi
+
+	return 0
 }
 
 function check_machine_arch
@@ -454,6 +472,8 @@ function nfsclient_install
 	printf '/usr/bin/ksh93 is working\n'
 	set -o xtrace
 
+	print_secureboot_status
+
 	# check whether the driver really has been installed
 	md5sum \
 		"$PWD/nfs41_driver.sys" \
@@ -656,6 +676,7 @@ function nfsclient_rundeamon
 	# start kernel driver if it is not running yet
 	# (can happen directly after installation if no reboot was made)
 	#
+	print_secureboot_status
 	sc start nfs41_driver || true
 
 	# switch to UTF-8 codepage so debug output with non-ASCII characters
@@ -782,6 +803,7 @@ function nfsclient_system_rundeamon
 	# start kernel driver if it is not running yet
 	# (can happen directly after installation if no reboot was made)
 	#
+	print_secureboot_status
 	sc start nfs41_driver || true
 
 	# switch to UTF-8 codepage so debug output with non-ASCII characters
