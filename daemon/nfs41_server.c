@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2024-2025 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2024-2026 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -25,6 +25,7 @@
 #include <strsafe.h>
 #include <stdio.h>
 
+#include "nfs41_build_features.h"
 #include "wintirpc.h"
 #include "rpc/rpc.h"
 
@@ -317,13 +318,7 @@ int nfs41_server_resolve(
     hints.ai_flags    |= AI_FILESERVER;
 #endif
 
-/*
- * Windows bug: |GetAddrInfoExA()| ends impersonation
- * Tested on CYGWIN_NT-10.0-19045 3.6.0-0.115.g579064bf4d40.x86
- */
-#define WINDOWS_GETADDRINFOEXA_STOPS_IMPERSONATION_BUG 1
-
-#ifdef WINDOWS_GETADDRINFOEXA_STOPS_IMPERSONATION_BUG
+#ifdef WINDOWSBUG_WORKAROUND_GETADDRINFOEXA_STOPS_IMPERSONATION
     HANDLE tok;
 
     /*
@@ -337,15 +332,15 @@ int nfs41_server_resolve(
         DPRINTF(0, ("nfs41_server_resolve: OpenThreadToken() failed, "
             "lasterr=%d.\n", (int)GetLastError()));
     }
-#endif /* WINDOWS_GETADDRINFOEXA_STOPS_IMPERSONATION_BUG */
+#endif /* WINDOWSBUG_WORKAROUND_GETADDRINFOEXA_STOPS_IMPERSONATION */
 
 retry_getaddrinfoex:
-#ifdef WINDOWS_GETADDRINFOEXA_STOPS_IMPERSONATION_BUG
+#ifdef WINDOWSBUG_WORKAROUND_GETADDRINFOEXA_STOPS_IMPERSONATION
     if (!SetThreadToken(NULL, tok)) {
         DPRINTF(0, ("nfs41_server_resolve: SetThreadToken() failed, "
             "lasterr=%d\n", (int)GetLastError()));
     }
-#endif /* WINDOWS_GETADDRINFOEXA_STOPS_IMPERSONATION_BUG */
+#endif /* WINDOWSBUG_WORKAROUND_GETADDRINFOEXA_STOPS_IMPERSONATION */
 
     wse = GetAddrInfoExA(hostname, service, 0, NULL, &hints, &res,
         NULL, NULL, NULL, NULL);
@@ -365,12 +360,12 @@ retry_getaddrinfoex:
         goto out;
     }
 
-#ifdef WINDOWS_GETADDRINFOEXA_STOPS_IMPERSONATION_BUG
+#ifdef WINDOWSBUG_WORKAROUND_GETADDRINFOEXA_STOPS_IMPERSONATION
     if (!SetThreadToken(NULL, tok)) {
         DPRINTF(0, ("nfs41_server_resolve: SetThreadToken() failed, "
             "lasterr=%d\n", (int)GetLastError()));
     }
-#endif /* WINDOWS_GETADDRINFOEXA_STOPS_IMPERSONATION_BUG */
+#endif /* WINDOWSBUG_WORKAROUND_GETADDRINFOEXA_STOPS_IMPERSONATION */
 
     for (info = res; info != NULL; info = info->ai_next) {
         DPRINTF(SRVLVL, ("GetAddrInfoExA() returned: info.{ai_family=%d}\n",
@@ -413,13 +408,10 @@ retry_getaddrinfoex:
             break;
         }
     }
-/*
- * BUG: WS2tcpip.h somenow mapps FreeAddrInfoExA() to use the wide-char version
- */
-#define WINDOWS_WS2TCPIP_H_BUG 1
-#ifdef WINDOWS_WS2TCPIP_H_BUG
+
+#ifdef WINDOWSBUG_WORKAROUND_WS2TCPIP_H
 #undef FreeAddrInfoEx
-#endif
+#endif /* WINDOWSBUG_WORKAROUND_WS2TCPIP_H */
     FreeAddrInfoEx(res);
 out:
     if (status) {
@@ -441,9 +433,9 @@ out:
             "OK { %s }\n", hostname, port, buff));
     }
 
-#ifdef WINDOWS_GETADDRINFOEXA_STOPS_IMPERSONATION_BUG
+#ifdef WINDOWSBUG_WORKAROUND_GETADDRINFOEXA_STOPS_IMPERSONATION
     /* FIXME: We leak the token here */
-#endif /* WINDOWS_GETADDRINFOEXA_STOPS_IMPERSONATION_BUG */
+#endif /* WINDOWSBUG_WORKAROUND_GETADDRINFOEXA_STOPS_IMPERSONATION */
 
     return status;
 }

@@ -158,9 +158,8 @@ NTSTATUS marshal_nfs41_unlock(
         tmp += sizeof(LONGLONG);
         RtlCopyMemory(tmp, &lock->Length, sizeof(LONGLONG));
         tmp += sizeof(LONGLONG);
-#define WINDOWS_LOWIO_OP_UNLOCK_HAS_RANDOM_VALUE_IN_LOWIO_LOCK_LIST_BUG 1
 
-#ifdef WINDOWS_LOWIO_OP_UNLOCK_HAS_RANDOM_VALUE_IN_LOWIO_LOCK_LIST_BUG
+#ifdef WINDOWSBUG_WORKAROUND_LOWIO_OP_UNLOCK_HAS_RANDOM_VALUE_IN_LOWIO_LOCK_LIST
         if (entry->u.Unlock.lowio_operation == LOWIO_OP_UNLOCK_MULTIPLE) {
             /*
              * Windows 10 bugs:
@@ -183,7 +182,7 @@ NTSTATUS marshal_nfs41_unlock(
         }
 #else
         exclusivelock = lock->ExclusiveLock?TRUE:FALSE;
-#endif /* WINDOWS_LOWIO_OP_UNLOCK_HAS_RANDOM_VALUE_IN_LOWIO_LOCK_LIST_BUG */
+#endif /* WINDOWSBUG_WORKAROUND_LOWIO_OP_UNLOCK_HAS_RANDOM_VALUE_IN_LOWIO_LOCK_LIST */
 
         RtlCopyMemory(tmp, &exclusivelock, sizeof(BOOLEAN));
         tmp += sizeof(BOOLEAN);

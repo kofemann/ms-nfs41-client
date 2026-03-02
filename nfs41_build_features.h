@@ -30,6 +30,9 @@
  * until they are ready
  */
 
+/* Include build time config for Windows bug workarounds */
+#include "nfs41_windowsbugs_workarounds.h"
+
 /*
  * NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES - return local uid/gid values
  */
@@ -397,58 +400,5 @@
  * because we use the old NFS handle for ".git/HEAD".
  */
 #define NFS41_DRIVER_MARK_OVERWRITTEN_LINKRENAME_DST_PATH_SRVOPEN_AS_STALE 1
-
-/*
- * |WINDOWSBUG_WORKAROUND_RTLUTF8STRINGTOUNICODESTRING_READS_BEYOND_BUFFER| -
- * workaround for the bug that |RtlUTF8StringToUnicodeString()| reads more
- * bytes (likely up to |sizeof(void *)|) than the maximum size of the input
- * buffer, which can cause crashes when running with Windows verifer active
- * (e.g with $ /cygdrive/c/Windows/system32/verifier /flags 0x6019 /driver
- * nfs41_driver.sys #) like this:
- * ---- snip ----
- * STACK_TEXT:
- * nt!KeBugCheckEx
- * nt!MiSystemFault+0x1b70a3
- * nt!MmAccessFault+0x400
- * nt!KiPageFault+0x36d
- * nt!CountUTF8ToUnicode+0xc2
- * nt!RtlUTF8StringToUnicodeString+0x31
- * nfs41_driver!unmarshal_nfs41_setattr+0x114 [C:\cygwin64\home\roland_mainz\work\msnfs41_uidmapping\ms-nfs41-client\sys\nfs41sys_setfileinfo.c @ 200]
- * nfs41_driver!nfs41_downcall+0x546 [C:\cygwin64\home\roland_mainz\work\msnfs41_uidmapping\ms-nfs41-client\sys\nfs41sys_updowncall.c @ 802]
- * nfs41_driver!nfs41_DevFcbXXXControlFile+0x121 [C:\cygwin64\home\roland_mainz\work\msnfs41_uidmapping\ms-nfs41-client\sys\nfs41sys_driver.c @ 747]
- * nfs41_driver!RxXXXControlFileCallthru+0x76 [base\fs\rdr2\rdbss\ntdevfcb.c @ 130]
- * nfs41_driver!RxCommonDevFCBIoCtl+0x58 [base\fs\rdr2\rdbss\ntdevfcb.c @ 491]
- * nfs41_driver!RxFsdCommonDispatch+0x442 [base\fs\rdr2\rdbss\ntfsd.c @ 848]
- * nfs41_driver!RxFsdDispatch+0xfd [base\fs\rdr2\rdbss\ntfsd.c @ 442]
- * nfs41_driver!nfs41_FsdDispatch+0x67 [C:\cygwin64\home\roland_mainz\work\msnfs41_uidmapping\ms-nfs41-client\sys\nfs41sys_driver.c @ 1250]
- * nt!IopfCallDriver+0x53
- * nt!IovCallDriver+0x266
- * nt!IofCallDriver+0x188f09
- * mup!MupiCallUncProvider+0xb3
- * mup!MupStateMachine+0x59
- * mup!MupFsdIrpPassThrough+0x17e
- * nt!IopfCallDriver+0x53
- * nt!IovCallDriver+0x266
- * nt!IofCallDriver+0x188f09
- * FLTMGR!FltpDispatch+0xd1
- * nt!IopfCallDriver+0x53
- * nt!IovCallDriver+0x266
- * nt!IofCallDriver+0x188f09
- * nt!IopSynchronousServiceTail+0x361
- * nt!IopXxxControlFile+0xd0a
- * nt!NtDeviceIoControlFile+0x56
- * nt!KiSystemServiceCopyEnd+0x25
- * ntdll!NtDeviceIoControlFile+0x14
- * KERNELBASE!DeviceIoControl+0x6b
- * KERNEL32!DeviceIoControlImplementation+0x81
- * nfsd!nfsd_worker_thread_main+0x392 [C:\cygwin64\home\roland_mainz\work\msnfs41_uidmapping\ms-nfs41-client\daemon\nfs41_daemon.c @ 258]
- * nfsd!nfsd_thread_main+0x1f [C:\cygwin64\home\roland_mainz\work\msnfs41_uidmapping\ms-nfs41-client\daemon\nfs41_daemon.c @ 279]
- * ucrtbased!invoke_thread_procedure+0x2c [d:\th\minkernel\crts\ucrt\src\appcrt\startup\thread.cpp @ 92]
- * ucrtbased!thread_start<unsigned int (__cdecl*)(void * __ptr64)>+0x93 [d:\th\minkernel\crts\ucrt\src\appcrt\startup\thread.cpp @ 115]
- * KERNEL32!BaseThreadInitThunk+0x14
- * ntdll!RtlUserThreadStart+0x21
- * ---- snip ----
- */
-#define WINDOWSBUG_WORKAROUND_RTLUTF8STRINGTOUNICODESTRING_READS_BEYOND_BUFFER 1
 
 #endif /* !_NFS41_DRIVER_BUILDFEATURES_ */

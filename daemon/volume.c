@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2023-2026 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -26,6 +26,7 @@
 #include <stdio.h>
 #include <time.h>
 
+#include "nfs41_build_features.h"
 #include "nfs41_ops.h"
 #include "from_kernel.h"
 #include "upcall.h"
@@ -148,7 +149,7 @@ static int handle_volume(void *daemon_context, nfs41_upcall *upcall)
          * peel-off the port number
          */
         (void)swprintf(vi->VolumeLabel,
-#if 1
+#ifdef WINDOWSBUG_WORKAROUND_EXPLORER_BIGVOLUMELABEL_CRASH
             /*
              * Windows bug:
              * Windows Explorer can only handle up to 31 characters per label
@@ -159,7 +160,7 @@ static int handle_volume(void *daemon_context, nfs41_upcall *upcall)
             31,
 #else
             MAX_PATH,
-#endif
+#endif /* WINDOWSBUG_WORKAROUND_EXPLORER_BIGVOLUMELABEL_CRASH */
             L"nfs://%s:%d/%s",
             session->client->rpc->server_name,
             2049,
