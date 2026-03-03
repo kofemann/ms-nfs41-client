@@ -726,6 +726,162 @@ function msnfs41client_clean
 }
 
 
+function reactos_createcache
+{
+	set -o xtrace
+	set -o errexit
+	set -o nounset
+
+	mkdir -p '../gitbundles'
+	rm -f '../gitbundles/reactos'
+
+	git -c checkout.workers=16 clone 'https://github.com/reactos/reactos'
+	cd 'reactos'
+	git config --global --add safe.directory "$PWD"
+	git bundle create '../gitbundles/reactos.bundle' --all
+	git config --global --unset safe.directory "$PWD"
+	cd ..
+	rm -Rf 'reactos'
+
+	return 0
+}
+
+
+function reactos_build
+{
+	set -o xtrace
+	set -o errexit
+	set -o nounset
+
+	typeset subcmd="$1"
+	integer build_parallel
+
+	#
+	# ReactOS currently fails to build on a case-sensitive filesystem
+	#
+	file_case_sensitive_search_val="$(/usr/lib/csih/getVolInfo "$PWD" | awk '/FILE_CASE_SENSITIVE_SEARCH/ { print $NF; exit }')"
+
+	case "$file_case_sensitive_search_val" in
+		'FALSE')
+			# OK
+			;;
+		'TRUE')
+			print -u2 -f $"ERROR: Visual Studio MSBuild+compiler require a case-insensitive filesystem for parallel builds.\n"
+			#return 1
+			;;
+		*)
+			print -u2 -f $"ERROR: Unexpected value from getVolInfo/FILE_CASE_SENSITIVE_SEARCH '%q'\n" "$file_case_sensitive_search_val"
+			#return 1
+			;;
+	esac
+
+	if [[ "$subcmd" == *.serial* ]] ; then
+		(( build_parallel=0 ))
+	elif [[ "$subcmd" == *.parallel* ]] ; then
+		typeset file_case_sensitive_search_val
+		(( build_parallel=1 ))
+	else
+		print -u2 -f $"Neither '.serial' or '.parallel' set in subcmd='%q'.\n" "$subcmd"
+		return 1
+	fi
+
+	#
+	# build config
+	#
+	typeset config_vs_disable_incremental_linker=true
+
+	compound gitdata=(
+		typeset url='https://github.com/reactos/reactos'
+		# use fixed git tag, so build times are compareable
+		typeset tag='master'
+	)
+
+	#
+	# temp dir setup
+	#
+
+	tmpdir="$PWD/tmpdir"
+	mkdir -p "$tmpdir"
+	chmod a+rwxt "$tmpdir"
+	if [[ -d "$tmpdir" && -w "$tmpdir" ]] ; then
+		printf '#### Using temp dir %q\n' "$tmpdir"
+		export TMPDIR="$tmpdir"
+		export TEMP="$tmpdir"
+		export TMP="$tmpdir"
+	else
+		print -u2 -f "TEMPDIR %q on NFS filesystem does not work.\n" "$tmpdir"
+		return 1
+	fi
+
+	#
+	# print user info
+	#
+	id -a
+	pwd
+
+	#
+	# source checkout
+	#
+
+	if [[ -f '../gitbundles/reactos.bundle' ]] ; then
+		# Use local bundle as cache,
+		# so build times only depend on local filesystem performance
+		# and not HTTPS speed
+		time git -c checkout.workers=16 clone -b "${gitdata.tag}" --single-branch '../gitbundles/reactos.bundle'
+	else
+		time git -c checkout.workers=16 clone -b "${gitdata.tag}" --single-branch "${gitdata.url}"
+	fi
+
+	cd "$PWD/reactos/"
+
+	# make sure git commands (like git "describe", "fsck", ...) work
+	git config --global --add safe.directory "$PWD"
+
+	# use git fsck as filesystem test
+	#time git fsck
+
+	#
+	# patch sources and configure build
+	#
+
+	#
+	# build ReactOS
+	#
+	typeset -a cmd_commands=(
+		'C:\RosBE\RosBE.cmd'
+		'configure.cmd -DARCH=i386'
+		'cd output-MinGW-i386'
+		'ninja bootcd livecd'
+	)
+
+	typeset -a cmd_env=(
+		'-'
+		'PROCESSOR_ARCHITECTURE=AMD64'
+		'PATH=/cygdrive/c/Windows/system32:/cygdrive/c/Windows:/cygdrive/c/Program Files/Git/cmd'
+		'/cygdrive/c/Windows/system32/cmd.exe' '/E:ON' '/C'
+			"${ printf "%s && " "${cmd_commands[@]}" ; } echo DONE"
+	)
+
+	env "${cmd_env[@]}"
+
+	echo $?
+
+	echo "#Done."
+	return 0
+}
+
+
+function reactos_clean
+{
+	set -o xtrace
+	set -o errexit
+	set -o nounset
+
+	rm -Rf 'reactos'
+	return 0
+}
+
+
 #
 # get_cpv_cygwin_version - get cygwin version as compound var
 #
@@ -922,6 +1078,21 @@ function main
 			;;
 		'msnfs41client_clean')
 			msnfs41client_clean
+			return $?
+			;;
+		'reactos_createcache')
+			is_toolkit_pkg_installed itp 'git' || (( errc++ ))
+			reactos_createcache
+			return $?
+			;;
+		'reactos_build'*)
+			is_toolkit_pkg_installed itp 'git' || (( errc++ ))
+			(( errc > 0 )) && return 1
+			reactos_build "${subcmd}"
+			return $?
+			;;
+		'reactos_clean')
+			reactos_clean
 			return $?
 			;;
 		*)
