@@ -1183,5 +1183,6 @@ out:
     return status;
 out_free:
     free(nfs4_acl->aces);
+    nfs4_acl->aces = NULL;
     goto out;
 }
