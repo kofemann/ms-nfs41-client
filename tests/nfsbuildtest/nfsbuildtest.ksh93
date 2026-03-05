@@ -27,8 +27,8 @@
 #
 # nfsbuildtest.ksh93
 #
-# Simple NFSv4 torture test by building { bash, gcc } in parallel
-# on a NFS filesystem
+# Simple NFSv4 torture test by building { bash, gcc, ms-nfs41-client, ReactOS }
+# in { parallel, serial } on a NFS filesystem
 #
 
 #
@@ -47,6 +47,14 @@
 #   $ ksh93 nfsbuildtest.ksh93 msnfs41client clean
 #   $ ksh93 nfsbuildtest.ksh93 msnfs41client createcache
 #   $ ksh93 nfsbuildtest.ksh93 msnfs41client build.serial
+#
+# - build ReactOS:
+#   $ ksh93 nfsbuildtest.ksh93 reactos clean
+#   $ ksh93 nfsbuildtest.ksh93 reactos createcache
+#   $ ksh93 nfsbuildtest.ksh93 reactos build.vs2022.64bit.parallel
+#   $ ksh93 nfsbuildtest.ksh93 reactos build.vs2019.64bit.parallel
+#   $ ksh93 nfsbuildtest.ksh93 reactos build.gcc.64bit.parallel
+#   $ ksh93 nfsbuildtest.ksh93 reactos build.gcc.32bit.parallel
 #
 
 function gcc_createcache
@@ -732,14 +740,17 @@ function reactos_createcache
 	set -o errexit
 	set -o nounset
 
+	# use native Windows git
+	typeset -r gitcmd='/cygdrive/c/Program Files/Git/cmd/git.exe'
+
 	mkdir -p '../gitbundles'
 	rm -f '../gitbundles/reactos'
 
-	git -c checkout.workers=16 clone 'https://github.com/reactos/reactos'
+	"${gitcmd}" -c checkout.workers=16 clone 'https://github.com/reactos/reactos'
 	cd 'reactos'
-	git config --global --add safe.directory "$PWD"
-	git bundle create '../gitbundles/reactos.bundle' --all
-	git config --global --unset safe.directory "$PWD"
+	"${gitcmd}" config --global --add safe.directory "$PWD"
+	"${gitcmd}" bundle create '../gitbundles/reactos.bundle' --all
+	"${gitcmd}" config --global --unset safe.directory "$PWD"
 	cd ..
 	rm -Rf 'reactos'
 
@@ -755,6 +766,9 @@ function reactos_build
 
 	typeset subcmd="$1"
 	integer build_parallel
+
+	# use native Windows git
+	typeset -r gitcmd='/cygdrive/c/Program Files/Git/cmd/git.exe'
 
 	#
 	# ReactOS currently fails to build on a case-sensitive filesystem
@@ -775,13 +789,21 @@ function reactos_build
 			;;
 	esac
 
+	if [[ "$subcmd" != *.vs2022.64bit* && \
+		"$subcmd" != *.vs2019.64bit* && \
+		"$subcmd" != *.gcc.64bit* && \
+		"$subcmd" != *.gcc.32bit* ]] ; then
+		print -u2 -f $"ERROR: Neither '.vs2022.64bit', '.vs2019.64bit', '.gcc.64bit' or '.gcc.32bit' set in subcmd='%q'.\n" "$subcmd"
+		return 1
+	fi
+
 	if [[ "$subcmd" == *.serial* ]] ; then
 		(( build_parallel=0 ))
 	elif [[ "$subcmd" == *.parallel* ]] ; then
 		typeset file_case_sensitive_search_val
 		(( build_parallel=1 ))
 	else
-		print -u2 -f $"Neither '.serial' or '.parallel' set in subcmd='%q'.\n" "$subcmd"
+		print -u2 -f $"ERROR: Neither '.serial' or '.parallel' set in subcmd='%q'.\n" "$subcmd"
 		return 1
 	fi
 
@@ -809,7 +831,7 @@ function reactos_build
 		export TEMP="$tmpdir"
 		export TMP="$tmpdir"
 	else
-		print -u2 -f "TEMPDIR %q on NFS filesystem does not work.\n" "$tmpdir"
+		print -u2 -f "ERROR: TEMPDIR %q on NFS filesystem does not work.\n" "$tmpdir"
 		return 1
 	fi
 
@@ -827,18 +849,18 @@ function reactos_build
 		# Use local bundle as cache,
 		# so build times only depend on local filesystem performance
 		# and not HTTPS speed
-		time git -c checkout.workers=16 clone -b "${gitdata.tag}" --single-branch '../gitbundles/reactos.bundle'
+		time "${gitcmd}" -c checkout.workers=16 clone -b "${gitdata.tag}" --single-branch '../gitbundles/reactos.bundle'
 	else
-		time git -c checkout.workers=16 clone -b "${gitdata.tag}" --single-branch "${gitdata.url}"
+		time "${gitcmd}" -c checkout.workers=16 clone -b "${gitdata.tag}" --single-branch "${gitdata.url}"
 	fi
 
 	cd "$PWD/reactos/"
 
-	# make sure git commands (like git "describe", "fsck", ...) work
-	git config --global --add safe.directory "$PWD"
+	# make sure git commands (like git "describe", "fsck", ...) work (only needed for Cygwin git)
+	#"${gitcmd}" config --global --add safe.directory "$PWD"
 
 	# use git fsck as filesystem test
-	#time git fsck
+	#time "${gitcmd}" fsck
 
 	#
 	# patch sources and configure build
@@ -847,26 +869,102 @@ function reactos_build
 	#
 	# build ReactOS
 	#
-	typeset -a cmd_commands=(
-		'C:\RosBE\RosBE.cmd'
-		'configure.cmd -DARCH=i386'
-		'cd output-MinGW-i386'
-		'ninja bootcd livecd'
-	)
+	if [[ "$subcmd" == *.vs2022.64bit* || \
+		"$subcmd" == *.vs2019.64bit* ]] ; then
+		typeset vsdevcmd_bat_path=''
 
-	typeset -a cmd_env=(
-		'-'
-		'PROCESSOR_ARCHITECTURE=AMD64'
-		'PATH=/cygdrive/c/Windows/system32:/cygdrive/c/Windows:/cygdrive/c/Program Files/Git/cmd'
-		'/cygdrive/c/Windows/system32/cmd.exe' '/E:ON' '/C'
-			"${ printf "%s && " "${cmd_commands[@]}" ; } echo DONE"
-	)
+		case "$subcmd" in
+			*.vs2022.*)
+				vsdevcmd_bat_path='/cygdrive/c/Program Files/Microsoft Visual Studio/2022/Community/Common7/Tools/VsDevCmd.bat'
+				;;
+			*.vs2019.*)
+				vsdevcmd_bat_path='/cygdrive/c/Program Files (x86)/Microsoft Visual Studio/2019/Community/Common7/Tools/VsDevCmd.bat'
+				;;
+			*)
+				print -u2 -f $"ERROR: No VsDevCmd.bat defined.\n"
+				return 1
+				;;
+		esac
 
-	env "${cmd_env[@]}"
+		typeset -a cmd_commands=(
+			'echo ON'
+			# "|| cd ." is used like POSIX sh "set -o errexit ; ... || true"
+			"$(printf 'call "%s" -arch=amd64 || cd .' "$(cygpath -w "${vsdevcmd_bat_path}")")"
+			'set PATH=C:\RosBE\Bin;%PATH%'
+			'set M4=C:\RosBE\Bin\m4.exe'
+			'set BISON_PKGDATADIR=C:\RosBE\share\bison'
+			'call configure.cmd -DARCH=amd64'
+			'cd output-VS-amd64'
+			'ninja -j20 bootcd livecd'
+			'echo DONE'
+		)
 
-	echo $?
+		printf '%s\n' "${cmd_commands[@]}" >'tmp_nfsbuildtest_reactosbuild.bat'
 
-	echo "#Done."
+		typeset -a cmd_env=(
+			'-'
+			"TMPDIR=$tmpdir" "TEMP=$tmpdir" "TMP=$tmpdir"
+			'PROCESSOR_ARCHITECTURE=AMD64'
+			'PATH=/cygdrive/c/Windows/system32:/cygdrive/c/Windows:/cygdrive/c/Program Files/Git/cmd'
+			'/cygdrive/c/Windows/system32/cmd.exe' '/E:ON' '/C' '.\tmp_nfsbuildtest_reactosbuild.bat'
+		)
+
+		env "${cmd_env[@]}"
+
+		echo $?
+	elif [[ "$subcmd" == *.gcc.64bit* ]] ; then
+		typeset -a cmd_commands=(
+			'echo ON'
+			'call C:\RosBE\RosBE.cmd amd64'
+			'call configure.cmd -DARCH=amd64'
+			'cd output-MinGW-amd64'
+			'ninja -j20 bootcd livecd'
+			'echo DONE'
+		)
+
+		printf '%s\n' "${cmd_commands[@]}" >'tmp_nfsbuildtest_reactosbuild.bat'
+
+		typeset -a cmd_env=(
+			'-'
+			"TMPDIR=$tmpdir" "TEMP=$tmpdir" "TMP=$tmpdir"
+			'PROCESSOR_ARCHITECTURE=AMD64'
+			'PATH=/cygdrive/c/Windows/system32:/cygdrive/c/Windows:/cygdrive/c/Program Files/Git/cmd'
+			'/cygdrive/c/Windows/system32/cmd.exe' '/E:ON' '/C' '.\tmp_nfsbuildtest_reactosbuild.bat'
+		)
+
+		env "${cmd_env[@]}"
+
+		echo $?
+	elif [[ "$subcmd" == *.gcc.32bit* ]] ; then
+		typeset -a cmd_commands=(
+			'echo ON'
+			'call C:\RosBE\RosBE.cmd'
+			'call configure.cmd -DARCH=i386'
+			'cd output-MinGW-i386'
+			'ninja -j20 bootcd livecd'
+			'echo DONE'
+		)
+
+		printf '%s\n' "${cmd_commands[@]}" >'tmp_nfsbuildtest_reactosbuild.bat'
+
+		typeset -a cmd_env=(
+			'-'
+			"TMPDIR=$tmpdir" "TEMP=$tmpdir" "TMP=$tmpdir"
+			'PROCESSOR_ARCHITECTURE=AMD64'
+			'PATH=/cygdrive/c/Windows/system32:/cygdrive/c/Windows:/cygdrive/c/Program Files/Git/cmd'
+			'/cygdrive/c/Windows/system32/cmd.exe' '/E:ON' '/C' '.\tmp_nfsbuildtest_reactosbuild.bat'
+		)
+
+		env "${cmd_env[@]}"
+
+		echo $?
+	else
+		print -u2 -f $"Neither '.vs2022.64bit', '.vs2019.64bit', '.gcc.64bit' or '.gcc.32bit' set in subcmd='%q'.\n" "$subcmd"
+		return 1
+	fi
+
+	echo $"#Done."
+
 	return 0
 }
 
@@ -966,13 +1064,26 @@ function is_toolkit_pkg_installed
 	nameref package_arr=$1
 	typeset package_name="$2"
 	if [[ ! -v package_arr["$package_name"] ]] ; then
-		print -u2 -f $"Toolkit package '%s' not installed.\n" "$package_name"
+		print -u2 -f $"Toolkit package '%q' not installed.\n" "$package_name"
 		return 1
 	fi
 
 	return 0
 }
 
+#
+# test if a command is installed
+#
+function is_cmd_installed
+{
+	typeset cmd_name=$1
+	if [[ ! -x "$cmd_name" ]] ; then
+		print -u2 -f $"Command '%q' not installed.\n" "$cmd_name"
+		return 1
+	fi
+
+	return 0
+}
 
 function main
 {
@@ -1081,12 +1192,15 @@ function main
 			return $?
 			;;
 		'reactos_createcache')
-			is_toolkit_pkg_installed itp 'git' || (( errc++ ))
+			is_cmd_installed '/cygdrive/c/Program Files/Git/cmd/git.exe' || (( errc++ ))
 			reactos_createcache
 			return $?
 			;;
 		'reactos_build'*)
-			is_toolkit_pkg_installed itp 'git' || (( errc++ ))
+			is_cmd_installed '/cygdrive/c/Program Files/Git/cmd/git.exe' || (( errc++ ))
+			# test whether the ReactOS RosBE build environment is installed
+			is_cmd_installed '/cygdrive/c/RosBE/bin/bison.exe' || (( errc++ ))
+			is_cmd_installed '/cygdrive/c/RosBE/bin/m4.exe' || (( errc++ ))
 			(( errc > 0 )) && return 1
 			reactos_build "${subcmd}"
 			return $?
