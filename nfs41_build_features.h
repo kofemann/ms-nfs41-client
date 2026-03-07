@@ -229,6 +229,13 @@
 #define NFS41_DRIVER_HACK_LOCKING_STORAGE32_RANGELOCK_PROBING 1
 
 /*
+ * |NFS41_DRIVER_CASEINSENSITIVE_FS_SUPPORT| - add support for
+ * case-insensitive filesystems
+ * (requries libicu)
+ */
+#define NFS41_DRIVER_CASEINSENSITIVE_FS_SUPPORT 1
+
+/*
  * |NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS| - provide mount
  * options "forcecasepreserving=0/1" and "forcecaseinsensitive=0/1"
  * to override |FATTR4_WORD0_CASE_INSENSITIVE|/|FATTR4_WORD0_CASE_PRESERVING|

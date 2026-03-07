@@ -155,6 +155,18 @@ static int get_superblock_attrs(
     superblock->case_insensitive = info.case_insensitive;
 #endif /* NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS */
 
+#ifndef NFS41_DRIVER_CASEINSENSITIVE_FS_SUPPORT
+    if (superblock->case_insensitive) {
+        eprintf("get_superblock_attrs(fsid=(%llu,%llu)): "
+            "case-insensitive filesystem support not compiled in, "
+            "please set NFS41_DRIVER_CASEINSENSITIVE_FS_SUPPORT in "
+            "build config\n",
+            superblock->fsid.major, superblock->fsid.minor,
+            (int)superblock->case_preserving);
+        return ERROR_NOT_SUPPORTED;
+    }
+#endif /* NFS41_DRIVER_CASEINSENSITIVE_FS_SUPPORT */
+
     superblock->sparse_file_support = 1; /* always ON for now */
     if (root->nfsminorvers >= 2) {
         superblock->block_clone_support = 1;

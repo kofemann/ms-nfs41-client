@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2023-2026 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -23,8 +23,13 @@
 
 #include <Windows.h>
 #include <strsafe.h>
-#include <icu.h>
 #include <time.h>
+
+#include "nfs41_build_features.h"
+
+#ifdef NFS41_DRIVER_CASEINSENSITIVE_FS_SUPPORT
+#include <icu.h>
+#endif /* NFS41_DRIVER_CASEINSENSITIVE_FS_SUPPORT */
 
 #include "nfs41_ops.h"
 #include "nfs41_compound.h"
@@ -551,9 +556,12 @@ struct nfs41_name_cache {
     uint32_t                delegations;
     uint32_t                max_delegations;
     SRWLOCK                 lock;
+#ifdef NFS41_DRIVER_CASEINSENSITIVE_FS_SUPPORT
     UCollator               *icu_coll;
+#endif /* NFS41_DRIVER_CASEINSENSITIVE_FS_SUPPORT */
 };
 
+#ifdef NFS41_DRIVER_CASEINSENSITIVE_FS_SUPPORT
 static
 int icu_strcmpcoll(UCollator *coll, const char *str1, const char *str2, int32_t len)
 {
@@ -582,6 +590,7 @@ int icu_strcmpcoll(UCollator *coll, const char *str1, const char *str2, int32_t 
         str1, str2, (long)result);
     return -1;
 }
+#endif /* NFS41_DRIVER_CASEINSENSITIVE_FS_SUPPORT */
 
 static
 int name_cmp_case_sensitive(
@@ -601,6 +610,7 @@ int name_cmp_case_sensitive(
     return res;
 }
 
+#ifdef NFS41_DRIVER_CASEINSENSITIVE_FS_SUPPORT
 static
 int name_cmp_case_insensitive(
     struct name_cache_entry *lhs, struct name_cache_entry *rhs)
@@ -643,7 +653,10 @@ int name_cmp_case_insensitive(
 
     return res;
 }
+#endif /* NFS41_DRIVER_CASEINSENSITIVE_FS_SUPPORT */
 
+
+#ifdef NFS41_DRIVER_CASEINSENSITIVE_FS_SUPPORT
 #define NC_SET_NAMECMP(ciss) \
     { name_cmp = (ciss)?name_cmp_case_insensitive:name_cmp_case_sensitive; }
 #define NC_CLEAR_NAMECMP() \
@@ -651,6 +664,15 @@ int name_cmp_case_insensitive(
         name_cmp = \
             (int (*)(struct name_cache_entry *, struct name_cache_entry *))NULL; \
     }
+#else
+#define NC_SET_NAMECMP(ciss) \
+    { EASSERT((ciss) == false) ; name_cmp = name_cmp_case_sensitive; }
+#define NC_CLEAR_NAMECMP() \
+    { \
+        name_cmp = \
+            (int (*)(struct name_cache_entry *, struct name_cache_entry *))NULL; \
+    }
+#endif /* NFS41_DRIVER_CASEINSENSITIVE_FS_SUPPORT */
 
 
 
@@ -1032,6 +1054,7 @@ int nfs41_name_cache_create(
         goto out;
     }
 
+#ifdef NFS41_DRIVER_CASEINSENSITIVE_FS_SUPPORT
     UErrorCode xstatus = U_ZERO_ERROR;
     cache->icu_coll = ucol_open("en_US", &xstatus);
     if (U_FAILURE(xstatus)) {
@@ -1051,6 +1074,7 @@ int nfs41_name_cache_create(
      * so we stick with |UCOL_SECONDARY|
      */
     ucol_setStrength(cache->icu_coll, UCOL_SECONDARY);
+#endif /* NFS41_DRIVER_CASEINSENSITIVE_FS_SUPPORT */
 
     list_init(&cache->exp_entries);
     cache->expiration = NAME_CACHE_EXPIRATION;
@@ -1077,9 +1101,11 @@ out:
 out_err_pool:
     free(cache->pool);
 out_err_cache:
+#ifdef NFS41_DRIVER_CASEINSENSITIVE_FS_SUPPORT
     if (cache->icu_coll) {
         ucol_close(cache->icu_coll);
     }
+#endif /* NFS41_DRIVER_CASEINSENSITIVE_FS_SUPPORT */
     free(cache);
     goto out;
 }
@@ -1095,10 +1121,12 @@ int nfs41_name_cache_free(
     /* free the attribute cache */
     attr_cache_free(&cache->attributes);
 
+#ifdef NFS41_DRIVER_CASEINSENSITIVE_FS_SUPPORT
     /* free the ICU object */
     if (cache->icu_coll) {
         ucol_close(cache->icu_coll);
     }
+#endif /* NFS41_DRIVER_CASEINSENSITIVE_FS_SUPPORT */
 
     /* free the name entry pool */
     free(cache->pool);
