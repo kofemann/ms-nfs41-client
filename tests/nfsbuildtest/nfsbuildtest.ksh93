@@ -46,7 +46,10 @@
 # - build ms-nfs41-client:
 #   $ ksh93 nfsbuildtest.ksh93 msnfs41client clean
 #   $ ksh93 nfsbuildtest.ksh93 msnfs41client createcache
-#   $ ksh93 nfsbuildtest.ksh93 msnfs41client build.serial
+#   $ ksh93 nfsbuildtest.ksh93 msnfs41client build.vs2022.64bit.serial
+#   $ ksh93 nfsbuildtest.ksh93 msnfs41client build.vs2019.all.serial
+#   $ ksh93 nfsbuildtest.ksh93 msnfs41client build.vs2019.64bit.serial
+#   $ ksh93 nfsbuildtest.ksh93 msnfs41client build.vs2019.32bit.serial
 #
 # - build ReactOS:
 #   $ ksh93 nfsbuildtest.ksh93 reactos clean
@@ -588,6 +591,15 @@ function msnfs41client_build
 		return 1
 	fi
 
+	if [[ "$subcmd" != *.vs2022.all.* && \
+		"$subcmd" != *.vs2022.64bit.* && \
+		"$subcmd" != *.vs2019.all.* && \
+		"$subcmd" != *.vs2019.64bit.* && \
+		"$subcmd" != *.vs2019.32bit.* ]] ; then
+		print -u2 -f $"ERROR: Neither '.vs2022.(all|64bit)' or '.vs2019.(all|64bit|32bit)' set in subcmd='%q'.\n" "$subcmd"
+		return 1
+	fi
+
 	#
 	# build config
 	#
@@ -612,7 +624,7 @@ function msnfs41client_build
 		export TEMP="$tmpdir"
 		export TMP="$tmpdir"
 	else
-		print -u2 -f "TEMPDIR %q on NFS filesystem does not work.\n" "$tmpdir"
+		print -u2 -f "ERROR: TEMPDIR %q on NFS filesystem does not work.\n" "$tmpdir"
 		return 1
 	fi
 
@@ -680,9 +692,15 @@ function msnfs41client_build
 		# Visual Studio 2019 --> Win10 64bit+32bit build,
 		# Visual Studio 2022 --> Win11/64bit-only build
 		#
-		if [[ -x '/cygdrive/c/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe' ]] ; then
-			# Visual Studio 19 64bit+32bit kernel codepath
-			export PATH="/cygdrive/c/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/:$PATH"
+		if [[ "$subcmd" == *.vs2022.* ]] ; then
+			# Visual Studio 2022 64bit+32bit kernel codepath
+			export PATH="$(expand_win_programfiles_path 'Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/'):$PATH"
+
+			if ! which 'MSBuild.exe' ; then
+				print -u2 -f $"ERROR: 'MSBuild.exe' not found in PATH=%q.\n" "$PATH"
+				return 1
+			fi
+
 			set -o errexit
 
 			# "retarget" VS platform toolset to "v143"
@@ -690,17 +708,31 @@ function msnfs41client_build
 			sed -i -E 's/<PlatformToolset>v...<\/PlatformToolset>/<PlatformToolset>v143<\/PlatformToolset>/g' $(find 'build.vc19' -name \*.vcxproj)
 
 			# build
-			time make "${make_options[@]}" -f cygwin/Makefile build64
-			time make "${make_options[@]}" -f cygwin/Makefile installdest64
-			time make "${make_options[@]}" -f cygwin/Makefile bintarball64
-		elif [[ -x '/cygdrive/c/Program Files/Microsoft Visual Studio/2019/Community/MSBuild/Current/Bin/MSBuild.exe' || \
-			-x '/cygdrive/c/Program Files (x86)/Microsoft Visual Studio/2019/Community/MSBuild/Current/Bin/MSBuild.exe' ]] ; then
-			# Visual Studio 19 64bit+32bit kernel codepath
-			if [[ -x '/cygdrive/c/Program Files/Microsoft Visual Studio/2019/Community/MSBuild/Current/Bin/MSBuild.exe' ]] ; then
-				export PATH="/cygdrive/c/Program Files/Microsoft Visual Studio/2019/Community/MSBuild/Current/Bin/:$PATH"
-			else
-				export PATH="/cygdrive/c/Program Files (x86)/Microsoft Visual Studio/2019/Community/MSBuild/Current/Bin/:$PATH"
+			case "$subcmd" in
+				*.all.*)
+					time make "${make_options[@]}" -f cygwin/Makefile build
+					time make "${make_options[@]}" -f cygwin/Makefile installdest
+					time make "${make_options[@]}" -f cygwin/Makefile bintarball
+					;;
+				*.64bit.*)
+					time make "${make_options[@]}" -f cygwin/Makefile build64
+					time make "${make_options[@]}" -f cygwin/Makefile installdest64
+					time make "${make_options[@]}" -f cygwin/Makefile bintarball64
+					;;
+				*.32bit.*)
+					print -u2 -f $"ERROR: 32bgit builds not supported with VS2022\n" "$PATH"
+					return 1
+					;;
+			esac
+		elif [[ "$subcmd" == *.vs2019.* ]] ; then
+			# Visual Studio 2019 64bit+32bit kernel codepath
+			export PATH="$(expand_win_programfiles_path 'Microsoft Visual Studio/2019/Community/MSBuild/Current/Bin/'):$PATH"
+
+			if ! which 'MSBuild.exe' ; then
+				print -u2 -f $"ERROR: 'MSBuild.exe' not found in PATH=%q.\n" "$PATH"
+				return 1
 			fi
+
 			set -o errexit
 
 			# "retarget" VS platform toolset to "v142"
@@ -708,9 +740,23 @@ function msnfs41client_build
 			sed -i -E 's/<PlatformToolset>v...<\/PlatformToolset>/<PlatformToolset>v142<\/PlatformToolset>/g' $(find 'build.vc19' -name \*.vcxproj)
 
 			# build
-			time make "${make_options[@]}" -f cygwin/Makefile build
-			time make "${make_options[@]}" -f cygwin/Makefile installdest
-			time make "${make_options[@]}" -f cygwin/Makefile bintarball
+			case "$subcmd" in
+				*.all.*)
+					time make "${make_options[@]}" -f cygwin/Makefile build
+					time make "${make_options[@]}" -f cygwin/Makefile installdest
+					time make "${make_options[@]}" -f cygwin/Makefile bintarball
+					;;
+				*.64bit.*)
+					time make "${make_options[@]}" -f cygwin/Makefile build64
+					time make "${make_options[@]}" -f cygwin/Makefile installdest64
+					time make "${make_options[@]}" -f cygwin/Makefile bintarball64
+					;;
+				*.32bit.*)
+					time make "${make_options[@]}" -f cygwin/Makefile build32
+					time make "${make_options[@]}" -f cygwin/Makefile installdest32
+					time make "${make_options[@]}" -f cygwin/Makefile bintarball32
+					;;
+			esac
 		else
 			print -u2 -f "%s: Unknown compiler.\n" "$0"
 			exit 5
@@ -741,7 +787,12 @@ function reactos_createcache
 	set -o nounset
 
 	# use native Windows git
-	typeset -r gitcmd='/cygdrive/c/Program Files/Git/cmd/git.exe'
+	typeset -r gitcmd="$(expand_win_programfiles_path 'Git/cmd/git.exe')"
+
+	if [[ ! -x "$gitcmd" ]] ; then
+		print -u2 -f $"ERROR: git cmd %q not found.\n" "$gitcmd"
+		return 1
+	fi
 
 	mkdir -p '../gitbundles'
 	rm -f '../gitbundles/reactos'
@@ -768,7 +819,12 @@ function reactos_build
 	integer build_parallel
 
 	# use native Windows git
-	typeset -r gitcmd='/cygdrive/c/Program Files/Git/cmd/git.exe'
+	typeset -r gitcmd="$(expand_win_programfiles_path 'Git/cmd/git.exe')"
+
+	if [[ ! -x "$gitcmd" ]] ; then
+		print -u2 -f $"ERROR: git cmd %q not found.\n" "$gitcmd"
+		return 1
+	fi
 
 	#
 	# ReactOS currently fails to build on a case-sensitive filesystem
@@ -875,10 +931,18 @@ function reactos_build
 
 		case "$subcmd" in
 			*.vs2022.*)
-				vsdevcmd_bat_path='/cygdrive/c/Program Files/Microsoft Visual Studio/2022/Community/Common7/Tools/VsDevCmd.bat'
+				vsdevcmd_bat_path="$(expand_win_programfiles_path 'Microsoft Visual Studio/2022/Community/Common7/Tools/VsDevCmd.bat')"
+				if (( $? != 0 )) ; then
+					print -u2 -f $"ERROR: No VsDevCmd.bat lookup failed.\n"
+					return 1
+				fi
 				;;
 			*.vs2019.*)
-				vsdevcmd_bat_path='/cygdrive/c/Program Files (x86)/Microsoft Visual Studio/2019/Community/Common7/Tools/VsDevCmd.bat'
+				vsdevcmd_bat_path="$(expand_win_programfiles_path 'Microsoft Visual Studio/2019/Community/Common7/Tools/VsDevCmd.bat')"
+				if (( $? != 0 )) ; then
+					print -u2 -f $"ERROR: No VsDevCmd.bat lookup failed.\n"
+					return 1
+				fi
 				;;
 			*)
 				print -u2 -f $"ERROR: No VsDevCmd.bat defined.\n"
@@ -928,7 +992,7 @@ function reactos_build
 			'-'
 			"TMPDIR=$tmpdir" "TEMP=$tmpdir" "TMP=$tmpdir"
 			'PROCESSOR_ARCHITECTURE=AMD64'
-			'PATH=/cygdrive/c/Windows/system32:/cygdrive/c/Windows:/cygdrive/c/Program Files/Git/cmd'
+			'PATH=/cygdrive/c/Windows/system32:/cygdrive/c/Windows:/cygdrive/c/Program Files/Git/cmd/'
 			'/cygdrive/c/Windows/system32/cmd.exe' '/E:ON' '/C' '.\tmp_nfsbuildtest_reactosbuild.bat'
 		)
 
@@ -951,7 +1015,7 @@ function reactos_build
 			'-'
 			"TMPDIR=$tmpdir" "TEMP=$tmpdir" "TMP=$tmpdir"
 			'PROCESSOR_ARCHITECTURE=AMD64'
-			'PATH=/cygdrive/c/Windows/system32:/cygdrive/c/Windows:/cygdrive/c/Program Files/Git/cmd'
+			'PATH=/cygdrive/c/Windows/system32:/cygdrive/c/Windows:/cygdrive/c/Program Files/Git/cmd/'
 			'/cygdrive/c/Windows/system32/cmd.exe' '/E:ON' '/C' '.\tmp_nfsbuildtest_reactosbuild.bat'
 		)
 
@@ -1085,6 +1149,19 @@ function is_cmd_installed
 	return 0
 }
 
+function expand_win_programfiles_path
+{
+	if [[ -r "/cygdrive/c/Program Files/$1" ]] ; then
+		printf '/cygdrive/c/Program Files/%s\n' "$1"
+		return 0
+	elif [[ -r "/cygdrive/c/Program Files (x86)/$1" ]] ; then
+		printf '/cygdrive/c/Program Files (x86)/%s\n' "$1"
+		return 0
+	fi
+
+	return 1
+}
+
 function main
 {
 	typeset -A itp # installed toolkit packages
@@ -1192,12 +1269,12 @@ function main
 			return $?
 			;;
 		'reactos_createcache')
-			is_cmd_installed '/cygdrive/c/Program Files/Git/cmd/git.exe' || (( errc++ ))
+			is_cmd_installed "$(expand_win_programfiles_path 'Git/cmd/git.exe')" || (( errc++ ))
 			reactos_createcache
 			return $?
 			;;
 		'reactos_build'*)
-			is_cmd_installed '/cygdrive/c/Program Files/Git/cmd/git.exe' || (( errc++ ))
+			is_cmd_installed "$(expand_win_programfiles_path 'Git/cmd/git.exe')" || (( errc++ ))
 			# test whether the ReactOS RosBE build environment is installed
 			is_cmd_installed '/cygdrive/c/RosBE/bin/bison.exe' || (( errc++ ))
 			is_cmd_installed '/cygdrive/c/RosBE/bin/m4.exe' || (( errc++ ))
