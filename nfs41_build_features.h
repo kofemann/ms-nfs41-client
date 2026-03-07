@@ -292,12 +292,11 @@
 /*
  * |WORKAROUND_FOR_FREEBSD15_0_CREATIONFAILSWITHEPERM_BUG292283| - workaround
  * for FreeBSD bug#292283 which causes file/dir creation to fail with |EPERM|
- * if |FATTR4_SYSTEM| or |FATTR4_HIDDEN| attributes are provided to a FreeBSD
- * 15.0 NFS server
+ * if |FATTR4_SYSTEM|, |FATTR4_HIDDEN| (and for FreeBSD 16-CURRENT20260302
+ * |FATTR4_ARCHIVE|) attributes are provided to a FreeBSD 15.0 NFS server
  *
  * This workaround will be REMOVED as soon as FreeBSD 15.1 or a fixed kernel
  * for FreeBSD 15.0 is available.
- *
  *
  */
 #define WORKAROUND_FOR_FREEBSD15_0_CREATIONFAILSWITHEPERM_BUG292283 1

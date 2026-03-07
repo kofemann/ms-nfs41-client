@@ -825,20 +825,24 @@ out:
 #endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
 
 #ifdef WORKAROUND_FOR_FREEBSD15_0_CREATIONFAILSWITHEPERM_BUG292283
-void set_hiddensystem_attrs(ULONG file_attrs, nfs41_open_state *state)
+void set_hiddensystemarchive_attrs(ULONG file_attrs, nfs41_open_state *state)
 {
     int status;
     stateid_arg stateid;
 
-    if ((file_attrs & (FILE_ATTRIBUTE_HIDDEN|FILE_ATTRIBUTE_SYSTEM)) == 0)
+    if ((file_attrs &
+            (FILE_ATTRIBUTE_HIDDEN|
+            FILE_ATTRIBUTE_SYSTEM|
+            FILE_ATTRIBUTE_ARCHIVE)) == 0)
         return;
 
     nfs41_file_info createattrs = {
         .attrmask.count = 2,
-        .attrmask.arr[0] = FATTR4_WORD0_HIDDEN,
+        .attrmask.arr[0] = FATTR4_WORD0_HIDDEN|FATTR4_WORD0_ARCHIVE,
         .attrmask.arr[1] = FATTR4_WORD1_SYSTEM,
         .hidden = ((file_attrs & FILE_ATTRIBUTE_HIDDEN) ? 1 : 0),
         .system = ((file_attrs & FILE_ATTRIBUTE_SYSTEM) ? 1 : 0),
+        .archive = ((file_attrs & FILE_ATTRIBUTE_ARCHIVE) ? 1 : 0),
     };
 
     nfs41_open_stateid_arg(state, &stateid);
@@ -846,7 +850,7 @@ void set_hiddensystem_attrs(ULONG file_attrs, nfs41_open_state *state)
         &state->file, &stateid, &createattrs);
 
     if (status && (status != NFS4ERR_ATTRNOTSUPP)) {
-        eprintf("set_hiddensystem_attrs(state->file.name.name='%s'): "
+        eprintf("set_hiddensystemarchive_attrs(state->file.name.name='%s'): "
             "nfs41_setattr() "
             "failed with error '%s'.\n",
             state->file.name.name,
@@ -1196,7 +1200,7 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
             state);
 #endif /* NFS41_DRIVER_SETGID_NEWGRP_SUPPORT */
 #ifdef WORKAROUND_FOR_FREEBSD15_0_CREATIONFAILSWITHEPERM_BUG292283
-        set_hiddensystem_attrs(args->file_attrs, state);
+        set_hiddensystemarchive_attrs(args->file_attrs, state);
 #endif /* WORKAROUND_FOR_FREEBSD15_0_CREATIONFAILSWITHEPERM_BUG292283 */
 
         nfs_to_basic_info(state->file.name.name,
@@ -1259,10 +1263,9 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
         }
         createattrs.attrmask.count = 2;
 #ifdef WORKAROUND_FOR_FREEBSD15_0_CREATIONFAILSWITHEPERM_BUG292283
-        createattrs.attrmask.arr[0] = FATTR4_WORD0_ARCHIVE;
+        createattrs.attrmask.arr[0] = 0;
         createattrs.attrmask.arr[1] = FATTR4_WORD1_MODE;
         createattrs.mode = args->mode;
-        createattrs.archive = args->file_attrs & FILE_ATTRIBUTE_ARCHIVE ? 1 : 0;
 #else
         createattrs.attrmask.arr[0] = FATTR4_WORD0_HIDDEN | FATTR4_WORD0_ARCHIVE;
         createattrs.attrmask.arr[1] = FATTR4_WORD1_MODE | FATTR4_WORD1_SYSTEM;
@@ -1365,7 +1368,7 @@ supersede_retry:
 #endif /* NFS41_DRIVER_SETGID_NEWGRP_SUPPORT */
 #ifdef WORKAROUND_FOR_FREEBSD15_0_CREATIONFAILSWITHEPERM_BUG292283
             if (create == OPEN4_CREATE) {
-                set_hiddensystem_attrs(args->file_attrs, state);
+                set_hiddensystemarchive_attrs(args->file_attrs, state);
             }
 #endif /* WORKAROUND_FOR_FREEBSD15_0_CREATIONFAILSWITHEPERM_BUG292283 */
             nfs_to_basic_info(state->file.name.name,
