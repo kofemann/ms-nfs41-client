@@ -173,12 +173,12 @@ function gcc_build
 	mkdir -p "$tmpdir"
 	chmod a+rwxt "$tmpdir"
 	if [[ -d "$tmpdir" && -w "$tmpdir" ]] ; then
-		printf '#### Using temp dir %q\n' "$tmpdir"
+		printf $"#### Using temp dir %q\n" "$tmpdir"
 		export TMPDIR="$tmpdir"
 		export TEMP="$tmpdir"
 		export TMP="$tmpdir"
 	else
-		print -u2 -f "TEMPDIR %q on NFS filesystem does not work.\n" "$tmpdir"
+		print -u2 -f $"ERROR: TEMPDIR %q on NFS filesystem does not work.\n" "$tmpdir"
 		return 1
 	fi
 
@@ -297,9 +297,9 @@ function gcc_build
 
 		set -o xtrace
 		time ksh93 -c 'set -o xtrace ; export SHELL=/bin/ksh93 ; (yes | make "$@" all)' dummy "${make_options[@]}"
-		printf "######## gcc build make all returned %d\n" $?
+		printf $"######## gcc build make all returned %d\n" $?
 		time ksh93 -c 'set -o xtrace ; export SHELL=/bin/ksh93 ; (yes | make "$@" install DESTDIR="$PWD/install_root")' dummy "${make_options[@]}"
-		printf "######## gcc build make install returned %d\n" $?
+		printf $"######## gcc build make install returned %d\n" $?
 	)
 
 	echo "#Done."
@@ -387,12 +387,12 @@ function bash_build
 	mkdir -p "$tmpdir"
 	chmod a+rwxt "$tmpdir"
 	if [[ -d "$tmpdir" && -w "$tmpdir" ]] ; then
-		printf '#### Using temp dir %q\n' "$tmpdir"
+		printf $"#### Using temp dir %q\n" "$tmpdir"
 		export TMPDIR="$tmpdir"
 		export TEMP="$tmpdir"
 		export TMP="$tmpdir"
 	else
-		print -u2 -f "TEMPDIR %q on NFS filesystem does not work.\n" "$tmpdir"
+		print -u2 -f $"ERROR: TEMPDIR %q on NFS filesystem does not work.\n" "$tmpdir"
 		return 1
 	fi
 
@@ -587,7 +587,7 @@ function msnfs41client_build
 
 		(( build_parallel=1 ))
 	else
-		print -u2 -f $"Neither '.serial' or '.parallel' set in subcmd='%q'.\n" "$subcmd"
+		print -u2 -f $"ERROR: Neither '.serial' or '.parallel' set in subcmd='%q'.\n" "$subcmd"
 		return 1
 	fi
 
@@ -619,12 +619,12 @@ function msnfs41client_build
 	mkdir -p "$tmpdir"
 	chmod a+rwxt "$tmpdir"
 	if [[ -d "$tmpdir" && -w "$tmpdir" ]] ; then
-		printf '#### Using temp dir %q\n' "$tmpdir"
+		printf $"#### Using temp dir %q\n" "$tmpdir"
 		export TMPDIR="$tmpdir"
 		export TEMP="$tmpdir"
 		export TMP="$tmpdir"
 	else
-		print -u2 -f "ERROR: TEMPDIR %q on NFS filesystem does not work.\n" "$tmpdir"
+		print -u2 -f $"ERROR: TEMPDIR %q on NFS filesystem does not work.\n" "$tmpdir"
 		return 1
 	fi
 
@@ -671,7 +671,7 @@ function msnfs41client_build
 	# Use WDK test certificate to sign *.(exe|dll) files
 	export CERTIFICATE_THUMBPRINT="$(powershell -c 'Get-ChildItem -Path Cert:\CurrentUser\My | Where-Object {$_.Subject -like "*WDKTestCert*"} | Select-Object -ExpandProperty Thumbprint')"
 	if [[ "${CERTIFICATE_THUMBPRINT}" == '' ]] ; then
-		printf '%s: ERROR: Empty CERTIFICATE_THUMBPRINT\n' "$0"
+		printf $"%s: ERROR: Empty CERTIFICATE_THUMBPRINT\n" "$0"
 		return 1
 	fi
 
@@ -758,8 +758,8 @@ function msnfs41client_build
 					;;
 			esac
 		else
-			print -u2 -f "%s: Unknown compiler.\n" "$0"
-			exit 5
+			print -u2 -f $"ERROR: Unknown compiler.\n"
+			return 5
 		fi
 	)
 	echo $?
@@ -882,12 +882,12 @@ function reactos_build
 	mkdir -p "$tmpdir"
 	chmod a+rwxt "$tmpdir"
 	if [[ -d "$tmpdir" && -w "$tmpdir" ]] ; then
-		printf '#### Using temp dir %q\n' "$tmpdir"
+		printf $"#### Using temp dir %q\n" "$tmpdir"
 		export TMPDIR="$tmpdir"
 		export TEMP="$tmpdir"
 		export TMP="$tmpdir"
 	else
-		print -u2 -f "ERROR: TEMPDIR %q on NFS filesystem does not work.\n" "$tmpdir"
+		print -u2 -f $"ERROR: TEMPDIR %q on NFS filesystem does not work.\n" "$tmpdir"
 		return 1
 	fi
 
@@ -1220,17 +1220,17 @@ function main
 			is_toolkit_pkg_installed itp 'bison' || (( errc++ ))
 			if is_cygwin ; then
 				if (( (cygwin_vers.major*1000+cygwin_vers.minor) >= 3005 )) ; then
-					print '# bash_build: Using Cygwin >= 3.5 config'
+					print $"# bash_build: Using Cygwin >= 3.5 config"
 					# Only Cygwin >= 3.5 has /usr/bin/bmake
 					is_toolkit_pkg_installed itp 'bmake' || (( errc++ ))
 				else
-					print '# bash_build: Using Cygwin < 3.5 config'
+					print $"# bash_build: Using Cygwin < 3.5 config"
 					is_toolkit_pkg_installed itp 'make' || (( errc++ ))
 				fi
 			elif is_mingw64 ; then
 				is_toolkit_pkg_installed itp 'make' || (( errc++ ))
 			else
-				print '# bash_build: unsupported toolkit'
+				print $"# bash_build: unsupported toolkit"
 			fi
 			is_toolkit_pkg_installed itp 'patch' || (( errc++ ))
 			is_toolkit_pkg_installed itp 'libncurses-devel' || (( errc++ ))

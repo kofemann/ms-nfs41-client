@@ -87,9 +87,9 @@ function print_secureboot_status
 	fi
 
 	if [[ "$(od -t x1 "${uefisecurebootenabled_regfile}")" == "0000000 00 00 00 00"* ]] ; then
-		printf '# SecureBoot disabled, nfs41_driver kernel module should work\n'
+		printf $"# SecureBoot disabled, nfs41_driver kernel module should work\n"
 	else
-		printf '#\n# WARNING:\n# SecureBoot enabled, nfs41_driver kernel module might not work\n# if not signed for SecureBoot\n#\n'
+		printf $"#\n# WARNING:\n# SecureBoot enabled, nfs41_driver kernel module might not work\n# if not signed for SecureBoot\n#\n"
 	fi
 
 	return 0
@@ -173,9 +173,9 @@ function nfsclient_install
 	if is_service_installed 'ms-nfs41-client-service' ; then
 		if ! is_service_stopped 'ms-nfs41-client-service' ; then
 			set -o xtrace # make message below more readable
-			printf 'ms-nfs41-client-service is still running.\n'
-			printf 'Please disable the service via $ /sbin/msnfs41client disableautostartservices #,\n'
-			printf 'reboot and then install the new version of ms-nfs41-client via $ /sbin/msnfs41client install #\n'
+			printf $"ms-nfs41-client-service is still running.\n"
+			printf $"Please disable the service via $ /sbin/msnfs41client disableautostartservices #,\n"
+			printf $"reboot and then install the new version of ms-nfs41-client via $ /sbin/msnfs41client install #\n"
 			return 1
 		fi
 	fi
@@ -460,7 +460,7 @@ function nfsclient_install
 		{ \
 			/usr/bin/ksh93 -c \
 				'compound c=(typeset -a ar); c.ar=("hello"); c.ar+=("world"); printf "%s" "${c.ar[*]}"' ; \
-			echo $? ; } 2>&1 \
+			printf '%d\n' $? ; } 2>&1 \
 		)"
 
 	if [[ "${cmdout}" != $'hello world0' ]] ; then
@@ -469,7 +469,7 @@ function nfsclient_install
 			"$cmdout"
 		return 1
 	fi
-	printf '/usr/bin/ksh93 is working\n'
+	printf $"/usr/bin/ksh93 is working\n"
 	set -o xtrace
 
 	print_secureboot_status
@@ -513,9 +513,9 @@ function nfsclient_adddriver
 	# devel: set default in case "nfs_install" ruined it:
 	#regtool -s set '/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Control/NetworkProvider/Order/ProviderOrder' 'RDPNP,LanmanWorkstation,webclient'
 
-	printf 'before nfs_install: ProviderOrder="%s"\n' "$( strings -a '/proc/registry/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Control/NetworkProvider/Order/ProviderOrder')"
+	printf $"before nfs_install: ProviderOrder=%q\n" "$( strings -a '/proc/registry/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Control/NetworkProvider/Order/ProviderOrder')"
 	nfs_install -D
-	printf 'after nfs_install:  ProviderOrder="%s"\n' "$( strings -a '/proc/registry/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Control/NetworkProvider/Order/ProviderOrder')"
+	printf $"after nfs_install:  ProviderOrder=%q\n" "$( strings -a '/proc/registry/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Control/NetworkProvider/Order/ProviderOrder')"
 
 	if ${use_nfs41rdrinf} ; then
 		rundll32 setupapi.dll,InstallHinfSection DefaultInstall 132 ./nfs41rdr.inf
@@ -582,12 +582,12 @@ function nfsclient_removedriver
 
 		# nfs41rdr.inf should do this, but we do this here for testing
 		if [[ -f '/cygdrive/c/Windows/System32/drivers/nfs41_driver.sys' ]] ; then
-			printf '# %q leftover from INF uninstall, removing...\n' \
+			printf $"# %q leftover from INF uninstall, removing...\n" \
 				'/cygdrive/c/Windows/System32/drivers/nfs41_driver.sys'
 			rm -f '/cygdrive/c/Windows/System32/drivers/nfs41_driver.sys' || true
 		fi
 		if [[ -f '/cygdrive/c/Windows/System32/nfs41_np.dll' ]] ; then
-			printf '# %q leftover from INF uninstall, removing...\n' \
+			printf $"# %q leftover from INF uninstall, removing...\n" \
 				'/cygdrive/c/Windows/System32/nfs41_np.dll'
 			rm -f '/cygdrive/c/Windows/System32/nfs41_np.dll' || true
 		fi
@@ -643,7 +643,7 @@ function nfsclient_waitfor_clientdaemon
 
 		# print message every 5 seconds
 		if (( i%(5*4) == 0 )) ; then
-			printf '%s: Waiting for nfsd*.exe to start\n' "$0"
+			printf $"%s: Waiting for nfsd*.exe to start\n" "$0"
 		fi
 		sleep 0.25
 	done
@@ -660,7 +660,7 @@ function nfsclient_rundeamon
 {
 	set -o nounset
 
-	printf '# user="%s" uname="%s" isadmin=%d domainname="%s"\n' \
+	printf $"# user=%q uname=%q isadmin=%d domainname=%q\n" \
 		"$(id -u -n)" \
 		"$(uname -a)" \
 		"$(is_windows_admin_account ; printf "%d\n" $((${?}?0:1)))" \
@@ -772,9 +772,7 @@ function nfsclient_rundeamon
 			"/launch:$(cygpath -w "${sbinpath}/nfsd.exe")" \
 			"/launchArgs:${nfsd_args[*]:1}" \
 			"/loadConfig:$(cygpath -w "${vsdiagnostics_path}/AgentConfigs/CpuUsageHigh.json")"
-		printf '#\n'
-		printf '# use\n'
-		printf '# $ "%s" stop %d /output:nfsd%d # to collect profiling data\n#\n' \
+		printf $"#\n# use\n# $ %q stop %d /output:nfsd%d # to collect profiling data\n#\n" \
 			"$(which -a 'VSDiagnostics.exe')" \
 			"${vsdiagnostics_id}" "$$"
 	else
@@ -787,7 +785,7 @@ function nfsclient_system_rundeamon
 {
 	set -o nounset
 
-	printf '# user="%s" uname="%s" isadmin=%d domainname="%s"\n' \
+	printf $"# user=%q uname=%q isadmin=%d domainname=%q\n" \
 		"$(id -u -n)" \
 		"$(uname -a)" \
 		"$(is_windows_admin_account ; printf "%d\n" $((${?}?0:1)))" \
@@ -925,9 +923,7 @@ function nfsclient_system_rundeamon
 			"/launch:$(cygpath -w "${sbinpath}/nfsd.exe")" \
 			"/launchArgs:${nfsd_args[*]:1}" \
 			"/loadConfig:$(cygpath -w "${vsdiagnostics_path}/AgentConfigs/CpuUsageHigh.json")"
-		printf '#\n'
-		printf '# use\n'
-		printf '# $ "%s" stop %d /output:nfsd%d # to collect profiling data\n#\n' \
+		printf $"#\n# use\n# $ %q stop %d /output:nfsd%d # to collect profiling data\n#\n" \
 			"$(which -a 'VSDiagnostics.exe')" \
 			"${vsdiagnostics_id}" "$$"
 	else
@@ -963,7 +959,7 @@ function attach_debugger_to_daemon
 
 function watch_kernel_debuglog
 {
-	printf "# logging start...\n" 1>&2
+	printf $"# logging start...\n" 1>&2
 
 	trap 'catdbgprint stoptrace ; trap "" INT TERM EXIT ; printf "# logging done\n" 1>&2' INT TERM EXIT
 
@@ -980,12 +976,12 @@ function watch_nfs_traffic
 	typeset s
 	typeset -a eth_interface_list=()
 
-	printf '# %s: Reading ethernet interface list\n' "$0"
+	printf $"# %s: Reading ethernet interface list\n" "$0"
 	while read s ; do
 		eth_interface_list+=( "${s/$'\r'/}" )
 	done < <(powershell -Command 'Get-NetAdapter -Physical | Where-Object { $_.Status -eq "Up"} | ForEach-Object {$_.Name}')
 
-	printf '# Found interface %q\n' "${eth_interface_list[@]}"
+	printf $"# Found interface %q\n" "${eth_interface_list[@]}"
 
 	# args to watch NFSv4.x RFC traffic
 	typeset -a tshark_args=(
@@ -1092,7 +1088,7 @@ function su_system
 
 	typeset abspath_cmd="$(which "$cmd")"
 	if [[ ! -x "$abspath_cmd" ]] ; then
-		printf "%s: Command %q not found." $"su_system" "$abspath_cmd" 1>&2
+		printf $"%s: Command %q not found." $"su_system" "$abspath_cmd" 1>&2
 		return 127
 	fi
 
