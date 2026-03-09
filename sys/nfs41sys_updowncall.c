@@ -555,6 +555,7 @@ retry_wait:
         ExAcquireFastMutexUnsafe(&entry->lock);
         if (entry->state == NFS41_DONE_PROCESSING) {
             ExReleaseFastMutexUnsafe(&entry->lock);
+            status = STATUS_SUCCESS;
             break;
         }
         DbgP("[upcall] abandoning '%s' entry=0x%p xid=%lld\n",
