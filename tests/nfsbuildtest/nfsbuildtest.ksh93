@@ -27,7 +27,8 @@
 #
 # nfsbuildtest.ksh93
 #
-# Simple NFSv4 torture test by building { bash, gcc, ms-nfs41-client, ReactOS }
+# Simple NFSv4 torture test by building { bash, gcc, ms-nfs41-client,
+# filedisk-sparse, ReactOS }
 # in { parallel, serial } on a NFS filesystem
 #
 
@@ -50,6 +51,14 @@
 #   $ ksh93 nfsbuildtest.ksh93 msnfs41client build.vs2019.all.serial
 #   $ ksh93 nfsbuildtest.ksh93 msnfs41client build.vs2019.64bit.serial
 #   $ ksh93 nfsbuildtest.ksh93 msnfs41client build.vs2019.32bit.serial
+#
+# - build filedisk-sparse:
+#   $ ksh93 nfsbuildtest.ksh93 filedisksparse clean
+#   $ ksh93 nfsbuildtest.ksh93 filedisksparse createcache
+#   $ ksh93 nfsbuildtest.ksh93 filedisksparse build.vs2022.64bit.serial
+#   $ ksh93 nfsbuildtest.ksh93 filedisksparse build.vs2019.all.serial
+#   $ ksh93 nfsbuildtest.ksh93 filedisksparse build.vs2019.64bit.serial
+#   $ ksh93 nfsbuildtest.ksh93 filedisksparse build.vs2019.32bit.serial
 #
 # - build ReactOS:
 #   $ ksh93 nfsbuildtest.ksh93 reactos clean
@@ -779,6 +788,201 @@ function msnfs41client_clean
 	return 0
 }
 
+function filedisksparse_createcache
+{
+	set -o xtrace
+	set -o errexit
+	set -o nounset
+
+	mkdir -p '../gitbundles'
+	rm -f '../gitbundles/filedisk-sparse.bundle'
+
+	git -c checkout.workers=16 clone 'https://github.com/gisburn/filedisk-sparse.git'
+	cd 'filedisk-sparse'
+	git config --global --add safe.directory "$PWD"
+	git bundle create '../gitbundles/filedisk-sparse.bundle' --all
+	git config --global --unset safe.directory "$PWD"
+	cd ..
+	rm -Rf 'filedisk-sparse'
+
+	return 0
+}
+
+
+function filedisksparse_build
+{
+	set -o xtrace
+	set -o errexit
+	set -o nounset
+
+	typeset subcmd="$1"
+	integer build_parallel
+
+	if [[ "$subcmd" == *.serial* ]] ; then
+		(( build_parallel=0 ))
+	elif [[ "$subcmd" == *.parallel* ]] ; then
+		(( build_parallel=1 ))
+	else
+		print -u2 -f $"ERROR: Neither '.serial' or '.parallel' set in subcmd='%q'.\n" "$subcmd"
+		return 1
+	fi
+
+	if [[ "$subcmd" != *.vs2022.all.* && \
+		"$subcmd" != *.vs2022.64bit.* && \
+		"$subcmd" != *.vs2019.all.* && \
+		"$subcmd" != *.vs2019.64bit.* && \
+		"$subcmd" != *.vs2019.32bit.* ]] ; then
+		print -u2 -f $"ERROR: Neither '.vs2022.(all|64bit)' or '.vs2019.(all|64bit|32bit)' set in subcmd='%q'.\n" "$subcmd"
+		return 1
+	fi
+
+	#
+	# build config
+	#
+	compound gitdata=(
+		typeset url='https://github.com/gisburn/filedisk-sparse.git'
+		# use fixed git tag, so build times are compareable
+		typeset tag='main'
+	)
+
+	#
+	# temp dir setup
+	#
+
+	tmpdir="$PWD/tmpdir"
+	mkdir -p "$tmpdir"
+	chmod a+rwxt "$tmpdir"
+	if [[ -d "$tmpdir" && -w "$tmpdir" ]] ; then
+		printf $"#### Using temp dir %q\n" "$tmpdir"
+		export TMPDIR="$tmpdir"
+		export TEMP="$tmpdir"
+		export TMP="$tmpdir"
+	else
+		print -u2 -f $"ERROR: TEMPDIR %q on NFS filesystem does not work.\n" "$tmpdir"
+		return 1
+	fi
+
+	#
+	# print user info
+	#
+	id -a
+	pwd
+
+	#
+	# source checkout
+	#
+
+	if [[ -f '../gitbundles/filedisk-sparse.bundle' ]] ; then
+		# Use local bundle as cache,
+		# so build times only depend on local filesystem performance
+		# and not HTTPS speed
+		time git -c checkout.workers=16 clone -b "${gitdata.tag}" --single-branch '../gitbundles/filedisk-sparse.bundle'
+	else
+		time git -c checkout.workers=16 clone -b "${gitdata.tag}" --single-branch "${gitdata.url}"
+	fi
+
+	cd "$PWD/filedisk-sparse/"
+
+	# make sure git commands (like git "describe", "fsck", ...) work
+	git config --global --add safe.directory "$PWD"
+
+	# use git fsck as filesystem test
+	time git fsck
+
+	#
+	# patch sources and configure build
+	#
+
+	#
+	# build filedisk-sparse
+	#
+	(
+		typeset -a make_options=( )
+
+		if (( build_parallel == 1 )) ; then
+			make_options+=( '-j8' )
+		else
+			make_options+=( '-j1' )
+		fi
+
+		#
+		# We assume here:
+		# Visual Studio 2019 --> Win10 64bit+32bit build,
+		# Visual Studio 2022 --> Win11/64bit-only build
+		#
+		if [[ "$subcmd" == *.vs2022.* ]] ; then
+			# Visual Studio 2022 64bit+32bit kernel codepath
+			export PATH="$(expand_win_programfiles_path 'Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/'):$PATH"
+
+			if ! which 'MSBuild.exe' ; then
+				print -u2 -f $"ERROR: 'MSBuild.exe' not found in PATH=%q.\n" "$PATH"
+				return 1
+			fi
+
+			set -o errexit
+
+			# build
+			case "$subcmd" in
+				*.all.*)
+					time MSBuild.exe filedisk.sln -t:Build -p:Configuration=Debug -p:Platform=x64
+					time MSBuild.exe filedisk.sln -t:Build -p:Configuration=Debug -p:Platform=arm64
+					;;
+				*.64bit.*)
+					time MSBuild.exe filedisk.sln -t:Build -p:Configuration=Debug -p:Platform=x64
+					time MSBuild.exe filedisk.sln -t:Build -p:Configuration=Debug -p:Platform=arm64
+					;;
+				*.32bit.*)
+					print -u2 -f $"ERROR: 32bgit builds not supported with VS2022\n" "$PATH"
+					return 1
+					;;
+			esac
+		elif [[ "$subcmd" == *.vs2019.* ]] ; then
+			# Visual Studio 2019 64bit+32bit kernel codepath
+			export PATH="$(expand_win_programfiles_path 'Microsoft Visual Studio/2019/Community/MSBuild/Current/Bin/'):$PATH"
+
+			if ! which 'MSBuild.exe' ; then
+				print -u2 -f $"ERROR: 'MSBuild.exe' not found in PATH=%q.\n" "$PATH"
+				return 1
+			fi
+
+			set -o errexit
+
+			# build
+			case "$subcmd" in
+				*.all.*)
+					time MSBuild.exe filedisk.sln -t:Build -p:Configuration=Debug -p:Platform=x86
+					time MSBuild.exe filedisk.sln -t:Build -p:Configuration=Debug -p:Platform=x64
+					time MSBuild.exe filedisk.sln -t:Build -p:Configuration=Debug -p:Platform=arm64
+					;;
+				*.64bit.*)
+					time MSBuild.exe filedisk.sln -t:Build -p:Configuration=Debug -p:Platform=x64
+					time MSBuild.exe filedisk.sln -t:Build -p:Configuration=Debug -p:Platform=arm64
+					;;
+				*.32bit.*)
+					time MSBuild.exe filedisk.sln -t:Build -p:Configuration=Debug -p:Platform=x86
+					;;
+			esac
+		else
+			print -u2 -f $"ERROR: Unknown compiler.\n"
+			return 5
+		fi
+	)
+	echo $?
+
+	echo "#Done."
+	return 0
+}
+
+
+function filedisksparse_clean
+{
+	set -o xtrace
+	set -o errexit
+	set -o nounset
+
+	rm -Rf 'filedisk-sparse'
+	return 0
+}
 
 function reactos_createcache
 {
@@ -1266,6 +1470,22 @@ function main
 			;;
 		'msnfs41client_clean')
 			msnfs41client_clean
+			return $?
+			;;
+		'filedisksparse_createcache')
+			is_toolkit_pkg_installed itp 'git' || (( errc++ ))
+			(( errc > 0 )) && return 1
+			filedisksparse_createcache
+			return $?
+			;;
+		'filedisksparse_build'*)
+			is_toolkit_pkg_installed itp 'git' || (( errc++ ))
+			(( errc > 0 )) && return 1
+			filedisksparse_build "${subcmd}"
+			return $?
+			;;
+		'filedisksparse_clean')
+			filedisksparse_clean
 			return $?
 			;;
 		'reactos_createcache')
