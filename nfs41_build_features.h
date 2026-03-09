@@ -290,16 +290,17 @@
 #define NFS41_WINSTREAMS_SUPPORT 1
 
 /*
- * |WORKAROUND_FOR_FREEBSD15_0_CREATIONFAILSWITHEPERM_BUG292283| - workaround
- * for FreeBSD bug#292283 which causes file/dir creation to fail with |EPERM|
- * if |FATTR4_SYSTEM|, |FATTR4_HIDDEN| (and for FreeBSD 16-CURRENT20260302
- * |FATTR4_ARCHIVE|) attributes are provided to a FreeBSD 15.0 NFS server
+ * |WORKAROUND_FOR_FREEBSD_CREATIONFAILSWITHEPERM_BUGS_292283_293691| - workaround
+ * for FreeBSD bugs #292283 and #293691 which causes file/dir creation to fail
+ * with |EPERM| if |FATTR4_SYSTEM|, |FATTR4_HIDDEN| (and for
+ * FreeBSD 16-CURRENT20260302 |FATTR4_ARCHIVE|) attributes are provided to a
+ * FreeBSD NFS server
  *
- * This workaround will be REMOVED as soon as FreeBSD 15.1 or a fixed kernel
- * for FreeBSD 15.0 is available.
+ * This workaround will be REMOVED as soon as a fixed FreeBSD 15.1-RELEASE and
+ * FreeBSD 16.0-CURRENT become available.
  *
  */
-#define WORKAROUND_FOR_FREEBSD15_0_CREATIONFAILSWITHEPERM_BUG292283 1
+#define WORKAROUND_FOR_FREEBSD_CREATIONFAILSWITHEPERM_BUGS_292283_293691 1
 
 /*
  * |NFS41_DRIVER_STOMP_CYGWIN_SILLYRENAME_INVALID_UTF16_SEQUENCE_SUPPORT| -

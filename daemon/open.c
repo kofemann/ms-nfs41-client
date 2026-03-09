@@ -824,7 +824,7 @@ out:
 }
 #endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
 
-#ifdef WORKAROUND_FOR_FREEBSD15_0_CREATIONFAILSWITHEPERM_BUG292283
+#ifdef WORKAROUND_FOR_FREEBSD_CREATIONFAILSWITHEPERM_BUGS_292283_293691
 void set_hiddensystemarchive_attrs(ULONG file_attrs, nfs41_open_state *state)
 {
     int status;
@@ -857,7 +857,7 @@ void set_hiddensystemarchive_attrs(ULONG file_attrs, nfs41_open_state *state)
             nfs_error_string(status));
     }
 }
-#endif /* WORKAROUND_FOR_FREEBSD15_0_CREATIONFAILSWITHEPERM_BUG292283 */
+#endif /* WORKAROUND_FOR_FREEBSD_CREATIONFAILSWITHEPERM_BUGS_292283_293691 */
 
 static int handle_open(void *daemon_context, nfs41_upcall *upcall)
 {
@@ -1199,9 +1199,9 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
             upcall->currentthread_token,
             state);
 #endif /* NFS41_DRIVER_SETGID_NEWGRP_SUPPORT */
-#ifdef WORKAROUND_FOR_FREEBSD15_0_CREATIONFAILSWITHEPERM_BUG292283
+#ifdef WORKAROUND_FOR_FREEBSD_CREATIONFAILSWITHEPERM_BUGS_292283_293691
         set_hiddensystemarchive_attrs(args->file_attrs, state);
-#endif /* WORKAROUND_FOR_FREEBSD15_0_CREATIONFAILSWITHEPERM_BUG292283 */
+#endif /* WORKAROUND_FOR_FREEBSD_CREATIONFAILSWITHEPERM_BUGS_292283_293691 */
 
         nfs_to_basic_info(state->file.name.name,
             state->file.fh.superblock,
@@ -1262,7 +1262,7 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
                 args->mode = info.mode;
         }
         createattrs.attrmask.count = 2;
-#ifdef WORKAROUND_FOR_FREEBSD15_0_CREATIONFAILSWITHEPERM_BUG292283
+#ifdef WORKAROUND_FOR_FREEBSD_CREATIONFAILSWITHEPERM_BUGS_292283_293691
         createattrs.attrmask.arr[0] = 0;
         createattrs.attrmask.arr[1] = FATTR4_WORD1_MODE;
         createattrs.mode = args->mode;
@@ -1273,7 +1273,7 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
         createattrs.hidden = args->file_attrs & FILE_ATTRIBUTE_HIDDEN ? 1 : 0;
         createattrs.system = args->file_attrs & FILE_ATTRIBUTE_SYSTEM ? 1 : 0;
         createattrs.archive = args->file_attrs & FILE_ATTRIBUTE_ARCHIVE ? 1 : 0;
-#endif /* WORKAROUND_FOR_FREEBSD15_0_CREATIONFAILSWITHEPERM_BUG292283 */
+#endif /* WORKAROUND_FOR_FREEBSD_CREATIONFAILSWITHEPERM_BUGS_292283_293691 */
 #ifdef NFS41_DRIVER_ALLOW_CREATEFILE_ACLS
         if (create_nfs4_acl.aces) {
             createattrs.acl = &create_nfs4_acl;
@@ -1366,11 +1366,11 @@ supersede_retry:
                     state);
             }
 #endif /* NFS41_DRIVER_SETGID_NEWGRP_SUPPORT */
-#ifdef WORKAROUND_FOR_FREEBSD15_0_CREATIONFAILSWITHEPERM_BUG292283
+#ifdef WORKAROUND_FOR_FREEBSD_CREATIONFAILSWITHEPERM_BUGS_292283_293691
             if (create == OPEN4_CREATE) {
                 set_hiddensystemarchive_attrs(args->file_attrs, state);
             }
-#endif /* WORKAROUND_FOR_FREEBSD15_0_CREATIONFAILSWITHEPERM_BUG292283 */
+#endif /* WORKAROUND_FOR_FREEBSD_CREATIONFAILSWITHEPERM_BUGS_292283_293691 */
             nfs_to_basic_info(state->file.name.name,
                 state->file.fh.superblock,
                 &info,
