@@ -541,7 +541,7 @@ retry_wait:
             DbgP("nfs41_UpcallWaitForReply: KeWaitForSingleObject() "
                 "returned status(=0x%lx), "
                 "entry(=0x%p)=(xid=%lld,opcode='%s',"
-                "state=NFS41_DONE_PROCESSING)\n",
+                "state==NFS41_DONE_PROCESSING)\n",
                 (long)status,
                 entry,
                 entry->xid,
@@ -563,22 +563,28 @@ retry_wait:
             SECONDS(InterlockedAdd(&entry->timeout_secs, 0))) {
             DbgP("nfs41_UpcallWaitForReply: KeWaitForSingleObject() "
                 "returned status(=0x%lx), "
-                "retry waiting for '%s' entry=0x%p xid=%lld\n",
+                "retry waiting for entry(=0x%p)=(xid=%lld,opcode='%s')\n",
                 (long)status,
-                opcode2string(entry->opcode),
                 entry,
-                entry->xid);
+                entry->xid,
+                opcode2string(entry->opcode));
             goto retry_wait;
         }
         /* fall-through */
     default:
         ExAcquireFastMutexUnsafe(&entry->lock);
+        /*
+         * Last chance, check whether the daemon finished processing the request...
+         */
         if (entry->state == NFS41_DONE_PROCESSING) {
             ExReleaseFastMutexUnsafe(&entry->lock);
             status = STATUS_SUCCESS;
             break;
         }
 
+        /*
+         * Abandon request |entry| ...
+         */
         DbgP("[upcall] abandoning '%s' entry=0x%p xid=%lld\n",
             opcode2string(entry->opcode),
             entry,
