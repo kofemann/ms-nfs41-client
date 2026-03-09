@@ -530,6 +530,26 @@ retry_wait:
     case STATUS_TIMEOUT:
     case STATUS_USER_APC:
     case STATUS_ALERTED:
+        bool done_processing;
+
+        /* Check whether the daemon finished processing this request */
+        ExAcquireFastMutexUnsafe(&entry->lock);
+        done_processing = (entry->state == NFS41_DONE_PROCESSING)?true:false;
+        ExReleaseFastMutexUnsafe(&entry->lock);
+
+        if (done_processing) {
+            DbgP("nfs41_UpcallWaitForReply: KeWaitForSingleObject() "
+                "returned status(=0x%lx), "
+                "entry(=0x%p)=(xid=%lld,opcode='%s',"
+                "state=NFS41_DONE_PROCESSING)\n",
+                (long)status,
+                entry,
+                entry->xid,
+                opcode2string(entry->opcode));
+            status = STATUS_SUCCESS;
+            break;
+        }
+
         /*
          * Check for timeout here, because...
          * 1. ... |KeWaitForSingleObject()| does not
@@ -558,6 +578,7 @@ retry_wait:
             status = STATUS_SUCCESS;
             break;
         }
+
         DbgP("[upcall] abandoning '%s' entry=0x%p xid=%lld\n",
             opcode2string(entry->opcode),
             entry,
