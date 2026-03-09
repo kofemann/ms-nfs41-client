@@ -244,11 +244,11 @@ NFSv4.2/NFSv4.1 filesystem driver for Windows 10/11 & Windows Server
 - Software compatibility:
 
   - Any NFSv4.2/NFSv4.1 server (Linux, Solaris, Illumos, FreeBSD, nfs4j,
-    ...)
+    NFS Ganesha, …)
 
   - All tools from Cygwin/MSYS2/MinGW
 
-  - Visual Studio (tested: VS2019 Community VS2022 Community, VS2026
+  - Visual Studio (tested: VS2019 Community, VS2022 Community, VS2026
     Community Insiders)
 
   - VMware Workstation (can use VMs hosted on NFSv4.2/NFSv4.1
@@ -268,9 +268,9 @@ NFSv4.2/NFSv4.1 filesystem driver for Windows 10/11 & Windows Server
     [DOSNIX](http://www.retroarchive.org/garbo/pc/unix/dosnx23b.zip),
     [DOS 16bit
     zip](https://github.com/DankRank/ftp.info-zip.org/raw/refs/heads/master/ftp.info-zip.org/pub/infozip/msdos/zip232x.zip),
-    ...
+    …
 
-  - ...
+  - …
 
 # Requirements
 
@@ -741,14 +741,15 @@ Within WSL mount UNC path returned by `/sbin/nfs_mount`
 - The kernel driver ("`nfs41_driver.sys`") does not yet have a
   cryptographic signature for SecureBoot - which means it will only work
   if SecureBoot is turned off (otherwise
-  `$ /sbin/msnfs41client install #` will FAIL!)
+  `$ /sbin/msnfs41client install #` will FAIL!).
 
 - If `nfsd_debug.exe` crashes or gets killed, the only safe way to run
-  it again requires a reboot
+  it again requires a reboot.
 
-- LDAP support does not work yet
+- Native LDAP support does not work yet, right now all user/group
+  lookups are done via a Cygwin/shell-script based idmapper.
 
-- Attribute caching is too aggressive
+- Attribute caching is too aggressive.
 
 - Caching in the kernel does not always work. For example
   `$ tail -f ... #` does not not see new data. Workaround: Use GNU
@@ -779,8 +780,8 @@ Within WSL mount UNC path returned by `/sbin/nfs_mount`
 
 - Extended attributes are supported with some limitations:
 
-  - a\) the server must support NFS Named Attributes (e.g. Solaris,
-    Illumos, FreeBSD 15, but NOT Linux nfsd),
+  - a\) the server must support NFS Named Attributes (e.g. Solaris
+    ≥11.4, Illumos, FreeBSD ≥15, but NOT Linux nfsd),
 
   - b\) the order of listings cannot be guaranteed by NFS, and
 
@@ -823,7 +824,7 @@ Within WSL mount UNC path returned by `/sbin/nfs_mount`
 
   Status:
 
-  - FreeBSD 14.3 nfsd: Works
+  - FreeBSD ≥14.3 nfsd: Works
 
   - NFS-Ganesha NFS server: Works
 

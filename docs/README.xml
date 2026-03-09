@@ -277,13 +277,13 @@
         <para>Software compatibility:
           <itemizedlist>
             <listitem>
-              <para>Any NFSv4.2/NFSv4.1 server (Linux, Solaris, Illumos, FreeBSD, nfs4j, ...)</para>
+              <para>Any NFSv4.2/NFSv4.1 server (Linux, Solaris, Illumos, FreeBSD, nfs4j, NFS Ganesha, &#x2026;)</para>
             </listitem>
             <listitem>
               <para>All tools from Cygwin/MSYS2/MinGW</para>
             </listitem>
             <listitem>
-              <para>Visual Studio (tested: VS2019 Community VS2022 Community, VS2026 Community Insiders)</para>
+              <para>Visual Studio (tested: VS2019 Community, VS2022 Community, VS2026 Community Insiders)</para>
             </listitem>
             <listitem>
               <para>VMware Workstation (can use VMs hosted on NFSv4.2/NFSv4.1 filesystem)</para>
@@ -302,12 +302,12 @@
                   <member><link xl:href="https://www.ghisler.com/wcmd16.htm">Total Commander for Windows 3.x</link></member>
                   <member><link xl:href="http://www.retroarchive.org/garbo/pc/unix/dosnx23b.zip">DOSNIX</link></member>
                   <member><link xl:href="https://github.com/DankRank/ftp.info-zip.org/raw/refs/heads/master/ftp.info-zip.org/pub/infozip/msdos/zip232x.zip">DOS 16bit zip</link></member>
-                  <member>...</member>
+                  <member>&#x2026;</member>
                 </simplelist>
               </para>
             </listitem>
             <listitem>
-              <para>...</para>
+              <para>&#x2026;</para>
             </listitem>
           </itemizedlist>
         </para>
@@ -856,16 +856,16 @@ A::EVERYONE@:rtcy</programlisting>
     <title>Known issues</title>
     <itemizedlist>
       <listitem>
-        <para>The kernel driver ("<filename>nfs41_driver.sys</filename>") does not yet have a cryptographic signature for SecureBoot - which means it will only work if SecureBoot is turned off (otherwise <command>$ /sbin/msnfs41client install #</command> will FAIL!)</para>
+        <para>The kernel driver ("<filename>nfs41_driver.sys</filename>") does not yet have a cryptographic signature for SecureBoot - which means it will only work if SecureBoot is turned off (otherwise <command>$ /sbin/msnfs41client install #</command> will FAIL!).</para>
       </listitem>
       <listitem>
-        <para>If <filename>nfsd_debug.exe</filename> crashes or gets killed, the only safe way to run it again requires a reboot</para>
+        <para>If <filename>nfsd_debug.exe</filename> crashes or gets killed, the only safe way to run it again requires a reboot.</para>
       </listitem>
       <listitem>
-        <para>LDAP support does not work yet</para>
+        <para>Native LDAP support does not work yet, right now all user/group lookups are done via a Cygwin/shell-script based idmapper.</para>
       </listitem>
       <listitem>
-        <para>Attribute caching is too aggressive</para>
+        <para>Attribute caching is too aggressive.</para>
       </listitem>
       <listitem>
         <para>Caching in the kernel does not always work. For example <command>$ tail -f ... #</command> does not not see new data. Workaround: Use GNU tail'S <command>$ tail --follow=name ... #</command> Working theory is that this is related to FCB caching, see <literal>|FCB_STATE_FILESIZECACHEING_ENABLED|</literal>, as the <filename>nfs41_driver.sys</filename> kernel module does not see the <literal>|stat()|</literal> syscalls. But <command>$ tail -f ... #</command> always works for a moment if something else opens the same file.</para>
@@ -891,7 +891,7 @@ A::EVERYONE@:rtcy</programlisting>
       <listitem>
         <para>Extended attributes are supported with some limitations:
           <itemizedlist>
-            <listitem><para>a) the server must support NFS Named Attributes (e.g. Solaris, Illumos, FreeBSD &#x2265;15, but NOT Linux nfsd),</para></listitem>
+            <listitem><para>a) the server must support NFS Named Attributes (e.g. Solaris &#x2265;11.4, Illumos, FreeBSD &#x2265;15, but NOT Linux nfsd),</para></listitem>
             <listitem><para>b) the order of listings cannot be guaranteed by NFS, and</para></listitem>
             <listitem><para>c) the EaSize field cannot be reported for directory queries of <literal>FileBothDirInformation</literal>, <literal>FileFullDirInfo</literal>, or <literal>FileIdFullDirInfo</literal>.</para></listitem>
           </itemizedlist>
