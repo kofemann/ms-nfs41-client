@@ -28,8 +28,8 @@
 # nfsbuildtest.ksh93
 #
 # Simple NFSv4 torture test by building { bash, gcc, ms-nfs41-client,
-# filedisk-sparse, ReactOS }
-# in { parallel, serial } on a NFS filesystem
+# filedisk-sparse, ReactOS, JAVA simple-nfs }# in { parallel, serial }
+# on a NFS filesystem
 #
 
 #
@@ -67,6 +67,11 @@
 #   $ ksh93 nfsbuildtest.ksh93 reactos build.vs2019.64bit.parallel
 #   $ ksh93 nfsbuildtest.ksh93 reactos build.gcc.64bit.parallel
 #   $ ksh93 nfsbuildtest.ksh93 reactos build.gcc.32bit.parallel
+#
+# - build simple-nfs JAVA NFS server:
+#   $ ksh93 nfsbuildtest.ksh93 simplenfs clean
+#   $ ksh93 nfsbuildtest.ksh93 simplenfs createcache
+#   $ ksh93 nfsbuildtest.ksh93 simplenfs build
 #
 
 function gcc_createcache
@@ -1247,6 +1252,141 @@ function reactos_clean
 	return 0
 }
 
+function simplenfs_createcache
+{
+	set -o xtrace
+	set -o errexit
+	set -o nounset
+
+	# use native Windows git
+	typeset -r gitcmd="/usr/bin/git"
+
+	if [[ ! -x "$gitcmd" ]] ; then
+		print -u2 -f $"ERROR: git cmd %q not found.\n" "$gitcmd"
+		return 1
+	fi
+
+	mkdir -p '../gitbundles'
+	rm -f '../gitbundles/simple-nfs'
+
+	"${gitcmd}" -c checkout.workers=16 clone 'https://github.com/kofemann/simple-nfs.git'
+	cd 'simple-nfs'
+	"${gitcmd}" config --global --add safe.directory "$PWD"
+	"${gitcmd}" bundle create '../gitbundles/simple-nfs.bundle' --all
+	"${gitcmd}" config --global --unset safe.directory "$PWD"
+	cd ..
+	rm -Rf 'simple-nfs'
+
+	return 0
+}
+
+function simplenfs_build
+{
+	set -o xtrace
+	set -o errexit
+	set -o nounset
+
+	typeset subcmd="$1"
+	integer build_parallel
+
+	# use native Windows git
+	typeset -r gitcmd="/usr/bin/git"
+
+	if [[ ! -x "$gitcmd" ]] ; then
+		print -u2 -f $"ERROR: git cmd %q not found.\n" "$gitcmd"
+		return 1
+	fi
+
+	#
+	# build config
+	#
+	compound gitdata=(
+		typeset url='https://github.com/kofemann/simple-nfs.git'
+		# use fixed git tag, so build times are compareable
+		typeset tag='master'
+	)
+
+	#
+	# temp dir setup
+	#
+
+	tmpdir="$PWD/tmpdir"
+	mkdir -p "$tmpdir"
+	chmod a+rwxt "$tmpdir"
+	if [[ -d "$tmpdir" && -w "$tmpdir" ]] ; then
+		printf $"#### Using temp dir %q\n" "$tmpdir"
+		export TMPDIR="$tmpdir"
+		export TEMP="$tmpdir"
+		export TMP="$tmpdir"
+	else
+		print -u2 -f $"ERROR: TEMPDIR %q on NFS filesystem does not work.\n" "$tmpdir"
+		return 1
+	fi
+
+	#
+	# print user info
+	#
+	id -a
+	pwd
+
+	#
+	# source checkout
+	#
+
+	if [[ -f '../gitbundles/simple-nfs.bundle' ]] ; then
+		# Use local bundle as cache,
+		# so build times only depend on local filesystem performance
+		# and not HTTPS speed
+		time "${gitcmd}" -c checkout.workers=16 clone -b "${gitdata.tag}" --single-branch '../gitbundles/simple-nfs.bundle'
+	else
+		time "${gitcmd}" -c checkout.workers=16 clone -b "${gitdata.tag}" --single-branch "${gitdata.url}"
+	fi
+
+	cd "$PWD/simple-nfs/"
+
+	# make sure git commands (like git "describe", "fsck", ...) work (only needed for Cygwin git)
+	"${gitcmd}" config --global --add safe.directory "$PWD"
+
+	# use git fsck as filesystem test
+	time "${gitcmd}" fsck
+
+	#
+	# patch sources and configure build
+	#
+	set -o errexit
+
+	# get Maven
+	wget 'https://dlcdn.apache.org/maven/maven-3/3.9.13/binaries/apache-maven-3.9.13-bin.zip'
+	unzip apache-maven-3.9.13-bin.zip
+	chmod a+x $(find 'apache-maven-3.9.13' -iname \*.dll)
+	export PATH+=":$PWD/apache-maven-3.9.13/bin"
+
+	# set maven repository cache
+	m2_repository_dir="$PWD/m2_repository"
+	mkdir -- "${m2_repository_dir}"
+
+	#
+	# build simple-nfs
+	#
+
+	# build "simple-nfs" using Maven
+	mvn "-Dmaven.repo.local=$(cygpath -w "${m2_repository_dir}")" package
+
+	echo $"#Done."
+
+	return 0
+}
+
+function simplenfs_clean
+{
+	set -o xtrace
+	set -o errexit
+	set -o nounset
+
+	rm -Rf 'simple-nfs'
+	return 0
+}
+
 
 #
 # get_cpv_cygwin_version - get cygwin version as compound var
@@ -1345,7 +1485,7 @@ function is_toolkit_pkg_installed
 function is_cmd_installed
 {
 	typeset cmd_name=$1
-	if [[ ! -x "$cmd_name" ]] ; then
+	if ! which "$cmd_name" ; then
 		print -u2 -f $"Command '%q' not installed.\n" "$cmd_name"
 		return 1
 	fi
@@ -1504,6 +1644,25 @@ function main
 			;;
 		'reactos_clean')
 			reactos_clean
+			return $?
+			;;
+		'simplenfs_createcache')
+			is_toolkit_pkg_installed itp 'git' || (( errc++ ))
+			simplenfs_createcache
+			return $?
+			;;
+		'simplenfs_build'*)
+			is_toolkit_pkg_installed itp 'git' || (( errc++ ))
+			is_toolkit_pkg_installed itp 'wget' || (( errc++ ))
+			is_toolkit_pkg_installed itp 'unzip' || (( errc++ ))
+			is_cmd_installed 'java.exe' || (( errc++ ))
+			is_cmd_installed 'javac.exe' || (( errc++ ))
+			(( errc > 0 )) && return 1
+			simplenfs_build "${subcmd}"
+			return $?
+			;;
+		'simplenfs_clean')
+			simplenfs_clean
 			return $?
 			;;
 		*)
