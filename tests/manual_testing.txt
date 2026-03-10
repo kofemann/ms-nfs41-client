@@ -1,5 +1,5 @@
 #
-# ms-nfs41-client manual testing sequence, 2026-02-11
+# ms-nfs41-client manual testing sequence, 2026-03-10
 #
 # Draft version, needs to be turned into automated tests
 # if possible
@@ -1262,6 +1262,57 @@ cd reactos
 configure.cmd -DARCH=amd64
 cd output-MinGW-amd64
 ninja bootcd livecd
+
+
+#
+# Windows IIS FTP server
+# (see also https://learn.microsoft.com/en-us/iis/publish/using-the-ftp-service/scenario-build-an-ftp-site-on-iis)
+#
+
+#### Notes:
+- Anon write access requires user='IUSR'/group='IUSR' permissions on that directory
+
+#### Setup&Config cmd.exe script:
+---- snip ----
+::
+:: Create anon FTP site on NFSv4.1 filesystem
+::
+
+@echo off
+
+dism /online /Enable-Feature /FeatureName:IIS-FTPServer /FeatureName:IIS-FTPSvc /FeatureName:IIS-FTPExtensibility /All /NoRestart
+
+sc config ftpsvc start= auto
+sc start ftpsvc
+
+set "FTP_PATH=F:\test2\ftpdata"
+set "APPCMD=%windir%\system32\inetsrv\appcmd.exe"
+
+if not exist "%FTP_PATH%" mkdir "%FTP_PATH%"
+icacls "%FTP_PATH%" /grant "IUSR:(OI)(CI)(M)" /Q
+
+:: delete old site
+%APPCMD% delete site "nfs41_anon_ftp_server001"
+
+:: setup new FTP site
+%APPCMD% add site /name:"nfs41_anon_ftp_server001" /bindings:ftp://*:21 /physicalPath:"%FTP_PATH%"
+%APPCMD% set site "nfs41_anon_ftp_server001" -ftpServer.security.authentication.anonymousAuthentication.enabled:"True"
+%APPCMD% set site "nfs41_anon_ftp_server001" -ftpServer.security.ssl.controlChannelPolicy:"SslAllow" -ftpServer.security.ssl.dataChannelPolicy:"SslAllow"
+%APPCMD% set config "nfs41_anon_ftp_server001" -section:system.ftpServer/security/authorization /+"[accessType='Allow',users='?',permissions='Read, Write']" /commit:apphost
+
+:: restart service
+net stop ftpsvc
+net start ftpsvc
+
+echo "FTP Site "nfs41_anon_ftp_server001" successfully created and configured!"
+
+:: EOF.
+---- snip ----
+
+Run script with $ cmd /C nfs41_iis_ftp_site_setup.bat #, then
+test whether $ /cygdrive/c/Windows/system32/ftp.exe -A localhost # can access
+that FTP site.
+
 
 #
 # EOF.

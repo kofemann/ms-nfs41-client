@@ -257,6 +257,9 @@ NFSv4.2/NFSv4.1 filesystem driver for Windows 10/11 & Windows Server
   - MariaDB (including sparse file support for [page
     compression](https://dev.mysql.com/doc/refman/8.4/en/innodb-page-compression.html))
 
+  - Windows IIS [FTP
+    server](https://learn.microsoft.com/en-us/iis/publish/using-the-ftp-service/scenario-build-an-ftp-site-on-iis)
+
   - Microsoft Office (tested: Office 2016)
 
   - Windows 16bit DOS and Windows 3.x applications via [NT Virtual DOS

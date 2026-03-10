@@ -292,6 +292,9 @@
               <para>MariaDB (including sparse file support for <link xl:href="https://dev.mysql.com/doc/refman/8.4/en/innodb-page-compression.html">page compression</link>)</para>
             </listitem>
             <listitem>
+              <para>Windows IIS <link xl:href="https://learn.microsoft.com/en-us/iis/publish/using-the-ftp-service/scenario-build-an-ftp-site-on-iis">FTP server</link></para>
+            </listitem>
+            <listitem>
               <para>Microsoft Office (tested: Office 2016)</para>
             </listitem>
             <listitem>
