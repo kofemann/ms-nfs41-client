@@ -205,12 +205,12 @@ See https://docs.oracle.com/en/operating-systems/solaris/oracle-solaris/11.4/man
 
 #
 # FreeBSD NFSv4.2 server setup
-# (tested with FreeBSD 14.3 and FreeBSD 15.0)
+# (tested with FreeBSD 14.3, FreeBSD 15.0 and FreeBSD 16.0)
 #
 
 ##### 1. Server setup
 
-# Install FreeBSD (14.3) with NTP enabled
+# Install FreeBSD (>= 14.3) with NTP enabled
 
 # enable time server
 -- snip --
@@ -249,6 +249,19 @@ zfs set xattr=dir zroot/ROOT/default
 printf 'V4: /\n' >'/etc/exports'
 printf '/nfsdata -network=10.49.202.0 -mask=255.255.255.0  -sec=sys\n' >>'/etc/exports'
 service nfsd start
+
+#
+# OPTIONAL: FreeBSD >= 16.0 case-insensitive filesystem setup
+#
+mkdir -p /data
+truncate -s 32G /data/zfs_casei001.img
+zpool create -O casesensitivity=insensitive -O utf8only=on test_casei001_pool /data/zfs_casei001.img
+zfs get casesensitivity test_casei001_pool
+printf '/test_casei001_pool -network=10.49.202.0 -mask=255.255.255.0  -sec=sys\n' >>'/etc/exports'
+mkdir /test_casei001_pool/casei_tests
+chmod a+rwxt /test_casei001_pool/casei_tests
+service nfsd restart
+
 
 ##### 2. FreeBSD-specific ms-nfs41-client setup:
 - Normal setup
