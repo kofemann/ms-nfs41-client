@@ -1,5 +1,5 @@
 #
-# ms-nfs41-client manual testing sequence, 2026-03-10
+# ms-nfs41-client manual testing sequence, 2026-03-16
 #
 # Draft version, needs to be turned into automated tests
 # if possible
@@ -1271,6 +1271,8 @@ ninja bootcd livecd
 
 #### Notes:
 - Anon write access requires user='IUSR'/group='IUSR' permissions on that directory
+- The setup requires a "global mount" (e.g. mounted via $ /sbin/nfs_globalmount ... #),
+  to ensure that drive F: is visible to all logons on a system
 
 #### Setup&Config cmd.exe script:
 ---- snip ----
