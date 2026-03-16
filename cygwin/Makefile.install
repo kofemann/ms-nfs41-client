@@ -173,6 +173,8 @@ installdest:
 	cp "$(PROJECT_BASEDIR_DIR)/tests/catdbgprint/catdbgprint.i686.exe" $(DESTDIR)/sbin/catdbgprint.i686.exe
 	cp "$(PROJECT_BASEDIR_DIR)/tests/winrunassystem/winrunassystem.x86_64.exe" $(DESTDIR)/sbin/winrunassystem.x86_64.exe
 	cp "$(PROJECT_BASEDIR_DIR)/tests/winrunassystem/winrunassystem.i686.exe" $(DESTDIR)/sbin/winrunassystem.i686.exe
+	cp "$(PROJECT_BASEDIR_DIR)/tests/winrunassystem/cygrunassystem.sh" $(DESTDIR)/sbin/cygrunassystem
+	chmod a+x $(DESTDIR)/sbin/cygrunassystem
 	cp "$(PROJECT_BASEDIR_DIR)/tests/winrunassystem/nfs_globalmount.x86_64.exe" $(DESTDIR)/sbin/nfs_globalmount.x86_64.exe
 	cp "$(PROJECT_BASEDIR_DIR)/tests/winrunassystem/nfs_globalmount.i686.exe" $(DESTDIR)/sbin/nfs_globalmount.i686.exe
 	if [[ "$$(uname -m)" != 'i686' ]] ; then \
