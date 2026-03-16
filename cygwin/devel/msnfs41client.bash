@@ -82,7 +82,7 @@ function print_secureboot_status
 	typeset -r uefisecurebootenabled_regfile='/proc/registry/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Control/SecureBoot/State/UEFISecureBootEnabled'
 
 	if [[ ! -r "${uefisecurebootenabled_regfile}" ]] ; then
-		print -u2 -f $"%s: '%q' not found, cannot determinate SecureBoot status.\n" "$0" "${uefisecurebootenabled_regfile}"
+		printf $"%s: '%q' not found, cannot determinate SecureBoot status.\n" "$0" "${uefisecurebootenabled_regfile}" 1>&2
 		return 0
 	fi
 
