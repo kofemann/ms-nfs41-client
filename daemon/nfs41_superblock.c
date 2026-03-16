@@ -121,6 +121,11 @@ static int get_superblock_attrs(
     else
         superblock->maxwrite = session->fore_chan_attrs.ca_maxrequestsize;
 
+    logprintf("get_superblock_attrs(fsid=(%llu,%llu)): "
+        "superblock.(maxread=%ld, maxwrite=%ld)\n",
+        superblock->fsid.major, superblock->fsid.minor,
+        (long)superblock->maxread, (long)superblock->maxwrite);
+
     superblock->layout_types = info.fs_layout_types;
     superblock->aclsupport = info.aclsupport;
     superblock->link_support = info.link_support;
