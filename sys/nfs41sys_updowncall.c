@@ -105,44 +105,8 @@ void nfs41_upcall_free_updowncall_entry(nfs41_updowncall_entry *entry)
 #endif /* USE_LOOKASIDELISTEX_FOR_UPDOWNCALLENTRY_MEM */
 }
 
-#ifndef USE_STACK_FOR_DOWNCALL_UPDOWNCALLENTRY_MEM
-static
-nfs41_updowncall_entry *nfs41_downcall_allocate_updowncall_entry(void)
-{
-    nfs41_updowncall_entry *e;
-#ifdef USE_LOOKASIDELISTEX_FOR_UPDOWNCALLENTRY_MEM
-    e = ExAllocateFromLookasideListEx(
-        &updowncall_entry_downcall_lookasidelist);
-
-#ifdef LOOKASIDELISTS_STATS
-    volatile static long cnt = 0;
-    if ((cnt++ % 100) == 0) {
-        print_lookasidelist_stat("updowncall_entry_downcall",
-            &updowncall_entry_downcall_lookasidelist);
-    }
-#endif /* LOOKASIDELISTS_STATS */
-#else
-    e = RxAllocatePoolWithTag(NonPagedPoolNx,
-        sizeof(nfs41_updowncall_entry),
-        NFS41_MM_POOLTAG_DOWN);
-#endif /* USE_LOOKASIDELISTEX_FOR_UPDOWNCALLENTRY_MEM */
-    return e;
-}
-
-static
-void nfs41_downcall_free_updowncall_entry(nfs41_updowncall_entry *entry)
-{
-#ifdef USE_LOOKASIDELISTEX_FOR_UPDOWNCALLENTRY_MEM
-    ExFreeToLookasideListEx(&updowncall_entry_downcall_lookasidelist,
-        entry);
-#else
-    RxFreePool(entry);
-#endif /* USE_LOOKASIDELISTEX_FOR_UPDOWNCALLENTRY_MEM */
-}
-#endif /* !USE_STACK_FOR_DOWNCALL_UPDOWNCALLENTRY_MEM */
-
 static void unmarshal_nfs41_header(
-    nfs41_updowncall_entry *tmp,
+    updowncall_entry_header *restrict tmp,
     const unsigned char *restrict *restrict buf)
 {
     RtlCopyMemory(&tmp->xid, *buf, sizeof(tmp->xid));
@@ -670,7 +634,7 @@ NTSTATUS nfs41_downcall(
     const unsigned char *inbuf;
     const unsigned char *inbuf_orig;
     PLIST_ENTRY pEntry;
-    nfs41_updowncall_entry *header_tmp;
+    updowncall_entry_header header_tmp;
     nfs41_updowncall_entry *cur = NULL;
     bool found = false;
 
@@ -682,19 +646,7 @@ NTSTATUS nfs41_downcall(
     print_hexbuf("downcall buffer", inbuf, inbuf_len);
 #endif /* DEBUG_PRINT_DOWNCALL_HEXBUF */
 
-#ifdef USE_STACK_FOR_DOWNCALL_UPDOWNCALLENTRY_MEM
-    nfs41_updowncall_entry header_tmp_from_stack;
-
-    header_tmp = &header_tmp_from_stack;
-#else
-    header_tmp = nfs41_downcall_allocate_updowncall_entry();
-    if (header_tmp == NULL) {
-        status = STATUS_INSUFFICIENT_RESOURCES;
-        goto out;
-    }
-#endif /* USE_STACK_FOR_DOWNCALL_UPDOWNCALLENTRY_MEM */
-
-    unmarshal_nfs41_header(header_tmp, &inbuf);
+    unmarshal_nfs41_header(&header_tmp, &inbuf);
 
     ExAcquireFastMutexUnsafe(&downcalllist.lock);
     pEntry = &downcalllist.head;
@@ -702,7 +654,7 @@ NTSTATUS nfs41_downcall(
     while (pEntry != NULL) {
         cur = (nfs41_updowncall_entry *)CONTAINING_RECORD(pEntry,
                 nfs41_updowncall_entry, next);
-        if (cur->xid == header_tmp->xid) {
+        if (cur->xid == header_tmp.xid) {
             found = true;
             break;
         }
@@ -714,7 +666,7 @@ NTSTATUS nfs41_downcall(
     SeStopImpersonatingClient();
     if (!found) {
         print_error("nfs41_downcall: Did not find xid=%lld entry\n",
-            header_tmp->xid);
+            header_tmp.xid);
         status = STATUS_NOT_FOUND;
         goto out_free;
     }
@@ -787,12 +739,12 @@ NTSTATUS nfs41_downcall(
         goto out_free;
     }
     cur->state = NFS41_DONE_PROCESSING;
-    cur->status = header_tmp->status;
-    cur->errno = header_tmp->errno;
+    cur->status = header_tmp.status;
+    cur->errno = header_tmp.errno;
     status = STATUS_SUCCESS;
 
-    if (!header_tmp->status) {
-        switch (header_tmp->opcode) {
+    if (!header_tmp.status) {
+        switch (header_tmp.opcode) {
         case NFS41_SYSOP_MOUNT:
             unmarshal_nfs41_mount(cur, &inbuf);
             break;
@@ -860,14 +812,14 @@ NTSTATUS nfs41_downcall(
          * caller passes a buffer which is too small)
          */
         ULONG bytesread_from_inbuf = (ULONG)(inbuf - inbuf_orig);
-        if ((header_tmp->opcode != NFS41_SYSOP_VOLUME_QUERY) &&
-            (!((header_tmp->opcode == NFS41_SYSOP_FILE_QUERY) &&
+        if ((header_tmp.opcode != NFS41_SYSOP_VOLUME_QUERY) &&
+            (!((header_tmp.opcode == NFS41_SYSOP_FILE_QUERY) &&
                 (cur->u.QueryFile.InfoClass == FileStreamInformation))) &&
             (bytesread_from_inbuf != inbuf_len)) {
             print_error("nfs41_downcall: ASSERT: '%s' (xid=%lld): "
                 "(inbuf(=0x%p)-inbuf_orig(=0x%p))(=%ld) != inbuf_len(=%ld), "
                 "cur->status=%d\n",
-                opcode2string(header_tmp->opcode),
+                opcode2string(header_tmp.opcode),
                 cur->xid,
                 inbuf,
                 inbuf_orig,
@@ -907,13 +859,6 @@ NTSTATUS nfs41_downcall(
     }
 
 out_free:
-#ifdef USE_STACK_FOR_DOWNCALL_UPDOWNCALLENTRY_MEM
-    ;
-#else
-    nfs41_downcall_free_updowncall_entry(header_tmp);
-out:
-#endif /* USE_STACK_FOR_DOWNCALL_UPDOWNCALLENTRY_MEM */
-
     FsRtlExitFileSystem();
 
     return status;

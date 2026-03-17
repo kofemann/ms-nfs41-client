@@ -125,9 +125,6 @@ DECLARE_EXTERN_CONST_ANSI_STRING(NfsActOnLink);
 
 #ifdef USE_LOOKASIDELISTEX_FOR_UPDOWNCALLENTRY_MEM
 extern LOOKASIDE_LIST_EX updowncall_entry_upcall_lookasidelist;
-#ifndef USE_STACK_FOR_DOWNCALL_UPDOWNCALLENTRY_MEM
-extern LOOKASIDE_LIST_EX updowncall_entry_downcall_lookasidelist;
-#endif /* !USE_STACK_FOR_DOWNCALL_UPDOWNCALLENTRY_MEM */
 #endif /* USE_LOOKASIDELISTEX_FOR_UPDOWNCALLENTRY_MEM */
 #ifdef USE_LOOKASIDELISTEX_FOR_FCBLISTENTRY_MEM
 extern LOOKASIDE_LIST_EX fcblistentry_lookasidelist;
@@ -164,18 +161,23 @@ typedef enum _nfs41_updowncall_state {
     NFS41_NOT_WAITING
 } nfs41_updowncall_state;
 
-typedef struct _updowncall_entry {
-    DWORD version;
+/* Used for downcall processing */
+typedef struct _updowncall_entry_header {
     LONGLONG xid;
     nfs41_opcodes opcode;
     NTSTATUS status;
+#undef errno
+    DWORD errno;
+} updowncall_entry_header;
+
+typedef struct _updowncall_entry {
+    DWORD version;
+    updowncall_entry_header; /* anon */
     volatile LONG timeout_secs;
     nfs41_updowncall_state state;
     FAST_MUTEX lock;
     LIST_ENTRY next;
     KEVENT cond;
-#undef errno
-    DWORD errno;
     BOOLEAN async_op;
     SECURITY_CLIENT_CONTEXT sec_ctx;
     PSECURITY_CLIENT_CONTEXT psec_ctx;

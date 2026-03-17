@@ -129,9 +129,6 @@ DEFINE_GUID(GUID_ECP_OPEN_PARAMETERS,
 
 #ifdef USE_LOOKASIDELISTEX_FOR_UPDOWNCALLENTRY_MEM
 LOOKASIDE_LIST_EX updowncall_entry_upcall_lookasidelist;
-#ifndef USE_STACK_FOR_DOWNCALL_UPDOWNCALLENTRY_MEM
-LOOKASIDE_LIST_EX updowncall_entry_downcall_lookasidelist;
-#endif /* !USE_STACK_FOR_DOWNCALL_UPDOWNCALLENTRY_MEM */
 #endif /* USE_LOOKASIDELISTEX_FOR_UPDOWNCALLENTRY_MEM */
 #ifdef USE_LOOKASIDELISTEX_FOR_FCBLISTENTRY_MEM
 LOOKASIDE_LIST_EX fcblistentry_lookasidelist;
@@ -1661,20 +1658,6 @@ NTSTATUS DriverEntry(
             (long)status);
         goto out_unregister;
     }
-#ifndef USE_STACK_FOR_DOWNCALL_UPDOWNCALLENTRY_MEM
-    status = ExInitializeLookasideListEx(
-        &updowncall_entry_downcall_lookasidelist, NULL, NULL,
-        NonPagedPoolNx, 0, sizeof(nfs41_updowncall_entry),
-        NFS41_MM_POOLTAG_DOWN, EX_MAXIMUM_LOOKASIDE_DEPTH_LIMIT);
-    if (status != STATUS_SUCCESS) {
-        print_error("DriverEntry: "
-            "ExInitializeLookasideListEx() for "
-            "updowncall_entry_downcall_lookasidelist failed "
-            "with status=0x%lx\n",
-            (long)status);
-        goto out_unregister;
-    }
-#endif /* !USE_STACK_FOR_DOWNCALL_UPDOWNCALLENTRY_MEM */
 #endif /* USE_LOOKASIDELISTEX_FOR_UPDOWNCALLENTRY_MEM */
 #ifdef USE_LOOKASIDELISTEX_FOR_FCBLISTENTRY_MEM
     status = ExInitializeLookasideListEx(
@@ -1745,9 +1728,6 @@ unload:
 
 #ifdef USE_LOOKASIDELISTEX_FOR_UPDOWNCALLENTRY_MEM
     ExDeleteLookasideListEx(&updowncall_entry_upcall_lookasidelist);
-#ifndef USE_STACK_FOR_DOWNCALL_UPDOWNCALLENTRY_MEM
-    ExDeleteLookasideListEx(&updowncall_entry_downcall_lookasidelist);
-#endif /* !USE_STACK_FOR_DOWNCALL_UPDOWNCALLENTRY_MEM */
 #endif /* USE_LOOKASIDELISTEX_FOR_UPDOWNCALLENTRY_MEM */
 #ifdef USE_LOOKASIDELISTEX_FOR_FCBLISTENTRY_MEM
     ExDeleteLookasideListEx(&fcblistentry_lookasidelist);
