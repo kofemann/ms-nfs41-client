@@ -1,5 +1,5 @@
 /* NFSv4.1 client for Windows
- * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2023-2026 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Roland Mainz <roland.mainz@nrubsig.org>
  *
@@ -46,11 +46,16 @@
 
 #define USE_STACK_FOR_DOWNCALL_UPDOWNCALLENTRY_MEM 1
 
-#if (NTDDI_VERSION >= NTDDI_WIN10_VB)
-#define USE_LOOKASIDELISTS_FOR_UPDOWNCALLENTRY_MEM 1
-#define USE_LOOKASIDELISTS_FOR_FCBLISTENTRY_MEM 1
+#if (NTDDI_VERSION >= NTDDI_VISTA) || defined(__REACTOS__)
+#define USE_LOOKASIDELISTEX_FOR_UPDOWNCALLENTRY_MEM 1
+#define USE_LOOKASIDELISTEX_FOR_FCBLISTENTRY_MEM 1
 // #define LOOKASIDELISTS_STATS 1
-#endif /* (NTDDI_VERSION >= NTDDI_WIN10_VB) */
+#else
+/*
+ * We keep the non-LookasideListEx codepath around for
+ * leak checking  and for Windows versions < Windows Vista
+ */
+#endif /* (NTDDI_VERSION >= NTDDI_VISTA) || defined(__REACTOS__) */
 
 #ifdef NFS41_DRIVER_COLLAPSEOPEN
 #define WINBUG_NO_COLLAPSE_IF_PRIMARYGROUPS_DIFFER 1

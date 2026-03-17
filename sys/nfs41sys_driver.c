@@ -127,15 +127,15 @@ DEFINE_GUID(GUID_ECP_OPEN_PARAMETERS,
     0xac, 0xcb, 0x96, 0x9d, 0x34, 0x35, 0xa5, 0xa5);
 #endif /* !(NTDDI_VERSION >= NTDDI_WIN10_RS3) */
 
-#ifdef USE_LOOKASIDELISTS_FOR_UPDOWNCALLENTRY_MEM
-NPAGED_LOOKASIDE_LIST updowncall_entry_upcall_lookasidelist;
+#ifdef USE_LOOKASIDELISTEX_FOR_UPDOWNCALLENTRY_MEM
+LOOKASIDE_LIST_EX updowncall_entry_upcall_lookasidelist;
 #ifndef USE_STACK_FOR_DOWNCALL_UPDOWNCALLENTRY_MEM
-NPAGED_LOOKASIDE_LIST updowncall_entry_downcall_lookasidelist;
+LOOKASIDE_LIST_EX updowncall_entry_downcall_lookasidelist;
 #endif /* !USE_STACK_FOR_DOWNCALL_UPDOWNCALLENTRY_MEM */
-#endif /* USE_LOOKASIDELISTS_FOR_UPDOWNCALLENTRY_MEM */
-#ifdef USE_LOOKASIDELISTS_FOR_FCBLISTENTRY_MEM
-NPAGED_LOOKASIDE_LIST fcblistentry_lookasidelist;
-#endif /* USE_LOOKASIDELISTS_FOR_FCBLISTENTRY_MEM */
+#endif /* USE_LOOKASIDELISTEX_FOR_UPDOWNCALLENTRY_MEM */
+#ifdef USE_LOOKASIDELISTEX_FOR_FCBLISTENTRY_MEM
+LOOKASIDE_LIST_EX fcblistentry_lookasidelist;
+#endif /* USE_LOOKASIDELISTEX_FOR_FCBLISTENTRY_MEM */
 
 #ifdef ENABLE_TIMINGS
 nfs41_timings lookup;
@@ -190,27 +190,27 @@ nfs41_start_driver_state nfs41_start_state = NFS41_START_DRIVER_STARTABLE;
 nfs41_fcb_list_entry *nfs41_allocate_nfs41_fcb_list_entry(void)
 {
     nfs41_fcb_list_entry *e;
-#ifdef USE_LOOKASIDELISTS_FOR_FCBLISTENTRY_MEM
-    e = ExAllocateFromNPagedLookasideList(
+#ifdef USE_LOOKASIDELISTEX_FOR_FCBLISTENTRY_MEM
+    e = ExAllocateFromLookasideListEx(
         &fcblistentry_lookasidelist);
 
 #else
     e = RxAllocatePoolWithTag(NonPagedPoolNx,
         sizeof(nfs41_fcb_list_entry),
         NFS41_MM_POOLTAG_OPEN);
-#endif /* USE_LOOKASIDELISTS_FOR_FCBLISTENTRY_MEM */
+#endif /* USE_LOOKASIDELISTEX_FOR_FCBLISTENTRY_MEM */
 
     return e;
 }
 
 void nfs41_free_nfs41_fcb_list_entry(nfs41_fcb_list_entry *entry)
 {
-#ifdef USE_LOOKASIDELISTS_FOR_FCBLISTENTRY_MEM
-    ExFreeToNPagedLookasideList(&fcblistentry_lookasidelist,
+#ifdef USE_LOOKASIDELISTEX_FOR_FCBLISTENTRY_MEM
+    ExFreeToLookasideListEx(&fcblistentry_lookasidelist,
         entry);
 #else
     RxFreePool(entry);
-#endif /* USE_LOOKASIDELISTS_FOR_FCBLISTENTRY_MEM */
+#endif /* USE_LOOKASIDELISTEX_FOR_FCBLISTENTRY_MEM */
 }
 
 NTSTATUS marshall_unicode_string_as_utf8(
@@ -1648,34 +1648,48 @@ NTSTATUS DriverEntry(
     InitializeListHead(&downcalllist.head);
     InitializeListHead(&openlist.head);
     InitializeListHead(&offloadcontextlist.head);
-#ifdef USE_LOOKASIDELISTS_FOR_UPDOWNCALLENTRY_MEM
-    /*
-     * The |Depth| parameter is unfortunately ignored in Win10,
-     * otherwise we could use |MmQuerySystemSize()| to scale the
-     * lookasidelists
-     */
-    ExInitializeNPagedLookasideList(
+#ifdef USE_LOOKASIDELISTEX_FOR_UPDOWNCALLENTRY_MEM
+    status = ExInitializeLookasideListEx(
         &updowncall_entry_upcall_lookasidelist, NULL, NULL,
-        POOL_NX_ALLOCATION, sizeof(nfs41_updowncall_entry),
-        NFS41_MM_POOLTAG_UP, 0);
+        NonPagedPoolNx, 0, sizeof(nfs41_updowncall_entry),
+        NFS41_MM_POOLTAG_UP, EX_MAXIMUM_LOOKASIDE_DEPTH_LIMIT);
+    if (status != STATUS_SUCCESS) {
+        print_error("DriverEntry: "
+            "ExInitializeLookasideListEx() for "
+            "updowncall_entry_upcall_lookasidelist failed "
+            "with status=0x%lx\n",
+            (long)status);
+        goto out_unregister;
+    }
 #ifndef USE_STACK_FOR_DOWNCALL_UPDOWNCALLENTRY_MEM
-    ExInitializeNPagedLookasideList(
+    status = ExInitializeLookasideListEx(
         &updowncall_entry_downcall_lookasidelist, NULL, NULL,
-        POOL_NX_ALLOCATION, sizeof(nfs41_updowncall_entry),
-        NFS41_MM_POOLTAG_DOWN, 0);
+        NonPagedPoolNx, 0, sizeof(nfs41_updowncall_entry),
+        NFS41_MM_POOLTAG_DOWN, EX_MAXIMUM_LOOKASIDE_DEPTH_LIMIT);
+    if (status != STATUS_SUCCESS) {
+        print_error("DriverEntry: "
+            "ExInitializeLookasideListEx() for "
+            "updowncall_entry_downcall_lookasidelist failed "
+            "with status=0x%lx\n",
+            (long)status);
+        goto out_unregister;
+    }
 #endif /* !USE_STACK_FOR_DOWNCALL_UPDOWNCALLENTRY_MEM */
-#endif /* USE_LOOKASIDELISTS_FOR_UPDOWNCALLENTRY_MEM */
-#ifdef USE_LOOKASIDELISTS_FOR_FCBLISTENTRY_MEM
-    /*
-     * The |Depth| parameter is unfortunately ignored in Win10,
-     * otherwise we could use |MmQuerySystemSize()| to scale the
-     * lookasidelists
-     */
-    ExInitializeNPagedLookasideList(
+#endif /* USE_LOOKASIDELISTEX_FOR_UPDOWNCALLENTRY_MEM */
+#ifdef USE_LOOKASIDELISTEX_FOR_FCBLISTENTRY_MEM
+    status = ExInitializeLookasideListEx(
         &fcblistentry_lookasidelist, NULL, NULL,
-        POOL_NX_ALLOCATION, sizeof(nfs41_fcb_list_entry),
-        NFS41_MM_POOLTAG_OPEN, 0);
-#endif /* USE_LOOKASIDELISTS_FOR_FCBLISTENTRY_MEM */
+        NonPagedPoolNx, 0, sizeof(nfs41_fcb_list_entry),
+        NFS41_MM_POOLTAG_OPEN, EX_MAXIMUM_LOOKASIDE_DEPTH_LIMIT);
+    if (status != STATUS_SUCCESS) {
+        print_error("DriverEntry: "
+            "ExInitializeLookasideListEx() for "
+            "fcblistentry_lookasidelist failed "
+            "with status=0x%lx\n",
+            (long)status);
+        goto out_unregister;
+    }
+#endif /* USE_LOOKASIDELISTEX_FOR_FCBLISTENTRY_MEM */
     InitializeObjectAttributes(&oattrs, NULL, OBJ_KERNEL_HANDLE, NULL, NULL);
     status = PsCreateSystemThread(&dev_exts->openlistHandle, mask,
         &oattrs, NULL, NULL, &fcbopen_main, NULL);
@@ -1728,6 +1742,16 @@ unload:
             "could not delete pipe symbolic link\n");
     }
     RxUnload(drv);
+
+#ifdef USE_LOOKASIDELISTEX_FOR_UPDOWNCALLENTRY_MEM
+    ExDeleteLookasideListEx(&updowncall_entry_upcall_lookasidelist);
+#ifndef USE_STACK_FOR_DOWNCALL_UPDOWNCALLENTRY_MEM
+    ExDeleteLookasideListEx(&updowncall_entry_downcall_lookasidelist);
+#endif /* !USE_STACK_FOR_DOWNCALL_UPDOWNCALLENTRY_MEM */
+#endif /* USE_LOOKASIDELISTEX_FOR_UPDOWNCALLENTRY_MEM */
+#ifdef USE_LOOKASIDELISTEX_FOR_FCBLISTENTRY_MEM
+    ExDeleteLookasideListEx(&fcblistentry_lookasidelist);
+#endif /* USE_LOOKASIDELISTEX_FOR_FCBLISTENTRY_MEM */
 
     DbgP("nfs41_driver_unload: driver unloaded 0x%p\n", drv);
     DbgR();

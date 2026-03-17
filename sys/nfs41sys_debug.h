@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2023-2026 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -64,9 +64,9 @@ void print_wait_status(int on, const char *str, NTSTATUS status,
 void print_acl_args(SECURITY_INFORMATION info);
 const char *fsctl2string(ULONG fsctl);
 const char *reparsetag2string(ULONG tag);
-#ifdef USE_LOOKASIDELISTS_FOR_UPDOWNCALLENTRY_MEM
-void print_lookasidelist_stat(const char *label, PNPAGED_LOOKASIDE_LIST ll);
-#endif /* USE_LOOKASIDELISTS_FOR_UPDOWNCALLENTRY_MEM */
+#ifdef USE_LOOKASIDELISTEX_FOR_UPDOWNCALLENTRY_MEM
+void print_lookasidelist_stat(const char *label, PLOOKASIDE_LIST_EX ll);
+#endif /* USE_LOOKASIDELISTEX_FOR_UPDOWNCALLENTRY_MEM */
 void print_debug_header(PRX_CONTEXT RxContext);
 void debug_printirpecps(PIRP irp);
 

@@ -74,8 +74,8 @@ static
 nfs41_updowncall_entry *nfs41_upcall_allocate_updowncall_entry(void)
 {
     nfs41_updowncall_entry *e;
-#ifdef USE_LOOKASIDELISTS_FOR_UPDOWNCALLENTRY_MEM
-    e = ExAllocateFromNPagedLookasideList(
+#ifdef USE_LOOKASIDELISTEX_FOR_UPDOWNCALLENTRY_MEM
+    e = ExAllocateFromLookasideListEx(
         &updowncall_entry_upcall_lookasidelist);
 
 #ifdef LOOKASIDELISTS_STATS
@@ -89,7 +89,7 @@ nfs41_updowncall_entry *nfs41_upcall_allocate_updowncall_entry(void)
     e = RxAllocatePoolWithTag(NonPagedPoolNx,
         sizeof(nfs41_updowncall_entry),
         NFS41_MM_POOLTAG_UP);
-#endif /* USE_LOOKASIDELISTS_FOR_UPDOWNCALLENTRY_MEM */
+#endif /* USE_LOOKASIDELISTEX_FOR_UPDOWNCALLENTRY_MEM */
 
     return e;
 }
@@ -97,12 +97,12 @@ nfs41_updowncall_entry *nfs41_upcall_allocate_updowncall_entry(void)
 static
 void nfs41_upcall_free_updowncall_entry(nfs41_updowncall_entry *entry)
 {
-#ifdef USE_LOOKASIDELISTS_FOR_UPDOWNCALLENTRY_MEM
-    ExFreeToNPagedLookasideList(&updowncall_entry_upcall_lookasidelist,
+#ifdef USE_LOOKASIDELISTEX_FOR_UPDOWNCALLENTRY_MEM
+    ExFreeToLookasideListEx(&updowncall_entry_upcall_lookasidelist,
         entry);
 #else
     RxFreePool(entry);
-#endif /* USE_LOOKASIDELISTS_FOR_UPDOWNCALLENTRY_MEM */
+#endif /* USE_LOOKASIDELISTEX_FOR_UPDOWNCALLENTRY_MEM */
 }
 
 #ifndef USE_STACK_FOR_DOWNCALL_UPDOWNCALLENTRY_MEM
@@ -110,8 +110,8 @@ static
 nfs41_updowncall_entry *nfs41_downcall_allocate_updowncall_entry(void)
 {
     nfs41_updowncall_entry *e;
-#ifdef USE_LOOKASIDELISTS_FOR_UPDOWNCALLENTRY_MEM
-    e = ExAllocateFromNPagedLookasideList(
+#ifdef USE_LOOKASIDELISTEX_FOR_UPDOWNCALLENTRY_MEM
+    e = ExAllocateFromLookasideListEx(
         &updowncall_entry_downcall_lookasidelist);
 
 #ifdef LOOKASIDELISTS_STATS
@@ -125,19 +125,19 @@ nfs41_updowncall_entry *nfs41_downcall_allocate_updowncall_entry(void)
     e = RxAllocatePoolWithTag(NonPagedPoolNx,
         sizeof(nfs41_updowncall_entry),
         NFS41_MM_POOLTAG_DOWN);
-#endif /* USE_LOOKASIDELISTS_FOR_UPDOWNCALLENTRY_MEM */
+#endif /* USE_LOOKASIDELISTEX_FOR_UPDOWNCALLENTRY_MEM */
     return e;
 }
 
 static
 void nfs41_downcall_free_updowncall_entry(nfs41_updowncall_entry *entry)
 {
-#ifdef USE_LOOKASIDELISTS_FOR_UPDOWNCALLENTRY_MEM
-    ExFreeToNPagedLookasideList(&updowncall_entry_downcall_lookasidelist,
+#ifdef USE_LOOKASIDELISTEX_FOR_UPDOWNCALLENTRY_MEM
+    ExFreeToLookasideListEx(&updowncall_entry_downcall_lookasidelist,
         entry);
 #else
     RxFreePool(entry);
-#endif /* USE_LOOKASIDELISTS_FOR_UPDOWNCALLENTRY_MEM */
+#endif /* USE_LOOKASIDELISTEX_FOR_UPDOWNCALLENTRY_MEM */
 }
 #endif /* !USE_STACK_FOR_DOWNCALL_UPDOWNCALLENTRY_MEM */
 

@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2023-2026 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -1559,9 +1559,7 @@ const char *reparsetag2string(ULONG tag)
     /* not reached */
 }
 
-
-#ifdef USE_LOOKASIDELISTS_FOR_UPDOWNCALLENTRY_MEM
-void print_lookasidelist_stat(const char *label, PNPAGED_LOOKASIDE_LIST ll)
+void print_lookasidelist_stat(const char *label, PLOOKASIDE_LIST_EX ll)
 {
     DbgP("#### lookasidelist stat '%s': "
         "{ TotalAllocates=%ld, AllocateMisses=%ld, FreeMisses=%ld, Depth=%ld, MaximumDepth=%ld\n",
@@ -1572,7 +1570,6 @@ void print_lookasidelist_stat(const char *label, PNPAGED_LOOKASIDE_LIST ll)
         (long)ll->L.Depth,
         (long)ll->L.MaximumDepth);
 }
-#endif /* USE_LOOKASIDELISTS_FOR_UPDOWNCALLENTRY_MEM */
 
 void print_debug_header(
     PRX_CONTEXT RxContext)
