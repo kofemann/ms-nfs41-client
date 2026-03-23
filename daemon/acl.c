@@ -64,7 +64,6 @@ static int handle_getacl(void *daemon_context, nfs41_upcall *upcall)
     getacl_upcall_args *args = &upcall->args.getacl;
     nfs41_open_state *state = upcall->state_ref;
     nfs41_file_info info;
-    LPSTR domain = NULL;
     SECURITY_DESCRIPTOR sec_desc;
     PACL dacl = NULL;
     PSID *sids = NULL;
@@ -128,10 +127,9 @@ static int handle_getacl(void *daemon_context, nfs41_upcall *upcall)
       * memory. free them after creating self-relative security descriptor. 
       */
     if (args->query_secinfo & OWNER_SECURITY_INFORMATION) {
-        // parse user@domain. currently ignoring domain part XX
-        convert_nfs4name_2_user_domain(info.owner, &domain);
-        DPRINTF(ACLLVL2, ("handle_getacl: OWNER_SECURITY_INFORMATION: for user='%s' "
-                "domain='%s'\n", info.owner, domain?domain:"<null>"));
+        DPRINTF(ACLLVL2, ("handle_getacl: "
+            "OWNER_SECURITY_INFORMATION: for user='%s'\n",
+            info.owner));
         sid_len = 0;
         status = map_nfs4servername_2_sid(nfs41dg,
             OWNER_SECURITY_INFORMATION, &sid_len, &osid, info.owner);
@@ -147,9 +145,9 @@ static int handle_getacl(void *daemon_context, nfs41_upcall *upcall)
     }
 
     if (args->query_secinfo & GROUP_SECURITY_INFORMATION) {
-        convert_nfs4name_2_user_domain(info.owner_group, &domain);
-        DPRINTF(ACLLVL2, ("handle_getacl: GROUP_SECURITY_INFORMATION: for '%s' "
-                "domain='%s'\n", info.owner_group, domain?domain:"<null>"));
+        DPRINTF(ACLLVL2, ("handle_getacl: "
+            "GROUP_SECURITY_INFORMATION: for '%s'\n",
+            info.owner_group));
         sid_len = 0;
         status = map_nfs4servername_2_sid(nfs41dg,
             GROUP_SECURITY_INFORMATION, &sid_len, &gsid, info.owner_group);

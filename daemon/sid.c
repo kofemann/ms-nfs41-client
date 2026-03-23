@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2023-2026 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -236,7 +236,7 @@ bool unixgroup_sid2gid(PSID psid, gid_t *pgid)
 
 typedef struct _sidcache_entry
 {
-#define SIDCACHE_ENTRY_NAME_SIZE (UTF8_UNLEN + 1)
+#define SIDCACHE_ENTRY_NAME_SIZE (UTF8_PRINCIPALLEN + 1)
     char    win32name[SIDCACHE_ENTRY_NAME_SIZE]; /* must fit something like "user@domain" */
     char    aliasname[SIDCACHE_ENTRY_NAME_SIZE];
     PSID    sid;
@@ -279,6 +279,8 @@ void sidcache_addwithalias(sidcache *cache, const char *win32name, const char *a
     util_reltimestamp currentTimestamp;
 
     EASSERT(win32name[0] != '\0');
+    EASSERT_MSG(IS_PRINCIPAL_NAME(win32name),
+        ("name='%s' is not a principal\n", win32name));
 
     EnterCriticalSection(&cache->lock);
     currentTimestamp = UTIL_GETRELTIME();
@@ -436,9 +438,7 @@ int map_nfs4servername_2_sid(nfs41_daemon_globals *nfs41dg, int query, DWORD *si
 
     int status = ERROR_INTERNAL_ERROR;
     SID_NAME_USE sid_type = 0;
-    char nfsname_buff[UTF8_UNLEN+1];
-    char domain_buff[UTF8_UNLEN+1];
-    DWORD domain_len = 0;
+    char nfsname_buff[UTF8_PRINCIPALLEN+1];
 #ifdef NFS41_DRIVER_FEATURE_MAP_UNMAPPED_USER_TO_UNIXUSER_SID
     signed long user_uid = -1;
     signed long group_gid = -1;
@@ -447,6 +447,9 @@ int map_nfs4servername_2_sid(nfs41_daemon_globals *nfs41dg, int query, DWORD *si
     DPRINTF(ACLLVL,
         ("--> map_nfs4servername_2_sid(query=0x%x,nfsname='%s')\n",
         query, nfsname));
+
+    EASSERT_MSG(IS_PRINCIPAL_NAME(nfsname),
+        ("nfsname='%s' is not a principal\n", nfsname));
 
 #ifdef NFS41_DRIVER_FEATURE_MAP_UNMAPPED_USER_TO_UNIXUSER_SID
     /* use our own idmapper script to map nfsv4 owner string to local Windows account */
@@ -516,30 +519,28 @@ int map_nfs4servername_2_sid(nfs41_daemon_globals *nfs41dg, int query, DWORD *si
         goto out;
     }
     *sid_len = MAX_SID_BUFFER_SIZE;
-    domain_len = sizeof(domain_buff);
 
-    status = lookupaccountnameutf8(NULL, nfsname, *sid, sid_len,
-        domain_buff, &domain_len, &sid_type);
+    status = lookupprincipalnameutf8(NULL, nfsname, *sid, sid_len,
+        &sid_type);
 
     if (status) {
-        /* |lookupaccountnameutf8()| success */
+        /* |lookupprincipalnameutf8()| success */
 
         DPRINTF(ACLLVL,
             ("map_nfs4servername_2_sid(query=0x%x,nfsname='%s'): "
-            "lookupaccountnameutf8() returned status=%d "
-            "GetLastError=%d *sid_len=%d domain_buff='%s' domain_len=%d\n",
-            query, nfsname, status, GetLastError(), *sid_len, domain_buff,
-            domain_len));
+            "lookupprincipalnameutf8() returned status=%d "
+            "GetLastError=%d *sid_len=%d\n",
+            query, nfsname, status, GetLastError(), *sid_len));
 
         status = 0;
         *sid_len = GetLengthSid(*sid);
         goto out_cache;
     }
 
-    /* |lookupaccountnameutf8()| failed... */
+    /* |lookupprincipalnameutf8()| failed... */
     DPRINTF(ACLLVL,
         ("map_nfs4servername_2_sid(query=0x%x,nfsname='%s'): "
-        "lookupaccountnameutf8() returned status=%d "
+        "lookupprincipalnameutf8() returned status=%d "
         "GetLastError=%d\n",
         query, nfsname, status, GetLastError()));
 
@@ -551,7 +552,7 @@ int map_nfs4servername_2_sid(nfs41_daemon_globals *nfs41dg, int query, DWORD *si
          * larger than the largest possible SID buffer size for Windows
          */
         eprintf("map_nfs4servername_2_sid(query=0x%x,nfsname='%s'): "
-                "LookupAccountName failed with "
+                "lookupprincipalnameutf8() failed with "
                 "ERROR_INSUFFICIENT_BUFFER\n", query, nfsname);
 
         status = ERROR_INTERNAL_ERROR;
@@ -660,7 +661,7 @@ out_cache:
             /*
              * Treat |SidTypeAlias| as (local) group
              *
-             * It seems that |lookupaccountnameutf8()| will always return
+             * It seems that |lookupprincipalnameutf8()| will always return
              * |SidTypeAlias| for local groups created with
              * $ net localgroup cygwingrp1 /add #
              *
@@ -1089,4 +1090,85 @@ BOOL lookupaccountsidutf8(
 
     return TRUE;
 #endif /* NO_UTF8_ACCOUNT_CONV */
+}
+
+
+BOOL lookupprincipalnameutf8(
+    const char *restrict pSystemNameUTF8,
+    const char *restrict pAccountNameUTF8,
+    PSID restrict pSid,
+    LPDWORD restrict pSidSize,
+    PSID_NAME_USE restrict peUse)
+{
+    if ((pAccountNameUTF8 == NULL) || (pSidSize == 0) || (peUse == NULL)) {
+        SetLastError(ERROR_INVALID_PARAMETER);
+        return FALSE;
+    }
+
+    EASSERT_MSG(IS_PRINCIPAL_NAME(pAccountNameUTF8),
+        ("pAccountNameUTF8='%s' is not a principal\n", pAccountNameUTF8));
+
+    char searchName[512];
+    const char* atSign = strchr(pAccountNameUTF8, '@');
+
+    if (atSign) {
+        int userLen = (int)(atSign - pAccountNameUTF8);
+
+        (void)snprintf(searchName, sizeof(searchName), "%s\\%.*s", atSign + 1, userLen, pAccountNameUTF8);
+    } else {
+        (void)snprintf(searchName, sizeof(searchName), "%s", pAccountNameUTF8);
+    }
+
+    char refDomain[256];
+    DWORD cchRefDomain = sizeof(refDomain);
+
+    return lookupaccountnameutf8(
+        pSystemNameUTF8,
+        searchName,
+        pSid,
+        pSidSize,
+        refDomain,
+        &cchRefDomain,
+        peUse
+    );
+}
+
+
+BOOL lookupprincipalsidutf8(
+    const char *restrict pSystemNameUTF8,
+    PSID restrict Sid,
+    char *restrict pNameUTF8,
+    LPDWORD restrict pNameSize,
+    PSID_NAME_USE restrict peUse)
+{
+    if ((Sid == NULL) || (pNameSize == NULL) || (peUse == NULL)) {
+        SetLastError(ERROR_INVALID_PARAMETER);
+        return FALSE;
+    }
+
+    char name[256];
+    char domain[256];
+    DWORD cchName = sizeof(name);
+    DWORD cchDomain = sizeof(domain);
+
+    if (!lookupaccountsidutf8(pSystemNameUTF8, Sid, name, &cchName, domain, &cchDomain, peUse)) {
+        return FALSE;
+    }
+
+    DWORD requiredSize = cchName + cchDomain + 2;
+
+    if ((pNameUTF8 == NULL) || (*pNameSize < requiredSize)) {
+        *pNameSize = requiredSize;
+        SetLastError(ERROR_INSUFFICIENT_BUFFER);
+        return FALSE;
+    }
+
+    int written = snprintf(pNameUTF8, (size_t)*pNameSize, "%s@%s", name, domain);
+
+    if (written < 0) {
+        return FALSE;
+    }
+
+    *pNameSize = (DWORD)written;
+    return TRUE;
 }

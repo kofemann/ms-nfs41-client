@@ -441,7 +441,6 @@ void nfs_to_stat_lx_info(
     char owner_group[NFS4_FATTR4_OWNER_LIMIT+1];
     uid_t map_uid = ~0UL;
     gid_t map_gid = ~0UL;
-    char *at_ch; /* pointer to '@' */
 
     EASSERT((info->attrmask.arr[1] & FATTR4_WORD1_OWNER) != 0);
     EASSERT((info->attrmask.arr[1] & FATTR4_WORD1_OWNER_GROUP) != 0);
@@ -456,10 +455,9 @@ void nfs_to_stat_lx_info(
      * |owner| can be numeric string ("1616"), plain username
      * ("gisburn") or username@domain ("gisburn@sun.com")
      */
-    /* stomp over '@' */
-    at_ch = strchr(owner, '@');
-    if (at_ch)
-        *at_ch = '\0';
+
+    EASSERT_MSG(IS_PRINCIPAL_NAME(owner),
+        ("owner='%s' is not a principal\n", owner));
 
     if (!nfs41_idmap_name_to_uid(
         nfs41_dg->idmapper,
@@ -484,10 +482,9 @@ void nfs_to_stat_lx_info(
      * |owner_group| can be numeric string ("1616"), plain username
      * ("gisgrp") or username@domain ("gisgrp@sun.com")
      */
-    /* stomp over '@' */
-    at_ch = strchr(owner_group, '@');
-    if (at_ch)
-        *at_ch = '\0';
+
+    EASSERT_MSG(IS_PRINCIPAL_NAME(owner_group),
+        ("owner_group='%s' is not a principal\n", owner_group));
 
     if (!nfs41_idmap_group_to_gid(
         nfs41_dg->idmapper,

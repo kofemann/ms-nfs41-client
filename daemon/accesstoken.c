@@ -1,6 +1,6 @@
 /*
  * NFSv4.1 client for Windows
- * Copyright (C) 2024-2025 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2024-2026 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Roland Mainz <roland.mainz@nrubsig.org>
  *
@@ -47,9 +47,7 @@ bool get_token_user_name(HANDLE tok, char *out_buffer)
     DWORD tokdatalen;
     PTOKEN_USER ptuser;
     PSID pusid;
-    DWORD namesize = UTF8_UNLEN+1;
-    char domainbuffer[UTF8_UNLEN+1];
-    DWORD domainbuffer_size = sizeof(domainbuffer);
+    DWORD namesize = UTF8_PRINCIPALLEN+1;
     SID_NAME_USE name_use;
 
     tokdatalen = sizeof(TOKEN_USER)+GETTOKINFO_EXTRA_BUFFER;
@@ -71,10 +69,10 @@ bool get_token_user_name(HANDLE tok, char *out_buffer)
     }
 #endif /* NFS41_DRIVER_SID_CACHE */
 
-    if (!lookupaccountsidutf8(NULL, pusid, out_buffer, &namesize,
-        domainbuffer, &domainbuffer_size, &name_use)) {
+    if (!lookupprincipalsidutf8(NULL, pusid, out_buffer, &namesize,
+        &name_use)) {
         eprintf("get_token_user_name: "
-            "lookupaccountsidutf8() failed, status=%d\n",
+            "lookupprincipalsidutf8() failed, status=%d\n",
             (int)GetLastError());
         return false;
     }
@@ -91,9 +89,7 @@ bool get_token_primarygroup_name(HANDLE tok, char *out_buffer)
     DWORD tokdatalen;
     PTOKEN_PRIMARY_GROUP ptpgroup;
     PSID pgsid;
-    DWORD namesize = UTF8_GNLEN+1;
-    char domainbuffer[UTF8_UNLEN+1];
-    DWORD domainbuffer_size = sizeof(domainbuffer);
+    DWORD namesize = UTF8_PRINCIPALLEN+1;
     SID_NAME_USE name_use;
 
     tokdatalen = sizeof(TOKEN_PRIMARY_GROUP)+GETTOKINFO_EXTRA_BUFFER;
@@ -115,10 +111,10 @@ bool get_token_primarygroup_name(HANDLE tok, char *out_buffer)
     }
 #endif /* NFS41_DRIVER_SID_CACHE */
 
-    if (!lookupaccountsidutf8(NULL, pgsid, out_buffer, &namesize,
-        domainbuffer, &domainbuffer_size, &name_use)) {
+    if (!lookupprincipalsidutf8(NULL, pgsid, out_buffer, &namesize,
+        &name_use)) {
         eprintf("get_token_primarygroup_name: "
-            "lookupaccountsidutf8() failed, status=%d\n",
+            "lookupprincipalsidutf8() failed, status=%d\n",
             (int)GetLastError());
         return false;
     }
@@ -133,7 +129,7 @@ bool get_token_primarygroup_name(HANDLE tok, char *out_buffer)
 bool fill_auth_unix_aup_gids(HANDLE tok,
     gid_t *aup_gids, int *num_aup_gids)
 {
-    char group_names_buff[RPC_AUTHUNIX_AUP_MAX_NUM_GIDS*(UTF8_GNLEN+1)];
+    char group_names_buff[RPC_AUTHUNIX_AUP_MAX_NUM_GIDS*(UTF8_PRINCIPALLEN+1)];
     char *group_names[RPC_AUTHUNIX_AUP_MAX_NUM_GIDS];
     char *s;
     int i;
@@ -146,9 +142,11 @@ bool fill_auth_unix_aup_gids(HANDLE tok,
      * VS2019 |_alloca()| cannot be used in a loop, so we use multiple
      * pointers into one buffer instead
      */
-    for (s=group_names_buff,i=0 ; i < RPC_AUTHUNIX_AUP_MAX_NUM_GIDS ; i++) {
+    for (s=group_names_buff,i=0 ;
+        i < RPC_AUTHUNIX_AUP_MAX_NUM_GIDS ;
+        i++) {
         group_names[i] = s;
-        s += UTF8_GNLEN+1;
+        s += UTF8_PRINCIPALLEN+1;
     }
 
     if (!get_token_groups_names(tok,
@@ -185,10 +183,8 @@ bool get_token_groups_names(HANDLE tok,
 {
     DWORD tokdatalen;
     PTOKEN_GROUPS ptgroups;
-    char namebuffer[UTF8_GNLEN+1];
+    char namebuffer[UTF8_PRINCIPALLEN+1];
     DWORD namesize;
-    char domainbuffer[UTF8_UNLEN+1];
-    DWORD domainbuffer_size;
     SID_NAME_USE name_use;
     bool retval = false;
 
@@ -238,32 +234,29 @@ bool get_token_groups_names(HANDLE tok,
         }
 
         namesize = sizeof(namebuffer)-1;
-        domainbuffer_size = sizeof(domainbuffer)-1;
 
-        if (!lookupaccountsidutf8(NULL, ptgroups->Groups[i].Sid,
+        if (!lookupprincipalsidutf8(NULL, ptgroups->Groups[i].Sid,
             namebuffer,
             &namesize,
-            domainbuffer,
-            &domainbuffer_size,
             &name_use)) {
             DPRINTF(0, ("get_token_groups_names: "
-                "lookupaccountsidutf8() failed, status=%d.\n",
+                "lookupprincipalsidutf8() failed, status=%d.\n",
                 (int)GetLastError()));
             continue;
         }
 
         if (iob < num_out_buffers) {
             DPRINTF(1,
-                ("get_token_groups_names: adding group='%s', domain='%s'\n",
-                namebuffer, domainbuffer));
+                ("get_token_groups_names: adding group='%s'\n",
+                namebuffer));
             (void)strcpy(out_buffers[iob], namebuffer);
             iob++;
         }
         else {
             DPRINTF(0,
                 ("get_token_groups_names: "
-                "buffer full, skip group='%s', domain='%s'\n",
-                namebuffer, domainbuffer));
+                "buffer full, skip group='%s'\n",
+                namebuffer));
         }
     }
 

@@ -77,6 +77,9 @@ int cygwin_getent_passwd(const char *name, char *res_loginname, uid_t *res_uid, 
         goto fail;
     }
 
+    EASSERT_MSG(IS_PRINCIPAL_NAME(name),
+        ("name='%s' is not a principal\n", name));
+
     /* fixme: better quoting for |name| needed */
     (void)snprintf(cmdbuff, sizeof(cmdbuff),
         "%s nfsserver_owner2localaccount \"%s\"",
@@ -186,6 +189,11 @@ fail:
     cpv_free_parser(cpvp);
 
     if (res == 0) {
+        if (res_loginname != NULL) {
+            EASSERT_MSG(IS_PRINCIPAL_NAME(res_loginname),
+                ("res_loginname='%s' is not a principal\n", res_loginname));
+        }
+
         DPRINTF(CYGWINIDLVL,
             ("<-- cygwin_getent_passwd(name='%s'): "
             "returning res_uid=%u, res_gid=%u, res_loginname='%s'\n",
@@ -230,6 +238,9 @@ int cygwin_getent_group(const char* name, char* res_group_name, gid_t* res_gid)
             name));
         goto fail;
     }
+
+    EASSERT_MSG(IS_PRINCIPAL_NAME(name),
+        ("name='%s' is not a principal\n", name));
 
     /* fixme: better quoting for |name| needed */
     (void)snprintf(cmdbuff, sizeof(cmdbuff),
@@ -333,6 +344,11 @@ fail:
     cpv_free_parser(cpvp);
 
     if (res == 0) {
+        if (res_group_name != NULL) {
+            EASSERT_MSG(IS_PRINCIPAL_NAME(res_group_name),
+                ("res_group_name='%s' is not a principal\n", res_group_name));
+        }
+
         DPRINTF(CYGWINIDLVL,
             ("<-- cygwin_getent_group(name='%s'): "
             "returning res_gid=%u, res_group_name='%s'\n",

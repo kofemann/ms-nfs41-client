@@ -896,8 +896,20 @@ int chgrp_to_primarygroup(
             state->file.name.name);
         goto create_symlink_chgrp_out;
     }
-    s = createchgrpattrs.owner_group+strlen(createchgrpattrs.owner_group);
-    s = stpcpy(s, "@");
+
+    /*
+     * Find '@' so we can overwrite/override the domain name
+     * FIXME: We need to use a bi-directional idmapper to handle this better
+     */
+    s = strchr(createchgrpattrs.owner_group, '@');
+    if (s != NULL) {
+        s++; /* Skip '@' */
+    }
+    else {
+        /* If we do not have an '@' yet (no domain name), then add one */
+        s = createchgrpattrs.owner_group+strlen(createchgrpattrs.owner_group);
+        s = stpcpy(s, "@");
+    }
     (void)stpcpy(s, nfs41dg->localdomain_name);
     DPRINTF(1, ("chgrp_to_primarygroup(state->file.name.name='%s'): "
         "owner_group='%s'\n",

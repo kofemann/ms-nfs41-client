@@ -107,8 +107,8 @@ void dprintf_out(const char *restrict format, ...)
     va_list args;
     va_start(args, format);
 #ifdef DPRINTF_PRINT_IMPERSONATION_USER
-    char username[UTF8_UNLEN+1];
-    char groupname[UTF8_GNLEN+1];
+    char username[UTF8_PRINCIPALLEN+1];
+    char groupname[UTF8_PRINCIPALLEN+1];
     HANDLE tok;
     const char *tok_src;
     bool free_tok = false;
@@ -171,8 +171,8 @@ void logprintf(const char *restrict format, ...)
 #endif /* _MSC_VER */
 {
     SYSTEMTIME stime;
-    char username[UTF8_UNLEN+1];
-    char groupname[UTF8_GNLEN+1];
+    char username[UTF8_PRINCIPALLEN+1];
+    char groupname[UTF8_PRINCIPALLEN+1];
     HANDLE tok;
     const char *tok_src;
     bool free_tok = false;

@@ -46,6 +46,8 @@ extern sidcache group_sidcache;
 #define UTF8_UNLEN (UNLEN*MAX_UTF8_BYTES_PER_WCHAR_T)
 #define UTF8_GNLEN (GNLEN*MAX_UTF8_BYTES_PER_WCHAR_T)
 
+/* UTF-8 principal length, name@domain */
+#define UTF8_PRINCIPALLEN (UTF8_UNLEN + 1 + 255/*DNS_MAX_NAME_LENGTH*/)
 
 /*
  * |DECLARE_SID_BUFFER| - declare a buffer for a SID value
@@ -97,6 +99,19 @@ BOOL lookupaccountsidutf8(
     LPDWORD restrict pNameSize,
     char *restrict pReferencedDomainNameUTF8,
     LPDWORD restrict pReferencedDomainNameSize,
+    PSID_NAME_USE restrict peUse);
+/* UTF-8 principal (name@domain) versions */
+BOOL lookupprincipalnameutf8(
+    const char *restrict pSystemNameUTF8,
+    const char *restrict pAccountNameUTF8,
+    PSID restrict pSid,
+    LPDWORD restrict pSidSize,
+    PSID_NAME_USE restrict peUse);
+BOOL lookupprincipalsidutf8(
+    const char *restrict pSystemNameUTF8,
+    PSID restrict Sid,
+    char *restrict pNameUTF8,
+    LPDWORD restrict pNameSize,
     PSID_NAME_USE restrict peUse);
 
 #endif /* !__NFS41_DAEMON_SID_H */

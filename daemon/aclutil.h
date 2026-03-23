@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2023-2026 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -35,8 +35,6 @@
 void free_sids(PSID *sids, int count);
 int map_sid2nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid,
     char *who_out, char *domain, SID_NAME_USE *sid_type_out);
-void convert_nfs4name_2_user_domain(LPSTR nfs4name,
-    LPSTR *domain);
 int convert_nfs4acl_2_dacl(nfs41_daemon_globals *nfs41dg,
     nfsacl41 *acl, int file_type, PACL *dacl_out, PSID **sids_out,
     bool named_attr_support);

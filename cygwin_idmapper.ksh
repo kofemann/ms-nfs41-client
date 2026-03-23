@@ -19,6 +19,9 @@ if (( $# > 1 )) ; then
 	# strip '"' characters (for Cygwin 3.3 compatibility)
 	# note that "${2-//..." does NOT work!
 	c.name="${2//\"/}"
+
+	# strip domain part, e.g. "name@domain" --> "name"
+	c.name="${c.name%@*}"
 fi
 
 #
@@ -88,6 +91,11 @@ if (( $? == 0 )) && [[ "$stdout" != ~(El)Unknown\+Group: ]] ; then
 	c.localised_groupnames['Users']="${stdout%%:*}"
 fi
 
+if [[ ! -v COMPUTERNAME ]] ; then
+	printf -u2 -f $"ERROR: COMPUTERNAME var not set\n"
+	export COMPUTERNAME="$(uname -n | tr '[:lower:]' '[:upper:]')"
+fi
+
 compound -A localusers=(
 	#
 	# System accounts
@@ -97,32 +105,32 @@ compound -A localusers=(
 	# Site-specific users
 	#
 	["roland_mainz"]=(
-		localaccountname='roland_mainz'
+		localaccountname="roland_mainz@${COMPUTERNAME}"
 		localuid=197608
 		localgid=197121
 	)
 	["siegfried_wulsch"]=(
-		localaccountname='siegfried_wulsch'
+		localaccountname="siegfried_wulsch@${COMPUTERNAME}"
 		localuid=197609
 		localgid=197121
 	)
 	["rmainz"]=(
-		localaccountname='rmainz'
+		localaccountname="rmainz@${COMPUTERNAME}"
 		localuid=1616
 		localgid=1616
 	)
 	["swulsch"]=(
-		localaccountname='swulsch'
+		localaccountname="swulsch@${COMPUTERNAME}"
 		localuid=1818
 		localgid=1818
 	)
 	["root"]=(
-		localaccountname='root'
+		localaccountname="root@${COMPUTERNAME}"
 		localuid=0
 		localgid=0
 	)
 	["nobody"]=(
-		localaccountname='nobody'
+		localaccountname="nobody@${COMPUTERNAME}"
 		localuid=65534
 		localgid=65534
 	)
@@ -131,18 +139,18 @@ compound -A localusers=(
 if [[ -v c.localised_usernames['Administrator'] ]] ; then
 	localusers+=(
 		["${c.localised_usernames['Administrator']}"]=(
-			localaccountname="${c.localised_usernames['Administrator']}"
+			localaccountname="${c.localised_usernames['Administrator']}@${COMPUTERNAME}"
 			localuid=197108
 			localgid=197121
 		)
 		['Administrator']=(
-			localaccountname="${c.localised_usernames['Administrator']}"
+			localaccountname="${c.localised_usernames['Administrator']}@${COMPUTERNAME}"
 			localuid=197108
 			localgid=197121
 		)
 		# French user "Administrator"
 		['Administrateur']=(
-			localaccountname="${c.localised_usernames['Administrator']}"
+			localaccountname="${c.localised_usernames['Administrator']}@${COMPUTERNAME}"
 			localuid=197108
 			localgid=197121
 		)
@@ -151,12 +159,12 @@ fi
 if [[ -v c.localised_usernames['SYSTEM'] ]] ; then
 	localusers+=(
 		["${c.localised_usernames['SYSTEM']}"]=(
-			localaccountname="${c.localised_usernames['SYSTEM']}"
+			localaccountname="${c.localised_usernames['SYSTEM']}@${COMPUTERNAME}"
 			localuid=18
 			localgid=18
 		)
 		["SYSTEM"]=(
-			localaccountname="${c.localised_usernames['SYSTEM']}"
+			localaccountname="${c.localised_usernames['SYSTEM']}@${COMPUTERNAME}"
 			localuid=18
 			localgid=18
 		)
@@ -164,7 +172,7 @@ if [[ -v c.localised_usernames['SYSTEM'] ]] ; then
 		# FIXME: This should be $'Syst\u[e8]me', but ksh93 1.0.10
 		# doesn't work
 		[$'Syst\xc3\xa8me']=(
-			localaccountname="${c.localised_usernames['SYSTEM']}"
+			localaccountname="${c.localised_usernames['SYSTEM']}@${COMPUTERNAME}"
 			localuid=18
 			localgid=18
 		)
@@ -181,26 +189,26 @@ compound -A localgroups=(
 	# Site-specific users
 	#
 	["rmainz"]=(
-		localgroupname='rmainz'
+		localgroupname="rmainz@${COMPUTERNAME}"
 		localgid=1616
 	)
 	["swulsch"]=(
-		localgroupname='swulsch'
+		localgroupname="swulsch@${COMPUTERNAME}"
 		localgid=1818
 	)
 	["root"]=(
-		localgroupname='root'
+		localgroupname="root@${COMPUTERNAME}"
 		localgid=0
 	)
 	["nogroup"]=(
-		localgroupname='nogroup'
+		localgroupname="nogroup@${COMPUTERNAME}"
 		localgid=65534
 	)
 	#
 	# Group "sys" required for Solaris/Illumos nfsd
 	#
 	["sys"]=(
-		localgroupname='sys'
+		localgroupname="sys@${COMPUTERNAME}"
 		localgid=3
 	)
 	#
@@ -208,7 +216,7 @@ compound -A localgroups=(
 	# Question is why "nobody" shows up in a "group" idmapperr lookup
 	#
 	["nobody"]=(
-		localgroupname='nobody'
+		localgroupname="nobody@${COMPUTERNAME}"
 		localgid=65534
 	)
 )
@@ -222,10 +230,13 @@ function getent_local_domain_passwd
 	# first try local accounts and if getent does
 	# not find anything do a (normal) domain lookup
 	#
-	# Cygwin getent uses '+' prefix to search for local
+	# Notes:
+	# - Cygwin getent uses "+" prefix to search for local
 	# accounts only
+	# - Cygwin getent uses "U-" prefix to pass the input string to
+	# |LookupAccountNameA()| directly
 	#
-	getent passwd "+${passwdname}"
+	getent passwd "U-${passwdname}"
 	(( res=$? ))
 
 	if (( res == 2 )) ; then
@@ -245,10 +256,13 @@ function getent_local_domain_group
 	# first try local accounts and if getent does
 	# not find anything do a (normal) domain lookup
 	#
-	# Cygwin getent uses '+' prefix to search for local
+	# Notes:
+	# - Cygwin getent uses "+" prefix to search for local
 	# accounts only
+	# - Cygwin getent uses "U-" prefix to pass the input string to
+	# |LookupAccountNameA()| directly
 	#
-	getent group "+${groupname}"
+	getent group "U-${groupname}"
 	(( res=$? ))
 
 	if (( res == 2 )) ; then
@@ -262,21 +276,21 @@ function getent_local_domain_group
 if [[ -v c.localised_groupnames['None'] ]] ; then
 	localgroups+=(
 		["${c.localised_groupnames['None']}"]=(
-			localgroupname="${c.localised_groupnames['None']}"
+			localgroupname="${c.localised_groupnames['None']}@${COMPUTERNAME}"
 			localgid=197121
 		)
 		["None"]=(
-			localgroupname="${c.localised_groupnames['None']}"
+			localgroupname="${c.localised_groupnames['None']}@${COMPUTERNAME}"
 			localgid=197121
 		)
 		# French Windows localised group name for "None"
 		['Aucun']=(
-			localgroupname="${c.localised_groupnames['None']}"
+			localgroupname="${c.localised_groupnames['None']}@${COMPUTERNAME}"
 			localgid=197121
 		)
 		# German Windows localised group name for "None"
 		["Kein"]=(
-			localgroupname="${c.localised_groupnames['None']}"
+			localgroupname="${c.localised_groupnames['None']}@${COMPUTERNAME}"
 			localgid=197121
 		)
 	)
@@ -285,22 +299,22 @@ fi
 if [[ -v c.localised_groupnames['Administrators'] ]] ; then
 	localgroups+=(
 		["${c.localised_groupnames['Administrators']}"]=(
-			localgroupname="${c.localised_groupnames['Administrators']}"
+			localgroupname="${c.localised_groupnames['Administrators']}@${COMPUTERNAME}"
 			localgid=544
 		)
 		['Administrators']=(
-			localgroupname="${c.localised_groupnames['Administrators']}"
+			localgroupname="${c.localised_groupnames['Administrators']}@${COMPUTERNAME}"
 			localgid=544
 		)
 		# French Windows localised group name for "Administrators"
 		# (from https://learn.microsoft.com/fr-fr/windows-server/identity/ad-ds/manage/understand-security-identifiers)
 		['Administrateurs']=(
-			localgroupname="${c.localised_groupnames['Administrators']}"
+			localgroupname="${c.localised_groupnames['Administrators']}@${COMPUTERNAME}"
 			localgid=544
 		)
 		# German Windows localised group name for "Administrators"
 		['Administratoren']=(
-			localgroupname="${c.localised_groupnames['Administrators']}"
+			localgroupname="${c.localised_groupnames['Administrators']}@${COMPUTERNAME}"
 			localgid=544
 		)
 	)
@@ -309,26 +323,41 @@ fi
 if [[ -v c.localised_groupnames['Users'] ]] ; then
 	localgroups+=(
 		["${c.localised_groupnames['Users']}"]=(
-			localgroupname="${c.localised_groupnames['Users']}"
+			localgroupname="${c.localised_groupnames['Users']}@${COMPUTERNAME}"
 			localgid=545
 		)
 		['Users']=(
-			localgroupname="${c.localised_groupnames['Users']}"
+			localgroupname="${c.localised_groupnames['Users']}@${COMPUTERNAME}"
 			localgid=545
 		)
 		# French Windows localised group name for "Users"
 		# (from https://learn.microsoft.com/fr-fr/windows-server/identity/ad-ds/manage/understand-security-identifiers)
 		['Utilisateurs']=(
-			localgroupname="${c.localised_groupnames['Users']}"
+			localgroupname="${c.localised_groupnames['Users']}@${COMPUTERNAME}"
 			localgid=545
 		)
 		# German Windows localised group name for "Users"
 		['Benutzer']=(
-			localgroupname="${c.localised_groupnames['Users']}"
+			localgroupname="${c.localised_groupnames['Users']}@${COMPUTERNAME}"
 			localgid=545
 		)
 	)
 fi
+
+function ntaccount2principal
+{
+	typeset raw_string="$1"
+
+	typeset stripped="${raw_string#*U-}"
+
+	stripped="${stripped%%,*}"
+
+	typeset domain="${stripped%\\*}"
+	typeset user="${stripped#*\\}"
+
+	printf '%s\n' "${user}@${domain}"
+	return 0
+}
 
 case "${c.mode}" in
 	'nfsserver_owner2localaccount')
@@ -354,12 +383,13 @@ case "${c.mode}" in
 		# try getent passwd
 		#
 		compound gec # getent compound var
-		typeset dummy1 dummy2
+		typeset dummy1 dummy2 s
 		getent_local_domain_passwd "${c.name}" | \
-			IFS=':' read gec.localaccountname dummy1 gec.localuid gec.localgid dummy2
+			IFS=':' read -r dummy1 dummy2 gec.localuid gec.localgid s dummy3
 
-		if [[ "${gec.localaccountname-}" != '' ]] ; then
+		if [[ "${s-}" != '' ]] ; then
 			if [[ "${gec.localuid-}" == ~(Elr)[[:digit:]]+ && "${gec.localgid-}" == ~(Elr)[[:digit:]]+ ]] ; then
+				gec.localaccountname="${ ntaccount2principal "$s" ; }"
 				print -v gec
 				exit 0
 			else
@@ -393,12 +423,22 @@ case "${c.mode}" in
 		# try getent group
 		#
 		compound gec # getent compound var
-		typeset dummy1 dummy2
+		typeset dummy1 dummy2 s
 		getent_local_domain_group "${c.name}" | \
-			IFS=':' read gec.localgroupname dummy1 gec.localgid dummy2
+			IFS=':' read s dummy1 gec.localgid dummy2
 
-		if [[ "${gec.localgroupname-}" != '' ]] ; then
+		if [[ "${s-}" != '' ]] ; then
 			if [[ "${gec.localgid-}" == ~(Elr)[[:digit:]]+ ]] ; then
+				if [[ "$s" == *"+"* ]]; then
+					domain="${s%%+*}"
+					user="${input#*+}"
+				else
+					# No '+' found, fallback to the local machine name
+					domain="${COMPUTERNAME}"
+					user="$s"
+				fi
+
+				gec.localgroupname="$user@$domain"
 				print -v gec
 				exit 0
 			else

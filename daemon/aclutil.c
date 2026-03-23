@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2023-2026 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -46,20 +46,6 @@ static void map_winaccessmask2nfs4acemask(ACCESS_MASK win_mask,
     int file_type, bool nfs_namedattr_support, uint32_t *nfs4_mask);
 static void map_nfs4acemask2winaccessmask(uint32_t nfs4_mask,
     int file_type, bool nfs_namedattr_support, ACCESS_MASK *win_mask);
-
- void convert_nfs4name_2_user_domain(LPSTR nfs4name,
-    LPSTR *domain)
-{
-    LPSTR p = nfs4name;
-    for(; p[0] != '\0'; p++) {
-        if (p[0] == '@') {
-            p[0] = '\0';
-
-            *domain = &p[1];
-            break;
-        }
-    }
-}
 
 void free_sids(PSID *sids, int count)
 {
@@ -123,7 +109,6 @@ int convert_nfs4acl_2_dacl(nfs41_daemon_globals *nfs41dg,
     DWORD sid_len;
     PSID *sids;
     PACL dacl;
-    LPSTR domain = NULL;
     BOOLEAN flag;
 
     DPRINTF(ACLLVL2, ("--> convert_nfs4acl_2_dacl(acl=0x%p,"
@@ -147,9 +132,9 @@ int convert_nfs4acl_2_dacl(nfs41_daemon_globals *nfs41dg,
 
         skip_aces[nfs_i] = false;
 
-        convert_nfs4name_2_user_domain(curr_nfsace->who, &domain);
-        DPRINTF(ACLLVL2, ("convert_nfs4acl_2_dacl: for user='%s' domain='%s'\n",
-                curr_nfsace->who, domain?domain:"<null>"));
+        DPRINTF(ACLLVL2,
+            ("convert_nfs4acl_2_dacl: for user='%s'\n",
+            curr_nfsace->who));
 
         EASSERT_MSG(!isdigit(curr_nfsace->who[0]),
             ("convert_nfs4acl_2_dacl: aces[%d]->who='%s' uses numeric id\n",
@@ -182,10 +167,9 @@ int convert_nfs4acl_2_dacl(nfs41_daemon_globals *nfs41dg,
 
 
 #ifdef NFS41_DRIVER_WS2022_HACKS
-            if ((isgroupacl == false) && domain &&
-                (!strcmp(domain, "BUILTIN"))) {
-                if ((!strcmp(curr_nfsace->who, "Users")) ||
-                    (!strcmp(curr_nfsace->who, "Administrators"))) {
+            if (isgroupacl == false) {
+                if ((!strcmp(curr_nfsace->who, "Users@BUILTIN")) ||
+                    (!strcmp(curr_nfsace->who, "Administrators@BUILTIN"))) {
                     DPRINTF(1, ("convert_nfs4acl_2_dacl: "
                         "force isgroupacl=true for for user='%s'\n",
                         curr_nfsace->who));
@@ -741,8 +725,8 @@ int map_sid2nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid,
 {
     int status, lasterr;
     SID_NAME_USE sid_type = 0;
-    /* |(UTF8_UNLEN+sizeof('\0'))*2| so we have space for user+domain */
-    char who_buf[(UTF8_UNLEN+1)*2];
+    /* |who_buf| needs space for user+domain */
+    char who_buf[UTF8_PRINCIPALLEN+1];
     char domain_buf[UTF8_UNLEN+1];
     DWORD who_size = sizeof(who_buf), domain_size = sizeof(domain_buf);
     LPSTR sidstr = NULL;
@@ -799,8 +783,7 @@ int map_sid2nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid,
         goto out;
     }
 
-    status = lookupaccountsidutf8(NULL, sid, who_buf, &who_size, domain_buf,
-        &domain_size, &sid_type);
+    status = lookupprincipalsidutf8(NULL, sid, who_buf, &who_size, &sid_type);
     lasterr = GetLastError();
 
     if (status) {
@@ -846,7 +829,7 @@ int map_sid2nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid,
 
                 if (unixuser_sid2uid(sid, &unixuser_uid)) {
                     if (!nfs41_idmap_uid_to_name(nfs41_dg.idmapper,
-                        unixuser_uid, who_out, UTF8_UNLEN)) {
+                        unixuser_uid, who_out, UTF8_PRINCIPALLEN)) {
                         who_size = (DWORD)strlen(who_out);
                         sid_type = SidTypeUser;
                         status = ERROR_SUCCESS;
@@ -867,7 +850,7 @@ int map_sid2nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid,
 
                 if (unixgroup_sid2gid(sid, &unixgroup_gid)) {
                     if (!nfs41_idmap_gid_to_group(nfs41_dg.idmapper,
-                        unixgroup_gid, who_out, UTF8_GNLEN)) {
+                        unixgroup_gid, who_out, UTF8_PRINCIPALLEN)) {
                         who_size = (DWORD)strlen(who_out);
                         sid_type = SidTypeGroup;
                         status = ERROR_SUCCESS;
@@ -886,7 +869,7 @@ int map_sid2nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid,
                     goto err_none_mapped;
                 }
 
-                eprintf("map_sid2nfs4ace_who: lookupaccountsidutf8() "
+                eprintf("map_sid2nfs4ace_who: lookupprincipalsidutf8() "
                     "returned ERROR_NONE_MAPPED+no "
                     "Unix_@(User|Group)+ mapping for sidstr='%s'\n",
                     sidstr);
@@ -894,7 +877,7 @@ err_none_mapped:
                 status = ERROR_NONE_MAPPED;
 #else
                 DPRINTF(ACLLVL2,
-                    ("map_sid2nfs4ace_who: lookupaccountsidutf8() "
+                    ("map_sid2nfs4ace_who: lookupprincipalsidutf8() "
                     "returned ERROR_NONE_MAPPED for sidstr='%s'\n",
                     sidstr));
                 status = lasterr;
@@ -904,7 +887,7 @@ err_none_mapped:
             /* Catch other cases */
             case ERROR_NO_SUCH_USER:
             case ERROR_NO_SUCH_GROUP:
-                eprintf("map_sid2nfs4ace_who: lookupaccountsidutf8() "
+                eprintf("map_sid2nfs4ace_who: lookupprincipalsidutf8() "
                     "returned ERROR_NO_SUCH_@(USER|GROUP) for "
                     "sidstr='%s'\n",
                     sidstr);
@@ -912,7 +895,7 @@ err_none_mapped:
                 goto out;
             default:
                 eprintf("map_sid2nfs4ace_who: Internal error, "
-                    "lookupaccountsidutf8() returned unexpected ERROR_%d "
+                    "lookupprincipalsidutf8() returned unexpected ERROR_%d "
                     "for sidstr='%s'\n",
                     status, sidstr);
                 status = ERROR_INTERNAL_ERROR;
@@ -929,8 +912,17 @@ add_domain:
     EASSERT(!isdigit(who_out[0]));
 
     char *wp;
+    char *at_s;
 
-    wp = mempcpy(who_out+who_size, "@", sizeof(char));
+    at_s = strchr(who_out, '@');
+    if (at_s != NULL) {
+        /* Override domain */
+        wp = at_s + 1;
+    }
+    else {
+        /* Append domain */
+        wp = mempcpy(who_out+who_size, "@", sizeof(char));
+    }
 
 #ifdef NFS41_DRIVER_WS2022_HACKS
     /* Fixup |domain| for Windows Sever 2022 NFSv4.1 server */

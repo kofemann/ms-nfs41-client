@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2023-2026 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -384,7 +384,7 @@ int nfs41_client_owner(
     DWORD length;
     const ULONGLONG time_created = GetTickCount64();
     int status;
-    char username[UTF8_UNLEN+1];
+    char username[UTF8_PRINCIPALLEN+1];
     HANDLE thrtoken = GetCurrentThreadEffectiveToken();
 #ifdef NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE
     LUID authenticationid;

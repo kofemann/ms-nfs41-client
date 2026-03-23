@@ -39,6 +39,12 @@ typedef struct __nfs41_file_info nfs41_file_info;
 typedef struct __nfs41_superblock nfs41_superblock;
 enum stable_how4;
 
+/* Is this a name@domain principal-like string ? */
+#define IS_PRINCIPAL_NAME(name) \
+    (((strchr((name), '@') != NULL) || \
+      (strcmp((name), "nobody") == 0) || \
+      (strcmp((name), "nogroup") == 0))?true:false)
+
 /*
  * Turn |unsigned int foo:1| from/to |bool|
  */

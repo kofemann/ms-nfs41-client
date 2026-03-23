@@ -709,7 +709,6 @@ void open_get_localuidgid(IN nfs41_daemon_globals *restrict nfs41dg,
     char owner_group[NFS4_FATTR4_OWNER_LIMIT+1];
     uid_t map_uid = ~0UL;
     gid_t map_gid = ~0UL;
-    char *at_ch; /* pointer to '@' */
 
 #if 1
     EASSERT(info->attrmask.count >= 2);
@@ -767,10 +766,9 @@ void open_get_localuidgid(IN nfs41_daemon_globals *restrict nfs41dg,
      * |owner| can be numeric string ("1616"), plain username
      *  ("gisburn") or username@domain ("gisburn@sun.com")
      */
-    /* stomp over '@' */
-    at_ch = strchr(owner, '@');
-    if (at_ch)
-        *at_ch = '\0';
+
+    EASSERT_MSG(IS_PRINCIPAL_NAME(owner),
+        ("owner='%s' is not a principal\n", owner));
 
     if (nfs41_idmap_name_to_uid(
         nfs41dg->idmapper,
@@ -793,10 +791,9 @@ void open_get_localuidgid(IN nfs41_daemon_globals *restrict nfs41dg,
      * |owner_group| can be numeric string ("1616"), plain username
      * ("gisgrp") or username@domain ("gisgrp@sun.com")
      */
-    /* stomp over '@' */
-    at_ch = strchr(owner_group, '@');
-    if (at_ch)
-        *at_ch = '\0';
+
+    EASSERT_MSG(IS_PRINCIPAL_NAME(owner_group),
+        ("owner_group='%s' is not a principal\n", owner_group));
 
     if (nfs41_idmap_group_to_gid(
         nfs41dg->idmapper,
