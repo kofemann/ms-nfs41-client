@@ -1,5 +1,6 @@
 /* NFSv4.1 client for Windows
- * Copyright © 2012 The Regents of the University of Michigan
+ * Copyright (C) 2012 The Regents of the University of Michigan
+ * Copyright (C) 2023-2026 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -71,8 +72,20 @@ int nfs41_idmap_gid_to_group(
 
 /* idmap_cygwin.c */
 #ifdef NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN
-int cygwin_getent_passwd(const char *name, char *res_loginname, uid_t *res_uid, gid_t *res_gid);
-int cygwin_getent_group(const char* name, char* res_group_name, gid_t* res_gid);
+int cygwin_getent_passwd(
+    const char *restrict name,
+    char *restrict res_localaccountname,
+    uid_t *restrict res_localuid,
+    gid_t *restrict res_localgid,
+    char *restrict res_nfsowner,
+    uid_t *restrict res_nfsuid,
+    gid_t *restrict res_nfsgid);
+int cygwin_getent_group(
+    const char *restrict name,
+    char *restrict res_localgroupname,
+    gid_t *restrict res_localgid,
+    char *restrict res_nfsownergroup,
+    gid_t *restrict res_nfsgid);
 #endif /* NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN */
 
 #endif /* !IDMAP_H */

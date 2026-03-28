@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2023-2026 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -726,7 +726,7 @@ static int idmap_lookup_user(
 
         status = ERROR_NOT_FOUND;
 
-        if (!cygwin_getent_passwd(lookup->value, NULL, &cy_uid, &cy_gid)) {
+        if (!cygwin_getent_passwd(lookup->value, NULL, &cy_uid, &cy_gid, NULL, NULL, NULL)) {
             DPRINTF(CYGWINIDLVL,
                 ("# ATTR_USER_NAME: cygwin_getent_passwd: "
                 "returned '%s', uid=%u, gid=%u\n",
@@ -760,7 +760,7 @@ static int idmap_lookup_user(
         if ((s = strchr(search_name, '@')) != NULL)
             *s = '\0';
 
-        if (!cygwin_getent_passwd(search_name, NULL, &cy_uid, &cy_gid)) {
+        if (!cygwin_getent_passwd(search_name, NULL, &cy_uid, &cy_gid, NULL, NULL, NULL)) {
             DPRINTF(CYGWINIDLVL,
                 ("# ATTR_PRINCIPAL: cygwin_getent_passwd: "
                 "returned '%s', uid=%u, gid=%u\n",
@@ -792,7 +792,7 @@ static int idmap_lookup_user(
 
         (void)snprintf(search_name, sizeof(search_name), "%lu", (unsigned long)search_uid);
 
-        if (!cygwin_getent_passwd(search_name, res_username, &cy_uid, &cy_gid)) {
+        if (!cygwin_getent_passwd(search_name, res_username, &cy_uid, &cy_gid, NULL, NULL, NULL)) {
             DPRINTF(CYGWINIDLVL,
                 ("# ATTR_UID: cygwin_getent_passwd: "
                 "returned '%s', uid=%u, gid=%u\n",
@@ -887,7 +887,7 @@ static int idmap_lookup_group(
 
         status = ERROR_NOT_FOUND;
 
-        if (!cygwin_getent_group(lookup->value, NULL, &cy_gid)) {
+        if (!cygwin_getent_group(lookup->value, NULL, &cy_gid, NULL, NULL)) {
             DPRINTF(CYGWINIDLVL,
                 ("# ATTR_GROUP_NAME: cygwin_getent_group: "
                 "returned '%s', gid=%u\n",
@@ -909,7 +909,7 @@ static int idmap_lookup_group(
         (void)snprintf(search_name, sizeof(search_name),
             "%lu", (unsigned long)search_gid);
 
-        if (!cygwin_getent_group(search_name, res_groupname, &cy_gid)) {
+        if (!cygwin_getent_group(search_name, res_groupname, &cy_gid, NULL, NULL)) {
             DPRINTF(CYGWINIDLVL,
                 ("# ATTR_GID: cygwin_getent_group: returned '%s', gid=%u\n",
                 res_groupname, (unsigned int)cy_gid));

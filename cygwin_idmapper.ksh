@@ -96,6 +96,8 @@ if [[ ! -v COMPUTERNAME ]] ; then
 	export COMPUTERNAME="$(uname -n | tr '[:lower:]' '[:upper:]')"
 fi
 
+typeset -r localdomain='global.loc'
+
 compound -A localusers=(
 	#
 	# System accounts
@@ -108,31 +110,49 @@ compound -A localusers=(
 		localaccountname="roland_mainz@${COMPUTERNAME}"
 		localuid=197608
 		localgid=197121
+		nfsowner="roland_mainz@${localdomain}"
+		nfsuid=197608
+		nfsgid=197121
 	)
 	["siegfried_wulsch"]=(
 		localaccountname="siegfried_wulsch@${COMPUTERNAME}"
 		localuid=197609
 		localgid=197121
+		nfsowner="siegfried_wulsch@${localdomain}"
+		nfsuid=197609
+		nfsgid=197121
 	)
 	["rmainz"]=(
 		localaccountname="rmainz@${COMPUTERNAME}"
 		localuid=1616
 		localgid=1616
+		nfsowner="rmainz@${localdomain}"
+		nfsuid=1616
+		nfsgid=1616
 	)
 	["swulsch"]=(
 		localaccountname="swulsch@${COMPUTERNAME}"
 		localuid=1818
 		localgid=1818
+		nfsowner="swulsch@${localdomain}"
+		nfsuid=1818
+		nfsgid=1818
 	)
 	["root"]=(
 		localaccountname="root@${COMPUTERNAME}"
 		localuid=0
 		localgid=0
+		nfsowner="root@${localdomain}"
+		nfsuid=0
+		nfsgid=0
 	)
 	["nobody"]=(
 		localaccountname="nobody@${COMPUTERNAME}"
 		localuid=65534
 		localgid=65534
+		nfsowner="nobody@${localdomain}"
+		nfsuid=65534
+		nfsgid=65534
 	)
 )
 
@@ -142,17 +162,26 @@ if [[ -v c.localised_usernames['Administrator'] ]] ; then
 			localaccountname="${c.localised_usernames['Administrator']}@${COMPUTERNAME}"
 			localuid=197108
 			localgid=197121
+			nfsuid=197108
+			nfsowner="Administrator@${localdomain}"
+			nfsgid=197121
 		)
 		['Administrator']=(
 			localaccountname="${c.localised_usernames['Administrator']}@${COMPUTERNAME}"
 			localuid=197108
 			localgid=197121
+			nfsowner="Administrator@${localdomain}"
+			nfsuid=197108
+			nfsgid=197121
 		)
 		# French user "Administrator"
 		['Administrateur']=(
 			localaccountname="${c.localised_usernames['Administrator']}@${COMPUTERNAME}"
 			localuid=197108
 			localgid=197121
+			nfsowner="Administrator@${localdomain}"
+			nfsuid=197108
+			nfsgid=197121
 		)
 	)
 fi
@@ -162,11 +191,17 @@ if [[ -v c.localised_usernames['SYSTEM'] ]] ; then
 			localaccountname="${c.localised_usernames['SYSTEM']}@${COMPUTERNAME}"
 			localuid=18
 			localgid=18
+			nfsowner="SYSTEM@${localdomain}"
+			nfsuid=18
+			nfsgid=18
 		)
 		["SYSTEM"]=(
 			localaccountname="${c.localised_usernames['SYSTEM']}@${COMPUTERNAME}"
 			localuid=18
 			localgid=18
+			nfsowner="SYSTEM@${localdomain}"
+			nfsuid=18
+			nfsgid=18
 		)
 		# French user "SYSTEM"
 		# FIXME: This should be $'Syst\u[e8]me', but ksh93 1.0.10
@@ -175,6 +210,9 @@ if [[ -v c.localised_usernames['SYSTEM'] ]] ; then
 			localaccountname="${c.localised_usernames['SYSTEM']}@${COMPUTERNAME}"
 			localuid=18
 			localgid=18
+			nfsowner="SYSTEM@${localdomain}"
+			nfsuid=18
+			nfsgid=18
 		)
 	)
 fi
@@ -191,18 +229,26 @@ compound -A localgroups=(
 	["rmainz"]=(
 		localgroupname="rmainz@${COMPUTERNAME}"
 		localgid=1616
+		nfsownergroup="rmainz@${localdomain}"
+		nfsgid=1616
 	)
 	["swulsch"]=(
 		localgroupname="swulsch@${COMPUTERNAME}"
 		localgid=1818
+		nfsownergroup="swulsch@${localdomain}"
+		nfsgid=1818
 	)
 	["root"]=(
 		localgroupname="root@${COMPUTERNAME}"
 		localgid=0
+		nfsownergroup="root@${localdomain}"
+		nfsgid=0
 	)
 	["nogroup"]=(
 		localgroupname="nogroup@${COMPUTERNAME}"
 		localgid=65534
+		nfsownergroup="nogroup@${localdomain}"
+		nfsgid=65534
 	)
 	#
 	# Group "sys" required for Solaris/Illumos nfsd
@@ -210,6 +256,8 @@ compound -A localgroups=(
 	["sys"]=(
 		localgroupname="sys@${COMPUTERNAME}"
 		localgid=3
+		nfsownergroup="sys@${localdomain}"
+		nfsgid=3
 	)
 	#
 	# Group "nobody" required for Solaris/Illumos nfsd
@@ -218,6 +266,8 @@ compound -A localgroups=(
 	["nobody"]=(
 		localgroupname="nobody@${COMPUTERNAME}"
 		localgid=65534
+		nfsownergroup="nobody@${localdomain}"
+		nfsgid=65534
 	)
 )
 
@@ -278,20 +328,28 @@ if [[ -v c.localised_groupnames['None'] ]] ; then
 		["${c.localised_groupnames['None']}"]=(
 			localgroupname="${c.localised_groupnames['None']}@${COMPUTERNAME}"
 			localgid=197121
+			nfsownergroup="None@${localdomain}"
+			nfsgid=197121
 		)
 		["None"]=(
 			localgroupname="${c.localised_groupnames['None']}@${COMPUTERNAME}"
 			localgid=197121
+			nfsownergroup="None@${localdomain}"
+			nfsgid=197121
 		)
 		# French Windows localised group name for "None"
 		['Aucun']=(
 			localgroupname="${c.localised_groupnames['None']}@${COMPUTERNAME}"
 			localgid=197121
+			nfsownergroup="None@${localdomain}"
+			nfsgid=197121
 		)
 		# German Windows localised group name for "None"
 		["Kein"]=(
 			localgroupname="${c.localised_groupnames['None']}@${COMPUTERNAME}"
 			localgid=197121
+			nfsownergroup="None@${localdomain}"
+			nfsgid=197121
 		)
 	)
 fi
@@ -301,21 +359,29 @@ if [[ -v c.localised_groupnames['Administrators'] ]] ; then
 		["${c.localised_groupnames['Administrators']}"]=(
 			localgroupname="${c.localised_groupnames['Administrators']}@${COMPUTERNAME}"
 			localgid=544
+			nfsownergroup="Administrators@${localdomain}"
+			nfsgid=544
 		)
 		['Administrators']=(
 			localgroupname="${c.localised_groupnames['Administrators']}@${COMPUTERNAME}"
 			localgid=544
+			nfsownergroup="Administrators@${localdomain}"
+			nfsgid=544
 		)
 		# French Windows localised group name for "Administrators"
 		# (from https://learn.microsoft.com/fr-fr/windows-server/identity/ad-ds/manage/understand-security-identifiers)
 		['Administrateurs']=(
 			localgroupname="${c.localised_groupnames['Administrators']}@${COMPUTERNAME}"
 			localgid=544
+			nfsownergroup="Administrators@${localdomain}"
+			nfsgid=544
 		)
 		# German Windows localised group name for "Administrators"
 		['Administratoren']=(
 			localgroupname="${c.localised_groupnames['Administrators']}@${COMPUTERNAME}"
 			localgid=544
+			nfsownergroup="Administrators@${localdomain}"
+			nfsgid=544
 		)
 	)
 fi
@@ -325,21 +391,29 @@ if [[ -v c.localised_groupnames['Users'] ]] ; then
 		["${c.localised_groupnames['Users']}"]=(
 			localgroupname="${c.localised_groupnames['Users']}@${COMPUTERNAME}"
 			localgid=545
+			nfsownergroup="Users@${localdomain}"
+			nfsgid=545
 		)
 		['Users']=(
 			localgroupname="${c.localised_groupnames['Users']}@${COMPUTERNAME}"
 			localgid=545
+			nfsownergroup="Users@${localdomain}"
+			nfsgid=545
 		)
 		# French Windows localised group name for "Users"
 		# (from https://learn.microsoft.com/fr-fr/windows-server/identity/ad-ds/manage/understand-security-identifiers)
 		['Utilisateurs']=(
 			localgroupname="${c.localised_groupnames['Users']}@${COMPUTERNAME}"
 			localgid=545
+			nfsownergroup="Users@${localdomain}"
+			nfsgid=545
 		)
 		# German Windows localised group name for "Users"
 		['Benutzer']=(
 			localgroupname="${c.localised_groupnames['Users']}@${COMPUTERNAME}"
 			localgid=545
+			nfsownergroup="Users@${localdomain}"
+			nfsgid=545
 		)
 	)
 fi
@@ -390,6 +464,8 @@ case "${c.mode}" in
 		if [[ "${s-}" != '' ]] ; then
 			if [[ "${gec.localuid-}" == ~(Elr)[[:digit:]]+ && "${gec.localgid-}" == ~(Elr)[[:digit:]]+ ]] ; then
 				gec.localaccountname="${ ntaccount2principal "$s" ; }"
+				gec.nfsowner="${ ntaccount2principal "$s" ; }"
+				(( gec.nfsuid=gec.localuid ))
 				print -v gec
 				exit 0
 			else
@@ -438,7 +514,9 @@ case "${c.mode}" in
 					user="$s"
 				fi
 
-				gec.localgroupname="$user@$domain"
+				gec.localgroupname="${user}@${domain}"
+				gec.nfsownergroup="${user}@${domain}"
+				(( gec.nfsgid=gec.localgid ))
 				print -v gec
 				exit 0
 			else

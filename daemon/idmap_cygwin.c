@@ -1,5 +1,5 @@
 /* NFSv4.1 client for Windows
- * Copyright (C) 2023-2024 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2023-2026 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Roland Mainz <roland.mainz@nrubsig.org>
  *
@@ -49,21 +49,31 @@
 #endif /* _WIN64 */
 
 #ifdef NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN
-int cygwin_getent_passwd(const char *name, char *res_loginname, uid_t *res_uid, gid_t *res_gid)
+int cygwin_getent_passwd(
+    const char *restrict name,
+    char *restrict res_localaccountname,
+    uid_t *restrict res_localuid,
+    gid_t *restrict res_localgid,
+    char *restrict res_nfsowner,
+    uid_t *restrict res_nfsuid,
+    gid_t *restrict res_nfsgid)
 {
     char cmdbuff[1024];
     char buff[2048];
     DWORD num_buff_read;
     subcmd_popen_context *script_pipe = NULL;
     int res = 1;
-    unsigned long uid = ~0UL;
-    unsigned long gid = ~0UL;
+    unsigned long localuid = ~0UL;
+    unsigned long localgid = ~0UL;
+    unsigned long nfsuid = ~0UL;
+    unsigned long nfsgid = ~0UL;
     void *cpvp = NULL;
     int numcnv = 0;
     int i = 0;
     cpv_name_val cnv[64] = { 0 };
     cpv_name_val *cnv_cur = NULL;
     const char *localaccountname = NULL;
+    const char *nfsowner = NULL;
 
     DPRINTF(CYGWINIDLVL,
         ("--> cygwin_getent_passwd(name='%s')\n",
@@ -142,22 +152,46 @@ int cygwin_getent_passwd(const char *name, char *res_loginname, uid_t *res_uid, 
         cnv_cur = &cnv[i];
         if (!strcmp("localaccountname", cnv_cur->cpv_name)) {
             localaccountname = cnv_cur->cpv_value;
+
+            EASSERT_MSG(IS_PRINCIPAL_NAME(localaccountname),
+                ("localaccountname='%s' is not a principal\n", localaccountname));
+        }
+        else if (!strcmp("nfsowner", cnv_cur->cpv_name)) {
+            nfsowner = cnv_cur->cpv_value;
+
+            EASSERT_MSG(IS_PRINCIPAL_NAME(nfsowner),
+                ("nfsowner='%s' is not a principal\n", nfsowner));
         }
         else if (!strcmp("localuid", cnv_cur->cpv_name)) {
             errno = 0;
-            uid = strtol(cnv_cur->cpv_value, NULL, 10);
+            localuid = strtol(cnv_cur->cpv_value, NULL, 10);
             if (errno != 0)
                 goto fail;
         }
         else if (!strcmp("localgid", cnv_cur->cpv_name)) {
             errno = 0;
-            gid = strtol(cnv_cur->cpv_value, NULL, 10);
+            localgid = strtol(cnv_cur->cpv_value, NULL, 10);
             if (errno != 0)
                 goto fail;
         }
+        else if (!strcmp("nfsuid", cnv_cur->cpv_name)) {
+            errno = 0;
+            nfsuid = strtol(cnv_cur->cpv_value, NULL, 10);
+            if (errno != 0)
+                goto fail;
+        }
+        else if (!strcmp("nfsgid", cnv_cur->cpv_name)) {
+            errno = 0;
+            nfsgid = strtol(cnv_cur->cpv_value, NULL, 10);
+            if (errno != 0)
+                goto fail;
+        }
+
     }
 
-    if (!localaccountname)
+    if (localaccountname == NULL)
+        goto fail;
+    if (nfsowner == NULL)
         goto fail;
 
     /*
@@ -172,10 +206,18 @@ int cygwin_getent_passwd(const char *name, char *res_loginname, uid_t *res_uid, 
         goto fail;
     }
 
-    if (res_loginname)
-        (void)strcpy_s(res_loginname, VAL_LEN, localaccountname);
-    *res_uid = uid;
-    *res_gid = gid;
+    if (res_localaccountname)
+        (void)strcpy_s(res_localaccountname, VAL_LEN, localaccountname);
+    if (res_nfsowner)
+        (void)strcpy_s(res_nfsowner, VAL_LEN, nfsowner);
+    if (res_localuid)
+        *res_localuid = localuid;
+    if (res_localgid)
+        *res_localgid = localgid;
+    if (res_nfsuid)
+        *res_nfsuid = nfsuid;
+    if (res_nfsgid)
+        *res_nfsgid = nfsgid;
     res = 0;
 
 fail:
@@ -189,18 +231,17 @@ fail:
     cpv_free_parser(cpvp);
 
     if (res == 0) {
-        if (res_loginname != NULL) {
-            EASSERT_MSG(IS_PRINCIPAL_NAME(res_loginname),
-                ("res_loginname='%s' is not a principal\n", res_loginname));
-        }
-
         DPRINTF(CYGWINIDLVL,
             ("<-- cygwin_getent_passwd(name='%s'): "
-            "returning res_uid=%u, res_gid=%u, res_loginname='%s'\n",
+            "returning res_localuid=%u, res_localgid=%u, res_localaccountname='%s', "
+            "res_nfsowner='%s' res_nfsuid=%u, res_nfsgid=%u\n",
             name,
-            (unsigned int)(*res_uid),
-            (unsigned int)(*res_gid),
-            res_loginname?res_loginname:"<NULL>"));
+            (unsigned int)(res_localuid?(*res_localuid):~0),
+            (unsigned int)(res_localgid?(*res_localgid):~0),
+            res_localaccountname?res_localaccountname:"<NULL>",
+            res_nfsowner?res_nfsowner:"<NULL>",
+            (unsigned int)(res_nfsuid?*res_nfsuid:~0),
+            (unsigned int)(res_nfsgid?*res_nfsgid:~0)));
     }
     else {
         DPRINTF(CYGWINIDLVL,
@@ -211,14 +252,20 @@ fail:
     return res;
 }
 
-int cygwin_getent_group(const char* name, char* res_group_name, gid_t* res_gid)
+int cygwin_getent_group(
+    const char *restrict name,
+    char *restrict res_localgroupname,
+    gid_t *restrict res_localgid,
+    char *restrict res_nfsownergroup,
+    gid_t *restrict res_nfsgid)
 {
     char cmdbuff[1024];
     char buff[2048];
     DWORD num_buff_read;
     subcmd_popen_context *script_pipe = NULL;
     int res = 1;
-    unsigned long gid = ~0UL;
+    unsigned long localgid = ~0UL;
+    unsigned long nfsgid = ~0UL;
     void *cpvp = NULL;
     int numcnv = 0;
     int i = 0;
@@ -226,6 +273,7 @@ int cygwin_getent_group(const char* name, char* res_group_name, gid_t* res_gid)
     cpv_name_val *cnv_cur = NULL;
 
     const char *localgroupname = NULL;
+    const char *nfsownergroup = NULL;
 
     DPRINTF(CYGWINIDLVL,
         ("--> cygwin_getent_group(name='%s')\n",
@@ -304,16 +352,33 @@ int cygwin_getent_group(const char* name, char* res_group_name, gid_t* res_gid)
         cnv_cur = &cnv[i];
         if (!strcmp("localgroupname", cnv_cur->cpv_name)) {
             localgroupname = cnv_cur->cpv_value;
+
+            EASSERT_MSG(IS_PRINCIPAL_NAME(localgroupname),
+                ("localgroupname='%s' is not a principal\n", localgroupname));
+        }
+        else if (!strcmp("nfsownergroup", cnv_cur->cpv_name)) {
+            nfsownergroup = cnv_cur->cpv_value;
+
+            EASSERT_MSG(IS_PRINCIPAL_NAME(nfsownergroup),
+                ("nfsownergroup='%s' is not a principal\n", nfsownergroup));
         }
         else if (!strcmp("localgid", cnv_cur->cpv_name)) {
             errno = 0;
-            gid = strtol(cnv_cur->cpv_value, NULL, 10);
+            localgid = strtol(cnv_cur->cpv_value, NULL, 10);
+            if (errno != 0)
+                goto fail;
+        }
+        else if (!strcmp("nfsgid", cnv_cur->cpv_name)) {
+            errno = 0;
+            nfsgid = strtol(cnv_cur->cpv_value, NULL, 10);
             if (errno != 0)
                 goto fail;
         }
     }
 
-    if (!localgroupname)
+    if (localgroupname == NULL)
+        goto fail;
+    if (nfsownergroup == NULL)
         goto fail;
 
     /*
@@ -328,9 +393,14 @@ int cygwin_getent_group(const char* name, char* res_group_name, gid_t* res_gid)
         goto fail;
     }
 
-    if (res_group_name)
-        (void)strcpy_s(res_group_name, VAL_LEN, localgroupname);
-    *res_gid = gid;
+    if (res_localgroupname)
+        (void)strcpy_s(res_localgroupname, VAL_LEN, localgroupname);
+    if (res_nfsownergroup)
+        (void)strcpy_s(res_nfsownergroup, VAL_LEN, nfsownergroup);
+    if (res_localgid)
+        *res_localgid = localgid;
+    if (res_nfsgid)
+        *res_nfsgid = nfsgid;
     res = 0;
 
 fail:
@@ -344,17 +414,14 @@ fail:
     cpv_free_parser(cpvp);
 
     if (res == 0) {
-        if (res_group_name != NULL) {
-            EASSERT_MSG(IS_PRINCIPAL_NAME(res_group_name),
-                ("res_group_name='%s' is not a principal\n", res_group_name));
-        }
-
         DPRINTF(CYGWINIDLVL,
             ("<-- cygwin_getent_group(name='%s'): "
-            "returning res_gid=%u, res_group_name='%s'\n",
+            "returning res_localgid=%u, res_localgroupname='%s', res_nfsownergroup='%s', res_localgid=%u\n",
             name,
-            (unsigned int)(*res_gid),
-            res_group_name?res_group_name:"<NULL>"));
+            (unsigned int)(res_localgid?*res_localgid:~0),
+            res_localgroupname?res_localgroupname:"<NULL>",
+            res_nfsownergroup?res_nfsownergroup:"<NULL>",
+            (unsigned int)(res_nfsgid?*res_nfsgid:~0)));
     }
     else {
         DPRINTF(CYGWINIDLVL,

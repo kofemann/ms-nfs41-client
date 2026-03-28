@@ -470,7 +470,7 @@ int map_nfs4servername_2_sid(nfs41_daemon_globals *nfs41dg, int query, DWORD *si
 #ifndef NFS41_DRIVER_SID_CACHE
         /* gisburn: fixme: We must cache this, or the performance impact will be devastating!! */
 #endif /* !NFS41_DRIVER_SID_CACHE */
-        if (!cygwin_getent_passwd(nfsname, nfsname_buff, &udummy, &gdummy)) {
+        if (!cygwin_getent_passwd(nfsname, nfsname_buff, &udummy, &gdummy, NULL, NULL, NULL)) {
             if (strcmp(nfsname, nfsname_buff)) {
                 DPRINTF(1,
                     ("map_nfs4servername_2_sid: remap user '%s' --> '%s'\n",
@@ -501,7 +501,7 @@ int map_nfs4servername_2_sid(nfs41_daemon_globals *nfs41dg, int query, DWORD *si
 #ifndef NFS41_DRIVER_SID_CACHE
         /* gisburn: fixme: We must cache this, or the performance impact will be devastating!! */
 #endif /* !NFS41_DRIVER_SID_CACHE */
-        if (!cygwin_getent_group(nfsname, nfsname_buff, &gdummy)) {
+        if (!cygwin_getent_group(nfsname, nfsname_buff, &gdummy, NULL, NULL)) {
             if (strcmp(nfsname, nfsname_buff)) {
                 DPRINTF(1,
                     ("map_nfs4servername_2_sid: remap group '%s' --> '%s'\n",
