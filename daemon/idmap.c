@@ -479,9 +479,7 @@ static int cache_lookup(
 struct idmap_user {
     struct list_entry entry;
     char username[VAL_LEN];
-    char principal[VAL_LEN];
     uid_t uid;
-    gid_t gid;
     util_reltimestamp last_updated;
 };
 
@@ -501,9 +499,7 @@ static void user_cache_copy(
     struct idmap_user *dst = list_container(lhs, struct idmap_user, entry);
     const struct idmap_user *src = list_container(rhs, const struct idmap_user, entry);
     StringCchCopyA(dst->username, VAL_LEN, src->username);
-    StringCchCopyA(dst->principal, VAL_LEN, src->principal);
     dst->uid = src->uid;
-    dst->gid = src->gid;
     dst->last_updated = src->last_updated;
 }
 static const struct cache_ops user_cache_ops = {
@@ -664,11 +660,7 @@ static int idmap_lookup_user(
 #ifndef NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN
     PCHAR* values[NUM_ATTRIBUTES] = { NULL };
     const unsigned attributes = ATTR_FLAG(ATTR_USER_NAME)
-        | ATTR_FLAG(ATTR_PRINCIPAL)
-        | ATTR_FLAG(ATTR_UID)
-        | ATTR_FLAG(ATTR_GID);
-    /* principal is optional; we'll cache it if we have it */
-    const unsigned optional = ATTR_FLAG(ATTR_PRINCIPAL);
+        | ATTR_FLAG(ATTR_UID);
     int i;
 #endif /* !NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN */
     int status;
@@ -684,7 +676,7 @@ static int idmap_lookup_user(
 #ifndef NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN
     /* send the query to the ldap server */
     status = idmap_query_attrs(context, lookup,
-        attributes, optional, values, NUM_ATTRIBUTES);
+        attributes, 0, values, NUM_ATTRIBUTES);
     if (status)
         goto out_free_values;
 
@@ -697,115 +689,48 @@ static int idmap_lookup_user(
         status = ERROR_BUFFER_OVERFLOW;
         goto out_free_values;
     }
-    if (FAILED(StringCchCopyA(user->principal, VAL_LEN,
-            values[ATTR_PRINCIPAL] ? *values[ATTR_PRINCIPAL] : ""))) {
-        eprintf("ldap attribute \"%s\"='%s' longer than %u characters\n",
-            context->config.attributes[ATTR_PRINCIPAL],
-            values[ATTR_PRINCIPAL] ? *values[ATTR_PRINCIPAL] : "", VAL_LEN);
-        status = ERROR_BUFFER_OVERFLOW;
-        goto out_free_values;
-    }
     if (!parse_uint(*values[ATTR_UID], &user->uid)) {
         eprintf("failed to parse ldap attribute \"%s\"='%s'\n",
             context->config.attributes[ATTR_UID], *values[ATTR_UID]);
         status = ERROR_INVALID_PARAMETER;
         goto out_free_values;
     }
-    if (!parse_uint(*values[ATTR_GID], &user->gid)) {
-        eprintf("failed to parse ldap attribute \"%s\"='%s'\n",
-            context->config.attributes[ATTR_GID], *values[ATTR_GID]);
-        status = ERROR_INVALID_PARAMETER;
-        goto out_free_values;
-    }
     user->last_updated = UTIL_GETRELTIME();
 #else
     if (lookup->attr == ATTR_USER_NAME) {
-        char principal_name[VAL_LEN];
         uid_t cy_uid = 0;
-        gid_t cy_gid = 0;
 
         status = ERROR_NOT_FOUND;
 
-        if (!cygwin_getent_passwd(lookup->value, NULL, &cy_uid, &cy_gid, NULL, NULL, NULL)) {
+        if (!cygwin_getent_passwd(lookup->value, NULL, &cy_uid, NULL, NULL)) {
             DPRINTF(CYGWINIDLVL,
                 ("# ATTR_USER_NAME: cygwin_getent_passwd: "
-                "returned '%s', uid=%u, gid=%u\n",
+                "returned '%s', uid=%u\n",
                 (const char *)lookup->value,
-                (unsigned int)cy_uid,
-                (unsigned int)cy_gid));
-            (void)snprintf(principal_name, sizeof(principal_name),
-                "%s@%s", (const char *)lookup->value,
-                context->config.localdomain_name);
+                (unsigned int)cy_uid));
             StringCchCopyA(user->username, VAL_LEN, lookup->value);
-            StringCchCopyA(user->principal, VAL_LEN, principal_name);
             user->uid = cy_uid;
-            user->gid = cy_gid;
             status = 0;
-        }
-    }
-    else if (lookup->attr == ATTR_PRINCIPAL) {
-        char search_name[VAL_LEN];
-        char principal_name[VAL_LEN];
-        char *s;
-        uid_t cy_uid = 0;
-        gid_t cy_gid = 0;
-
-        status = ERROR_NOT_FOUND;
-
-        /*
-         * strip '@' from principal name and use that for getent
-         * fixme: This does not work with multiple domains
-         */
-        (void)strcpy_s(search_name, sizeof(search_name), lookup->value);
-        if ((s = strchr(search_name, '@')) != NULL)
-            *s = '\0';
-
-        if (!cygwin_getent_passwd(search_name, NULL, &cy_uid, &cy_gid, NULL, NULL, NULL)) {
-            DPRINTF(CYGWINIDLVL,
-                ("# ATTR_PRINCIPAL: cygwin_getent_passwd: "
-                "returned '%s', uid=%u, gid=%u\n",
-                (const char *)lookup->value,
-                (unsigned int)cy_uid,
-                (unsigned int)cy_gid));
-            (void)snprintf(principal_name, sizeof(principal_name),
-                "%s@%s", (const char *)lookup->value,
-                context->config.localdomain_name);
-
-            if (!strcmp(principal_name, lookup->value)) {
-                StringCchCopyA(user->username, VAL_LEN, search_name);
-                StringCchCopyA(user->principal, VAL_LEN, principal_name);
-                user->uid = cy_uid;
-                user->gid = cy_gid;
-                status = 0;
-            }
         }
     }
     else if (lookup->attr == ATTR_UID) {
         uid_t search_uid = PTR2UID_T(lookup->value);
         char search_name[VAL_LEN];
         char res_username[VAL_LEN];
-        char principal_name[VAL_LEN];
         uid_t cy_uid = 0;
-        gid_t cy_gid = 0;
 
         status = ERROR_NOT_FOUND;
 
         (void)snprintf(search_name, sizeof(search_name), "%lu", (unsigned long)search_uid);
 
-        if (!cygwin_getent_passwd(search_name, res_username, &cy_uid, &cy_gid, NULL, NULL, NULL)) {
+        if (!cygwin_getent_passwd(search_name, res_username, &cy_uid, NULL, NULL)) {
             DPRINTF(CYGWINIDLVL,
                 ("# ATTR_UID: cygwin_getent_passwd: "
                 "returned '%s', uid=%u, gid=%u\n",
                 res_username,
-                (unsigned int)cy_uid,
-                (unsigned int)cy_gid));
-            (void)snprintf(principal_name, sizeof(principal_name),
-                "%s@%s", res_username, context->config.localdomain_name);
-
+                (unsigned int)cy_uid));
             StringCchCopyA(user->username, VAL_LEN, res_username);
-            StringCchCopyA(user->principal, VAL_LEN, principal_name);
             user->uid = cy_uid;
-            user->gid = cy_gid;
             status = 0;
         }
     }
@@ -817,11 +742,9 @@ static int idmap_lookup_user(
     if (status == 0) {
         user->last_updated = UTIL_GETRELTIME();
         DPRINTF(CYGWINIDLVL, ("## idmap_lookup_user: "
-            "found username='%s', principal='%s', uid=%u, gid=%u\n",
+            "found username='%s', uid=%u\n",
             user->username,
-            user->principal,
-            (unsigned int)user->uid,
-            (unsigned int)user->gid));
+            (unsigned int)user->uid));
     }
 #endif /* !NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN */
     if ((status == 0) && context->config.cache_ttl) {
@@ -1078,44 +1001,6 @@ out:
     return status;
 }
 
-int nfs41_idmap_name_to_ids(
-    struct idmap_context *context,
-    const char *username,
-    uid_t *uid_out,
-    gid_t *gid_out)
-{
-    struct idmap_lookup lookup = {
-        .attr = ATTR_USER_NAME,
-        .klass = CLASS_USER,
-        .type = TYPE_STR,
-        .compare = username_cmp,
-        .value = NULL
-    };
-    struct idmap_user user;
-    int status;
-
-    if (context == NULL)
-        return ERROR_FILE_NOT_FOUND;
-
-    DPRINTF(IDLVL, ("--> nfs41_idmap_name_to_ids('%s')\n", username));
-
-    lookup.value = username;
-
-    /* look up the user entry */
-    status = idmap_lookup_user(context, &lookup, &user);
-    if (status) {
-        DPRINTF(IDLVL, ("<-- nfs41_idmap_name_to_ids('%s') "
-            "failed with %d\n", username, status));
-        goto out;
-    }
-
-    *uid_out = user.uid;
-    *gid_out = user.gid;
-    DPRINTF(IDLVL, ("<-- nfs41_idmap_name_to_ids('%s') "
-        "returning uid=%u, gid=%u\n", username, user.uid, user.gid));
-out:
-    return status;
-}
 
 /* uid -> username */
 static int uid_cmp(const struct list_entry *list, const void *value)
@@ -1163,51 +1048,6 @@ int nfs41_idmap_uid_to_name(
 
     DPRINTF(IDLVL, ("<-- nfs41_idmap_uid_to_name(%u) "
         "returning '%s'\n", uid, name));
-out:
-    return status;
-}
-
-/* principal -> uid, gid */
-static int principal_cmp(const struct list_entry *list, const void *value)
-{
-    const struct idmap_user *entry = list_container(list,
-        const struct idmap_user, entry);
-    const char *principal = (const char*)value;
-    return strcmp(entry->principal, principal);
-}
-
-int nfs41_idmap_principal_to_ids(
-    struct idmap_context *context,
-    const char *principal,
-    uid_t *uid_out,
-    gid_t *gid_out)
-{
-    struct idmap_lookup lookup = {
-        .attr = ATTR_PRINCIPAL,
-        .klass = CLASS_USER,
-        .type = TYPE_STR,
-        .compare = principal_cmp,
-        .value = NULL
-    };
-    struct idmap_user user;
-    int status;
-
-    DPRINTF(IDLVL, ("--> nfs41_idmap_principal_to_ids('%s')\n", principal));
-
-    lookup.value = principal;
-
-    /* look up the user entry */
-    status = idmap_lookup_user(context, &lookup, &user);
-    if (status) {
-        DPRINTF(IDLVL, ("<-- nfs41_idmap_principal_to_ids('%s') "
-            "failed with %d\n", principal, status));
-        goto out;
-    }
-
-    *uid_out = user.uid;
-    *gid_out = user.gid;
-    DPRINTF(IDLVL, ("<-- nfs41_idmap_principal_to_ids('%s') "
-        "returning uid=%u, gid=%u\n", principal, user.uid, user.gid));
 out:
     return status;
 }

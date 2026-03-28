@@ -53,10 +53,8 @@ int cygwin_getent_passwd(
     const char *restrict name,
     char *restrict res_localaccountname,
     uid_t *restrict res_localuid,
-    gid_t *restrict res_localgid,
     char *restrict res_nfsowner,
-    uid_t *restrict res_nfsuid,
-    gid_t *restrict res_nfsgid)
+    uid_t *restrict res_nfsuid)
 {
     char cmdbuff[1024];
     char buff[2048];
@@ -64,9 +62,7 @@ int cygwin_getent_passwd(
     subcmd_popen_context *script_pipe = NULL;
     int res = 1;
     unsigned long localuid = ~0UL;
-    unsigned long localgid = ~0UL;
     unsigned long nfsuid = ~0UL;
-    unsigned long nfsgid = ~0UL;
     void *cpvp = NULL;
     int numcnv = 0;
     int i = 0;
@@ -168,25 +164,12 @@ int cygwin_getent_passwd(
             if (errno != 0)
                 goto fail;
         }
-        else if (!strcmp("localgid", cnv_cur->cpv_name)) {
-            errno = 0;
-            localgid = strtol(cnv_cur->cpv_value, NULL, 10);
-            if (errno != 0)
-                goto fail;
-        }
         else if (!strcmp("nfsuid", cnv_cur->cpv_name)) {
             errno = 0;
             nfsuid = strtol(cnv_cur->cpv_value, NULL, 10);
             if (errno != 0)
                 goto fail;
         }
-        else if (!strcmp("nfsgid", cnv_cur->cpv_name)) {
-            errno = 0;
-            nfsgid = strtol(cnv_cur->cpv_value, NULL, 10);
-            if (errno != 0)
-                goto fail;
-        }
-
     }
 
     if (localaccountname == NULL)
@@ -212,12 +195,8 @@ int cygwin_getent_passwd(
         (void)strcpy_s(res_nfsowner, VAL_LEN, nfsowner);
     if (res_localuid)
         *res_localuid = localuid;
-    if (res_localgid)
-        *res_localgid = localgid;
     if (res_nfsuid)
         *res_nfsuid = nfsuid;
-    if (res_nfsgid)
-        *res_nfsgid = nfsgid;
     res = 0;
 
 fail:
@@ -233,15 +212,13 @@ fail:
     if (res == 0) {
         DPRINTF(CYGWINIDLVL,
             ("<-- cygwin_getent_passwd(name='%s'): "
-            "returning res_localuid=%u, res_localgid=%u, res_localaccountname='%s', "
-            "res_nfsowner='%s' res_nfsuid=%u, res_nfsgid=%u\n",
+            "returning res_localuid=%u, res_localaccountname='%s', "
+            "res_nfsowner='%s' res_nfsuid=%u\n",
             name,
             (unsigned int)(res_localuid?(*res_localuid):~0),
-            (unsigned int)(res_localgid?(*res_localgid):~0),
             res_localaccountname?res_localaccountname:"<NULL>",
             res_nfsowner?res_nfsowner:"<NULL>",
-            (unsigned int)(res_nfsuid?*res_nfsuid:~0),
-            (unsigned int)(res_nfsgid?*res_nfsgid:~0)));
+            (unsigned int)(res_nfsuid?*res_nfsuid:~0)));
     }
     else {
         DPRINTF(CYGWINIDLVL,

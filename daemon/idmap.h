@@ -41,23 +41,12 @@ int nfs41_idmap_name_to_uid(
     struct idmap_context *context,
     const char *username,
     uid_t *uid_out);
-int nfs41_idmap_name_to_ids(
-    nfs41_idmapper *context,
-    const char *username,
-    uid_t *uid_out,
-    gid_t *gid_out);
 
 int nfs41_idmap_uid_to_name(
     nfs41_idmapper *context,
     uid_t uid,
     char *name_out,
     size_t len);
-
-int nfs41_idmap_principal_to_ids(
-    nfs41_idmapper *context,
-    const char *principal,
-    uid_t *uid_out,
-    gid_t *gid_out);
 
 int nfs41_idmap_group_to_gid(
     nfs41_idmapper *context,
@@ -76,10 +65,8 @@ int cygwin_getent_passwd(
     const char *restrict name,
     char *restrict res_localaccountname,
     uid_t *restrict res_localuid,
-    gid_t *restrict res_localgid,
     char *restrict res_nfsowner,
-    uid_t *restrict res_nfsuid,
-    gid_t *restrict res_nfsgid);
+    uid_t *restrict res_nfsuid);
 int cygwin_getent_group(
     const char *restrict name,
     char *restrict res_localgroupname,

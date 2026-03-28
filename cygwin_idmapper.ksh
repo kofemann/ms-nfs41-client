@@ -109,50 +109,38 @@ compound -A localusers=(
 	["roland_mainz"]=(
 		localaccountname="roland_mainz@${COMPUTERNAME}"
 		localuid=197608
-		localgid=197121
 		nfsowner="roland_mainz@${localdomain}"
 		nfsuid=197608
-		nfsgid=197121
 	)
 	["siegfried_wulsch"]=(
 		localaccountname="siegfried_wulsch@${COMPUTERNAME}"
 		localuid=197609
-		localgid=197121
 		nfsowner="siegfried_wulsch@${localdomain}"
 		nfsuid=197609
-		nfsgid=197121
 	)
 	["rmainz"]=(
 		localaccountname="rmainz@${COMPUTERNAME}"
 		localuid=1616
-		localgid=1616
 		nfsowner="rmainz@${localdomain}"
 		nfsuid=1616
-		nfsgid=1616
 	)
 	["swulsch"]=(
 		localaccountname="swulsch@${COMPUTERNAME}"
 		localuid=1818
-		localgid=1818
 		nfsowner="swulsch@${localdomain}"
 		nfsuid=1818
-		nfsgid=1818
 	)
 	["root"]=(
 		localaccountname="root@${COMPUTERNAME}"
 		localuid=0
-		localgid=0
 		nfsowner="root@${localdomain}"
 		nfsuid=0
-		nfsgid=0
 	)
 	["nobody"]=(
 		localaccountname="nobody@${COMPUTERNAME}"
 		localuid=65534
-		localgid=65534
 		nfsowner="nobody@${localdomain}"
 		nfsuid=65534
-		nfsgid=65534
 	)
 )
 
@@ -161,27 +149,21 @@ if [[ -v c.localised_usernames['Administrator'] ]] ; then
 		["${c.localised_usernames['Administrator']}"]=(
 			localaccountname="${c.localised_usernames['Administrator']}@${COMPUTERNAME}"
 			localuid=197108
-			localgid=197121
 			nfsuid=197108
 			nfsowner="Administrator@${localdomain}"
-			nfsgid=197121
 		)
 		['Administrator']=(
 			localaccountname="${c.localised_usernames['Administrator']}@${COMPUTERNAME}"
 			localuid=197108
-			localgid=197121
 			nfsowner="Administrator@${localdomain}"
 			nfsuid=197108
-			nfsgid=197121
 		)
 		# French user "Administrator"
 		['Administrateur']=(
 			localaccountname="${c.localised_usernames['Administrator']}@${COMPUTERNAME}"
 			localuid=197108
-			localgid=197121
 			nfsowner="Administrator@${localdomain}"
 			nfsuid=197108
-			nfsgid=197121
 		)
 	)
 fi
@@ -190,18 +172,14 @@ if [[ -v c.localised_usernames['SYSTEM'] ]] ; then
 		["${c.localised_usernames['SYSTEM']}"]=(
 			localaccountname="${c.localised_usernames['SYSTEM']}@${COMPUTERNAME}"
 			localuid=18
-			localgid=18
 			nfsowner="SYSTEM@${localdomain}"
 			nfsuid=18
-			nfsgid=18
 		)
 		["SYSTEM"]=(
 			localaccountname="${c.localised_usernames['SYSTEM']}@${COMPUTERNAME}"
 			localuid=18
-			localgid=18
 			nfsowner="SYSTEM@${localdomain}"
 			nfsuid=18
-			nfsgid=18
 		)
 		# French user "SYSTEM"
 		# FIXME: This should be $'Syst\u[e8]me', but ksh93 1.0.10
@@ -209,10 +187,8 @@ if [[ -v c.localised_usernames['SYSTEM'] ]] ; then
 		[$'Syst\xc3\xa8me']=(
 			localaccountname="${c.localised_usernames['SYSTEM']}@${COMPUTERNAME}"
 			localuid=18
-			localgid=18
 			nfsowner="SYSTEM@${localdomain}"
 			nfsuid=18
-			nfsgid=18
 		)
 	)
 fi

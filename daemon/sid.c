@@ -455,7 +455,6 @@ int map_nfs4servername_2_sid(nfs41_daemon_globals *nfs41dg, int query, DWORD *si
     /* use our own idmapper script to map nfsv4 owner string to local Windows account */
     if (query & OWNER_SECURITY_INFORMATION) {
         uid_t udummy = ~0UL;
-        gid_t gdummy = ~0UL;
 
 #ifdef NFS41_DRIVER_SID_CACHE
         *sid = sidcache_getcached_byname(&user_sidcache, nfsname);
@@ -470,7 +469,7 @@ int map_nfs4servername_2_sid(nfs41_daemon_globals *nfs41dg, int query, DWORD *si
 #ifndef NFS41_DRIVER_SID_CACHE
         /* gisburn: fixme: We must cache this, or the performance impact will be devastating!! */
 #endif /* !NFS41_DRIVER_SID_CACHE */
-        if (!cygwin_getent_passwd(nfsname, nfsname_buff, &udummy, &gdummy, NULL, NULL, NULL)) {
+        if (!cygwin_getent_passwd(nfsname, nfsname_buff, &udummy, NULL, NULL)) {
             if (strcmp(nfsname, nfsname_buff)) {
                 DPRINTF(1,
                     ("map_nfs4servername_2_sid: remap user '%s' --> '%s'\n",
