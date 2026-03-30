@@ -387,485 +387,18 @@ out:
 
 
 /* generic cache */
-typedef struct list_entry* (*entry_alloc_fn)();
-typedef void (*entry_free_fn)(struct list_entry*);
-typedef void (*entry_copy_fn)(struct list_entry*, const struct list_entry*);
-
-struct cache_ops {
-    entry_alloc_fn entry_alloc;
-    entry_free_fn entry_free;
-    entry_copy_fn entry_copy;
-};
-
-struct idmap_cache {
-    struct list_entry head;
-    const struct cache_ops *ops;
-    SRWLOCK lock;
-};
-
-
-static void cache_init(
-    struct idmap_cache *cache,
-    const struct cache_ops *ops)
-{
-    list_init(&cache->head);
-    cache->ops = ops;
-    InitializeSRWLock(&cache->lock);
-}
-
-static void cache_cleanup(
-    struct idmap_cache *cache)
-{
-    struct list_entry *entry, *tmp;
-    list_for_each_tmp(entry, tmp, &cache->head)
-        cache->ops->entry_free(entry);
-    list_init(&cache->head);
-}
-
-static int cache_insert(
-    struct idmap_cache *cache,
-    const struct idmap_lookup *lookup,
-    const struct list_entry *src)
-{
-    struct list_entry *entry;
-    int status = NO_ERROR;
-
-    AcquireSRWLockExclusive(&cache->lock);
-
-    /* search for an existing match */
-    entry = list_search(&cache->head, lookup->value, lookup->compare);
-    if (entry) {
-        /* overwrite the existing entry with the new results */
-        cache->ops->entry_copy(entry, src);
-        goto out;
-    }
-
-    /* initialize a new entry and add it to the list */
-    entry = cache->ops->entry_alloc();
-    if (entry == NULL) {
-        status = GetLastError();
-        goto out;
-    }
-    cache->ops->entry_copy(entry, src);
-    list_add_head(&cache->head, entry);
-out:
-    ReleaseSRWLockExclusive(&cache->lock);
-    return status;
-}
-
-static int cache_lookup(
-    struct idmap_cache *cache,
-    const struct idmap_lookup *lookup,
-    struct list_entry *entry_out)
-{
-    struct list_entry *entry;
-    int status = ERROR_NOT_FOUND;
-
-    AcquireSRWLockShared(&cache->lock);
-
-    entry = list_search(&cache->head, lookup->value, lookup->compare);
-    if (entry) {
-        /* make a copy for use outside of the lock */
-        cache->ops->entry_copy(entry_out, entry);
-        status = NO_ERROR;
-    }
-
-    ReleaseSRWLockShared(&cache->lock);
-    return status;
-}
-
-
-/* user cache */
-struct idmap_user {
-    struct list_entry entry;
-    char username[VAL_LEN];
-    uid_t uid;
-    util_reltimestamp last_updated;
-};
-
-static struct list_entry* user_cache_alloc()
-{
-    struct idmap_user *user = calloc(1, sizeof(struct idmap_user));
-    return user == NULL ? NULL : &user->entry;
-}
-static void user_cache_free(struct list_entry *entry)
-{
-    free(list_container(entry, struct idmap_user, entry));
-}
-static void user_cache_copy(
-    struct list_entry *lhs,
-    const struct list_entry *rhs)
-{
-    struct idmap_user *dst = list_container(lhs, struct idmap_user, entry);
-    const struct idmap_user *src = list_container(rhs, const struct idmap_user, entry);
-    StringCchCopyA(dst->username, VAL_LEN, src->username);
-    dst->uid = src->uid;
-    dst->last_updated = src->last_updated;
-}
-static const struct cache_ops user_cache_ops = {
-    user_cache_alloc,
-    user_cache_free,
-    user_cache_copy
-};
-
-
-/* group cache */
-struct idmap_group {
-    struct list_entry entry;
-    char name[VAL_LEN];
-    gid_t gid;
-    util_reltimestamp last_updated;
-};
-
-static struct list_entry* group_cache_alloc()
-{
-    struct idmap_group *group = calloc(1, sizeof(struct idmap_group));
-    return group == NULL ? NULL : &group->entry;
-}
-static void group_cache_free(struct list_entry *entry)
-{
-    free(list_container(entry, struct idmap_group, entry));
-}
-static void group_cache_copy(
-    struct list_entry *lhs,
-    const struct list_entry *rhs)
-{
-    struct idmap_group *dst = list_container(lhs, struct idmap_group, entry);
-    const struct idmap_group *src = list_container(rhs, const struct idmap_group, entry);
-    StringCchCopyA(dst->name, VAL_LEN, src->name);
-    dst->gid = src->gid;
-    dst->last_updated = src->last_updated;
-}
-static const struct cache_ops group_cache_ops = {
-    group_cache_alloc,
-    group_cache_free,
-    group_cache_copy
-};
 
 
 /* ldap context */
 struct idmap_context {
     struct idmap_config config;
-    struct idmap_cache users;
-    struct idmap_cache groups;
+
+    idmapcache_context *usercache;
+    idmapcache_context *groupcache;
+
     LDAP *ldap;
 };
 
-
-static int idmap_filter(
-    struct idmap_config *config,
-    const struct idmap_lookup *lookup,
-    char *filter,
-    size_t filter_len)
-{
-    UINT i;
-    int status = NO_ERROR;
-
-    switch (lookup->type) {
-    case TYPE_INT:
-        i = PTR2UINT(lookup->value);
-        if (FAILED(StringCchPrintfA(filter, filter_len,
-                "(&(objectClass=%s)(%s=%u))",
-                config->classes[lookup->klass],
-                config->attributes[lookup->attr], i))) {
-            status = ERROR_BUFFER_OVERFLOW;
-            eprintf("ldap filter buffer overflow: '%s=%u'\n",
-                config->attributes[lookup->attr], i);
-        }
-        break;
-
-    case TYPE_STR:
-        if (FAILED(StringCchPrintfA(filter, filter_len,
-                "(&(objectClass=%s)(%s=%s))",
-                config->classes[lookup->klass],
-                config->attributes[lookup->attr], (const char *)lookup->value))) {
-            status = ERROR_BUFFER_OVERFLOW;
-            eprintf("ldap filter buffer overflow: '%s=%s'\n",
-                config->attributes[lookup->attr], (const char *)lookup->value);
-        }
-        break;
-
-    default:
-        status = ERROR_INVALID_PARAMETER;
-        break;
-    }
-    return status;
-}
-
-static int idmap_query_attrs(
-    struct idmap_context *context,
-    const struct idmap_lookup *lookup,
-    const unsigned attributes,
-    const unsigned optional,
-    PCHAR *values[],
-    const int len)
-{
-    char filter[FILTER_LEN];
-    struct idmap_config *config = &context->config;
-    LDAPMessage *res = NULL, *entry;
-    int i, status;
-
-    /* format the ldap filter */
-    status = idmap_filter(config, lookup, filter, FILTER_LEN);
-    if (status)
-        goto out;
-
-    /* send the ldap query */
-    status = ldap_search_stA(context->ldap, config->base,
-        LDAP_SCOPE_SUBTREE, filter, NULL, 0, NULL, &res);
-    if (status) {
-        eprintf("ldap search for '%s' failed with %d: '%s'\n",
-            filter, status, ldap_err2stringA(status));
-        status = LdapMapErrorToWin32(status);
-        goto out;
-    }
-
-    entry = ldap_first_entry(context->ldap, res);
-    if (entry == NULL) {
-        status = LDAP_NO_RESULTS_RETURNED;
-        eprintf("ldap search for '%s' failed with %d: '%s'\n",
-            filter, status, ldap_err2stringA(status));
-        status = LdapMapErrorToWin32(status);
-        goto out;
-    }
-
-    /* fetch the attributes */
-    for (i = 0; i < len; i++) {
-        if (ATTR_ISSET(attributes, i)) {
-            values[i] = ldap_get_valuesA(context->ldap,
-                entry, config->attributes[i]);
-
-            /* fail if required attributes are missing */
-            if (values[i] == NULL && !ATTR_ISSET(optional, i)) {
-                status = LDAP_NO_SUCH_ATTRIBUTE;
-                eprintf("ldap entry for '%s' missing required "
-                    "attribute '%s', returning %d: %s\n",
-                    filter, config->attributes[i],
-                    status, ldap_err2stringA(status));
-                status = LdapMapErrorToWin32(status);
-                goto out;
-            }
-        }
-    }
-out:
-    if (res) ldap_msgfree(res);
-    return status;
-}
-
-static int idmap_lookup_user(
-    struct idmap_context *context,
-    const struct idmap_lookup *lookup,
-    struct idmap_user *user)
-{
-#ifndef NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN
-    PCHAR* values[NUM_ATTRIBUTES] = { NULL };
-    const unsigned attributes = ATTR_FLAG(ATTR_USER_NAME)
-        | ATTR_FLAG(ATTR_UID);
-    int i;
-#endif /* !NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN */
-    int status;
-
-    /* check the user cache for an existing entry */
-    status = cache_lookup(&context->users, lookup, &user->entry);
-    if (status == NO_ERROR) {
-        /* don't return expired entries; query new attributes
-         * and overwrite the entry with cache_insert() */
-        if (UTIL_DIFFRELTIME(UTIL_GETRELTIME(), user->last_updated) < context->config.cache_ttl)
-            goto out;
-    }
-#ifndef NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN
-    /* send the query to the ldap server */
-    status = idmap_query_attrs(context, lookup,
-        attributes, 0, values, NUM_ATTRIBUTES);
-    if (status)
-        goto out_free_values;
-
-    /* parse attributes */
-    if (FAILED(StringCchCopyA(user->username, VAL_LEN,
-            *values[ATTR_USER_NAME]))) {
-        eprintf("ldap attribute \"%s\"='%s' longer than %u characters\n",
-            context->config.attributes[ATTR_USER_NAME],
-            *values[ATTR_USER_NAME], VAL_LEN);
-        status = ERROR_BUFFER_OVERFLOW;
-        goto out_free_values;
-    }
-    if (!parse_uint(*values[ATTR_UID], &user->uid)) {
-        eprintf("failed to parse ldap attribute \"%s\"='%s'\n",
-            context->config.attributes[ATTR_UID], *values[ATTR_UID]);
-        status = ERROR_INVALID_PARAMETER;
-        goto out_free_values;
-    }
-    user->last_updated = UTIL_GETRELTIME();
-#else
-    if (lookup->attr == ATTR_USER_NAME) {
-        uid_t cy_uid = 0;
-
-        status = ERROR_NOT_FOUND;
-
-        if (!cygwin_getent_passwd(lookup->value, NULL, &cy_uid, NULL, NULL)) {
-            DPRINTF(CYGWINIDLVL,
-                ("# ATTR_USER_NAME: cygwin_getent_passwd: "
-                "returned '%s', uid=%u\n",
-                (const char *)lookup->value,
-                (unsigned int)cy_uid));
-            StringCchCopyA(user->username, VAL_LEN, lookup->value);
-            user->uid = cy_uid;
-            status = 0;
-        }
-    }
-    else if (lookup->attr == ATTR_UID) {
-        uid_t search_uid = PTR2UID_T(lookup->value);
-        char search_name[VAL_LEN];
-        char res_username[VAL_LEN];
-        uid_t cy_uid = 0;
-
-        status = ERROR_NOT_FOUND;
-
-        (void)snprintf(search_name, sizeof(search_name), "%lu", (unsigned long)search_uid);
-
-        if (!cygwin_getent_passwd(search_name, res_username, &cy_uid, NULL, NULL)) {
-            DPRINTF(CYGWINIDLVL,
-                ("# ATTR_UID: cygwin_getent_passwd: "
-                "returned '%s', uid=%u, gid=%u\n",
-                res_username,
-                (unsigned int)cy_uid));
-            StringCchCopyA(user->username, VAL_LEN, res_username);
-            user->uid = cy_uid;
-            status = 0;
-        }
-    }
-    else
-    {
-        status = ERROR_NOT_FOUND;
-    }
-
-    if (status == 0) {
-        user->last_updated = UTIL_GETRELTIME();
-        DPRINTF(CYGWINIDLVL, ("## idmap_lookup_user: "
-            "found username='%s', uid=%u\n",
-            user->username,
-            (unsigned int)user->uid));
-    }
-#endif /* !NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN */
-    if ((status == 0) && context->config.cache_ttl) {
-        /* insert the entry into the cache */
-        cache_insert(&context->users, lookup, &user->entry);
-    }
-#ifndef NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN
-out_free_values:
-    for (i = 0; i < NUM_ATTRIBUTES; i++)
-        ldap_value_freeA(values[i]);
-#endif
-out:
-    return status;
-}
-
-static int idmap_lookup_group(
-    struct idmap_context *context,
-    const struct idmap_lookup *lookup,
-    struct idmap_group *group)
-{
-#ifndef NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN
-    PCHAR* values[NUM_ATTRIBUTES] = { NULL };
-    const unsigned attributes = ATTR_FLAG(ATTR_GROUP_NAME)
-        | ATTR_FLAG(ATTR_GID);
-    int i;
-#endif
-    int status;
-
-    /* check the group cache for an existing entry */
-    status = cache_lookup(&context->groups, lookup, &group->entry);
-    if (status == NO_ERROR) {
-        /* don't return expired entries; query new attributes
-         * and overwrite the entry with cache_insert() */
-        if (UTIL_DIFFRELTIME(UTIL_GETRELTIME(), group->last_updated) < context->config.cache_ttl)
-            goto out;
-    }
-#ifndef NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN
-    /* send the query to the ldap server */
-    status = idmap_query_attrs(context, lookup,
-        attributes, 0, values, NUM_ATTRIBUTES);
-    if (status)
-        goto out_free_values;
-
-    /* parse attributes */
-    if (FAILED(StringCchCopyA(group->name, VAL_LEN,
-            *values[ATTR_GROUP_NAME]))) {
-        eprintf("ldap attribute \"%s\"='%s' longer than %u characters\n",
-            context->config.attributes[ATTR_GROUP_NAME],
-            *values[ATTR_GROUP_NAME], VAL_LEN);
-        status = ERROR_BUFFER_OVERFLOW;
-        goto out_free_values;
-    }
-    if (!parse_uint(*values[ATTR_GID], &group->gid)) {
-        eprintf("failed to parse ldap attribute \"%s\"='%s'\n",
-            context->config.attributes[ATTR_GID], *values[ATTR_GID]);
-        status = ERROR_INVALID_PARAMETER;
-        goto out_free_values;
-    }
-    group->last_updated = UTIL_GETRELTIME();
-#else
-    if (lookup->attr == ATTR_GROUP_NAME) {
-        gid_t cy_gid = 0;
-
-        status = ERROR_NOT_FOUND;
-
-        if (!cygwin_getent_group(lookup->value, NULL, &cy_gid, NULL, NULL)) {
-            DPRINTF(CYGWINIDLVL,
-                ("# ATTR_GROUP_NAME: cygwin_getent_group: "
-                "returned '%s', gid=%u\n",
-                (const char *)lookup->value,
-                (unsigned int)cy_gid));
-            StringCchCopyA(group->name, VAL_LEN, lookup->value);
-            group->gid = cy_gid;
-            status = 0;
-        }
-    }
-    else if (lookup->attr == ATTR_GID) {
-        gid_t search_gid = PTR2GID_T(lookup->value);
-        char search_name[VAL_LEN];
-        char res_groupname[VAL_LEN];
-        gid_t cy_gid = 0;
-
-        status = ERROR_NOT_FOUND;
-
-        (void)snprintf(search_name, sizeof(search_name),
-            "%lu", (unsigned long)search_gid);
-
-        if (!cygwin_getent_group(search_name, res_groupname, &cy_gid, NULL, NULL)) {
-            DPRINTF(CYGWINIDLVL,
-                ("# ATTR_GID: cygwin_getent_group: returned '%s', gid=%u\n",
-                res_groupname, (unsigned int)cy_gid));
-            StringCchCopyA(group->name, VAL_LEN, res_groupname);
-            group->gid = cy_gid;
-            status = 0;
-        }
-    }
-    else
-    {
-        status = ERROR_NOT_FOUND;
-    }
-
-    if (status == 0) {
-        group->last_updated = UTIL_GETRELTIME();
-        DPRINTF(CYGWINIDLVL,
-            ("## idmap_lookup_group: found name='%s', gid=%u\n",
-            group->name,
-            (unsigned int)group->gid));
-    }
-#endif /* !NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN */
-    if ((status == 0) && context->config.cache_ttl) {
-        /* insert the entry into the cache */
-        cache_insert(&context->groups, lookup, &group->entry);
-    }
-#ifndef NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN
-out_free_values:
-    for (i = 0; i < NUM_ATTRIBUTES; i++)
-        ldap_value_freeA(values[i]);
-#endif
-out:
-    return status;
-}
 
 /* public idmap interface */
 int nfs41_idmap_create(
@@ -889,8 +422,13 @@ int nfs41_idmap_create(
     }
 
     /* initialize the caches */
-    cache_init(&context->users, &user_cache_ops);
-    cache_init(&context->groups, &group_cache_ops);
+    context->usercache = idmapcache_context_create();
+    context->groupcache = idmapcache_context_create();
+
+    if ((context->usercache == NULL) || (context->groupcache == NULL)) {
+        eprintf("nfs41_idmap_create: Cannot create idmapcache\n");
+        goto out;
+    }
 
     /* load ldap configuration from file */
     status = config_init(&context->config);
@@ -899,40 +437,10 @@ int nfs41_idmap_create(
         goto out_err_free;
     }
 
-#ifndef NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN
-    /* initialize ldap and configure options */
-    context->ldap = ldap_init(context->config.hostname, context->config.port);
-    if (context->ldap == NULL) {
-        status = LdapGetLastError();
-        eprintf("ldap_init(%s) failed with %d: '%s'\n",
-            context->config.hostname, status, ldap_err2stringA(status));
-        status = LdapMapErrorToWin32(status);
-        goto out_err_free;
-    }
-
-    status = ldap_set_option(context->ldap, LDAP_OPT_PROTOCOL_VERSION,
-        (void *)&context->config.version);
-    if (status != LDAP_SUCCESS) {
-        eprintf("ldap_set_option(version=%d) failed with %d\n",
-            context->config.version, status);
-        status = LdapMapErrorToWin32(status);
-        goto out_err_free;
-    }
-
-    if (context->config.timeout) {
-        status = ldap_set_option(context->ldap, LDAP_OPT_TIMELIMIT,
-            (void *)&context->config.timeout);
-        if (status != LDAP_SUCCESS) {
-            eprintf("ldap_set_option(timeout=%d) failed with %d\n",
-                context->config.timeout, status);
-            status = LdapMapErrorToWin32(status);
-            goto out_err_free;
-        }
-    }
-#else
+#ifdef NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN
     DPRINTF(CYGWINIDLVL, ("nfs41_idmap_create: Force context->config.timeout = 6000;\n"));
     context->config.timeout = 6000;
-#endif
+#endif /* NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN */
 
     *context_out = context;
 
@@ -951,64 +459,83 @@ void nfs41_idmap_free(
     if (context->ldap)
         ldap_unbind(context->ldap);
 
-    cache_cleanup(&context->users);
-    cache_cleanup(&context->groups);
+    idmapcache_context_destroy(context->usercache);
+    idmapcache_context_destroy(context->groupcache);
+
     free(context);
 }
 
-
-/* username -> uid, gid */
-static int username_cmp(const struct list_entry *list, const void *value)
-{
-    const struct idmap_user *entry = list_container(list,
-        const struct idmap_user, entry);
-    const char *username = (const char*)value;
-    return strcmp(entry->username, username);
-}
-
-
 int nfs41_idmap_name_to_uid(
     struct idmap_context *context,
-    const char *username,
+    const char *name,
     uid_t *uid_out)
 {
-    struct idmap_lookup lookup = {
-        .attr = ATTR_USER_NAME,
-        .klass = CLASS_USER,
-        .type = TYPE_STR,
-        .compare = username_cmp,
-        .value = NULL
-    };
-    struct idmap_user user;
-    int status;
+    int status = ERROR_NOT_FOUND;
 
-    DPRINTF(IDLVL, ("--> nfs41_idmap_name_to_uid('%s')\n", username));
+    DPRINTF(IDLVL, ("--> nfs41_idmap_name_to_uid(name='%s')\n", name));
 
-    lookup.value = username;
+    idmapcache_entry *ie = NULL;
 
-    /* look up the user entry */
-    status = idmap_lookup_user(context, &lookup, &user);
-    if (status) {
-        DPRINTF(IDLVL, ("<-- nfs41_idmap_name_to_uid('%s') "
-            "failed with %d\n", username, status));
+    ie = idmapcache_lookup_by_nfsname(context->usercache, name);
+    if (ie != NULL) {
+        *uid_out = ie->nfsid;
+        status = ERROR_SUCCESS;
         goto out;
     }
 
-    *uid_out = user.uid;
-    DPRINTF(IDLVL, ("<-- nfs41_idmap_name_to_uid('%s') "
-        "returning uid=%u\n", username, user.uid));
+    char localname[256];
+    uid_t localuid;
+    char nfsowner[256];
+    uid_t nfsuid;
+
+    if (!cygwin_getent_passwd(name,
+        localname,
+        &localuid,
+        nfsowner,
+        &nfsuid)) {
+        DPRINTF(0, ("nfs41_idmap_name_to_uid(name='%s'): "
+            "Adding new user entry localname='%s', localuid=%ld, nfsowner='%s', nfsuid=%ld\n",
+            name,
+            localname,
+            (long)localuid,
+            nfsowner,
+            (long)nfsuid));
+
+        ie = idmapcache_add(context->usercache,
+            name/*localname*/,
+            localuid,
+            name/*nfsowner*/,
+            localuid/*nfsuid*/);
+        if (ie == NULL) {
+            DPRINTF(0, ("nfs41_idmap_name_to_uid(name='%s'): idmapcache_add() failed\n", name));
+        }
+        else {
+            *uid_out = ie->nfsid;
+            status = ERROR_SUCCESS;
+        }
+    }
+
 out:
+    DPRINTF(IDLVL, ("<-- nfs41_idmap_name_to_uid(name='%s') "
+        "returning status=%d, uid=%u\n",
+        name,
+        status,
+        (unsigned int)*uid_out));
+
+    if (ie != NULL) {
+        DPRINTF(3, ("nfs41_idmap_name_to_uid(name='%s'): "
+            "returning *uid_out=%u / user ie(=0x%p)={ win32name='%s', localuid=%ld, nfsname='%s', nfsid=%ld\n",
+            name,
+            (unsigned int)*uid_out,
+            (void *)ie,
+            ie->win32name.buf,
+            (long)ie->localid,
+            ie->nfsname.buf,
+            (long)ie->nfsid));
+        idmapcache_entry_refcount_dec(ie);
+    }
+
     return status;
-}
-
-
-/* uid -> username */
-static int uid_cmp(const struct list_entry *list, const void *value)
-{
-    const struct idmap_user *entry = list_container(list,
-        const struct idmap_user, entry);
-    const uid_t uid = PTR2UID_T(value);
-    return (int)uid - (int)entry->uid;
 }
 
 int nfs41_idmap_uid_to_name(
@@ -1017,48 +544,72 @@ int nfs41_idmap_uid_to_name(
     char *name,
     size_t len)
 {
-    struct idmap_lookup lookup = {
-        .attr = ATTR_UID,
-        .klass = CLASS_USER,
-        .type = TYPE_INT,
-        .compare = uid_cmp,
-        .value = NULL
-    };
-    struct idmap_user user;
-    int status;
+    int status = ERROR_NOT_FOUND;
 
-    DPRINTF(IDLVL, ("--> nfs41_idmap_uid_to_name(%u)\n", (unsigned int)uid));
+    DPRINTF(IDLVL, ("--> nfs41_idmap_uid_to_name(uid=%u)\n", (unsigned int)uid));
 
-    lookup.value = UID_T2PTR(uid);
+    idmapcache_entry *ie = NULL;
 
-    /* look up the user entry */
-    status = idmap_lookup_user(context, &lookup, &user);
-    if (status) {
-        DPRINTF(IDLVL, ("<-- nfs41_idmap_uid_to_name(%u) "
-            "failed with %d\n", (unsigned int)uid, status));
+    ie = idmapcache_lookup_by_nfsid(context->usercache, uid);
+    if (ie != NULL) {
+        (void)strcpy(name, ie->nfsname.buf);
+        status = ERROR_SUCCESS;
         goto out;
     }
 
-    if (FAILED(StringCchCopyA(name, len, user.username))) {
-        status = ERROR_BUFFER_OVERFLOW;
-        eprintf("username buffer overflow: '%s' > %lu\n",
-            user.username, (unsigned long)len);
-        goto out;
+    char localname[256];
+    uid_t localuid;
+    char nfsowner[256];
+    uid_t nfsuid;
+
+    if (!cygwin_getent_passwd(name,
+        localname,
+        &localuid,
+        nfsowner,
+        &nfsuid)) {
+        DPRINTF(0, ("nfs41_idmap_uid_to_name(name='%s'): "
+            "Adding new user entry localname='%s', localuid=%ld, nfsowner='%s', nfsuid=%ld\n",
+            name,
+            localname,
+            (long)localuid,
+            nfsowner,
+            (long)nfsuid));
+
+        ie = idmapcache_add(context->usercache,
+            name/*localname*/,
+            localuid,
+            name/*nfsowner*/,
+            localuid/*nfsuid*/);
+        if (ie == NULL) {
+            DPRINTF(0, ("nfs41_idmap_uid_to_name(name='%s'): idmapcache_add() failed\n", name));
+        }
+        else {
+            (void)strcpy(name, ie->nfsname.buf);
+            status = ERROR_SUCCESS;
+        }
     }
 
-    DPRINTF(IDLVL, ("<-- nfs41_idmap_uid_to_name(%u) "
-        "returning '%s'\n", uid, name));
 out:
-    return status;
-}
+    DPRINTF(IDLVL, ("<-- nfs41_idmap_uid_to_name(uid=%u) "
+        "returning status=%d, name='%s'\n",
+        (unsigned int)uid,
+        status,
+        ((status == 0)?name:"<nothing>")));
 
-/* group -> gid */
-static int group_cmp(const struct list_entry *list, const void *value)
-{
-    const struct idmap_group *entry = list_container(list,
-        const struct idmap_group, entry);
-    const char *group = (const char*)value;
-    return strcmp(entry->name, group);
+    if (ie != NULL) {
+        DPRINTF(0, ("nfs41_idmap_uid_to_name(uid=%u): "
+            "returning *name='%s' / user ie(=0x%p)={ win32name='%s', localuid=%ld, nfsname='%s', nfsid=%ld\n",
+            (unsigned int)uid,
+            ((status == 0)?name:"<nothing>"),
+            (void *)ie,
+            ie->win32name.buf,
+            (long)ie->localid,
+            ie->nfsname.buf,
+            (long)ie->nfsid));
+        idmapcache_entry_refcount_dec(ie);
+    }
+
+    return status;
 }
 
 int nfs41_idmap_group_to_gid(
@@ -1066,42 +617,72 @@ int nfs41_idmap_group_to_gid(
     const char *name,
     gid_t *gid_out)
 {
-    struct idmap_lookup lookup = {
-        .attr = ATTR_GROUP_NAME,
-        .klass = CLASS_GROUP,
-        .type = TYPE_STR,
-        .compare = group_cmp,
-        .value = NULL
-    };
-    struct idmap_group group;
-    int status;
+    int status = ERROR_NOT_FOUND;
 
-    DPRINTF(IDLVL, ("--> nfs41_idmap_group_to_gid('%s')\n", name));
+    DPRINTF(IDLVL, ("--> nfs41_idmap_group_to_gid(name='%s')\n", name));
 
-    lookup.value = name;
+    idmapcache_entry *ie = NULL;
 
-    /* look up the group entry */
-    status = idmap_lookup_group(context, &lookup, &group);
-    if (status) {
-        DPRINTF(IDLVL, ("<-- nfs41_idmap_group_to_gid('%s') "
-            "failed with %d\n", name, status));
+    ie = idmapcache_lookup_by_nfsname(context->groupcache, name);
+    if (ie != NULL) {
+        *gid_out = ie->nfsid;
+        status = ERROR_SUCCESS;
         goto out;
     }
 
-    *gid_out = group.gid;
-    DPRINTF(IDLVL, ("<-- nfs41_idmap_group_to_gid('%s') "
-        "returning %u\n", name, group.gid));
-out:
-    return status;
-}
+    char localgroupname[256];
+    gid_t localgid;
+    char nfsownergroup[256];
+    gid_t nfsgid;
 
-/* gid -> group */
-static int gid_cmp(const struct list_entry *list, const void *value)
-{
-    const struct idmap_group *entry = list_container(list,
-        const struct idmap_group, entry);
-    const gid_t gid = PTR2GID_T(value);
-    return (int)gid - (int)entry->gid;
+    if (!cygwin_getent_group(name,
+        localgroupname,
+        &localgid,
+        nfsownergroup,
+        &nfsgid)) {
+        DPRINTF(0, ("nfs41_idmap_group_to_gid(name='%s'): "
+            "Adding new group entry localgroupname='%s', localgid=%ld, nfsownergroup='%s', nfsgid=%ld\n",
+            name,
+            localgroupname,
+            (long)localgid,
+            nfsownergroup,
+            (long)nfsgid));
+
+        ie = idmapcache_add(context->groupcache,
+            name/*localgroupname*/,
+            localgid,
+            name/*nfsownergroup*/,
+            localgid/*nfsgid*/);
+        if (ie == NULL) {
+            DPRINTF(0, ("nfs41_idmap_group_to_gid(name='%s'): idmapcache_add() failed\n", name));
+        }
+        else {
+            *gid_out = ie->nfsid;
+            status = ERROR_SUCCESS;
+        }
+    }
+
+out:
+    DPRINTF(IDLVL, ("<-- nfs41_idmap_group_to_gid(name='%s') "
+        "returning status=%d, gid=%u\n",
+        name,
+        status,
+        (unsigned int)*gid_out));
+
+    if (ie != NULL) {
+        DPRINTF(3, ("nfs41_idmap_group_to_gid(name='%s'): "
+            "returning *gid_out=%u / group ie(=0x%p)={ win32name='%s', localgid=%ld, nfsname='%s', nfsid=%ld\n",
+            name,
+            (unsigned int)*gid_out,
+            (void *)ie,
+            ie->win32name.buf,
+            (long)ie->localid,
+            ie->nfsname.buf,
+            (long)ie->nfsid));
+        idmapcache_entry_refcount_dec(ie);
+    }
+
+    return status;
 }
 
 int nfs41_idmap_gid_to_group(
@@ -1110,37 +691,70 @@ int nfs41_idmap_gid_to_group(
     char *name,
     size_t len)
 {
-    struct idmap_lookup lookup = {
-        .attr = ATTR_GID,
-        .klass = CLASS_GROUP,
-        .type = TYPE_INT,
-        .compare = gid_cmp,
-        .value = NULL
-    };
-    struct idmap_group group;
-    int status;
+    int status = ERROR_NOT_FOUND;
 
-    DPRINTF(IDLVL, ("--> nfs41_idmap_gid_to_group(%u)\n", gid));
+    DPRINTF(IDLVL, ("--> nfs41_idmap_gid_to_group(gid=%u)\n", (unsigned int)gid));
 
-    lookup.value = GID_T2PTR(gid);
+    idmapcache_entry *ie = NULL;
 
-    /* look up the group entry */
-    status = idmap_lookup_group(context, &lookup, &group);
-    if (status) {
-        DPRINTF(IDLVL, ("<-- nfs41_idmap_gid_to_group(%u) "
-            "failed with %d\n", gid, status));
+    ie = idmapcache_lookup_by_nfsid(context->groupcache, gid);
+    if (ie != NULL) {
+        (void)strcpy(name, ie->nfsname.buf);
+        status = ERROR_SUCCESS;
         goto out;
     }
 
-    if (FAILED(StringCchCopyA(name, len, group.name))) {
-        status = ERROR_BUFFER_OVERFLOW;
-        eprintf("group name buffer overflow: '%s' > %lu\n",
-            group.name, (unsigned long)len);
-        goto out;
+    char localgroupname[256];
+    gid_t localgid;
+    char nfsownergroup[256];
+    gid_t nfsgid;
+
+    if (!cygwin_getent_group(name,
+        localgroupname,
+        &localgid,
+        nfsownergroup,
+        &nfsgid)) {
+        DPRINTF(0, ("nfs41_idmap_group_to_gid(name='%s'): "
+            "Adding new group entry localgroupname='%s', localgid=%ld, nfsownergroup='%s', nfsgid=%ld\n",
+            name,
+            localgroupname,
+            (long)localgid,
+            nfsownergroup,
+            (long)nfsgid));
+
+        ie = idmapcache_add(context->groupcache,
+            name/*localgroupname*/,
+            localgid,
+            name/*nfsownergroup*/,
+            localgid/*nfsgid*/);
+        if (ie == NULL) {
+            DPRINTF(0, ("nfs41_idmap_group_to_gid(name='%s'): idmapcache_add() failed\n", name));
+        }
+        else {
+            (void)strcpy(name, ie->nfsname.buf);
+            status = ERROR_SUCCESS;
+        }
     }
 
-    DPRINTF(IDLVL, ("<-- nfs41_idmap_gid_to_group(%u) "
-        "returning '%s'\n", gid, name));
 out:
+    DPRINTF(IDLVL, ("<-- nfs41_idmap_gid_to_group(gid=%u) "
+        "returning status=%d, name='%s'\n",
+        (unsigned int)gid,
+        status,
+        ((status == 0)?name:"<nothing>")));
+
+    if (ie != NULL) {
+        DPRINTF(0, ("nfs41_idmap_gid_to_group(gid=%u): "
+            "returning *name='%s' / group ie(=0x%p)={ win32name='%s', localgid=%ld, nfsname='%s', nfsid=%ld\n",
+            (unsigned int)gid,
+            ((status == 0)?name:"<nothing>"),
+            (void *)ie,
+            ie->win32name.buf,
+            (long)ie->localid,
+            ie->nfsname.buf,
+            (long)ie->nfsid));
+        idmapcache_entry_refcount_dec(ie);
+    }
+
     return status;
 }

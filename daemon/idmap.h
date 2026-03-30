@@ -75,4 +75,47 @@ int cygwin_getent_group(
     gid_t *restrict res_nfsgid);
 #endif /* NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN */
 
+#define IDMAPCACHE_TTL_SECONDS 60
+#define IDMAPCACHE_MAXNAME_LEN 256
+
+/*
+ * Public API for idmapper cache
+ */
+typedef signed long idmapcache_idnumber;
+
+typedef struct _idmap_namestr {
+    char buf[IDMAPCACHE_MAXNAME_LEN];
+    size_t len;
+} idmap_namestr;
+
+typedef struct _idmapcache_entry {
+    idmap_namestr win32name;
+    idmapcache_idnumber localid;
+
+    idmap_namestr nfsname;
+    idmapcache_idnumber nfsid;
+
+    time_t last_updated;
+} idmapcache_entry;
+
+typedef struct _idmapcache_context idmapcache_context;
+
+idmapcache_context *idmapcache_context_create(void);
+void idmapcache_context_destroy(idmapcache_context *restrict ctx);
+idmapcache_entry *idmapcache_add(idmapcache_context *restrict ctx,
+    const char *restrict win32name,
+    idmapcache_idnumber localid,
+    const char *restrict nfsname,
+    idmapcache_idnumber nfsid);
+idmapcache_entry *idmapcache_lookup_by_win32name(idmapcache_context *restrict ctx,
+    const char *restrict win32name);
+idmapcache_entry *idmapcache_lookup_by_localid(idmapcache_context *restrict ctx,
+    idmapcache_idnumber search_localid);
+idmapcache_entry *idmapcache_lookup_by_nfsname(idmapcache_context *restrict ctx,
+    const char *restrict nfsname);
+idmapcache_entry *idmapcache_lookup_by_nfsid(idmapcache_context *restrict ctx,
+    idmapcache_idnumber search_nfslid);
+void idmapcache_entry_refcount_inc(idmapcache_entry *restrict e);
+void idmapcache_entry_refcount_dec(idmapcache_entry *restrict e);
+
 #endif /* !IDMAP_H */

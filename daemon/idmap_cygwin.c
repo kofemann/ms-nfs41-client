@@ -20,9 +20,12 @@
 
 #include <Windows.h>
 #include <strsafe.h>
-#include <Winldap.h>
 #include <stdlib.h> /* for strtoul() */
+#include <stdbool.h>
+//#include <stdio.h>
+#include <string.h>
 #include <time.h>
+#include "queue.h"
 
 #include "nfs41_build_features.h"
 #include "idmap.h"
@@ -409,3 +412,234 @@ fail:
     return res;
 }
 #endif /* NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN */
+
+
+/*
+ * New idmapper cache
+ */
+struct idmapcache_node {
+    struct _idmapcache_entry entry;
+
+    LIST_ENTRY(idmapcache_node) list_node;
+    volatile LONG refcounter;
+};
+
+LIST_HEAD(idmapcache_head, idmapcache_node);
+
+typedef struct _idmapcache_context {
+    struct idmapcache_head head;
+    SRWLOCK lock;
+} idmapcache_context;
+
+typedef bool (*idmapcache_cmp_fn)(const struct idmapcache_node *restrict entry, const void *restrict search_val);
+
+void idmapcache_entry_refcount_inc(idmapcache_entry *restrict e)
+{
+    struct idmapcache_node *en = (struct idmapcache_node *)e;
+    (void)InterlockedIncrement(&en->refcounter);
+}
+
+void idmapcache_entry_refcount_dec(idmapcache_entry *restrict e)
+{
+    struct idmapcache_node *en = (struct idmapcache_node *)e;
+    if (InterlockedDecrement(&en->refcounter) == 0) {
+        free(e);
+    }
+}
+
+static
+bool cmp_by_win32name(const struct idmapcache_node *restrict node, const void *restrict search_val)
+{
+    const idmap_namestr *search_str = (const idmap_namestr *)search_val;
+
+    if (search_str->len != node->entry.win32name.len) {
+        return false;
+    }
+    return memcmp(node->entry.win32name.buf, search_str->buf, search_str->len) == 0;
+}
+
+static
+bool cmp_by_nfsname(const struct idmapcache_node *restrict node, const void *restrict search_val)
+{
+    const idmap_namestr *search_str = (const idmap_namestr *)search_val;
+
+    if (search_str->len != node->entry.nfsname.len) {
+        return false;
+    }
+    return memcmp(node->entry.nfsname.buf, search_str->buf, search_str->len) == 0;
+}
+
+static
+bool cmp_by_localid(const struct idmapcache_node *restrict node, const void *restrict search_val)
+{
+    return node->entry.localid == *(const idmapcache_idnumber *)search_val;
+}
+
+static
+bool cmp_by_nfsid(const struct idmapcache_node *restrict node, const void *restrict search_val)
+{
+    return node->entry.nfsid == *(const idmapcache_idnumber *)search_val;
+}
+
+static
+idmapcache_entry *idmapcache_lookup(idmapcache_context *restrict ctx,
+    idmapcache_cmp_fn cmp,
+    const void *restrict search_val)
+{
+    struct idmapcache_node *found_node = NULL;
+    time_t current_time;
+    struct idmapcache_node *node;
+
+    AcquireSRWLockShared(&ctx->lock);
+
+    current_time = time(NULL);
+
+    LIST_FOREACH(node, &ctx->head, list_node) {
+        if ((current_time - node->entry.last_updated) > IDMAPCACHE_TTL_SECONDS)
+            continue;
+
+        if (cmp(node, search_val)) {
+            found_node = node;
+            idmapcache_entry_refcount_inc(&found_node->entry);
+            break;
+        }
+    }
+
+    ReleaseSRWLockShared(&ctx->lock);
+
+    return &found_node->entry;
+}
+
+static
+void cleanup_expired_entries(idmapcache_context *restrict ctx, time_t current_time)
+{
+    struct idmapcache_node *node;
+    struct idmapcache_node *tmpnode;
+
+    for (node = LIST_FIRST(&ctx->head) ; node != NULL ; node = tmpnode) {
+        tmpnode = LIST_NEXT(node, list_node);
+
+        if ((current_time - node->entry.last_updated) > IDMAPCACHE_TTL_SECONDS) {
+            LIST_REMOVE(node, list_node);
+            idmapcache_entry_refcount_dec(&node->entry);
+        }
+    }
+}
+
+idmapcache_context *idmapcache_context_create(void)
+{
+    idmapcache_context *ctx = malloc(sizeof(struct _idmapcache_context));
+    if (ctx == NULL)
+        return NULL;
+
+    (void)memset(ctx, 0, sizeof(*ctx));
+    InitializeSRWLock(&ctx->lock);
+    LIST_INIT(&ctx->head);
+
+    return ctx;
+}
+
+void idmapcache_context_destroy(idmapcache_context *restrict ctx)
+{
+    AcquireSRWLockExclusive(&ctx->lock);
+
+    struct idmapcache_node *node = LIST_FIRST(&ctx->head);
+    struct idmapcache_node *tmp;
+
+    while (node != NULL) {
+        tmp = LIST_NEXT(node, list_node);
+        LIST_REMOVE(node, list_node);
+        idmapcache_entry_refcount_dec(&node->entry);
+
+        node = tmp;
+    }
+
+    ReleaseSRWLockExclusive(&ctx->lock);
+    free(ctx);
+}
+
+idmapcache_entry *idmapcache_add(idmapcache_context *restrict ctx,
+    const char *restrict win32name,
+    idmapcache_idnumber localid,
+    const char *restrict nfsname,
+    idmapcache_idnumber nfsid)
+{
+    size_t win32name_len = strlen(win32name);
+    if (win32name_len >= IDMAPCACHE_MAXNAME_LEN)
+        return false;
+
+    size_t nfsname_len = strlen(nfsname);
+    if (nfsname_len >= IDMAPCACHE_MAXNAME_LEN)
+        return false;
+
+    struct idmapcache_node *new_node = malloc(sizeof(struct idmapcache_node));
+    if (new_node == NULL)
+        return false;
+
+    (void)memset(new_node, 0, sizeof(*new_node)); /* only debug */
+    /*
+     * Refcounter: One count to stay valid in the list,
+     * and one count for the return cod
+     */
+    new_node->refcounter = 1L + 1L;
+
+    (void)memcpy(new_node->entry.win32name.buf, win32name, win32name_len);
+    new_node->entry.win32name.buf[win32name_len] = '\0';
+    new_node->entry.win32name.len = win32name_len;
+
+    new_node->entry.localid = localid;
+
+    (void)memcpy(new_node->entry.nfsname.buf, nfsname, nfsname_len);
+    new_node->entry.nfsname.buf[nfsname_len] = '\0';
+    new_node->entry.nfsname.len = nfsname_len;
+
+    new_node->entry.nfsid = nfsid;
+
+    AcquireSRWLockExclusive(&ctx->lock);
+
+    time_t current_time = time(NULL);
+    new_node->entry.last_updated = current_time;
+
+    cleanup_expired_entries(ctx, current_time);
+    LIST_INSERT_HEAD(&ctx->head, new_node, list_node);
+
+    ReleaseSRWLockExclusive(&ctx->lock);
+
+    return &new_node->entry;
+}
+
+idmapcache_entry *idmapcache_lookup_by_win32name(idmapcache_context *restrict ctx,
+    const char *restrict win32name)
+{
+    idmap_namestr search_term;
+    search_term.len = strlen(win32name);
+    if (search_term.len >= IDMAPCACHE_MAXNAME_LEN)
+        return NULL;
+    (void)memcpy(search_term.buf, win32name, search_term.len);
+
+    return idmapcache_lookup(ctx, cmp_by_win32name, &search_term);
+}
+
+idmapcache_entry *idmapcache_lookup_by_localid(idmapcache_context *restrict ctx,
+    idmapcache_idnumber search_localid)
+{
+    return idmapcache_lookup(ctx, cmp_by_localid, &search_localid);
+}
+
+idmapcache_entry *idmapcache_lookup_by_nfsname(idmapcache_context *restrict ctx,
+    const char *restrict nfsname)
+{
+    idmap_namestr search_term;
+    search_term.len = strlen(nfsname);
+    if (search_term.len >= IDMAPCACHE_MAXNAME_LEN)
+        return NULL;
+    (void)memcpy(search_term.buf, nfsname, search_term.len);
+
+    return idmapcache_lookup(ctx, cmp_by_nfsname, &search_term);
+}
+
+idmapcache_entry *idmapcache_lookup_by_nfsid(idmapcache_context *restrict ctx,
+    idmapcache_idnumber search_nfsid)
+{
+    return idmapcache_lookup(ctx, cmp_by_nfsid, &search_nfsid);
+}
