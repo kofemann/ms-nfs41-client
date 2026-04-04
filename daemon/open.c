@@ -765,12 +765,33 @@ void open_get_localuidgid(IN nfs41_daemon_globals *restrict nfs41dg,
      * |owner| can be numeric string ("1616"), plain username
      *  ("gisburn") or username@domain ("gisburn@sun.com")
      */
+    ie = NULL;
 
-    EASSERT_MSG(IS_PRINCIPAL_NAME(owner),
-        ("owner='%s' is not a principal\n", owner));
+    if (isdigit(owner[0])) {
+        idmapcache_idnumber nfs_id;
 
-    ie = nfs41_idmap_user_lookup_by_nfsname(nfs41dg->idmapper,
-        owner);
+        errno = 0;
+        nfs_id = strtol(owner, NULL, 10);
+
+        if (errno == 0) {
+            ie = nfs41_idmap_user_lookup_by_nfsid(nfs41dg->idmapper,
+                nfs_id);
+        }
+        else {
+            DPRINTF(0,
+                ("open_get_localuidgid(owner='%s'): "
+                "strtol() failed to map string to number, errno=%d\n",
+                owner, (int)errno));
+        }
+    }
+    else {
+        EASSERT_MSG(IS_PRINCIPAL_NAME(owner),
+            ("owner='%s' is not a principal\n", owner));
+
+        ie = nfs41_idmap_user_lookup_by_nfsname(nfs41dg->idmapper,
+            owner);
+    }
+
     if (ie != NULL) {
          *owner_local_uid = ie->localid;
         idmapcache_entry_refcount_dec(ie);
@@ -790,12 +811,33 @@ void open_get_localuidgid(IN nfs41_daemon_globals *restrict nfs41dg,
      * |owner_group| can be numeric string ("1616"), plain username
      * ("gisgrp") or username@domain ("gisgrp@sun.com")
      */
+    ie = NULL;
 
-    EASSERT_MSG(IS_PRINCIPAL_NAME(owner_group),
-        ("owner_group='%s' is not a principal\n", owner_group));
+    if (isdigit(owner_group[0])) {
+        idmapcache_idnumber nfs_id;
 
-    ie = nfs41_idmap_group_lookup_by_nfsname(nfs41dg->idmapper,
-        owner_group);
+        errno = 0;
+        nfs_id = strtol(owner_group, NULL, 10);
+
+        if (errno == 0) {
+            ie = nfs41_idmap_group_lookup_by_nfsid(nfs41dg->idmapper,
+                nfs_id);
+        }
+        else {
+            DPRINTF(0,
+                ("open_get_localuidgid(owner_group='%s'): "
+                "strtol() failed to map string to number, errno=%d\n",
+                owner_group, (int)errno));
+        }
+    }
+    else {
+        EASSERT_MSG(IS_PRINCIPAL_NAME(owner),
+            ("owner_group='%s' is not a principal\n", owner_group));
+
+        ie = nfs41_idmap_group_lookup_by_nfsname(nfs41dg->idmapper,
+            owner_group);
+    }
+
     if (ie != NULL) {
         *owner_group_local_gid = ie->localid;
         idmapcache_entry_refcount_dec(ie);

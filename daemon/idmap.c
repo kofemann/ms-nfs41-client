@@ -340,6 +340,8 @@ int nfs41_idmap_create(
     DPRINTF(1,
         ("nfs41_idmap_create: Force context->config.timeout = 6000;\n"));
     context->config.timeout = 6000;
+    /* FIXME: |use_numeric_uidgid| should be a idmapper option */
+    context->config.use_numeric_uidgid = false;
 #endif /* NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN */
 
     *context_out = context;

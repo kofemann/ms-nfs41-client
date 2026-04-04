@@ -112,6 +112,8 @@ void idmapcache_entry_refcount_dec(idmapcache_entry *restrict e);
 struct idmap_config {
     UINT timeout;
 
+    bool use_numeric_uidgid;
+
     /* caching configuration */
     INT cache_ttl;
 };

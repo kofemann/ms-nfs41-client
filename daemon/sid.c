@@ -424,17 +424,41 @@ int map_nfs4servername_2_sid(
         ("--> map_nfs4servername_2_sid(query=0x%x,nfsname='%s')\n",
         query, nfsname));
 
-    EASSERT_MSG(IS_PRINCIPAL_NAME(nfsname),
-        ("nfsname='%s' is not a principal\n", nfsname));
+    if (isdigit(nfsname[0])) {
+        idmapcache_idnumber nfs_id;
 
+        errno = 0;
+        nfs_id = strtol(nfsname, NULL, 10);
+        if (errno != 0) {
+            DPRINTF(0,
+                ("map_nfs4servername_2_sid(nfsname='%s'): "
+                "strtol() failed to map string to number, errno=%d\n",
+                nfsname, (int)errno));
+            status = ERROR_NOT_FOUND;
+            goto out;
+        }
 
-    if ((nfs_ie == NULL) && (query & OWNER_SECURITY_INFORMATION)) {
-        nfs_ie = nfs41_idmap_user_lookup_by_nfsname(nfs41dg->idmapper,
-            nfsname);
+        if ((nfs_ie == NULL) && (query & OWNER_SECURITY_INFORMATION)) {
+            nfs_ie = nfs41_idmap_user_lookup_by_nfsid(nfs41dg->idmapper,
+                nfs_id);
+        }
+        if ((nfs_ie == NULL) && (query & GROUP_SECURITY_INFORMATION)) {
+            nfs_ie = nfs41_idmap_group_lookup_by_nfsid(nfs41dg->idmapper,
+                nfs_id);
+        }
     }
-    if ((nfs_ie == NULL) && (query & GROUP_SECURITY_INFORMATION)) {
-        nfs_ie = nfs41_idmap_group_lookup_by_nfsname(nfs41dg->idmapper,
-            nfsname);
+    else {
+        EASSERT_MSG(IS_PRINCIPAL_NAME(nfsname),
+            ("nfsname='%s' is not a principal\n", nfsname));
+
+        if ((nfs_ie == NULL) && (query & OWNER_SECURITY_INFORMATION)) {
+            nfs_ie = nfs41_idmap_user_lookup_by_nfsname(nfs41dg->idmapper,
+                nfsname);
+        }
+        if ((nfs_ie == NULL) && (query & GROUP_SECURITY_INFORMATION)) {
+            nfs_ie = nfs41_idmap_group_lookup_by_nfsname(nfs41dg->idmapper,
+                nfsname);
+        }
     }
 
     if (nfs_ie == NULL) {

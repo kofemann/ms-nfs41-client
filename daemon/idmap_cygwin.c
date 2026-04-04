@@ -88,8 +88,10 @@ int cygwin_getent_passwd(
         goto fail;
     }
 
-    EASSERT_MSG(IS_PRINCIPAL_NAME(name),
-        ("name='%s' is not a principal\n", name));
+    if (!isdigit(name[0])) {
+        EASSERT_MSG(IS_PRINCIPAL_NAME(name),
+            ("name='%s' is not a principal\n", name));
+    }
 
     /* fixme: better quoting for |name| needed */
     (void)snprintf(cmdbuff, sizeof(cmdbuff),
@@ -306,8 +308,10 @@ int cygwin_getent_group(
         goto fail;
     }
 
-    EASSERT_MSG(IS_PRINCIPAL_NAME(name),
-        ("name='%s' is not a principal\n", name));
+    if (!isdigit(name[0])) {
+        EASSERT_MSG(IS_PRINCIPAL_NAME(name),
+            ("name='%s' is not a principal\n", name));
+    }
 
     /* fixme: better quoting for |name| needed */
     (void)snprintf(cmdbuff, sizeof(cmdbuff),

@@ -335,6 +335,12 @@ function getent_nfs_domain_passwd
 	integer res
 	typeset arg="$1"
 
+	if [[ "${arg}" == ~(Elr)[[:digit:]]+ ]] ; then
+		getent passwd "${arg}"
+		(( res=$? ))
+		return $res
+	fi
+
 	typeset username="${arg%%@*}"
 	typeset domainname="${arg#*@}"
 
@@ -353,6 +359,12 @@ function getent_nfs_domain_group
 {
 	integer res
 	typeset arg="$1"
+
+	if [[ "${arg}" == ~(Elr)[[:digit:]]+ ]] ; then
+		getent group "${arg}"
+		(( res=$? ))
+		return $res
+	fi
 
 	typeset groupname="${arg%%@*}"
 	typeset domainname="${arg#*@}"

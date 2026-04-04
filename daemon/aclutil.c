@@ -136,10 +136,6 @@ int convert_nfs4acl_2_dacl(nfs41_daemon_globals *nfs41dg,
             ("convert_nfs4acl_2_dacl: for user='%s'\n",
             curr_nfsace->who));
 
-        EASSERT_MSG(!isdigit(curr_nfsace->who[0]),
-            ("convert_nfs4acl_2_dacl: aces[%d]->who='%s' uses numeric id\n",
-            (int)nfs_i, curr_nfsace->who));
-
 #ifdef NFS41_DRIVER_ACLS_SETACL_SKIP_WINNULLSID_ACES
         /*
          * Skip "nobody" ACEs - Cygwin uses |WinNullSid| ACEs (mapped
@@ -148,7 +144,8 @@ int convert_nfs4acl_2_dacl(nfs41_daemon_globals *nfs41dg,
          * only supports POSIX ACLs translated to NFSv4 ACLs, which
          * corrupts the Cygwin data.
          */
-        if (!strcmp(curr_nfsace->who, ACE4_NOBODY)) {
+        if ((strcmp(curr_nfsace->who, ACE4_NOBODY) == 0) ||
+            ((strcmp(curr_nfsace->who, "65534") == 0))) {
             DPRINTF(ACLLVL3, ("Skipping 'nobody' ACE, "
                 "win_i=%d nfs_i=%d\n", (int)win_i, (int)nfs_i));
             skip_aces[nfs_i] = true;
@@ -817,8 +814,15 @@ int map_sid2nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid,
             case SidTypeUser:
                 ie = nfs41_idmap_user_lookup_by_win32name(nfs41_dg.idmapper, who_buf);
                 if (ie != NULL) {
-                    strmemcpy(who_out, ie->nfsname.buf, ie->nfsname.len);
-                    who_size = (DWORD)ie->nfsname.len;
+                    if (nfs41_dg.idmapper->config.use_numeric_uidgid) {
+                        (void)_ltoa(ie->nfsid, who_out, 10);
+                        who_size = (DWORD)strlen(who_out);
+                    }
+                    else {
+                        strmemcpy(who_out, ie->nfsname.buf, ie->nfsname.len);
+                        who_size = (DWORD)ie->nfsname.len;
+                    }
+
                     status = ERROR_SUCCESS;
 
                     DPRINTF(ACLLVL1, ("map_sid2nfs4ace_who: "
@@ -840,8 +844,15 @@ int map_sid2nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid,
             case SidTypeAlias: /* Treat |SidTypeAlias| as (local) group */
                 ie = nfs41_idmap_group_lookup_by_win32name(nfs41_dg.idmapper, who_buf);
                 if (ie != NULL) {
-                    strmemcpy(who_out, ie->nfsname.buf, ie->nfsname.len);
-                    who_size = (DWORD)ie->nfsname.len;
+                    if (nfs41_dg.idmapper->config.use_numeric_uidgid) {
+                        (void)_ltoa(ie->nfsid, who_out, 10);
+                        who_size = (DWORD)strlen(who_out);
+                    }
+                    else {
+                        strmemcpy(who_out, ie->nfsname.buf, ie->nfsname.len);
+                        who_size = (DWORD)ie->nfsname.len;
+                    }
+
                     status = ERROR_SUCCESS;
 
                     DPRINTF(ACLLVL1, ("map_sid2nfs4ace_who: "
