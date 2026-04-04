@@ -34,11 +34,11 @@
 
 void free_sids(PSID *sids, int count);
 int map_sid2nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid,
-    char *who_out, char *domain, SID_NAME_USE *sid_type_out);
+    char *who_out, const char *domain, SID_NAME_USE *sid_type_out);
 int convert_nfs4acl_2_dacl(nfs41_daemon_globals *nfs41dg,
     nfsacl41 *acl, int file_type, PACL *dacl_out, PSID **sids_out,
     bool named_attr_support);
 int map_dacl_2_nfs4acl(PACL acl, PSID sid, PSID gsid, nfsacl41 *nfs4_acl,
-    int file_type, bool named_attr_support, char *domain);
+    int file_type, bool named_attr_support, const char *domain);
 
 #endif /* !__NFS41_DAEMON_ACLUTIL_H__ */

@@ -32,42 +32,30 @@ typedef struct idmap_context nfs41_idmapper;
 
 int nfs41_idmap_create(
     nfs41_idmapper **context_out, const char *localdomain_name);
-
 void nfs41_idmap_free(
     nfs41_idmapper *context);
 
-
-int nfs41_idmap_name_to_uid(
-    struct idmap_context *context,
-    const char *username,
-    uid_t *uid_out);
-
-int nfs41_idmap_uid_to_name(
-    nfs41_idmapper *context,
-    uid_t uid,
-    char *name_out,
-    size_t len);
-
-int nfs41_idmap_group_to_gid(
-    nfs41_idmapper *context,
-    const char *name,
-    gid_t *gid_out);
-
-int nfs41_idmap_gid_to_group(
-    nfs41_idmapper *context,
-    gid_t gid,
-    char *name_out,
-    size_t len);
-
 /* idmap_cygwin.c */
 #ifdef NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN
-int cygwin_getent_passwd(
+int cygwin_local_getent_passwd(
     const char *restrict name,
     char *restrict res_localaccountname,
     uid_t *restrict res_localuid,
     char *restrict res_nfsowner,
     uid_t *restrict res_nfsuid);
-int cygwin_getent_group(
+int cygwin_nfsserver_getent_passwd(
+    const char *restrict name,
+    char *restrict res_localaccountname,
+    uid_t *restrict res_localuid,
+    char *restrict res_nfsowner,
+    uid_t *restrict res_nfsuid);
+int cygwin_local_getent_group(
+    const char *restrict name,
+    char *restrict res_localgroupname,
+    gid_t *restrict res_localgid,
+    char *restrict res_nfsownergroup,
+    gid_t *restrict res_nfsgid);
+int cygwin_nfsserver_getent_group(
     const char *restrict name,
     char *restrict res_localgroupname,
     gid_t *restrict res_localgid,
@@ -75,7 +63,7 @@ int cygwin_getent_group(
     gid_t *restrict res_nfsgid);
 #endif /* NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN */
 
-#define IDMAPCACHE_TTL_SECONDS 60
+#define IDMAPCACHE_TTL_SECONDS (60*5)
 #define IDMAPCACHE_MAXNAME_LEN 256
 
 /*
@@ -107,15 +95,68 @@ idmapcache_entry *idmapcache_add(idmapcache_context *restrict ctx,
     idmapcache_idnumber localid,
     const char *restrict nfsname,
     idmapcache_idnumber nfsid);
-idmapcache_entry *idmapcache_lookup_by_win32name(idmapcache_context *restrict ctx,
+idmapcache_entry *idmapcache_lookup_by_win32name(
+    idmapcache_context *restrict ctx,
     const char *restrict win32name);
-idmapcache_entry *idmapcache_lookup_by_localid(idmapcache_context *restrict ctx,
+idmapcache_entry *idmapcache_lookup_by_localid(
+    idmapcache_context *restrict ctx,
     idmapcache_idnumber search_localid);
-idmapcache_entry *idmapcache_lookup_by_nfsname(idmapcache_context *restrict ctx,
+idmapcache_entry *idmapcache_lookup_by_nfsname(
+    idmapcache_context *restrict ctx,
     const char *restrict nfsname);
 idmapcache_entry *idmapcache_lookup_by_nfsid(idmapcache_context *restrict ctx,
     idmapcache_idnumber search_nfslid);
 void idmapcache_entry_refcount_inc(idmapcache_entry *restrict e);
 void idmapcache_entry_refcount_dec(idmapcache_entry *restrict e);
+
+struct idmap_config {
+    UINT timeout;
+
+    /* caching configuration */
+    INT cache_ttl;
+};
+
+struct idmap_context {
+    struct idmap_config config;
+
+    idmapcache_context *usercache;
+    idmapcache_context *groupcache;
+
+    void *ldap;
+};
+
+/*
+ * User lookup functions
+ * If an entry does not exists the idmapper script will be called to create it
+ */
+idmapcache_entry *nfs41_idmap_user_lookup_by_win32name(
+    struct idmap_context *context,
+    const char *restrict win32name);
+idmapcache_entry *nfs41_idmap_user_lookup_by_localid(
+    struct idmap_context *context,
+    idmapcache_idnumber search_localid);
+idmapcache_entry *nfs41_idmap_user_lookup_by_nfsname(
+    struct idmap_context *context,
+    const char *restrict nfsname);
+idmapcache_entry *nfs41_idmap_user_lookup_by_nfsid(
+    struct idmap_context *context,
+    idmapcache_idnumber search_nfslid);
+
+/*
+ * User lookup functions
+ * If an entry does not exists the idmapper script will be called to create it
+ */
+idmapcache_entry *nfs41_idmap_group_lookup_by_win32name(
+    struct idmap_context *context,
+    const char *restrict win32name);
+idmapcache_entry *nfs41_idmap_group_lookup_by_localid(
+    struct idmap_context *context,
+    idmapcache_idnumber search_localid);
+idmapcache_entry *nfs41_idmap_group_lookup_by_nfsname(
+    struct idmap_context *context,
+    const char *restrict nfsname);
+idmapcache_entry *nfs41_idmap_group_lookup_by_nfsid(
+    struct idmap_context *context,
+    idmapcache_idnumber search_nfslid);
 
 #endif /* !IDMAP_H */

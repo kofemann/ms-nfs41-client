@@ -869,6 +869,8 @@ int chgrp_to_primarygroup(
     IN nfs41_open_state *state)
 {
     int chgrp_status = NO_ERROR;
+    idmapcache_entry *group_ie = NULL;
+    char win32groupname[256];
 
     /*
      * |RPCSEC_AUTH_NONE| does not have any
@@ -879,7 +881,35 @@ int chgrp_to_primarygroup(
         return NO_ERROR;
     }
 
-    char *s;
+    /* fixme: we should store the |owner_group| name in |upcall| */
+    if (!get_token_primarygroup_name(currentthread_token,
+        win32groupname)) {
+        eprintf("chgrp_to_primarygroup(state->file.name.name='%s'): "
+            "get_token_primarygroup_name() failed.\n",
+            state->file.name.name);
+        goto out;
+    }
+
+    EASSERT_MSG(IS_PRINCIPAL_NAME(win32groupname),
+        ("chgrp_to_primarygroup: win32groupname='%s' is not a principal\n",
+        win32groupname));
+
+    group_ie = nfs41_idmap_group_lookup_by_win32name(nfs41dg->idmapper,
+        win32groupname);
+    if (group_ie == NULL) {
+        eprintf("chgrp_to_primarygroup(state->file.name.name='%s'): "
+            "nfs41_idmap_group_lookup_by_win32name(name='%s') failed\n",
+            state->file.name.name,
+            win32groupname);
+        goto out;
+    }
+
+    DPRINTF(1,
+        ("chgrp_to_primarygroup(state->file.name.name='%s'): "
+        "owner_group='%s'\n",
+        state->file.name.name,
+        group_ie->nfsname.buf));
+
     stateid_arg stateid;
     nfs41_file_info createchgrpattrs = {
         .attrmask.count = 2,
@@ -887,34 +917,7 @@ int chgrp_to_primarygroup(
         .attrmask.arr[1] = FATTR4_WORD1_OWNER_GROUP,
         .owner_group = createchgrpattrs.owner_group_buf
     };
-
-    /* fixme: we should store the |owner_group| name in |upcall| */
-    if (!get_token_primarygroup_name(currentthread_token,
-        createchgrpattrs.owner_group)) {
-        eprintf("chgrp_to_primarygroup(state->file.name.name='%s'): "
-            "get_token_primarygroup_name() failed.\n",
-            state->file.name.name);
-        goto create_symlink_chgrp_out;
-    }
-
-    /*
-     * Find '@' so we can overwrite/override the domain name
-     * FIXME: We need to use a bi-directional idmapper to handle this better
-     */
-    s = strchr(createchgrpattrs.owner_group, '@');
-    if (s != NULL) {
-        s++; /* Skip '@' */
-    }
-    else {
-        /* If we do not have an '@' yet (no domain name), then add one */
-        s = createchgrpattrs.owner_group+strlen(createchgrpattrs.owner_group);
-        s = stpcpy(s, "@");
-    }
-    (void)stpcpy(s, nfs41dg->localdomain_name);
-    DPRINTF(1, ("chgrp_to_primarygroup(state->file.name.name='%s'): "
-        "owner_group='%s'\n",
-        state->file.name.name,
-        createchgrpattrs.owner_group));
+    (void)strcpy(createchgrpattrs.owner_group, group_ie->nfsname.buf);
 
     nfs41_open_stateid_arg(state, &stateid);
     chgrp_status = nfs41_setattr(state->session,
@@ -924,12 +927,13 @@ int chgrp_to_primarygroup(
             "nfs41_setattr(owner_group='%s') "
             "failed with error '%s'.\n",
             state->file.name.name,
-            createchgrpattrs.owner_group,
+            group_ie->nfsname.buf,
             nfs_error_string(chgrp_status));
     }
 
-create_symlink_chgrp_out:
-    ;
+out:
+    if (group_ie != NULL)
+        idmapcache_entry_refcount_dec(group_ie);
 
     return chgrp_status;
 }

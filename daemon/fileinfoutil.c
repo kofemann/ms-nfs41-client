@@ -439,8 +439,7 @@ void nfs_to_stat_lx_info(
 
     char owner[NFS4_FATTR4_OWNER_LIMIT+1];
     char owner_group[NFS4_FATTR4_OWNER_LIMIT+1];
-    uid_t map_uid = ~0UL;
-    gid_t map_gid = ~0UL;
+    idmapcache_entry *ie;
 
     EASSERT((info->attrmask.arr[1] & FATTR4_WORD1_OWNER) != 0);
     EASSERT((info->attrmask.arr[1] & FATTR4_WORD1_OWNER_GROUP) != 0);
@@ -459,12 +458,12 @@ void nfs_to_stat_lx_info(
     EASSERT_MSG(IS_PRINCIPAL_NAME(owner),
         ("owner='%s' is not a principal\n", owner));
 
-    if (!nfs41_idmap_name_to_uid(
-        nfs41_dg->idmapper,
-        owner,
-        &map_uid)) {
+    ie = nfs41_idmap_user_lookup_by_nfsname(nfs41_dg->idmapper,
+        owner);
+    if (ie != NULL) {
         stat_lx_out->LxFlags |= LX_FILE_METADATA_HAS_UID;
-        stat_lx_out->LxUid = map_uid;
+        stat_lx_out->LxUid = ie->localid;
+        idmapcache_entry_refcount_dec(ie);
     }
     else {
         /*
@@ -486,12 +485,12 @@ void nfs_to_stat_lx_info(
     EASSERT_MSG(IS_PRINCIPAL_NAME(owner_group),
         ("owner_group='%s' is not a principal\n", owner_group));
 
-    if (!nfs41_idmap_group_to_gid(
-        nfs41_dg->idmapper,
-        owner_group,
-        &map_gid)) {
+    ie = nfs41_idmap_group_lookup_by_nfsname(nfs41_dg->idmapper,
+        owner_group);
+    if (ie != NULL) {
         stat_lx_out->LxFlags |= LX_FILE_METADATA_HAS_GID;
-        stat_lx_out->LxGid = map_gid;
+        stat_lx_out->LxGid = ie->localid;
+        idmapcache_entry_refcount_dec(ie);
     }
     else {
         /*

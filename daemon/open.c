@@ -707,8 +707,7 @@ void open_get_localuidgid(IN nfs41_daemon_globals *restrict nfs41dg,
     int status = 0;
     char owner[NFS4_FATTR4_OWNER_LIMIT+1];
     char owner_group[NFS4_FATTR4_OWNER_LIMIT+1];
-    uid_t map_uid = ~0UL;
-    gid_t map_gid = ~0UL;
+    idmapcache_entry *ie;
 
 #if 1
     EASSERT(info->attrmask.count >= 2);
@@ -770,11 +769,11 @@ void open_get_localuidgid(IN nfs41_daemon_globals *restrict nfs41dg,
     EASSERT_MSG(IS_PRINCIPAL_NAME(owner),
         ("owner='%s' is not a principal\n", owner));
 
-    if (nfs41_idmap_name_to_uid(
-        nfs41dg->idmapper,
-        owner,
-        &map_uid) == 0) {
-         *owner_local_uid = map_uid;
+    ie = nfs41_idmap_user_lookup_by_nfsname(nfs41dg->idmapper,
+        owner);
+    if (ie != NULL) {
+         *owner_local_uid = ie->localid;
+        idmapcache_entry_refcount_dec(ie);
     }
     else {
         *owner_local_uid = NFS_USER_NOBODY_UID;
@@ -795,11 +794,11 @@ void open_get_localuidgid(IN nfs41_daemon_globals *restrict nfs41dg,
     EASSERT_MSG(IS_PRINCIPAL_NAME(owner_group),
         ("owner_group='%s' is not a principal\n", owner_group));
 
-    if (nfs41_idmap_group_to_gid(
-        nfs41dg->idmapper,
-        owner_group,
-        &map_gid) == 0) {
-        *owner_group_local_gid = map_gid;
+    ie = nfs41_idmap_group_lookup_by_nfsname(nfs41dg->idmapper,
+        owner_group);
+    if (ie != NULL) {
+        *owner_group_local_gid = ie->localid;
+        idmapcache_entry_refcount_dec(ie);
     }
     else {
         *owner_group_local_gid = NFS_GROUP_NOGROUP_GID;

@@ -157,15 +157,14 @@ bool fill_auth_unix_aup_gids(HANDLE tok,
         return false;
     }
 
-    gid_t map_gid;
+    idmapcache_entry *ie;
     *num_aup_gids = 0;
-
     for (i=0 ; i < num_groups ; i++) {
-        if (nfs41_idmap_group_to_gid(
-            nfs41_dg.idmapper,
-            group_names[i],
-            &map_gid) == 0) {
-            aup_gids[(*num_aup_gids)++] = map_gid;
+        ie = nfs41_idmap_group_lookup_by_win32name(nfs41_dg.idmapper,
+            group_names[i]);
+        if (ie != NULL) {
+            aup_gids[(*num_aup_gids)++] = ie->nfsid;
+            idmapcache_entry_refcount_dec(ie);
         }
         else {
             eprintf("fill_auth_unix_aup_gids: "

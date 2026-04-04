@@ -167,9 +167,12 @@ int convert_nfs4acl_2_dacl(nfs41_daemon_globals *nfs41dg,
 
 
 #ifdef NFS41_DRIVER_WS2022_HACKS
+            /*
+             * FIXME: This does not handle Win32 localised account names
+             */
             if (isgroupacl == false) {
-                if ((!strcmp(curr_nfsace->who, "Users@BUILTIN")) ||
-                    (!strcmp(curr_nfsace->who, "Administrators@BUILTIN"))) {
+                if ((strcmp(curr_nfsace->who, "Users@BUILTIN") == 0) ||
+                    (strcmp(curr_nfsace->who, "Administrators@BUILTIN") == 0)) {
                     DPRINTF(1, ("convert_nfs4acl_2_dacl: "
                         "force isgroupacl=true for for user='%s'\n",
                         curr_nfsace->who));
@@ -315,7 +318,7 @@ static int is_well_known_sid(PSID sid, char *who, SID_NAME_USE *snu_out)
     BOOL ismatch;
     size_t i;
 
-#ifdef _DEBUG
+#ifdef xxxDEBUG
     static bool once = true;
 
     if (once) {
@@ -328,7 +331,7 @@ static int is_well_known_sid(PSID sid, char *who, SID_NAME_USE *snu_out)
         EASSERT(strlen(ACE4_ANONYMOUS) == ACE4_ANONYMOUS_LEN);
         EASSERT(strlen(ACE4_EVERYONE) == ACE4_EVERYONE_LEN);
     }
-#endif /* _DEBUG */
+#endif /* xxxDEBUG */
 
     for (i = 0; i < test_types_count ; i++) {
         WELL_KNOWN_SID_TYPE tt = test_types[i];
@@ -721,15 +724,17 @@ void map_nfs4acemask2winaccessmask(uint32_t nfs4_mask,
 }
 
 int map_sid2nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid,
-    char *who_out, char *domain, SID_NAME_USE *sid_type_out)
+    char *who_out, const char *domain, SID_NAME_USE *sid_type_out)
 {
     int status, lasterr;
     SID_NAME_USE sid_type = 0;
     /* |who_buf| needs space for user+domain */
     char who_buf[UTF8_PRINCIPALLEN+1];
-    char domain_buf[UTF8_UNLEN+1];
-    DWORD who_size = sizeof(who_buf), domain_size = sizeof(domain_buf);
+    DWORD who_size = sizeof(who_buf);
     LPSTR sidstr = NULL;
+
+    /* fixme: This should be a function argument */
+    extern nfs41_daemon_globals nfs41_dg;
 
     DPRINTF(ACLLVL2, ("--> map_sid2nfs4ace_who("
         "sid=0x%p,owner_sid=0x%p, group_sid=0x%p)\n",
@@ -789,17 +794,89 @@ int map_sid2nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid,
     if (status) {
         DPRINTF(ACLLVL2, ("map_sid2nfs4ace_who: "
             "LookupAccountSid(sidtostr(sid)='%s', who_buf='%s', "
-            "who_size=%d, domain='%s', domain_size=%d) "
+            "who_size=%d) "
             "returned success, status=%d, GetLastError=%d\n",
             sidstr, who_buf, who_size,
-            domain_buf, domain_size, status, lasterr));
+            status, lasterr));
+        idmapcache_entry *ie;
+
+#ifdef NFS41_DRIVER_WS2022_HACKS
+        if (sid_type == SidTypeWellKnownGroup) {
+            /* FIXME: This does not handle Win32 localised account names */
+            if (strncmp(who_buf, "SYSTEM@", 7) == 0) {
+                DPRINTF(1,
+                    ("map_sid2nfs4ace_who: "
+                    "who_buf='%s' SID_TYPE='SidTypeWellKnownGroup' mapped to 'SidTypeUser' for user\n",
+                    who_buf));
+                sid_type = SidTypeUser;
+            }
+        }
+#endif /* NFS41_DRIVER_WS2022_HACKS */
+
+        switch (sid_type) {
+            case SidTypeUser:
+                ie = nfs41_idmap_user_lookup_by_win32name(nfs41_dg.idmapper, who_buf);
+                if (ie != NULL) {
+                    strmemcpy(who_out, ie->nfsname.buf, ie->nfsname.len);
+                    who_size = (DWORD)ie->nfsname.len;
+                    status = ERROR_SUCCESS;
+
+                    DPRINTF(ACLLVL1, ("map_sid2nfs4ace_who: "
+                        "win32name='%s' mapped to user '%s'\n",
+                        who_buf, who_out));
+                    idmapcache_entry_refcount_dec(ie);
+                    goto out;
+                }
+                else {
+                    DPRINTF(0,
+                        ("map_sid2nfs4ace_who: "
+                        "nfs41_idmap_user_lookup_by_win32name(who_buf='%s') failed\n",
+                        who_buf));
+                    status = ERROR_NOT_FOUND; /* FIXME: We need a better error code */
+                    goto out;
+                }
+                break;
+            case SidTypeGroup:
+            case SidTypeAlias: /* Treat |SidTypeAlias| as (local) group */
+                ie = nfs41_idmap_group_lookup_by_win32name(nfs41_dg.idmapper, who_buf);
+                if (ie != NULL) {
+                    strmemcpy(who_out, ie->nfsname.buf, ie->nfsname.len);
+                    who_size = (DWORD)ie->nfsname.len;
+                    status = ERROR_SUCCESS;
+
+                    DPRINTF(ACLLVL1, ("map_sid2nfs4ace_who: "
+                        "win32name='%s' mapped to group '%s'\n",
+                        who_buf, who_out));
+                    idmapcache_entry_refcount_dec(ie);
+                    goto out;
+                }
+                else {
+                    DPRINTF(0,
+                        ("map_sid2nfs4ace_who: "
+                        "nfs41_idmap_group_lookup_by_win32name(who_buf='%s') failed\n",
+                        who_buf));
+                    status = ERROR_NOT_FOUND; /* FIXME: We need a better error code */
+                    goto out;
+                }
+                break;
+            default:
+                DPRINTF(0,
+                    ("map_sid2nfs4ace_who: "
+                    "ERROR: Unsupported sid_type=%d for who_buf='%s'\n",
+                    (int)sid_type, who_buf));
+                status = ERROR_NOT_FOUND; /* FIXME: We need a better error code */
+                goto out;
+                break;
+        }
+
+        /* NOTREACHED */
     }
     else {
         DPRINTF(ACLLVL2, ("map_sid2nfs4ace_who: "
-            "LookupAccountSid(sidtostr(sid)='%s', who_size=%d, "
-            "domain_size=%d) returned failure, status=%d, "
+            "LookupAccountSid(sidtostr(sid)='%s', who_size=%d "
+            "returned failure, status=%d, "
             "GetLastError=%d\n",
-            sidstr, who_size, domain_size, status, lasterr));
+            sidstr, who_size, status, lasterr));
 
         /*
          * No SID to local account mapping. Can happen for some system
@@ -821,16 +898,18 @@ int map_sid2nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid,
                  * a user-/group-name mapped.
                  */
 #ifdef NFS41_DRIVER_FEATURE_MAP_UNMAPPED_USER_TO_UNIXUSER_SID
-                /* fixme: This should be a function argument */
-                extern nfs41_daemon_globals nfs41_dg;
 
                 uid_t unixuser_uid = ~0U;
                 gid_t unixgroup_gid = ~0U;
 
                 if (unixuser_sid2uid(sid, &unixuser_uid)) {
-                    if (!nfs41_idmap_uid_to_name(nfs41_dg.idmapper,
-                        unixuser_uid, who_out, UTF8_PRINCIPALLEN)) {
-                        who_size = (DWORD)strlen(who_out);
+                    idmapcache_entry *ie;
+
+                    ie = nfs41_idmap_user_lookup_by_localid(nfs41_dg.idmapper,
+                        unixuser_uid);
+                    if (ie != NULL) {
+                        strmemcpy(who_out, ie->nfsname.buf, ie->nfsname.len);
+                        who_size = (DWORD)ie->nfsname.len;
                         sid_type = SidTypeUser;
                         status = ERROR_SUCCESS;
 
@@ -838,7 +917,8 @@ int map_sid2nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid,
                             "Unix_User+%d SID "
                             "mapped to user '%s'\n",
                             unixuser_uid, who_out));
-                        goto add_domain;
+                        idmapcache_entry_refcount_dec(ie);
+                        goto out;
                     }
 
                     eprintf("map_sid2nfs4ace_who: "
@@ -849,9 +929,13 @@ int map_sid2nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid,
                 }
 
                 if (unixgroup_sid2gid(sid, &unixgroup_gid)) {
-                    if (!nfs41_idmap_gid_to_group(nfs41_dg.idmapper,
-                        unixgroup_gid, who_out, UTF8_PRINCIPALLEN)) {
-                        who_size = (DWORD)strlen(who_out);
+                    idmapcache_entry *ie;
+
+                    ie = nfs41_idmap_group_lookup_by_localid(nfs41_dg.idmapper,
+                        unixgroup_gid);
+                    if (ie != NULL) {
+                        strmemcpy(who_out, ie->nfsname.buf, ie->nfsname.len);
+                        who_size = (DWORD)ie->nfsname.len;
                         sid_type = SidTypeGroup;
                         status = ERROR_SUCCESS;
 
@@ -859,7 +943,8 @@ int map_sid2nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid,
                             "Unix_Group+%d SID "
                             "mapped to group '%s'\n",
                             unixgroup_gid, who_out));
-                        goto add_domain;
+                        idmapcache_entry_refcount_dec(ie);
+                        goto out;
                     }
 
                     eprintf("map_sid2nfs4ace_who: "
@@ -903,7 +988,8 @@ err_none_mapped:
         }
     }
 
-    (void)memcpy(who_out, who_buf, who_size);
+    /* NOTREACHED */
+
 add_domain:
     /*
      * Complain if we attempt to add a domain suffix to an UID/GID
@@ -924,26 +1010,8 @@ add_domain:
         wp = mempcpy(who_out+who_size, "@", sizeof(char));
     }
 
-#ifdef NFS41_DRIVER_WS2022_HACKS
-    /* Fixup |domain| for Windows Sever 2022 NFSv4.1 server */
-    if ((!strncmp(who_out, "Users@", (size_t)who_size+1)) ||
-        (!strncmp(who_out, "Administrators@", (size_t)who_size+1))) {
-        domain = "BUILTIN";
-        DPRINTF(1,
-            ("map_sid2nfs4ace_who: Fixup '%.*s' domain='%s'\n",
-            (int)who_size+1, who_out, domain));
-    }
-    else if (!strncmp(who_out, "SYSTEM@", (size_t)who_size+1)) {
-        domain = "NT AUTHORITY";
-        DPRINTF(1,
-            ("map_sid2nfs4ace_who: Fixup '%.*s' domain='%s'\n",
-            (int)who_size+1, who_out, domain));
-    }
-#endif /* NFS41_DRIVER_WS2022_HACKS */
     (void)memcpy(wp, domain, strlen(domain)+1);
 
-/* no_add_domain: */
-    status = ERROR_SUCCESS;
 out:
     if (status) {
         DPRINTF(ACLLVL2,
@@ -966,7 +1034,7 @@ out:
 }
 
 int map_dacl_2_nfs4acl(PACL acl, PSID sid, PSID gsid, nfsacl41 *nfs4_acl,
-    int file_type, bool nfs_namedattr_support, char *domain)
+    int file_type, bool nfs_namedattr_support, const char *domain)
 {
     int status;
     if (acl == NULL) {

@@ -99,6 +99,17 @@ void *memrchr(const void * restrict s, int c, size_t n)
     return NULL;
 }
 
+static __inline
+void strmemcpy(OUT char *dest, IN const char *src, IN size_t src_len)
+{
+    /*
+     * This should be the same as this:
+     * (void)memcpy(dest, src, src_len);
+     * dest[src_len] = '\0';
+     */
+    *((char *)mempcpy(dest, src, src_len)) = '\0';
+}
+
 int safe_read(const unsigned char *restrict *restrict pos,
     uint32_t *restrict remaining, void *dest, uint32_t dest_len);
 int get_safe_read_bufferpos(const unsigned char *restrict *restrict pos,

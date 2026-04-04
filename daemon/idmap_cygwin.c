@@ -52,7 +52,9 @@
 #endif /* _WIN64 */
 
 #ifdef NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN
+static
 int cygwin_getent_passwd(
+    const char *restrict mode,
     const char *restrict name,
     char *restrict res_localaccountname,
     uid_t *restrict res_localuid,
@@ -75,14 +77,14 @@ int cygwin_getent_passwd(
     const char *nfsowner = NULL;
 
     DPRINTF(CYGWINIDLVL,
-        ("--> cygwin_getent_passwd(name='%s')\n",
-        name));
+        ("--> cygwin_getent_passwd(mode='%s',name='%s')\n",
+        mode, name));
 
     if (name[0] == '\0') {
         DPRINTF(0,
-            ("cygwin_getent_passwd(name='%s'): "
+            ("cygwin_getent_passwd(mode='%s',name='%s'): "
             "ERROR: Empty user name.\n",
-            name));
+            mode, name));
         goto fail;
     }
 
@@ -91,14 +93,16 @@ int cygwin_getent_passwd(
 
     /* fixme: better quoting for |name| needed */
     (void)snprintf(cmdbuff, sizeof(cmdbuff),
-        "%s nfsserver_owner2localaccount \"%s\"",
+        "%s %s \"%s\"",
         CYGWIN_IDMAPPER_SCRIPT,
+        mode,
         name);
     if ((script_pipe = subcmd_popen(cmdbuff)) == NULL) {
         int last_error = GetLastError();
         DPRINTF(0,
-            ("cygwin_getent_passwd(name='%s'): "
+            ("cygwin_getent_passwd(mode='%s',name='%s'): "
             "'%s' failed, GetLastError()='%d'\n",
+            mode,
             name,
             cmdbuff,
             last_error));
@@ -108,9 +112,9 @@ int cygwin_getent_passwd(
     if (!subcmd_readcmdoutput(script_pipe,
         buff, sizeof(buff), &num_buff_read)) {
         DPRINTF(0,
-            ("cygwin_getent_passwd(name='%s'): "
+            ("cygwin_getent_passwd(mode='%s',name='%s'): "
             "subcmd_readcmdoutput() failed\n",
-            name));
+            mode, name));
         goto fail;
     }
 
@@ -118,26 +122,26 @@ int cygwin_getent_passwd(
 
     if (num_buff_read < 10) {
         DPRINTF(0,
-            ("cygwin_getent_passwd(name='%s'): "
+            ("cygwin_getent_passwd(mode='%s',name='%s'): "
             "Could not read enough data, returned %d\n",
-            name, (int)num_buff_read));
+            mode, name, (int)num_buff_read));
         goto fail;
     }
 
     cpvp = cpv_create_parser(buff, 0/*CPVFLAG_DEBUG_OUTPUT*/);
     if (!cpvp) {
         DPRINTF(0,
-            ("cygwin_getent_passwd(name='%s'): "
+            ("cygwin_getent_passwd(mode='%s',name='%s'): "
             "Could not create parser\n",
-            name));
+            mode, name));
         goto fail;
     }
 
     if (cpv_read_cpv_header(cpvp)) {
         DPRINTF(0,
-            ("cygwin_getent_passwd(name='%s'): "
+            ("cygwin_getent_passwd(mode='%s',name='%s'): "
             "cpv_read_cpv_header failed\n",
-            name));
+            mode, name));
         goto fail;
     }
 
@@ -186,9 +190,9 @@ int cygwin_getent_passwd(
      * The idmapper script must never return this!
      */
     if (!strcmp(localaccountname, "Unknown+User")) {
-        eprintf("cygwin_getent_passwd(name='%s'): "
+        eprintf("cygwin_getent_passwd(mode='%s',name='%s'): "
             "idmapper returned illegal value '%s'\n",
-            name, localaccountname);
+            mode, name, localaccountname);
         goto fail;
     }
 
@@ -214,9 +218,10 @@ fail:
 
     if (res == 0) {
         DPRINTF(CYGWINIDLVL,
-            ("<-- cygwin_getent_passwd(name='%s'): "
+            ("<-- cygwin_getent_passwd(mode='%s',name='%s'): "
             "returning res_localuid=%u, res_localaccountname='%s', "
             "res_nfsowner='%s' res_nfsuid=%u\n",
+            mode,
             name,
             (unsigned int)(res_localuid?(*res_localuid):~0),
             res_localaccountname?res_localaccountname:"<NULL>",
@@ -225,14 +230,48 @@ fail:
     }
     else {
         DPRINTF(CYGWINIDLVL,
-            ("<-- cygwin_getent_passwd(name='%s'): no match found\n",
-            name));
+            ("<-- cygwin_getent_passwd(mode='%s',name='%s'): no match found\n",
+            mode, name));
     }
 
     return res;
 }
 
+int cygwin_local_getent_passwd(
+    const char *restrict name,
+    char *restrict res_localaccountname,
+    uid_t *restrict res_localuid,
+    char *restrict res_nfsowner,
+    uid_t *restrict res_nfsuid)
+{
+    return cygwin_getent_passwd(
+        "localname2localaccount",
+        name,
+        res_localaccountname,
+        res_localuid,
+        res_nfsowner,
+        res_nfsuid);
+}
+
+int cygwin_nfsserver_getent_passwd(
+    const char *restrict name,
+    char *restrict res_localaccountname,
+    uid_t *restrict res_localuid,
+    char *restrict res_nfsowner,
+    uid_t *restrict res_nfsuid)
+{
+    return cygwin_getent_passwd(
+        "nfsserver_owner2localaccount",
+        name,
+        res_localaccountname,
+        res_localuid,
+        res_nfsowner,
+        res_nfsuid);
+}
+
+static
 int cygwin_getent_group(
+    const char *restrict mode,
     const char *restrict name,
     char *restrict res_localgroupname,
     gid_t *restrict res_localgid,
@@ -256,14 +295,14 @@ int cygwin_getent_group(
     const char *nfsownergroup = NULL;
 
     DPRINTF(CYGWINIDLVL,
-        ("--> cygwin_getent_group(name='%s')\n",
-        name));
+        ("--> cygwin_getent_group(mode='%s',name='%s')\n",
+        mode, name));
 
     if (name[0] == '\0') {
         DPRINTF(0,
-            ("cygwin_getent_group(name='%s'): "
+            ("cygwin_getent_group(mode='%s',name='%s'): "
             "ERROR: Empty group name.\n",
-            name));
+            mode, name));
         goto fail;
     }
 
@@ -272,14 +311,16 @@ int cygwin_getent_group(
 
     /* fixme: better quoting for |name| needed */
     (void)snprintf(cmdbuff, sizeof(cmdbuff),
-        "%s nfsserver_owner_group2localgroup \"%s\"",
+        "%s %s \"%s\"",
         CYGWIN_IDMAPPER_SCRIPT,
+        mode,
         name);
     if ((script_pipe = subcmd_popen(cmdbuff)) == NULL) {
         int last_error = GetLastError();
         DPRINTF(0,
-            ("cygwin_getent_group(name='%s'): "
+            ("cygwin_getent_group(mode='%s',name='%s'): "
             "'%s' failed, GetLastError()='%d'\n",
+            mode,
             name,
             cmdbuff,
             last_error));
@@ -289,9 +330,9 @@ int cygwin_getent_group(
     if (!subcmd_readcmdoutput(script_pipe,
         buff, sizeof(buff), &num_buff_read)) {
         DPRINTF(0,
-            ("cygwin_getent_group(name='%s'): "
+            ("cygwin_getent_group(mode='%s',name='%s'): "
             "subcmd_readcmdoutput() failed\n",
-            name));
+            mode, name));
         goto fail;
     }
 
@@ -299,26 +340,26 @@ int cygwin_getent_group(
 
     if (num_buff_read < 10) {
         DPRINTF(0,
-            ("cygwin_getent_group(name='%s'): "
+            ("cygwin_getent_group(mode='%s',name='%s'): "
             "Could not read enough data, returned %d\n",
-            name, (int)num_buff_read));
+            mode, name, (int)num_buff_read));
         goto fail;
     }
 
     cpvp = cpv_create_parser(buff, 0/*CPVFLAG_DEBUG_OUTPUT*/);
     if (!cpvp) {
         DPRINTF(0,
-            ("cygwin_getent_group(name='%s'): "
+            ("cygwin_getent_group(mode='%s',name='%s'): "
             "Could not create parser\n",
-            name));
+            mode, name));
         goto fail;
     }
 
     if (cpv_read_cpv_header(cpvp)) {
         DPRINTF(0,
-            ("cygwin_getent_group(name='%s'): "
+            ("cygwin_getent_group(mode='%s',name='%s'): "
             "cpv_read_cpv_header failed\n",
-            name));
+            mode, name));
         goto fail;
     }
 
@@ -367,9 +408,9 @@ int cygwin_getent_group(
      * The idmapper script must never return this!
      */
     if (!strcmp(localgroupname, "Unknown+Group")) {
-        eprintf("cygwin_getent_group(name='%s'): "
+        eprintf("cygwin_getent_group(mode='%s',name='%s'): "
             "idmapper returned illegal value '%s'\n",
-            name, localgroupname);
+            mode, name, localgroupname);
         goto fail;
     }
 
@@ -395,8 +436,9 @@ fail:
 
     if (res == 0) {
         DPRINTF(CYGWINIDLVL,
-            ("<-- cygwin_getent_group(name='%s'): "
+            ("<-- cygwin_getent_group(mode='%s',name='%s'): "
             "returning res_localgid=%u, res_localgroupname='%s', res_nfsownergroup='%s', res_localgid=%u\n",
+            mode,
             name,
             (unsigned int)(res_localgid?*res_localgid:~0),
             res_localgroupname?res_localgroupname:"<NULL>",
@@ -405,11 +447,43 @@ fail:
     }
     else {
         DPRINTF(CYGWINIDLVL,
-            ("<-- cygwin_getent_group(name='%s'): no match found\n",
-            name));
+            ("<-- cygwin_getent_group(mode='%s',name='%s'): no match found\n",
+            mode, name));
     }
 
     return res;
+}
+
+int cygwin_local_getent_group(
+    const char *restrict name,
+    char *restrict res_localgroupname,
+    gid_t *restrict res_localgid,
+    char *restrict res_nfsownergroup,
+    gid_t *restrict res_nfsgid)
+{
+    return cygwin_getent_group(
+        "localgroup2localgroup",
+        name,
+        res_localgroupname,
+        res_localgid,
+        res_nfsownergroup,
+        res_nfsgid);
+}
+
+int cygwin_nfsserver_getent_group(
+    const char *restrict name,
+    char *restrict res_localgroupname,
+    gid_t *restrict res_localgid,
+    char *restrict res_nfsownergroup,
+    gid_t *restrict res_nfsgid)
+{
+    return cygwin_getent_group(
+        "nfsserver_owner_group2localgroup",
+        name,
+        res_localgroupname,
+        res_localgid,
+        res_nfsownergroup,
+        res_nfsgid);
 }
 #endif /* NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN */
 
@@ -507,7 +581,7 @@ idmapcache_entry *idmapcache_lookup(idmapcache_context *restrict ctx,
 
     ReleaseSRWLockShared(&ctx->lock);
 
-    return &found_node->entry;
+    return (found_node != NULL)?(&found_node->entry):(NULL);
 }
 
 static
@@ -642,4 +716,606 @@ idmapcache_entry *idmapcache_lookup_by_nfsid(idmapcache_context *restrict ctx,
     idmapcache_idnumber search_nfsid)
 {
     return idmapcache_lookup(ctx, cmp_by_nfsid, &search_nfsid);
+}
+
+/*
+ * Public idmapper API
+ */
+
+idmapcache_entry *nfs41_idmap_user_lookup_by_win32name(struct idmap_context *context,
+    const char *restrict name)
+{
+    int status = ERROR_NOT_FOUND;
+    idmapcache_entry *ie;
+
+    DPRINTF(CYGWINIDLVL,
+        ("--> nfs41_idmap_user_lookup_by_win32name(name='%s')\n",
+        name));
+
+    ie = idmapcache_lookup_by_win32name(context->usercache, name);
+    if (ie != NULL) {
+        status = ERROR_SUCCESS;
+        goto out;
+    }
+
+    char localname[IDMAPCACHE_MAXNAME_LEN];
+    uid_t localuid;
+    char nfsowner[IDMAPCACHE_MAXNAME_LEN];
+    uid_t nfsuid;
+
+    if (!cygwin_local_getent_passwd(name,
+        localname,
+        &localuid,
+        nfsowner,
+        &nfsuid)) {
+        DPRINTF(0,
+            ("nfs41_idmap_user_lookup_by_win32name(name='%s'): "
+            "Adding new user entry localname='%s', localuid=%ld, nfsowner='%s', nfsuid=%ld\n",
+            name,
+            localname,
+            (long)localuid,
+            nfsowner,
+            (long)nfsuid));
+
+        ie = idmapcache_add(context->usercache,
+            localname,
+            localuid,
+            nfsowner,
+            nfsuid);
+        if (ie == NULL) {
+            DPRINTF(0,
+                ("nfs41_idmap_user_lookup_by_win32name(name='%s'): idmapcache_add() failed\n",
+                name));
+        }
+        else {
+            status = ERROR_SUCCESS;
+        }
+    }
+
+out:
+    if (ie != NULL) {
+        DPRINTF(CYGWINIDLVL,
+            ("<-- nfs41_idmap_user_lookup_by_win32name(name='%s'): "
+            "returning status=%d / user ie(=0x%p)={ win32name='%s', localuid=%ld, nfsname='%s', nfsid=%ld\n",
+            name,
+            status,
+            (void *)ie,
+            ie->win32name.buf,
+            (long)ie->localid,
+            ie->nfsname.buf,
+            (long)ie->nfsid));
+    }
+    else {
+        DPRINTF(CYGWINIDLVL,
+            ("<-- nfs41_idmap_user_lookup_by_win32name(name='%s'): "
+            "returning status=%d / ie=NULL\n",
+            name,
+            status));
+    }
+
+    return ie;
+}
+
+idmapcache_entry *nfs41_idmap_user_lookup_by_localid(struct idmap_context *context,
+    idmapcache_idnumber search_localid)
+{
+    int status = ERROR_NOT_FOUND;
+    idmapcache_entry *ie;
+
+    DPRINTF(CYGWINIDLVL,
+        ("--> nfs41_idmap_user_lookup_by_localid(search_localid=%ld)\n",
+        (long)search_localid));
+
+    ie = idmapcache_lookup_by_localid(context->usercache, search_localid);
+    if (ie != NULL) {
+        status = ERROR_SUCCESS;
+        goto out;
+    }
+
+    char localname[IDMAPCACHE_MAXNAME_LEN];
+    uid_t localuid;
+    char nfsowner[IDMAPCACHE_MAXNAME_LEN];
+    uid_t nfsuid;
+    char name[64];
+    (void)sprintf(name, "%ld", (long)search_localid);
+
+    if (!cygwin_local_getent_passwd(name,
+        localname,
+        &localuid,
+        nfsowner,
+        &nfsuid)) {
+        DPRINTF(0,
+            ("nfs41_idmap_user_lookup_by_localid(search_localid=%ld): "
+            "Adding new user entry localname='%s', localuid=%ld, nfsowner='%s', nfsuid=%ld\n",
+            (long)search_localid,
+            localname,
+            (long)localuid,
+            nfsowner,
+            (long)nfsuid));
+
+        ie = idmapcache_add(context->usercache,
+            localname,
+            localuid,
+            nfsowner,
+            nfsuid);
+        if (ie == NULL) {
+            DPRINTF(0,
+                ("nfs41_idmap_user_lookup_by_localid(search_localid=%ld): idmapcache_add() failed\n",
+                (long)search_localid));
+        }
+        else {
+            status = ERROR_SUCCESS;
+        }
+    }
+
+out:
+    if (ie != NULL) {
+        DPRINTF(CYGWINIDLVL,
+            ("<-- nfs41_idmap_user_lookup_by_localid(search_localid=%ld): "
+            "returning status=%d / user ie(=0x%p)={ win32name='%s', localuid=%ld, nfsname='%s', nfsid=%ld\n",
+            (long)search_localid,
+            status,
+            (void *)ie,
+            ie->win32name.buf,
+            (long)ie->localid,
+            ie->nfsname.buf,
+            (long)ie->nfsid));
+    }
+    else {
+        DPRINTF(CYGWINIDLVL,
+            ("<-- nfs41_idmap_user_lookup_by_localid(search_localid=%ld): "
+            "returning status=%d / ie=NULL\n",
+            (long)search_localid,
+            status));
+    }
+
+    return ie;
+}
+
+idmapcache_entry *nfs41_idmap_user_lookup_by_nfsname(struct idmap_context *context,
+    const char *restrict name)
+{
+    int status = ERROR_NOT_FOUND;
+    idmapcache_entry *ie;
+
+    DPRINTF(CYGWINIDLVL,
+        ("--> nfs41_idmap_user_lookup_by_nfsname(name='%s')\n",
+        name));
+
+    ie = idmapcache_lookup_by_nfsname(context->usercache, name);
+    if (ie != NULL) {
+        status = ERROR_SUCCESS;
+        goto out;
+    }
+
+    char localname[IDMAPCACHE_MAXNAME_LEN];
+    uid_t localuid;
+    char nfsowner[IDMAPCACHE_MAXNAME_LEN];
+    uid_t nfsuid;
+
+    if (!cygwin_nfsserver_getent_passwd(name,
+        localname,
+        &localuid,
+        nfsowner,
+        &nfsuid)) {
+        DPRINTF(0,
+            ("nfs41_idmap_user_lookup_by_nfsname(name='%s'): "
+            "Adding new user entry localname='%s', localuid=%ld, nfsowner='%s', nfsuid=%ld\n",
+            name,
+            localname,
+            (long)localuid,
+            nfsowner,
+            (long)nfsuid));
+
+        ie = idmapcache_add(context->usercache,
+            localname,
+            localuid,
+            nfsowner,
+            nfsuid);
+        if (ie == NULL) {
+            DPRINTF(0,
+                ("nfs41_idmap_user_lookup_by_nfsname(name='%s'): idmapcache_add() failed\n",
+                name));
+        }
+        else {
+            status = ERROR_SUCCESS;
+        }
+    }
+
+out:
+    if (ie != NULL) {
+        DPRINTF(CYGWINIDLVL,
+            ("<-- nfs41_idmap_user_lookup_by_nfsname(name='%s'): "
+            "returning status=%d / user ie(=0x%p)={ win32name='%s', localuid=%ld, nfsname='%s', nfsid=%ld\n",
+            name,
+            status,
+            (void *)ie,
+            ie->win32name.buf,
+            (long)ie->localid,
+            ie->nfsname.buf,
+            (long)ie->nfsid));
+    }
+    else {
+        DPRINTF(CYGWINIDLVL,
+            ("<-- nfs41_idmap_user_lookup_by_nfsname(name='%s'): "
+            "returning status=%d / ie=NULL\n",
+            name,
+            status));
+    }
+
+    return ie;
+}
+
+idmapcache_entry *nfs41_idmap_user_lookup_by_nfsid(struct idmap_context *context,
+    idmapcache_idnumber search_nfsid)
+{
+    int status = ERROR_NOT_FOUND;
+    idmapcache_entry *ie;
+
+    DPRINTF(CYGWINIDLVL,
+        ("--> nfs41_idmap_user_lookup_by_nfsid(search_nfsid=%ld)\n",
+        (long)search_nfsid));
+
+    ie = idmapcache_lookup_by_nfsid(context->usercache, search_nfsid);
+    if (ie != NULL) {
+        status = ERROR_SUCCESS;
+        goto out;
+    }
+
+    char localname[IDMAPCACHE_MAXNAME_LEN];
+    uid_t localuid;
+    char nfsowner[IDMAPCACHE_MAXNAME_LEN];
+    uid_t nfsuid;
+    char name[64];
+    (void)sprintf(name, "%ld", (long)search_nfsid);
+
+    if (!cygwin_nfsserver_getent_passwd(name,
+        localname,
+        &localuid,
+        nfsowner,
+        &nfsuid)) {
+        DPRINTF(0,
+            ("nfs41_idmap_user_lookup_by_nfsid(search_nfsid=%ld): "
+            "Adding new user entry localname='%s', localuid=%ld, nfsowner='%s', nfsuid=%ld\n",
+            (long)search_nfsid,
+            localname,
+            (long)localuid,
+            nfsowner,
+            (long)nfsuid));
+
+        ie = idmapcache_add(context->usercache,
+            localname,
+            localuid,
+            nfsowner,
+            nfsuid);
+        if (ie == NULL) {
+            DPRINTF(0,
+                ("nfs41_idmap_user_lookup_by_nfsid(search_nfsid=%ld): idmapcache_add() failed\n",
+                (long)search_nfsid));
+        }
+        else {
+            status = ERROR_SUCCESS;
+        }
+    }
+
+out:
+    if (ie != NULL) {
+        DPRINTF(CYGWINIDLVL,
+            ("<-- nfs41_idmap_user_lookup_by_nfsid(search_nfsid=%ld): "
+            "returning status=%d / user ie(=0x%p)={ win32name='%s', localuid=%ld, nfsname='%s', nfsid=%ld\n",
+            (long)search_nfsid,
+            status,
+            (void *)ie,
+            ie->win32name.buf,
+            (long)ie->localid,
+            ie->nfsname.buf,
+            (long)ie->nfsid));
+    }
+    else {
+        DPRINTF(CYGWINIDLVL,
+            ("<-- nfs41_idmap_user_lookup_by_nfsid(search_nfsid=%ld): "
+            "returning status=%d / ie=NULL\n",
+            (long)search_nfsid,
+            status));
+    }
+
+    return ie;
+}
+
+idmapcache_entry *nfs41_idmap_group_lookup_by_win32name(struct idmap_context *context,
+    const char *restrict name)
+{
+    int status = ERROR_NOT_FOUND;
+    idmapcache_entry *ie;
+
+    DPRINTF(CYGWINIDLVL,
+        ("--> nfs41_idmap_group_lookup_by_win32name(name='%s')\n", name));
+
+    ie = idmapcache_lookup_by_win32name(context->groupcache, name);
+    if (ie != NULL) {
+        status = ERROR_SUCCESS;
+        goto out;
+    }
+
+    char localname[IDMAPCACHE_MAXNAME_LEN];
+    gid_t localgid;
+    char nfsownergroup[IDMAPCACHE_MAXNAME_LEN];
+    gid_t nfsgid;
+
+    if (!cygwin_local_getent_group(name,
+        localname,
+        &localgid,
+        nfsownergroup,
+        &nfsgid)) {
+        DPRINTF(0,
+            ("nfs41_idmap_group_lookup_by_win32name(name='%s'): "
+            "Adding new group entry localname='%s', localgid=%ld, nfsownergroup='%s', nfsgid=%ld\n",
+            name,
+            localname,
+            (long)localgid,
+            nfsownergroup,
+            (long)nfsgid));
+
+        ie = idmapcache_add(context->groupcache,
+            localname,
+            localgid,
+            nfsownergroup,
+            nfsgid);
+        if (ie == NULL) {
+            DPRINTF(0,
+                ("nfs41_idmap_group_lookup_by_win32name(name='%s'): idmapcache_add() failed\n", name));
+        }
+        else {
+            status = ERROR_SUCCESS;
+        }
+    }
+
+out:
+    if (ie != NULL) {
+        DPRINTF(CYGWINIDLVL,
+            ("<-- nfs41_idmap_group_lookup_by_win32name(name='%s'): "
+            "returning status=%d / user ie(=0x%p)={ win32name='%s', localgid=%ld, nfsname='%s', nfsid=%ld\n",
+            name,
+            status,
+            (void *)ie,
+            ie->win32name.buf,
+            (long)ie->localid,
+            ie->nfsname.buf,
+            (long)ie->nfsid));
+    }
+    else {
+        DPRINTF(CYGWINIDLVL,
+            ("<-- nfs41_idmap_group_lookup_by_win32name(name='%s'): "
+            "returning status=%d / ie=NULL\n",
+            name,
+            status));
+    }
+
+    return ie;
+}
+
+idmapcache_entry *nfs41_idmap_group_lookup_by_localid(struct idmap_context *context,
+    idmapcache_idnumber search_localid)
+{
+    int status = ERROR_NOT_FOUND;
+    idmapcache_entry *ie;
+
+    DPRINTF(CYGWINIDLVL,
+        ("--> nfs41_idmap_group_lookup_by_localid(search_localid=%ld)\n",
+        (long)search_localid));
+
+    ie = idmapcache_lookup_by_localid(context->groupcache, search_localid);
+    if (ie != NULL) {
+        status = ERROR_SUCCESS;
+        goto out;
+    }
+
+    char localname[IDMAPCACHE_MAXNAME_LEN];
+    gid_t localgid;
+    char nfsownergroup[IDMAPCACHE_MAXNAME_LEN];
+    gid_t nfsgid;
+    char name[64];
+    (void)sprintf(name, "%ld", (long)search_localid);
+
+    if (!cygwin_local_getent_group(name,
+        localname,
+        &localgid,
+        nfsownergroup,
+        &nfsgid)) {
+        DPRINTF(0,
+            ("nfs41_idmap_group_lookup_by_localid(search_localid=%ld): "
+            "Adding new group entry localname='%s', localgid=%ld, nfsownergroup='%s', nfsgid=%ld\n",
+            (long)search_localid,
+            localname,
+            (long)localgid,
+            nfsownergroup,
+            (long)nfsgid));
+
+        ie = idmapcache_add(context->groupcache,
+            localname,
+            localgid,
+            nfsownergroup,
+            nfsgid);
+        if (ie == NULL) {
+            DPRINTF(0,
+                ("nfs41_idmap_group_lookup_by_localid(search_localid=%ld): idmapcache_add() failed\n",
+                (long)search_localid));
+        }
+        else {
+            status = ERROR_SUCCESS;
+        }
+    }
+
+out:
+    if (ie != NULL) {
+        DPRINTF(CYGWINIDLVL,
+            ("<-- nfs41_idmap_group_lookup_by_localid(search_localid=%ld): "
+            "returning status=%d / user ie(=0x%p)={ win32name='%s', localgid=%ld, nfsname='%s', nfsid=%ld\n",
+            (long)search_localid,
+            status,
+            (void *)ie,
+            ie->win32name.buf,
+            (long)ie->localid,
+            ie->nfsname.buf,
+            (long)ie->nfsid));
+    }
+    else {
+        DPRINTF(CYGWINIDLVL,
+            ("<-- nfs41_idmap_group_lookup_by_localid(search_localid=%ld): "
+            "returning status=%d / ie=NULL\n",
+            (long)search_localid,
+            status));
+    }
+
+    return ie;
+}
+
+idmapcache_entry *nfs41_idmap_group_lookup_by_nfsname(struct idmap_context *context,
+    const char *restrict name)
+{
+    int status = ERROR_NOT_FOUND;
+    idmapcache_entry *ie;
+
+    DPRINTF(CYGWINIDLVL,
+        ("--> nfs41_idmap_group_lookup_by_nfsname(name='%s')\n",
+        name));
+
+    ie = idmapcache_lookup_by_nfsname(context->groupcache, name);
+    if (ie != NULL) {
+        status = ERROR_SUCCESS;
+        goto out;
+    }
+
+    char localname[IDMAPCACHE_MAXNAME_LEN];
+    gid_t localgid;
+    char nfsownergroup[IDMAPCACHE_MAXNAME_LEN];
+    gid_t nfsgid;
+
+    if (!cygwin_nfsserver_getent_group(name,
+        localname,
+        &localgid,
+        nfsownergroup,
+        &nfsgid)) {
+        DPRINTF(0,
+            ("nfs41_idmap_group_lookup_by_nfsname(name='%s'): "
+            "Adding new group entry localname='%s', localgid=%ld, nfsownergroup='%s', nfsgid=%ld\n",
+            name,
+            localname,
+            (long)localgid,
+            nfsownergroup,
+            (long)nfsgid));
+
+        ie = idmapcache_add(context->groupcache,
+            localname,
+            localgid,
+            nfsownergroup,
+            nfsgid);
+        if (ie == NULL) {
+            DPRINTF(0,
+                ("nfs41_idmap_group_lookup_by_nfsname(name='%s'): idmapcache_add() failed\n",
+                name));
+        }
+        else {
+            status = ERROR_SUCCESS;
+        }
+    }
+
+out:
+    if (ie != NULL) {
+        DPRINTF(CYGWINIDLVL,
+            ("<-- nfs41_idmap_group_lookup_by_nfsname(name='%s'): "
+            "returning status=%d / user ie(=0x%p)={ win32name='%s', localgid=%ld, nfsname='%s', nfsid=%ld\n",
+            name,
+            status,
+            (void *)ie,
+            ie->win32name.buf,
+            (long)ie->localid,
+            ie->nfsname.buf,
+            (long)ie->nfsid));
+    }
+    else {
+        DPRINTF(CYGWINIDLVL,
+            ("<-- nfs41_idmap_group_lookup_by_nfsname(name='%s'): "
+            "returning status=%d / ie=NULL\n",
+            name,
+            status));
+    }
+
+    return ie;
+}
+
+idmapcache_entry *nfs41_idmap_group_lookup_by_nfsid(struct idmap_context *context,
+    idmapcache_idnumber search_nfsid)
+{
+    int status = ERROR_NOT_FOUND;
+    idmapcache_entry *ie;
+
+    DPRINTF(CYGWINIDLVL,
+        ("--> nfs41_idmap_group_lookup_by_nfsid(search_nfsid=%ld)\n",
+        (long)search_nfsid));
+
+    ie = idmapcache_lookup_by_nfsid(context->groupcache, search_nfsid);
+    if (ie != NULL) {
+        status = ERROR_SUCCESS;
+        goto out;
+    }
+
+    char localname[IDMAPCACHE_MAXNAME_LEN];
+    gid_t localgid;
+    char nfsownergroup[IDMAPCACHE_MAXNAME_LEN];
+    gid_t nfsgid;
+    char name[64];
+    (void)sprintf(name, "%ld", (long)search_nfsid);
+
+    if (!cygwin_nfsserver_getent_group(name,
+        localname,
+        &localgid,
+        nfsownergroup,
+        &nfsgid)) {
+        DPRINTF(0,
+            ("nfs41_idmap_group_lookup_by_nfsid(search_nfsid=%ld): "
+            "Adding new group entry localname='%s', localgid=%ld, nfsownergroup='%s', nfsgid=%ld\n",
+            (long)search_nfsid,
+            localname,
+            (long)localgid,
+            nfsownergroup,
+            (long)nfsgid));
+
+        ie = idmapcache_add(context->groupcache,
+            localname,
+            localgid,
+            nfsownergroup,
+            nfsgid);
+        if (ie == NULL) {
+            DPRINTF(0,
+                ("nfs41_idmap_group_lookup_by_nfsid(search_nfsid=%ld): idmapcache_add() failed\n",
+                (long)search_nfsid));
+        }
+        else {
+            status = ERROR_SUCCESS;
+        }
+    }
+
+out:
+    if (ie != NULL) {
+        DPRINTF(CYGWINIDLVL,
+            ("<-- nfs41_idmap_group_lookup_by_nfsid(search_nfsid=%ld): "
+            "returning status=%d / user ie(=0x%p)={ win32name='%s', localgid=%ld, nfsname='%s', nfsid=%ld\n",
+            (long)search_nfsid,
+            status,
+            (void *)ie,
+            ie->win32name.buf,
+            (long)ie->localid,
+            ie->nfsname.buf,
+            (long)ie->nfsid));
+    }
+    else {
+        DPRINTF(CYGWINIDLVL,
+            ("<-- nfs41_idmap_group_lookup_by_nfsid(search_nfsid=%ld): "
+            "returning status=%d / ie=NULL\n",
+            (long)search_nfsid,
+            status));
+    }
+
+    return ie;
 }

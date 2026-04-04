@@ -82,6 +82,11 @@ static int map_current_user_to_ids(nfs41_idmapper *idmapper,
     char username[UTF8_PRINCIPALLEN+1];
     char pgroupname[UTF8_PRINCIPALLEN+1];
     int status = NO_ERROR;
+    idmapcache_entry *user_ie = NULL;
+    idmapcache_entry *group_ie = NULL;
+
+    /* fixme: This should be a function argument */
+    extern nfs41_daemon_globals nfs41_dg;
 
     if (!get_token_user_name(impersonation_tok, username)) {
         status = GetLastError();
@@ -97,35 +102,45 @@ static int map_current_user_to_ids(nfs41_idmapper *idmapper,
         goto out_map_default_ids;
     }
 
-    if (nfs41_idmap_name_to_uid(idmapper, username, puid)) {
-        /* instead of failing for auth_sys, fall back to 'nobody' uid/gid */
+    user_ie = nfs41_idmap_user_lookup_by_win32name(nfs41_dg.idmapper,
+        username);
+    group_ie = nfs41_idmap_group_lookup_by_win32name(nfs41_dg.idmapper,
+        pgroupname);
+
+    if (user_ie == NULL) {
+        /* instead of failing, fall back to 'nobody'/'nogroup' uid/gid */
         DPRINTF(1,
             ("map_current_user_to_ids: "
-                "nfs41_idmap_name_to_uid(username='%s') failed, "
-                "returning nobody/nogroup defaults\n",
+                "nfs41_idmap_user_lookup_by_nfsname(username='%s') failed, "
+                "returning 'nobody'/'nogroup' defaults\n",
                 username));
         status = NO_ERROR;
         goto out_map_default_ids;
     }
 
-    if (nfs41_idmap_group_to_gid(
-        idmapper,
-        pgroupname,
-        pgid)) {
+    if (group_ie == NULL) {
+        /* instead of failing, fall back to 'nobody'/'nogroup' uid/gid */
         DPRINTF(1,
             ("map_current_user_to_ids: "
-                "nfs41_idmap_group_to_gid(pgroupname='%s') failed, "
-                "returning nogroup\n",
+                "nfs41_idmap_group_lookup_by_nfsname(pgroupname='%s') failed, "
+                "returning 'nobody'/'nogroup' defaults\n",
                 pgroupname));
-        *pgid = nfs41_dg.default_gid;
+        status = NO_ERROR;
+        goto out_map_default_ids;
     }
 
+    *puid = user_ie->nfsid;
+    *pgid = group_ie->nfsid;
 out:
     DPRINTF(1,
         ("map_current_user_to_ids: "
             "mapping user=(name='%s' ==> uid=%d)/pgroup=(name='%s' ==> gid=%d)\n",
             username, (int)*puid,
             pgroupname, (int)*pgid));
+    if (user_ie != NULL)
+        idmapcache_entry_refcount_dec(user_ie);
+    if (group_ie != NULL)
+        idmapcache_entry_refcount_dec(group_ie);
     return status;
 
 out_map_default_ids:

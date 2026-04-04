@@ -23,7 +23,6 @@
 
 #include <Windows.h>
 #include <strsafe.h>
-#include <Winldap.h>
 #include <stdlib.h> /* for strtoul() */
 #include <errno.h>
 
@@ -34,70 +33,8 @@
 #include "daemon_debug.h"
 #include "util.h"
 
-#define PTR2UID_T(p) ((uid_t)PTR2PTRDIFF_T(p))
-#define PTR2GID_T(p) ((gid_t)PTR2PTRDIFF_T(p))
-#define PTR2UINT(p)  ((UINT)PTR2PTRDIFF_T(p))
-#define UID_T2PTR(u) (PTRDIFF_T2PTR((ptrdiff_t)u))
-#define GID_T2PTR(g) (PTRDIFF_T2PTR((ptrdiff_t)g))
-
-#define IDLVL 2         /* dprintf level for idmap logging */
-#define CYGWINIDLVL 2   /* dprintf level for idmap logging */
-
-#define FILTER_LEN 1024
-#define NAME_LEN 32
-#define VAL_LEN 257
-
-
-enum ldap_class {
-    CLASS_USER,
-    CLASS_GROUP,
-
-    NUM_CLASSES
-};
-
-enum ldap_attr {
-    ATTR_USER_NAME,
-    ATTR_GROUP_NAME,
-    ATTR_PRINCIPAL,
-    ATTR_UID,
-    ATTR_GID,
-
-    NUM_ATTRIBUTES
-};
-
-#define ATTR_FLAG(attr) (1 << (attr))
-#define ATTR_ISSET(mask, attr) (((mask) & ATTR_FLAG(attr)) != 0)
-
-
-/* ldap/cache lookups */
-struct idmap_lookup {
-    enum ldap_attr attr;
-    enum ldap_class klass;
-    enum config_type type;
-    list_compare_fn compare;
-    const void *value;
-};
-
-
 /* configuration */
 static const char CONFIG_FILENAME[] = "C:\\etc\\ms-nfs41-idmap.conf";
-
-struct idmap_config {
-    /* ldap server information */
-    char hostname[NFS41_HOSTNAME_LEN+1];
-    char localdomain_name[NFS41_HOSTNAME_LEN+1];
-    UINT port;
-    UINT version;
-    UINT timeout;
-
-    /* ldap schema information */
-    char classes[NUM_CLASSES][NAME_LEN];
-    char attributes[NUM_ATTRIBUTES][NAME_LEN];
-    char base[VAL_LEN];
-
-    /* caching configuration */
-    INT cache_ttl;
-};
 
 
 enum config_type {
@@ -125,22 +62,6 @@ struct config_option {
 
 /* table of recognized config options, including type and default value */
 static const struct config_option g_options[] = {
-    /* server information */
-    OPT_STR("ldap_hostname", "localhost", hostname, NFS41_HOSTNAME_LEN+1),
-    OPT_INT("ldap_port", "389", port),
-    OPT_INT("ldap_version", "3", version),
-    OPT_INT("ldap_timeout", "0", timeout),
-
-    /* schema information */
-    OPT_STR("ldap_base", "cn=localhost", base, VAL_LEN),
-    OPT_CLASS("ldap_class_users", "user", CLASS_USER),
-    OPT_CLASS("ldap_class_groups", "group", CLASS_GROUP),
-    OPT_ATTR("ldap_attr_username", "cn", ATTR_USER_NAME),
-    OPT_ATTR("ldap_attr_groupname", "cn", ATTR_GROUP_NAME),
-    OPT_ATTR("ldap_attr_gssAuthName", "gssAuthName", ATTR_PRINCIPAL),
-    OPT_ATTR("ldap_attr_uidNumber", "uidNumber", ATTR_UID),
-    OPT_ATTR("ldap_attr_gidNumber", "gidNumber", ATTR_GID),
-
     /* caching configuration */
     OPT_INT("cache_ttl", "6000", cache_ttl),
 };
@@ -386,20 +307,6 @@ out:
 }
 
 
-/* generic cache */
-
-
-/* ldap context */
-struct idmap_context {
-    struct idmap_config config;
-
-    idmapcache_context *usercache;
-    idmapcache_context *groupcache;
-
-    LDAP *ldap;
-};
-
-
 /* public idmap interface */
 int nfs41_idmap_create(
     struct idmap_context **context_out, const char *localdomain_name)
@@ -413,24 +320,16 @@ int nfs41_idmap_create(
         goto out;
     }
 
-    (void)strcpy_s(context->config.localdomain_name,
-        sizeof(context->config.localdomain_name),
-        localdomain_name);
-    if (context == NULL) {
-        status = GetLastError();
-        goto out;
-    }
-
     /* initialize the caches */
     context->usercache = idmapcache_context_create();
     context->groupcache = idmapcache_context_create();
 
     if ((context->usercache == NULL) || (context->groupcache == NULL)) {
         eprintf("nfs41_idmap_create: Cannot create idmapcache\n");
-        goto out;
+        goto out_err_free;
     }
 
-    /* load ldap configuration from file */
+    /* load configuration from file */
     status = config_init(&context->config);
     if (status) {
         eprintf("config_init() failed with %d\n", status);
@@ -438,7 +337,8 @@ int nfs41_idmap_create(
     }
 
 #ifdef NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN
-    DPRINTF(CYGWINIDLVL, ("nfs41_idmap_create: Force context->config.timeout = 6000;\n"));
+    DPRINTF(1,
+        ("nfs41_idmap_create: Force context->config.timeout = 6000;\n"));
     context->config.timeout = 6000;
 #endif /* NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN */
 
@@ -455,306 +355,10 @@ out_err_free:
 void nfs41_idmap_free(
     struct idmap_context *context)
 {
-    /* clean up the connection */
-    if (context->ldap)
-        ldap_unbind(context->ldap);
-
-    idmapcache_context_destroy(context->usercache);
-    idmapcache_context_destroy(context->groupcache);
+    if (context->usercache != NULL)
+        idmapcache_context_destroy(context->usercache);
+    if (context->groupcache != NULL)
+        idmapcache_context_destroy(context->groupcache);
 
     free(context);
-}
-
-int nfs41_idmap_name_to_uid(
-    struct idmap_context *context,
-    const char *name,
-    uid_t *uid_out)
-{
-    int status = ERROR_NOT_FOUND;
-
-    DPRINTF(IDLVL, ("--> nfs41_idmap_name_to_uid(name='%s')\n", name));
-
-    idmapcache_entry *ie = NULL;
-
-    ie = idmapcache_lookup_by_nfsname(context->usercache, name);
-    if (ie != NULL) {
-        *uid_out = ie->nfsid;
-        status = ERROR_SUCCESS;
-        goto out;
-    }
-
-    char localname[256];
-    uid_t localuid;
-    char nfsowner[256];
-    uid_t nfsuid;
-
-    if (!cygwin_getent_passwd(name,
-        localname,
-        &localuid,
-        nfsowner,
-        &nfsuid)) {
-        DPRINTF(0, ("nfs41_idmap_name_to_uid(name='%s'): "
-            "Adding new user entry localname='%s', localuid=%ld, nfsowner='%s', nfsuid=%ld\n",
-            name,
-            localname,
-            (long)localuid,
-            nfsowner,
-            (long)nfsuid));
-
-        ie = idmapcache_add(context->usercache,
-            name/*localname*/,
-            localuid,
-            name/*nfsowner*/,
-            localuid/*nfsuid*/);
-        if (ie == NULL) {
-            DPRINTF(0, ("nfs41_idmap_name_to_uid(name='%s'): idmapcache_add() failed\n", name));
-        }
-        else {
-            *uid_out = ie->nfsid;
-            status = ERROR_SUCCESS;
-        }
-    }
-
-out:
-    DPRINTF(IDLVL, ("<-- nfs41_idmap_name_to_uid(name='%s') "
-        "returning status=%d, uid=%u\n",
-        name,
-        status,
-        (unsigned int)*uid_out));
-
-    if (ie != NULL) {
-        DPRINTF(3, ("nfs41_idmap_name_to_uid(name='%s'): "
-            "returning *uid_out=%u / user ie(=0x%p)={ win32name='%s', localuid=%ld, nfsname='%s', nfsid=%ld\n",
-            name,
-            (unsigned int)*uid_out,
-            (void *)ie,
-            ie->win32name.buf,
-            (long)ie->localid,
-            ie->nfsname.buf,
-            (long)ie->nfsid));
-        idmapcache_entry_refcount_dec(ie);
-    }
-
-    return status;
-}
-
-int nfs41_idmap_uid_to_name(
-    struct idmap_context *context,
-    uid_t uid,
-    char *name,
-    size_t len)
-{
-    int status = ERROR_NOT_FOUND;
-
-    DPRINTF(IDLVL, ("--> nfs41_idmap_uid_to_name(uid=%u)\n", (unsigned int)uid));
-
-    idmapcache_entry *ie = NULL;
-
-    ie = idmapcache_lookup_by_nfsid(context->usercache, uid);
-    if (ie != NULL) {
-        (void)strcpy(name, ie->nfsname.buf);
-        status = ERROR_SUCCESS;
-        goto out;
-    }
-
-    char localname[256];
-    uid_t localuid;
-    char nfsowner[256];
-    uid_t nfsuid;
-
-    if (!cygwin_getent_passwd(name,
-        localname,
-        &localuid,
-        nfsowner,
-        &nfsuid)) {
-        DPRINTF(0, ("nfs41_idmap_uid_to_name(name='%s'): "
-            "Adding new user entry localname='%s', localuid=%ld, nfsowner='%s', nfsuid=%ld\n",
-            name,
-            localname,
-            (long)localuid,
-            nfsowner,
-            (long)nfsuid));
-
-        ie = idmapcache_add(context->usercache,
-            name/*localname*/,
-            localuid,
-            name/*nfsowner*/,
-            localuid/*nfsuid*/);
-        if (ie == NULL) {
-            DPRINTF(0, ("nfs41_idmap_uid_to_name(name='%s'): idmapcache_add() failed\n", name));
-        }
-        else {
-            (void)strcpy(name, ie->nfsname.buf);
-            status = ERROR_SUCCESS;
-        }
-    }
-
-out:
-    DPRINTF(IDLVL, ("<-- nfs41_idmap_uid_to_name(uid=%u) "
-        "returning status=%d, name='%s'\n",
-        (unsigned int)uid,
-        status,
-        ((status == 0)?name:"<nothing>")));
-
-    if (ie != NULL) {
-        DPRINTF(0, ("nfs41_idmap_uid_to_name(uid=%u): "
-            "returning *name='%s' / user ie(=0x%p)={ win32name='%s', localuid=%ld, nfsname='%s', nfsid=%ld\n",
-            (unsigned int)uid,
-            ((status == 0)?name:"<nothing>"),
-            (void *)ie,
-            ie->win32name.buf,
-            (long)ie->localid,
-            ie->nfsname.buf,
-            (long)ie->nfsid));
-        idmapcache_entry_refcount_dec(ie);
-    }
-
-    return status;
-}
-
-int nfs41_idmap_group_to_gid(
-    struct idmap_context *context,
-    const char *name,
-    gid_t *gid_out)
-{
-    int status = ERROR_NOT_FOUND;
-
-    DPRINTF(IDLVL, ("--> nfs41_idmap_group_to_gid(name='%s')\n", name));
-
-    idmapcache_entry *ie = NULL;
-
-    ie = idmapcache_lookup_by_nfsname(context->groupcache, name);
-    if (ie != NULL) {
-        *gid_out = ie->nfsid;
-        status = ERROR_SUCCESS;
-        goto out;
-    }
-
-    char localgroupname[256];
-    gid_t localgid;
-    char nfsownergroup[256];
-    gid_t nfsgid;
-
-    if (!cygwin_getent_group(name,
-        localgroupname,
-        &localgid,
-        nfsownergroup,
-        &nfsgid)) {
-        DPRINTF(0, ("nfs41_idmap_group_to_gid(name='%s'): "
-            "Adding new group entry localgroupname='%s', localgid=%ld, nfsownergroup='%s', nfsgid=%ld\n",
-            name,
-            localgroupname,
-            (long)localgid,
-            nfsownergroup,
-            (long)nfsgid));
-
-        ie = idmapcache_add(context->groupcache,
-            name/*localgroupname*/,
-            localgid,
-            name/*nfsownergroup*/,
-            localgid/*nfsgid*/);
-        if (ie == NULL) {
-            DPRINTF(0, ("nfs41_idmap_group_to_gid(name='%s'): idmapcache_add() failed\n", name));
-        }
-        else {
-            *gid_out = ie->nfsid;
-            status = ERROR_SUCCESS;
-        }
-    }
-
-out:
-    DPRINTF(IDLVL, ("<-- nfs41_idmap_group_to_gid(name='%s') "
-        "returning status=%d, gid=%u\n",
-        name,
-        status,
-        (unsigned int)*gid_out));
-
-    if (ie != NULL) {
-        DPRINTF(3, ("nfs41_idmap_group_to_gid(name='%s'): "
-            "returning *gid_out=%u / group ie(=0x%p)={ win32name='%s', localgid=%ld, nfsname='%s', nfsid=%ld\n",
-            name,
-            (unsigned int)*gid_out,
-            (void *)ie,
-            ie->win32name.buf,
-            (long)ie->localid,
-            ie->nfsname.buf,
-            (long)ie->nfsid));
-        idmapcache_entry_refcount_dec(ie);
-    }
-
-    return status;
-}
-
-int nfs41_idmap_gid_to_group(
-    struct idmap_context *context,
-    gid_t gid,
-    char *name,
-    size_t len)
-{
-    int status = ERROR_NOT_FOUND;
-
-    DPRINTF(IDLVL, ("--> nfs41_idmap_gid_to_group(gid=%u)\n", (unsigned int)gid));
-
-    idmapcache_entry *ie = NULL;
-
-    ie = idmapcache_lookup_by_nfsid(context->groupcache, gid);
-    if (ie != NULL) {
-        (void)strcpy(name, ie->nfsname.buf);
-        status = ERROR_SUCCESS;
-        goto out;
-    }
-
-    char localgroupname[256];
-    gid_t localgid;
-    char nfsownergroup[256];
-    gid_t nfsgid;
-
-    if (!cygwin_getent_group(name,
-        localgroupname,
-        &localgid,
-        nfsownergroup,
-        &nfsgid)) {
-        DPRINTF(0, ("nfs41_idmap_group_to_gid(name='%s'): "
-            "Adding new group entry localgroupname='%s', localgid=%ld, nfsownergroup='%s', nfsgid=%ld\n",
-            name,
-            localgroupname,
-            (long)localgid,
-            nfsownergroup,
-            (long)nfsgid));
-
-        ie = idmapcache_add(context->groupcache,
-            name/*localgroupname*/,
-            localgid,
-            name/*nfsownergroup*/,
-            localgid/*nfsgid*/);
-        if (ie == NULL) {
-            DPRINTF(0, ("nfs41_idmap_group_to_gid(name='%s'): idmapcache_add() failed\n", name));
-        }
-        else {
-            (void)strcpy(name, ie->nfsname.buf);
-            status = ERROR_SUCCESS;
-        }
-    }
-
-out:
-    DPRINTF(IDLVL, ("<-- nfs41_idmap_gid_to_group(gid=%u) "
-        "returning status=%d, name='%s'\n",
-        (unsigned int)gid,
-        status,
-        ((status == 0)?name:"<nothing>")));
-
-    if (ie != NULL) {
-        DPRINTF(0, ("nfs41_idmap_gid_to_group(gid=%u): "
-            "returning *name='%s' / group ie(=0x%p)={ win32name='%s', localgid=%ld, nfsname='%s', nfsid=%ld\n",
-            (unsigned int)gid,
-            ((status == 0)?name:"<nothing>"),
-            (void *)ie,
-            ie->win32name.buf,
-            (long)ie->localid,
-            ie->nfsname.buf,
-            (long)ie->nfsid));
-        idmapcache_entry_refcount_dec(ie);
-    }
-
-    return status;
 }
