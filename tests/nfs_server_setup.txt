@@ -235,6 +235,10 @@ printf 'vfs.nfs.enable_uidtostring=0\n' >>'/etc/sysctl.conf'
 printf 'vfs.nfsd.enable_stringtouid=0\n' >>'/etc/sysctl.conf'
 printf 'vfs.nfsd.issue_delegations=1\n' >>'/etc/sysctl.conf'
 
+# Add "SYSTEM" special account
+pw groupadd group -n SYSTEM -g 18
+pw useradd -n SYSTEM -u 18 -g SYSTEM -m -s /bin/sh
+
 # configure an export
 mkdir /nfsdata
 chmod a+rwxt /nfsdata
