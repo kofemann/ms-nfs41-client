@@ -310,7 +310,6 @@ VOID ServiceStop()
 #endif
 
 typedef struct _nfsd_args {
-    bool_t ldap_enable;
     int debug_level;
 } nfsd_args;
 
@@ -333,7 +332,6 @@ static void PrintUsage(const wchar_t *argv0)
         "\t-h, --help, /?\thelp\n"
         "\t-V, --version, /?\tversion\n"
         "\t-d <debug_level>\n"
-        "\t--noldap\n"
         "\t--uid <non-zero value>\n"
         "\t--gid <non-zero value>\n"
         "\t--numworkerthreads <value-between 16 and %d>\n"
@@ -374,7 +372,6 @@ bool_t parse_cmdlineargs(int argc, wchar_t *argv[], nfsd_args *out)
 
     /* set defaults. */
     out->debug_level = 1;
-    out->ldap_enable = TRUE;
 
     /* parse command line */
 #ifdef STANDALONE_NFSD
@@ -441,10 +438,7 @@ bool_t parse_cmdlineargs(int argc, wchar_t *argv[], nfsd_args *out)
                 }
             }
 #endif /* _DEBUG */
-            else if (!wcscmp(argv[i], L"--noldap")) { /* no LDAP */
-                out->ldap_enable = FALSE;
-            }
-            else if (!wcscmp(argv[i], L"--uid")) { /* no LDAP, setting default uid */
+            else if (!wcscmp(argv[i], L"--uid")) { /* setting default uid */
                 ++i;
                 if (i >= argc) {
                     (void)fprintf(stderr, "%ls: Missing uid value\n", argv[0]);
@@ -452,7 +446,7 @@ bool_t parse_cmdlineargs(int argc, wchar_t *argv[], nfsd_args *out)
                 }
                 nfs41_dg.default_uid = wcstol(argv[i], NULL, 0);
             }
-            else if (!wcscmp(argv[i], L"--gid")) { /* no LDAP, setting default gid */
+            else if (!wcscmp(argv[i], L"--gid")) { /* setting default gid */
                 ++i;
                 if (i >= argc) {
                     (void)fprintf(stderr, "%ls: Missing gid value\n", argv[0]);
@@ -505,12 +499,12 @@ bool_t parse_cmdlineargs(int argc, wchar_t *argv[], nfsd_args *out)
         }
     }
 
-    (void)fprintf(stdout, "parse_cmdlineargs: debug_level %d ldap is %d "
+    (void)fprintf(stdout, "parse_cmdlineargs: debug_level %d "
 #ifdef NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN
         "idmap_cygwin is 1 "
 #endif /* NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN */
         "\n",
-        out->debug_level, out->ldap_enable);
+        out->debug_level);
     return TRUE;
 }
 
@@ -883,22 +877,15 @@ VOID ServiceStart(DWORD argc, LPTSTR *argv)
         eprintf("Failed to enter HIGH_PRIORITY_CLASS mode\n");
     }
 
-#ifdef NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN
-    /* force enable for cygwin getent passwd/group testing */
-    cmd_args.ldap_enable = TRUE;
-#endif /* NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN */
-
     nfs41_server_list_init();
 
-    if (cmd_args.ldap_enable) {
-        EASSERT(nfs41_dg.localdomain_name[0] != '\0');
+    EASSERT(nfs41_dg.localdomain_name[0] != '\0');
 
-        status = nfs41_idmap_create(&(nfs41_dg.idmapper),
-            nfs41_dg.localdomain_name);
-        if (status) {
-            eprintf("id mapping initialization failed with %d\n", status);
-            goto out_logs;
-        }
+    status = nfs41_idmap_create(&(nfs41_dg.idmapper),
+        nfs41_dg.localdomain_name);
+    if (status) {
+        eprintf("id mapping initialization failed with %d\n", status);
+        goto out_logs;
     }
 
     NFS41D_VERSION = GetTickCount();

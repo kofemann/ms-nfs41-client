@@ -123,8 +123,6 @@ struct idmap_context {
 
     idmapcache_context *usercache;
     idmapcache_context *groupcache;
-
-    void *ldap;
 };
 
 /*
