@@ -100,79 +100,77 @@ err:
 SID_IDENTIFIER_AUTHORITY sid_id_auth = SECURITY_SAMBA_UNIX_AUTHORITY;
 
 static
-BOOL allocate_unixuser_sid(unsigned long uid, PSID *pSid)
+bool allocate_unixuser_sid(IN unsigned long uid, OUT PSID *pSid)
 {
     PSID sid = NULL;
-    PSID malloced_sid = NULL;
     DWORD sid_len;
+    UCHAR sub_auth_count = 2; /* Two sub-authorities: '1' and 'uid' */
 
-    if (AllocateAndInitializeSid(&sid_id_auth, 2, 1, (DWORD)uid,
-        0, 0, 0, 0, 0, 0, &sid)) {
-        sid_len = GetLengthSid(sid);
+    sid_len = GetSidLengthRequired(sub_auth_count);
 
-        malloced_sid = malloc(sid_len);
-
-        if (malloced_sid) {
-            /*
-             * |AllocateAndInitializeSid()| has an own memory
-             * allocator, but we need the sid in memory from
-             * |malloc()|
-             */
-            if (CopySid(sid_len, malloced_sid, sid)) {
-                FreeSid(sid);
-                *pSid = malloced_sid;
-                DPRINTF(ACLLVL, ("allocate_unixuser_sid(): Allocated "
-                    "Unix_User+%lu: success, len=%ld\n",
-                    uid, (long)sid_len));
-                return TRUE;
-            }
-        }
+    sid = malloc(sid_len);
+    if (sid == NULL) {
+        DPRINTF(ACLLVL,
+            ("allocate_unixuser_sid(): Failed to malloc() "
+            "SID memory for Unix_User+%lu\n",
+            uid));
+        return false;
     }
 
-    FreeSid(sid);
-    free(malloced_sid);
-    DPRINTF(ACLLVL, ("allocate_unixuser_sid(): Failed to allocate "
-        "SID for Unix_User+%lu: error code %d\n",
-        uid, GetLastError()));
-    return FALSE;
+    if (!InitializeSid(sid, &sid_id_auth, sub_auth_count)) {
+        eprintf("allocate_unixuser_sid(): "
+            "InitializeSid() failed for Unix_User+%lu:, lasterr=%d\n",
+            uid, (int)GetLastError());
+        free(sid);
+        return false;
+    }
+
+    /*
+     * First sub-authority is 1 (indicating an "Unix_User")
+     * Second sub-authority is the actual UID
+     */
+    *GetSidSubAuthority(sid, 0) = 1;
+    *GetSidSubAuthority(sid, 1) = (DWORD)uid;
+
+    *pSid = sid;
+    return true;
 }
 
 static
-BOOL allocate_unixgroup_sid(unsigned long gid, PSID *pSid)
+bool allocate_unixgroup_sid(IN unsigned long gid, OUT PSID *pSid)
 {
     PSID sid = NULL;
-    PSID malloced_sid = NULL;
     DWORD sid_len;
+    UCHAR sub_auth_count = 2; /* Two sub-authorities: '1' and 'gid' */
 
-    if (AllocateAndInitializeSid(&sid_id_auth, 2, 2, (DWORD)gid,
-        0, 0, 0, 0, 0, 0, &sid)) {
-        sid_len = GetLengthSid(sid);
+    sid_len = GetSidLengthRequired(sub_auth_count);
 
-        malloced_sid = malloc(sid_len);
-
-        if (malloced_sid) {
-            /*
-             * |AllocateAndInitializeSid()| has an own memory
-             * allocator, but we need the sid in memory from
-             * |malloc()|
-             */
-            if (CopySid(sid_len, malloced_sid, sid)) {
-                FreeSid(sid);
-                *pSid = malloced_sid;
-                DPRINTF(ACLLVL, ("allocate_unixgroup_sid(): Allocated "
-                    "Unix_Group+%lu: success, len=%ld\n",
-                    gid, (long)sid_len));
-                return TRUE;
-            }
-        }
+    sid = malloc(sid_len);
+    if (sid == NULL) {
+        DPRINTF(ACLLVL,
+            ("allocate_unixgroup_sid(): Failed to malloc() "
+            "SID memory for Unix_Group+%lu\n",
+            gid));
+        return false;
     }
 
-    FreeSid(sid);
-    free(malloced_sid);
-    DPRINTF(ACLLVL, ("allocate_unixgroup_sid(): Failed to allocate "
-        "SID for Unix_Group+%lu: error code %d\n",
-        gid, GetLastError()));
-    return FALSE;
+    if (!InitializeSid(sid, &sid_id_auth, sub_auth_count)) {
+        eprintf("allocate_unixgroup_sid(): "
+            "InitializeSid() failed for Unix_Group+%lu:, lasterr=%d\n",
+            gid, (int)GetLastError());
+        free(sid);
+        return false;
+    }
+
+    /*
+     * First sub-authority is 2 (indicating an "Unix_Group")
+     * Second sub-authority is the actual UID
+     */
+    *GetSidSubAuthority(sid, 0) = 2;
+    *GetSidSubAuthority(sid, 1) = (DWORD)gid;
+
+    *pSid = sid;
+    return true;
 }
 
 bool unixuser_sid2uid(PSID psid, uid_t *puid)
