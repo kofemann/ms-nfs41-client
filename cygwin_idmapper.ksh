@@ -29,8 +29,8 @@
 # converts Windows { user, group, cygwin_uid, cygwin_gid } account information
 # from/to NFSv4.1 { owner, owner_group, uid, gid }
 #
-# Input is the query mode { localname2localaccount, localgroup2localgroup,
-# nfsserver_owner2localaccount, nfsserver_owner_group2localgroup }, output
+# Input is the query mode { lookup_user_by_localname, lookup_group_by_localgroup,
+# lookup_user_by_nfsserver_owner, lookup_group_by_nfsserver_owner_group }, output
 # is a ksh93 compound variable with both Windows and NFS account information.
 #
 
@@ -40,6 +40,8 @@
 
 function setup_windows_builtin_accounts
 {
+	nameref c=$1
+
 	#
 	# Windows uses localised user and group names,
 	# e.g. on a German Windows the group "None" is called "Kein" etc.
@@ -53,16 +55,39 @@ function setup_windows_builtin_accounts
 	#   "S-1-5-21-3286904461-661230000-4220857270-513").Translate( [System.Security.Principal.NTAccount]).Value
 	# ---- snip ----
 	#
-	# FIXME: This still means we send a localised group name
-	# to the NFSv4 server, and it needs /etc/group entries for all
-	# localised variations of group "None". In the future the idmapper
-	# should do the mapping in both directions to avoid this.
+
+	#
+	# Windows localised principals are (list incomplete)
+	#
+	# "SYSTEM" (SID is 'S-1-5-18'):
+	#   EN: SYSTEM@NT AUTHORITY
+	#   DE: SYSTEM@NT-AUTORIT\xC3\x84T
+	#   FR: Syst\xC3\xA8me@AUTORIT\xC3\x89 NT
+	#
+	# "Administrator" (built-in local user, SID is "${machine_sid}-500"):
+	#   EN: Administrator@<COMPUTERNAME>
+	#   DE: Administrator@<COMPUTERNAME>
+	#   FR: Administrateur@<COMPUTERNAME>
+	#
+	# "Administrators" (built-in local group, SID is 'S-1-5-32-544'):
+	#   EN: Administrators@BUILTIN
+	#   DE: Administratoren@VORDEFINIERT
+	#   FR: Administrateurs@BUILTIN
+	#
+	# "Users" (built-in local group, SID is 'S-1-5-32-545'):
+	#   EN: Users@BUILTIN
+	#   DE: Benutzer@VORDEFINIERT
+	#   FR: Utilisateurs@BUILTIN
+	#
+	# "None" (primary group; SID is "${machine_sid}-513"):
+	#   EN: None@<COMPUTERNAME>
+	#   DE: Kein@<COMPUTERNAME>
+	#   FR: Aucun@<COMPUTERNAME>
 	#
 
-	typeset -A c.localised_usernames
-	typeset -A c.localised_groupnames
+	set -o nounset
 
-	typeset stdout
+	typeset s
 
 	# fixme: Different Windows versions use different machine SIDs
 	# Windows 10+Windows Server 2019 use
@@ -75,236 +100,169 @@ function setup_windows_builtin_accounts
 		exit 1
 	fi
 
-	# User "SYSTEM": de_DE: "SYSTEM" ...
-	stdout="$(getent passwd 'S-1-5-18')"
-	if (( $? == 0 )) && [[ "$stdout" != ~(El)Unknown\+User: ]] ; then
-		compound nt_parse
-		parse_ntaccount nt_parse "$(sed -E 's/.+U-([^,]+).+/\1/' <<<"$stdout")"
-		c.localised_usernames['SYSTEM']="${nt_parse.user}@${nt_parse.domain}"
-	fi
-
-	# User "Adminstrator": fr_FR: "Administrateur" ...
-	stdout="$(getent passwd "${machine_sid}-500")"
-	if (( $? == 0 )) && [[ "$stdout" != ~(El)Unknown\+User: ]] ; then
-		compound nt_parse
-		parse_ntaccount nt_parse "$(sed -E 's/.+U-([^,]+).+/\1/' <<<"$stdout")"
-		c.localised_usernames['Administrator']="${nt_parse.user}@${nt_parse.domain}"
-	fi
-
-	# Group "SYSTEM": de_DE: "SYSTEM" ...
-	# (we use getent passwd here because getent group does not give us a domain name)
-	stdout="$(getent passwd 'S-1-5-18')"
-	if (( $? == 0 )) && [[ "$stdout" != ~(El)Unknown\+User: ]] ; then
-		compound nt_parse
-		parse_ntaccount nt_parse "$(sed -E 's/.+U-([^,]+).+/\1/' <<<"$stdout")"
-		c.localised_groupnames['SYSTEM']="${nt_parse.user}@${nt_parse.domain}"
-	fi
-
-	# Group "None": de_DE: "Kein", fr_FR: "Aucun" ...
-	# (we use getent passwd here because getent group does not give us a domain name)
-	stdout="$(getent passwd "${machine_sid}-513")"
-	if (( $? == 0 )) && [[ "$stdout" != ~(El)Unknown\+Group: ]] ; then
-		compound nt_parse
-		parse_ntaccount nt_parse "$(sed -E 's/.+U-([^,]+).+/\1/' <<<"$stdout")"
-		c.localised_groupnames['None']="${nt_parse.user}@${nt_parse.domain}"
-	fi
-
-	# Group "Administrators" de_DE: "Administratoren"
-	# (primarily used by WindowsServer (2019) NFSv4.1 server)
-	# (we use getent passwd here because getent group does not give us a domain name)
-	stdout="$(getent passwd 'S-1-5-32-544')"
-	if (( $? == 0 )) && [[ "$stdout" != ~(El)Unknown\+Group: ]] ; then
-		compound nt_parse
-		parse_ntaccount nt_parse "$(sed -E 's/.+U-([^,]+).+/\1/' <<<"$stdout")"
-		c.localised_groupnames['Administrators']="${nt_parse.user}@${nt_parse.domain}"
-	fi
-
-	# Group "Users" de_DE: "Benutzer", fr_FR: "Utilisateurs"
-	# (primarily used by WindowsServer (2019) NFSv4.1 server)
-	# (we use getent passwd here because getent group does not give us a domain name)
-	stdout="$(getent passwd 'S-1-5-32-545')"
-	if (( $? == 0 )) && [[ "$stdout" != ~(El)Unknown\+Group: ]] ; then
-		compound nt_parse
-		parse_ntaccount nt_parse "$(sed -E 's/.+U-([^,]+).+/\1/' <<<"$stdout")"
-		c.localised_groupnames['Users']="${nt_parse.user}@${nt_parse.domain}"
-	fi
-
-	if [[ -v c.localised_usernames['Administrator'] ]] ; then
-		localusers+=(
-			["${c.localised_usernames['Administrator']}"]=(
-				localaccountname="${c.localised_usernames['Administrator']}"
-				localuid=197108
-				nfsuid=197108
-				nfsowner="Administrator@${idmap_config.nfsdomain}"
-			)
-			['Administrator']=(
-				localaccountname="${c.localised_usernames['Administrator']}"
-				localuid=197108
-				nfsowner="Administrator@${idmap_config.nfsdomain}"
-				nfsuid=197108
-			)
-			# French user "Administrator"
-			['Administrateur']=(
-				localaccountname="${c.localised_usernames['Administrator']}"
-				localuid=197108
-				nfsowner="Administrator@${idmap_config.nfsdomain}"
-				nfsuid=197108
+	#
+	# build user list
+	#
+	compound -r -A windows_builtin_user_list=(
+		['SYSTEM']=(
+			sid='S-1-5-18'
+			localuid=18 # Static localuid, because it will not change
+			nfsuid=18
+			typeset -A localised_names=(
+				['windows/en']=$'SYSTEM@NT AUTHORITY'
+				['windows/de']=$'SYSTEM@NT-AUTORIT\xC3\x84T'
+				['windows/fr']=$'Syst\xC3\xA8me@AUTORIT\xC3\x89 NT'
+				['freebsd']="SYSTEM@${idmap_config.nfsdomain}"
+				['solaris']="SYSTEM@${idmap_config.nfsdomain}"
+				['linux']="SYSTEM@${idmap_config.nfsdomain}"
 			)
 		)
-	fi
-	if [[ -v c.localised_usernames['SYSTEM'] ]] ; then
-		localusers+=(
-			["${c.localised_usernames['SYSTEM']}"]=(
-				localaccountname="${c.localised_usernames['SYSTEM']}"
-				localuid=18
-				nfsowner="SYSTEM@${idmap_config.nfsdomain}"
-				nfsuid=18
-			)
-			["SYSTEM"]=(
-				localaccountname="${c.localised_usernames['SYSTEM']}"
-				localuid=18
-				nfsowner="SYSTEM@${idmap_config.nfsdomain}"
-				nfsuid=18
-			)
-			# French user "SYSTEM"
-			# FIXME: This should be $'Syst\u[e8]me', but ksh93 1.0.10
-			# doesn't work
-			[$'Syst\xc3\xa8me']=(
-				localaccountname="${c.localised_usernames['SYSTEM']}"
-				localuid=18
-				nfsowner="SYSTEM@${idmap_config.nfsdomain}"
-				nfsuid=18
+		['Administrator']=(
+			sid="${machine_sid}-500"
+			# localuid will be obtained via getent(1)
+			nfsuid=197108
+			typeset -A localised_names=(
+				['windows/en']="Administrator@${COMPUTERNAME}"
+				['windows/de']="Administrator@${COMPUTERNAME}"
+				['windows/fr']="Administrateur@${COMPUTERNAME}"
+				['freebsd']="Administrator@${idmap_config.nfsdomain}"
+				['solaris']="Administrator@${idmap_config.nfsdomain}"
+				['linux']="Administrator@${idmap_config.nfsdomain}"
 			)
 		)
-	fi
+	)
 
-	if [[ -v c.localised_groupnames['SYSTEM'] ]] ; then
-		localgroups+=(
-			["${c.localised_groupnames['SYSTEM']}"]=(
-				localgroupname="${c.localised_usernames['SYSTEM']}"
-				localgid=18
-				nfsownergroup="SYSTEM@${idmap_config.nfsdomain}"
-				nfsgid=18
-			)
-			["SYSTEM"]=(
-				localgroupname="${c.localised_usernames['SYSTEM']}"
-				localgid=18
-				nfsownergroup="SYSTEM@${idmap_config.nfsdomain}"
-				nfsgid=18
-			)
-			# French user "SYSTEM"
-			# FIXME: This should be $'Syst\u[e8]me', but ksh93 1.0.10
-			# doesn't work
-			[$'Syst\xc3\xa8me']=(
-				localgroupname="${c.localised_usernames['SYSTEM']}"
-				localgid=18
-				nfsownergroup="SYSTEM@${idmap_config.nfsdomain}"
-				nfsgid=18
+	#
+	# build group list
+	#
+	compound -r -A windows_builtin_group_list=(
+		['SYSTEM']=(
+			sid='S-1-5-18'
+			localgid=18 # Static localgid, because it will not change
+			nfsgid=18
+			typeset -A localised_names=(
+				['windows/en']=$'SYSTEM@NT AUTHORITY'
+				['windows/de']=$'SYSTEM@NT-AUTORIT\xC3\x84T'
+				['windows/fr']=$'Syst\xC3\xA8me@AUTORIT\xC3\x89 NT'
+				['freebsd']="SYSTEM@${idmap_config.nfsdomain}"
+				['solaris']="SYSTEM@${idmap_config.nfsdomain}"
+				['linux']="SYSTEM@${idmap_config.nfsdomain}"
 			)
 		)
-	fi
+		['Administrators']=(
+			sid='S-1-5-32-544'
+			localgid=544 # Static localgid, because it will not change
+			nfsgid=544
+			typeset -A localised_names=(
+				['windows/en']="Administrators@BUILTIN"
+				['windows/de']="Administratoren@VORDEFINIERT"
+				['windows/fr']='Administrateurs@BUILTIN'
+				['freebsd']="Administrators@${idmap_config.nfsdomain}"
+				['solaris']="Administrators@${idmap_config.nfsdomain}"
+				['linux']="Administrators@${idmap_config.nfsdomain}"
+			)
+		)
+		['Users']=(
+			sid='S-1-5-32-545'
+			localgid=545 # Static localgid, because it will not change
+			nfsgid=545
+			typeset -A localised_names=(
+				['windows/en']="Users@BUILTIN"
+				['windows/de']="Benutzer@VORDEFINIERT"
+				['windows/fr']='Utilisateurs@BUILTIN'
+				['freebsd']="Users@${idmap_config.nfsdomain}"
+				['solaris']="Users@${idmap_config.nfsdomain}"
+				['linux']="Users@${idmap_config.nfsdomain}"
+			)
+		)
+		['None']=(
+			sid="${machine_sid}-513"
+			# localgid will be obtained via getent(1)
+			nfsgid=197121
+			typeset -A localised_names=(
+				['windows/en']="None@${idmap_config.nfsdomain}"
+				['windows/de']="Kein@${idmap_config.nfsdomain}"
+				['windows/fr']="Aucun@${idmap_config.nfsdomain}"
+				['freebsd']="None@${idmap_config.nfsdomain}"
+				['solaris']="None@${idmap_config.nfsdomain}"
+				['linux']="None@${idmap_config.nfsdomain}"
+			)
+		)
+	)
 
-	if [[ -v c.localised_groupnames['None'] ]] ; then
-		localgroups+=(
-			["${c.localised_groupnames['None']}"]=(
-				localgroupname="${c.localised_groupnames['None']}"
-				localgid=197121
-				nfsownergroup="None@${idmap_config.nfsdomain}"
-				nfsgid=197121
-			)
-			["None"]=(
-				localgroupname="${c.localised_groupnames['None']}"
-				localgid=197121
-				nfsownergroup="None@${idmap_config.nfsdomain}"
-				nfsgid=197121
-			)
-			# French Windows localised group name for "None"
-			['Aucun']=(
-				localgroupname="${c.localised_groupnames['None']}"
-				localgid=197121
-				nfsownergroup="None@${idmap_config.nfsdomain}"
-				nfsgid=197121
-			)
-			# German Windows localised group name for "None"
-			["Kein"]=(
-				localgroupname="${c.localised_groupnames['None']}"
-				localgid=197121
-				nfsownergroup="None@${idmap_config.nfsdomain}"
-				nfsgid=197121
-			)
-		)
-	fi
 
-	if [[ -v c.localised_groupnames['Administrators'] ]] ; then
-		localgroups+=(
-			["${c.localised_groupnames['Administrators']}"]=(
-				localgroupname="${c.localised_groupnames['Administrators']}"
-				localgid=544
-				nfsownergroup="Administrators@${idmap_config.nfsdomain}"
-				nfsgid=544
-			)
-			['Administrators']=(
-				localgroupname="${c.localised_groupnames['Administrators']}"
-				localgid=544
-				nfsownergroup="Administrators@${idmap_config.nfsdomain}"
-				nfsgid=544
-			)
-			# French Windows localised group name for "Administrators"
-			# (from https://learn.microsoft.com/fr-fr/windows-server/identity/ad-ds/manage/understand-security-identifiers)
-			['Administrateurs']=(
-				localgroupname="${c.localised_groupnames['Administrators']}"
-				localgid=544
-				nfsownergroup="Administrators@${idmap_config.nfsdomain}"
-				nfsgid=544
-			)
-			# German Windows localised group name for "Administrators"
-			['Administratoren']=(
-				localgroupname="${c.localised_groupnames['Administrators']}"
-				localgid=544
-				nfsownergroup="Administrators@${idmap_config.nfsdomain}"
-				nfsgid=544
-			)
-		)
-	fi
+	#
+	# Process Windows builtin users
+	#
+	for s in "${!windows_builtin_user_list[@]}" ; do
+		nameref n=windows_builtin_user_list[$s]
 
-	if [[ -v c.localised_groupnames['Users'] ]] ; then
-		localgroups+=(
-			["${c.localised_groupnames['Users']}"]=(
-				localgroupname="${c.localised_groupnames['Users']}"
-				localgid=545
-				nfsownergroup="Users@${idmap_config.nfsdomain}"
-				nfsgid=545
+		compound gpc
+		parse_getent_passwd2compound gpc "$(getent passwd ${n.sid})"
+		if (( $? == 0 )) ; then
+			integer localuid
+
+			compound nt_parse
+			parse_ntaccount nt_parse "$(sed -E 's/U-([^,]+).+/\1/' <<<"${gpc.comment}")"
+
+			if [[ -v n.localuid ]] ; then
+				(( localuid=n.localuid ))
+			else
+				(( localuid=gpc.uid ))
+			fi
+
+			c.localusers+=(
+				["$s"]=(
+					localaccountname="${nt_parse.user}@${nt_parse.domain}"
+					localuid=${localuid}
+					nfsuid=${n.nfsuid}
+					nfsowner=${n.localised_names[${idmap_config.servertype}]}
+				)
 			)
-			['Users']=(
-				localgroupname="${c.localised_groupnames['Users']}"
-				localgid=545
-				nfsownergroup="Users@${idmap_config.nfsdomain}"
-				nfsgid=545
+		fi
+	done
+
+	#
+	# Process Windows builtin groups
+	#
+	for s in "${!windows_builtin_group_list[@]}" ; do
+		nameref n=windows_builtin_group_list[$s]
+
+		# (we use getent passwd here because getent group does not give us a domain name)
+		compound gpc
+		parse_getent_passwd2compound gpc "$(getent passwd ${n.sid})"
+		if (( $? == 0 )) ; then
+			integer localgid
+
+			compound nt_parse
+			parse_ntaccount nt_parse "$(sed -E 's/U-([^,]+).+/\1/' <<<"${gpc.comment}")"
+
+			if [[ -v n.localgid ]] ; then
+				(( localgid=n.localgid ))
+			else
+				# use gpc.uid because we used getent passwd above
+				(( localgid=gpc.uid ))
+			fi
+
+			c.localgroups+=(
+				["$s"]=(
+					localgroupname="${nt_parse.user}@${nt_parse.domain}"
+					localgid=${localgid}
+					nfsgid=${n.nfsgid}
+					nfsownergroup=${n.localised_names[${idmap_config.servertype}]}
+				)
 			)
-			# French Windows localised group name for "Users"
-			# (from https://learn.microsoft.com/fr-fr/windows-server/identity/ad-ds/manage/understand-security-identifiers)
-			['Utilisateurs']=(
-				localgroupname="${c.localised_groupnames['Users']}"
-				localgid=545
-				nfsownergroup="Users@${idmap_config.nfsdomain}"
-				nfsgid=545
-			)
-			# German Windows localised group name for "Users"
-			['Benutzer']=(
-				localgroupname="${c.localised_groupnames['Users']}"
-				localgid=545
-				nfsownergroup="Users@${idmap_config.nfsdomain}"
-				nfsgid=545
-			)
-		)
-	fi
+		fi
+	done
 
 	return 0
 }
 
-function setup_site_accounts
+function setup_site_system_accounts
 {
-	localusers+=(
+	nameref c=$1
+
+	c.localusers+=(
 		#
 		# System accounts
 		#
@@ -320,37 +278,9 @@ function setup_site_accounts
 			nfsowner="nobody@${idmap_config.nfsdomain}"
 			nfsuid=65534
 		)
-
-		#
-		# Site-specific users
-		#
-		["roland_mainz"]=(
-			localaccountname="roland_mainz@${COMPUTERNAME}"
-			localuid=197608
-			nfsowner="rmainz@${idmap_config.nfsdomain}"
-			nfsuid=1616
-		)
-		["siegfried_wulsch"]=(
-			localaccountname="siegfried_wulsch@${COMPUTERNAME}"
-			localuid=197609
-			nfsowner="swulsch@${idmap_config.nfsdomain}"
-			nfsuid=1818
-		)
-		#["rmainz"]=(
-		#	localaccountname="rmainz@${COMPUTERNAME}"
-		#	localuid=1616
-		#	nfsowner="rmainz@${idmap_config.nfsdomain}"
-		#	nfsuid=1616
-		#)
-		#["swulsch"]=(
-		#	localaccountname="swulsch@${COMPUTERNAME}"
-		#	localuid=1818
-		#	nfsowner="swulsch@${idmap_config.nfsdomain}"
-		#	nfsuid=1818
-		#)
 	)
 
-	localgroups+=(
+	c.localgroups+=(
 		#
 		# System accounts
 		#
@@ -385,9 +315,36 @@ function setup_site_accounts
 			nfsownergroup="nobody@${idmap_config.nfsdomain}"
 			nfsgid=65534
 		)
+	)
 
+	return 0
+}
+
+function setup_site_accounts
+{
+	nameref c=$1
+
+	c.localusers+=(
 		#
 		# Site-specific users
+		#
+		["roland_mainz"]=(
+			localaccountname="roland_mainz@${COMPUTERNAME}"
+			localuid=197608
+			nfsowner="rmainz@${idmap_config.nfsdomain}"
+			nfsuid=1616
+		)
+		["siegfried_wulsch"]=(
+			localaccountname="siegfried_wulsch@${COMPUTERNAME}"
+			localuid=197609
+			nfsowner="swulsch@${idmap_config.nfsdomain}"
+			nfsuid=1818
+		)
+	)
+
+	c.localgroups+=(
+		#
+		# Site-specific groups
 		#
 		["rmainz"]=(
 			localgroupname="rmainz@${COMPUTERNAME}"
@@ -417,6 +374,78 @@ function parse_ntaccount
 
 	c.domain="${stripped%\\*}"
 	c.user="${stripped#*\\}"
+
+	return 0
+}
+
+function parse_getent_passwd2compound
+{
+	set -o nounset
+
+	typeset getent_passwd_string="$2"
+	typeset leftover
+	nameref data="$1" # output compound variable
+
+	# ~(E) is POSIX extended regular expression matching (instead
+	# of shell pattern), "x" means "multiline", "l" means "left
+	# anchor", "r" means "right anchor"
+	leftover="${getent_passwd_string/~(Elrx)
+		(.+?)			# login name
+		:(.+?)			# encrypted passwd
+		:(.+?)			# uid
+		:(.+?)			# gid
+		:(.+?)			# comment
+		:(.+?)			# homedir
+		(?::(.+?))?		# shell (optional)
+		/X}"
+
+	# All parsed data should be captured via eregex in .sh.match - if
+	# there is anything left (except the 'X') then the input string did
+	# not properly match the eregex
+	[[ "$leftover" == 'X' ]] ||
+		{ print -u2 -f $"%s: Parser error, leftover=%q\n" \
+			"$0" "$leftover" ; return 1 ; }
+
+	data.login_name="${.sh.match[1]}"
+	data.encrypted_passwd="${.sh.match[2]}"
+	data.uid="${.sh.match[3]}"
+	data.gid="${.sh.match[4]}"
+	data.comment="${.sh.match[5]}"
+	data.homedir="${.sh.match[6]}"
+	data.shell="${.sh.match[7]}"
+
+	return 0
+}
+
+function parse_getent_group2compound
+{
+	set -o nounset
+
+	typeset getent_group_string="$2"
+	typeset leftover
+	nameref data="$1" # output compound variable
+
+	# ~(E) is POSIX extended regular expression matching (instead
+	# of shell pattern), "x" means "multiline", "l" means "left
+	# anchor", "r" means "right anchor"
+	leftover="${getent_group_string/~(Elrx)
+		(.+?):			# group
+		(.+?):			# encrypted passwd
+		(.+?):			# gid
+		(?:(.+?))?		# userlist
+		/X}"
+
+	# All parsed data should be captured via eregex in .sh.match - if
+	# there is anything left (except the 'X') then the input string did
+	# not properly match the eregex
+	[[ "$leftover" == 'X' ]] ||
+		{ print -u2 -f $"%s: Parser error, leftover=%q\n" \
+			"$0" "$leftover" ; return 1 ; }
+
+	data.group_name="${.sh.match[1]}"
+	data.encrypted_passwd="${.sh.match[2]}"
+	data.gid="${.sh.match[3]}"
+	[[ -v .sh.match[4] ]] && data.userlist="${.sh.match[4]}"
 
 	return 0
 }
@@ -517,268 +546,301 @@ function getent_nfs_domain_group
 	return $res
 }
 
+function main_dispatch
+{
+	set -o nounset
+
+	#
+	# global variables for this script
+	# (stored in compound variable so we
+	# can do a $ print -u2 -v c # for debugging)
+	#
+	compound c=(
+		compound -A localusers
+		compound -A localgroups
+	)
+
+	typeset s
+	typeset stdout
+
+	(( $# > 0 )) && c.mode="$1"
+	if (( $# > 1 )) ; then
+		# strip '"' characters (for Cygwin 3.3 compatibility)
+		# note that "${2-//..." does NOT work!
+		c.name="${2//\"/}"
+	fi
+
+
+	if [[ ! -v COMPUTERNAME ]] ; then
+		printf -u2 -f $"ERROR: COMPUTERNAME var not set\n"
+		export COMPUTERNAME="$(uname -n | tr '[:lower:]' '[:upper:]')"
+		return 1
+	fi
+
+	setup_windows_builtin_accounts c
+	setup_site_system_accounts c
+	setup_site_accounts c
+
+	case "${c.mode-}" in
+		'lookup_user_by_localname')
+			#
+			# Try static info
+			#
+			if [[ "${c.name}" == ~(Elr)[[:digit:]]+ ]] ; then
+				for s in "${!c.localusers[@]}" ; do
+					if (( c.localusers[$s].localuid == c.name )) ; then
+						print -v c.localusers[$s]
+						return 0
+					fi
+				done
+				# getent passwd accepts numeric uids too, so continue below
+			else
+				for s in "${!c.localusers[@]}" ; do
+					if [[ "${c.localusers[$s].localaccountname}" == "${c.name}" ]] ; then
+						print -v c.localusers[$s]
+						return 0
+					fi
+				done
+			fi
+
+			#
+			# try getent passwd
+			#
+			compound pgec # parsed getent data compound var
+			compound gec # getent compound var
+
+			stdout="${ getent_local_domain_passwd "${c.name}" };"
+			if (( $? == 0 )) && [[ "${stdout}" != '' ]]; then
+				parse_getent_passwd2compound pgec "${stdout}"
+				if (( $? == 0 )) ; then
+					if [[ "${pgec.uid-}" == ~(Elr)[[:digit:]]+ ]] ; then
+						compound nt_parsed
+						parse_ntaccount nt_parsed "${pgec.comment}"
+						gec.localaccountname="${nt_parsed.user}@${nt_parsed.domain}"
+						gec.nfsowner="${nt_parsed.user}@${idmap_config.nfsdomain}"
+						(( gec.localuid=pgec.uid ))
+						(( gec.nfsuid=pgec.uid ))
+						print -v gec
+						return 0
+					else
+						print -u2 -f "cygwin_idmapper.ksh: getent passwd %q returned garbage %q.\n" \
+							"${c.name}" "${gec.localuid-}"
+						return 1
+					fi
+				fi
+			fi
+
+			print -u2 -f "cygwin_idmapper.ksh: Account %q not found.\n" "${c.name}"
+			return 1
+			;;
+		'lookup_group_by_localgroup')
+			#
+			# Try static info
+			#
+			if [[ "${c.name}" == ~(Elr)[[:digit:]]+ ]] ; then
+				for s in "${!c.localgroups[@]}" ; do
+					if (( c.localgroups[$s].localgid == c.name )) ; then
+						print -v c.localgroups[$s]
+						return 0
+					fi
+				done
+				# getent group accepts numeric gids too, so continue below
+			else
+				for s in "${!c.localgroups[@]}" ; do
+					if [[ "${c.localgroups[$s].localgroupname}" == "${c.name}" ]] ; then
+						print -v c.localgroups[$s]
+						return 0
+					fi
+				done
+			fi
+
+			#
+			# try getent group
+			#
+			compound pgec # parsed getent data compound var
+			compound gec # getent compound var
+			stdout="${ getent_local_domain_group "${c.name}" ;}"
+			if (( $? == 0 )) && [[ "${stdout}" != '' ]] ; then
+				parse_getent_group2compound pgec "${stdout}"
+				if (( $? == 0 )) ; then
+					if [[ "${pgec.gid-}" == ~(Elr)[[:digit:]]+ ]] ; then
+						if [[ "$s" == *"+"* ]]; then
+							domain="${pgec.group_name%%+*}"
+							user="${input#*+}"
+						else
+							# No '+' found, fallback to the local machine name
+							domain="${COMPUTERNAME}"
+							user="${pgec.group_name}"
+						fi
+
+						gec.localgroupname="${user}@${domain}"
+						gec.nfsownergroup="${user}@${idmap_config.nfsdomain}"
+						(( gec.localgid=pgec.gid ))
+						(( gec.nfsgid=pgec.gid ))
+						print -v gec
+						return 0
+					else
+						print -u2 -f "cygwin_idmapper.ksh: getent group %q returned garbage %q.\n" \
+							"${c.name}" "${gec.localgid-}"
+						return 1
+					fi
+				fi
+			fi
+
+			print -u2 -f "cygwin_idmapper.ksh: Group %q not found.\n" "${c.name}"
+			return 1
+			;;
+		'lookup_user_by_nfsserver_owner')
+			#
+			# Try static info
+			#
+
+			# Numeric ? Try looking up static UID
+			if [[ "${c.name}" == ~(Elr)[[:digit:]]+ ]] ; then
+				# Numeric ? Try looking up static UID
+				for s in "${!c.localusers[@]}" ; do
+					if (( c.localusers[$s].nfsuid == c.name )) ; then
+						print -v c.localusers[$s]
+						return 0
+					fi
+				done
+				# getent passwd accepts numeric uids too, so continue below
+			else
+				# Search for user name
+				for s in "${!c.localusers[@]}" ; do
+					if [[ "${c.localusers[$s].nfsowner}" == "${c.name}" ]] ; then
+						print -v c.localusers[$s]
+						return 0
+					fi
+				done
+			fi
+
+			#
+			# try getent passwd
+			#
+			compound pgec # parsed getent data compound var
+			compound gec # getent compound var
+			stdout="${ getent_nfs_domain_passwd "${c.name}" ;}"
+			if (( $? == 0 )) && [[ "${stdout}" != '' ]] ; then
+				parse_getent_passwd2compound pgec "${stdout}"
+				if (( $? == 0 )) ; then
+					if [[ "${pgec.uid-}" == ~(Elr)[[:digit:]]+ ]] ; then
+						compound nt_parsed
+						parse_ntaccount nt_parsed "${pgec.comment}"
+						gec.localaccountname="${nt_parsed.user}@${nt_parsed.domain}"
+						gec.nfsowner="${nt_parsed.user}@${idmap_config.nfsdomain}"
+						(( gec.localuid=pgec.uid ))
+						(( gec.nfsuid=pgec.uid ))
+						print -v gec
+						return 0
+					else
+						print -u2 -f "cygwin_idmapper.ksh: getent passwd %q returned garbage %q.\n" \
+							"${c.name}" "${gec.localuid-}"
+						return 1
+					fi
+				fi
+			fi
+
+			print -u2 -f "cygwin_idmapper.ksh: Account %q not found.\n" "${c.name}"
+			return 1
+			;;
+		'lookup_group_by_nfsserver_owner_group')
+			#
+			# Try static info
+			#
+			if [[ "${c.name}" == ~(Elr)[[:digit:]]+ ]] ; then
+				# Numeric ? Try looking up static UID
+				for s in "${!c.localgroups[@]}" ; do
+					if (( c.localgroups[$s].localgid == c.name )) ; then
+						print -v c.localgroups[$s]
+						return 0
+					fi
+				done
+				# getent group accepts numeric gids too, so continue below
+			else
+				# Search for group name
+				for s in "${!c.localgroups[@]}" ; do
+					if [[ "${c.localgroups[$s].nfsownergroup}" == "${c.name}" ]] ; then
+						print -v c.localgroups[$s]
+						return 0
+					fi
+				done
+			fi
+
+			#
+			# try getent group
+			#
+			compound pgec # parsed getent data compound var
+			compound gec # getent compound var
+			stdout="${ getent_nfs_domain_group "${c.name}" ;}"
+			if (( $? == 0 )) && [[ "${stdout}" != '' ]] ; then
+				parse_getent_group2compound pgec "${stdout}"
+				if (( $? == 0 )) ; then
+					if [[ "${pgec.gid-}" == ~(Elr)[[:digit:]]+ ]] ; then
+						if [[ "$s" == *"+"* ]]; then
+							domain="${pgec.group_name%%+*}"
+							user="${input#*+}"
+						else
+							# No '+' found, fallback to the local machine name
+							domain="${COMPUTERNAME}"
+							user="${pgec.group_name}"
+						fi
+
+						gec.localgroupname="${user}@${domain}"
+						gec.nfsownergroup="${user}@${idmap_config.nfsdomain}"
+						(( gec.localgid=pgec.gid ))
+						(( gec.nfsgid=pgec.gid ))
+						print -v gec
+						return 0
+					else
+						print -u2 -f "cygwin_idmapper.ksh: getent group %q returned garbage %q.\n" \
+							"${c.name}" "${gec.localgid-}"
+						return 1
+					fi
+				fi
+			fi
+
+			print -u2 -f "cygwin_idmapper.ksh: Group %q not found.\n" "${c.name}"
+			return 1
+			;;
+		*)
+			print -u2 -f "cygwin_idmapper.ksh: Unknown mode %q.\n" "${c.mode-}"
+			return 1
+			;;
+	esac
+
+	# notreached
+	return 1
+}
+
 
 #
 # main
 #
 set -o nounset
-typeset IFS=''
 
 export PATH='/bin:/usr/bin'
-
 export LC_ALL='en_US.UTF-8'
 
+#
+# idmapper script config data
+#
 compound idmap_config=(
 	#typeset -r localdomain='GLOBAL.LOC'	# Default domain for Windows
 	#typeset -r nfsdomain='global.loc'	# Default domain for NFS server
 	typeset -r localdomain="$( < '/proc/registry/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Services/Tcpip/Parameters/Domain' )"
 	typeset -r nfsdomain="$( tr '[:upper:]' '[:lower:]' <'/proc/registry/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Services/Tcpip/Parameters/Domain' )"
+
+	# Define NFS server type
+	# * Values can be "windows/en", "windows/de", "windows/fr", "freebsd", "solaris", "linux"
+	# * This is neccesary because
+	# - Windows localises account names on both client and server side
+	# (e.g. German Windows machine connecting to a French WindowsServer 2022)
+	# - Different NFS servers might use different names for the same group
+	# (e.g. SAMBA vs. kernel CIFS server)
+	typeset -r servertype='linux'
 )
 
-#
-# global variables for this script
-# (stored in compound variable so we
-# can do a $ print -u2 -v c # for debugging)
-#
-compound c
-
-c.mode="$1"
-if (( $# > 1 )) ; then
-	# strip '"' characters (for Cygwin 3.3 compatibility)
-	# note that "${2-//..." does NOT work!
-	c.name="${2//\"/}"
-fi
-
-
-compound -A localusers
-compound -A localgroups
-
-if [[ ! -v COMPUTERNAME ]] ; then
-	printf -u2 -f $"ERROR: COMPUTERNAME var not set\n"
-	export COMPUTERNAME="$(uname -n | tr '[:lower:]' '[:upper:]')"
-	exit 1
-fi
-
-setup_windows_builtin_accounts
-setup_site_accounts
-
-case "${c.mode}" in
-	'localname2localaccount')
-		#
-		# Try static info
-		#
-		if [[ "${c.name}" == ~(Elr)[[:digit:]]+ ]] ; then
-			for s in "${!localusers[@]}" ; do
-				if (( localusers[$s].localuid == c.name )) ; then
-					print -v localusers[$s]
-					exit 0
-				fi
-			done
-			# getent passwd accepts numeric uids too, so continue below
-		else
-			#if [[ -v localusers["${c.name}"] ]] ; then
-			#	print -v localusers["${c.name}"]
-			#	exit 0
-			#fi
-			for s in "${!localusers[@]}" ; do
-				if [[ "${localusers[$s].localaccountname}" == "${c.name}" ]] ; then
-					print -v localusers[$s]
-					exit 0
-				fi
-			done
-		fi
-
-		#
-		# try getent passwd
-		#
-		compound gec # getent compound var
-		typeset dummy1 dummy2 s
-		getent_local_domain_passwd "${c.name}" | \
-			IFS=':' read -r dummy1 dummy2 gec.localuid dummy3 s dummy4
-
-		if [[ "${s-}" != '' ]] ; then
-			if [[ "${gec.localuid-}" == ~(Elr)[[:digit:]]+ ]] ; then
-				compound nt_parsed
-				parse_ntaccount nt_parsed "$s"
-				gec.localaccountname="${nt_parsed.user}@${nt_parsed.domain}"
-				gec.nfsowner="${nt_parsed.user}@${idmap_config.nfsdomain}"
-				(( gec.nfsuid=gec.localuid ))
-				print -v gec
-				exit 0
-			else
-				print -u2 -f "cygwin_idmapper.ksh: getent passwd %q returned garbage.\n" "${c.name}"
-			fi
-		fi
-
-		print -u2 -f "cygwin_idmapper.ksh: Account %q not found.\n" "${c.name}"
-		exit 1
-		;;
-	'localgroup2localgroup')
-		#
-		# Try static info
-		#
-		if [[ "${c.name}" == ~(Elr)[[:digit:]]+ ]] ; then
-			for s in "${!localgroups[@]}" ; do
-				if (( localgroups[$s].localgid == c.name )) ; then
-					print -v localgroups[$s]
-					exit 0
-				fi
-			done
-			# getent group accepts numeric gids too, so continue below
-		else
-			#if [[ -v localgroups["${c.name}"] ]] ; then
-			#	print -v localgroups["${c.name}"]
-			#	exit 0
-			#fi
-			for s in "${!localgroups[@]}" ; do
-				if [[ "${localgroups[$s].localgroupname}" == "${c.name}" ]] ; then
-					print -v localgroups[$s]
-					exit 0
-				fi
-			done
-		fi
-
-		#
-		# try getent group
-		#
-		compound gec # getent compound var
-		typeset dummy1 dummy2 s
-		getent_local_domain_group "${c.name}" | \
-			IFS=':' read s dummy1 gec.localgid dummy2
-
-		if [[ "${s-}" != '' ]] ; then
-			if [[ "${gec.localgid-}" == ~(Elr)[[:digit:]]+ ]] ; then
-				if [[ "$s" == *"+"* ]]; then
-					domain="${s%%+*}"
-					user="${input#*+}"
-				else
-					# No '+' found, fallback to the local machine name
-					domain="${COMPUTERNAME}"
-					user="$s"
-				fi
-
-				gec.localgroupname="${user}@${domain}"
-				gec.nfsownergroup="${user}@${idmap_config.nfsdomain}"
-				(( gec.nfsgid=gec.localgid ))
-				print -v gec
-				exit 0
-			else
-				print -u2 -f "cygwin_idmapper.ksh: getent group %q returned garbage.\n" "${c.name}"
-			fi
-		fi
-
-		print -u2 -f "cygwin_idmapper.ksh: Group %q not found.\n" "${c.name}"
-		exit 1
-		;;
-	'nfsserver_owner2localaccount')
-		#
-		# Try static info
-		#
-
-		# Numeric ? Try looking up static UID
-		if [[ "${c.name}" == ~(Elr)[[:digit:]]+ ]] ; then
-			# Numeric ? Try looking up static UID
-			for s in "${!localusers[@]}" ; do
-				if (( localusers[$s].nfsuid == c.name )) ; then
-					print -v localusers[$s]
-					exit 0
-				fi
-			done
-			# getent passwd accepts numeric uids too, so continue below
-		else
-			# Search for user name
-			for s in "${!localusers[@]}" ; do
-				if [[ "${localusers[$s].nfsowner}" == "${c.name}" ]] ; then
-					print -v localusers[$s]
-					exit 0
-				fi
-			done
-		fi
-
-		#
-		# try getent passwd
-		#
-		compound gec # getent compound var
-		typeset dummy1 dummy2 s
-		getent_nfs_domain_passwd "${c.name}" | \
-			IFS=':' read -r dummy1 dummy2 gec.localuid dummy3 s dummy4
-
-		if [[ "${s-}" != '' ]] ; then
-			if [[ "${gec.localuid-}" == ~(Elr)[[:digit:]]+ ]] ; then
-				compound nt_parsed
-				parse_ntaccount nt_parsed "$s"
-				gec.localaccountname="${nt_parsed.user}@${nt_parsed.domain}"
-				gec.nfsowner="${nt_parsed.user}@${idmap_config.nfsdomain}"
-				(( gec.nfsuid=gec.localuid ))
-				print -v gec
-				exit 0
-			else
-				print -u2 -f "cygwin_idmapper.ksh: getent passwd %q returned garbage.\n" "${c.name}"
-			fi
-		fi
-
-		print -u2 -f "cygwin_idmapper.ksh: Account %q not found.\n" "${c.name}"
-		exit 1
-		;;
-	'nfsserver_owner_group2localgroup')
-		#
-		# Try static info
-		#
-		if [[ "${c.name}" == ~(Elr)[[:digit:]]+ ]] ; then
-			# Numeric ? Try looking up static UID
-			for s in "${!localgroups[@]}" ; do
-				if (( localgroups[$s].localgid == c.name )) ; then
-					print -v localgroups[$s]
-					exit 0
-				fi
-			done
-			# getent group accepts numeric gids too, so continue below
-		else
-			# Search for user name
-			for s in "${!localgroups[@]}" ; do
-				if [[ "${localgroups[$s].nfsownergroup}" == "${c.name}" ]] ; then
-					print -v localgroups[$s]
-					exit 0
-				fi
-			done
-		fi
-
-		#
-		# try getent group
-		#
-		compound gec # getent compound var
-		typeset dummy1 dummy2 s
-		getent_nfs_domain_group "${c.name}" | \
-			IFS=':' read s dummy1 gec.localgid dummy2
-
-		if [[ "${s-}" != '' ]] ; then
-			if [[ "${gec.localgid-}" == ~(Elr)[[:digit:]]+ ]] ; then
-				if [[ "$s" == *"+"* ]]; then
-					domain="${s%%+*}"
-					user="${input#*+}"
-				else
-					# No '+' found, fallback to the local machine name
-					domain="${COMPUTERNAME}"
-					user="$s"
-				fi
-
-				gec.localgroupname="${user}@${domain}"
-				gec.nfsownergroup="${user}@${idmap_config.nfsdomain}"
-				(( gec.nfsgid=gec.localgid ))
-				print -v gec
-				exit 0
-			else
-				print -u2 -f "cygwin_idmapper.ksh: getent group %q returned garbage.\n" "${c.name}"
-			fi
-		fi
-
-		print -u2 -f "cygwin_idmapper.ksh: Group %q not found.\n" "${c.name}"
-		exit 1
-		;;
-	*)
-		print -u2 -f "cygwin_idmapper.ksh: Unknown mode %q.\n" "${c.mode}"
-		exit 1
-		;;
-esac
-
+main_dispatch "$@"
+exit $?
 # EOF.

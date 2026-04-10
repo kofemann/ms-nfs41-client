@@ -247,7 +247,7 @@ int cygwin_local_getent_passwd(
     uid_t *restrict res_nfsuid)
 {
     return cygwin_getent_passwd(
-        "localname2localaccount",
+        "lookup_user_by_localname",
         name,
         res_localaccountname,
         res_localuid,
@@ -263,7 +263,7 @@ int cygwin_nfsserver_getent_passwd(
     uid_t *restrict res_nfsuid)
 {
     return cygwin_getent_passwd(
-        "nfsserver_owner2localaccount",
+        "lookup_user_by_nfsserver_owner",
         name,
         res_localaccountname,
         res_localuid,
@@ -466,7 +466,7 @@ int cygwin_local_getent_group(
     gid_t *restrict res_nfsgid)
 {
     return cygwin_getent_group(
-        "localgroup2localgroup",
+        "lookup_group_by_localgroup",
         name,
         res_localgroupname,
         res_localgid,
@@ -482,7 +482,7 @@ int cygwin_nfsserver_getent_group(
     gid_t *restrict res_nfsgid)
 {
     return cygwin_getent_group(
-        "nfsserver_owner_group2localgroup",
+        "lookup_group_by_nfsserver_owner_group",
         name,
         res_localgroupname,
         res_localgid,
