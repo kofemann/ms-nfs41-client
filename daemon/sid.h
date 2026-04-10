@@ -69,15 +69,18 @@ extern sidcache group_sidcache;
 
 
 /* prototypes */
-int create_unknownsid(WELL_KNOWN_SID_TYPE type, PSID *sid, DWORD *sid_len);
+int create_unknownsid(
+    IN WELL_KNOWN_SID_TYPE type,
+    OUT PSID *restrict sid,
+    OUT DWORD *restrict sid_len);
 #ifdef NFS41_DRIVER_FEATURE_MAP_UNMAPPED_USER_TO_UNIXUSER_SID
-bool unixuser_sid2uid(PSID psid, uid_t *puid);
-bool unixgroup_sid2gid(PSID psid, gid_t *pgid);
+bool unixuser_sid2uid(IN SID *restrict psid, OUT uid_t *restrict puid);
+bool unixgroup_sid2gid(IN SID *restrict psid, OUT gid_t *restrict pgid);
 #endif /* NFS41_DRIVER_FEATURE_MAP_UNMAPPED_USER_TO_UNIXUSER_SID */
 void sidcache_init(void);
-void sidcache_add(sidcache *cache, const char* win32name, PSID value);
-PSID *sidcache_getcached_byname(sidcache *cache, const char *win32name);
-bool sidcache_getcached_bysid(sidcache *cache, PSID sid, char *out_win32name);
+void sidcache_add(IN OUT sidcache *cache, IN const char *win32name, IN PSID value);
+PSID *sidcache_getcached_byname(IN OUT sidcache *cache, IN const char *win32name);
+bool sidcache_getcached_bysid(IN OUT sidcache *cache, IN PSID sid, OUT char *out_win32name);
 
 int map_nfs4servername_2_sid(nfs41_daemon_globals *nfs41dg, int query, DWORD *sid_len, PSID *sid, LPCSTR name);
 

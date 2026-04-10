@@ -104,7 +104,9 @@ int convert_nfs4acl_2_dacl(nfs41_daemon_globals *nfs41dg,
     nfsacl41 *acl, int file_type, PACL *dacl_out, PSID **sids_out,
     bool nfs_namedattr_support)
 {
-    int status = ERROR_NOT_SUPPORTED, size = 0;
+    int status = ERROR_NOT_SUPPORTED;
+    BOOL success;
+    int size = 0;
     uint32_t nfs_i = 0, win_i = 0;
     DWORD sid_len;
     PSID *sids;
@@ -154,7 +156,7 @@ int convert_nfs4acl_2_dacl(nfs41_daemon_globals *nfs41dg,
 #endif /* NFS41_DRIVER_ACLS_SETACL_SKIP_WINNULLSID_ACES */
 
         status = check_4_special_identifiers(curr_nfsace->who, &sids[win_i],
-                                             &sid_len, &flag);
+            &sid_len, &flag);
         if (status) {
             free_sids(sids, win_i);
             goto out;
@@ -187,7 +189,7 @@ int convert_nfs4acl_2_dacl(nfs41_daemon_globals *nfs41dg,
             status = map_nfs4servername_2_sid(nfs41dg,
                 (isgroupacl?GROUP_SECURITY_INFORMATION:OWNER_SECURITY_INFORMATION),
                 &sid_len, &sids[win_i], curr_nfsace->who);
-            if (status) {
+            if (status != ERROR_SUCCESS) {
                 free_sids(sids, win_i);
                 goto out;
             }
@@ -202,86 +204,88 @@ int convert_nfs4acl_2_dacl(nfs41_daemon_globals *nfs41dg,
     if (dacl == NULL)
         goto out_free_sids;
 
-    if (InitializeAcl(dacl, size, ACL_REVISION)) {
-        ACCESS_MASK mask;
-        DWORD win_aceflags;
-
-        for (nfs_i = win_i = 0; nfs_i < acl->count; nfs_i++) {
-            nfsace4 *curr_nfsace = &acl->aces[nfs_i];
-
-            if (skip_aces[nfs_i])
-                continue;
-
-            map_nfs4aceflags2winaceflags(curr_nfsace->aceflag,
-                &win_aceflags);
-            map_nfs4acemask2winaccessmask(curr_nfsace->acemask,
-                file_type, nfs_namedattr_support, &mask);
-
-            if (DPRINTF_LEVEL_ENABLED(ACLLVL1)) {
-                dprintf_out("nfs2win: acl->aces[%d].who='%s': "
-                    "acetype='%s', "
-                    "nfs_acemask=0x%lx, win_mask=0x%lx, "
-                    "win_aceflags=0x%lx\n",
-                    nfs_i, curr_nfsace->who,
-                    map_nfs_acetype2str(curr_nfsace->acetype),
-                    (long)curr_nfsace->acemask,
-                    (long)mask,
-                    (long)win_aceflags);
-
-                print_nfs_access_mask(curr_nfsace->who,
-                    curr_nfsace->acemask);
-                print_windows_access_mask(curr_nfsace->who, mask);
-            }
-
-            if (curr_nfsace->acetype == ACE4_ACCESS_ALLOWED_ACE_TYPE) {
-                status = AddAccessAllowedAceEx(dacl, ACL_REVISION,
-                    win_aceflags, mask, sids[win_i]);
-                if (!status) {
-                    eprintf("convert_nfs4acl_2_dacl: "
-                        "AddAccessAllowedAceEx"
-                        "(dacl=0x%p,win_aceflags=0x%x,mask=0x%x,who='%s') "
-                        "failed with lasterr=%d\n",
-                        dacl, (int)win_aceflags, (int)mask,
-                        curr_nfsace->who, (int)GetLastError());
-                    status = ERROR_INTERNAL_ERROR;
-                    goto out_free_dacl;
-                }
-                status = ERROR_SUCCESS;
-            } else if (curr_nfsace->acetype == ACE4_ACCESS_DENIED_ACE_TYPE) {
-                status = AddAccessDeniedAceEx(dacl, ACL_REVISION,
-                    win_aceflags, mask, sids[win_i]);
-                if (!status) {
-                    eprintf("convert_nfs4acl_2_dacl: "
-                        "AddAccessDeniedAceEx"
-                        "(dacl=0x%p,win_aceflags=0x%x,mask=0x%x,who='%s') "
-                        "failed with lasterr=%d\n",
-                        dacl, (int)win_aceflags, (int)mask,
-                        curr_nfsace->who, (int)GetLastError());
-                    status = ERROR_INTERNAL_ERROR;
-                    goto out_free_dacl;
-                }
-                status = ERROR_SUCCESS;
-            } else {
-                eprintf("convert_nfs4acl_2_dacl: unknown acetype %d\n",
-                        curr_nfsace->acetype);
-                status = ERROR_INTERNAL_ERROR;
-                free(dacl);
-                free_sids(sids, win_i);
-                goto out;
-            }
-
-            win_i++;
-        }
-    } else {
-        eprintf("convert_nfs4acl_2_dacl: InitializeAcl failed with %d\n", status);
+    success = InitializeAcl(dacl, size, ACL_REVISION);
+    if (!success) {
+        eprintf("convert_nfs4acl_2_dacl: InitializeAcl() failed with status=%d\n", status);
         goto out_free_dacl;
     }
+
+    ACCESS_MASK mask;
+    DWORD win_aceflags;
+
+    for (nfs_i = win_i = 0; nfs_i < acl->count; nfs_i++) {
+        nfsace4 *curr_nfsace = &acl->aces[nfs_i];
+
+        if (skip_aces[nfs_i])
+            continue;
+
+        map_nfs4aceflags2winaceflags(curr_nfsace->aceflag,
+            &win_aceflags);
+        map_nfs4acemask2winaccessmask(curr_nfsace->acemask,
+            file_type, nfs_namedattr_support, &mask);
+
+        if (DPRINTF_LEVEL_ENABLED(ACLLVL1)) {
+            dprintf_out("nfs2win: acl->aces[%d].who='%s': "
+                "acetype='%s', "
+                "nfs_acemask=0x%lx, win_mask=0x%lx, "
+                "win_aceflags=0x%lx\n",
+                nfs_i, curr_nfsace->who,
+                map_nfs_acetype2str(curr_nfsace->acetype),
+                (long)curr_nfsace->acemask,
+                (long)mask,
+                (long)win_aceflags);
+
+            print_nfs_access_mask(curr_nfsace->who,
+                curr_nfsace->acemask);
+            print_windows_access_mask(curr_nfsace->who, mask);
+        }
+
+        if (curr_nfsace->acetype == ACE4_ACCESS_ALLOWED_ACE_TYPE) {
+            success = AddAccessAllowedAceEx(dacl, ACL_REVISION,
+                win_aceflags, mask, sids[win_i]);
+            if (!success) {
+                eprintf("convert_nfs4acl_2_dacl: "
+                    "AddAccessAllowedAceEx"
+                    "(dacl=0x%p,win_aceflags=0x%x,mask=0x%x,who='%s') "
+                    "failed with status=%d\n",
+                    dacl, (int)win_aceflags, (int)mask,
+                    curr_nfsace->who, (int)GetLastError());
+                status = ERROR_INTERNAL_ERROR;
+                goto out_free_dacl;
+            }
+            status = ERROR_SUCCESS;
+        } else if (curr_nfsace->acetype == ACE4_ACCESS_DENIED_ACE_TYPE) {
+            success = AddAccessDeniedAceEx(dacl, ACL_REVISION,
+                win_aceflags, mask, sids[win_i]);
+            if (!success) {
+                eprintf("convert_nfs4acl_2_dacl: "
+                    "AddAccessDeniedAceEx"
+                    "(dacl=0x%p,win_aceflags=0x%x,mask=0x%x,who='%s') "
+                    "failed with status=%d\n",
+                    dacl, (int)win_aceflags, (int)mask,
+                    curr_nfsace->who, (int)GetLastError());
+                status = ERROR_INTERNAL_ERROR;
+                goto out_free_dacl;
+            }
+            status = ERROR_SUCCESS;
+        } else {
+            eprintf("convert_nfs4acl_2_dacl: unknown acetype %d\n",
+                    curr_nfsace->acetype);
+            status = ERROR_INTERNAL_ERROR;
+            free(dacl);
+            free_sids(sids, win_i);
+            goto out;
+        }
+
+        win_i++;
+    }
+
     status = ERROR_SUCCESS;
     *sids_out = sids;
     *dacl_out = dacl;
 out:
     DPRINTF(ACLLVL2, ("<-- convert_nfs4acl_2_dacl("
-        "acl=0x%p,file_type='%s'(=%d)) returning %d\n",
+        "acl=0x%p,file_type='%s'(=%d)) returning status=%d\n",
         acl, map_nfs_ftype2str(file_type), file_type, status));
     return status;
 out_free_dacl:
@@ -723,7 +727,8 @@ void map_nfs4acemask2winaccessmask(uint32_t nfs4_mask,
 int map_sid2nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid,
     char *who_out, const char *domain, SID_NAME_USE *sid_type_out)
 {
-    int status, lasterr;
+    int status;
+    BOOL success;
     SID_NAME_USE sid_type = 0;
     /* |who_buf| needs space for user+domain */
     char who_buf[UTF8_PRINCIPALLEN+1];
@@ -747,7 +752,7 @@ int map_sid2nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid,
      * but for set_owner attribute we want to map owner into a user name
      * same applies to group
      */
-    status = 0;
+    status = ERROR_SUCCESS;
     if (owner_sid) {
         if (EqualSid(sid, owner_sid)) {
             DPRINTF(ACLLVL2, ("this is owner's sid\n"));
@@ -767,7 +772,7 @@ int map_sid2nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid,
         }
     }
     status = is_well_known_sid(sid, who_out, &sid_type);
-    if (status) {
+    if (status != ERROR_SUCCESS) {
         if (!strncmp(who_out, ACE4_NOBODY, ACE4_NOBODY_LEN)) {
             who_size = (DWORD)ACE4_NOBODY_LEN;
             goto add_domain;
@@ -785,16 +790,14 @@ int map_sid2nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid,
         goto out;
     }
 
-    status = lookupprincipalsidutf8(NULL, sid, who_buf, &who_size, &sid_type);
-    lasterr = GetLastError();
+    success = lookupprincipalsidutf8(NULL, sid, who_buf, &who_size, &sid_type);
 
-    if (status) {
+    if (success) {
         DPRINTF(ACLLVL2, ("map_sid2nfs4ace_who: "
             "LookupAccountSid(sidtostr(sid)='%s', who_buf='%s', "
             "who_size=%d) "
-            "returned success, status=%d, GetLastError=%d\n",
-            sidstr, who_buf, who_size,
-            status, lasterr));
+            "returned success\n",
+            sidstr, who_buf, who_size));
         idmapcache_entry *ie;
 
 #ifdef NFS41_DRIVER_WS2022_HACKS
@@ -883,17 +886,18 @@ int map_sid2nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid,
         /* NOTREACHED */
     }
     else {
+        status = GetLastError();
+
         DPRINTF(ACLLVL2, ("map_sid2nfs4ace_who: "
             "LookupAccountSid(sidtostr(sid)='%s', who_size=%d "
-            "returned failure, status=%d, "
-            "GetLastError=%d\n",
-            sidstr, who_size, status, lasterr));
+            "returned failure, status=%d\n",
+            sidstr, who_size, status));
 
         /*
          * No SID to local account mapping. Can happen for some system
          * SIDs, and Unix_User+<uid> or Unix_Group+<gid> SIDs
          */
-        switch (lasterr) {
+        switch (status) {
             /*
              * This happens for Unix_User+<uid> or Unix_Group+<gid>
              * SIDs
@@ -976,7 +980,6 @@ err_none_mapped:
                     ("map_sid2nfs4ace_who: lookupprincipalsidutf8() "
                     "returned ERROR_NONE_MAPPED for sidstr='%s'\n",
                     sidstr));
-                status = lasterr;
                 goto out;
 #endif /* NFS41_DRIVER_FEATURE_MAP_UNMAPPED_USER_TO_UNIXUSER_SID */
 
@@ -987,7 +990,6 @@ err_none_mapped:
                     "returned ERROR_NO_SUCH_@(USER|GROUP) for "
                     "sidstr='%s'\n",
                     sidstr);
-                status = lasterr;
                 goto out;
             default:
                 eprintf("map_sid2nfs4ace_who: Internal error, "
@@ -1024,14 +1026,14 @@ add_domain:
     (void)memcpy(wp, domain, strlen(domain)+1);
 
 out:
-    if (status) {
+    if (status != ERROR_SUCCESS) {
         DPRINTF(ACLLVL2,
-            ("<-- map_sid2nfs4ace_who() returns %d\n", status));
+            ("<-- map_sid2nfs4ace_who() returns status=%d\n", status));
     }
     else {
         DPRINTF(ACLLVL2,
             ("<-- map_sid2nfs4ace_who(who_out='%s', sid_type='%s'/%d) "
-            "returns %d\n",
+            "returns status=%d\n",
             who_out,
             map_SID_NAME_USE2str(sid_type), sid_type,
             status));
@@ -1048,6 +1050,7 @@ int map_dacl_2_nfs4acl(PACL acl, PSID sid, PSID gsid, nfsacl41 *nfs4_acl,
     int file_type, bool nfs_namedattr_support, const char *domain)
 {
     int status;
+    BOOL success;
     if (acl == NULL) {
         DPRINTF(ACLLVL2, ("this is a NULL dacl: all access to an object\n"));
         nfs4_acl->count = 1;
@@ -1104,10 +1107,11 @@ int map_dacl_2_nfs4acl(PACL acl, PSID sid, PSID gsid, nfsacl41 *nfs4_acl,
             nfsace4 *curr_nfsace = &nfs4_acl->aces[nfs_i];
             PSID ace_sid;
 
-            status = GetAce(acl, win_i, (LPVOID *)&ace);
-            if (!status) {
+            success = GetAce(acl, win_i, (LPVOID *)&ace);
+            if (!success) {
                 status = GetLastError();
-                eprintf("map_dacl_2_nfs4acl: GetAce failed with %d\n", status);
+                eprintf("map_dacl_2_nfs4acl: "
+                    "GetAce() failed with status=%d\n", status);
                 goto out_free;
             }
             tmp_pointer = (PBYTE)ace;
@@ -1162,7 +1166,7 @@ int map_dacl_2_nfs4acl(PACL acl, PSID sid, PSID gsid, nfsacl41 *nfs4_acl,
 
             status = map_sid2nfs4ace_who(ace_sid, sid, gsid,
                 curr_nfsace->who, domain, &who_sid_type);
-            if (status)
+            if (status != ERROR_SUCCESS)
                 goto out_free;
 
             win_mask = *(PACCESS_MASK)(ace + 1);
@@ -1249,9 +1253,11 @@ int map_dacl_2_nfs4acl(PACL acl, PSID sid, PSID gsid, nfsacl41 *nfs4_acl,
 
         nfs4_acl->count = nfs_i;
     }
+
     status = ERROR_SUCCESS;
 out:
     return status;
+
 out_free:
     free(nfs4_acl->aces);
     nfs4_acl->aces = NULL;

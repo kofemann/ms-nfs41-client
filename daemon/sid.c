@@ -42,10 +42,13 @@
 #define ACLLVL 2 /* dprintf level for acl logging */
 
 
-int create_unknownsid(WELL_KNOWN_SID_TYPE type, PSID *sid, DWORD *sid_len)
+int create_unknownsid(
+    IN WELL_KNOWN_SID_TYPE type,
+    OUT PSID *restrict sid,
+    OUT DWORD *restrict sid_len)
 {
+    BOOL success;
     int status;
-    int lasterr;
 
     *sid_len = MAX_SID_BUFFER_SIZE;
     *sid = malloc(*sid_len);
@@ -54,26 +57,25 @@ int create_unknownsid(WELL_KNOWN_SID_TYPE type, PSID *sid, DWORD *sid_len)
         goto err;
     }
 
-    status = CreateWellKnownSid(type, NULL, *sid, sid_len);
-    lasterr = GetLastError();
-    if (status) {
+    success = CreateWellKnownSid(type, NULL, *sid, sid_len);
+    if (success) {
         *sid_len = GetLengthSid(*sid);
 
         DPRINTF(ACLLVL,
             ("create_unknownsid(type=%d): CreateWellKnownSid() "
-            "returned %d GetLastError=%d *sid_len=%d\n",
-            (int)type, status, lasterr, (int)*sid_len));
+            "returned type=%d *sid_len=%d\n",
+            (int)type, (int)*sid_len));
 
         return ERROR_SUCCESS;
     }
 
-    status = lasterr;
+    status = GetLastError();
     free(*sid);
 err:
     *sid = NULL;
     *sid_len = 0;
     eprintf("create_unknownsid(type=%d): "
-        "CreateWellKnownSid failed with %d\n",
+        "CreateWellKnownSid failed, status=%d\n",
         (int)type, status);
     return status;
 }
@@ -119,7 +121,7 @@ bool allocate_unixuser_sid(IN unsigned long uid, OUT PSID *pSid)
 
     if (!InitializeSid(sid, &sid_id_auth, sub_auth_count)) {
         eprintf("allocate_unixuser_sid(): "
-            "InitializeSid() failed for Unix_User+%lu:, lasterr=%d\n",
+            "InitializeSid() failed for Unix_User+%lu:, status=%d\n",
             uid, (int)GetLastError());
         free(sid);
         return false;
@@ -156,7 +158,7 @@ bool allocate_unixgroup_sid(IN unsigned long gid, OUT PSID *pSid)
 
     if (!InitializeSid(sid, &sid_id_auth, sub_auth_count)) {
         eprintf("allocate_unixgroup_sid(): "
-            "InitializeSid() failed for Unix_Group+%lu:, lasterr=%d\n",
+            "InitializeSid() failed for Unix_Group+%lu:, status=%d\n",
             gid, (int)GetLastError());
         free(sid);
         return false;
@@ -173,9 +175,9 @@ bool allocate_unixgroup_sid(IN unsigned long gid, OUT PSID *pSid)
     return true;
 }
 
-bool unixuser_sid2uid(PSID psid, uid_t *puid)
+bool unixuser_sid2uid(IN SID *restrict psid, OUT uid_t *restrict puid)
 {
-    if (!psid)
+    if (psid == NULL)
         return false;
 
     PSID_IDENTIFIER_AUTHORITY psia = GetSidIdentifierAuthority(psid);
@@ -194,9 +196,9 @@ bool unixuser_sid2uid(PSID psid, uid_t *puid)
     return false;
 }
 
-bool unixgroup_sid2gid(PSID psid, gid_t *pgid)
+bool unixgroup_sid2gid(IN SID *restrict psid, OUT gid_t *restrict pgid)
 {
-    if (!psid)
+    if (psid == NULL)
         return false;
 
     PSID_IDENTIFIER_AUTHORITY psia = GetSidIdentifierAuthority(psid);
@@ -264,7 +266,7 @@ void sidcache_init(void)
 }
 
 /* copy SID |value| into cache */
-void sidcache_add(sidcache *cache, const char *win32name, PSID value)
+void sidcache_add(IN OUT sidcache *cache, IN const char *win32name, IN PSID value)
 {
     int i;
     ssize_t freeEntryIndex;
@@ -336,7 +338,7 @@ done:
 }
 
 /* return |malloc()|'ed copy of SID from cache entry */
-PSID *sidcache_getcached_byname(sidcache *cache, const char *win32name)
+PSID *sidcache_getcached_byname(IN OUT sidcache *cache, IN const char *win32name)
 {
     int i;
     util_reltimestamp currentTimestamp;
@@ -371,7 +373,10 @@ done:
     return ret_sid;
 }
 
-bool sidcache_getcached_bysid(sidcache *cache, PSID sid, char *out_win32name)
+bool sidcache_getcached_bysid(
+    IN OUT sidcache *cache,
+    IN PSID sid,
+    OUT char *out_win32name)
 {
     int i;
     util_reltimestamp currentTimestamp;
@@ -411,6 +416,7 @@ int map_nfs4servername_2_sid(
     const char *win32name = NULL;
 
     int status = ERROR_INTERNAL_ERROR;
+    BOOL success;
     SID_NAME_USE sid_type = 0;
 #ifdef NFS41_DRIVER_FEATURE_MAP_UNMAPPED_USER_TO_UNIXUSER_SID
     signed long user_uid = -1;
@@ -479,7 +485,7 @@ int map_nfs4servername_2_sid(
                 ("map_nfs4servername_2_sid: "
                 "returning cached user sid for win32name='%s'\n",
                 win32name));
-            status = 0;
+            status = ERROR_SUCCESS;
             goto out;
         }
 #endif /* NFS41_DRIVER_SID_CACHE */
@@ -497,7 +503,7 @@ int map_nfs4servername_2_sid(
                 ("map_nfs4servername_2_sid: "
                 "returning cached group sid for win32name='%s'\n",
                 win32name));
-            status = 0;
+            status = ERROR_SUCCESS;
             goto out;
         }
 #endif /* NFS41_DRIVER_SID_CACHE */
@@ -511,31 +517,29 @@ int map_nfs4servername_2_sid(
     }
     *sid_len = MAX_SID_BUFFER_SIZE;
 
-    status = lookupprincipalnameutf8(NULL, win32name, *sid, sid_len,
+    success = lookupprincipalnameutf8(NULL, win32name, *sid, sid_len,
         &sid_type);
 
-    if (status) {
+    if (success) {
         /* |lookupprincipalnameutf8()| success */
 
         DPRINTF(ACLLVL,
             ("map_nfs4servername_2_sid(query=0x%x,win32name='%s'): "
-            "lookupprincipalnameutf8() returned status=%d "
-            "GetLastError=%d *sid_len=%d\n",
-            query, win32name, status, (int)GetLastError(), *sid_len));
+            "lookupprincipalnameutf8() returned success, *sid_len=%d\n",
+            query, win32name, *sid_len));
 
-        status = 0;
+        status = ERROR_SUCCESS;
         *sid_len = GetLengthSid(*sid);
         goto out_cache;
     }
 
+    status = GetLastError();
     /* |lookupprincipalnameutf8()| failed... */
     DPRINTF(ACLLVL,
         ("map_nfs4servername_2_sid(query=0x%x,win32name='%s'): "
-        "lookupprincipalnameutf8() returned status=%d "
-        "GetLastError=%d\n",
-        query, win32name, status, (int)GetLastError()));
+        "lookupprincipalnameutf8() failed, status=%d\n",
+        query, win32name, status));
 
-    status = GetLastError();
     switch(status) {
     case ERROR_INSUFFICIENT_BUFFER:
         /*
@@ -579,7 +583,7 @@ int map_nfs4servername_2_sid(
             status = GetLastError();
             DPRINTF(ACLLVL,
                 ("map_nfs4servername_2_sid(query=0x%x,win32name='%s'): "
-                "allocate_unixuser_sid(uid=%ld) failed, error=%d\n",
+                "allocate_unixuser_sid(uid=%ld) failed, status=%d\n",
                 query, win32name, user_uid, status));
             goto out;
         }
@@ -598,7 +602,7 @@ int map_nfs4servername_2_sid(
             status = GetLastError();
             DPRINTF(ACLLVL,
                 ("map_nfs4servername_2_sid(query=0x%x,win32name='%s'): "
-                "allocate_unixgroup_sid(gid=%ld) failed, error=%d\n",
+                "allocate_unixgroup_sid(gid=%ld) failed, status=%d\n",
                 query, win32name, group_gid, status));
             goto out;
         }
@@ -622,7 +626,7 @@ int map_nfs4servername_2_sid(
     }
 out_cache:
 #ifdef NFS41_DRIVER_SID_CACHE
-    if ((status == 0) && *sid) {
+    if ((status == ERROR_SUCCESS) && (*sid != NULL)) {
         if ((query & GROUP_SECURITY_INFORMATION) &&
             (sid_type == SidTypeAlias)) {
             /*
@@ -674,7 +678,7 @@ out_cache:
 
 out:
     if (DPRINTF_LEVEL_ENABLED(ACLLVL)) {
-        if (status) {
+        if (status != ERROR_SUCCESS) {
             dprintf_out("<-- map_nfs4servername_2_sid(query=0x%x,win32name='%s'): "
                 "status=%d\n", query, win32name, status);
         }
@@ -704,7 +708,7 @@ out:
     return status;
 
 out_free_sid:
-    status = GetLastError();
+    /* We assume |status| has been set */
     free(*sid);
     *sid = NULL;
     goto out;
