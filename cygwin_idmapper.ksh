@@ -195,7 +195,7 @@ function setup_windows_builtin_accounts
 	# Process Windows builtin users
 	#
 	for s in "${!windows_builtin_user_list[@]}" ; do
-		nameref n=windows_builtin_user_list[$s]
+		nameref n=windows_builtin_user_list["$s"]
 
 		compound gpc
 		parse_getent_passwd2compound gpc "$(getent passwd ${n.sid})"
@@ -226,7 +226,7 @@ function setup_windows_builtin_accounts
 	# Process Windows builtin groups
 	#
 	for s in "${!windows_builtin_group_list[@]}" ; do
-		nameref n=windows_builtin_group_list[$s]
+		nameref n=windows_builtin_group_list["$s"]
 
 		# (we use getent passwd here because getent group does not give us a domain name)
 		compound gpc
@@ -588,16 +588,16 @@ function main_dispatch
 			#
 			if [[ "${c.name}" == ~(Elr)[[:digit:]]+ ]] ; then
 				for s in "${!c.localusers[@]}" ; do
-					if (( c.localusers[$s].localuid == c.name )) ; then
-						print -v c.localusers[$s]
+					if (( c.localusers["$s"].localuid == c.name )) ; then
+						print -v c.localusers["$s"]
 						return 0
 					fi
 				done
 				# getent passwd accepts numeric uids too, so continue below
 			else
 				for s in "${!c.localusers[@]}" ; do
-					if [[ "${c.localusers[$s].localaccountname}" == "${c.name}" ]] ; then
-						print -v c.localusers[$s]
+					if [[ "${c.localusers["$s"].localaccountname}" == "${c.name}" ]] ; then
+						print -v c.localusers["$s"]
 						return 0
 					fi
 				done
@@ -639,16 +639,16 @@ function main_dispatch
 			#
 			if [[ "${c.name}" == ~(Elr)[[:digit:]]+ ]] ; then
 				for s in "${!c.localgroups[@]}" ; do
-					if (( c.localgroups[$s].localgid == c.name )) ; then
-						print -v c.localgroups[$s]
+					if (( c.localgroups["$s"].localgid == c.name )) ; then
+						print -v c.localgroups["$s"]
 						return 0
 					fi
 				done
 				# getent group accepts numeric gids too, so continue below
 			else
 				for s in "${!c.localgroups[@]}" ; do
-					if [[ "${c.localgroups[$s].localgroupname}" == "${c.name}" ]] ; then
-						print -v c.localgroups[$s]
+					if [[ "${c.localgroups["$s"].localgroupname}" == "${c.name}" ]] ; then
+						print -v c.localgroups["$s"]
 						return 0
 					fi
 				done
@@ -699,8 +699,8 @@ function main_dispatch
 			if [[ "${c.name}" == ~(Elr)[[:digit:]]+ ]] ; then
 				# Numeric ? Try looking up static UID
 				for s in "${!c.localusers[@]}" ; do
-					if (( c.localusers[$s].nfsuid == c.name )) ; then
-						print -v c.localusers[$s]
+					if (( c.localusers["$s"].nfsuid == c.name )) ; then
+						print -v c.localusers["$s"]
 						return 0
 					fi
 				done
@@ -708,8 +708,8 @@ function main_dispatch
 			else
 				# Search for user name
 				for s in "${!c.localusers[@]}" ; do
-					if [[ "${c.localusers[$s].nfsowner}" == "${c.name}" ]] ; then
-						print -v c.localusers[$s]
+					if [[ "${c.localusers["$s"].nfsowner}" == "${c.name}" ]] ; then
+						print -v c.localusers["$s"]
 						return 0
 					fi
 				done
@@ -751,8 +751,8 @@ function main_dispatch
 			if [[ "${c.name}" == ~(Elr)[[:digit:]]+ ]] ; then
 				# Numeric ? Try looking up static UID
 				for s in "${!c.localgroups[@]}" ; do
-					if (( c.localgroups[$s].localgid == c.name )) ; then
-						print -v c.localgroups[$s]
+					if (( c.localgroups["$s"].localgid == c.name )) ; then
+						print -v c.localgroups["$s"]
 						return 0
 					fi
 				done
@@ -760,8 +760,8 @@ function main_dispatch
 			else
 				# Search for group name
 				for s in "${!c.localgroups[@]}" ; do
-					if [[ "${c.localgroups[$s].nfsownergroup}" == "${c.name}" ]] ; then
-						print -v c.localgroups[$s]
+					if [[ "${c.localgroups["$s"].nfsownergroup}" == "${c.name}" ]] ; then
+						print -v c.localgroups["$s"]
 						return 0
 					fi
 				done
