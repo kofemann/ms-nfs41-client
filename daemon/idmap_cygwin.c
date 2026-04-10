@@ -498,6 +498,9 @@ int cygwin_nfsserver_getent_group(
 struct idmapcache_node {
     struct _idmapcache_entry entry;
 
+    char win32name_buffer[IDMAPCACHE_MAXNAME_LEN];
+    char nfsname_buffer[IDMAPCACHE_MAXNAME_LEN];
+
     LIST_ENTRY(idmapcache_node) list_node;
     volatile LONG refcounter;
 };
@@ -661,15 +664,17 @@ idmapcache_entry *idmapcache_add(idmapcache_context *restrict ctx,
      */
     new_node->refcounter = 1L + 1L;
 
-    (void)memcpy(new_node->entry.win32name.buf, win32name, win32name_len);
-    new_node->entry.win32name.buf[win32name_len] = '\0';
+    (void)memcpy(new_node->win32name_buffer, win32name, win32name_len);
+    new_node->win32name_buffer[win32name_len] = '\0';
     new_node->entry.win32name.len = win32name_len;
+    new_node->entry.win32name.buf = new_node->win32name_buffer;
 
     new_node->entry.localid = localid;
 
-    (void)memcpy(new_node->entry.nfsname.buf, nfsname, nfsname_len);
-    new_node->entry.nfsname.buf[nfsname_len] = '\0';
+    (void)memcpy(new_node->nfsname_buffer, nfsname, nfsname_len);
+    new_node->nfsname_buffer[nfsname_len] = '\0';
     new_node->entry.nfsname.len = nfsname_len;
+    new_node->entry.nfsname.buf = new_node->nfsname_buffer;
 
     new_node->entry.nfsid = nfsid;
 
@@ -691,9 +696,9 @@ idmapcache_entry *idmapcache_lookup_by_win32name(idmapcache_context *restrict ct
 {
     idmap_namestr search_term;
     search_term.len = strlen(win32name);
+    search_term.buf = win32name;
     if (search_term.len >= IDMAPCACHE_MAXNAME_LEN)
         return NULL;
-    (void)memcpy(search_term.buf, win32name, search_term.len);
 
     return idmapcache_lookup(ctx, cmp_by_win32name, &search_term);
 }
@@ -709,9 +714,9 @@ idmapcache_entry *idmapcache_lookup_by_nfsname(idmapcache_context *restrict ctx,
 {
     idmap_namestr search_term;
     search_term.len = strlen(nfsname);
+    search_term.buf = nfsname;
     if (search_term.len >= IDMAPCACHE_MAXNAME_LEN)
         return NULL;
-    (void)memcpy(search_term.buf, nfsname, search_term.len);
 
     return idmapcache_lookup(ctx, cmp_by_nfsname, &search_term);
 }

@@ -72,7 +72,7 @@ int cygwin_nfsserver_getent_group(
 typedef signed long idmapcache_idnumber;
 
 typedef struct _idmap_namestr {
-    char buf[IDMAPCACHE_MAXNAME_LEN];
+    const char *buf; /* ptr to buffer in the idmapper provider private data */
     size_t len;
 } idmap_namestr;
 
