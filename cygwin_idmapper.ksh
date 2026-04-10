@@ -320,7 +320,7 @@ function setup_site_system_accounts
 	return 0
 }
 
-function setup_site_accounts
+function setup_site_accounts_lab_example1
 {
 	nameref c=$1
 
@@ -357,6 +357,43 @@ function setup_site_accounts
 			localgid=1818
 			nfsownergroup="swulsch@${idmap_config.nfsdomain}"
 			nfsgid=1818
+		)
+	)
+
+	return 0
+}
+
+function setup_site_accounts_rovemadomain_example2
+{
+	nameref c=$1
+
+	c.localusers+=(
+		#
+		# Site-specific users
+		#
+		["roland.mainz"]=(
+			localaccountname="roland.mainz@GLOBAL"
+			localuid=1059696
+			nfsowner="rmainz@${idmap_config.nfsdomain}"
+			nfsuid=1616
+		)
+		["Siegfried.Wulsch"]=(
+			localaccountname="Siegfried.Wulsch@GLOBAL"
+			localuid=1050083
+			nfsowner="swulsch@${idmap_config.nfsdomain}"
+			nfsuid=1818
+		)
+	)
+
+	c.localgroups+=(
+		#
+		# Site-specific groups
+		#
+		['Domain Users']=(
+			localgroupname="Domain Users@GLOBAL"
+			localgid=1049089
+			nfsownergroup="Domain_Users@global.loc"
+			nfsgid=1049089
 		)
 	)
 
@@ -579,7 +616,8 @@ function main_dispatch
 
 	setup_windows_builtin_accounts c
 	setup_site_system_accounts c
-	setup_site_accounts c
+	setup_site_accounts_lab_example1 c
+	#setup_site_accounts_rovemadomain_example2 c
 
 	case "${c.mode-}" in
 		'lookup_user_by_localname')
