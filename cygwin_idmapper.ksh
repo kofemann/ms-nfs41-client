@@ -664,7 +664,7 @@ function main_dispatch
 				parse_getent_group2compound pgec "${stdout}"
 				if (( $? == 0 )) ; then
 					if [[ "${pgec.gid-}" == ~(Elr)[[:digit:]]+ ]] ; then
-						if [[ "$s" == *"+"* ]]; then
+						if [[ "${pgec.group_name}" == *"+"* ]]; then
 							domain="${pgec.group_name%%+*}"
 							user="${input#*+}"
 						else
@@ -777,7 +777,7 @@ function main_dispatch
 				parse_getent_group2compound pgec "${stdout}"
 				if (( $? == 0 )) ; then
 					if [[ "${pgec.gid-}" == ~(Elr)[[:digit:]]+ ]] ; then
-						if [[ "$s" == *"+"* ]]; then
+						if [[ "${pgec.group_name}" == *"+"* ]]; then
 							domain="${pgec.group_name%%+*}"
 							user="${input#*+}"
 						else
