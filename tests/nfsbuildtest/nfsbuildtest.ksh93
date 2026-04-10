@@ -1356,10 +1356,10 @@ function simplenfs_build
 	set -o errexit
 
 	# get Maven
-	wget 'https://dlcdn.apache.org/maven/maven-3/3.9.13/binaries/apache-maven-3.9.13-bin.zip'
-	unzip apache-maven-3.9.13-bin.zip
-	chmod a+x $(find 'apache-maven-3.9.13' -iname \*.dll)
-	export PATH+=":$PWD/apache-maven-3.9.13/bin"
+	wget 'https://dlcdn.apache.org/maven/maven-3/3.9.14/binaries/apache-maven-3.9.14-bin.zip'
+	unzip apache-maven-3.9.14-bin.zip
+	chmod a+x $(find 'apache-maven-3.9.14' -iname \*.dll)
+	export PATH+=":$PWD/apache-maven-3.9.14/bin"
 
 	# set maven repository cache
 	m2_repository_dir="$PWD/m2_repository"
