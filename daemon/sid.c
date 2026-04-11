@@ -649,11 +649,11 @@ out_cache:
 #ifdef NFS41_DRIVER_WS2022_HACKS
         if ((query & OWNER_SECURITY_INFORMATION) &&
             (sid_type == SidTypeWellKnownGroup)) {
-            /* FIXME: This does not handle Win32 localised account names */
-            if (strncmp(win32name, "SYSTEM@", 7) == 0) {
+            if (IsWellKnownSid(*sid, WinLocalSystemSid)) {
                 DPRINTF(1,
                     ("map_nfs4servername_2_sid(query=0x%x,win32name='%s'): "
-                    "SID_TYPE='SidTypeWellKnownGroup' mapped to 'SidTypeUser' for user\n",
+                    "SID_TYPE='SidTypeWellKnownGroup' mapped to 'SidTypeUser' "
+                    "for account 'SYSTEM'\n",
                     query, win32name));
                 sid_type = SidTypeUser;
             }
