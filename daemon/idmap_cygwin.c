@@ -647,20 +647,20 @@ idmapcache_entry *idmapcache_add(idmapcache_context *restrict ctx,
 {
     size_t win32name_len = strlen(win32name);
     if (win32name_len >= IDMAPCACHE_MAXNAME_LEN)
-        return false;
+        return NULL;
 
     size_t nfsname_len = strlen(nfsname);
     if (nfsname_len >= IDMAPCACHE_MAXNAME_LEN)
-        return false;
+        return NULL;
 
     struct idmapcache_node *new_node = malloc(sizeof(struct idmapcache_node));
     if (new_node == NULL)
-        return false;
+        return NULL;
 
     (void)memset(new_node, 0, sizeof(*new_node)); /* only debug */
     /*
      * Refcounter: One count to stay valid in the list,
-     * and one count for the return cod
+     * and one count for node pointer we return
      */
     new_node->refcounter = 1L + 1L;
 
@@ -734,7 +734,6 @@ idmapcache_entry *idmapcache_lookup_by_nfsid(idmapcache_context *restrict ctx,
 idmapcache_entry *nfs41_idmap_user_lookup_by_win32name(struct idmap_context *context,
     const char *restrict name)
 {
-    int status = ERROR_NOT_FOUND;
     idmapcache_entry *ie;
 
     DPRINTF(CYGWINIDLVL,
@@ -743,7 +742,6 @@ idmapcache_entry *nfs41_idmap_user_lookup_by_win32name(struct idmap_context *con
 
     ie = idmapcache_lookup_by_win32name(context->usercache, name);
     if (ie != NULL) {
-        status = ERROR_SUCCESS;
         goto out;
     }
 
@@ -776,18 +774,14 @@ idmapcache_entry *nfs41_idmap_user_lookup_by_win32name(struct idmap_context *con
                 ("nfs41_idmap_user_lookup_by_win32name(name='%s'): idmapcache_add() failed\n",
                 name));
         }
-        else {
-            status = ERROR_SUCCESS;
-        }
     }
 
 out:
     if (ie != NULL) {
         DPRINTF(CYGWINIDLVL,
             ("<-- nfs41_idmap_user_lookup_by_win32name(name='%s'): "
-            "returning status=%d / user ie(=0x%p)={ win32name='%s', localuid=%ld, nfsname='%s', nfsid=%ld\n",
+            "returning user ie(=0x%p)={ win32name='%s', localuid=%ld, nfsname='%s', nfsid=%ld\n",
             name,
-            status,
             (void *)ie,
             ie->win32name.buf,
             (long)ie->localid,
@@ -797,9 +791,8 @@ out:
     else {
         DPRINTF(CYGWINIDLVL,
             ("<-- nfs41_idmap_user_lookup_by_win32name(name='%s'): "
-            "returning status=%d / ie=NULL\n",
-            name,
-            status));
+            "ie==NULL\n",
+            name));
     }
 
     return ie;
@@ -808,7 +801,6 @@ out:
 idmapcache_entry *nfs41_idmap_user_lookup_by_localid(struct idmap_context *context,
     idmapcache_idnumber search_localid)
 {
-    int status = ERROR_NOT_FOUND;
     idmapcache_entry *ie;
 
     DPRINTF(CYGWINIDLVL,
@@ -817,7 +809,6 @@ idmapcache_entry *nfs41_idmap_user_lookup_by_localid(struct idmap_context *conte
 
     ie = idmapcache_lookup_by_localid(context->usercache, search_localid);
     if (ie != NULL) {
-        status = ERROR_SUCCESS;
         goto out;
     }
 
@@ -852,18 +843,14 @@ idmapcache_entry *nfs41_idmap_user_lookup_by_localid(struct idmap_context *conte
                 ("nfs41_idmap_user_lookup_by_localid(search_localid=%ld): idmapcache_add() failed\n",
                 (long)search_localid));
         }
-        else {
-            status = ERROR_SUCCESS;
-        }
     }
 
 out:
     if (ie != NULL) {
         DPRINTF(CYGWINIDLVL,
             ("<-- nfs41_idmap_user_lookup_by_localid(search_localid=%ld): "
-            "returning status=%d / user ie(=0x%p)={ win32name='%s', localuid=%ld, nfsname='%s', nfsid=%ld\n",
+            "returning user ie(=0x%p)={ win32name='%s', localuid=%ld, nfsname='%s', nfsid=%ld\n",
             (long)search_localid,
-            status,
             (void *)ie,
             ie->win32name.buf,
             (long)ie->localid,
@@ -873,9 +860,8 @@ out:
     else {
         DPRINTF(CYGWINIDLVL,
             ("<-- nfs41_idmap_user_lookup_by_localid(search_localid=%ld): "
-            "returning status=%d / ie=NULL\n",
-            (long)search_localid,
-            status));
+            "returning ie==NULL\n",
+            (long)search_localid));
     }
 
     return ie;
@@ -884,7 +870,6 @@ out:
 idmapcache_entry *nfs41_idmap_user_lookup_by_nfsname(struct idmap_context *context,
     const char *restrict name)
 {
-    int status = ERROR_NOT_FOUND;
     idmapcache_entry *ie;
 
     DPRINTF(CYGWINIDLVL,
@@ -893,7 +878,6 @@ idmapcache_entry *nfs41_idmap_user_lookup_by_nfsname(struct idmap_context *conte
 
     ie = idmapcache_lookup_by_nfsname(context->usercache, name);
     if (ie != NULL) {
-        status = ERROR_SUCCESS;
         goto out;
     }
 
@@ -926,18 +910,14 @@ idmapcache_entry *nfs41_idmap_user_lookup_by_nfsname(struct idmap_context *conte
                 ("nfs41_idmap_user_lookup_by_nfsname(name='%s'): idmapcache_add() failed\n",
                 name));
         }
-        else {
-            status = ERROR_SUCCESS;
-        }
     }
 
 out:
     if (ie != NULL) {
         DPRINTF(CYGWINIDLVL,
             ("<-- nfs41_idmap_user_lookup_by_nfsname(name='%s'): "
-            "returning status=%d / user ie(=0x%p)={ win32name='%s', localuid=%ld, nfsname='%s', nfsid=%ld\n",
+            "returning user ie(=0x%p)={ win32name='%s', localuid=%ld, nfsname='%s', nfsid=%ld\n",
             name,
-            status,
             (void *)ie,
             ie->win32name.buf,
             (long)ie->localid,
@@ -947,9 +927,8 @@ out:
     else {
         DPRINTF(CYGWINIDLVL,
             ("<-- nfs41_idmap_user_lookup_by_nfsname(name='%s'): "
-            "returning status=%d / ie=NULL\n",
-            name,
-            status));
+            "returning ie==NULL\n",
+            name));
     }
 
     return ie;
@@ -958,7 +937,6 @@ out:
 idmapcache_entry *nfs41_idmap_user_lookup_by_nfsid(struct idmap_context *context,
     idmapcache_idnumber search_nfsid)
 {
-    int status = ERROR_NOT_FOUND;
     idmapcache_entry *ie;
 
     DPRINTF(CYGWINIDLVL,
@@ -967,7 +945,6 @@ idmapcache_entry *nfs41_idmap_user_lookup_by_nfsid(struct idmap_context *context
 
     ie = idmapcache_lookup_by_nfsid(context->usercache, search_nfsid);
     if (ie != NULL) {
-        status = ERROR_SUCCESS;
         goto out;
     }
 
@@ -1002,18 +979,14 @@ idmapcache_entry *nfs41_idmap_user_lookup_by_nfsid(struct idmap_context *context
                 ("nfs41_idmap_user_lookup_by_nfsid(search_nfsid=%ld): idmapcache_add() failed\n",
                 (long)search_nfsid));
         }
-        else {
-            status = ERROR_SUCCESS;
-        }
     }
 
 out:
     if (ie != NULL) {
         DPRINTF(CYGWINIDLVL,
             ("<-- nfs41_idmap_user_lookup_by_nfsid(search_nfsid=%ld): "
-            "returning status=%d / user ie(=0x%p)={ win32name='%s', localuid=%ld, nfsname='%s', nfsid=%ld\n",
+            "returning user ie(=0x%p)={ win32name='%s', localuid=%ld, nfsname='%s', nfsid=%ld\n",
             (long)search_nfsid,
-            status,
             (void *)ie,
             ie->win32name.buf,
             (long)ie->localid,
@@ -1023,9 +996,8 @@ out:
     else {
         DPRINTF(CYGWINIDLVL,
             ("<-- nfs41_idmap_user_lookup_by_nfsid(search_nfsid=%ld): "
-            "returning status=%d / ie=NULL\n",
-            (long)search_nfsid,
-            status));
+            "returning ie==NULL\n",
+            (long)search_nfsid));
     }
 
     return ie;
@@ -1034,7 +1006,6 @@ out:
 idmapcache_entry *nfs41_idmap_group_lookup_by_win32name(struct idmap_context *context,
     const char *restrict name)
 {
-    int status = ERROR_NOT_FOUND;
     idmapcache_entry *ie;
 
     DPRINTF(CYGWINIDLVL,
@@ -1042,7 +1013,6 @@ idmapcache_entry *nfs41_idmap_group_lookup_by_win32name(struct idmap_context *co
 
     ie = idmapcache_lookup_by_win32name(context->groupcache, name);
     if (ie != NULL) {
-        status = ERROR_SUCCESS;
         goto out;
     }
 
@@ -1074,18 +1044,14 @@ idmapcache_entry *nfs41_idmap_group_lookup_by_win32name(struct idmap_context *co
             DPRINTF(0,
                 ("nfs41_idmap_group_lookup_by_win32name(name='%s'): idmapcache_add() failed\n", name));
         }
-        else {
-            status = ERROR_SUCCESS;
-        }
     }
 
 out:
     if (ie != NULL) {
         DPRINTF(CYGWINIDLVL,
             ("<-- nfs41_idmap_group_lookup_by_win32name(name='%s'): "
-            "returning status=%d / user ie(=0x%p)={ win32name='%s', localgid=%ld, nfsname='%s', nfsid=%ld\n",
+            "returning user ie(=0x%p)={ win32name='%s', localgid=%ld, nfsname='%s', nfsid=%ld\n",
             name,
-            status,
             (void *)ie,
             ie->win32name.buf,
             (long)ie->localid,
@@ -1095,9 +1061,8 @@ out:
     else {
         DPRINTF(CYGWINIDLVL,
             ("<-- nfs41_idmap_group_lookup_by_win32name(name='%s'): "
-            "returning status=%d / ie=NULL\n",
-            name,
-            status));
+            "returning ie==NULL\n",
+            name));
     }
 
     return ie;
@@ -1106,7 +1071,6 @@ out:
 idmapcache_entry *nfs41_idmap_group_lookup_by_localid(struct idmap_context *context,
     idmapcache_idnumber search_localid)
 {
-    int status = ERROR_NOT_FOUND;
     idmapcache_entry *ie;
 
     DPRINTF(CYGWINIDLVL,
@@ -1115,7 +1079,6 @@ idmapcache_entry *nfs41_idmap_group_lookup_by_localid(struct idmap_context *cont
 
     ie = idmapcache_lookup_by_localid(context->groupcache, search_localid);
     if (ie != NULL) {
-        status = ERROR_SUCCESS;
         goto out;
     }
 
@@ -1150,18 +1113,14 @@ idmapcache_entry *nfs41_idmap_group_lookup_by_localid(struct idmap_context *cont
                 ("nfs41_idmap_group_lookup_by_localid(search_localid=%ld): idmapcache_add() failed\n",
                 (long)search_localid));
         }
-        else {
-            status = ERROR_SUCCESS;
-        }
     }
 
 out:
     if (ie != NULL) {
         DPRINTF(CYGWINIDLVL,
             ("<-- nfs41_idmap_group_lookup_by_localid(search_localid=%ld): "
-            "returning status=%d / user ie(=0x%p)={ win32name='%s', localgid=%ld, nfsname='%s', nfsid=%ld\n",
+            "returning user ie(=0x%p)={ win32name='%s', localgid=%ld, nfsname='%s', nfsid=%ld\n",
             (long)search_localid,
-            status,
             (void *)ie,
             ie->win32name.buf,
             (long)ie->localid,
@@ -1171,9 +1130,8 @@ out:
     else {
         DPRINTF(CYGWINIDLVL,
             ("<-- nfs41_idmap_group_lookup_by_localid(search_localid=%ld): "
-            "returning status=%d / ie=NULL\n",
-            (long)search_localid,
-            status));
+            "returning ie==NULL\n",
+            (long)search_localid));
     }
 
     return ie;
@@ -1182,7 +1140,6 @@ out:
 idmapcache_entry *nfs41_idmap_group_lookup_by_nfsname(struct idmap_context *context,
     const char *restrict name)
 {
-    int status = ERROR_NOT_FOUND;
     idmapcache_entry *ie;
 
     DPRINTF(CYGWINIDLVL,
@@ -1191,7 +1148,6 @@ idmapcache_entry *nfs41_idmap_group_lookup_by_nfsname(struct idmap_context *cont
 
     ie = idmapcache_lookup_by_nfsname(context->groupcache, name);
     if (ie != NULL) {
-        status = ERROR_SUCCESS;
         goto out;
     }
 
@@ -1224,18 +1180,14 @@ idmapcache_entry *nfs41_idmap_group_lookup_by_nfsname(struct idmap_context *cont
                 ("nfs41_idmap_group_lookup_by_nfsname(name='%s'): idmapcache_add() failed\n",
                 name));
         }
-        else {
-            status = ERROR_SUCCESS;
-        }
     }
 
 out:
     if (ie != NULL) {
         DPRINTF(CYGWINIDLVL,
             ("<-- nfs41_idmap_group_lookup_by_nfsname(name='%s'): "
-            "returning status=%d / user ie(=0x%p)={ win32name='%s', localgid=%ld, nfsname='%s', nfsid=%ld\n",
+            "returning user ie(=0x%p)={ win32name='%s', localgid=%ld, nfsname='%s', nfsid=%ld\n",
             name,
-            status,
             (void *)ie,
             ie->win32name.buf,
             (long)ie->localid,
@@ -1245,9 +1197,8 @@ out:
     else {
         DPRINTF(CYGWINIDLVL,
             ("<-- nfs41_idmap_group_lookup_by_nfsname(name='%s'): "
-            "returning status=%d / ie=NULL\n",
-            name,
-            status));
+            "returning ie==NULL\n",
+            name));
     }
 
     return ie;
@@ -1256,7 +1207,6 @@ out:
 idmapcache_entry *nfs41_idmap_group_lookup_by_nfsid(struct idmap_context *context,
     idmapcache_idnumber search_nfsid)
 {
-    int status = ERROR_NOT_FOUND;
     idmapcache_entry *ie;
 
     DPRINTF(CYGWINIDLVL,
@@ -1265,7 +1215,6 @@ idmapcache_entry *nfs41_idmap_group_lookup_by_nfsid(struct idmap_context *contex
 
     ie = idmapcache_lookup_by_nfsid(context->groupcache, search_nfsid);
     if (ie != NULL) {
-        status = ERROR_SUCCESS;
         goto out;
     }
 
@@ -1300,18 +1249,14 @@ idmapcache_entry *nfs41_idmap_group_lookup_by_nfsid(struct idmap_context *contex
                 ("nfs41_idmap_group_lookup_by_nfsid(search_nfsid=%ld): idmapcache_add() failed\n",
                 (long)search_nfsid));
         }
-        else {
-            status = ERROR_SUCCESS;
-        }
     }
 
 out:
     if (ie != NULL) {
         DPRINTF(CYGWINIDLVL,
             ("<-- nfs41_idmap_group_lookup_by_nfsid(search_nfsid=%ld): "
-            "returning status=%d / user ie(=0x%p)={ win32name='%s', localgid=%ld, nfsname='%s', nfsid=%ld\n",
+            "returning user ie(=0x%p)={ win32name='%s', localgid=%ld, nfsname='%s', nfsid=%ld\n",
             (long)search_nfsid,
-            status,
             (void *)ie,
             ie->win32name.buf,
             (long)ie->localid,
@@ -1321,9 +1266,8 @@ out:
     else {
         DPRINTF(CYGWINIDLVL,
             ("<-- nfs41_idmap_group_lookup_by_nfsid(search_nfsid=%ld): "
-            "returning status=%d / ie=NULL\n",
-            (long)search_nfsid,
-            status));
+            "returning ie==NULL\n",
+            (long)search_nfsid));
     }
 
     return ie;
