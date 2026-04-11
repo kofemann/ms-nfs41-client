@@ -764,6 +764,13 @@ idmapcache_entry *nfs41_idmap_user_lookup_by_win32name(struct idmap_context *con
             nfsowner,
             (long)nfsuid));
 
+        if (strcmp(name, localname) != 0) {
+            eprintf("nfs41_idmap_user_lookup_by_win32name: "
+            "idmapper internal error, query name(='%s') != localname(='%s')\n",
+            name, localname);
+            goto out;
+        }
+
         ie = idmapcache_add(context->usercache,
             localname,
             localuid,
@@ -834,6 +841,13 @@ idmapcache_entry *nfs41_idmap_user_lookup_by_localid(struct idmap_context *conte
             nfsowner,
             (long)nfsuid));
 
+        if (search_localid != (idmapcache_idnumber)localuid) {
+            eprintf("nfs41_idmap_user_lookup_by_localid: "
+            "idmapper internal error, query search_localid(=%ld) != localuid(=%ld)\n",
+            search_localid, localuid);
+            goto out;
+        }
+
         ie = idmapcache_add(context->usercache,
             localname,
             localuid,
@@ -900,6 +914,13 @@ idmapcache_entry *nfs41_idmap_user_lookup_by_nfsname(struct idmap_context *conte
             (long)localuid,
             nfsowner,
             (long)nfsuid));
+
+        if (strcmp(name, nfsowner) != 0) {
+            eprintf("nfs41_idmap_user_lookup_by_nfsname: "
+            "idmapper internal error, query name(='%s') != nfsowner(='%s')\n",
+            name, nfsowner);
+            goto out;
+        }
 
         ie = idmapcache_add(context->usercache,
             localname,
@@ -971,6 +992,13 @@ idmapcache_entry *nfs41_idmap_user_lookup_by_nfsid(struct idmap_context *context
             nfsowner,
             (long)nfsuid));
 
+        if (search_nfsid != (idmapcache_idnumber)nfsuid) {
+            eprintf("nfs41_idmap_user_lookup_by_nfsid: "
+            "idmapper internal error, query search_nfsid(=%ld) != nfsuid(=%ld)\n",
+            search_nfsid, nfsuid);
+            goto out;
+        }
+
         ie = idmapcache_add(context->usercache,
             localname,
             localuid,
@@ -1036,6 +1064,13 @@ idmapcache_entry *nfs41_idmap_group_lookup_by_win32name(struct idmap_context *co
             (long)localgid,
             nfsownergroup,
             (long)nfsgid));
+
+        if (strcmp(name, localname) != 0) {
+            eprintf("nfs41_idmap_group_lookup_by_win32name: "
+            "idmapper internal error, query name(='%s') != localname(='%s')\n",
+            name, localname);
+            goto out;
+        }
 
         ie = idmapcache_add(context->groupcache,
             localname,
@@ -1106,6 +1141,13 @@ idmapcache_entry *nfs41_idmap_group_lookup_by_localid(struct idmap_context *cont
             nfsownergroup,
             (long)nfsgid));
 
+        if (search_localid != (idmapcache_idnumber)localgid) {
+            eprintf("nfs41_idmap_group_lookup_by_localid: "
+            "idmapper internal error, query search_localid(=%ld) != localgid(=%ld)\n",
+            search_localid, localgid);
+            goto out;
+        }
+
         ie = idmapcache_add(context->groupcache,
             localname,
             localgid,
@@ -1172,6 +1214,13 @@ idmapcache_entry *nfs41_idmap_group_lookup_by_nfsname(struct idmap_context *cont
             (long)localgid,
             nfsownergroup,
             (long)nfsgid));
+
+        if (strcmp(name, nfsownergroup) != 0) {
+            eprintf("nfs41_idmap_group_lookup_by_nfsname: "
+            "idmapper internal error, query name(='%s') != nfsownergroup(='%s')\n",
+            name, nfsownergroup);
+            goto out;
+        }
 
         ie = idmapcache_add(context->groupcache,
             localname,
@@ -1242,6 +1291,13 @@ idmapcache_entry *nfs41_idmap_group_lookup_by_nfsid(struct idmap_context *contex
             (long)localgid,
             nfsownergroup,
             (long)nfsgid));
+
+        if (search_nfsid != (idmapcache_idnumber)nfsgid) {
+            eprintf("nfs41_idmap_group_lookup_by_nfsid: "
+            "idmapper internal error, query search_nfsid(=%ld) != nfsgid(=%ld)\n",
+            search_nfsid, nfsgid);
+            goto out;
+        }
 
         ie = idmapcache_add(context->groupcache,
             localname,
