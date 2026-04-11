@@ -817,7 +817,8 @@ idmapcache_entry *nfs41_idmap_user_lookup_by_localid(struct idmap_context *conte
     char nfsowner[IDMAPCACHE_MAXNAME_LEN];
     uid_t nfsuid;
     char name[64];
-    (void)sprintf(name, "%ld", (long)search_localid);
+
+    (void)_ltoa((long)search_localid, name, 10);
 
     if (!cygwin_local_getent_passwd(name,
         localname,
@@ -953,7 +954,8 @@ idmapcache_entry *nfs41_idmap_user_lookup_by_nfsid(struct idmap_context *context
     char nfsowner[IDMAPCACHE_MAXNAME_LEN];
     uid_t nfsuid;
     char name[64];
-    (void)sprintf(name, "%ld", (long)search_nfsid);
+
+    (void)_ltoa((long)search_nfsid, name, 10);
 
     if (!cygwin_nfsserver_getent_passwd(name,
         localname,
@@ -1087,7 +1089,8 @@ idmapcache_entry *nfs41_idmap_group_lookup_by_localid(struct idmap_context *cont
     char nfsownergroup[IDMAPCACHE_MAXNAME_LEN];
     gid_t nfsgid;
     char name[64];
-    (void)sprintf(name, "%ld", (long)search_localid);
+
+    (void)_ltoa((long)search_localid, name, 10);
 
     if (!cygwin_local_getent_group(name,
         localname,
@@ -1223,7 +1226,8 @@ idmapcache_entry *nfs41_idmap_group_lookup_by_nfsid(struct idmap_context *contex
     char nfsownergroup[IDMAPCACHE_MAXNAME_LEN];
     gid_t nfsgid;
     char name[64];
-    (void)sprintf(name, "%ld", (long)search_nfsid);
+
+    (void)_ltoa((long)search_nfsid, name, 10);
 
     if (!cygwin_nfsserver_getent_group(name,
         localname,
