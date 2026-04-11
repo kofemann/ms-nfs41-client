@@ -211,6 +211,8 @@ bool get_token_groups_names(HANDLE tok,
             (int)ptgroups->GroupCount));
 
     for (i = 0 ; i < ptgroups->GroupCount ; i++) {
+        PSID curr_gsid = ptgroups->Groups[i].Sid;
+
         if (!(ptgroups->Groups[i].Attributes & SE_GROUP_ENABLED)) {
             continue;
         }
@@ -219,28 +221,55 @@ bool get_token_groups_names(HANDLE tok,
          * Filter out groups which cannot be used as normal user or
          * group account names (e.g. cannot be mapped by the idmapper)
          */
-        if (IsWellKnownSid(ptgroups->Groups[i].Sid, WinNullSid)) {
-            DPRINTF(1, ("get_token_groups_names: rejecting WinNullSid\n"));
-            continue;
+#define REJECT_WELL_KNOWN_SID(well_kown_type) \
+        if (IsWellKnownSid(curr_gsid, well_kown_type)) { \
+            DPRINTF(1, ("get_token_groups_names: rejecting " #well_kown_type "\n")); \
+            continue; \
         }
-        if (IsWellKnownSid(ptgroups->Groups[i].Sid, WinWorldSid)) {
-            DPRINTF(1, ("get_token_groups_names: rejecting WinWorldSid\n"));
-            continue;
-        }
-        if (IsWellKnownSid(ptgroups->Groups[i].Sid, WinLogonIdsSid)) {
-            DPRINTF(1, ("get_token_groups_names: rejecting WinLogonIdsSid\n"));
-            continue;
-        }
+        REJECT_WELL_KNOWN_SID(WinNullSid);
+        REJECT_WELL_KNOWN_SID(WinWorldSid);
+        REJECT_WELL_KNOWN_SID(WinLogonIdsSid);
+        REJECT_WELL_KNOWN_SID(WinInteractiveSid);
+        REJECT_WELL_KNOWN_SID(WinConsoleLogonSid);
+        REJECT_WELL_KNOWN_SID(WinAuthenticatedUserSid);
+        REJECT_WELL_KNOWN_SID(WinThisOrganizationSid);
+        REJECT_WELL_KNOWN_SID(WinLocalAccountSid);
+        REJECT_WELL_KNOWN_SID(WinLocalSid);
+        REJECT_WELL_KNOWN_SID(WinNTLMAuthenticationSid);
+        REJECT_WELL_KNOWN_SID(WinBuiltinPerfLoggingUsersSid);
 
         namesize = sizeof(namebuffer)-1;
 
-        if (!lookupprincipalsidutf8(NULL, ptgroups->Groups[i].Sid,
+        if (!lookupprincipalsidutf8(NULL, curr_gsid,
             namebuffer,
             &namesize,
             &name_use)) {
             DPRINTF(0, ("get_token_groups_names: "
                 "lookupprincipalsidutf8() failed, status=%d.\n",
                 (int)GetLastError()));
+            continue;
+        }
+
+        const char *at_s;
+        at_s = strchr(namebuffer, '@');
+
+        /*
+         * Reject groups with no '@' sign (not a principal, which should
+         * never happen)
+         */
+        if (at_s == NULL) {
+            eprintf("get_token_groups_names: "
+                "Group principal name '%s' without '@'\n",
+                namebuffer);
+            continue;
+        }
+
+        /* Reject groups with empty domain names */
+        if (*(at_s+1) == '\0') {
+            DPRINTF(1,
+                ("get_token_groups_names: "
+                "rejecting group '%s' without empty domain name\n",
+                namebuffer));
             continue;
         }
 
