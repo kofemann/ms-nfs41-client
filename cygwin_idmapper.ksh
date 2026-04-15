@@ -104,6 +104,19 @@ function setup_windows_builtin_accounts
 	# build user list
 	#
 	compound -r -A windows_builtin_user_list=(
+		['WIN_CREATOR_OWNER']=(
+			sid='S-1-3-0'
+			localuid=66304 # Static localgid, because it will not change
+			nfsuid=66304
+			typeset -A localised_names=(
+				['windows/en']=$'CREATOR OWNER@'
+				['windows/de']=$'ERSTELLER-BESITZER@'
+				['windows/fr']=$'CREATEUR PROPRIETAIRE@'
+				['freebsd']='CREATOR OWNER@'
+				['solaris']='CREATOR OWNER@'
+				['linux']='CREATOR OWNER@'
+			)
+		)
 		['SYSTEM']=(
 			sid='S-1-5-18'
 			localuid=18 # Static localuid, because it will not change
@@ -136,6 +149,32 @@ function setup_windows_builtin_accounts
 	# build group list
 	#
 	compound -r -A windows_builtin_group_list=(
+		['WIN_CREATOR_GROUP']=(
+			sid='S-1-3-1'
+			localgid=66305 # Static localgid, because it will not change
+			nfsgid=66305
+			typeset -A localised_names=(
+				['windows/en']=$'CREATOR GROUP@'
+				['windows/de']=$'ERSTELLERGRUPPE@'
+				['windows/fr']=$'GROUPE CR\xC3\x89ATEUR@'
+				['freebsd']='CREATOR GROUP@'
+				['solaris']='CREATOR GROUP@'
+				['linux']='CREATOR GROUP@'
+			)
+		)
+		['WIN_EVERYONE']=(
+			sid='S-1-1-0'
+			localgid=-1 # No gid for this
+			nfsgid=-1
+			typeset -A localised_names=(
+				['windows/en']=$'Everyone@'
+				['windows/de']=$'Jeder@'
+				['windows/fr']=$'Tout le monde@'
+				['freebsd']='EVERYONE@'
+				['solaris']='EVERYONE@'
+				['linux']='EVERYONE@'
+			)
+		)
 		['SYSTEM']=(
 			sid='S-1-5-18'
 			localgid=18 # Static localgid, because it will not change
@@ -230,7 +269,16 @@ function setup_windows_builtin_accounts
 
 		# (we use getent passwd here because getent group does not give us a domain name)
 		compound gpc
-		parse_getent_passwd2compound gpc "$(getent passwd ${n.sid})"
+		# SID 'S-1-1-0' is a special case because Cygwin /usr/bin/getent group/passwd cannot look it up
+		if [[ "${n.sid}" == 'S-1-1-0' ]] ; then
+			# NOTE: Using powershell is slow, do we use system32/whoami
+			typeset everyone_name dummy1
+			#/cygdrive/c/Windows/System32/WindowsPowerShell/v1.0/powershell -Command $'(Get-CimInstance Win32_Account -Filter "SID=\'S-1-1-0\'").Name' | IFS=$' \t\n\r' read everyone_name
+			/cygdrive/c/Windows/system32/whoami /groups | grep -a -F 'S-1-1-0' | IFS=$' \t\n\r' read everyone_name dummy1
+			parse_getent_passwd2compound gpc "${everyone_name}:*:65550:65550:U-\\${everyone_name},S-1-1-0:/:/sbin/nologin"
+		else
+			parse_getent_passwd2compound gpc "$(getent passwd ${n.sid})"
+		fi
 		if (( $? == 0 )) ; then
 			integer localgid
 

@@ -123,6 +123,8 @@ struct idmap_context {
 
     idmapcache_context *usercache;
     idmapcache_context *groupcache;
+
+    char *well_known_lgrouplist;
 };
 
 /*

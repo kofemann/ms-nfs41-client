@@ -31,6 +31,7 @@
 #include "nfs41_const.h"
 #include "list.h"
 #include "daemon_debug.h"
+#include "aclutil.h"
 #include "util.h"
 
 /* configuration */
@@ -320,6 +321,14 @@ int nfs41_idmap_create(
         goto out;
     }
 
+
+    /* load configuration from file */
+    status = config_init(&context->config);
+    if (status) {
+        eprintf("config_init() failed with %d\n", status);
+        goto out_err_free;
+    }
+
     /* initialize the caches */
     context->usercache = idmapcache_context_create();
     context->groupcache = idmapcache_context_create();
@@ -329,12 +338,24 @@ int nfs41_idmap_create(
         goto out_err_free;
     }
 
-    /* load configuration from file */
-    status = config_init(&context->config);
-    if (status) {
-        eprintf("config_init() failed with %d\n", status);
+    /*
+     * Enumerate the server principal names for Windows "well-known"
+     * groups and ask the idmapper to get the localised NFS server names
+     * We use this list in |convert_nfs4acl_2_dacl()| to set the
+     * |ACE4_IDENTIFIER_GROUP| flag for groups where the NFS server might
+     * not have set it
+     */
+    context->well_known_lgrouplist =
+        build_well_known_localised_nfs_grouplist(context);
+    if (context->well_known_lgrouplist == NULL) {
+        eprintf("nfs41_idmap_create: "
+            "build_well_known_localised_nfs_grouplist() failed\n");
         goto out_err_free;
     }
+
+    DPRINTF(0,
+        ("nfs41_idmap_create: well_known_lgrouplist='%s'\n",
+        context->well_known_lgrouplist));
 
 #ifdef NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN
     DPRINTF(1,
@@ -361,6 +382,8 @@ void nfs41_idmap_free(
         idmapcache_context_destroy(context->usercache);
     if (context->groupcache != NULL)
         idmapcache_context_destroy(context->groupcache);
+
+    free(context->well_known_lgrouplist);
 
     free(context);
 }

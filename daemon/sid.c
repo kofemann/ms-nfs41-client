@@ -405,7 +405,6 @@ done:
 }
 #endif /* NFS41_DRIVER_SID_CACHE */
 
-
 int map_nfs4servername_2_sid(
     nfs41_daemon_globals *nfs41dg,
     int query,
@@ -656,6 +655,42 @@ out_cache:
                     "for account 'SYSTEM'\n",
                     query, win32name));
                 sid_type = SidTypeUser;
+            }
+            else if (IsWellKnownSid(*sid, WinCreatorOwnerSid)) {
+                DPRINTF(1,
+                    ("map_nfs4servername_2_sid(query=0x%x,win32name='%s'): "
+                    "SID_TYPE='SidTypeWellKnownGroup' mapped to 'SidTypeUser' "
+                    "for WinCreatorOwnerSid\n",
+                    query, win32name));
+                sid_type = SidTypeUser;
+            }
+        }
+
+        if ((query & GROUP_SECURITY_INFORMATION) &&
+            (sid_type == SidTypeWellKnownGroup)) {
+            if (IsWellKnownSid(*sid, WinLocalSystemSid)) {
+                DPRINTF(1,
+                    ("map_nfs4servername_2_sid(query=0x%x,win32name='%s'): "
+                    "SID_TYPE='SidTypeWellKnownGroup' mapped to 'SidTypeGroup' "
+                    "for account 'SYSTEM'\n",
+                    query, win32name));
+                sid_type = SidTypeGroup;
+            }
+            else if (IsWellKnownSid(*sid, WinCreatorGroupSid)) {
+                DPRINTF(1,
+                    ("map_nfs4servername_2_sid(query=0x%x,win32name='%s'): "
+                    "SID_TYPE='SidTypeWellKnownGroup' mapped to 'SidTypeGroup' "
+                    "for WinCreatorGroupSid\n",
+                    query, win32name));
+                sid_type = SidTypeGroup;
+            }
+            else if (IsWellKnownSid(*sid, WinWorldSid)) {
+                DPRINTF(1,
+                    ("map_nfs4servername_2_sid(query=0x%x,win32name='%s'): "
+                    "SID_TYPE='SidTypeWellKnownGroup' mapped to 'SidTypeGroup' "
+                    "for WinWorldSid\n",
+                    query, win32name));
+                sid_type = SidTypeGroup;
             }
         }
 #endif /* NFS41_DRIVER_WS2022_HACKS */

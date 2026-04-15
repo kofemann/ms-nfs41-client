@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2022-2025 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2022-2026 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -497,19 +497,6 @@ enum nfs_ftype4 {
 #define ACE4_SERVICE_LEN (sizeof(ACE4_SERVICE)-1)
 #define ACE4_NOBODY "nobody"
 #define ACE4_NOBODY_LEN (sizeof(ACE4_NOBODY)-1)
-
-#ifdef NFS41_DRIVER_WS2022_HACKS
-/* Names used by Microsoft Windows 2019/2022 NFSv4.1 server */
-#define ACE4_WIN_CREATOR_OWNER "CREATOR OWNER@"
-#define ACE4_WIN_CREATOR_OWNER_LEN (sizeof(ACE4_WIN_CREATOR_OWNER)-1)
-#define ACE4_WIN_CREATOR_GROUP "CREATOR GROUP@"
-#define ACE4_WIN_CREATOR_GROUP_LEN (sizeof(ACE4_WIN_CREATOR_GROUP)-1)
-#define ACE4_WIN_EVERYONE "Everyone@"
-#define ACE4_WIN_EVERYONE_LEN (sizeof(ACE4_WIN_EVERYONE)-1)
-#define ACE4_WIN_NULL_SID "NULL SID"
-#define ACE4_WIN_NULL_SID_LEN (sizeof(ACE4_WIN_NULL_SID)-1)
-#endif /* NFS41_DRIVER_WS2022_HACKS */
-
 
 /* ACLE nfsacl41 aclflag4 constants */
 #define ACL4_AUTO_INHERIT         0x00000001

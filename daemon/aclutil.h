@@ -33,6 +33,9 @@
 #define ACLLVL3 3
 
 void free_sids(PSID *sids, int count);
+#ifdef NFS41_DRIVER_WS2022_HACKS
+char *build_well_known_localised_nfs_grouplist(struct idmap_context *context);
+#endif /* NFS41_DRIVER_WS2022_HACKS */
 int map_sid2nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid,
     char *who_out, const char *domain, SID_NAME_USE *sid_type_out);
 int convert_nfs4acl_2_dacl(nfs41_daemon_globals *nfs41dg,

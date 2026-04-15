@@ -55,50 +55,133 @@ void free_sids(PSID *sids, int count)
     free(sids);
 }
 
-static int check_4_special_identifiers(const char *restrict who,
-    PSID *sid,
-    DWORD *sid_len,
-    BOOLEAN *flag)
+static
+int check_4_special_nfs4_identifiers(const char *restrict who,
+    PSID *restrict sid,
+    DWORD *restrict sid_len,
+    bool *restrict flag)
 {
     int status = ERROR_SUCCESS;
     WELL_KNOWN_SID_TYPE type = 0;
-    *flag = TRUE;
+    *flag = true;
 
     /*
-     * Compare |who| against known constant strings, excluding the '@'
-     * symbol. Note that |ACE4_NOBODY| and |ACE4_WIN_NULL_SID| do not
-     * have a '@
+     * Compare |who| against known constant strings defined in the
+     * NFSv4.1 RFC.
+     * Note that |ACE4_NOBODY| does not have a '@
      */
-    if (!strncmp(who, ACE4_OWNER, ACE4_OWNER_LEN-1))
+    if (strcmp(who, ACE4_OWNER) == 0)
         type = WinCreatorOwnerSid;
-#ifdef NFS41_DRIVER_WS2022_HACKS
-    else if (!strncmp(who, ACE4_WIN_CREATOR_OWNER, ACE4_WIN_CREATOR_OWNER_LEN-1))
-        type = WinCreatorOwnerSid;
-#endif /* NFS41_DRIVER_WS2022_HACKS */
-    else if (!strncmp(who, ACE4_GROUP, ACE4_GROUP_LEN-1))
+    else if (strcmp(who, ACE4_GROUP) == 0)
         type = WinCreatorGroupSid;
-#ifdef NFS41_DRIVER_WS2022_HACKS
-    else if (!strncmp(who, ACE4_WIN_CREATOR_GROUP, ACE4_WIN_CREATOR_GROUP_LEN-1))
-        type = WinCreatorGroupSid;
-#endif /* NFS41_DRIVER_WS2022_HACKS */
-    else if (!strncmp(who, ACE4_EVERYONE, ACE4_EVERYONE_LEN-1))
+    else if (strcmp(who, ACE4_EVERYONE) == 0)
         type = WinWorldSid;
-#ifdef NFS41_DRIVER_WS2022_HACKS
-    else if (!strncmp(who, ACE4_WIN_EVERYONE, ACE4_WIN_EVERYONE_LEN-1))
-        type = WinWorldSid;
-#endif /* NFS41_DRIVER_WS2022_HACKS */
-    else if (!strncmp(who, ACE4_NOBODY, ACE4_NOBODY_LEN))
+    else if (strcmp(who, ACE4_NOBODY) == 0)
         type = WinNullSid;
-#ifdef NFS41_DRIVER_WS2022_HACKS
-    else if (!strncmp(who, ACE4_WIN_NULL_SID, ACE4_WIN_NULL_SID_LEN))
-        type = WinNullSid;
-#endif /* NFS41_DRIVER_WS2022_HACKS */
     else
-        *flag = FALSE;
+        *flag = false;
     if (*flag)
         status = create_unknownsid(type, sid, sid_len);
     return status;
 }
+
+#ifdef NFS41_DRIVER_WS2022_HACKS
+static
+char *append_str_comma(
+    OUT char *restrict str,
+    IN const char *restrict append_str)
+{
+    if (append_str == NULL) {
+        return str;
+    }
+
+    size_t str_len = str ? strlen(str) : 0;
+    size_t append_len = strlen(append_str);
+    size_t new_size = str_len + append_len + (str ? 2 : 1);
+
+    char *new_str = realloc(str, new_size);
+    if (!new_str) {
+        return NULL;
+    }
+
+    char *dest = new_str + str_len;
+
+    if (str) {
+        *dest++ = ',';
+    }
+
+    (void)stpcpy(dest, append_str);
+
+    return new_str;
+}
+
+static
+char *get_account_from_sid(
+    OUT char *restrict buf,
+    IN WELL_KNOWN_SID_TYPE sid_type)
+{
+    BYTE sid_buffer[SECURITY_MAX_SID_SIZE];
+    DWORD sid_size = sizeof(sid_buffer);
+    PSID sid = (PSID)sid_buffer;
+
+    if (!CreateWellKnownSid(sid_type, NULL, sid, &sid_size)) {
+        return NULL;
+    }
+
+    SID_NAME_USE sid_use;
+    DWORD assumed_buf_size = UTF8_PRINCIPALLEN;
+
+    if (!lookupprincipalsidutf8(NULL, sid, buf, &assumed_buf_size, &sid_use)) {
+        return NULL;
+    }
+
+    return buf;
+}
+
+char *build_well_known_localised_nfs_grouplist(struct idmap_context *context)
+{
+    /* fixme: This should be a function argument */
+    extern nfs41_daemon_globals nfs41_dg;
+
+    char *joined_str = NULL;
+    char principal_buf[UTF8_PRINCIPALLEN+1];
+
+    const WELL_KNOWN_SID_TYPE group_sids[] = {
+        WinLocalSystemSid,
+        WinBuiltinUsersSid,
+        WinBuiltinAdministratorsSid,
+        WinWorldSid,
+        WinCreatorGroupSid,
+        WinNullSid
+    };
+
+    const size_t num_sids = sizeof(group_sids) / sizeof(group_sids[0]);
+
+    for (size_t i = 0; i < num_sids; i++) {
+        char *acc = get_account_from_sid(principal_buf, group_sids[i]);
+
+        if (acc == NULL)
+            continue;
+
+        idmapcache_entry *ie;
+        ie = nfs41_idmap_group_lookup_by_win32name(context, acc);
+        if (ie == NULL) {
+            eprintf("build_well_known_localised_nfs_grouplist: "
+                "Cannot map entry for acc='%s'\n", acc);
+            continue;
+        }
+
+        char *temp = append_str_comma(joined_str, ie->nfsname.buf);
+
+        if (temp != NULL)
+            joined_str = temp;
+
+        idmapcache_entry_refcount_dec(ie);
+    }
+
+    return joined_str;
+}
+#endif /* NFS41_DRIVER_WS2022_HACKS */
 
 int convert_nfs4acl_2_dacl(nfs41_daemon_globals *nfs41dg,
     nfsacl41 *acl, int file_type, PACL *dacl_out, PSID **sids_out,
@@ -111,7 +194,6 @@ int convert_nfs4acl_2_dacl(nfs41_daemon_globals *nfs41dg,
     DWORD sid_len;
     PSID *sids;
     PACL dacl;
-    BOOLEAN flag;
 
     DPRINTF(ACLLVL2, ("--> convert_nfs4acl_2_dacl(acl=0x%p,"
         "file_type='%s'(=%d), nfs_namedattr_support=%d)\n",
@@ -155,45 +237,68 @@ int convert_nfs4acl_2_dacl(nfs41_daemon_globals *nfs41dg,
         }
 #endif /* NFS41_DRIVER_ACLS_SETACL_SKIP_WINNULLSID_ACES */
 
-        status = check_4_special_identifiers(curr_nfsace->who, &sids[win_i],
-            &sid_len, &flag);
+        bool is_special_identifier = false;
+        status = check_4_special_nfs4_identifiers(curr_nfsace->who, &sids[win_i],
+            &sid_len, &is_special_identifier);
         if (status) {
             free_sids(sids, win_i);
             goto out;
         }
-        if (!flag) {
-            bool isgroupacl = (curr_nfsace->aceflag & ACE4_IDENTIFIER_GROUP)?true:false;
+        if (is_special_identifier)
+            goto sid_mapped;
 
+        bool isgroupacl =
+            (curr_nfsace->aceflag & ACE4_IDENTIFIER_GROUP)?true:false;
+        bool checked_for_groups = false;
 
-#ifdef NFS41_DRIVER_WS2022_HACKS
-            /*
-             * FIXME: This does not handle Win32 localised account names
-             */
-            if (isgroupacl == false) {
-                if ((strcmp(curr_nfsace->who, "Users@BUILTIN") == 0) ||
-                    (strcmp(curr_nfsace->who, "Administrators@BUILTIN") == 0)) {
-                    DPRINTF(1, ("convert_nfs4acl_2_dacl: "
-                        "force isgroupacl=true for for user='%s'\n",
-                        curr_nfsace->who));
-                    isgroupacl = true;
-                }
+        if (isgroupacl == false) {
+            if ((strcmp(curr_nfsace->who, ACE4_EVERYONE) == 0) ||
+                (strcmp(curr_nfsace->who, ACE4_GROUP) == 0)) {
+                DPRINTF(ACLLVL1,
+                    ("convert_nfs4acl_2_dacl: "
+                    "force isgroupacl=true for for user='%s'\n",
+                    curr_nfsace->who));
+                isgroupacl = true;
+                checked_for_groups = true;
             }
-#endif /* NFS41_DRIVER_WS2022_HACKS */
-            if (isgroupacl) {
-                DPRINTF(ACLLVL2,
-                    ("convert_nfs4acl_2_dacl: aces[%d].who='%s': "
-                    "Setting group flag\n",
-                    nfs_i, curr_nfsace->who));
-            }
-
-            status = map_nfs4servername_2_sid(nfs41dg,
-                (isgroupacl?GROUP_SECURITY_INFORMATION:OWNER_SECURITY_INFORMATION),
-                &sid_len, &sids[win_i], curr_nfsace->who);
-            if (status != ERROR_SUCCESS) {
-                free_sids(sids, win_i);
-                goto out;
+            else if (strcmp(curr_nfsace->who, ACE4_OWNER) == 0) {
+                checked_for_groups = true;
             }
         }
+
+#ifdef NFS41_DRIVER_WS2022_HACKS
+        if (checked_for_groups == false) {
+            /*
+             * Check whether any of the localised account names should be
+             * treated like a group
+             */
+            if (strstr(nfs41dg->idmapper->well_known_lgrouplist,
+                curr_nfsace->who) != NULL) {
+                DPRINTF(ACLLVL1,
+                    ("convert_nfs4acl_2_dacl: "
+                    "force isgroupacl=true for well_known account='%s'\n",
+                    curr_nfsace->who));
+                isgroupacl = true;
+            }
+        }
+#endif /* NFS41_DRIVER_WS2022_HACKS */
+
+        if (isgroupacl) {
+            DPRINTF(ACLLVL2,
+                ("convert_nfs4acl_2_dacl: aces[%d].who='%s': "
+                "Setting group flag\n",
+                nfs_i, curr_nfsace->who));
+        }
+
+        status = map_nfs4servername_2_sid(nfs41dg,
+            (isgroupacl?GROUP_SECURITY_INFORMATION:OWNER_SECURITY_INFORMATION),
+            &sid_len, &sids[win_i], curr_nfsace->who);
+        if (status != ERROR_SUCCESS) {
+            free_sids(sids, win_i);
+            goto out;
+        }
+
+sid_mapped:
         size += sid_len - sizeof(DWORD);
 
         win_i++;
@@ -301,7 +406,6 @@ static int is_well_known_sid(PSID sid, char *who, SID_NAME_USE *snu_out)
     const WELL_KNOWN_SID_TYPE test_types[] = {
         WinCreatorOwnerSid,
         WinCreatorGroupSid,
-        WinBuiltinUsersSid,
         WinNullSid,
         WinAnonymousSid,
         WinWorldSid,
@@ -349,7 +453,6 @@ static int is_well_known_sid(PSID sid, char *who, SID_NAME_USE *snu_out)
                 *snu_out = SidTypeUser;
                 return TRUE;
             case WinCreatorGroupSid:
-            case WinBuiltinUsersSid:
                 (void)memcpy(who, ACE4_GROUP, ACE4_GROUP_LEN+1);
                 *snu_out = SidTypeGroup;
                 return TRUE;
