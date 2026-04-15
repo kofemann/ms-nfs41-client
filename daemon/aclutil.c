@@ -874,8 +874,8 @@ int map_sid2nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid,
             goto out;
         }
     }
-    status = is_well_known_sid(sid, who_out, &sid_type);
-    if (status != ERROR_SUCCESS) {
+    success = is_well_known_sid(sid, who_out, &sid_type);
+    if (success) {
         if (!strncmp(who_out, ACE4_NOBODY, ACE4_NOBODY_LEN)) {
             who_size = (DWORD)ACE4_NOBODY_LEN;
             goto add_domain;
