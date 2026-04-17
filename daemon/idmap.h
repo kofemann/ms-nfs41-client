@@ -114,6 +114,12 @@ struct idmap_config {
 
     bool use_numeric_uidgid;
 
+    /* uid/gids to use if a user/group cannot be mapped */
+    idmapcache_idnumber default_nfs_uid;
+    idmapcache_idnumber default_nfs_gid;
+    idmapcache_idnumber default_local_uid;
+    idmapcache_idnumber default_local_gid;
+
     /* caching configuration */
     INT cache_ttl;
 };

@@ -470,7 +470,6 @@ typedef struct __nfs41_daemon_globals nfs41_daemon_globals;
  * do a "manual" chgrp on the new file
  */
 int chgrp_to_primarygroup(
-    IN nfs41_daemon_globals *nfs41dg,
     IN HANDLE currentthread_token,
     IN nfs41_open_state *state);
 #endif /* NFS41_DRIVER_SETGID_NEWGRP_SUPPORT */

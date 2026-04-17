@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2023-2026 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -96,6 +96,7 @@ static void set_expected_res(
 static int create_new_rpc_auth(nfs41_session *session, uint32_t op,
                                nfs41_secinfo_info *secinfo)
 {
+    struct idmap_context *idmapper = session->client->root->idmapper;
     AUTH *auth = NULL;
     int status = ERROR_NETWORK_UNREACHABLE, i;
     uint32_t sec_flavor;
@@ -129,7 +130,8 @@ static int create_new_rpc_auth(nfs41_session *session, uint32_t op,
             gid_t aup_gids[RPC_AUTHUNIX_AUP_MAX_NUM_GIDS];
             int num_aup_gids = 0;
 
-            if (!fill_auth_unix_aup_gids(GetCurrentThreadToken(),
+            if (!fill_auth_unix_aup_gids(idmapper,
+                GetCurrentThreadToken(),
                 aup_gids, &num_aup_gids)) {
                 eprintf("create_new_rpc_auth: "
                     "fill_auth_unix_aup_gids() failed\n");

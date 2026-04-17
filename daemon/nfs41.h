@@ -300,6 +300,8 @@ typedef struct __nfs41_session {
  * between MOUNT and UNMOUNT. all other upcalls use upcall_root_ref() on
  * upcall_parse(), which prevents the root/clients from being freed and
  * guarantees a matching deref on upcall_cleanup() */
+struct idmap_context;
+
 typedef struct __nfs41_root {
     client_owner4 client_owner;
     CRITICAL_SECTION lock;
@@ -319,6 +321,7 @@ typedef struct __nfs41_root {
 #pragma warning (disable : 4324)
     __declspec(align(8)) volatile LONG ref_count;
 #pragma warning( pop )
+    struct idmap_context *idmapper;
     uint32_t uid;
     uint32_t gid;
     DWORD sec_flavor;
@@ -544,6 +547,7 @@ int nfs41_rpc_clnt_create(
     IN const multi_addr4 *addrs,
     IN uint32_t wsize,
     IN uint32_t rsize,
+    IN OUT struct idmap_context *idmapper,
     IN uint32_t uid,
     IN uint32_t gid,
     IN uint32_t sec_flavor,

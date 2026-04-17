@@ -200,7 +200,7 @@ static int handle_getattr(void *daemon_context, nfs41_upcall *upcall)
             &args->stat_info);
         break;
     case FileStatLxInformation:
-        nfs_to_stat_lx_info(daemon_context,
+        nfs_to_stat_lx_info(state,
             state->file.name.name,
             state->file.fh.superblock,
             &info,

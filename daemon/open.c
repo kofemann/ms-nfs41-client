@@ -698,13 +698,14 @@ void symlink2ntpath(
 
 #ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES
 static
-void open_get_localuidgid(IN nfs41_daemon_globals *restrict nfs41dg,
+void open_get_localuidgid(
     IN nfs41_open_state *restrict state,
     IN OUT nfs41_file_info *restrict info,
     OUT DWORD *restrict owner_local_uid,
     OUT DWORD *restrict owner_group_local_gid)
 {
     int status = 0;
+    struct idmap_context *idmapper = state->session->client->root->idmapper;
     char owner[NFS4_FATTR4_OWNER_LIMIT+1];
     char owner_group[NFS4_FATTR4_OWNER_LIMIT+1];
     idmapcache_entry *ie;
@@ -732,8 +733,8 @@ void open_get_localuidgid(IN nfs41_daemon_globals *restrict nfs41dg,
                 "failed with %d\n",
                 state->path.path,
                 status);
-            *owner_local_uid = NFS_USER_NOBODY_UID;
-            *owner_group_local_gid = NFS_GROUP_NOGROUP_GID;
+            *owner_local_uid = idmapper->config.default_local_uid;
+            *owner_group_local_gid = idmapper->config.default_local_gid;
             goto out;
         }
 
@@ -774,8 +775,7 @@ void open_get_localuidgid(IN nfs41_daemon_globals *restrict nfs41dg,
         nfs_id = strtol(owner, NULL, 10);
 
         if (errno == 0) {
-            ie = nfs41_idmap_user_lookup_by_nfsid(nfs41dg->idmapper,
-                nfs_id);
+            ie = nfs41_idmap_user_lookup_by_nfsid(idmapper, nfs_id);
         }
         else {
             DPRINTF(0,
@@ -788,8 +788,7 @@ void open_get_localuidgid(IN nfs41_daemon_globals *restrict nfs41dg,
         EASSERT_MSG(IS_PRINCIPAL_NAME(owner),
             ("owner='%s' is not a principal\n", owner));
 
-        ie = nfs41_idmap_user_lookup_by_nfsname(nfs41dg->idmapper,
-            owner);
+        ie = nfs41_idmap_user_lookup_by_nfsname(idmapper, owner);
     }
 
     if (ie != NULL) {
@@ -797,7 +796,7 @@ void open_get_localuidgid(IN nfs41_daemon_globals *restrict nfs41dg,
         idmapcache_entry_refcount_dec(ie);
     }
     else {
-        *owner_local_uid = NFS_USER_NOBODY_UID;
+        *owner_local_uid = idmapper->config.default_local_uid;
         eprintf("open_get_localuidgid('%s'): "
             "no username mapping for '%s', fake uid=%u\n",
             state->path.path,
@@ -820,8 +819,7 @@ void open_get_localuidgid(IN nfs41_daemon_globals *restrict nfs41dg,
         nfs_id = strtol(owner_group, NULL, 10);
 
         if (errno == 0) {
-            ie = nfs41_idmap_group_lookup_by_nfsid(nfs41dg->idmapper,
-                nfs_id);
+            ie = nfs41_idmap_group_lookup_by_nfsid(idmapper, nfs_id);
         }
         else {
             DPRINTF(0,
@@ -834,8 +832,7 @@ void open_get_localuidgid(IN nfs41_daemon_globals *restrict nfs41dg,
         EASSERT_MSG(IS_PRINCIPAL_NAME(owner),
             ("owner_group='%s' is not a principal\n", owner_group));
 
-        ie = nfs41_idmap_group_lookup_by_nfsname(nfs41dg->idmapper,
-            owner_group);
+        ie = nfs41_idmap_group_lookup_by_nfsname(idmapper, owner_group);
     }
 
     if (ie != NULL) {
@@ -843,7 +840,7 @@ void open_get_localuidgid(IN nfs41_daemon_globals *restrict nfs41dg,
         idmapcache_entry_refcount_dec(ie);
     }
     else {
-        *owner_group_local_gid = NFS_GROUP_NOGROUP_GID;
+        *owner_group_local_gid = idmapper->config.default_local_gid;
         eprintf("open_get_localuidgid('%s'): "
             "no group mapping for '%s', fake gid=%u\n",
             state->path.path,
@@ -1013,7 +1010,9 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
                 status);
             goto out_free_state;
         }
-        status = map_dacl_2_nfs4acl(acl, sid, gsid, &create_nfs4_acl,
+        status = map_dacl_2_nfs4acl(upcall->root_ref->idmapper,
+            acl, sid, gsid,
+            &create_nfs4_acl,
             state->type,
             false /* FIXME!! */,
             nfs41dg->localdomain_name);
@@ -1233,9 +1232,7 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
          * user/group information, therefore newgrp will be a
          * NOP here.
          */
-        (void)chgrp_to_primarygroup(nfs41dg,
-            upcall->currentthread_token,
-            state);
+        (void)chgrp_to_primarygroup(upcall->currentthread_token, state);
 #endif /* NFS41_DRIVER_SETGID_NEWGRP_SUPPORT */
 #ifdef WORKAROUND_FOR_FREEBSD_CREATIONFAILSWITHEPERM_BUGS_292283_293691
         set_hiddensystemarchive_attrs(args->file_attrs, state);
@@ -1399,8 +1396,7 @@ supersede_retry:
                  * user/group information, therefore newgrp will be a
                  * NOP here.
                  */
-                (void)chgrp_to_primarygroup(nfs41dg,
-                    upcall->currentthread_token,
+                (void)chgrp_to_primarygroup(upcall->currentthread_token,
                     state);
             }
 #endif /* NFS41_DRIVER_SETGID_NEWGRP_SUPPORT */
@@ -1443,8 +1439,7 @@ supersede_retry:
 
 #ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES
     if (status == 0) {
-        open_get_localuidgid(nfs41dg,
-            state,
+        open_get_localuidgid(state,
             &info,
             &args->owner_local_uid,
             &args->owner_group_local_gid);

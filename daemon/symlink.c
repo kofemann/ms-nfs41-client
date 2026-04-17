@@ -373,7 +373,6 @@ out:
 static int handle_symlink_set(void *daemon_context, nfs41_upcall *upcall)
 {
     symlink_upcall_args *args = &upcall->args.symlink;
-    nfs41_daemon_globals *nfs41dg = daemon_context;
     nfs41_open_state *state = upcall->state_ref;
     int status = NO_ERROR;
 
@@ -432,9 +431,7 @@ static int handle_symlink_set(void *daemon_context, nfs41_upcall *upcall)
      * user/group information, therefore newgrp will be a
      * NOP here.
      */
-    (void)chgrp_to_primarygroup(nfs41dg,
-        upcall->currentthread_token,
-        state);
+    (void)chgrp_to_primarygroup(upcall->currentthread_token, state);
 #endif /* NFS41_DRIVER_SETGID_NEWGRP_SUPPORT */
 
 out:

@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2024-2025 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2024-2026 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -28,8 +28,11 @@
 #include "nfs41_build_features.h"
 #include "daemon_debug.h"
 #include "nfs41_ops.h"
-#include "upcall.h"
+#include "nfs41_daemon.h"
 #include "util.h"
+#include "idmap.h"
+#include "sid.h"
+#include "upcall.h"
 #ifdef NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE
 #include "accesstoken.h"
 #endif /* NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE */
@@ -90,6 +93,70 @@ static int parse_mount(
     return status;
 out:
     DPRINTF(1, ("parsing NFS41_SYSOP_MOUNT: failed %d\n", status));
+    return status;
+}
+
+static
+int map_current_user_to_ids(IN OUT struct idmap_context *idmapper,
+    IN OUT HANDLE impersonation_tok, OUT uid_t *puid, OUT gid_t *pgid)
+{
+    char username[UTF8_PRINCIPALLEN+1];
+    char pgroupname[UTF8_PRINCIPALLEN+1];
+    int status = NO_ERROR;
+    idmapcache_entry *user_ie = NULL;
+    idmapcache_entry *group_ie = NULL;
+
+    /* fixme: This should be a function argument */
+    extern nfs41_daemon_globals nfs41_dg;
+
+    if (!get_token_user_name(impersonation_tok, username)) {
+        status = GetLastError();
+        eprintf("map_current_user_to_ids: "
+            "get_token_user_name() failed with %d\n", status);
+        goto out;
+    }
+
+    if (!get_token_primarygroup_name(impersonation_tok, pgroupname)) {
+        status = GetLastError();
+        eprintf("map_current_user_to_ids: "
+            "get_token_primarygroup_name() failed with %d\n", status);
+        goto out;
+    }
+
+    user_ie = nfs41_idmap_user_lookup_by_win32name(idmapper,
+        username);
+    group_ie = nfs41_idmap_group_lookup_by_win32name(idmapper,
+        pgroupname);
+
+    if (user_ie == NULL) {
+        eprintf("map_current_user_to_ids: "
+                "nfs41_idmap_user_lookup_by_nfsname(username='%s') failed\n",
+                username);
+        status = ERROR_NONE_MAPPED;
+        goto out;
+    }
+
+    if (group_ie == NULL) {
+        eprintf("map_current_user_to_ids: "
+                "nfs41_idmap_group_lookup_by_nfsname(pgroupname='%s') failed, "
+                "returning 'nobody'/'nogroup' defaults\n",
+                pgroupname);
+        status = ERROR_NONE_MAPPED;
+        goto out;
+    }
+
+    *puid = user_ie->nfsid;
+    *pgid = group_ie->nfsid;
+out:
+    DPRINTF(1,
+        ("map_current_user_to_ids: "
+            "mapping user=(name='%s' ==> uid=%d)/pgroup=(name='%s' ==> gid=%d)\n",
+            username, (int)*puid,
+            pgroupname, (int)*pgid));
+    if (user_ie != NULL)
+        idmapcache_entry_refcount_dec(user_ie);
+    if (group_ie != NULL)
+        idmapcache_entry_refcount_dec(group_ie);
     return status;
 }
 
@@ -231,8 +298,22 @@ static int handle_mount(void *daemon_context, nfs41_upcall *upcall)
                 hostname, port, status);
             goto out;
         }
-        root->uid = upcall->uid;
-        root->gid = upcall->gid;
+
+
+        /*
+         * Map current { user, primary_group } to { uid, gid } for AUTH_SYS
+         * Note that the VNETROOT is per logonid, so we always have the same
+         * uid per |nfs41_root|, but gid might change if someone uses
+         * newgrp(1)/winsg(1) etc.
+         */
+        status = map_current_user_to_ids(root->idmapper,
+            upcall->currentthread_token,
+            &root->uid, &root->gid);
+        if (status) {
+            eprintf("handle_mount: "
+                "map_current_user_to_ids() failed, status=%d\n", status);
+            goto out;
+        }
     }
 
     // find or create the client/session

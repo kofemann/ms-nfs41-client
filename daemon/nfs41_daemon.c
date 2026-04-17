@@ -60,8 +60,6 @@ static const char FILE_NETCONFIG[] = "C:\\etc\\netconfig";
 
 /* Globals */
 nfs41_daemon_globals nfs41_dg = {
-    .default_uid = NFS_USER_NOBODY_UID,
-    .default_gid = NFS_GROUP_NOGROUP_GID,
     .num_worker_threads = DEFAULT_NUM_THREADS,
     .crtdbgmem_flags = NFS41D_GLOBALS_CRTDBGMEM_FLAGS_NOT_SET,
 };
@@ -75,79 +73,6 @@ typedef struct _nfs41_process_thread {
     HANDLE handle;
     uint32_t tid;
 } nfs41_process_thread;
-
-static int map_current_user_to_ids(nfs41_idmapper *idmapper,
-    HANDLE impersonation_tok, uid_t *puid, gid_t *pgid)
-{
-    char username[UTF8_PRINCIPALLEN+1];
-    char pgroupname[UTF8_PRINCIPALLEN+1];
-    int status = NO_ERROR;
-    idmapcache_entry *user_ie = NULL;
-    idmapcache_entry *group_ie = NULL;
-
-    /* fixme: This should be a function argument */
-    extern nfs41_daemon_globals nfs41_dg;
-
-    if (!get_token_user_name(impersonation_tok, username)) {
-        status = GetLastError();
-        eprintf("map_current_user_to_ids: "
-            "get_token_user_name() failed with %d\n", status);
-        goto out_map_default_ids;
-    }
-
-    if (!get_token_primarygroup_name(impersonation_tok, pgroupname)) {
-        status = GetLastError();
-        eprintf("map_current_user_to_ids: "
-            "get_token_primarygroup_name() failed with %d\n", status);
-        goto out_map_default_ids;
-    }
-
-    user_ie = nfs41_idmap_user_lookup_by_win32name(nfs41_dg.idmapper,
-        username);
-    group_ie = nfs41_idmap_group_lookup_by_win32name(nfs41_dg.idmapper,
-        pgroupname);
-
-    if (user_ie == NULL) {
-        /* instead of failing, fall back to 'nobody'/'nogroup' uid/gid */
-        DPRINTF(1,
-            ("map_current_user_to_ids: "
-                "nfs41_idmap_user_lookup_by_nfsname(username='%s') failed, "
-                "returning 'nobody'/'nogroup' defaults\n",
-                username));
-        status = NO_ERROR;
-        goto out_map_default_ids;
-    }
-
-    if (group_ie == NULL) {
-        /* instead of failing, fall back to 'nobody'/'nogroup' uid/gid */
-        DPRINTF(1,
-            ("map_current_user_to_ids: "
-                "nfs41_idmap_group_lookup_by_nfsname(pgroupname='%s') failed, "
-                "returning 'nobody'/'nogroup' defaults\n",
-                pgroupname));
-        status = NO_ERROR;
-        goto out_map_default_ids;
-    }
-
-    *puid = user_ie->nfsid;
-    *pgid = group_ie->nfsid;
-out:
-    DPRINTF(1,
-        ("map_current_user_to_ids: "
-            "mapping user=(name='%s' ==> uid=%d)/pgroup=(name='%s' ==> gid=%d)\n",
-            username, (int)*puid,
-            pgroupname, (int)*pgid));
-    if (user_ie != NULL)
-        idmapcache_entry_refcount_dec(user_ie);
-    if (group_ie != NULL)
-        idmapcache_entry_refcount_dec(group_ie);
-    return status;
-
-out_map_default_ids:
-    *puid = nfs41_dg.default_uid;
-    *pgid = nfs41_dg.default_gid;
-    goto out;
-}
 
 #ifdef NFS41_DRIVER_HACK_HANDLE_NFS_DELAY_GRACE_WIP
 /* Store the current kernel XID in |curr_upcall_xid|
@@ -163,7 +88,7 @@ __declspec(thread) LONGLONG curr_upcall_xid = -1;
 
 static unsigned int nfsd_worker_thread_main(void *args)
 {
-    nfs41_daemon_globals *nfs41dg = (nfs41_daemon_globals *)args;
+    /*nfs41_daemon_globals *nfs41dg = (nfs41_daemon_globals *)args;*/
     DWORD status = 0;
     HANDLE pipe;
     // buffer used to process upcall, assumed to be fixed size.
@@ -223,18 +148,6 @@ static unsigned int nfsd_worker_thread_main(void *args)
             DPRINTF(0, ("nfsd_worker_thread_main: "
                 "OpenThreadToken() failed, lasterr=%d.\n",
                 (int)GetLastError()));
-        }
-
-        /*
-         * Map current { user, primary_group } to { uid, gid }
-         * Each thread can handle a different user
-         */
-        status = map_current_user_to_ids(nfs41dg->idmapper,
-            upcall.currentthread_token,
-            &upcall.uid, &upcall.gid);
-        if (status) {
-            upcall.status = status;
-            goto write_downcall;
         }
 
         if (upcall.opcode == NFS41_SYSOP_SHUTDOWN) {
@@ -332,8 +245,6 @@ static void PrintUsage(const wchar_t *argv0)
         "\t-h, --help, /?\thelp\n"
         "\t-V, --version, /?\tversion\n"
         "\t-d <debug_level>\n"
-        "\t--uid <non-zero value>\n"
-        "\t--gid <non-zero value>\n"
         "\t--numworkerthreads <value-between 16 and %d>\n"
 #ifdef _DEBUG
         "\t--crtdbgmem <'allocmem'|'leakcheck'|'delayfree',\n"
@@ -438,22 +349,6 @@ bool_t parse_cmdlineargs(int argc, wchar_t *argv[], nfsd_args *out)
                 }
             }
 #endif /* _DEBUG */
-            else if (!wcscmp(argv[i], L"--uid")) { /* setting default uid */
-                ++i;
-                if (i >= argc) {
-                    (void)fprintf(stderr, "%ls: Missing uid value\n", argv[0]);
-                    return FALSE;
-                }
-                nfs41_dg.default_uid = wcstol(argv[i], NULL, 0);
-            }
-            else if (!wcscmp(argv[i], L"--gid")) { /* setting default gid */
-                ++i;
-                if (i >= argc) {
-                    (void)fprintf(stderr, "%ls: Missing gid value\n", argv[0]);
-                    return FALSE;
-                }
-                nfs41_dg.default_gid = wcstol(argv[i], NULL, 0);
-            }
             else if (!wcscmp(argv[i], L"--numworkerthreads")) {
                 ++i;
                 if (i >= argc) {
@@ -881,13 +776,6 @@ VOID ServiceStart(DWORD argc, LPTSTR *argv)
 
     EASSERT(nfs41_dg.localdomain_name[0] != '\0');
 
-    status = nfs41_idmap_create(&(nfs41_dg.idmapper),
-        nfs41_dg.localdomain_name);
-    if (status) {
-        eprintf("id mapping initialization failed with %d\n", status);
-        goto out_logs;
-    }
-
     NFS41D_VERSION = GetTickCount();
     DPRINTF(1, ("NFS41 Daemon starting: version %d\n", NFS41D_VERSION));
 
@@ -901,7 +789,7 @@ VOID ServiceStart(DWORD argc, LPTSTR *argv)
 #endif /* STANDALONE_NFSD */
             "Unable to open upcall pipe %d\n",
             (int)GetLastError());
-        goto out_idmap;
+        goto out_logs;
     }
 
     DPRINTF(1, ("starting nfs41 mini redirector\n"));
@@ -964,9 +852,6 @@ VOID ServiceStart(DWORD argc, LPTSTR *argv)
 out_pipe:
     close_nfs41sys_device_pipe(pipe);
 
-out_idmap:
-    if (nfs41_dg.idmapper)
-        nfs41_idmap_free(nfs41_dg.idmapper);
 out_logs:
 #ifndef STANDALONE_NFSD
     close_log_files();

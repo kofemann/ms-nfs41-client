@@ -82,7 +82,12 @@ void sidcache_add(IN OUT sidcache *cache, IN const char *win32name, IN PSID valu
 PSID *sidcache_getcached_byname(IN OUT sidcache *cache, IN const char *win32name);
 bool sidcache_getcached_bysid(IN OUT sidcache *cache, IN PSID sid, OUT char *out_win32name);
 
-int map_nfs4servername_2_sid(nfs41_daemon_globals *nfs41dg, int query, DWORD *sid_len, PSID *sid, LPCSTR name);
+int map_nfs4servername_2_sid(
+    IN OUT struct idmap_context *idmapper,
+    IN int query,
+    OUT DWORD *restrict sid_len,
+    OUT PSID *restrict sid,
+    IN const char *restrict nfsname);
 
 /* UTF-8 version of |LookupAccountNameA()| */
 BOOL lookupaccountnameutf8(

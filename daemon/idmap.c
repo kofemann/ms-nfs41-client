@@ -329,6 +329,15 @@ int nfs41_idmap_create(
         goto out_err_free;
     }
 
+    /*
+     * Defaults for nobody/nogroup
+     * These should really be per idmapper-config settings
+     */
+    context->config.default_nfs_uid = NFS_USER_NOBODY_UID;
+    context->config.default_nfs_gid = NFS_GROUP_NOGROUP_GID;
+    context->config.default_local_uid = NFS_USER_NOBODY_UID;
+    context->config.default_local_gid = NFS_GROUP_NOGROUP_GID;
+
     /* initialize the caches */
     context->usercache = idmapcache_context_create();
     context->groupcache = idmapcache_context_create();

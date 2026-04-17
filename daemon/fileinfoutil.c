@@ -29,8 +29,10 @@
 #include "nfs41_build_features.h"
 #include "daemon_debug.h"
 #include "nfs41_daemon.h"
-#include "fileinfoutil.h"
 #include "util.h"
+#include "idmap.h"
+#include "sid.h"
+#include "fileinfoutil.h"
 #include "nfs41_ops.h"
 #include "nfs41_driver.h" /* for |FILE_INFO_TIME_NOT_SET| */
 
@@ -315,14 +317,13 @@ void nfs_to_stat_info(
  * daemon |nfs_to_stat_lx_info()| should be kept in sync!
  */
 void nfs_to_stat_lx_info(
-    IN void *daemon_context,
+    IN nfs41_open_state *state,
     IN const char *restrict name,
     IN const nfs41_superblock *restrict superblock,
     IN const nfs41_file_info *restrict info,
     OUT PFILE_STAT_LX_INFORMATION restrict stat_lx_out)
 {
-    nfs41_daemon_globals *nfs41_dg =
-        (nfs41_daemon_globals *)daemon_context;
+    struct idmap_context *idmapper = state->session->client->root->idmapper;
 
     EASSERT(info->attrmask.count > 0);
 
@@ -458,8 +459,7 @@ void nfs_to_stat_lx_info(
     EASSERT_MSG(IS_PRINCIPAL_NAME(owner),
         ("owner='%s' is not a principal\n", owner));
 
-    ie = nfs41_idmap_user_lookup_by_nfsname(nfs41_dg->idmapper,
-        owner);
+    ie = nfs41_idmap_user_lookup_by_nfsname(idmapper, owner);
     if (ie != NULL) {
         stat_lx_out->LxFlags |= LX_FILE_METADATA_HAS_UID;
         stat_lx_out->LxUid = ie->localid;
@@ -467,12 +467,12 @@ void nfs_to_stat_lx_info(
     }
     else {
         /*
-         * No mapping --> Use |NFS NFS_USER_NOBODY_UID| and set
+         * No mapping --> Use NOUSER_UID from idmapper config and set
          * |LX_FILE_METADATA_HAS_UID|, because we have an user
          * name, but just no name2uid mapping
          */
         stat_lx_out->LxFlags |= LX_FILE_METADATA_HAS_UID;
-        stat_lx_out->LxUid = NFS_USER_NOBODY_UID;
+        stat_lx_out->LxUid = idmapper->config.default_local_uid;
     }
 
     /*
@@ -485,8 +485,7 @@ void nfs_to_stat_lx_info(
     EASSERT_MSG(IS_PRINCIPAL_NAME(owner_group),
         ("owner_group='%s' is not a principal\n", owner_group));
 
-    ie = nfs41_idmap_group_lookup_by_nfsname(nfs41_dg->idmapper,
-        owner_group);
+    ie = nfs41_idmap_group_lookup_by_nfsname(idmapper, owner_group);
     if (ie != NULL) {
         stat_lx_out->LxFlags |= LX_FILE_METADATA_HAS_GID;
         stat_lx_out->LxGid = ie->localid;
@@ -494,12 +493,12 @@ void nfs_to_stat_lx_info(
     }
     else {
         /*
-         * No mapping --> Use |NFS NFS_GROUP_NOGROUP_GID| and set
+         * No mapping --> Use NOGROUP_GID from idmapper config and set
          * |LX_FILE_METADATA_HAS_GID|, because we have a group
          * name, but just no name2gid mapping
          */
         stat_lx_out->LxFlags |= LX_FILE_METADATA_HAS_GID;
-        stat_lx_out->LxUid = NFS_GROUP_NOGROUP_GID;
+        stat_lx_out->LxGid = idmapper->config.default_local_uid;
     }
 
     /* FIXME: |LX_FILE_METADATA_HAS_DEVICE_ID| not implemented yet */

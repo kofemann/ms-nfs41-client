@@ -406,11 +406,11 @@ done:
 #endif /* NFS41_DRIVER_SID_CACHE */
 
 int map_nfs4servername_2_sid(
-    nfs41_daemon_globals *nfs41dg,
-    int query,
-    DWORD *sid_len,
-    PSID *sid,
-    LPCSTR nfsname)
+    IN OUT struct idmap_context *idmapper,
+    IN int query,
+    OUT DWORD *restrict sid_len,
+    OUT PSID *restrict sid,
+    IN const char *restrict nfsname)
 {
     const char *win32name = NULL;
 
@@ -442,12 +442,10 @@ int map_nfs4servername_2_sid(
         }
 
         if ((nfs_ie == NULL) && (query & OWNER_SECURITY_INFORMATION)) {
-            nfs_ie = nfs41_idmap_user_lookup_by_nfsid(nfs41dg->idmapper,
-                nfs_id);
+            nfs_ie = nfs41_idmap_user_lookup_by_nfsid(idmapper, nfs_id);
         }
         if ((nfs_ie == NULL) && (query & GROUP_SECURITY_INFORMATION)) {
-            nfs_ie = nfs41_idmap_group_lookup_by_nfsid(nfs41dg->idmapper,
-                nfs_id);
+            nfs_ie = nfs41_idmap_group_lookup_by_nfsid(idmapper, nfs_id);
         }
     }
     else {
@@ -455,12 +453,10 @@ int map_nfs4servername_2_sid(
             ("nfsname='%s' is not a principal\n", nfsname));
 
         if ((nfs_ie == NULL) && (query & OWNER_SECURITY_INFORMATION)) {
-            nfs_ie = nfs41_idmap_user_lookup_by_nfsname(nfs41dg->idmapper,
-                nfsname);
+            nfs_ie = nfs41_idmap_user_lookup_by_nfsname(idmapper, nfsname);
         }
         if ((nfs_ie == NULL) && (query & GROUP_SECURITY_INFORMATION)) {
-            nfs_ie = nfs41_idmap_group_lookup_by_nfsname(nfs41dg->idmapper,
-                nfsname);
+            nfs_ie = nfs41_idmap_group_lookup_by_nfsname(idmapper, nfsname);
         }
     }
 

@@ -22,6 +22,7 @@
 #include "nfs41_build_features.h"
 #include "accesstoken.h"
 #include "sid.h"
+#include "idmap.h"
 #include "daemon_debug.h"
 #include "nfs41_daemon.h"
 
@@ -126,8 +127,11 @@ bool get_token_primarygroup_name(HANDLE tok, char *out_buffer)
     return true;
 }
 
-bool fill_auth_unix_aup_gids(HANDLE tok,
-    gid_t *aup_gids, int *num_aup_gids)
+bool fill_auth_unix_aup_gids(
+    IN OUT struct idmap_context *idmapper,
+    IN HANDLE tok,
+    OUT gid_t *aup_gids,
+    OUT int *num_aup_gids)
 {
     char group_names_buff[RPC_AUTHUNIX_AUP_MAX_NUM_GIDS*(UTF8_PRINCIPALLEN+1)];
     char *group_names[RPC_AUTHUNIX_AUP_MAX_NUM_GIDS];
@@ -160,7 +164,7 @@ bool fill_auth_unix_aup_gids(HANDLE tok,
     idmapcache_entry *ie;
     *num_aup_gids = 0;
     for (i=0 ; i < num_groups ; i++) {
-        ie = nfs41_idmap_group_lookup_by_win32name(nfs41_dg.idmapper,
+        ie = nfs41_idmap_group_lookup_by_win32name(idmapper,
             group_names[i]);
         if (ie != NULL) {
             aup_gids[(*num_aup_gids)++] = ie->nfsid;

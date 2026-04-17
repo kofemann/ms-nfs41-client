@@ -29,6 +29,7 @@
 
 #include "daemon_debug.h"
 #include "util.h"
+#include "idmap.h"
 #include "sid.h"
 #include "nfs41_ops.h"
 #include <devioctl.h>
@@ -864,12 +865,12 @@ int delayxid(LONGLONG xid, LONGLONG moredelaysecs)
  * do a "manual" chgrp on the new file
  */
 int chgrp_to_primarygroup(
-    IN nfs41_daemon_globals *nfs41dg,
     IN HANDLE currentthread_token,
     IN nfs41_open_state *state)
 {
     int chgrp_status = NO_ERROR;
     idmapcache_entry *group_ie = NULL;
+    struct idmap_context *idmapper = state->session->client->root->idmapper;
     char win32groupname[256];
 
     /*
@@ -894,8 +895,7 @@ int chgrp_to_primarygroup(
         ("chgrp_to_primarygroup: win32groupname='%s' is not a principal\n",
         win32groupname));
 
-    group_ie = nfs41_idmap_group_lookup_by_win32name(nfs41dg->idmapper,
-        win32groupname);
+    group_ie = nfs41_idmap_group_lookup_by_win32name(idmapper, win32groupname);
     if (group_ie == NULL) {
         eprintf("chgrp_to_primarygroup(state->file.name.name='%s'): "
             "nfs41_idmap_group_lookup_by_win32name(name='%s') failed\n",

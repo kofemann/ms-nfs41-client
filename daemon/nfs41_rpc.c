@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2023-2026 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -153,6 +153,7 @@ int nfs41_rpc_clnt_create(
     IN const multi_addr4 *addrs,
     IN uint32_t wsize,
     IN uint32_t rsize,
+    IN OUT struct idmap_context *idmapper,
     IN uint32_t uid,
     IN uint32_t gid,
     IN uint32_t sec_flavor,
@@ -164,7 +165,6 @@ int nfs41_rpc_clnt_create(
     int status;
     char machname[MAXHOSTNAMELEN + 1];
     bool_t needcb = 1;
-
     rpc = calloc(1, sizeof(nfs41_rpc_clnt));
     if (rpc == NULL) {
         status = GetLastError();
@@ -215,7 +215,8 @@ int nfs41_rpc_clnt_create(
         }
         machname[sizeof(machname) - 1] = '\0';
 
-        if (!fill_auth_unix_aup_gids(GetCurrentThreadToken(),
+        if (!fill_auth_unix_aup_gids(idmapper,
+            GetCurrentThreadToken(),
             aup_gids, &num_aup_gids)) {
             eprintf("nfs41_rpc_clnt_create: "
                 "fill_auth_unix_aup_gids() failed\n");

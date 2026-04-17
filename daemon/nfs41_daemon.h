@@ -1,5 +1,6 @@
 /* NFSv4.1 client for Windows
- * Copyright © 2012 The Regents of the University of Michigan
+ * Copyright (C) 2012 The Regents of the University of Michigan
+ * Copyright (C) 2023-2026 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -28,17 +29,14 @@
 #endif
 
 #include "nfs41_build_features.h"
-#include "idmap.h"
+#include "nfs41_const.h" /* for |NFS41_HOSTNAME_LEN| */
 
 /*
  * Global data of the daemon process
  */
 typedef struct __nfs41_daemon_globals {
-    struct idmap_context *idmapper;
     char localdomain_name[NFS41_HOSTNAME_LEN];
-    int default_uid;
-    int default_gid;
-    ssize_t num_worker_threads;
+    SSIZE_T num_worker_threads;
     int crtdbgmem_flags;
     char nfs41_nii_name[256];
 } nfs41_daemon_globals;

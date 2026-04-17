@@ -1,6 +1,6 @@
 /*
  * NFSv4.1 client for Windows
- * Copyright (C) 2024 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2024-2026 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Roland Mainz <roland.mainz@nrubsig.org>
  *
@@ -30,8 +30,12 @@ bool get_token_user_name(HANDLE tok, char *out_buffer);
 bool get_token_primarygroup_name(HANDLE tok, char *out_buffer);
 bool get_token_authenticationid(HANDLE tok, LUID *out_authenticationid);
 bool set_token_privilege(HANDLE tok, const char *seprivname, bool enable_priv);
-bool fill_auth_unix_aup_gids(HANDLE tok,
-    gid_t *, int *num_aup_gids);
+struct idmap_context;
+bool fill_auth_unix_aup_gids(
+    IN OUT struct idmap_context *idmapper,
+    IN HANDLE tok,
+    OUT gid_t *aup_gids,
+    OUT int *num_aup_gids);
 bool get_token_groups_names(HANDLE tok,
     int num_out_buffers, char *out_buffers[],
     int *out_buffers_count);

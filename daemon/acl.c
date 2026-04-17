@@ -60,9 +60,9 @@ out:
 static int handle_getacl(void *daemon_context, nfs41_upcall *upcall)
 {
     int status = ERROR_NOT_SUPPORTED;
-    nfs41_daemon_globals *nfs41dg = daemon_context;
     getacl_upcall_args *args = &upcall->args.getacl;
     nfs41_open_state *state = upcall->state_ref;
+    struct idmap_context *idmapper = state->session->client->root->idmapper;
     nfs41_file_info info;
     SECURITY_DESCRIPTOR sec_desc;
     PACL dacl = NULL;
@@ -131,7 +131,7 @@ static int handle_getacl(void *daemon_context, nfs41_upcall *upcall)
             "OWNER_SECURITY_INFORMATION: for user='%s'\n",
             info.owner));
         sid_len = 0;
-        status = map_nfs4servername_2_sid(nfs41dg,
+        status = map_nfs4servername_2_sid(idmapper,
             OWNER_SECURITY_INFORMATION, &sid_len, &osid, info.owner);
         if (status)
             goto out;
@@ -149,7 +149,7 @@ static int handle_getacl(void *daemon_context, nfs41_upcall *upcall)
             "GROUP_SECURITY_INFORMATION: for '%s'\n",
             info.owner_group));
         sid_len = 0;
-        status = map_nfs4servername_2_sid(nfs41dg,
+        status = map_nfs4servername_2_sid(idmapper,
             GROUP_SECURITY_INFORMATION, &sid_len, &gsid, info.owner_group);
         if (status)
             goto out;
@@ -164,7 +164,7 @@ static int handle_getacl(void *daemon_context, nfs41_upcall *upcall)
 
     if (args->query_secinfo & DACL_SECURITY_INFORMATION) {
         DPRINTF(ACLLVL2, ("handle_getacl: DACL_SECURITY_INFORMATION\n"));
-        status = convert_nfs4acl_2_dacl(nfs41dg,
+        status = convert_nfs4acl_2_dacl(idmapper,
             info.acl, state->type, &dacl, &sids,
             state->file.fh.superblock->nfs_namedattr_support?true:false);
         if (status)
@@ -281,6 +281,7 @@ static int handle_setacl(void *daemon_context, nfs41_upcall *upcall)
     nfs41_daemon_globals *nfs41dg = daemon_context;
     setacl_upcall_args *args = &upcall->args.setacl;
     nfs41_open_state *state = upcall->state_ref;
+    struct idmap_context *idmapper = state->session->client->root->idmapper;
     nfs41_file_info info = { 0 };
     stateid_arg stateid;
     nfsacl41 nfs4_acl = { 0 };
@@ -307,7 +308,7 @@ static int handle_setacl(void *daemon_context, nfs41_upcall *upcall)
             goto out;
         }
 
-        status = map_sid2nfs4ace_who(sid, NULL, NULL, ownerbuf,
+        status = map_sid2nfs4ace_who(idmapper, sid, NULL, NULL, ownerbuf,
             nfs41dg->localdomain_name, NULL);
         if (status)
             goto out;
@@ -329,7 +330,7 @@ static int handle_setacl(void *daemon_context, nfs41_upcall *upcall)
             goto out;
         }
 
-        status = map_sid2nfs4ace_who(sid, NULL, NULL, groupbuf,
+        status = map_sid2nfs4ace_who(idmapper, sid, NULL, NULL, groupbuf,
             nfs41dg->localdomain_name, NULL);
         if (status)
             goto out;
@@ -365,7 +366,7 @@ static int handle_setacl(void *daemon_context, nfs41_upcall *upcall)
             eprintf("GetSecurityDescriptorOwner failed with %d\n", status);
             goto out;
         }
-        status = map_dacl_2_nfs4acl(acl, sid, gsid, &nfs4_acl,
+        status = map_dacl_2_nfs4acl(idmapper, acl, sid, gsid, &nfs4_acl,
              state->type,
              state->file.fh.superblock->nfs_namedattr_support?true:false,
             nfs41dg->localdomain_name);

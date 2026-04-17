@@ -688,7 +688,6 @@ function nfsclient_rundeamon
 		'-debug'
 		'-d' '0'
 		#'--numworkerthreads' '512'
-		#'--gid' '1616' '--uid' '1616'
 	)
 
 	#
@@ -819,7 +818,6 @@ function nfsclient_system_rundeamon
 		'-debug'
 		'-d' '0'
 		#'--numworkerthreads' '512'
-		#'--gid' '1616' '--uid' '1616'
 	)
 
 	#

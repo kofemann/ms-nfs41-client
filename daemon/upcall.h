@@ -275,21 +275,16 @@ typedef struct __nfs41_upcall {
     upcall_args             args;
 
     /*
-     * |currentthread_token| - (Impersonation) thread token and
-     * local uid/gid of the user we are impersonating
+     * |currentthread_token| - (Impersonation) thread token,
+     * we use the idmapper to get the local and NFS server
+     * uid+gid from this. Note that the PrimaryGroup of the token
+     * can change based on newgrp(1)/sg(1) usafe.
+     *
      * This should be |INVALID_HANDLE_VALUE| if the thread
      * has no impersonation token, as we use this for access
      * checking.
      */
     HANDLE                  currentthread_token;
-    /*
-     * Local uid/gid of impersonated user/primary_group
-     * The NFSv4 server might use different uid/gid, and our
-     * idmapper is resposible for the
-     * local_uid/local_gid <--> owner/owner_group translation
-     */
-    uid_t                   uid;
-    gid_t                   gid;
 
     /* store referenced pointers with the upcall for
      * automatic dereferencing on upcall_cleanup();

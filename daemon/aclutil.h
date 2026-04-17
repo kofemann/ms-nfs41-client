@@ -26,6 +26,7 @@
 
 #include "nfs41_build_features.h"
 #include "nfs41_daemon.h"
+#include "idmap.h"
 
 /* |DPRINTF()| levels for acl logging */
 #define ACLLVL1 1
@@ -36,12 +37,29 @@ void free_sids(PSID *sids, int count);
 #ifdef NFS41_DRIVER_WS2022_HACKS
 char *build_well_known_localised_nfs_grouplist(struct idmap_context *context);
 #endif /* NFS41_DRIVER_WS2022_HACKS */
-int map_sid2nfs4ace_who(PSID sid, PSID owner_sid, PSID group_sid,
-    char *who_out, const char *domain, SID_NAME_USE *sid_type_out);
-int convert_nfs4acl_2_dacl(nfs41_daemon_globals *nfs41dg,
-    nfsacl41 *acl, int file_type, PACL *dacl_out, PSID **sids_out,
-    bool named_attr_support);
-int map_dacl_2_nfs4acl(PACL acl, PSID sid, PSID gsid, nfsacl41 *nfs4_acl,
-    int file_type, bool named_attr_support, const char *domain);
+int map_sid2nfs4ace_who(
+    IN OUT struct idmap_context *idmapper,
+    IN PSID sid,
+    IN PSID owner_sid,
+    IN PSID group_sid,
+    OUT char *who_out,
+    IN const char *domain,
+    OUT SID_NAME_USE *sid_type_out);
+int convert_nfs4acl_2_dacl(
+    IN OUT struct idmap_context *idmapper,
+    IN nfsacl41 *restrict acl,
+    IN int file_type,
+    OUT PACL *dacl_out,
+    OUT PSID **sids_out,
+    IN bool nfs_namedattr_support);
+int map_dacl_2_nfs4acl(
+    IN OUT struct idmap_context *idmapper,
+    IN PACL acl,
+    IN PSID sid,
+    IN PSID gsid,
+    OUT nfsacl41 *nfs4_acl,
+    IN int file_type,
+    IN bool nfs_namedattr_support,
+    IN const char *domain);
 
 #endif /* !__NFS41_DAEMON_ACLUTIL_H__ */

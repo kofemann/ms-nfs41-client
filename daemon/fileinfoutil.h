@@ -1,5 +1,5 @@
 /* NFSv4.1 client for Windows
- * Copyright (C) 2024-2025 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2024-2026 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Roland Mainz <roland.mainz@nrubsig.org>
  *
@@ -62,7 +62,7 @@ void nfs_to_stat_info(
     IN const nfs41_file_info *restrict info,
     OUT PFILE_STAT_INFORMATION restrict stat_out);
 void nfs_to_stat_lx_info(
-    IN void *daemon_context,
+    IN nfs41_open_state *state,
     IN const char *restrict name,
     IN const nfs41_superblock *restrict superblock,
     IN const nfs41_file_info *restrict info,

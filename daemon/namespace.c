@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2024-2025 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2024-2026 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -25,6 +25,8 @@
 #include <strsafe.h>
 
 #include "nfs41_ops.h"
+#include "nfs41_daemon.h"
+#include "idmap.h"
 #include "util.h"
 #include "daemon_debug.h"
 /* for |ERROR_NFS_VERSION_MISMATCH|+|NFS_VERSION_AUTONEGOTIATION| */
@@ -118,6 +120,18 @@ int nfs41_root_create(
     root->ref_count = 1;
     root->sec_flavor = sec_flavor;
 
+    /* FIXME: This should be a function argument */
+    nfs41_daemon_globals nfs41_dg;
+
+    status = nfs41_idmap_create(&root->idmapper,
+        nfs41_dg.localdomain_name);
+    if (status) {
+        eprintf("nfs41_root_create: "
+            "id mapping initialization failed with %d\n",
+            status);
+        goto out;
+    }
+
     /* generate a unique client_owner */
     status = nfs41_client_owner(name, port, root->nfsminorvers,
         use_nfspubfh,
@@ -150,6 +164,10 @@ static void root_free(
     list_for_each_tmp(entry, tmp, &root->clients)
         nfs41_client_free(client_entry(entry));
     DeleteCriticalSection(&root->lock);
+
+    if (root->idmapper)
+        nfs41_idmap_free(root->idmapper);
+
     free(root);
 
     DPRINTF(NSLVL, ("<-- nfs41_root_free()\n"));
@@ -421,8 +439,10 @@ int nfs41_root_mount_addrs(
         goto out;
 
     /* create an rpc client */
-    status = nfs41_rpc_clnt_create(addrs, root->wsize, root->rsize,
-        root->uid, root->gid, root->sec_flavor, &rpc);
+    status = nfs41_rpc_clnt_create(addrs,
+        root->wsize, root->rsize,
+        root->idmapper, root->uid, root->gid,
+        root->sec_flavor, &rpc);
     if (status) {
         eprintf("nfs41_rpc_clnt_create() failed %d\n", status);
         goto out;
