@@ -649,10 +649,11 @@ function main_dispatch
 	typeset stdout
 
 	(( $# > 0 )) && c.mode="$1"
-	if (( $# > 1 )) ; then
+	(( $# > 1 )) && c.idmapconfigname="$2"
+	if (( $# > 2 )) ; then
 		# strip '"' characters (for Cygwin 3.3 compatibility)
 		# note that "${2-//..." does NOT work!
-		c.name="${2//\"/}"
+		c.name="${3//\"/}"
 	fi
 
 
@@ -709,14 +710,16 @@ function main_dispatch
 						print -v gec
 						return 0
 					else
-						print -u2 -f "cygwin_idmapper.ksh: getent passwd %q returned garbage %q.\n" \
+						print -u2 -f "cygwin_idmapper.ksh(cfg=%q): getent passwd %q returned garbage %q.\n" \
+							"${c.idmapconfigname-}" \
 							"${c.name}" "${gec.localuid-}"
 						return 1
 					fi
 				fi
 			fi
 
-			print -u2 -f "cygwin_idmapper.ksh: Account %q not found.\n" "${c.name}"
+			print -u2 -f "cygwin_idmapper.ksh(cfg=%q): Account %q not found.\n" \
+				"${c.idmapconfigname-}" "${c.name}"
 			return 1
 			;;
 		'lookup_group_by_localgroup')
@@ -766,14 +769,15 @@ function main_dispatch
 						print -v gec
 						return 0
 					else
-						print -u2 -f "cygwin_idmapper.ksh: getent group %q returned garbage %q.\n" \
+						print -u2 -f "cygwin_idmapper.ksh(cfg=%q): getent group %q returned garbage %q.\n" \
+							"${c.idmapconfigname-}" \
 							"${c.name}" "${gec.localgid-}"
 						return 1
 					fi
 				fi
 			fi
 
-			print -u2 -f "cygwin_idmapper.ksh: Group %q not found.\n" "${c.name}"
+			print -u2 -f "cygwin_idmapper.ksh(cfg=%q): Group %q not found.\n" "${c.idmapconfigname-}" "${c.name}"
 			return 1
 			;;
 		'lookup_user_by_nfsserver_owner')
@@ -820,14 +824,15 @@ function main_dispatch
 						print -v gec
 						return 0
 					else
-						print -u2 -f "cygwin_idmapper.ksh: getent passwd %q returned garbage %q.\n" \
+						print -u2 -f "cygwin_idmapper.ksh(cfg=%q): getent passwd %q returned garbage %q.\n" \
+							"${c.idmapconfigname-}" \
 							"${c.name}" "${gec.localuid-}"
 						return 1
 					fi
 				fi
 			fi
 
-			print -u2 -f "cygwin_idmapper.ksh: Account %q not found.\n" "${c.name}"
+			print -u2 -f "cygwin_idmapper.ksh(cfg=%q): Account %q not found.\n" "${c.idmapconfigname-}" "${c.name}"
 			return 1
 			;;
 		'lookup_group_by_nfsserver_owner_group')
@@ -879,14 +884,15 @@ function main_dispatch
 						print -v gec
 						return 0
 					else
-						print -u2 -f "cygwin_idmapper.ksh: getent group %q returned garbage %q.\n" \
+						print -u2 -f "cygwin_idmapper.ksh(cfg=%q): getent group %q returned garbage %q.\n" \
+							"${c.idmapconfigname-}" \
 							"${c.name}" "${gec.localgid-}"
 						return 1
 					fi
 				fi
 			fi
 
-			print -u2 -f "cygwin_idmapper.ksh: Group %q not found.\n" "${c.name}"
+			print -u2 -f "cygwin_idmapper.ksh(cfg=%q): Group %q not found.\n" "${c.idmapconfigname-}" "${c.name}"
 			return 1
 			;;
 		*)
@@ -911,21 +917,26 @@ export LC_ALL='en_US.UTF-8'
 #
 # idmapper script config data
 #
-compound idmap_config=(
-	#typeset -r localdomain='GLOBAL.LOC'	# Default domain for Windows
-	#typeset -r nfsdomain='global.loc'	# Default domain for NFS server
-	typeset -r localdomain="$( < '/proc/registry/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Services/Tcpip/Parameters/Domain' )"
-	typeset -r nfsdomain="$( tr '[:upper:]' '[:lower:]' <'/proc/registry/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Services/Tcpip/Parameters/Domain' )"
+case "$1" in
+	# default config
+	*)
+		compound idmap_config=(
+			#typeset -r localdomain='GLOBAL.LOC'	# Default domain for Windows
+			#typeset -r nfsdomain='global.loc'	# Default domain for NFS server
+			typeset -r localdomain="$( < '/proc/registry/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Services/Tcpip/Parameters/Domain' )"
+			typeset -r nfsdomain="$( tr '[:upper:]' '[:lower:]' <'/proc/registry/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Services/Tcpip/Parameters/Domain' )"
 
-	# Define NFS server type
-	# * Values can be "windows/en", "windows/de", "windows/fr", "freebsd", "solaris", "linux"
-	# * This is neccesary because
-	# - Windows localises account names on both client and server side
-	# (e.g. German Windows machine connecting to a French WindowsServer 2022)
-	# - Different NFS servers might use different names for the same group
-	# (e.g. SAMBA vs. kernel CIFS server)
-	typeset -r servertype='linux'
-)
+			# Define NFS server type
+			# * Values can be "windows/en", "windows/de", "windows/fr", "freebsd", "solaris", "linux"
+			# * This is neccesary because
+			# - Windows localises account names on both client and server side
+			# (e.g. German Windows machine connecting to a French WindowsServer 2022)
+			# - Different NFS servers might use different names for the same group
+			# (e.g. SAMBA vs. kernel CIFS server)
+			typeset -r servertype='linux'
+		)
+		;;
+esac
 
 main_dispatch "$@"
 exit $?

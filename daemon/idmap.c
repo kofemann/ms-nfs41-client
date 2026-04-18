@@ -310,7 +310,9 @@ out:
 
 /* public idmap interface */
 int nfs41_idmap_create(
-    struct idmap_context **context_out, const char *localdomain_name)
+    IN const char *configname,
+    OUT struct idmap_context **context_out,
+    IN const char *localdomain_name)
 {
     struct idmap_context *context;
     int status = NO_ERROR;
@@ -321,6 +323,7 @@ int nfs41_idmap_create(
         goto out;
     }
 
+    (void)strcpy(context->config.configname, configname);
 
     /* load configuration from file */
     status = config_init(&context->config);

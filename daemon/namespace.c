@@ -123,7 +123,7 @@ int nfs41_root_create(
     /* FIXME: This should be a function argument */
     nfs41_daemon_globals nfs41_dg;
 
-    status = nfs41_idmap_create(&root->idmapper,
+    status = nfs41_idmap_create(name, &root->idmapper,
         nfs41_dg.localdomain_name);
     if (status) {
         eprintf("nfs41_root_create: "

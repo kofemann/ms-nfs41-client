@@ -31,37 +31,11 @@
 typedef struct idmap_context nfs41_idmapper;
 
 int nfs41_idmap_create(
-    nfs41_idmapper **context_out, const char *localdomain_name);
+    IN const char *configname,
+    OUT struct idmap_context **context_out,
+    IN const char *localdomain_name);
 void nfs41_idmap_free(
     nfs41_idmapper *context);
-
-/* idmap_cygwin.c */
-#ifdef NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN
-int cygwin_local_getent_passwd(
-    const char *restrict name,
-    char *restrict res_localaccountname,
-    uid_t *restrict res_localuid,
-    char *restrict res_nfsowner,
-    uid_t *restrict res_nfsuid);
-int cygwin_nfsserver_getent_passwd(
-    const char *restrict name,
-    char *restrict res_localaccountname,
-    uid_t *restrict res_localuid,
-    char *restrict res_nfsowner,
-    uid_t *restrict res_nfsuid);
-int cygwin_local_getent_group(
-    const char *restrict name,
-    char *restrict res_localgroupname,
-    gid_t *restrict res_localgid,
-    char *restrict res_nfsownergroup,
-    gid_t *restrict res_nfsgid);
-int cygwin_nfsserver_getent_group(
-    const char *restrict name,
-    char *restrict res_localgroupname,
-    gid_t *restrict res_localgid,
-    char *restrict res_nfsownergroup,
-    gid_t *restrict res_nfsgid);
-#endif /* NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN */
 
 #define IDMAPCACHE_TTL_SECONDS (60*5)
 #define IDMAPCACHE_MAXNAME_LEN 256
@@ -110,6 +84,7 @@ void idmapcache_entry_refcount_inc(idmapcache_entry *restrict e);
 void idmapcache_entry_refcount_dec(idmapcache_entry *restrict e);
 
 struct idmap_config {
+    char configname[256];
     UINT timeout;
 
     bool use_numeric_uidgid;

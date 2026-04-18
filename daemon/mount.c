@@ -299,7 +299,6 @@ static int handle_mount(void *daemon_context, nfs41_upcall *upcall)
             goto out;
         }
 
-
         /*
          * Map current { user, primary_group } to { uid, gid } for AUTH_SYS
          * Note that the VNETROOT is per logonid, so we always have the same
