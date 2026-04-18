@@ -63,7 +63,7 @@ int create_unknownsid(
 
         DPRINTF(ACLLVL,
             ("create_unknownsid(type=%d): CreateWellKnownSid() "
-            "returned type=%d *sid_len=%d\n",
+            "returned success, *sid_len=%d\n",
             (int)type, (int)*sid_len));
 
         return ERROR_SUCCESS;
