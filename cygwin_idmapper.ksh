@@ -125,9 +125,9 @@ function setup_windows_builtin_accounts
 				['windows/en']=$'SYSTEM@NT AUTHORITY'
 				['windows/de']=$'SYSTEM@NT-AUTORIT\xC3\x84T'
 				['windows/fr']=$'Syst\xC3\xA8me@AUTORIT\xC3\x89 NT'
-				['freebsd']="SYSTEM@${idmap_config.nfsdomain}"
-				['solaris']="SYSTEM@${idmap_config.nfsdomain}"
-				['linux']="SYSTEM@${idmap_config.nfsdomain}"
+				['freebsd']="SYSTEM@${c.idmap_config.nfsdomain}"
+				['solaris']="SYSTEM@${c.idmap_config.nfsdomain}"
+				['linux']="SYSTEM@${c.idmap_config.nfsdomain}"
 			)
 		)
 		['Administrator']=(
@@ -138,9 +138,9 @@ function setup_windows_builtin_accounts
 				['windows/en']="Administrator@${COMPUTERNAME}"
 				['windows/de']="Administrator@${COMPUTERNAME}"
 				['windows/fr']="Administrateur@${COMPUTERNAME}"
-				['freebsd']="Administrator@${idmap_config.nfsdomain}"
-				['solaris']="Administrator@${idmap_config.nfsdomain}"
-				['linux']="Administrator@${idmap_config.nfsdomain}"
+				['freebsd']="Administrator@${c.idmap_config.nfsdomain}"
+				['solaris']="Administrator@${c.idmap_config.nfsdomain}"
+				['linux']="Administrator@${c.idmap_config.nfsdomain}"
 			)
 		)
 	)
@@ -183,9 +183,9 @@ function setup_windows_builtin_accounts
 				['windows/en']=$'SYSTEM@NT AUTHORITY'
 				['windows/de']=$'SYSTEM@NT-AUTORIT\xC3\x84T'
 				['windows/fr']=$'Syst\xC3\xA8me@AUTORIT\xC3\x89 NT'
-				['freebsd']="SYSTEM@${idmap_config.nfsdomain}"
-				['solaris']="SYSTEM@${idmap_config.nfsdomain}"
-				['linux']="SYSTEM@${idmap_config.nfsdomain}"
+				['freebsd']="SYSTEM@${c.idmap_config.nfsdomain}"
+				['solaris']="SYSTEM@${c.idmap_config.nfsdomain}"
+				['linux']="SYSTEM@${c.idmap_config.nfsdomain}"
 			)
 		)
 		['Administrators']=(
@@ -196,9 +196,9 @@ function setup_windows_builtin_accounts
 				['windows/en']="Administrators@BUILTIN"
 				['windows/de']="Administratoren@VORDEFINIERT"
 				['windows/fr']='Administrateurs@BUILTIN'
-				['freebsd']="Administrators@${idmap_config.nfsdomain}"
-				['solaris']="Administrators@${idmap_config.nfsdomain}"
-				['linux']="Administrators@${idmap_config.nfsdomain}"
+				['freebsd']="Administrators@${c.idmap_config.nfsdomain}"
+				['solaris']="Administrators@${c.idmap_config.nfsdomain}"
+				['linux']="Administrators@${c.idmap_config.nfsdomain}"
 			)
 		)
 		['Users']=(
@@ -209,9 +209,9 @@ function setup_windows_builtin_accounts
 				['windows/en']="Users@BUILTIN"
 				['windows/de']="Benutzer@VORDEFINIERT"
 				['windows/fr']='Utilisateurs@BUILTIN'
-				['freebsd']="Users@${idmap_config.nfsdomain}"
-				['solaris']="Users@${idmap_config.nfsdomain}"
-				['linux']="Users@${idmap_config.nfsdomain}"
+				['freebsd']="Users@${c.idmap_config.nfsdomain}"
+				['solaris']="Users@${c.idmap_config.nfsdomain}"
+				['linux']="Users@${c.idmap_config.nfsdomain}"
 			)
 		)
 		['None']=(
@@ -219,12 +219,12 @@ function setup_windows_builtin_accounts
 			# localgid will be obtained via getent(1)
 			nfsgid=197121
 			typeset -A localised_names=(
-				['windows/en']="None@${idmap_config.nfsdomain}"
-				['windows/de']="Kein@${idmap_config.nfsdomain}"
-				['windows/fr']="Aucun@${idmap_config.nfsdomain}"
-				['freebsd']="None@${idmap_config.nfsdomain}"
-				['solaris']="None@${idmap_config.nfsdomain}"
-				['linux']="None@${idmap_config.nfsdomain}"
+				['windows/en']="None@${c.idmap_config.nfsdomain}"
+				['windows/de']="Kein@${c.idmap_config.nfsdomain}"
+				['windows/fr']="Aucun@${c.idmap_config.nfsdomain}"
+				['freebsd']="None@${c.idmap_config.nfsdomain}"
+				['solaris']="None@${c.idmap_config.nfsdomain}"
+				['linux']="None@${c.idmap_config.nfsdomain}"
 			)
 		)
 	)
@@ -255,7 +255,7 @@ function setup_windows_builtin_accounts
 					localaccountname="${nt_parse.user}@${nt_parse.domain}"
 					localuid=${localuid}
 					nfsuid=${n.nfsuid}
-					nfsowner=${n.localised_names[${idmap_config.servertype}]}
+					nfsowner=${n.localised_names[${c.idmap_config.servertype}]}
 				)
 			)
 		fi
@@ -297,7 +297,7 @@ function setup_windows_builtin_accounts
 					localgroupname="${nt_parse.user}@${nt_parse.domain}"
 					localgid=${localgid}
 					nfsgid=${n.nfsgid}
-					nfsownergroup=${n.localised_names[${idmap_config.servertype}]}
+					nfsownergroup=${n.localised_names[${c.idmap_config.servertype}]}
 				)
 			)
 		fi
@@ -317,13 +317,13 @@ function setup_site_system_accounts
 		["root"]=(
 			localaccountname="root@${COMPUTERNAME}"
 			localuid=0
-			nfsowner="root@${idmap_config.nfsdomain}"
+			nfsowner="root@${c.idmap_config.nfsdomain}"
 			nfsuid=0
 		)
 		["nobody"]=(
 			localaccountname="nobody@${COMPUTERNAME}"
 			localuid=65534
-			nfsowner="nobody@${idmap_config.nfsdomain}"
+			nfsowner="nobody@${c.idmap_config.nfsdomain}"
 			nfsuid=65534
 		)
 	)
@@ -335,13 +335,13 @@ function setup_site_system_accounts
 		["root"]=(
 			localgroupname="root@${COMPUTERNAME}"
 			localgid=0
-			nfsownergroup="root@${idmap_config.nfsdomain}"
+			nfsownergroup="root@${c.idmap_config.nfsdomain}"
 			nfsgid=0
 		)
 		["nogroup"]=(
 			localgroupname="nogroup@${COMPUTERNAME}"
 			localgid=65534
-			nfsownergroup="nogroup@${idmap_config.nfsdomain}"
+			nfsownergroup="nogroup@${c.idmap_config.nfsdomain}"
 			nfsgid=65534
 		)
 		#
@@ -350,7 +350,7 @@ function setup_site_system_accounts
 		["sys"]=(
 			localgroupname="sys@${COMPUTERNAME}"
 			localgid=3
-			nfsownergroup="sys@${idmap_config.nfsdomain}"
+			nfsownergroup="sys@${c.idmap_config.nfsdomain}"
 			nfsgid=3
 		)
 		#
@@ -360,7 +360,7 @@ function setup_site_system_accounts
 		["nobody"]=(
 			localgroupname="nobody@${COMPUTERNAME}"
 			localgid=65534
-			nfsownergroup="nobody@${idmap_config.nfsdomain}"
+			nfsownergroup="nobody@${c.idmap_config.nfsdomain}"
 			nfsgid=65534
 		)
 	)
@@ -379,13 +379,13 @@ function setup_site_accounts_lab_example1
 		["roland_mainz"]=(
 			localaccountname="roland_mainz@${COMPUTERNAME}"
 			localuid=197608
-			nfsowner="rmainz@${idmap_config.nfsdomain}"
+			nfsowner="rmainz@${c.idmap_config.nfsdomain}"
 			nfsuid=1616
 		)
 		["siegfried_wulsch"]=(
 			localaccountname="siegfried_wulsch@${COMPUTERNAME}"
 			localuid=197609
-			nfsowner="swulsch@${idmap_config.nfsdomain}"
+			nfsowner="swulsch@${c.idmap_config.nfsdomain}"
 			nfsuid=1818
 		)
 	)
@@ -397,13 +397,13 @@ function setup_site_accounts_lab_example1
 		["rmainz"]=(
 			localgroupname="rmainz@${COMPUTERNAME}"
 			localgid=1616
-			nfsownergroup="rmainz@${idmap_config.nfsdomain}"
+			nfsownergroup="rmainz@${c.idmap_config.nfsdomain}"
 			nfsgid=1616
 		)
 		["swulsch"]=(
 			localgroupname="swulsch@${COMPUTERNAME}"
 			localgid=1818
-			nfsownergroup="swulsch@${idmap_config.nfsdomain}"
+			nfsownergroup="swulsch@${c.idmap_config.nfsdomain}"
 			nfsgid=1818
 		)
 	)
@@ -422,13 +422,13 @@ function setup_site_accounts_rovemadomain_example2
 		["roland.mainz"]=(
 			localaccountname="roland.mainz@GLOBAL"
 			localuid=1059696
-			nfsowner="rmainz@${idmap_config.nfsdomain}"
+			nfsowner="rmainz@${c.idmap_config.nfsdomain}"
 			nfsuid=1616
 		)
 		["Siegfried.Wulsch"]=(
 			localaccountname="Siegfried.Wulsch@GLOBAL"
 			localuid=1050083
-			nfsowner="swulsch@${idmap_config.nfsdomain}"
+			nfsowner="swulsch@${c.idmap_config.nfsdomain}"
 			nfsuid=1818
 		)
 	)
@@ -446,6 +446,52 @@ function setup_site_accounts_rovemadomain_example2
 	)
 
 	return 0
+}
+
+#
+# load_idmap_config - load matching ms-nfs41-client idmapper config based
+# on a configuration name
+#
+function load_idmap_config
+{
+	set -o nounset
+
+	nameref c=$1
+	typeset idmap_config_name="$2"
+
+	case "${idmap_config_name}" in
+		# default config
+		'default')
+			compound c.idmap_config=(
+				#typeset -r localdomain='GLOBAL.LOC'	# Default domain for Windows
+				#typeset -r nfsdomain='global.loc'	# Default domain for NFS server
+				typeset -r localdomain="$( < '/proc/registry/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Services/Tcpip/Parameters/Domain' )"
+				typeset -r nfsdomain="$( tr '[:upper:]' '[:lower:]' <'/proc/registry/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Services/Tcpip/Parameters/Domain' )"
+
+				# Define NFS server type
+				# * Values can be "windows/en", "windows/de", "windows/fr", "freebsd", "solaris", "linux"
+				# * This is neccesary because
+				# - Windows localises account names on both client and server side
+				# (e.g. German Windows machine connecting to a French WindowsServer 2022)
+				# - Different NFS servers might use different names for the same group
+				# (e.g. SAMBA vs. kernel CIFS server)
+				typeset -r servertype='linux'
+			)
+
+			setup_windows_builtin_accounts c
+			setup_site_system_accounts c
+			setup_site_accounts_lab_example1 c
+			#setup_site_accounts_rovemadomain_example2 c
+
+			return 0
+			;;
+		*)
+			print -u2 -f $'%s: Unknown idmapper configuration name=%q\n' "$0" "${idmap_config_name}"
+			return 1
+			;;
+	esac
+
+	# notreached
 }
 
 function parse_ntaccount
@@ -538,7 +584,8 @@ function parse_getent_group2compound
 function getent_local_domain_passwd
 {
 	integer res
-	typeset arg="$1"
+	nameref c=$1
+	typeset arg="$2"
 
 	typeset username="${arg%%@*}"
 	typeset domainname="${arg#*@}"
@@ -561,7 +608,8 @@ function getent_local_domain_passwd
 function getent_local_domain_group
 {
 	integer res
-	typeset arg="$1"
+	nameref c=$1
+	typeset arg="$2"
 
 	typeset groupname="${arg%%@*}"
 	typeset domainname="${arg#*@}"
@@ -584,7 +632,8 @@ function getent_local_domain_group
 function getent_nfs_domain_passwd
 {
 	integer res
-	typeset arg="$1"
+	nameref idmap_config=$1
+	typeset arg="$2"
 
 	if [[ "${arg}" == ~(Elr)[[:digit:]]+ ]] ; then
 		getent passwd "${arg}"
@@ -609,7 +658,8 @@ function getent_nfs_domain_passwd
 function getent_nfs_domain_group
 {
 	integer res
-	typeset arg="$1"
+	nameref idmap_config=$1
+	typeset arg="$2"
 
 	if [[ "${arg}" == ~(Elr)[[:digit:]]+ ]] ; then
 		getent group "${arg}"
@@ -631,31 +681,32 @@ function getent_nfs_domain_group
 	return $res
 }
 
-function main_dispatch
+function dispatch_lookup
 {
 	set -o nounset
 
+	typeset s
+	typeset stdout
+
+	if (( $# != 3 )) ; then
+		print -u2 -f "%0: Requires 3 arguments\n" "$0"
+		return 1
+	fi
+
 	#
-	# global variables for this script
+	# context variables for lookups
 	# (stored in compound variable so we
 	# can do a $ print -u2 -v c # for debugging)
 	#
 	compound c=(
 		compound -A localusers
 		compound -A localgroups
-	)
-
-	typeset s
-	typeset stdout
-
-	(( $# > 0 )) && c.mode="$1"
-	(( $# > 1 )) && c.idmapconfigname="$2"
-	if (( $# > 2 )) ; then
+		mode="$1"
+		idmapconfigname="$2"
 		# strip '"' characters (for Cygwin 3.3 compatibility)
 		# note that "${2-//..." does NOT work!
-		c.name="${3//\"/}"
-	fi
-
+		name="${3//\"/}"
+	)
 
 	if [[ ! -v COMPUTERNAME ]] ; then
 		printf -u2 -f $"ERROR: COMPUTERNAME var not set\n"
@@ -663,12 +714,9 @@ function main_dispatch
 		return 1
 	fi
 
-	setup_windows_builtin_accounts c
-	setup_site_system_accounts c
-	setup_site_accounts_lab_example1 c
-	#setup_site_accounts_rovemadomain_example2 c
+	load_idmap_config c "${c.idmapconfigname}"
 
-	case "${c.mode-}" in
+	case "${c.mode}" in
 		'lookup_user_by_localname')
 			#
 			# Try static info
@@ -696,7 +744,7 @@ function main_dispatch
 			compound pgec # parsed getent data compound var
 			compound gec # getent compound var
 
-			stdout="${ getent_local_domain_passwd "${c.name}" };"
+			stdout="${ getent_local_domain_passwd c.idmap_config "${c.name}" };"
 			if (( $? == 0 )) && [[ "${stdout}" != '' ]]; then
 				parse_getent_passwd2compound pgec "${stdout}"
 				if (( $? == 0 )) ; then
@@ -704,14 +752,14 @@ function main_dispatch
 						compound nt_parsed
 						parse_ntaccount nt_parsed "${pgec.comment}"
 						gec.localaccountname="${nt_parsed.user}@${nt_parsed.domain}"
-						gec.nfsowner="${nt_parsed.user}@${idmap_config.nfsdomain}"
+						gec.nfsowner="${nt_parsed.user}@${c.idmap_config.nfsdomain}"
 						(( gec.localuid=pgec.uid ))
 						(( gec.nfsuid=pgec.uid ))
 						print -v gec
 						return 0
 					else
 						print -u2 -f "cygwin_idmapper.ksh(cfg=%q): getent passwd %q returned garbage %q.\n" \
-							"${c.idmapconfigname-}" \
+							"${c.idmapconfigname}" \
 							"${c.name}" "${gec.localuid-}"
 						return 1
 					fi
@@ -719,7 +767,7 @@ function main_dispatch
 			fi
 
 			print -u2 -f "cygwin_idmapper.ksh(cfg=%q): Account %q not found.\n" \
-				"${c.idmapconfigname-}" "${c.name}"
+				"${c.idmapconfigname}" "${c.name}"
 			return 1
 			;;
 		'lookup_group_by_localgroup')
@@ -748,7 +796,7 @@ function main_dispatch
 			#
 			compound pgec # parsed getent data compound var
 			compound gec # getent compound var
-			stdout="${ getent_local_domain_group "${c.name}" ;}"
+			stdout="${ getent_local_domain_group c.idmap_config "${c.name}" ;}"
 			if (( $? == 0 )) && [[ "${stdout}" != '' ]] ; then
 				parse_getent_group2compound pgec "${stdout}"
 				if (( $? == 0 )) ; then
@@ -763,21 +811,21 @@ function main_dispatch
 						fi
 
 						gec.localgroupname="${user}@${domain}"
-						gec.nfsownergroup="${user}@${idmap_config.nfsdomain}"
+						gec.nfsownergroup="${user}@${c.idmap_config.nfsdomain}"
 						(( gec.localgid=pgec.gid ))
 						(( gec.nfsgid=pgec.gid ))
 						print -v gec
 						return 0
 					else
 						print -u2 -f "cygwin_idmapper.ksh(cfg=%q): getent group %q returned garbage %q.\n" \
-							"${c.idmapconfigname-}" \
+							"${c.idmapconfigname}" \
 							"${c.name}" "${gec.localgid-}"
 						return 1
 					fi
 				fi
 			fi
 
-			print -u2 -f "cygwin_idmapper.ksh(cfg=%q): Group %q not found.\n" "${c.idmapconfigname-}" "${c.name}"
+			print -u2 -f "cygwin_idmapper.ksh(cfg=%q): Group %q not found.\n" "${c.idmapconfigname}" "${c.name}"
 			return 1
 			;;
 		'lookup_user_by_nfsserver_owner')
@@ -810,7 +858,7 @@ function main_dispatch
 			#
 			compound pgec # parsed getent data compound var
 			compound gec # getent compound var
-			stdout="${ getent_nfs_domain_passwd "${c.name}" ;}"
+			stdout="${ getent_nfs_domain_passwd c.idmap_config "${c.name}" ;}"
 			if (( $? == 0 )) && [[ "${stdout}" != '' ]] ; then
 				parse_getent_passwd2compound pgec "${stdout}"
 				if (( $? == 0 )) ; then
@@ -818,21 +866,21 @@ function main_dispatch
 						compound nt_parsed
 						parse_ntaccount nt_parsed "${pgec.comment}"
 						gec.localaccountname="${nt_parsed.user}@${nt_parsed.domain}"
-						gec.nfsowner="${nt_parsed.user}@${idmap_config.nfsdomain}"
+						gec.nfsowner="${nt_parsed.user}@${c.idmap_config.nfsdomain}"
 						(( gec.localuid=pgec.uid ))
 						(( gec.nfsuid=pgec.uid ))
 						print -v gec
 						return 0
 					else
 						print -u2 -f "cygwin_idmapper.ksh(cfg=%q): getent passwd %q returned garbage %q.\n" \
-							"${c.idmapconfigname-}" \
+							"${c.idmapconfigname}" \
 							"${c.name}" "${gec.localuid-}"
 						return 1
 					fi
 				fi
 			fi
 
-			print -u2 -f "cygwin_idmapper.ksh(cfg=%q): Account %q not found.\n" "${c.idmapconfigname-}" "${c.name}"
+			print -u2 -f "cygwin_idmapper.ksh(cfg=%q): Account %q not found.\n" "${c.idmapconfigname}" "${c.name}"
 			return 1
 			;;
 		'lookup_group_by_nfsserver_owner_group')
@@ -863,7 +911,7 @@ function main_dispatch
 			#
 			compound pgec # parsed getent data compound var
 			compound gec # getent compound var
-			stdout="${ getent_nfs_domain_group "${c.name}" ;}"
+			stdout="${ getent_nfs_domain_group c.idmap_config "${c.name}" ;}"
 			if (( $? == 0 )) && [[ "${stdout}" != '' ]] ; then
 				parse_getent_group2compound pgec "${stdout}"
 				if (( $? == 0 )) ; then
@@ -878,25 +926,25 @@ function main_dispatch
 						fi
 
 						gec.localgroupname="${user}@${domain}"
-						gec.nfsownergroup="${user}@${idmap_config.nfsdomain}"
+						gec.nfsownergroup="${user}@${c.idmap_config.nfsdomain}"
 						(( gec.localgid=pgec.gid ))
 						(( gec.nfsgid=pgec.gid ))
 						print -v gec
 						return 0
 					else
 						print -u2 -f "cygwin_idmapper.ksh(cfg=%q): getent group %q returned garbage %q.\n" \
-							"${c.idmapconfigname-}" \
+							"${c.idmapconfigname}" \
 							"${c.name}" "${gec.localgid-}"
 						return 1
 					fi
 				fi
 			fi
 
-			print -u2 -f "cygwin_idmapper.ksh(cfg=%q): Group %q not found.\n" "${c.idmapconfigname-}" "${c.name}"
+			print -u2 -f "cygwin_idmapper.ksh(cfg=%q): Group %q not found.\n" "${c.idmapconfigname}" "${c.name}"
 			return 1
 			;;
 		*)
-			print -u2 -f "cygwin_idmapper.ksh: Unknown mode %q.\n" "${c.mode-}"
+			print -u2 -f "cygwin_idmapper.ksh: Unknown mode %q.\n" "${c.mode}"
 			return 1
 			;;
 	esac
@@ -905,6 +953,67 @@ function main_dispatch
 	return 1
 }
 
+#
+# map_hostname2idmappercfgname - map client hostname+server hostname
+# to idmapper configuration name
+#
+# This lookup is done so we can handle clients from different setups/domains
+# connecting to multiple different NFS servers with different user/group
+# namespaces
+#
+# This mapping is EXPLICITLY machine<--->machine, no per-user/per-group data
+# should be used for the mapping.
+#
+# Notes:
+# - $ dsregcmd /status # can print status information about computer name, AD/AZURE
+# tenant details etc.
+# - $ powershell -Command '(Get-CimInstance Win32_ComputerSystem).PartOfDomain' # can
+# be used to test whether a machine is part of a domain
+# - /proc/registry/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows/CurrentVersion/OEMInformation/Manufacturer
+# (if it exists) can have useful naming information about the IT department
+#
+function map_serverhostname2idmappercfgname
+{
+	set -o nounset
+
+	typeset clientname="$(/bin/hostname)"
+	typeset servername="$2"
+
+	case "${clientname}/${servername}" in
+		*)
+			compound serverhostname2idmappercfgname_res=(
+				idmappercfgname='default'
+			)
+			;;
+	esac
+
+	print -v serverhostname2idmappercfgname_res
+	return 0
+}
+
+function main_dispatch
+{
+	set -o nounset
+
+	typeset mode="${1}"
+
+	case "${mode}" in
+		'lookup_'*)
+			dispatch_lookup "$@"
+			return $?
+			;;
+		'map_serverhostname2idmappercfgname')
+			map_serverhostname2idmappercfgname "$@"
+			return $?
+			;;
+		*)
+			print -u2 -f "cygwin_idmapper.ksh: Unknown mode %q.\n" "${mode}"
+			return 1
+			;;
+	esac
+
+	# notreached
+}
 
 #
 # main
@@ -913,30 +1022,6 @@ set -o nounset
 
 export PATH='/bin:/usr/bin'
 export LC_ALL='en_US.UTF-8'
-
-#
-# idmapper script config data
-#
-case "$1" in
-	# default config
-	*)
-		compound idmap_config=(
-			#typeset -r localdomain='GLOBAL.LOC'	# Default domain for Windows
-			#typeset -r nfsdomain='global.loc'	# Default domain for NFS server
-			typeset -r localdomain="$( < '/proc/registry/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Services/Tcpip/Parameters/Domain' )"
-			typeset -r nfsdomain="$( tr '[:upper:]' '[:lower:]' <'/proc/registry/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Services/Tcpip/Parameters/Domain' )"
-
-			# Define NFS server type
-			# * Values can be "windows/en", "windows/de", "windows/fr", "freebsd", "solaris", "linux"
-			# * This is neccesary because
-			# - Windows localises account names on both client and server side
-			# (e.g. German Windows machine connecting to a French WindowsServer 2022)
-			# - Different NFS servers might use different names for the same group
-			# (e.g. SAMBA vs. kernel CIFS server)
-			typeset -r servertype='linux'
-		)
-		;;
-esac
 
 main_dispatch "$@"
 exit $?

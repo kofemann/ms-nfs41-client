@@ -510,8 +510,143 @@ int cygwin_nfsserver_getent_group(
         res_nfsownergroup,
         res_nfsgid);
 }
+
+static
+int cygwin_map_serverhostname2idmappercfgname(
+    IN const char *restrict serverhostname,
+    OUT char *restrict res_idmappercfgname)
+{
+    char cmdbuff[1024];
+    char buff[2048];
+    DWORD num_buff_read;
+    subcmd_popen_context *script_pipe = NULL;
+    int res = 1;
+    void *cpvp = NULL;
+    int numcnv = 0;
+    int i = 0;
+    cpv_name_val cnv[64] = { 0 };
+    cpv_name_val *cnv_cur = NULL;
+    const char *idmappercfgname = NULL;
+
+    DPRINTF(CYGWINIDLVL,
+        ("--> cygwin_map_serverhostname2idmappercfgname(serverhostname='%s')\n",
+        serverhostname));
+
+    if (serverhostname[0] == '\0') {
+        DPRINTF(0,
+            ("cygwin_map_serverhostname2idmappercfgname(serverhostname='%s'): "
+            "ERROR: Empty server hostname.\n",
+            serverhostname));
+        goto fail;
+    }
+
+    /* fixme: better quoting for |name| needed */
+    (void)snprintf(cmdbuff, sizeof(cmdbuff),
+        "%s \"%s\" \"%s\"",
+        CYGWIN_IDMAPPER_SCRIPT,
+        "map_serverhostname2idmappercfgname",
+        serverhostname);
+    if ((script_pipe = subcmd_popen(cmdbuff)) == NULL) {
+        int last_error = GetLastError();
+        DPRINTF(0,
+            ("cygwin_map_serverhostname2idmappercfgname(serverhostname='%s'): "
+            "'%s' failed, GetLastError()='%d'\n",
+            serverhostname,
+            cmdbuff,
+            last_error));
+        goto fail;
+    }
+
+    if (!subcmd_readcmdoutput(script_pipe,
+        buff, sizeof(buff), &num_buff_read)) {
+        DPRINTF(0,
+            ("cygwin_map_serverhostname2idmappercfgname(serverhostname='%s'): "
+            "subcmd_readcmdoutput() failed\n",
+            serverhostname));
+        goto fail;
+    }
+
+    buff[num_buff_read] = '\0';
+
+    if (num_buff_read < 10) {
+        DPRINTF(0,
+            ("cygwin_map_serverhostname2idmappercfgname(serverhostname='%s'): "
+            "Could not read enough data, returned %d\n",
+            serverhostname, (int)num_buff_read));
+        goto fail;
+    }
+
+    cpvp = cpv_create_parser(buff, 0/*CPVFLAG_DEBUG_OUTPUT*/);
+    if (!cpvp) {
+        DPRINTF(0,
+            ("cygwin_map_serverhostname2idmappercfgname(serverhostname='%s'): "
+            "Could not create parser\n",
+            serverhostname));
+        goto fail;
+    }
+
+    if (cpv_read_cpv_header(cpvp)) {
+        DPRINTF(0,
+            ("cygwin_map_serverhostname2idmappercfgname(serverhostname='%s'): "
+            "cpv_read_cpv_header failed\n",
+            serverhostname));
+        goto fail;
+    }
+
+    /* Loop parsing compound variable elements */
+    for (numcnv=0 ;
+        (cpv_parse_name_val(cpvp, &cnv[numcnv]) == 0) && (numcnv < 64) ;
+        numcnv++) {
+    }
+
+    for (i=0 ; i < numcnv ; i++) {
+        cnv_cur = &cnv[i];
+        if (!strcmp("idmappercfgname", cnv_cur->cpv_name)) {
+            idmappercfgname = cnv_cur->cpv_value;
+        }
+    }
+
+    if (idmappercfgname == NULL)
+        goto fail;
+
+    if (res_idmappercfgname)
+        (void)strcpy_s(res_idmappercfgname, 128, idmappercfgname);
+
+    res = 0;
+fail:
+    if (script_pipe)
+        (void)subcmd_pclose(script_pipe);
+
+    for (i=0 ; i < numcnv ; i++) {
+        cpv_free_name_val_data(&cnv[i]);
+    }
+
+    cpv_free_parser(cpvp);
+
+    if (res == 0) {
+        DPRINTF(CYGWINIDLVL,
+            ("<-- cygwin_map_serverhostname2idmappercfgname(serverhostname='%s'): "
+            "returning res_idmappercfgname='%s'\n",
+            serverhostname,
+            res_idmappercfgname?res_idmappercfgname:"<NULL>"));
+    }
+    else {
+        DPRINTF(CYGWINIDLVL,
+            ("<-- cygwin_map_serverhostname2idmappercfgname(serverhostname='%s'): "
+            "no match found\n",
+            serverhostname));
+    }
+
+    return res;
+}
 #endif /* NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN */
 
+int nfs41_idmap_map_serverhostname2idmappercfgname(
+    IN const char *restrict serverhostname,
+    OUT char *restrict res_idmappercfgname)
+{
+    return cygwin_map_serverhostname2idmappercfgname(serverhostname, res_idmappercfgname);
+}
 
 /*
  * New idmapper cache

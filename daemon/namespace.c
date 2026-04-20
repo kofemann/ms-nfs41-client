@@ -123,7 +123,15 @@ int nfs41_root_create(
     /* FIXME: This should be a function argument */
     nfs41_daemon_globals nfs41_dg;
 
-    status = nfs41_idmap_create(name, &root->idmapper,
+    char idmappercfgbuff[256];
+    if (nfs41_idmap_map_serverhostname2idmappercfgname(name, idmappercfgbuff)) {
+        eprintf("nfs41_root_create: "
+            "idmapper failed to map server hostname to idmapper config name\n");
+        status = ERROR_NONE_MAPPED;
+        goto out;
+    }
+
+    status = nfs41_idmap_create(idmappercfgbuff, &root->idmapper,
         nfs41_dg.localdomain_name);
     if (status) {
         eprintf("nfs41_root_create: "
