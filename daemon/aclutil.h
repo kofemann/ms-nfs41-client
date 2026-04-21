@@ -26,6 +26,7 @@
 
 #include "nfs41_build_features.h"
 #include "nfs41_daemon.h"
+#include "nfs41_types.h"
 #include "idmap.h"
 
 /* |DPRINTF()| levels for acl logging */

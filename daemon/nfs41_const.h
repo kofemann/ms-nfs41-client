@@ -71,6 +71,25 @@
 #define NFS41_MAX_RPC_REQS      128
 
 /*
+ * |MAX_UTF8_BYTES_PER_WCHAR_T| - Maximum number of bytes required to
+ * store one |wchar_t| as UTF-8
+ */
+#define MAX_UTF8_BYTES_PER_WCHAR_T (5)
+
+/*
+ * |UNLEN|+|GNLEN| count in codepage characters, but since we store
+ * our user and group names as UTF-8 we need buffer sizes which can
+ * hold the maximum length in UTF-8
+ * |UNLEN|&&|GNLEN| are defined as |256|, we directly use the value
+ * to avoid including <lmcons.h> everywhere
+ */
+#define UTF8_UNLEN (/*UNLEN*/256*MAX_UTF8_BYTES_PER_WCHAR_T)
+#define UTF8_GNLEN (/*GNLEN*/256*MAX_UTF8_BYTES_PER_WCHAR_T)
+
+/* |UTF8_PRINCIPALLEN| - UTF-8 principal length, name@domain */
+#define UTF8_PRINCIPALLEN (UTF8_UNLEN + 1 + 255/*DNS_MAX_NAME_LENGTH*/)
+
+/*
  * UPCALL_BUF_SIZE - buffer size for |DeviceIoControl()|
  *
  * Size requirements:

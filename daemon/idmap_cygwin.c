@@ -22,11 +22,10 @@
 #include <strsafe.h>
 #include <stdlib.h> /* for strtoul() */
 #include <stdbool.h>
-//#include <stdio.h>
 #include <string.h>
 #include <time.h>
-#include "queue.h"
 
+#include "queue.h"
 #include "nfs41_build_features.h"
 #include "idmap.h"
 #include "util.h"
@@ -38,8 +37,6 @@
 #endif /* NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN */
 
 #define CYGWINIDLVL 2   /* dprintf level for idmap logging */
-
-#define VAL_LEN 257
 
 #ifdef _WIN64
 #define CYGWIN_IDMAPPER_SCRIPT \
@@ -189,22 +186,24 @@ int cygwin_getent_passwd(
     if (nfsowner == NULL)
         goto fail;
 
-    /*
-     * Cygwin /usr/bin/getent passwd can return "Unknown+User"
-     * in cases when an SID is valid but does not match an account.
-     * The idmapper script must never return this!
-     */
-    if (!strcmp(localaccountname, "Unknown+User")) {
+    if (strlen(localaccountname) >= UTF8_PRINCIPALLEN) {
         eprintf("cygwin_getent_passwd(mode='%s',cfgname='%s',name='%s'): "
-            "idmapper returned illegal value '%s'\n",
+            "localaccountname='%s' too long\n",
             mode, cfgname, name, localaccountname);
         goto fail;
     }
 
+    if (strlen(nfsowner) >= UTF8_PRINCIPALLEN) {
+        eprintf("cygwin_getent_passwd(mode='%s',cfgname='%s',name='%s'): "
+            "nfsowner='%s' too long\n",
+            mode, cfgname, name, nfsowner);
+        goto fail;
+    }
+
     if (res_localaccountname)
-        (void)strcpy_s(res_localaccountname, VAL_LEN, localaccountname);
+        (void)strcpy(res_localaccountname, localaccountname);
     if (res_nfsowner)
-        (void)strcpy_s(res_nfsowner, VAL_LEN, nfsowner);
+        (void)strcpy(res_nfsowner, nfsowner);
     if (res_localuid)
         *res_localuid = localuid;
     if (res_nfsuid)
@@ -420,22 +419,24 @@ int cygwin_getent_group(
     if (nfsownergroup == NULL)
         goto fail;
 
-    /*
-     * Cygwin /usr/bin/getent group can return "Unknown+Group"
-     * in cases when an SID is valid but does not match an account.
-     * The idmapper script must never return this!
-     */
-    if (!strcmp(localgroupname, "Unknown+Group")) {
+    if (strlen(localgroupname) >= UTF8_PRINCIPALLEN) {
         eprintf("cygwin_getent_group(mode='%s',cfgname='%s',name='%s'): "
-            "idmapper returned illegal value '%s'\n",
+            "localgroupname='%s' too long\n",
             mode, cfgname, name, localgroupname);
         goto fail;
     }
 
+    if (strlen(nfsownergroup) >= UTF8_PRINCIPALLEN) {
+        eprintf("cygwin_getent_group(mode='%s',cfgname='%s',name='%s'): "
+            "nfsownergroup='%s' too long\n",
+            mode, cfgname, name, nfsownergroup);
+        goto fail;
+    }
+
     if (res_localgroupname)
-        (void)strcpy_s(res_localgroupname, VAL_LEN, localgroupname);
+        (void)strcpy(res_localgroupname, localgroupname);
     if (res_nfsownergroup)
-        (void)strcpy_s(res_nfsownergroup, VAL_LEN, nfsownergroup);
+        (void)strcpy(res_nfsownergroup, nfsownergroup);
     if (res_localgid)
         *res_localgid = localgid;
     if (res_nfsgid)
@@ -609,8 +610,16 @@ int cygwin_map_serverhostname2idmappercfgname(
     if (idmappercfgname == NULL)
         goto fail;
 
+    if (strlen(idmappercfgname) >= 128) {
+        eprintf("cygwin_map_serverhostname2idmappercfgname"
+            "(serverhostname='%s'): "
+            "idmappercfgname='%s' too long\n",
+            serverhostname, idmappercfgname);
+        goto fail;
+    }
+
     if (res_idmappercfgname)
-        (void)strcpy_s(res_idmappercfgname, 128, idmappercfgname);
+        (void)strcpy(res_idmappercfgname, idmappercfgname);
 
     res = 0;
 fail:
