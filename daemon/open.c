@@ -706,8 +706,6 @@ void open_get_localuidgid(
 {
     int status = 0;
     struct idmap_context *idmapper = state->session->client->root->idmapper;
-    char owner[NFS4_FATTR4_OWNER_LIMIT+1];
-    char owner_group[NFS4_FATTR4_OWNER_LIMIT+1];
     idmapcache_entry *ie;
 
 #if 1
@@ -756,10 +754,6 @@ void open_get_localuidgid(
     EASSERT(strlen(info->owner) > 0);
     EASSERT(strlen(info->owner_group) > 0);
 
-    /* Make copies as we will modify  them */
-    (void)strcpy(owner, info->owner);
-    (void)strcpy(owner_group, info->owner_group);
-
     /*
      * Map owner to local uid
      *
@@ -768,27 +762,27 @@ void open_get_localuidgid(
      */
     ie = NULL;
 
-    if (isdigit(owner[0])) {
+    if (isdigit(info->owner[0])) {
         idmapcache_idnumber nfs_id;
 
         errno = 0;
-        nfs_id = strtol(owner, NULL, 10);
+        nfs_id = strtol(info->owner, NULL, 10);
 
         if (errno == 0) {
             ie = nfs41_idmap_user_lookup_by_nfsid(idmapper, nfs_id);
         }
         else {
             DPRINTF(0,
-                ("open_get_localuidgid(owner='%s'): "
+                ("open_get_localuidgid(info->owner='%s'): "
                 "strtol() failed to map string to number, errno=%d\n",
-                owner, (int)errno));
+                info->owner, (int)errno));
         }
     }
     else {
-        EASSERT_MSG(IS_PRINCIPAL_NAME(owner),
-            ("owner='%s' is not a principal\n", owner));
+        EASSERT_MSG(IS_PRINCIPAL_NAME(info->owner),
+            ("info->owner='%s' is not a principal\n", info->owner));
 
-        ie = nfs41_idmap_user_lookup_by_nfsname(idmapper, owner);
+        ie = nfs41_idmap_user_lookup_by_nfsname(idmapper, info->owner);
     }
 
     if (ie != NULL) {
@@ -800,7 +794,7 @@ void open_get_localuidgid(
         eprintf("open_get_localuidgid('%s'): "
             "no username mapping for '%s', fake uid=%u\n",
             state->path.path,
-            owner,
+            info->owner,
             (unsigned int)*owner_local_uid);
     }
 
@@ -812,27 +806,28 @@ void open_get_localuidgid(
      */
     ie = NULL;
 
-    if (isdigit(owner_group[0])) {
+    if (isdigit(info->owner_group[0])) {
         idmapcache_idnumber nfs_id;
 
         errno = 0;
-        nfs_id = strtol(owner_group, NULL, 10);
+        nfs_id = strtol(info->owner_group, NULL, 10);
 
         if (errno == 0) {
             ie = nfs41_idmap_group_lookup_by_nfsid(idmapper, nfs_id);
         }
         else {
             DPRINTF(0,
-                ("open_get_localuidgid(owner_group='%s'): "
+                ("open_get_localuidgid(info->owner_group='%s'): "
                 "strtol() failed to map string to number, errno=%d\n",
-                owner_group, (int)errno));
+                info->owner_group, (int)errno));
         }
     }
     else {
-        EASSERT_MSG(IS_PRINCIPAL_NAME(owner_group),
-            ("owner_group='%s' is not a principal\n", owner_group));
+        EASSERT_MSG(IS_PRINCIPAL_NAME(info->owner_group),
+            ("info->owner_group='%s' is not a principal\n",
+            info->owner_group));
 
-        ie = nfs41_idmap_group_lookup_by_nfsname(idmapper, owner_group);
+        ie = nfs41_idmap_group_lookup_by_nfsname(idmapper, info->owner_group);
     }
 
     if (ie != NULL) {
@@ -844,18 +839,17 @@ void open_get_localuidgid(
         eprintf("open_get_localuidgid('%s'): "
             "no group mapping for '%s', fake gid=%u\n",
             state->path.path,
-            owner_group,
+            info->owner_group,
             (unsigned int)*owner_group_local_gid);
     }
 
 out:
     DPRINTF(1,
         ("open_get_localuidgid('%s'): "
-        "stat: owner=%u/'%s', owner_group=%u/'%s'\n",
+        "stat: info->owner=%u/'%s', info->owner_group=%u/'%s'\n",
         state->path.path,
-        (unsigned int)*owner_local_uid, owner,
-        (unsigned int)*owner_group_local_gid,
-        owner_group));
+        (unsigned int)*owner_local_uid, info->owner,
+        (unsigned int)*owner_group_local_gid, info->owner_group));
 }
 #endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
 
