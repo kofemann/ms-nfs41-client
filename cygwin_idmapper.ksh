@@ -318,7 +318,15 @@ function setup_site_system_accounts
 			nfsowner="root@${c.idmap_config.nfsdomain}"
 			nfsuid=0
 		)
+		# Linux nfsd uses "nobody"
 		["nobody"]=(
+			localaccountname="nobody@${COMPUTERNAME}"
+			localuid=65534
+			nfsowner='nobody'
+			nfsuid=65534
+		)
+		# FreeBSD nfsd uses "nobody@<domain>"
+		["nobody_domain"]=(
 			localaccountname="nobody@${COMPUTERNAME}"
 			localuid=65534
 			nfsowner="nobody@${c.idmap_config.nfsdomain}"
@@ -336,10 +344,18 @@ function setup_site_system_accounts
 			nfsownergroup="root@${c.idmap_config.nfsdomain}"
 			nfsgid=0
 		)
+		# Linux nfsd uses "nogroup"
 		["nogroup"]=(
 			localgroupname="nogroup@${COMPUTERNAME}"
 			localgid=65534
 			nfsownergroup="nogroup@${c.idmap_config.nfsdomain}"
+			nfsgid=65534
+		)
+		# FreeBSD nfsd uses "nogroup@<domain>"
+		["nogroup_domain"]=(
+			localgroupname="nogroup@${COMPUTERNAME}"
+			localgid=65534
+			nfsownergroup='nogroup'
 			nfsgid=65534
 		)
 		#
