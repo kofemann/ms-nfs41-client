@@ -237,12 +237,12 @@ function setup_windows_builtin_accounts
 		nameref n=windows_builtin_user_list["$s"]
 
 		compound gpc
-		parse_getent_passwd2compound gpc "$(getent passwd ${n.sid})"
+		parse_getent_w_passwd2compound gpc "$(getent -w passwd "${n.sid}")"
 		if (( $? == 0 )) ; then
 			integer localuid
 
 			compound nt_parse
-			parse_ntaccount nt_parse "$(sed -E 's/U-([^,]+).+/\1/' <<<"${gpc.comment}")"
+			parse_ntaccount nt_parse "${gpc.ntaccount}"
 
 			if [[ -v n.localuid ]] ; then
 				(( localuid=n.localuid ))
@@ -267,7 +267,6 @@ function setup_windows_builtin_accounts
 	for s in "${!windows_builtin_group_list[@]}" ; do
 		nameref n=windows_builtin_group_list["$s"]
 
-		# (we use getent passwd here because getent group does not give us a domain name)
 		compound gpc
 		# SID 'S-1-1-0' is a special case because Cygwin /usr/bin/getent group/passwd cannot look it up
 		if [[ "${n.sid}" == 'S-1-1-0' ]] ; then
@@ -275,21 +274,20 @@ function setup_windows_builtin_accounts
 			typeset everyone_name dummy1
 			#/cygdrive/c/Windows/System32/WindowsPowerShell/v1.0/powershell -Command $'(Get-CimInstance Win32_Account -Filter "SID=\'S-1-1-0\'").Name' | IFS=$' \t\n\r' read everyone_name
 			/cygdrive/c/Windows/system32/whoami /groups | grep -a -F 'S-1-1-0' | IFS=$' \t\n\r' read everyone_name dummy1
-			parse_getent_passwd2compound gpc "${everyone_name}:*:65550:65550:U-\\${everyone_name},S-1-1-0:/:/sbin/nologin"
+			parse_getent_w_group2compound gpc "${everyone_name}:65550:\\${everyone_name}:S-1-1-0"
 		else
-			parse_getent_passwd2compound gpc "$(getent passwd ${n.sid})"
+			parse_getent_w_group2compound gpc "$(getent -w group "${n.sid}")"
 		fi
 		if (( $? == 0 )) ; then
 			integer localgid
 
 			compound nt_parse
-			parse_ntaccount nt_parse "$(sed -E 's/U-([^,]+).+/\1/' <<<"${gpc.comment}")"
+			parse_ntaccount nt_parse "${gpc.ntaccount}"
 
 			if [[ -v n.localgid ]] ; then
 				(( localgid=n.localgid ))
 			else
-				# use gpc.uid because we used getent passwd above
-				(( localgid=gpc.uid ))
+				(( localgid=gpc.gid ))
 			fi
 
 			c.localgroups+=(
@@ -509,25 +507,22 @@ function parse_ntaccount
 	return 0
 }
 
-function parse_getent_passwd2compound
+function parse_getent_w_passwd2compound
 {
 	set -o nounset
 
-	typeset getent_passwd_string="$2"
+	typeset getent_w_passwd_string="$2"
 	typeset leftover
 	nameref data="$1" # output compound variable
 
 	# ~(E) is POSIX extended regular expression matching (instead
 	# of shell pattern), "x" means "multiline", "l" means "left
 	# anchor", "r" means "right anchor"
-	leftover="${getent_passwd_string/~(Elrx)
+	leftover="${getent_w_passwd_string/~(Elrx)
 		(.+?)			# login name
-		:(.+?)			# encrypted passwd
 		:(.+?)			# uid
-		:(.+?)			# gid
-		:(.+?)			# comment
-		:(.+?)			# homedir
-		(?::(.+?))?		# shell (optional)
+		:(.+?)			# NT account name
+		:(.+?)			# SID
 		/X}"
 
 	# All parsed data should be captured via eregex in .sh.match - if
@@ -538,32 +533,29 @@ function parse_getent_passwd2compound
 			"$0" "$leftover" ; return 1 ; }
 
 	data.login_name="${.sh.match[1]}"
-	data.encrypted_passwd="${.sh.match[2]}"
-	data.uid="${.sh.match[3]}"
-	data.gid="${.sh.match[4]}"
-	data.comment="${.sh.match[5]}"
-	data.homedir="${.sh.match[6]}"
-	data.shell="${.sh.match[7]}"
+	data.uid="${.sh.match[2]}"
+	data.ntaccount="${.sh.match[3]}"
+	data.sid="${.sh.match[4]}"
 
 	return 0
 }
 
-function parse_getent_group2compound
+function parse_getent_w_group2compound
 {
 	set -o nounset
 
-	typeset getent_group_string="$2"
+	typeset getent_w_group_string="$2"
 	typeset leftover
 	nameref data="$1" # output compound variable
 
 	# ~(E) is POSIX extended regular expression matching (instead
 	# of shell pattern), "x" means "multiline", "l" means "left
 	# anchor", "r" means "right anchor"
-	leftover="${getent_group_string/~(Elrx)
-		(.+?):			# group
-		(.+?):			# encrypted passwd
-		(.+?):			# gid
-		(?:(.+?))?		# userlist
+	leftover="${getent_w_group_string/~(Elrx)
+		(.+?)			# group name
+		:(.+?)			# gid
+		:(.+?)			# NT account name
+		:(.+?)			# SID
 		/X}"
 
 	# All parsed data should be captured via eregex in .sh.match - if
@@ -574,14 +566,14 @@ function parse_getent_group2compound
 			"$0" "$leftover" ; return 1 ; }
 
 	data.group_name="${.sh.match[1]}"
-	data.encrypted_passwd="${.sh.match[2]}"
-	data.gid="${.sh.match[3]}"
-	[[ -v .sh.match[4] ]] && data.userlist="${.sh.match[4]}"
+	data.gid="${.sh.match[2]}"
+	data.ntaccount="${.sh.match[3]}"
+	data.sid="${.sh.match[4]}"
 
 	return 0
 }
 
-function getent_local_domain_passwd
+function getent_w_local_domain_passwd
 {
 	integer res
 	nameref c=$1
@@ -599,13 +591,13 @@ function getent_local_domain_passwd
 	# - Cygwin getent uses "U-" prefix to pass the input string to
 	# |LookupAccountNameA()| directly
 	#
-	getent passwd "U-${domainname}\\${username}"
+	getent -w passwd "U-${domainname}\\${username}"
 	(( res=$? ))
 
 	return $res
 }
 
-function getent_local_domain_group
+function getent_w_local_domain_group
 {
 	integer res
 	nameref c=$1
@@ -623,7 +615,7 @@ function getent_local_domain_group
 	# - Cygwin getent uses "U-" prefix to pass the input string to
 	# |LookupAccountNameA()| directly
 	#
-	getent group "U-${domainname}\\${groupname}"
+	getent -w group "U-${domainname}\\${groupname}"
 	(( res=$? ))
 
 	return $res
@@ -636,7 +628,7 @@ function getent_nfs_domain_passwd
 	typeset arg="$2"
 
 	if [[ "${arg}" == ~(Elr)[[:digit:]]+ ]] ; then
-		getent passwd "${arg}"
+		getent -w passwd "${arg}"
 		(( res=$? ))
 		return $res
 	fi
@@ -645,10 +637,10 @@ function getent_nfs_domain_passwd
 	typeset domainname="${arg#*@}"
 
 	if [[ "${domainname}" == "${idmap_config.nfsdomain}" ]] ; then
-		getent passwd "${username}"
+		getent -w passwd "${username}"
 		(( res=$? ))
 	else
-		getent passwd "${domainname}+${username}"
+		getent -w passwd "${domainname}+${username}"
 		(( res=$? ))
 	fi
 
@@ -671,10 +663,10 @@ function getent_nfs_domain_group
 	typeset domainname="${arg#*@}"
 
 	if [[ "${domainname}" == "${idmap_config.nfsdomain}" ]] ; then
-		getent group "${groupname}"
+		getent -w group "${groupname}"
 		(( res=$? ))
 	else
-		getent group "${domainname}+${groupname}"
+		getent -w group "${domainname}+${groupname}"
 		(( res=$? ))
 	fi
 
@@ -744,13 +736,13 @@ function dispatch_lookup
 			compound pgec # parsed getent data compound var
 			compound gec # getent compound var
 
-			stdout="${ getent_local_domain_passwd c.idmap_config "${c.name}" };"
+			stdout="${ getent_w_local_domain_passwd c.idmap_config "${c.name}" };"
 			if (( $? == 0 )) && [[ "${stdout}" != '' ]]; then
-				parse_getent_passwd2compound pgec "${stdout}"
+				parse_getent_w_passwd2compound pgec "${stdout}"
 				if (( $? == 0 )) ; then
 					if [[ "${pgec.uid-}" == ~(Elr)[[:digit:]]+ ]] ; then
 						compound nt_parsed
-						parse_ntaccount nt_parsed "${pgec.comment}"
+						parse_ntaccount nt_parsed "${pgec.ntaccount}"
 						gec.localaccountname="${nt_parsed.user}@${nt_parsed.domain}"
 						gec.nfsowner="${nt_parsed.user}@${c.idmap_config.nfsdomain}"
 						(( gec.localuid=pgec.uid ))
@@ -758,7 +750,7 @@ function dispatch_lookup
 						print -v gec
 						return 0
 					else
-						print -u2 -f "cygwin_idmapper.ksh(cfg=%q): getent passwd %q returned garbage %q.\n" \
+						print -u2 -f "cygwin_idmapper.ksh(cfg=%q): getent -w passwd %q returned garbage %q.\n" \
 							"${c.idmapconfigname}" \
 							"${c.name}" "${gec.localuid-}"
 						return 1
@@ -796,9 +788,9 @@ function dispatch_lookup
 			#
 			compound pgec # parsed getent data compound var
 			compound gec # getent compound var
-			stdout="${ getent_local_domain_group c.idmap_config "${c.name}" ;}"
+			stdout="${ getent_w_local_domain_group c.idmap_config "${c.name}" ;}"
 			if (( $? == 0 )) && [[ "${stdout}" != '' ]] ; then
-				parse_getent_group2compound pgec "${stdout}"
+				parse_getent_w_group2compound pgec "${stdout}"
 				if (( $? == 0 )) ; then
 					if [[ "${pgec.gid-}" == ~(Elr)[[:digit:]]+ ]] ; then
 						if [[ "${pgec.group_name}" == *"+"* ]]; then
@@ -860,11 +852,11 @@ function dispatch_lookup
 			compound gec # getent compound var
 			stdout="${ getent_nfs_domain_passwd c.idmap_config "${c.name}" ;}"
 			if (( $? == 0 )) && [[ "${stdout}" != '' ]] ; then
-				parse_getent_passwd2compound pgec "${stdout}"
+				parse_getent_w_passwd2compound pgec "${stdout}"
 				if (( $? == 0 )) ; then
 					if [[ "${pgec.uid-}" == ~(Elr)[[:digit:]]+ ]] ; then
 						compound nt_parsed
-						parse_ntaccount nt_parsed "${pgec.comment}"
+						parse_ntaccount nt_parsed "${pgec.ntaccount}"
 						gec.localaccountname="${nt_parsed.user}@${nt_parsed.domain}"
 						gec.nfsowner="${nt_parsed.user}@${c.idmap_config.nfsdomain}"
 						(( gec.localuid=pgec.uid ))
@@ -913,7 +905,7 @@ function dispatch_lookup
 			compound gec # getent compound var
 			stdout="${ getent_nfs_domain_group c.idmap_config "${c.name}" ;}"
 			if (( $? == 0 )) && [[ "${stdout}" != '' ]] ; then
-				parse_getent_group2compound pgec "${stdout}"
+				parse_getent_w_group2compound pgec "${stdout}"
 				if (( $? == 0 )) ; then
 					if [[ "${pgec.gid-}" == ~(Elr)[[:digit:]]+ ]] ; then
 						if [[ "${pgec.group_name}" == *"+"* ]]; then
