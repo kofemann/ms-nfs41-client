@@ -807,8 +807,8 @@ void open_get_localuidgid(
     /*
      * Map owner_group to local gid
      *
-     * |owner_group| can be numeric string ("1616"), plain username
-     * ("gisgrp") or username@domain ("gisgrp@sun.com")
+     * |owner_group| can be numeric string ("1616"), plain groupname
+     * ("gisgrp") or groupname@domain ("gisgrp@sun.com")
      */
     ie = NULL;
 
@@ -829,7 +829,7 @@ void open_get_localuidgid(
         }
     }
     else {
-        EASSERT_MSG(IS_PRINCIPAL_NAME(owner),
+        EASSERT_MSG(IS_PRINCIPAL_NAME(owner_group),
             ("owner_group='%s' is not a principal\n", owner_group));
 
         ie = nfs41_idmap_group_lookup_by_nfsname(idmapper, owner_group);
