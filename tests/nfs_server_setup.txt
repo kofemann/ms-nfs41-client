@@ -269,8 +269,6 @@ service nfsd restart
 
 ##### 2. FreeBSD-specific ms-nfs41-client setup:
 - Normal setup
-- Add groups entry for group "wheel" if neccesary:
-$ printf 'wheel:S-1-0-0:0:\n' >>'/etc/group'
 
 ##### 3. Misc FreeBSD commands:
 # (assumes we want to add an account+groups for a Windows user called "ced"

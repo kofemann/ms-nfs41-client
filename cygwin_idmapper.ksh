@@ -352,6 +352,15 @@ function setup_site_system_accounts
 			nfsgid=3
 		)
 		#
+		# Group "wheel" required for FreeBSD nfsd
+		#
+		["wheel"]=(
+			localgroupname="wheel@${COMPUTERNAME}"
+			localgid=0
+			nfsownergroup="wheel@${c.idmap_config.nfsdomain}"
+			nfsgid=0
+		)
+		#
 		# Group "nobody" required for Solaris/Illumos nfsd
 		# Question is why "nobody" shows up in a "group" idmapper lookup
 		#
