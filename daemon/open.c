@@ -728,8 +728,8 @@ void open_get_localuidgid(
         status = nfs41_getattr(state->session, &state->file,
             &og_attr_request, &og_info);
         if (status) {
-            eprintf("open_get_localuidgid: nfs41_getattr('%s') "
-                "failed with %d\n",
+            eprintf("open_get_localuidgid(state->path='%s': nfs41_getattr() "
+                "failed with status=%d\n",
                 state->path.path,
                 status);
             *owner_local_uid = idmapper->config.default_local_uid;
@@ -774,9 +774,12 @@ void open_get_localuidgid(
         }
         else {
             DPRINTF(0,
-                ("open_get_localuidgid(info->owner='%s'): "
-                "strtol() failed to map string to number, errno=%d\n",
-                info->owner, (int)errno));
+                ("open_get_localuidgid(state->path='%s'): "
+                "strtol(info->owner='%s') failed to map string to number, "
+                "errno=%d\n",
+                state->path.path,
+                info->owner,
+                (int)errno));
         }
     }
     else {
@@ -792,8 +795,8 @@ void open_get_localuidgid(
     }
     else {
         *owner_local_uid = idmapper->config.default_local_uid;
-        eprintf("open_get_localuidgid('%s'): "
-            "no username mapping for '%s', fake uid=%u\n",
+        eprintf("open_get_localuidgid(state->path='%s'): "
+            "no username mapping for info->owner='%s', fake uid=%u\n",
             state->path.path,
             info->owner,
             (unsigned int)*owner_local_uid);
@@ -818,9 +821,12 @@ void open_get_localuidgid(
         }
         else {
             DPRINTF(0,
-                ("open_get_localuidgid(info->owner_group='%s'): "
-                "strtol() failed to map string to number, errno=%d\n",
-                info->owner_group, (int)errno));
+                ("open_get_localuidgid(state->path='%s'): "
+                "strtol(info->owner_group='%s') failed to map string to number, "
+                "errno=%d\n",
+                state->path.path,
+                info->owner_group,
+                (int)errno));
         }
     }
     else {
@@ -837,8 +843,8 @@ void open_get_localuidgid(
     }
     else {
         *owner_group_local_gid = idmapper->config.default_local_gid;
-        eprintf("open_get_localuidgid('%s'): "
-            "no group mapping for '%s', fake gid=%u\n",
+        eprintf("open_get_localuidgid(state->path='%s'): "
+            "no group mapping for info->owner_group='%s', fake gid=%u\n",
             state->path.path,
             info->owner_group,
             (unsigned int)*owner_group_local_gid);
@@ -846,11 +852,11 @@ void open_get_localuidgid(
 
 out:
     DPRINTF(1,
-        ("open_get_localuidgid('%s'): "
-        "stat: info->owner=%u/'%s', info->owner_group=%u/'%s'\n",
+        ("open_get_localuidgid(state->path='%s'): "
+        "stat: info->owner='%s'/local_uid=%u, info->owner_group='%s'/local_gid=%u\n",
         state->path.path,
-        (unsigned int)*owner_local_uid, info->owner,
-        (unsigned int)*owner_group_local_gid, info->owner_group));
+        info->owner, (unsigned int)*owner_local_uid,
+        info->owner_group, (unsigned int)*owner_group_local_gid));
 }
 #endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
 
