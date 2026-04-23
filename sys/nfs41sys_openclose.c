@@ -142,38 +142,38 @@ NTSTATUS marshal_nfs41_open(
     }
     status = marshall_unicode_filename_as_utf8(&tmp, entry->filename);
     if (status) goto out;
-    RtlCopyMemory(tmp, &entry->u.Open.is_caseinsensitive_volume,
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.Open.is_caseinsensitive_volume,
         sizeof(entry->u.Open.is_caseinsensitive_volume));
     tmp += sizeof(entry->u.Open.is_caseinsensitive_volume);
-    RtlCopyMemory(tmp, &entry->u.Open.isvolumemntpt,
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.Open.isvolumemntpt,
         sizeof(entry->u.Open.isvolumemntpt));
     tmp += sizeof(entry->u.Open.isvolumemntpt);
-    RtlCopyMemory(tmp, &entry->u.Open.access_mask,
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.Open.access_mask,
         sizeof(entry->u.Open.access_mask));
     tmp += sizeof(entry->u.Open.access_mask);
-    RtlCopyMemory(tmp, &entry->u.Open.access_mode,
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.Open.access_mode,
         sizeof(entry->u.Open.access_mode));
     tmp += sizeof(entry->u.Open.access_mode);
-    RtlCopyMemory(tmp, &entry->u.Open.attrs, sizeof(entry->u.Open.attrs));
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.Open.attrs, sizeof(entry->u.Open.attrs));
     tmp += sizeof(entry->u.Open.attrs);
-    RtlCopyMemory(tmp, &entry->u.Open.copts, sizeof(entry->u.Open.copts));
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.Open.copts, sizeof(entry->u.Open.copts));
     tmp += sizeof(entry->u.Open.copts);
 #ifdef NFS41_DRIVER_ALLOW_CREATEFILE_ACLS
-    RtlCopyMemory(tmp, &entry->u.Open.SdLength, sizeof(entry->u.Open.SdLength));
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.Open.SdLength, sizeof(entry->u.Open.SdLength));
     tmp += sizeof(entry->u.Open.SdLength);
     if (entry->u.Open.SdLength) {
-        RtlCopyMemory(tmp, entry->u.Open.SdBuffer, entry->u.Open.SdLength);
+        UPDOWNCALL_MEMCPY(tmp, entry->u.Open.SdBuffer, entry->u.Open.SdLength);
         tmp += entry->u.Open.SdLength;
     }
 #endif /* NFS41_DRIVER_ALLOW_CREATEFILE_ACLS */
-    RtlCopyMemory(tmp, &entry->u.Open.disp, sizeof(entry->u.Open.disp));
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.Open.disp, sizeof(entry->u.Open.disp));
     tmp += sizeof(entry->u.Open.disp);
-    RtlCopyMemory(tmp, &entry->u.Open.open_owner_id,
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.Open.open_owner_id,
         sizeof(entry->u.Open.open_owner_id));
     tmp += sizeof(entry->u.Open.open_owner_id);
-    RtlCopyMemory(tmp, &entry->u.Open.mode, sizeof(DWORD));
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.Open.mode, sizeof(DWORD));
     tmp += sizeof(DWORD);
-    RtlCopyMemory(tmp, &entry->u.Open.srv_open, sizeof(HANDLE));
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.Open.srv_open, sizeof(HANDLE));
     tmp += sizeof(HANDLE);
     status = marshall_unicode_filename_as_utf8(&tmp, &entry->u.Open.symlink);
     if (status) goto out;
@@ -195,7 +195,7 @@ NTSTATUS marshal_nfs41_open(
     else {
         entry->u.Open.EaBuffer = NULL;
     }
-    RtlCopyMemory(tmp, &entry->u.Open.EaBuffer, sizeof(HANDLE));
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.Open.EaBuffer, sizeof(HANDLE));
     tmp += sizeof(HANDLE);
 
     *len = (ULONG)(tmp - buf);
@@ -246,14 +246,14 @@ NTSTATUS marshal_nfs41_close(
         status = STATUS_INSUFFICIENT_RESOURCES;
         goto out;
     }
-    RtlCopyMemory(tmp, &entry->u.Close.remove, sizeof(BOOLEAN));
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.Close.remove, sizeof(BOOLEAN));
     tmp += sizeof(BOOLEAN);
-    RtlCopyMemory(tmp, &entry->u.Close.srv_open, sizeof(HANDLE));
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.Close.srv_open, sizeof(HANDLE));
     tmp += sizeof(HANDLE);
     if (entry->u.Close.remove) {
         status = marshall_unicode_filename_as_utf8(&tmp, entry->filename);
         if (status) goto out;
-        RtlCopyMemory(tmp, &entry->u.Close.renamed, sizeof(BOOLEAN));
+        UPDOWNCALL_MEMCPY(tmp, &entry->u.Close.renamed, sizeof(BOOLEAN));
         tmp += sizeof(BOOLEAN);
     }
 
@@ -286,38 +286,38 @@ NTSTATUS unmarshal_nfs41_open(
         cur->u.Open.EaBuffer = NULL;
     }
 
-    RtlCopyMemory(&cur->u.Open.binfo, *buf, sizeof(FILE_BASIC_INFORMATION));
+    UPDOWNCALL_MEMCPY(&cur->u.Open.binfo, *buf, sizeof(FILE_BASIC_INFORMATION));
     *buf += sizeof(FILE_BASIC_INFORMATION);
-    RtlCopyMemory(&cur->u.Open.sinfo, *buf, sizeof(FILE_STANDARD_INFORMATION));
+    UPDOWNCALL_MEMCPY(&cur->u.Open.sinfo, *buf, sizeof(FILE_STANDARD_INFORMATION));
     *buf += sizeof(FILE_STANDARD_INFORMATION);
-    RtlCopyMemory(&cur->u.Open.fileid, *buf, sizeof(ULONGLONG));
+    UPDOWNCALL_MEMCPY(&cur->u.Open.fileid, *buf, sizeof(ULONGLONG));
     *buf += sizeof(ULONGLONG);
-    RtlCopyMemory(&cur->u.Open.fsid_major, *buf, sizeof(ULONGLONG));
+    UPDOWNCALL_MEMCPY(&cur->u.Open.fsid_major, *buf, sizeof(ULONGLONG));
     *buf += sizeof(ULONGLONG);
-    RtlCopyMemory(&cur->u.Open.fsid_minor, *buf, sizeof(ULONGLONG));
+    UPDOWNCALL_MEMCPY(&cur->u.Open.fsid_minor, *buf, sizeof(ULONGLONG));
     *buf += sizeof(ULONGLONG);
-    RtlCopyMemory(&cur->open_state, *buf, sizeof(HANDLE));
+    UPDOWNCALL_MEMCPY(&cur->open_state, *buf, sizeof(HANDLE));
     *buf += sizeof(HANDLE);
-    RtlCopyMemory(&cur->u.Open.mode, *buf, sizeof(DWORD));
+    UPDOWNCALL_MEMCPY(&cur->u.Open.mode, *buf, sizeof(DWORD));
     *buf += sizeof(DWORD);
 #ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES
-    RtlCopyMemory(&cur->u.Open.owner_local_uid, *buf, sizeof(DWORD));
+    UPDOWNCALL_MEMCPY(&cur->u.Open.owner_local_uid, *buf, sizeof(DWORD));
     *buf += sizeof(DWORD);
-    RtlCopyMemory(&cur->u.Open.owner_group_local_gid, *buf, sizeof(DWORD));
+    UPDOWNCALL_MEMCPY(&cur->u.Open.owner_group_local_gid, *buf, sizeof(DWORD));
     *buf += sizeof(DWORD);
 #endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
-    RtlCopyMemory(&cur->ChangeTime, *buf, sizeof(ULONGLONG));
+    UPDOWNCALL_MEMCPY(&cur->ChangeTime, *buf, sizeof(ULONGLONG));
     *buf += sizeof(ULONGLONG);
-    RtlCopyMemory(&cur->u.Open.deleg_type, *buf, sizeof(DWORD));
+    UPDOWNCALL_MEMCPY(&cur->u.Open.deleg_type, *buf, sizeof(DWORD));
     *buf += sizeof(DWORD);
     if (cur->errno == ERROR_REPARSE) {
-        RtlCopyMemory(&cur->u.Open.symlink_embedded, *buf, sizeof(BOOLEAN));
+        UPDOWNCALL_MEMCPY(&cur->u.Open.symlink_embedded, *buf, sizeof(BOOLEAN));
         *buf += sizeof(BOOLEAN);
         BYTE tmp_symlinktarget_type;
-        RtlCopyMemory(&tmp_symlinktarget_type, *buf, sizeof(BYTE));
+        UPDOWNCALL_MEMCPY(&tmp_symlinktarget_type, *buf, sizeof(BYTE));
         cur->u.Open.symlinktarget_type = tmp_symlinktarget_type;
         *buf += sizeof(BYTE);
-        RtlCopyMemory(&cur->u.Open.symlink.Length, *buf,
+        UPDOWNCALL_MEMCPY(&cur->u.Open.symlink.Length, *buf,
             sizeof(USHORT));
         *buf += sizeof(USHORT);
         cur->u.Open.symlink.MaximumLength =
@@ -329,7 +329,7 @@ NTSTATUS unmarshal_nfs41_open(
             status = STATUS_UNSUCCESSFUL;
             goto out;
         }
-        RtlCopyMemory(cur->u.Open.symlink.Buffer, *buf,
+        UPDOWNCALL_MEMCPY(cur->u.Open.symlink.Buffer, *buf,
             cur->u.Open.symlink.Length);
         *buf += cur->u.Open.symlink.Length;
         cur->u.Open.symlink.Buffer[cur->u.Open.symlink.Length/sizeof(wchar_t)] =
@@ -1001,15 +1001,15 @@ retry_on_link:
         buf = (PCHAR)AbsPath.Buffer;
         if (entry->u.Open.symlinktarget_type ==
             NFS41_SYMLINKTARGET_FILESYSTEM_ABSOLUTE) {
-            RtlCopyMemory(buf, DeviceObject->DeviceName.Buffer,
+            (void)memcpy(buf, DeviceObject->DeviceName.Buffer,
                 DeviceObject->DeviceName.Length);
             buf += DeviceObject->DeviceName.Length;
-            RtlCopyMemory(buf, VNetRootPrefix->Buffer,
+            (void)memcpy(buf, VNetRootPrefix->Buffer,
                 VNetRootPrefix->Length);
             buf += VNetRootPrefix->Length;
         }
 
-        RtlCopyMemory(buf, entry->u.Open.symlink.Buffer,
+        (void)memcpy(buf, entry->u.Open.symlink.Buffer,
             entry->u.Open.symlink.Length);
         buf += entry->u.Open.symlink.Length;
         *(PWCHAR)buf = UNICODE_NULL;
@@ -1083,9 +1083,9 @@ retry_on_link:
                 nfs41_fcb->changeattr != entry->ChangeTime)) {
         FCB_INIT_PACKET InitPacket;
         RX_FILE_TYPE StorageType = FileTypeNotYetKnown;
-        RtlCopyMemory(&nfs41_fcb->BasicInfo, &entry->u.Open.binfo,
+        (void)memcpy(&nfs41_fcb->BasicInfo, &entry->u.Open.binfo,
             sizeof(entry->u.Open.binfo));
-        RtlCopyMemory(&nfs41_fcb->StandardInfo, &entry->u.Open.sinfo,
+        (void)memcpy(&nfs41_fcb->StandardInfo, &entry->u.Open.sinfo,
             sizeof(entry->u.Open.sinfo));
         nfs41_fcb->fileid = entry->u.Open.fileid;
         nfs41_fcb->fsid_major = entry->u.Open.fsid_major;

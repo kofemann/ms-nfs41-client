@@ -135,14 +135,14 @@ void unmarshal_nfs41_get_symlink(
     nfs41_updowncall_entry *cur,
     const unsigned char *restrict *restrict buf)
 {
-    RtlCopyMemory(&cur->u.Symlink.target->Length, *buf, sizeof(USHORT));
+    UPDOWNCALL_MEMCPY(&cur->u.Symlink.target->Length, *buf, sizeof(USHORT));
     *buf += sizeof(USHORT);
     if (cur->u.Symlink.target->Length >
             cur->u.Symlink.target->MaximumLength) {
         cur->status = STATUS_BUFFER_TOO_SMALL;
         return;
     }
-    RtlCopyMemory(cur->u.Symlink.target->Buffer, *buf,
+    UPDOWNCALL_MEMCPY(cur->u.Symlink.target->Buffer, *buf,
         cur->u.Symlink.target->Length);
     *buf += cur->u.Symlink.target->Length;
 }

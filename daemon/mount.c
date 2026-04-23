@@ -33,6 +33,7 @@
 #include "idmap.h"
 #include "sid.h"
 #include "upcall.h"
+#include "upcallutil.h"
 #ifdef NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE
 #include "accesstoken.h"
 #endif /* NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE */

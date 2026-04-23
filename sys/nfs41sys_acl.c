@@ -94,7 +94,7 @@ NTSTATUS marshal_nfs41_getacl(
         goto out;
     }
 
-    RtlCopyMemory(tmp,
+    UPDOWNCALL_MEMCPY(tmp,
         &entry->u.Acl.query_secinfo, sizeof(SECURITY_INFORMATION));
     tmp += sizeof(SECURITY_INFORMATION);
 
@@ -139,12 +139,12 @@ NTSTATUS marshal_nfs41_setacl(
         goto out;
     }
 
-    RtlCopyMemory(tmp,
+    UPDOWNCALL_MEMCPY(tmp,
         &entry->u.Acl.query_secinfo, sizeof(SECURITY_INFORMATION));
     tmp += sizeof(SECURITY_INFORMATION);
-    RtlCopyMemory(tmp, &entry->u.Acl.buf_len, sizeof(ULONG));
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.Acl.buf_len, sizeof(ULONG));
     tmp += sizeof(ULONG);
-    RtlCopyMemory(tmp, entry->u.Acl.buf, entry->u.Acl.buf_len);
+    UPDOWNCALL_MEMCPY(tmp, entry->u.Acl.buf, entry->u.Acl.buf_len);
     tmp += entry->u.Acl.buf_len;
 
     *len = (ULONG)(tmp - buf);
@@ -170,7 +170,7 @@ NTSTATUS unmarshal_nfs41_getacl(
     NTSTATUS status = STATUS_SUCCESS;
     DWORD buf_len;
 
-    RtlCopyMemory(&buf_len, *buf, sizeof(DWORD));
+    UPDOWNCALL_MEMCPY(&buf_len, *buf, sizeof(DWORD));
     *buf += sizeof(DWORD);
     cur->u.Acl.buf = RxAllocatePoolWithTag(NonPagedPoolNx,
         buf_len, NFS41_MM_POOLTAG_ACL);
@@ -178,7 +178,7 @@ NTSTATUS unmarshal_nfs41_getacl(
         cur->status = status = STATUS_INSUFFICIENT_RESOURCES;
         goto out;
     }
-    RtlCopyMemory(cur->u.Acl.buf, *buf, buf_len);
+    UPDOWNCALL_MEMCPY(cur->u.Acl.buf, *buf, buf_len);
     *buf += buf_len;
     if (buf_len > cur->u.Acl.buf_len)
         cur->status = STATUS_BUFFER_TOO_SMALL;
@@ -286,7 +286,7 @@ NTSTATUS nfs41_QuerySecurityInformation(
             if ((nfs41_fcb->aclcache.secinfo & secinfo) == secinfo) {
                 PSECURITY_DESCRIPTOR sec_desc = (PSECURITY_DESCRIPTOR)
                     RxContext->CurrentIrp->UserBuffer;
-                RtlCopyMemory(sec_desc, nfs41_fcb->aclcache.data,
+                UPDOWNCALL_MEMCPY(sec_desc, nfs41_fcb->aclcache.data,
                     nfs41_fcb->aclcache.data_len);
                 RxContext->IoStatusBlock.Information =
                     RxContext->InformationToReturn =
@@ -376,7 +376,7 @@ NTSTATUS nfs41_QuerySecurityInformation(
 
         PSECURITY_DESCRIPTOR sec_desc = (PSECURITY_DESCRIPTOR)
             RxContext->CurrentIrp->UserBuffer;
-        RtlCopyMemory(sec_desc, nfs41_fcb->aclcache.data,
+        UPDOWNCALL_MEMCPY(sec_desc, nfs41_fcb->aclcache.data,
             nfs41_fcb->aclcache.data_len);
         RxContext->IoStatusBlock.Information =
             RxContext->InformationToReturn = nfs41_fcb->aclcache.data_len;

@@ -95,11 +95,11 @@ NTSTATUS marshal_nfs41_easet(
 
     status = marshall_unicode_filename_as_utf8(&tmp, entry->filename);
     if (status) goto out;
-    RtlCopyMemory(tmp, &entry->u.SetEa.mode, sizeof(DWORD));
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.SetEa.mode, sizeof(DWORD));
     tmp += sizeof(DWORD);
-    RtlCopyMemory(tmp, &entry->u.SetEa.buf_len, sizeof(ULONG));
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.SetEa.buf_len, sizeof(ULONG));
     tmp += sizeof(ULONG);
-    RtlCopyMemory(tmp, entry->u.SetEa.buf, entry->u.SetEa.buf_len);
+    UPDOWNCALL_MEMCPY(tmp, entry->u.SetEa.buf, entry->u.SetEa.buf_len);
     tmp += entry->u.SetEa.buf_len;
 
     *len = (ULONG)(tmp - buf);
@@ -148,18 +148,18 @@ NTSTATUS marshal_nfs41_eaget(
 
     status = marshall_unicode_filename_as_utf8(&tmp, entry->filename);
     if (status) goto out;
-    RtlCopyMemory(tmp, &entry->u.QueryEa.EaIndex, sizeof(ULONG));
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.QueryEa.EaIndex, sizeof(ULONG));
     tmp += sizeof(ULONG);
-    RtlCopyMemory(tmp, &entry->u.QueryEa.RestartScan, sizeof(BOOLEAN));
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.QueryEa.RestartScan, sizeof(BOOLEAN));
     tmp += sizeof(BOOLEAN);
-    RtlCopyMemory(tmp, &entry->u.QueryEa.ReturnSingleEntry, sizeof(BOOLEAN));
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.QueryEa.ReturnSingleEntry, sizeof(BOOLEAN));
     tmp += sizeof(BOOLEAN);
-    RtlCopyMemory(tmp, &entry->u.QueryEa.buf_len, sizeof(ULONG));
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.QueryEa.buf_len, sizeof(ULONG));
     tmp += sizeof(ULONG);
-    RtlCopyMemory(tmp, &entry->u.QueryEa.EaListLength, sizeof(ULONG));
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.QueryEa.EaListLength, sizeof(ULONG));
     tmp += sizeof(ULONG);
     if (entry->u.QueryEa.EaList && entry->u.QueryEa.EaListLength) {
-        RtlCopyMemory(tmp, entry->u.QueryEa.EaList,
+        UPDOWNCALL_MEMCPY(tmp, entry->u.QueryEa.EaList,
             entry->u.QueryEa.EaListLength);
         tmp += entry->u.QueryEa.EaListLength;
     }
@@ -186,12 +186,12 @@ void unmarshal_nfs41_eaget(
     nfs41_updowncall_entry *cur,
     const unsigned char *restrict *restrict buf)
 {
-    RtlCopyMemory(&cur->u.QueryEa.Overflow, *buf, sizeof(ULONG));
+    UPDOWNCALL_MEMCPY(&cur->u.QueryEa.Overflow, *buf, sizeof(ULONG));
     *buf += sizeof(ULONG);
-    RtlCopyMemory(&cur->u.QueryEa.buf_len, *buf, sizeof(ULONG));
+    UPDOWNCALL_MEMCPY(&cur->u.QueryEa.buf_len, *buf, sizeof(ULONG));
     *buf += sizeof(ULONG);
     if (cur->u.QueryEa.Overflow != ERROR_INSUFFICIENT_BUFFER) {
-        RtlCopyMemory(cur->u.QueryEa.buf, *buf, cur->u.QueryEa.buf_len);
+        UPDOWNCALL_MEMCPY(cur->u.QueryEa.buf, *buf, cur->u.QueryEa.buf_len);
         *buf += cur->u.QueryEa.buf_len;
     }
 }
@@ -528,7 +528,7 @@ NTSTATUS QueryCygwinSymlink(
         info->EaNameLength = query->EaNameLength;
         info->EaValueLength = TargetName.Length - sizeof(UNICODE_NULL);
         TargetName.Buffer[TargetName.Length/sizeof(WCHAR)] = UNICODE_NULL;
-        RtlCopyMemory(info->EaName, query->EaName, query->EaNameLength);
+        UPDOWNCALL_MEMCPY(info->EaName, query->EaName, query->EaNameLength);
         RxContext->Info.LengthRemaining = HeaderLen + info->EaValueLength;
     } else if (status == STATUS_BUFFER_TOO_SMALL) {
         RxContext->InformationToReturn = (ULONG_PTR)HeaderLen +
@@ -568,7 +568,7 @@ NTSTATUS QueryCygwinEA(
             info->Flags = 0;
             info->EaValueLength = 0;
             info->EaNameLength = (UCHAR)NfsActOnLink.Length;
-            RtlCopyMemory(info->EaName, NfsSymlinkTargetName.Buffer,
+            UPDOWNCALL_MEMCPY(info->EaName, NfsSymlinkTargetName.Buffer,
                 NfsSymlinkTargetName.Length);
             RxContext->Info.LengthRemaining = LengthRequired;
             status = STATUS_SUCCESS;
@@ -596,9 +596,9 @@ NTSTATUS QueryCygwinEA(
         info->Flags = 0;
         info->EaNameLength = (UCHAR)NfsV3Attributes.Length;
         info->EaValueLength = sizeof(nfs3_attrs);
-        RtlCopyMemory(info->EaName, NfsV3Attributes.Buffer,
+        UPDOWNCALL_MEMCPY(info->EaName, NfsV3Attributes.Buffer,
             NfsV3Attributes.Length);
-        RtlCopyMemory(info->EaName + info->EaNameLength + 1, &attrs,
+        UPDOWNCALL_MEMCPY(info->EaName + info->EaNameLength + 1, &attrs,
             sizeof(nfs3_attrs));
         RxContext->Info.LengthRemaining = LengthRequired;
         status = STATUS_SUCCESS;
@@ -619,7 +619,7 @@ NTSTATUS QueryCygwinEA(
         info->Flags = 0;
         info->EaNameLength = query->EaNameLength;
         info->EaValueLength = 0;
-        RtlCopyMemory(info->EaName, query->EaName, query->EaNameLength);
+        UPDOWNCALL_MEMCPY(info->EaName, query->EaName, query->EaNameLength);
         RxContext->Info.LengthRemaining = LengthRequired;
         status = STATUS_SUCCESS;
         goto out;

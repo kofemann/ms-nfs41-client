@@ -280,10 +280,10 @@ NTSTATUS marshal_nfs41_queryallocatedranges(
         goto out;
     }
 
-    RtlCopyMemory(tmp, &entry->u.QueryAllocatedRanges.inrange,
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.QueryAllocatedRanges.inrange,
         sizeof(entry->u.QueryAllocatedRanges.inrange));
     tmp += sizeof(entry->u.QueryAllocatedRanges.inrange);
-    RtlCopyMemory(tmp, &entry->u.QueryAllocatedRanges.BufferSize,
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.QueryAllocatedRanges.BufferSize,
         sizeof(entry->u.QueryAllocatedRanges.BufferSize));
     tmp += sizeof(entry->u.QueryAllocatedRanges.BufferSize);
 
@@ -301,7 +301,7 @@ NTSTATUS marshal_nfs41_queryallocatedranges(
             goto out;
         }
     }
-    RtlCopyMemory(tmp, &entry->u.QueryAllocatedRanges.Buffer,
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.QueryAllocatedRanges.Buffer,
         sizeof(entry->u.QueryAllocatedRanges.Buffer));
     tmp += sizeof(sizeof(entry->u.QueryAllocatedRanges.Buffer));
 
@@ -336,10 +336,10 @@ NTSTATUS unmarshal_nfs41_queryallocatedranges(
         cur->u.QueryAllocatedRanges.Buffer = NULL;
     }
 
-    RtlCopyMemory(&cur->u.QueryAllocatedRanges.buffer_overflow,
+    UPDOWNCALL_MEMCPY(&cur->u.QueryAllocatedRanges.buffer_overflow,
         *buf, sizeof(BOOLEAN));
     *buf += sizeof(BOOLEAN);
-    RtlCopyMemory(&cur->u.QueryAllocatedRanges.returned_size,
+    UPDOWNCALL_MEMCPY(&cur->u.QueryAllocatedRanges.returned_size,
         *buf, sizeof(ULONG));
     *buf += sizeof(ULONG);
 
@@ -578,7 +578,7 @@ NTSTATUS marshal_nfs41_setzerodata(
         goto out;
     }
 
-    RtlCopyMemory(tmp, &entry->u.SetZeroData.setzerodata,
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.SetZeroData.setzerodata,
         sizeof(entry->u.SetZeroData.setzerodata));
     tmp += sizeof(entry->u.SetZeroData.setzerodata);
 
@@ -602,7 +602,7 @@ NTSTATUS unmarshal_nfs41_setzerodata(
 {
     NTSTATUS status = STATUS_SUCCESS;
 
-    RtlCopyMemory(&cur->ChangeTime, *buf, sizeof(cur->ChangeTime));
+    UPDOWNCALL_MEMCPY(&cur->ChangeTime, *buf, sizeof(cur->ChangeTime));
     *buf += sizeof(cur->ChangeTime);
     DbgP("unmarshal_nfs41_setzerodata: returned ChangeTime %llu\n",
         cur->ChangeTime);
@@ -907,16 +907,16 @@ NTSTATUS marshal_nfs41_duplicatedata(
         goto out;
     }
 
-    RtlCopyMemory(tmp, &entry->u.DuplicateData.src_state,
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.DuplicateData.src_state,
         sizeof(entry->u.DuplicateData.src_state));
     tmp += sizeof(entry->u.DuplicateData.src_state);
-    RtlCopyMemory(tmp, &entry->u.DuplicateData.srcfileoffset,
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.DuplicateData.srcfileoffset,
         sizeof(entry->u.DuplicateData.srcfileoffset));
     tmp += sizeof(entry->u.DuplicateData.srcfileoffset);
-    RtlCopyMemory(tmp, &entry->u.DuplicateData.destfileoffset,
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.DuplicateData.destfileoffset,
         sizeof(entry->u.DuplicateData.destfileoffset));
     tmp += sizeof(entry->u.DuplicateData.destfileoffset);
-    RtlCopyMemory(tmp, &entry->u.DuplicateData.bytecount,
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.DuplicateData.bytecount,
         sizeof(entry->u.DuplicateData.bytecount));
     tmp += sizeof(entry->u.DuplicateData.bytecount);
 
@@ -940,7 +940,7 @@ NTSTATUS unmarshal_nfs41_duplicatedata(
 {
     NTSTATUS status = STATUS_SUCCESS;
 
-    RtlCopyMemory(&cur->ChangeTime, *buf, sizeof(ULONGLONG));
+    UPDOWNCALL_MEMCPY(&cur->ChangeTime, *buf, sizeof(ULONGLONG));
     *buf += sizeof(cur->ChangeTime);
     DbgP("unmarshal_nfs41_duplicatedata: returned ChangeTime %llu\n",
         cur->ChangeTime);
@@ -1157,7 +1157,7 @@ NTSTATUS nfs41_OffloadRead(
     oro->Size = sizeof(FSCTL_OFFLOAD_READ_OUTPUT);
     oro->Flags = 0;
     oro->TransferLength = ori->CopyLength;
-    (void)memcpy(&oro->Token[0], &oce->token, sizeof(oce->token));
+    (void)UPDOWNCALL_MEMCPY(&oro->Token[0], &oce->token, sizeof(oce->token));
 
     nfs41_AddEntry(offloadcontextlist.lock,
         offloadcontextlist, oce);

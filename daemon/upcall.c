@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2023-2026 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -27,6 +27,7 @@
 
 #include "nfs41_build_features.h"
 #include "upcall.h"
+#include "upcallutil.h"
 #include "nfs41_driver.h" /* only for |NFS41_SYSOP_UNMOUNT| */
 #include "daemon_debug.h"
 #include "util.h"

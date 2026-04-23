@@ -108,10 +108,10 @@ NTSTATUS marshal_nfs41_rw(
         goto out;
     }
 
-    RtlCopyMemory(tmp, &entry->u.ReadWrite.buf_len,
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.ReadWrite.buf_len,
         sizeof(entry->u.ReadWrite.buf_len));
     tmp += sizeof(entry->u.ReadWrite.buf_len);
-    RtlCopyMemory(tmp, &entry->u.ReadWrite.offset,
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.ReadWrite.offset,
         sizeof(entry->u.ReadWrite.offset));
     tmp += sizeof(entry->u.ReadWrite.offset);
 
@@ -145,7 +145,7 @@ NTSTATUS marshal_nfs41_rw(
         goto out;
     }
 
-    RtlCopyMemory(tmp, &entry->u.ReadWrite.buf, sizeof(HANDLE));
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.ReadWrite.buf, sizeof(HANDLE));
     tmp += sizeof(HANDLE);
 
     *len = (ULONG)(tmp - buf);
@@ -172,10 +172,10 @@ NTSTATUS unmarshal_nfs41_rw(
 {
     NTSTATUS status = STATUS_SUCCESS;
 
-    RtlCopyMemory(&cur->u.ReadWrite.buf_len, *buf,
+    UPDOWNCALL_MEMCPY(&cur->u.ReadWrite.buf_len, *buf,
         sizeof(cur->u.ReadWrite.buf_len));
     *buf += sizeof(cur->u.ReadWrite.buf_len);
-    RtlCopyMemory(&cur->ChangeTime, *buf, sizeof(cur->ChangeTime));
+    UPDOWNCALL_MEMCPY(&cur->ChangeTime, *buf, sizeof(cur->ChangeTime));
     *buf += sizeof(cur->ChangeTime);
 #ifdef DEBUG_MARSHAL_DETAIL_RW
     DbgP("unmarshal_nfs41_rw: returned len %lu ChangeTime %llu\n",

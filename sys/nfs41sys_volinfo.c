@@ -93,7 +93,7 @@ NTSTATUS marshal_nfs41_volume(
         goto out;
     }
 
-    RtlCopyMemory(tmp, &entry->u.Volume.query, sizeof(FS_INFORMATION_CLASS));
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.Volume.query, sizeof(FS_INFORMATION_CLASS));
     tmp += sizeof(FS_INFORMATION_CLASS);
 
     *len = (ULONG)(tmp - buf);

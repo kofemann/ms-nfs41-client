@@ -30,6 +30,7 @@
 #include "nfs41_ops.h"
 #include "from_kernel.h"
 #include "upcall.h"
+#include "upcallutil.h"
 #include "util.h"
 #include "daemon_debug.h"
 

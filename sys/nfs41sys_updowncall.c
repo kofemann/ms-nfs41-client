@@ -109,13 +109,13 @@ static void unmarshal_nfs41_header(
     updowncall_entry_header *restrict tmp,
     const unsigned char *restrict *restrict buf)
 {
-    RtlCopyMemory(&tmp->xid, *buf, sizeof(tmp->xid));
+    UPDOWNCALL_MEMCPY(&tmp->xid, *buf, sizeof(tmp->xid));
     *buf += sizeof(tmp->xid);
-    RtlCopyMemory(&tmp->opcode, *buf, sizeof(tmp->opcode));
+    UPDOWNCALL_MEMCPY(&tmp->opcode, *buf, sizeof(tmp->opcode));
     *buf += sizeof(tmp->opcode);
-    RtlCopyMemory(&tmp->status, *buf, sizeof(tmp->status));
+    UPDOWNCALL_MEMCPY(&tmp->status, *buf, sizeof(tmp->status));
     *buf += sizeof(tmp->status);
-    RtlCopyMemory(&tmp->errno, *buf, sizeof(tmp->errno));
+    UPDOWNCALL_MEMCPY(&tmp->errno, *buf, sizeof(tmp->errno));
     *buf += sizeof(tmp->errno);
 #ifdef DEBUG_MARSHAL_HEADER
     DbgP("[downcall hdr] "
@@ -136,7 +136,7 @@ void unmarshal_nfs41_attrget(
 {
     ULONG buf_len;
 
-    RtlCopyMemory(&buf_len, *buf, sizeof(buf_len));
+    UPDOWNCALL_MEMCPY(&buf_len, *buf, sizeof(buf_len));
     *buf += sizeof(ULONG);
 
     if (copy_partial) {
@@ -153,7 +153,7 @@ void unmarshal_nfs41_attrget(
     }
 
     *attr_len = buf_len;
-    RtlCopyMemory(attr_value, *buf, buf_len);
+    UPDOWNCALL_MEMCPY(attr_value, *buf, buf_len);
     *buf += buf_len;
 }
 
@@ -162,7 +162,7 @@ void unmarshal_nfs41_getchangetime(
     PULONGLONG dest_buf,
     const unsigned char *restrict *restrict buf)
 {
-    RtlCopyMemory(dest_buf, *buf, sizeof(*dest_buf));
+    UPDOWNCALL_MEMCPY(dest_buf, *buf, sizeof(*dest_buf));
     *buf += sizeof(*dest_buf);
 #ifdef DEBUG_MARSHAL_DETAIL
     DbgP("unmarshal_nfs41_getchangetime: "
@@ -888,9 +888,9 @@ NTSTATUS nfs41_delayxid(
     LONGLONG moredelay;
 
     /* Unmarshal XID+delay value */
-    RtlCopyMemory(&delayxid, inbuf, sizeof(delayxid));
+    UPDOWNCALL_MEMCPY(&delayxid, inbuf, sizeof(delayxid));
     inbuf += sizeof(delayxid);
-    RtlCopyMemory(&moredelay, inbuf, sizeof(moredelay));
+    UPDOWNCALL_MEMCPY(&moredelay, inbuf, sizeof(moredelay));
     inbuf += sizeof(moredelay);
 
     /*

@@ -29,6 +29,7 @@
 
 #include "daemon_debug.h"
 #include "util.h"
+#include "upcallutil.h" /* for |safe_write()| */
 #include "idmap.h"
 #include "sid.h"
 #include "nfs41_ops.h"
@@ -43,92 +44,6 @@ char *stpcpy(char *restrict s1, const char *restrict s2)
 {
     size_t l = strlen(s2);
     return ((char *)memcpy(s1, s2, (l+1)*sizeof(char))) + l*sizeof(char);
-}
-
-int safe_read(const unsigned char *restrict *restrict pos,
-    uint32_t *restrict remaining, void *dest, uint32_t dest_len)
-{
-    if (*remaining < dest_len)
-        return ERROR_BUFFER_OVERFLOW;
-
-    (void)memcpy(dest, *pos, dest_len);
-    *pos += dest_len;
-    *remaining -= dest_len;
-    return 0;
-}
-
-/*
- * |get_safe_read_bufferpos()| - like |safe_read()| but tests whether we
- * have enough buffer space left, and in that case return current buffer
- * position in |destbuffer|
- */
-int get_safe_read_bufferpos(const unsigned char *restrict *restrict pos,
-    uint32_t *restrict remaining, uint32_t src_len, const void **destbuffer)
-{
-    if (*remaining < src_len)
-        return ERROR_BUFFER_OVERFLOW;
-
-    *destbuffer = (src_len == 0)?NULL:*pos;
-    *pos += src_len;
-    *remaining -= src_len;
-    return ERROR_SUCCESS;
-}
-
-int get_name(const unsigned char *restrict *restrict pos,
-    uint32_t *restrict remaining, const char *restrict *restrict out_name)
-{
-    int status;
-    USHORT len;
-    const char *name;
-
-    status = safe_read(pos, remaining, &len, sizeof(USHORT));
-    if (status) goto out;
-    if (*remaining < len) {
-        status = ERROR_BUFFER_OVERFLOW;
-        goto out;
-    }
-
-    name = (const char *)*pos;
-
-    EASSERT_MSG((name[len-1] == '\0'),
-        ("name='%s', (len-1)=%d, expected 0x00, got 0x%x\n",
-        name, (int)(len-1), (int)name[len-1]));
-
-    *out_name = name;
-    *pos += len;
-    *remaining -= len;
-
-out:
-    return status;
-}
-
-int safe_write(unsigned char *restrict *restrict pos,
-    uint32_t *restrict remaining, const void *src, uint32_t src_len)
-{
-    if (*remaining < src_len)
-        return ERROR_BUFFER_OVERFLOW;
-
-    (void)memcpy(*pos, src, src_len);
-    *pos += src_len;
-    *remaining -= src_len;
-    return 0;
-}
-
-/*
- * |get_safe_write_bufferpos()| - like |safe_write()| but tests whether we
- * have enough buffer space left, and in that case return current buffer
- * position in |destbuffer|
- */
-int get_safe_write_bufferpos(unsigned char *restrict *restrict pos,
-    uint32_t *restrict remaining, uint32_t src_len, void **destbuffer)
-{
-    if (*remaining < src_len)
-        return ERROR_BUFFER_OVERFLOW;
-
-    *destbuffer = (src_len == 0)?NULL:*pos;
-    *pos += src_len;
-    *remaining -= src_len;
-    return ERROR_SUCCESS;
 }
 
 const char* strip_path(

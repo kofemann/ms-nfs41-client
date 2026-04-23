@@ -73,7 +73,7 @@
 void copy_nfs41_mount_config(NFS41_MOUNT_CONFIG *dest,
     NFS41_MOUNT_CONFIG *src)
 {
-    RtlCopyMemory(dest, src, sizeof(NFS41_MOUNT_CONFIG));
+    (void)memcpy(dest, src, sizeof(NFS41_MOUNT_CONFIG));
     dest->SrvName.Buffer = dest->srv_buffer;
     dest->MntPt.Buffer = dest->mntpt_buffer;
     dest->SecFlavor.Buffer = dest->sec_flavor_buffer;
@@ -127,21 +127,21 @@ NTSTATUS marshal_nfs41_mount(
     if (status) goto out;
     status = marshall_unicode_string_as_utf8(&tmp, entry->u.Mount.root);
     if (status) goto out;
-    RtlCopyMemory(tmp, &entry->u.Mount.sec_flavor, sizeof(DWORD));
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.Mount.sec_flavor, sizeof(DWORD));
     tmp += sizeof(DWORD);
-    RtlCopyMemory(tmp, &entry->u.Mount.rsize, sizeof(DWORD));
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.Mount.rsize, sizeof(DWORD));
     tmp += sizeof(DWORD);
-    RtlCopyMemory(tmp, &entry->u.Mount.wsize, sizeof(DWORD));
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.Mount.wsize, sizeof(DWORD));
     tmp += sizeof(DWORD);
-    RtlCopyMemory(tmp, &entry->u.Mount.use_nfspubfh, sizeof(DWORD));
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.Mount.use_nfspubfh, sizeof(DWORD));
     tmp += sizeof(DWORD);
-    RtlCopyMemory(tmp, &entry->u.Mount.nfsvers, sizeof(DWORD));
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.Mount.nfsvers, sizeof(DWORD));
     tmp += sizeof(DWORD);
 #ifdef NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS
-    RtlCopyMemory(tmp, &entry->u.Mount.force_case_preserving,
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.Mount.force_case_preserving,
         sizeof(tristate_bool));
     tmp += sizeof(tristate_bool);
-    RtlCopyMemory(tmp, &entry->u.Mount.force_case_insensitive,
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.Mount.force_case_insensitive,
         sizeof(tristate_bool));
     tmp += sizeof(tristate_bool);
 #endif /* NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS */
@@ -190,13 +190,13 @@ void unmarshal_nfs41_mount(
     nfs41_updowncall_entry *cur,
     const unsigned char *restrict *restrict buf)
 {
-    RtlCopyMemory(&cur->session, *buf, sizeof(HANDLE));
+    UPDOWNCALL_MEMCPY(&cur->session, *buf, sizeof(HANDLE));
     *buf += sizeof(HANDLE);
-    RtlCopyMemory(&cur->version, *buf, sizeof(DWORD));
+    UPDOWNCALL_MEMCPY(&cur->version, *buf, sizeof(DWORD));
     *buf += sizeof(DWORD);
-    RtlCopyMemory(&cur->u.Mount.lease_time, *buf, sizeof(DWORD));
+    UPDOWNCALL_MEMCPY(&cur->u.Mount.lease_time, *buf, sizeof(DWORD));
     *buf += sizeof(DWORD);
-    RtlCopyMemory(cur->u.Mount.FsAttrs, *buf,
+    UPDOWNCALL_MEMCPY(cur->u.Mount.FsAttrs, *buf,
         sizeof(NFS41_FILE_FS_ATTRIBUTE_INFORMATION));
     *buf += sizeof(NFS41_FILE_FS_ATTRIBUTE_INFORMATION);
 #ifdef DEBUG_MARSHAL_DETAIL

@@ -1494,6 +1494,7 @@ out:
  * Handle |NFS41_SYSOP_SET_DAEMON_DEBUGLEVEL|
  */
 #include "upcall.h"
+#include "upcallutil.h"
 
 static int parse_setdaemondebuglevel(
     const unsigned char *restrict buffer,

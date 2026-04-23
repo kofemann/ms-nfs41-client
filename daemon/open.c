@@ -34,6 +34,7 @@
 #include "from_kernel.h"
 #include "daemon_debug.h"
 #include "upcall.h"
+#include "upcallutil.h"
 #include "fileinfoutil.h"
 #include "util.h"
 #include "idmap.h"

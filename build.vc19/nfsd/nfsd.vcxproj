@@ -356,6 +356,7 @@
     <ClInclude Include="..\..\daemon\sid.h" />
     <ClInclude Include="..\..\daemon\tree.h" />
     <ClInclude Include="..\..\daemon\upcall.h" />
+    <ClInclude Include="..\..\daemon\upcallutil.h" />
     <ClInclude Include="..\..\daemon\util.h" />
     <ClInclude Include="..\..\daemon\winstreams.h" />
     <ClInclude Include="..\..\include\from_kernel.h" />

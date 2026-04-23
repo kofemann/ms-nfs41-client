@@ -34,6 +34,7 @@
 #include "daemon_debug.h"
 #include "util.h"
 #include "upcall.h"
+#include "upcallutil.h"
 #include "nfs41_xdr.h"
 #include "sid.h"
 

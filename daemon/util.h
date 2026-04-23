@@ -110,16 +110,6 @@ void strmemcpy(OUT char *dest, IN const char *src, IN size_t src_len)
     *((char *)mempcpy(dest, src, src_len)) = '\0';
 }
 
-int safe_read(const unsigned char *restrict *restrict pos,
-    uint32_t *restrict remaining, void *dest, uint32_t dest_len);
-int get_safe_read_bufferpos(const unsigned char *restrict *restrict pos,
-    uint32_t *restrict remaining, uint32_t src_len, const void **destbuffer);
-int get_name(const unsigned char *restrict *restrict pos,
-    uint32_t *restrict remaining, const char *restrict *restrict out_name);
-int safe_write(unsigned char *restrict *restrict pos,
-    uint32_t *restrict remaining, const void *src, uint32_t src_len);
-int get_safe_write_bufferpos(unsigned char *restrict *restrict pos,
-    uint32_t *restrict remaining, uint32_t src_len, void **destbuffer);
 
 const char* strip_path(
     IN const char *path,

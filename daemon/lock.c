@@ -28,6 +28,7 @@
 #include "delegation.h"
 #include "nfs41_ops.h"
 #include "upcall.h"
+#include "upcallutil.h"
 #include "util.h"
 
 

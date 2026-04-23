@@ -221,6 +221,9 @@
     <ClInclude Include="..\..\daemon\upcall.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\daemon\upcallutil.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\daemon\util.h">
       <Filter>Header Files</Filter>
     </ClInclude>

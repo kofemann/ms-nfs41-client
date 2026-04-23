@@ -94,17 +94,17 @@ NTSTATUS marshal_nfs41_dirquery(
         goto out;
     }
 
-    RtlCopyMemory(tmp, &entry->u.QueryFile.InfoClass, sizeof(ULONG));
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.QueryFile.InfoClass, sizeof(ULONG));
     tmp += sizeof(ULONG);
-    RtlCopyMemory(tmp, &entry->u.QueryFile.buf_len, sizeof(ULONG));
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.QueryFile.buf_len, sizeof(ULONG));
     tmp += sizeof(ULONG);
     status = marshall_unicode_filename_as_utf8(&tmp, entry->u.QueryFile.filter);
     if (status) goto out;
-    RtlCopyMemory(tmp, &entry->u.QueryFile.initial_query, sizeof(BOOLEAN));
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.QueryFile.initial_query, sizeof(BOOLEAN));
     tmp += sizeof(BOOLEAN);
-    RtlCopyMemory(tmp, &entry->u.QueryFile.restart_scan, sizeof(BOOLEAN));
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.QueryFile.restart_scan, sizeof(BOOLEAN));
     tmp += sizeof(BOOLEAN);
-    RtlCopyMemory(tmp, &entry->u.QueryFile.return_single, sizeof(BOOLEAN));
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.QueryFile.return_single, sizeof(BOOLEAN));
     tmp += sizeof(BOOLEAN);
 
 #pragma warning( push )
@@ -129,7 +129,7 @@ NTSTATUS marshal_nfs41_dirquery(
         goto out;
     }
 
-    RtlCopyMemory(tmp, &entry->u.QueryFile.mdl_buf, sizeof(HANDLE));
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.QueryFile.mdl_buf, sizeof(HANDLE));
     tmp += sizeof(HANDLE);
 
     *len = (ULONG)(tmp - buf);
@@ -158,7 +158,7 @@ NTSTATUS unmarshal_nfs41_dirquery(
     NTSTATUS status = STATUS_SUCCESS;
     ULONG buf_len;
 
-    RtlCopyMemory(&buf_len, *buf, sizeof(ULONG));
+    UPDOWNCALL_MEMCPY(&buf_len, *buf, sizeof(ULONG));
 #ifdef DEBUG_MARSHAL_DETAIL
     DbgP("unmarshal_nfs41_dirquery: reply size %d\n", buf_len);
 #endif

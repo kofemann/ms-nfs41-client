@@ -25,6 +25,7 @@
 #include "delegation.h"
 #include "name_cache.h"
 #include "upcall.h"
+#include "upcallutil.h"
 #include "daemon_debug.h"
 #include "util.h"
 

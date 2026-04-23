@@ -30,6 +30,7 @@
 #include "nfs41_ops.h"
 #include "delegation.h"
 #include "upcall.h"
+#include "upcallutil.h"
 #include "daemon_debug.h"
 #include "nfs_ea.h"
 #ifdef NFS41_WINSTREAMS_SUPPORT

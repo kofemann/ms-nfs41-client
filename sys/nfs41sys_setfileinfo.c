@@ -95,11 +95,11 @@ NTSTATUS marshal_nfs41_fileset(
     }
     status = marshall_unicode_filename_as_utf8(&tmp, entry->filename);
     if (status) goto out;
-    RtlCopyMemory(tmp, &entry->u.SetFile.InfoClass, sizeof(ULONG));
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.SetFile.InfoClass, sizeof(ULONG));
     tmp += sizeof(ULONG);
-    RtlCopyMemory(tmp, &entry->u.SetFile.buf_len, sizeof(ULONG));
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.SetFile.buf_len, sizeof(ULONG));
     tmp += sizeof(ULONG);
-    RtlCopyMemory(tmp, entry->u.SetFile.buf, entry->u.SetFile.buf_len);
+    UPDOWNCALL_MEMCPY(tmp, entry->u.SetFile.buf, entry->u.SetFile.buf_len);
     if (entry->u.SetFile.InfoClass == FileRenameInformation) {
         PFILE_RENAME_INFORMATION fri = (PFILE_RENAME_INFORMATION)tmp;
 #ifdef NFS41_DRIVER_STOMP_CYGWIN_SILLYRENAME_INVALID_UTF16_SEQUENCE_SUPPORT
@@ -174,18 +174,18 @@ NTSTATUS unmarshal_nfs41_setattr(
 {
     NTSTATUS status = STATUS_SUCCESS;
 
-    RtlCopyMemory(&cur->ChangeTime, *buf, sizeof(cur->ChangeTime));
+    UPDOWNCALL_MEMCPY(&cur->ChangeTime, *buf, sizeof(cur->ChangeTime));
     *buf += sizeof(cur->ChangeTime);
 
 #ifdef NFS41_DRIVER_MARK_OVERWRITTEN_LINKRENAME_DST_PATH_SRVOPEN_AS_STALE
     if ((cur->u.SetFile.InfoClass == FileRenameInformation) ||
         (cur->u.SetFile.InfoClass == FileLinkInformation)) {
-        RtlCopyMemory(&cur->u.SetFile.linkrename_stale_dst.path_replaced,
+        UPDOWNCALL_MEMCPY(&cur->u.SetFile.linkrename_stale_dst.path_replaced,
             *buf, sizeof(cur->u.SetFile.linkrename_stale_dst.path_replaced));
         *buf += sizeof(cur->u.SetFile.linkrename_stale_dst.path_replaced);
 
         if (cur->u.SetFile.linkrename_stale_dst.path_replaced) {
-            RtlCopyMemory(&cur->u.SetFile.linkrename_stale_dst.path_len,
+            UPDOWNCALL_MEMCPY(&cur->u.SetFile.linkrename_stale_dst.path_len,
                 *buf, sizeof(cur->u.SetFile.linkrename_stale_dst.path_len));
             *buf += sizeof(cur->u.SetFile.linkrename_stale_dst.path_len);
 

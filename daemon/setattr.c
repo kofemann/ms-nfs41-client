@@ -39,6 +39,7 @@
 #include "delegation.h"
 #include "name_cache.h"
 #include "upcall.h"
+#include "upcallutil.h"
 #include "util.h"
 #include "daemon_debug.h"
 #include "winstreams.h"

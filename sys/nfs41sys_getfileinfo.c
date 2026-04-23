@@ -92,9 +92,9 @@ NTSTATUS marshal_nfs41_filequery(
         status = STATUS_INSUFFICIENT_RESOURCES;
         goto out;
     }
-    RtlCopyMemory(tmp, &entry->u.QueryFile.InfoClass, sizeof(ULONG));
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.QueryFile.InfoClass, sizeof(ULONG));
     tmp += sizeof(ULONG);
-    RtlCopyMemory(tmp, &entry->u.QueryFile.buf_len, sizeof(ULONG));
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.QueryFile.buf_len, sizeof(ULONG));
     tmp += sizeof(ULONG);
 
     *len = (ULONG)(tmp - buf);
@@ -129,7 +129,7 @@ void unmarshal_nfs41_getattr(
             cur->u.QueryFile.buf, &cur->u.QueryFile.buf_len, buf, FALSE);
     }
 
-    RtlCopyMemory(&cur->ChangeTime, *buf, sizeof(cur->ChangeTime));
+    UPDOWNCALL_MEMCPY(&cur->ChangeTime, *buf, sizeof(cur->ChangeTime));
     *buf += sizeof(cur->ChangeTime);
 #ifdef DEBUG_MARSHAL_DETAIL
     if (cur->u.QueryFile.InfoClass == FileBasicInformation)
@@ -423,7 +423,7 @@ NTSTATUS nfs41_QueryFileInformation(
 
         switch (InfoClass) {
         case FileBasicInformation:
-            RtlCopyMemory(&nfs41_fcb->BasicInfo, RxContext->Info.Buffer,
+            UPDOWNCALL_MEMCPY(&nfs41_fcb->BasicInfo, RxContext->Info.Buffer,
                 sizeof(nfs41_fcb->BasicInfo));
 #ifdef DEBUG_FILE_QUERY
             print_basic_info(1, &nfs41_fcb->BasicInfo);
@@ -461,7 +461,7 @@ NTSTATUS nfs41_QueryFileInformation(
         }
             if (nfs41_fcb->StandardInfo.DeletePending)
                 DeletePending = TRUE;
-            RtlCopyMemory(&nfs41_fcb->StandardInfo, RxContext->Info.Buffer,
+            UPDOWNCALL_MEMCPY(&nfs41_fcb->StandardInfo, RxContext->Info.Buffer,
                 sizeof(nfs41_fcb->StandardInfo));
             nfs41_fcb->StandardInfo.DeletePending = DeletePending;
 #ifdef DEBUG_FILE_QUERY

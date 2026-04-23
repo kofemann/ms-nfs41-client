@@ -250,7 +250,7 @@ out_copy:
      * (string itself was already converted&&written by |RtlUnicodeToUTF8N()|)
      */
     USHORT out_str_len = (USHORT)(ActualCount+1L);
-    RtlCopyMemory(*pos, &out_str_len, sizeof(out_str_len));
+    UPDOWNCALL_MEMCPY(*pos, &out_str_len, sizeof(out_str_len));
     *pos += sizeof(out_str_len);
 
     /* Add string size to buffer pointer */
@@ -319,15 +319,15 @@ NTSTATUS marshal_nfs41_header(
 
     *len = header_len;
 
-    RtlCopyMemory(tmp, &entry->version, sizeof(entry->version));
+    UPDOWNCALL_MEMCPY(tmp, &entry->version, sizeof(entry->version));
     tmp += sizeof(entry->version);
-    RtlCopyMemory(tmp, &entry->xid, sizeof(entry->xid));
+    UPDOWNCALL_MEMCPY(tmp, &entry->xid, sizeof(entry->xid));
     tmp += sizeof(entry->xid);
-    RtlCopyMemory(tmp, &entry->opcode, sizeof(entry->opcode));
+    UPDOWNCALL_MEMCPY(tmp, &entry->opcode, sizeof(entry->opcode));
     tmp += sizeof(entry->opcode);
-    RtlCopyMemory(tmp, &entry->session, sizeof(HANDLE));
+    UPDOWNCALL_MEMCPY(tmp, &entry->session, sizeof(HANDLE));
     tmp += sizeof(HANDLE);
-    RtlCopyMemory(tmp, &entry->open_state, sizeof(HANDLE));
+    UPDOWNCALL_MEMCPY(tmp, &entry->open_state, sizeof(HANDLE));
     tmp += sizeof(HANDLE);
 
     *len = (ULONG)(tmp - buf);
@@ -371,7 +371,7 @@ NTSTATUS nfs41_invalidate_cache(
     PMRX_SRV_OPEN srv_open;
     NTSTATUS status;
 
-    RtlCopyMemory(&srv_open, inbuf, sizeof(HANDLE));
+    UPDOWNCALL_MEMCPY(&srv_open, inbuf, sizeof(HANDLE));
 #ifdef DEBUG_INVALIDATE_CACHE
     DbgP("nfs41_invalidate_cache: received srv_open=0x%p '%wZ'\n",
         srv_open, srv_open->pAlreadyPrefixedName);
@@ -420,7 +420,7 @@ NTSTATUS marshal_nfs41_set_daemon_debuglevel(
         goto out;
     }
 
-    RtlCopyMemory(tmp, &entry->u.SetDaemonDebugLevel.debuglevel,
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.SetDaemonDebugLevel.debuglevel,
         sizeof(entry->u.SetDaemonDebugLevel.debuglevel));
     tmp += sizeof(entry->u.SetDaemonDebugLevel.debuglevel);
 
@@ -779,7 +779,7 @@ NTSTATUS nfs41_DevFcbXXXControlFile(
         case IOCTL_NFS41_START:
             print_driver_state(nfs41_start_state);
             if (in_len >= sizeof(DWORD)) {
-                RtlCopyMemory(&nfs41d_version, inbuf, sizeof(DWORD));
+                UPDOWNCALL_MEMCPY(&nfs41d_version, inbuf, sizeof(DWORD));
                 DbgP("NFS41 Daemon sent start request with version %d\n",
                     nfs41d_version);
                 DbgP("Currently used NFS41 Daemon version is %d\n",
@@ -838,7 +838,7 @@ NTSTATUS nfs41_DevFcbXXXControlFile(
         case IOCTL_NFS41_SET_DAEMON_DEBUG_LEVEL:
             if (in_len == sizeof(LONG)) {
                 LONG debuglevel = 0;
-                RtlCopyMemory(&debuglevel, inbuf, sizeof(debuglevel));
+                UPDOWNCALL_MEMCPY(&debuglevel, inbuf, sizeof(debuglevel));
                 nfs41_set_daemon_debuglevel(DevExt->nfs41d_version,
                     debuglevel);
                 status = STATUS_SUCCESS;
@@ -902,7 +902,7 @@ NTSTATUS _nfs41_CreateSrvCall(
     pServerEntry->Name.Buffer = pServerEntry->NameBuffer;
     pServerEntry->Name.Length = pSrvCall->pSrvCallName->Length;
     pServerEntry->Name.MaximumLength = SERVER_NAME_BUFFER_SIZE;
-    RtlCopyMemory(pServerEntry->Name.Buffer, pSrvCall->pSrvCallName->Buffer,
+    UPDOWNCALL_MEMCPY(pServerEntry->Name.Buffer, pSrvCall->pSrvCallName->Buffer,
         pServerEntry->Name.Length);
 
     pCallbackContext->RecommunicateContext = pServerEntry;

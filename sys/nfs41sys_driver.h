@@ -36,6 +36,30 @@
 
 typedef enum _nfs41_opcodes nfs41_opcodes;
 
+#include <intrin.h>
+
+/*
+ * Force inlining of |memcpy()| for up-/downcall buffers
+ */
+#if defined(_MSC_BUILD)
+#if defined(_M_IX86) || defined(_M_X64)
+#pragma intrinsic(__movsb)
+#define UPDOWNCALL_MEMCPY(dst, src, len) \
+    __movsb((void *)(dst), (const void *)(src), (len))
+#elif defined(_M_ARM) || defined(_M_ARM64)
+#pragma intrinsic(memcpy)
+#define UPDOWNCALL_MEMCPY(dst, src, len) \
+    (void)memcpy((dst), (src), (len))
+#else
+#error Unsupported architecture
+#endif
+#elif defined(__clang__)
+#define UPDOWNCALL_MEMCPY(dst, src, len) \
+    (void)memcpy((dst), (src), (len))
+#else
+#error Compiler not supported yet
+#endif
+
 #if (NTDDI_VERSION >= NTDDI_WIN10_VB)
 #define EXALLOCATEPOOLWITHTAG_DEPRECATED 1
 #endif /* (NTDDI_VERSION >= NTDDI_WIN10_VB) */

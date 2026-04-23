@@ -28,6 +28,7 @@
 #include "nfs41_ops.h"
 #include "nfs41_daemon.h" /* Required for |nfs41_daemon_globals| */
 #include "upcall.h"
+#include "upcallutil.h"
 #include "util.h"
 #include "daemon_debug.h"
 

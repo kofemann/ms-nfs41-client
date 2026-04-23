@@ -93,13 +93,13 @@ NTSTATUS marshal_nfs41_lock(
         status = STATUS_INSUFFICIENT_RESOURCES;
         goto out;
     }
-    RtlCopyMemory(tmp, &entry->u.Lock.offset, sizeof(LONGLONG));
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.Lock.offset, sizeof(LONGLONG));
     tmp += sizeof(LONGLONG);
-    RtlCopyMemory(tmp, &entry->u.Lock.length, sizeof(LONGLONG));
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.Lock.length, sizeof(LONGLONG));
     tmp += sizeof(LONGLONG);
-    RtlCopyMemory(tmp, &entry->u.Lock.exclusive, sizeof(BOOLEAN));
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.Lock.exclusive, sizeof(BOOLEAN));
     tmp += sizeof(BOOLEAN);
-    RtlCopyMemory(tmp, &entry->u.Lock.blocking, sizeof(BOOLEAN));
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.Lock.blocking, sizeof(BOOLEAN));
     tmp += sizeof(BOOLEAN);
 
     *len = (ULONG)(tmp - buf);
@@ -147,16 +147,16 @@ NTSTATUS marshal_nfs41_unlock(
         status = STATUS_INSUFFICIENT_RESOURCES;
         goto out;
     }
-    RtlCopyMemory(tmp, &entry->u.Unlock.count, sizeof(ULONG));
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.Unlock.count, sizeof(ULONG));
     tmp += sizeof(ULONG);
 
     lock = &entry->u.Unlock.locks;
     while (lock) {
         BOOLEAN exclusivelock;
 
-        RtlCopyMemory(tmp, &lock->ByteOffset, sizeof(LONGLONG));
+        UPDOWNCALL_MEMCPY(tmp, &lock->ByteOffset, sizeof(LONGLONG));
         tmp += sizeof(LONGLONG);
-        RtlCopyMemory(tmp, &lock->Length, sizeof(LONGLONG));
+        UPDOWNCALL_MEMCPY(tmp, &lock->Length, sizeof(LONGLONG));
         tmp += sizeof(LONGLONG);
 
 #ifdef WINDOWSBUG_WORKAROUND_LOWIO_OP_UNLOCK_HAS_RANDOM_VALUE_IN_LOWIO_LOCK_LIST
@@ -184,7 +184,7 @@ NTSTATUS marshal_nfs41_unlock(
         exclusivelock = lock->ExclusiveLock?TRUE:FALSE;
 #endif /* WINDOWSBUG_WORKAROUND_LOWIO_OP_UNLOCK_HAS_RANDOM_VALUE_IN_LOWIO_LOCK_LIST */
 
-        RtlCopyMemory(tmp, &exclusivelock, sizeof(BOOLEAN));
+        UPDOWNCALL_MEMCPY(tmp, &exclusivelock, sizeof(BOOLEAN));
         tmp += sizeof(BOOLEAN);
 
         lock = lock->Next;
@@ -470,7 +470,7 @@ NTSTATUS nfs41_Unlock(
     if (entry->u.Unlock.lowio_operation == LOWIO_OP_UNLOCK_MULTIPLE) {
         entry->u.Unlock.count = unlock_list_count(
             LowIoContext->ParamsFor.Locks.LockList);
-        RtlCopyMemory(&entry->u.Unlock.locks,
+        UPDOWNCALL_MEMCPY(&entry->u.Unlock.locks,
             LowIoContext->ParamsFor.Locks.LockList,
             sizeof(LOWIO_LOCK_LIST));
     } else {
