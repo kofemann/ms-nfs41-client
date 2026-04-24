@@ -971,7 +971,7 @@ function dispatch_lookup
 }
 
 #
-# map_hostname2idmappercfgname - map client hostname+server hostname
+# map_nfsserverspec2idmappercfgname - map client hostname+server spec
 # to idmapper configuration name
 #
 # This lookup is done so we can handle clients from different setups/domains
@@ -981,6 +981,14 @@ function dispatch_lookup
 # This mapping is EXPLICITLY machine<--->machine, no per-user/per-group data
 # should be used for the mapping.
 #
+# - Input is a serialised ksh93 compound variable (CPV), which has the following structure:
+# serverrspec.hostport.hostname		# hostname, IPv4, IPv6 address
+# serverrspec.hostport.port		# TCP port
+# serverrspec.ispubnfs			# mounted via public NFS
+# - Output is a compound variable with a single member, defining the idmapper
+# config name:
+# idmappercfgname='<config-name>'
+#
 # Notes:
 # - $ dsregcmd /status # can print status information about computer name, AD/AZURE
 # tenant details etc.
@@ -989,14 +997,18 @@ function dispatch_lookup
 # - /proc/registry/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows/CurrentVersion/OEMInformation/Manufacturer
 # (if it exists) can have useful naming information about the IT department
 #
-function map_serverhostname2idmappercfgname
+function map_nfsserverspec2idmappercfgname
 {
 	set -o nounset
 
 	typeset clientname="$(/bin/hostname)"
-	typeset servername="$2"
+	compound serverspec
 
-	case "${clientname}/${servername}" in
+	# read incoming info as ksh93 compound variable
+	read -C serverspec <<<"$2" || return 1
+	#print -u2 -v serverspec # debug
+
+	case "${clientname}/${serverspec.hostport.hostname}/${serverspec.hostport.port}" in
 		*)
 			compound serverhostname2idmappercfgname_res=(
 				idmappercfgname='default'
@@ -1019,8 +1031,8 @@ function main_dispatch
 			dispatch_lookup "$@"
 			return $?
 			;;
-		'map_serverhostname2idmappercfgname')
-			map_serverhostname2idmappercfgname "$@"
+		'map_nfsserverspec2idmappercfgname')
+			map_nfsserverspec2idmappercfgname "$@"
 			return $?
 			;;
 		*)

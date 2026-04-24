@@ -124,7 +124,9 @@ int nfs41_root_create(
     nfs41_daemon_globals nfs41_dg;
 
     char idmappercfgbuff[256];
-    if (nfs41_idmap_map_serverhostname2idmappercfgname(name, idmappercfgbuff)) {
+    if (nfs41_idmap_map_nfsserverspec2idmappercfgname(
+        name, (unsigned short)port, use_nfspubfh,
+        idmappercfgbuff)) {
         eprintf("nfs41_root_create: "
             "idmapper failed to map server hostname to idmapper config name\n");
         status = ERROR_NONE_MAPPED;

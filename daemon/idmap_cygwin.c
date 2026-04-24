@@ -513,8 +513,10 @@ int cygwin_nfsserver_getent_group(
 }
 
 static
-int cygwin_map_serverhostname2idmappercfgname(
-    IN const char *restrict serverhostname,
+int cygwin_map_nfsserverspec2idmappercfgname(
+    IN const char *restrict hostname,
+    IN unsigned short port,
+    IN bool ispubnfs,
     OUT char *restrict res_idmappercfgname)
 {
     char cmdbuff[1024];
@@ -530,29 +532,41 @@ int cygwin_map_serverhostname2idmappercfgname(
     const char *idmappercfgname = NULL;
 
     DPRINTF(CYGWINIDLVL,
-        ("--> cygwin_map_serverhostname2idmappercfgname(serverhostname='%s')\n",
-        serverhostname));
+        ("--> cygwin_map_nfsserverspec2idmappercfgname"
+        "(hostname='%s',port=%u,ispubnfs=%d)\n",
+        hostname, (unsigned int)port, (int)ispubnfs));
 
-    if (serverhostname[0] == '\0') {
+    if (hostname[0] == '\0') {
         DPRINTF(0,
-            ("cygwin_map_serverhostname2idmappercfgname(serverhostname='%s'): "
+            ("cygwin_map_nfsserverspec2idmappercfgname"
+            "(hostname='%s',port=%u,ispubnfs=%d): "
             "ERROR: Empty server hostname.\n",
-            serverhostname));
+            hostname, (unsigned int)port, (int)ispubnfs));
         goto fail;
     }
 
-    /* fixme: better quoting for |name| needed */
+    /*
+     * Create ksh93 compound variable (CPV) to transfer the { hostname, port,
+     * ispubnfs } information
+     */
+    char serverspec_cpv[1024];
+    (void)snprintf(serverspec_cpv, sizeof(serverspec_cpv),
+        "( typeset -C hostport=( hostname='%s' port=%u ) ; ispubnfs=%d )",
+        hostname, (unsigned int)port, (int)ispubnfs);
+
+    /* fixme: better quoting for |serverspec_cpv| needed */
     (void)snprintf(cmdbuff, sizeof(cmdbuff),
         "%s \"%s\" \"%s\"",
         CYGWIN_IDMAPPER_SCRIPT,
-        "map_serverhostname2idmappercfgname",
-        serverhostname);
+        "map_nfsserverspec2idmappercfgname",
+        serverspec_cpv);
     if ((script_pipe = subcmd_popen(cmdbuff)) == NULL) {
         int last_error = GetLastError();
         DPRINTF(0,
-            ("cygwin_map_serverhostname2idmappercfgname(serverhostname='%s'): "
+            ("cygwin_map_nfsserverspec2idmappercfgname"
+            "(hostname='%s',port=%u,ispubnfs=%d): "
             "'%s' failed, GetLastError()='%d'\n",
-            serverhostname,
+            hostname, (unsigned int)port, (int)ispubnfs,
             cmdbuff,
             last_error));
         goto fail;
@@ -561,9 +575,10 @@ int cygwin_map_serverhostname2idmappercfgname(
     if (!subcmd_readcmdoutput(script_pipe,
         buff, sizeof(buff), &num_buff_read)) {
         DPRINTF(0,
-            ("cygwin_map_serverhostname2idmappercfgname(serverhostname='%s'): "
+            ("cygwin_map_nfsserverspec2idmappercfgname"
+            "(hostname='%s',port=%u,ispubnfs=%d): "
             "subcmd_readcmdoutput() failed\n",
-            serverhostname));
+            hostname, (unsigned int)port, (int)ispubnfs));
         goto fail;
     }
 
@@ -571,26 +586,29 @@ int cygwin_map_serverhostname2idmappercfgname(
 
     if (num_buff_read < 10) {
         DPRINTF(0,
-            ("cygwin_map_serverhostname2idmappercfgname(serverhostname='%s'): "
+            ("cygwin_map_nfsserverspec2idmappercfgname"
+            "(hostname='%s',port=%u,ispubnfs=%d): "
             "Could not read enough data, returned %d\n",
-            serverhostname, (int)num_buff_read));
+            hostname, (unsigned int)port, (int)ispubnfs, (int)num_buff_read));
         goto fail;
     }
 
     cpvp = cpv_create_parser(buff, 0/*CPVFLAG_DEBUG_OUTPUT*/);
     if (!cpvp) {
         DPRINTF(0,
-            ("cygwin_map_serverhostname2idmappercfgname(serverhostname='%s'): "
+            ("cygwin_map_nfsserverspec2idmappercfgname"
+            "(hostname='%s',port=%u,ispubnfs=%d): "
             "Could not create parser\n",
-            serverhostname));
+            hostname, (unsigned int)port, (int)ispubnfs));
         goto fail;
     }
 
     if (cpv_read_cpv_header(cpvp)) {
         DPRINTF(0,
-            ("cygwin_map_serverhostname2idmappercfgname(serverhostname='%s'): "
+            ("cygwin_map_nfsserverspec2idmappercfgname"
+            "(hostname='%s',port=%u,ispubnfs=%d): "
             "cpv_read_cpv_header failed\n",
-            serverhostname));
+            hostname, (unsigned int)port, (int)ispubnfs));
         goto fail;
     }
 
@@ -611,10 +629,10 @@ int cygwin_map_serverhostname2idmappercfgname(
         goto fail;
 
     if (strlen(idmappercfgname) >= 128) {
-        eprintf("cygwin_map_serverhostname2idmappercfgname"
-            "(serverhostname='%s'): "
+        eprintf("cygwin_map_nfsserverspec2idmappercfgname"
+            "(hostname='%s',port=%u,ispubnfs=%d'): "
             "idmappercfgname='%s' too long\n",
-            serverhostname, idmappercfgname);
+            hostname, (unsigned int)port, (int)ispubnfs, idmappercfgname);
         goto fail;
     }
 
@@ -634,27 +652,32 @@ fail:
 
     if (res == 0) {
         DPRINTF(CYGWINIDLVL,
-            ("<-- cygwin_map_serverhostname2idmappercfgname(serverhostname='%s'): "
+            ("<-- cygwin_map_nfsserverspec2idmappercfgname"
+            "(hostname='%s',port=%u,ispubnfs=%d): "
             "returning res_idmappercfgname='%s'\n",
-            serverhostname,
+            hostname, (unsigned int)port, (int)ispubnfs,
             res_idmappercfgname?res_idmappercfgname:"<NULL>"));
     }
     else {
         DPRINTF(CYGWINIDLVL,
-            ("<-- cygwin_map_serverhostname2idmappercfgname(serverhostname='%s'): "
+            ("<-- cygwin_map_nfsserverspec2idmappercfgname"
+            "(hostname='%s',port=%u,ispubnfs=%d): "
             "no match found\n",
-            serverhostname));
+            hostname, (unsigned int)port, (int)ispubnfs));
     }
 
     return res;
 }
 #endif /* NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN */
 
-int nfs41_idmap_map_serverhostname2idmappercfgname(
-    IN const char *restrict serverhostname,
+int nfs41_idmap_map_nfsserverspec2idmappercfgname(
+    IN const char *restrict hostname,
+    IN unsigned short port,
+    IN bool ispubnfs,
     OUT char *restrict res_idmappercfgname)
 {
-    return cygwin_map_serverhostname2idmappercfgname(serverhostname, res_idmappercfgname);
+    return cygwin_map_nfsserverspec2idmappercfgname(hostname, port, ispubnfs,
+        res_idmappercfgname);
 }
 
 /*

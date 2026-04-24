@@ -37,8 +37,10 @@ int nfs41_idmap_create(
     IN const char *localdomain_name);
 void nfs41_idmap_free(
     nfs41_idmapper *context);
-int nfs41_idmap_map_serverhostname2idmappercfgname(
+int nfs41_idmap_map_nfsserverspec2idmappercfgname(
     IN const char *restrict hostname,
+    IN unsigned short port,
+    IN bool ispubnfs,
     OUT char *restrict res_idmappercfgname);
 
 #define IDMAPCACHE_TTL_SECONDS (60*5)
