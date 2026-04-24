@@ -43,6 +43,7 @@ int map_sid2nfs4ace_who(
     IN PSID sid,
     IN PSID owner_sid,
     IN PSID group_sid,
+    IN bool nfs_namedattr_support,
     OUT char *who_out,
     IN const char *domain,
     OUT SID_NAME_USE *sid_type_out);

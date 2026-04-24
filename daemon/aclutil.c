@@ -836,6 +836,7 @@ int map_sid2nfs4ace_who(
     IN PSID sid,
     IN PSID owner_sid,
     IN PSID group_sid,
+    IN bool nfs_namedattr_support,
     OUT char *who_out,
     IN const char *domain,
     OUT SID_NAME_USE *sid_type_out)
@@ -861,29 +862,34 @@ int map_sid2nfs4ace_who(
         print_sid("group_sid", group_sid);
     }
 
-    /* for ace mapping, we want to map owner's sid into "owner@"
-     * but for set_owner attribute we want to map owner into a user name
-     * same applies to group
-     */
     status = ERROR_SUCCESS;
-    if (owner_sid) {
-        if (EqualSid(sid, owner_sid)) {
-            DPRINTF(ACLLVL2, ("this is owner's sid\n"));
-            (void)memcpy(who_out, ACE4_OWNER, ACE4_OWNER_LEN+1);
-            sid_type = SidTypeUser;
-            status = ERROR_SUCCESS;
-            goto out;
+
+    if (nfs_namedattr_support == false) {
+        /*
+         * for ace mapping, we want to map owner's sid into "owner@"
+         * but for set_owner attribute we want to map owner into a user name
+         * same applies to group
+         */
+        if (owner_sid) {
+            if (EqualSid(sid, owner_sid)) {
+                DPRINTF(ACLLVL2, ("this is owner's sid\n"));
+                (void)memcpy(who_out, ACE4_OWNER, ACE4_OWNER_LEN+1);
+                sid_type = SidTypeUser;
+                status = ERROR_SUCCESS;
+                goto out;
+            }
+        }
+        if (group_sid) {
+            if (EqualSid(sid, group_sid)) {
+                DPRINTF(ACLLVL2, ("this is group's sid\n"));
+                (void)memcpy(who_out, ACE4_GROUP, ACE4_GROUP_LEN+1);
+                sid_type = SidTypeGroup;
+                status = ERROR_SUCCESS;
+                goto out;
+            }
         }
     }
-    if (group_sid) {
-        if (EqualSid(sid, group_sid)) {
-            DPRINTF(ACLLVL2, ("this is group's sid\n"));
-            memcpy(who_out, ACE4_GROUP, ACE4_GROUP_LEN+1);
-            sid_type = SidTypeGroup;
-            status = ERROR_SUCCESS;
-            goto out;
-        }
-    }
+
     success = is_well_known_sid(sid, who_out, &sid_type);
     if (success) {
         if (!strncmp(who_out, ACE4_NOBODY, ACE4_NOBODY_LEN)) {
@@ -1284,7 +1290,8 @@ int map_dacl_2_nfs4acl(
             }
 #endif /* NFS41_DRIVER_ACLS_SETACL_SKIP_WINNULLSID_ACES */
 
-            status = map_sid2nfs4ace_who(idmapper, ace_sid, sid, gsid,
+            status = map_sid2nfs4ace_who(idmapper, ace_sid,
+                sid, gsid, nfs_namedattr_support,
                 curr_nfsace->who, domain, &who_sid_type);
             if (status != ERROR_SUCCESS)
                 goto out_free;

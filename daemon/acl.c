@@ -309,8 +309,9 @@ static int handle_setacl(void *daemon_context, nfs41_upcall *upcall)
             goto out;
         }
 
-        status = map_sid2nfs4ace_who(idmapper, sid, NULL, NULL, ownerbuf,
-            nfs41dg->localdomain_name, NULL);
+        status = map_sid2nfs4ace_who(idmapper, sid,
+            NULL, NULL, true,
+            ownerbuf, nfs41dg->localdomain_name, NULL);
         if (status)
             goto out;
 
@@ -331,8 +332,8 @@ static int handle_setacl(void *daemon_context, nfs41_upcall *upcall)
             goto out;
         }
 
-        status = map_sid2nfs4ace_who(idmapper, sid, NULL, NULL, groupbuf,
-            nfs41dg->localdomain_name, NULL);
+        status = map_sid2nfs4ace_who(idmapper, sid, NULL, NULL, true,
+            groupbuf, nfs41dg->localdomain_name, NULL);
         if (status)
             goto out;
 
