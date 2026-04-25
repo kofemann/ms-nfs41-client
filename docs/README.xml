@@ -169,6 +169,19 @@
         </para>
       </listitem>
       <listitem>
+        <para>Unicode and GB 18030 support for filenames
+          <itemizedlist>
+            <listitem>
+              <para>Unicode and <link xl:href="https://en.wikipedia.org/wiki/GB_18030">GB 18030</link>
+              support for file-, directory- and streamnames, including Unicode codepoints above the
+              <link xl:href="https://en.wikipedia.org/wiki/Plane_(Unicode)">Basic Multilingual Plane</link>,
+              assuming the filesystem exported by the NFS server supports the matching Unicode codepoints.
+              </para>
+            </listitem>
+          </itemizedlist>
+        </para>
+      </listitem>
+      <listitem>
         <para>Data copy offload (server-side copy)
           <itemizedlist>
             <listitem>

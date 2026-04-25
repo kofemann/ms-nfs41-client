@@ -158,6 +158,15 @@ NFSv4.2/NFSv4.1 filesystem driver for Windows 10/11 & Windows Server
     `|FATTR4_WORD0_CASE_INSENSITIVE|` attribute set to `TRUE` (currently
     Windows Server NFSv4.1 server exporting NTFS).
 
+- Unicode and GB 18030 support for filenames
+
+  - Unicode and [GB 18030](https://en.wikipedia.org/wiki/GB_18030)
+    support for file-, directory- and streamnames, including Unicode
+    codepoints above the [Basic Multilingual
+    Plane](https://en.wikipedia.org/wiki/Plane_(Unicode)), assuming the
+    filesystem exported by the NFS server supports the matching Unicode
+    codepoints.
+
 - Data copy offload (server-side copy)
 
   - Implemented via Win32 `|FSCTL_OFFLOAD_READ|`+`|FSCTL_OFFLOAD_WRITE|`
