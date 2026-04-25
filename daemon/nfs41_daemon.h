@@ -29,13 +29,11 @@
 #endif
 
 #include "nfs41_build_features.h"
-#include "nfs41_const.h" /* for |NFS41_HOSTNAME_LEN| */
 
 /*
  * Global data of the daemon process
  */
 typedef struct __nfs41_daemon_globals {
-    char localdomain_name[NFS41_HOSTNAME_LEN];
     SSIZE_T num_worker_threads;
     int crtdbgmem_flags;
     char nfs41_nii_name[256];

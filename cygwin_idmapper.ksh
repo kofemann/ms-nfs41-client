@@ -486,10 +486,8 @@ function load_idmap_config
 		# default config
 		'default')
 			compound c.idmap_config=(
-				#typeset -r localdomain='GLOBAL.LOC'	# Default domain for Windows
-				#typeset -r nfsdomain='global.loc'	# Default domain for NFS server
-				typeset -r localdomain="$( < '/proc/registry/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Services/Tcpip/Parameters/Domain' )"
-				typeset -r nfsdomain="$( tr '[:upper:]' '[:lower:]' <'/proc/registry/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Services/Tcpip/Parameters/Domain' )"
+				typeset -r localdomain='GLOBAL.LOC'	# Default domain for Windows
+				typeset -r nfsdomain='global.loc'	# Default domain for NFS server
 
 				# Define NFS server type
 				# * Values can be "windows/en", "windows/de", "windows/fr", "freebsd", "solaris", "linux"

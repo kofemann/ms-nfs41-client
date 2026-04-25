@@ -311,8 +311,7 @@ out:
 /* public idmap interface */
 int nfs41_idmap_create(
     IN const char *configname,
-    OUT struct idmap_context **context_out,
-    IN const char *localdomain_name)
+    OUT struct idmap_context **context_out)
 {
     struct idmap_context *context;
     int status = NO_ERROR;

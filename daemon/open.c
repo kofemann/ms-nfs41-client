@@ -898,7 +898,6 @@ void set_hiddensystemarchive_attrs(ULONG file_attrs, nfs41_open_state *state)
 static int handle_open(void *daemon_context, nfs41_upcall *upcall)
 {
     int status = 0;
-    nfs41_daemon_globals *nfs41dg = daemon_context;
     open_upcall_args *args = &upcall->args.open;
     nfs41_open_state *state;
     nfs41_file_info info = { 0 };
@@ -1015,8 +1014,7 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
             acl, sid, gsid,
             &create_nfs4_acl,
             state->type,
-            false /* FIXME!! */,
-            nfs41dg->localdomain_name);
+            false /* FIXME!! */);
         if (status) {
             eprintf("handle_open: "
                 "map_dacl_2_nfs4acl() failed, status=%d\n",

@@ -120,9 +120,6 @@ int nfs41_root_create(
     root->ref_count = 1;
     root->sec_flavor = sec_flavor;
 
-    /* FIXME: This should be a function argument */
-    nfs41_daemon_globals nfs41_dg;
-
     char idmappercfgbuff[256];
     if (nfs41_idmap_map_nfsserverspec2idmappercfgname(
         name, (unsigned short)port, use_nfspubfh,
@@ -133,8 +130,7 @@ int nfs41_root_create(
         goto out;
     }
 
-    status = nfs41_idmap_create(idmappercfgbuff, &root->idmapper,
-        nfs41_dg.localdomain_name);
+    status = nfs41_idmap_create(idmappercfgbuff, &root->idmapper);
     if (status) {
         eprintf("nfs41_root_create: "
             "id mapping initialization failed with %d\n",

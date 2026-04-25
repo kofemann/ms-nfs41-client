@@ -279,7 +279,6 @@ out:
 static int handle_setacl(void *daemon_context, nfs41_upcall *upcall)
 {
     int status = ERROR_NOT_SUPPORTED;
-    nfs41_daemon_globals *nfs41dg = daemon_context;
     setacl_upcall_args *args = &upcall->args.setacl;
     nfs41_open_state *state = upcall->state_ref;
     struct idmap_context *idmapper = state->session->client->root->idmapper;
@@ -311,7 +310,7 @@ static int handle_setacl(void *daemon_context, nfs41_upcall *upcall)
 
         status = map_sid2nfs4ace_who(idmapper, sid,
             NULL, NULL, true,
-            ownerbuf, nfs41dg->localdomain_name, NULL);
+            ownerbuf, NULL);
         if (status)
             goto out;
 
@@ -333,7 +332,7 @@ static int handle_setacl(void *daemon_context, nfs41_upcall *upcall)
         }
 
         status = map_sid2nfs4ace_who(idmapper, sid, NULL, NULL, true,
-            groupbuf, nfs41dg->localdomain_name, NULL);
+            groupbuf, NULL);
         if (status)
             goto out;
 
@@ -370,8 +369,7 @@ static int handle_setacl(void *daemon_context, nfs41_upcall *upcall)
         }
         status = map_dacl_2_nfs4acl(idmapper, acl, sid, gsid, &nfs4_acl,
              state->type,
-             state->file.fh.superblock->nfs_namedattr_support?true:false,
-            nfs41dg->localdomain_name);
+             state->file.fh.superblock->nfs_namedattr_support?true:false);
         if (status)
             goto out;
 

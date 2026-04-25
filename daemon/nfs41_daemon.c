@@ -430,98 +430,6 @@ static void print_getaddrinfo(struct addrinfo *ptr)
     DPRINTF(1, ("Canonical name: '%s'\n", ptr->ai_canonname));
 }
 
-static int getdomainname()
-{
-    int status = 0;
-    PFIXED_INFO net_info = NULL;
-    DWORD size = 0;
-    BOOLEAN flag = FALSE;
-
-    status = GetNetworkParams(net_info, &size);
-    if (status != ERROR_BUFFER_OVERFLOW) {
-        eprintf("getdomainname: GetNetworkParams returned %d\n", status);
-        goto out;
-    }
-    net_info = calloc(1, size);
-    if (net_info == NULL) {
-        status = GetLastError();
-        goto out;
-    }
-    status = GetNetworkParams(net_info, &size);
-    if (status) {
-        eprintf("getdomainname: GetNetworkParams returned %d\n", status);
-        goto out_free;
-    }
-
-    if (net_info->DomainName[0] == '\0') {
-        struct addrinfo *result = NULL, *ptr = NULL, hints = { 0 };
-        char hostname[NI_MAXHOST], servInfo[NI_MAXSERV];
-
-        hints.ai_socktype = SOCK_STREAM;
-        hints.ai_protocol = IPPROTO_TCP;
-
-        status = getaddrinfo(net_info->HostName, NULL, &hints, &result);
-        if (status) {
-            status = WSAGetLastError();
-            eprintf("getdomainname: getaddrinfo failed with %d\n", status);
-            goto out_free;
-        } 
-
-        for (ptr=result; ptr != NULL; ptr=ptr->ai_next) {
-            print_getaddrinfo(ptr);
-
-            switch (ptr->ai_family) {
-            case AF_INET6:
-            case AF_INET:
-                status = getnameinfo((struct sockaddr *)ptr->ai_addr,
-                            (socklen_t)ptr->ai_addrlen, hostname, NI_MAXHOST,
-                            servInfo, NI_MAXSERV, NI_NAMEREQD);
-                if (status) {
-                    DPRINTF(1, ("getnameinfo failed %d\n", WSAGetLastError()));
-                }
-                else {
-                    size_t i, len = strlen(hostname);
-                    char *p = hostname;
-                    DPRINTF(1, ("getdomainname: hostname '%s' %ld\n",
-                        hostname, (long)len));
-                    for (i = 0; i < len; i++)
-                        if (p[i] == '.')
-                            break;
-                    if (i == len)
-                        break;
-                    flag = TRUE;
-                    memcpy(nfs41_dg.localdomain_name, &hostname[i+1], len-i);
-                    DPRINTF(1, ("getdomainname: domainname '%s' %ld\n",
-                            nfs41_dg.localdomain_name,
-                            (long)strlen(nfs41_dg.localdomain_name)));
-                    goto out_loop;
-                }
-                break;
-            default:
-                break;
-            }
-        }
-out_loop:
-        if (!flag) {
-            status = ERROR_INTERNAL_ERROR;
-            eprintf("getdomainname: unable to get a domain name. "
-                "Set this machine's domain name:\n"
-                "System > ComputerName > Change > More > mydomain\n");
-        }
-        freeaddrinfo(result);
-    } else {
-        DPRINTF(1, ("domain name is '%s'\n", net_info->DomainName));
-        memcpy(nfs41_dg.localdomain_name, net_info->DomainName,
-                strlen(net_info->DomainName));
-        nfs41_dg.localdomain_name[strlen(net_info->DomainName)] = '\0';
-    }
-out_free:
-    free(net_info);
-out:
-    return status;
-}
-
-
 static
 void nfsd_crt_debug_init(void)
 {
@@ -753,13 +661,6 @@ VOID ServiceStart(DWORD argc, LPTSTR *argv)
     /* Enable Win32 privileges */
     set_nfs_daemon_privileges();
 
-    /* acquire and store in global memory current dns domain name.
-     * needed for acls */
-    if (getdomainname()) {
-        eprintf("Could not get domain name\n");
-        exit(1);
-    }
-
     /*
      * Set high priority class to avoid that the daemon gets stomped
      * by other processes, which might lead to some kind of priority
@@ -773,8 +674,6 @@ VOID ServiceStart(DWORD argc, LPTSTR *argv)
     }
 
     nfs41_server_list_init();
-
-    EASSERT(nfs41_dg.localdomain_name[0] != '\0');
 
     NFS41D_VERSION = GetTickCount();
     DPRINTF(1, ("NFS41 Daemon starting: version %d\n", NFS41D_VERSION));

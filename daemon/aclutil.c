@@ -838,7 +838,6 @@ int map_sid2nfs4ace_who(
     IN PSID group_sid,
     IN bool nfs_namedattr_support,
     OUT char *who_out,
-    IN const char *domain,
     OUT SID_NAME_USE *sid_type_out)
 {
     int status;
@@ -894,7 +893,8 @@ int map_sid2nfs4ace_who(
     if (success) {
         if (!strncmp(who_out, ACE4_NOBODY, ACE4_NOBODY_LEN)) {
             who_size = (DWORD)ACE4_NOBODY_LEN;
-            goto add_domain;
+            DPRINTF(0, ("map_sid2nfs4ace_who: mapping for nobody\n"));
+            goto do_idmap_name;
         }
 
         /* fixme: What about |sid_type| ? */
@@ -932,6 +932,7 @@ int map_sid2nfs4ace_who(
         }
 #endif /* NFS41_DRIVER_WS2022_HACKS */
 
+do_idmap_name:
         switch (sid_type) {
             case SidTypeUser:
                 ie = nfs41_idmap_user_lookup_by_win32name(idmapper, who_buf);
@@ -1122,28 +1123,6 @@ err_none_mapped:
 
     /* NOTREACHED */
 
-add_domain:
-    /*
-     * Complain if we attempt to add a domain suffix to an UID/GID
-     * value
-     */
-    EASSERT(!isdigit(who_out[0]));
-
-    char *wp;
-    char *at_s;
-
-    at_s = strchr(who_out, '@');
-    if (at_s != NULL) {
-        /* Override domain */
-        wp = at_s + 1;
-    }
-    else {
-        /* Append domain */
-        wp = mempcpy(who_out+who_size, "@", sizeof(char));
-    }
-
-    (void)memcpy(wp, domain, strlen(domain)+1);
-
 out:
     if (status != ERROR_SUCCESS) {
         DPRINTF(ACLLVL2,
@@ -1172,8 +1151,7 @@ int map_dacl_2_nfs4acl(
     IN PSID gsid,
     OUT nfsacl41 *nfs4_acl,
     IN int file_type,
-    IN bool nfs_namedattr_support,
-    IN const char *domain)
+    IN bool nfs_namedattr_support)
 {
     int status;
     BOOL success;
@@ -1292,7 +1270,7 @@ int map_dacl_2_nfs4acl(
 
             status = map_sid2nfs4ace_who(idmapper, ace_sid,
                 sid, gsid, nfs_namedattr_support,
-                curr_nfsace->who, domain, &who_sid_type);
+                curr_nfsace->who, &who_sid_type);
             if (status != ERROR_SUCCESS)
                 goto out_free;
 

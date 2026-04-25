@@ -33,8 +33,7 @@ typedef struct idmap_context nfs41_idmapper;
 
 int nfs41_idmap_create(
     IN const char *configname,
-    OUT struct idmap_context **context_out,
-    IN const char *localdomain_name);
+    OUT struct idmap_context **context_out);
 void nfs41_idmap_free(
     nfs41_idmapper *context);
 int nfs41_idmap_map_nfsserverspec2idmappercfgname(
@@ -91,6 +90,7 @@ void idmapcache_entry_refcount_dec(idmapcache_entry *restrict e);
 
 struct idmap_config {
     char configname[256];
+
     UINT timeout;
 
     bool use_numeric_uidgid;
