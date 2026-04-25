@@ -298,7 +298,6 @@
     <ClCompile Include="..\..\daemon\fileinfoutil.c" />
     <ClCompile Include="..\..\daemon\fsctl.c" />
     <ClCompile Include="..\..\daemon\getattr.c" />
-    <ClCompile Include="..\..\daemon\idmap.c" />
     <ClCompile Include="..\..\daemon\idmap_cygwin.c" />
     <ClCompile Include="..\..\daemon\lock.c" />
     <ClCompile Include="..\..\daemon\lookup.c" />

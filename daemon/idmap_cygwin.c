@@ -29,6 +29,7 @@
 #include "nfs41_build_features.h"
 #include "idmap.h"
 #include "util.h"
+#include "aclutil.h"
 #include "nfs41_const.h"
 #include "list.h"
 #include "daemon_debug.h"
@@ -1535,4 +1536,87 @@ out:
     }
 
     return ie;
+}
+
+int nfs41_idmap_create(
+    IN const char *configname,
+    OUT struct idmap_context **context_out)
+{
+    struct idmap_context *context;
+    int status = NO_ERROR;
+
+    context = calloc(1, sizeof(struct idmap_context));
+    if (context == NULL) {
+        status = GetLastError();
+        goto out;
+    }
+
+    (void)strcpy(context->config.configname, configname);
+
+    /*
+     * Defaults for nobody/nogroup
+     * These should really be per idmapper-config settings
+     */
+    context->config.default_nfs_uid = NFS_USER_NOBODY_UID;
+    context->config.default_nfs_gid = NFS_GROUP_NOGROUP_GID;
+    context->config.default_local_uid = NFS_USER_NOBODY_UID;
+    context->config.default_local_gid = NFS_GROUP_NOGROUP_GID;
+
+    /* initialize the caches */
+    context->usercache = idmapcache_context_create();
+    context->groupcache = idmapcache_context_create();
+
+    if ((context->usercache == NULL) || (context->groupcache == NULL)) {
+        eprintf("nfs41_idmap_create: Cannot create idmapcache\n");
+        goto out_err_free;
+    }
+
+    /*
+     * Enumerate the server principal names for Windows "well-known"
+     * groups and ask the idmapper to get the localised NFS server names
+     * We use this list in |convert_nfs4acl_2_dacl()| to set the
+     * |ACE4_IDENTIFIER_GROUP| flag for groups where the NFS server might
+     * not have set it
+     */
+    context->well_known_lgrouplist =
+        build_well_known_localised_nfs_grouplist(context);
+    if (context->well_known_lgrouplist == NULL) {
+        eprintf("nfs41_idmap_create: "
+            "build_well_known_localised_nfs_grouplist() failed\n");
+        goto out_err_free;
+    }
+
+    DPRINTF(0,
+        ("nfs41_idmap_create: well_known_lgrouplist='%s'\n",
+        context->well_known_lgrouplist));
+
+#ifdef NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN
+    DPRINTF(1,
+        ("nfs41_idmap_create: Force context->config.timeout = 6000;\n"));
+    context->config.timeout = 6000;
+    /* FIXME: |use_numeric_uidgid| should be a idmapper option */
+    context->config.use_numeric_uidgid = false;
+#endif /* NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN */
+
+    *context_out = context;
+
+out:
+    return status;
+
+out_err_free:
+    nfs41_idmap_free(context);
+    goto out;
+}
+
+void nfs41_idmap_free(
+    struct idmap_context *context)
+{
+    if (context->usercache != NULL)
+        idmapcache_context_destroy(context->usercache);
+    if (context->groupcache != NULL)
+        idmapcache_context_destroy(context->groupcache);
+
+    free(context->well_known_lgrouplist);
+
+    free(context);
 }

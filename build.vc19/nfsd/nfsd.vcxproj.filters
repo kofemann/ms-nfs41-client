@@ -48,9 +48,6 @@
     <ClCompile Include="..\..\daemon\getattr.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\daemon\idmap.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\daemon\idmap_cygwin.c">
       <Filter>Source Files</Filter>
     </ClCompile>

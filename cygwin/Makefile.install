@@ -129,7 +129,6 @@ installdest:
 	done
 	# Platform-independent files
 	cp $(PROJECT_BASEDIR_DIR)/etc_netconfig	$(DESTDIR)/lib/msnfs41client/.
-	cp $(PROJECT_BASEDIR_DIR)/ms-nfs41-idmap.conf		$(DESTDIR)/lib/msnfs41client/.
 	cp $(CYGWIN_MAKEFILE_DIR)/devel/msnfs41client.bash	$(DESTDIR)/lib/msnfs41client/msnfs41client
 	chmod a+x "$(DESTDIR)/lib/msnfs41client/msnfs41client"
 	# this must be a symlink, so msnfs41client can find it's real location

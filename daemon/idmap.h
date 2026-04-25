@@ -27,8 +27,6 @@
 #include <stdbool.h>
 #include "nfs41_const.h"
 
-
-/* idmap.c */
 typedef struct idmap_context nfs41_idmapper;
 
 int nfs41_idmap_create(

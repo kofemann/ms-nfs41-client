@@ -136,7 +136,6 @@ clean:
 installdest_util: \
 	$(PROJECT_BASEDIR_DIR)/nfs41rdr.inf \
 	$(PROJECT_BASEDIR_DIR)/etc_netconfig \
-	$(PROJECT_BASEDIR_DIR)/ms-nfs41-idmap.conf \
 	$(PROJECT_BASEDIR_DIR)/tests/catdbgprint/catdbgprint.exe \
 	$(PROJECT_BASEDIR_DIR)/tests/ea/nfs_ea.exe \
 	$(PROJECT_BASEDIR_DIR)/tests/lssparse/lssparse.exe \
