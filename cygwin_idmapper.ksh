@@ -411,6 +411,18 @@ function setup_site_accounts_lab_example1
 			nfsowner="swulsch@${c.idmap_config.nfsdomain}"
 			nfsuid=1818
 		)
+		["dietmar_kuenkler"]=(
+			localaccountname="dietmar_kuenkler@${COMPUTERNAME}"
+			localuid=197616
+			nfsowner="dkuenkler@${c.idmap_config.nfsdomain}"
+			nfsuid=27575
+		)
+		["marvin_wenzel"]=(
+			localaccountname="marvin_wenzel@${COMPUTERNAME}"
+			localuid=197617
+			nfsowner="mwenzel@${c.idmap_config.nfsdomain}"
+			nfsuid=8239
+		)
 	)
 
 	c.localgroups+=(
@@ -428,6 +440,18 @@ function setup_site_accounts_lab_example1
 			localgid=1818
 			nfsownergroup="swulsch@${c.idmap_config.nfsdomain}"
 			nfsgid=1818
+		)
+		["dkuenkler"]=(
+			localgroupname="dkuenkler@${COMPUTERNAME}"
+			localgid=27575
+			nfsownergroup="dkuenkler@${c.idmap_config.nfsdomain}"
+			nfsgid=27575
+		)
+		["mwenzel"]=(
+			localgroupname="mwenzel@${COMPUTERNAME}"
+			localgid=8239
+			nfsownergroup="mwenzel@${c.idmap_config.nfsdomain}"
+			nfsgid=8239
 		)
 	)
 
@@ -453,6 +477,18 @@ function setup_site_accounts_rovemadomain_example2
 			localuid=1050083
 			nfsowner="swulsch@${c.idmap_config.nfsdomain}"
 			nfsuid=1818
+		)
+		["Dietmar.Kuenkler"]=(
+			localaccountname="Dietmar.Kuenkler@GLOBAL"
+			localuid=1059353
+			nfsowner="dkuenkler@${c.idmap_config.nfsdomain}"
+			nfsuid=27575
+		)
+		["marvin.wenzel"]=(
+			localaccountname="marvin.wenzel@GLOBAL"
+			localuid=1054540
+			nfsowner="mwenzel@${c.idmap_config.nfsdomain}"
+			nfsuid=8239
 		)
 	)
 
@@ -503,6 +539,28 @@ function load_idmap_config
 			setup_site_system_accounts c
 			setup_site_accounts_lab_example1 c
 			#setup_site_accounts_rovemadomain_example2 c
+
+			return 0
+			;;
+		# example configuration for rovema.de
+		'rovema_de_domain_client_to_linux_nfsd')
+			compound c.idmap_config=(
+				typeset -r localdomain='GLOBAL.LOC'	# Default domain for Windows
+				typeset -r nfsdomain='global.loc'	# Default domain for NFS server
+
+				# Define NFS server type
+				# * Values can be "windows/en", "windows/de", "windows/fr", "freebsd", "solaris", "linux"
+				# * This is neccesary because
+				# - Windows localises account names on both client and server side
+				# (e.g. German Windows machine connecting to a French WindowsServer 2022)
+				# - Different NFS servers might use different names for the same group
+				# (e.g. SAMBA vs. kernel CIFS server)
+				typeset -r servertype='linux'
+			)
+
+			setup_windows_builtin_accounts c
+			setup_site_system_accounts c
+			setup_site_accounts_rovemadomain_example2 c
 
 			return 0
 			;;
@@ -1006,16 +1064,38 @@ function map_nfsserverspec2idmappercfgname
 	read -C serverspec <<<"$2" || return 1
 	#print -u2 -v serverspec # debug
 
+	#
+	# Example configuration for machines in the rovema.de domain
+	#
+	# Since we cannot rely on the domainname we use /cygdrive/c/Windows/system32/dsregcmd
+	# to check whether the "TenantName" matches 'Rovema.+GmbH' and then use
+	# the idmapper config 'rovema_de_domain_client_to_linux_nfsd' if there is a match
+	#
+	if [[ "$( /cygdrive/c/Windows/system32/dsregcmd /status | grep -E -i 'TenantName.+Rovema.+GmbH' )" != '' ]] ; then
+		compound serverhostname2idmappercfgname_res=(
+			idmappercfgname='rovema_de_domain_client_to_linux_nfsd'
+		)
+		print -v serverhostname2idmappercfgname_res
+		return 0
+	fi
+
+	#
+	# Select config based on clientname, server hostname+tCP port
+	#
+	# Use confiug 'default' if there is no match
+	#
 	case "${clientname}/${serverspec.hostport.hostname}/${serverspec.hostport.port}" in
 		*)
 			compound serverhostname2idmappercfgname_res=(
 				idmappercfgname='default'
 			)
+			print -v serverhostname2idmappercfgname_res
+			return 0
 			;;
 	esac
 
-	print -v serverhostname2idmappercfgname_res
-	return 0
+
+	return 1
 }
 
 function main_dispatch
