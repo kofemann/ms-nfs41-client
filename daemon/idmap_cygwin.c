@@ -947,7 +947,7 @@ idmapcache_entry *nfs41_idmap_user_lookup_by_win32name(struct idmap_context *con
         &nfsuid)) {
         DPRINTF(0,
             ("nfs41_idmap_user_lookup_by_win32name(cfg='%s',name='%s'): "
-            "Adding new user entry localname='%s', localuid=%ld, nfsowner='%s', nfsuid=%ld\n",
+            "Adding user localname='%s',localuid=%ld,nfsowner='%s',nfsuid=%ld\n",
             context->config.configname,
             name,
             localname,
@@ -969,7 +969,8 @@ idmapcache_entry *nfs41_idmap_user_lookup_by_win32name(struct idmap_context *con
             nfsuid);
         if (ie == NULL) {
             DPRINTF(0,
-                ("nfs41_idmap_user_lookup_by_win32name(name='%s'): idmapcache_add() failed\n",
+                ("nfs41_idmap_user_lookup_by_win32name(name='%s'): "
+                "idmapcache_add() failed\n",
                 name));
         }
     }
@@ -978,7 +979,8 @@ out:
     if (ie != NULL) {
         DPRINTF(CYGWINIDLVL,
             ("<-- nfs41_idmap_user_lookup_by_win32name(name='%s'): "
-            "returning user ie(=0x%p)={ win32name='%s', localuid=%ld, nfsname='%s', nfsid=%ld\n",
+            "returning user ie(=0x%p)="
+            "{ win32name='%s',localuid=%ld,nfsname='%s',nfsid=%ld\n",
             name,
             (void *)ie,
             ie->win32name.buf,
@@ -1026,7 +1028,7 @@ idmapcache_entry *nfs41_idmap_user_lookup_by_localid(struct idmap_context *conte
         &nfsuid)) {
         DPRINTF(0,
             ("nfs41_idmap_user_lookup_by_localid(cfg='%s',search_localid=%ld): "
-            "Adding new user entry localname='%s', localuid=%ld, nfsowner='%s', nfsuid=%ld\n",
+            "Adding user localname='%s',localuid=%ld,nfsowner='%s',nfsuid=%ld\n",
             context->config.configname,
             (long)search_localid,
             localname,
@@ -1048,7 +1050,8 @@ idmapcache_entry *nfs41_idmap_user_lookup_by_localid(struct idmap_context *conte
             nfsuid);
         if (ie == NULL) {
             DPRINTF(0,
-                ("nfs41_idmap_user_lookup_by_localid(search_localid=%ld): idmapcache_add() failed\n",
+                ("nfs41_idmap_user_lookup_by_localid(search_localid=%ld): "
+                "idmapcache_add() failed\n",
                 (long)search_localid));
         }
     }
@@ -1057,7 +1060,8 @@ out:
     if (ie != NULL) {
         DPRINTF(CYGWINIDLVL,
             ("<-- nfs41_idmap_user_lookup_by_localid(search_localid=%ld): "
-            "returning user ie(=0x%p)={ win32name='%s', localuid=%ld, nfsname='%s', nfsid=%ld\n",
+            "returning user ie(=0x%p)="
+            "{ win32name='%s',localuid=%ld,nfsname='%s',nfsid=%ld\n",
             (long)search_localid,
             (void *)ie,
             ie->win32name.buf,
@@ -1102,7 +1106,7 @@ idmapcache_entry *nfs41_idmap_user_lookup_by_nfsname(struct idmap_context *conte
         &nfsuid)) {
         DPRINTF(0,
             ("nfs41_idmap_user_lookup_by_nfsname(cfg='%s',name='%s'): "
-            "Adding new user entry localname='%s', localuid=%ld, nfsowner='%s', nfsuid=%ld\n",
+            "Adding user localname='%s',localuid=%ld,nfsowner='%s',nfsuid=%ld\n",
             context->config.configname,
             name,
             localname,
@@ -1124,7 +1128,8 @@ idmapcache_entry *nfs41_idmap_user_lookup_by_nfsname(struct idmap_context *conte
             nfsuid);
         if (ie == NULL) {
             DPRINTF(0,
-                ("nfs41_idmap_user_lookup_by_nfsname(name='%s'): idmapcache_add() failed\n",
+                ("nfs41_idmap_user_lookup_by_nfsname(name='%s'): "
+                "idmapcache_add() failed\n",
                 name));
         }
     }
@@ -1133,7 +1138,8 @@ out:
     if (ie != NULL) {
         DPRINTF(CYGWINIDLVL,
             ("<-- nfs41_idmap_user_lookup_by_nfsname(name='%s'): "
-            "returning user ie(=0x%p)={ win32name='%s', localuid=%ld, nfsname='%s', nfsid=%ld\n",
+            "returning user ie(=0x%p)="
+            "{ win32name='%s',localuid=%ld,nfsname='%s',nfsid=%ld\n",
             name,
             (void *)ie,
             ie->win32name.buf,
@@ -1181,7 +1187,7 @@ idmapcache_entry *nfs41_idmap_user_lookup_by_nfsid(struct idmap_context *context
         &nfsuid)) {
         DPRINTF(0,
             ("nfs41_idmap_user_lookup_by_nfsid(cfg='%s',search_nfsid=%ld): "
-            "Adding new user entry localname='%s', localuid=%ld, nfsowner='%s', nfsuid=%ld\n",
+            "Adding user localname='%s',localuid=%ld,nfsowner='%s',nfsuid=%ld\n",
             context->config.configname,
             (long)search_nfsid,
             localname,
@@ -1203,7 +1209,8 @@ idmapcache_entry *nfs41_idmap_user_lookup_by_nfsid(struct idmap_context *context
             nfsuid);
         if (ie == NULL) {
             DPRINTF(0,
-                ("nfs41_idmap_user_lookup_by_nfsid(search_nfsid=%ld): idmapcache_add() failed\n",
+                ("nfs41_idmap_user_lookup_by_nfsid(search_nfsid=%ld): "
+                "idmapcache_add() failed\n",
                 (long)search_nfsid));
         }
     }
@@ -1212,7 +1219,8 @@ out:
     if (ie != NULL) {
         DPRINTF(CYGWINIDLVL,
             ("<-- nfs41_idmap_user_lookup_by_nfsid(search_nfsid=%ld): "
-            "returning user ie(=0x%p)={ win32name='%s', localuid=%ld, nfsname='%s', nfsid=%ld\n",
+            "returning user ie(=0x%p)="
+            "{ win32name='%s',localuid=%ld,nfsname='%s',nfsid=%ld\n",
             (long)search_nfsid,
             (void *)ie,
             ie->win32name.buf,
@@ -1256,7 +1264,7 @@ idmapcache_entry *nfs41_idmap_group_lookup_by_win32name(struct idmap_context *co
         &nfsgid)) {
         DPRINTF(0,
             ("nfs41_idmap_group_lookup_by_win32name(cfg='%s',name='%s'): "
-            "Adding new group entry localname='%s', localgid=%ld, nfsownergroup='%s', nfsgid=%ld\n",
+            "Adding group localname='%s',localgid=%ld,nfsownergroup='%s',nfsgid=%ld\n",
             context->config.configname,
             name,
             localname,
@@ -1278,7 +1286,9 @@ idmapcache_entry *nfs41_idmap_group_lookup_by_win32name(struct idmap_context *co
             nfsgid);
         if (ie == NULL) {
             DPRINTF(0,
-                ("nfs41_idmap_group_lookup_by_win32name(name='%s'): idmapcache_add() failed\n", name));
+                ("nfs41_idmap_group_lookup_by_win32name(name='%s'): "
+                "idmapcache_add() failed\n",
+                name));
         }
     }
 
@@ -1286,7 +1296,8 @@ out:
     if (ie != NULL) {
         DPRINTF(CYGWINIDLVL,
             ("<-- nfs41_idmap_group_lookup_by_win32name(name='%s'): "
-            "returning user ie(=0x%p)={ win32name='%s', localgid=%ld, nfsname='%s', nfsid=%ld\n",
+            "returning user ie(=0x%p)="
+            "{ win32name='%s',localgid=%ld,nfsname='%s',nfsid=%ld\n",
             name,
             (void *)ie,
             ie->win32name.buf,
@@ -1334,7 +1345,7 @@ idmapcache_entry *nfs41_idmap_group_lookup_by_localid(struct idmap_context *cont
         &nfsgid)) {
         DPRINTF(0,
             ("nfs41_idmap_group_lookup_by_localid(cfg='%s',search_localid=%ld): "
-            "Adding new group entry localname='%s', localgid=%ld, nfsownergroup='%s', nfsgid=%ld\n",
+            "Adding group localname='%s',localgid=%ld,nfsownergroup='%s',nfsgid=%ld\n",
             context->config.configname,
             (long)search_localid,
             localname,
@@ -1356,7 +1367,8 @@ idmapcache_entry *nfs41_idmap_group_lookup_by_localid(struct idmap_context *cont
             nfsgid);
         if (ie == NULL) {
             DPRINTF(0,
-                ("nfs41_idmap_group_lookup_by_localid(search_localid=%ld): idmapcache_add() failed\n",
+                ("nfs41_idmap_group_lookup_by_localid(search_localid=%ld): "
+                "idmapcache_add() failed\n",
                 (long)search_localid));
         }
     }
@@ -1365,7 +1377,8 @@ out:
     if (ie != NULL) {
         DPRINTF(CYGWINIDLVL,
             ("<-- nfs41_idmap_group_lookup_by_localid(search_localid=%ld): "
-            "returning user ie(=0x%p)={ win32name='%s', localgid=%ld, nfsname='%s', nfsid=%ld\n",
+            "returning user ie(=0x%p)="
+            "{ win32name='%s',localgid=%ld,nfsname='%s',nfsid=%ld\n",
             (long)search_localid,
             (void *)ie,
             ie->win32name.buf,
@@ -1410,7 +1423,7 @@ idmapcache_entry *nfs41_idmap_group_lookup_by_nfsname(struct idmap_context *cont
         &nfsgid)) {
         DPRINTF(0,
             ("nfs41_idmap_group_lookup_by_nfsname(cfg='%s',name='%s'): "
-            "Adding new group entry localname='%s', localgid=%ld, nfsownergroup='%s', nfsgid=%ld\n",
+            "Adding group localname='%s',localgid=%ld,nfsownergroup='%s',nfsgid=%ld\n",
             context->config.configname,
             name,
             localname,
@@ -1432,7 +1445,8 @@ idmapcache_entry *nfs41_idmap_group_lookup_by_nfsname(struct idmap_context *cont
             nfsgid);
         if (ie == NULL) {
             DPRINTF(0,
-                ("nfs41_idmap_group_lookup_by_nfsname(name='%s'): idmapcache_add() failed\n",
+                ("nfs41_idmap_group_lookup_by_nfsname(name='%s'): "
+                "idmapcache_add() failed\n",
                 name));
         }
     }
@@ -1441,7 +1455,8 @@ out:
     if (ie != NULL) {
         DPRINTF(CYGWINIDLVL,
             ("<-- nfs41_idmap_group_lookup_by_nfsname(name='%s'): "
-            "returning user ie(=0x%p)={ win32name='%s', localgid=%ld, nfsname='%s', nfsid=%ld\n",
+            "returning user ie(=0x%p)="
+            "{ win32name='%s',localgid=%ld,nfsname='%s',nfsid=%ld\n",
             name,
             (void *)ie,
             ie->win32name.buf,
@@ -1489,7 +1504,7 @@ idmapcache_entry *nfs41_idmap_group_lookup_by_nfsid(struct idmap_context *contex
         &nfsgid)) {
         DPRINTF(0,
             ("nfs41_idmap_group_lookup_by_nfsid(cfg='%s',search_nfsid=%ld): "
-            "Adding new group entry localname='%s', localgid=%ld, nfsownergroup='%s', nfsgid=%ld\n",
+            "Adding group localname='%s',localgid=%ld,nfsownergroup='%s',nfsgid=%ld\n",
             context->config.configname,
             (long)search_nfsid,
             localname,
@@ -1511,7 +1526,8 @@ idmapcache_entry *nfs41_idmap_group_lookup_by_nfsid(struct idmap_context *contex
             nfsgid);
         if (ie == NULL) {
             DPRINTF(0,
-                ("nfs41_idmap_group_lookup_by_nfsid(search_nfsid=%ld): idmapcache_add() failed\n",
+                ("nfs41_idmap_group_lookup_by_nfsid(search_nfsid=%ld): "
+                "idmapcache_add() failed\n",
                 (long)search_nfsid));
         }
     }
@@ -1520,7 +1536,8 @@ out:
     if (ie != NULL) {
         DPRINTF(CYGWINIDLVL,
             ("<-- nfs41_idmap_group_lookup_by_nfsid(search_nfsid=%ld): "
-            "returning user ie(=0x%p)={ win32name='%s', localgid=%ld, nfsname='%s', nfsid=%ld\n",
+            "returning user ie(=0x%p)="
+            "{ win32name='%s',localgid=%ld,nfsname='%s',nfsid=%ld\n",
             (long)search_nfsid,
             (void *)ie,
             ie->win32name.buf,
