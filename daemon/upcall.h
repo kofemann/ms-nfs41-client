@@ -239,6 +239,13 @@ typedef struct __duplicatedata_upcall_args {
     ULONGLONG           ctime;
 } duplicatedata_upcall_args;
 
+typedef struct __queryidmapinfo_upcall_args {
+    HANDLE                          outbuffer;
+    ULONG                           outbuffersize;
+    BOOLEAN                         buffer_overflow;
+    ULONG                           returned_size;
+} queryidmapinfo_upcall_args;
+
 typedef struct __setdaemondebuglevel_upcall_args {
     LONG debuglevel;
 } setdaemondebuglevel_upcall_args;
@@ -262,6 +269,7 @@ typedef union __upcall_args {
     queryallocatedranges_upcall_args queryallocatedranges;
     setzerodata_upcall_args setzerodata;
     duplicatedata_upcall_args duplicatedata;
+    queryidmapinfo_upcall_args queryidmapinfo;
     setdaemondebuglevel_upcall_args setdaemondebuglevel;
 } upcall_args;
 

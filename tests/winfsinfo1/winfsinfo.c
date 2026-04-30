@@ -1825,6 +1825,60 @@ cleanup:
 }
 
 static
+int fsctlnfs41queryidmapinfo(const char *progname, const char *filename)
+{
+    HANDLE hFile;
+    DWORD bytesReturned = 0;
+    int retval = 0;
+    DWORD lasterr;
+    char outbuff[1024];
+
+    /* |FILE_FLAG_BACKUP_SEMANTICS| is required to get a |HANDLE| to a dir */
+    hFile = CreateFileA(filename,
+        GENERIC_READ,
+        FILE_SHARE_READ,
+        NULL,
+        OPEN_EXISTING,
+        FILE_FLAG_BACKUP_SEMANTICS,
+        NULL);
+    if (hFile == INVALID_HANDLE_VALUE) {
+        (void)fprintf(stderr,
+            "%s: Error opening file '%s', lasterr=%d\n",
+            progname,
+            filename,
+            (int)GetLastError());
+        return 1;
+    }
+
+#define FSCTL_NFS41_QUERY_IDMAP_INFO \
+    CTL_CODE(FILE_DEVICE_FILE_SYSTEM, 0x800+64,  METHOD_NEITHER, FILE_READ_DATA)
+
+    if (!DeviceIoControl(hFile,
+       FSCTL_NFS41_QUERY_IDMAP_INFO,
+       NULL,  0,
+       outbuff, sizeof(outbuff)-1,
+       &bytesReturned,
+       NULL)) {
+       lasterr = GetLastError();
+
+       (void)fprintf(stderr,
+           "%s: DeviceIoControl() failed, lasterr=%d\n",
+           progname,
+           (int)lasterr);
+
+       retval = 1;
+       goto out;
+    }
+
+    (void)fwrite(outbuff, bytesReturned, 1, stdout);
+
+out:
+    (void)CloseHandle(hFile);
+    return retval;
+}
+
+
+static
 void usage(void)
 {
     (void)fprintf(stderr, "winfsinfo <"
@@ -1852,7 +1906,8 @@ void usage(void)
         "filestreaminfo|"
         "fsctlqueryallocatedranges|"
         "get_wnetgetresourceinformation|"
-        "get_wnetgetresourceparent"
+        "get_wnetgetresourceparent|"
+        "fsctlnfs41queryidmapinfo"
 
         "> path\n");
 }
@@ -1943,6 +1998,9 @@ int main(int ac, char *av[])
     }
     else if (!strcmp(subcmd, "get_wnetgetresourceparent")) {
         return get_wnetgetresourceparent(av[0], av[2], av[3]);
+    }
+    else if (!strcmp(subcmd, "fsctlnfs41queryidmapinfo")) {
+        return fsctlnfs41queryidmapinfo(av[0], av[2]);
     }
     else {
         (void)fprintf(stderr, "%s: Unknown subcmd '%s'\n", av[0], subcmd);

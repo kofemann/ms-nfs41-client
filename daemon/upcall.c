@@ -54,6 +54,7 @@ extern const nfs41_upcall_op nfs41_op_queryallocatedranges;
 extern const nfs41_upcall_op nfs41_op_setzerodata;
 extern const nfs41_upcall_op nfs41_op_duplicatedata;
 extern const nfs41_upcall_op nfs41_op_offload_datacopy;
+extern const nfs41_upcall_op nfs41_op_queryidmapinfo;
 extern const nfs41_upcall_op nfs41_op_setdaemondebuglevel;
 
 /* |_nfs41_opcodes| and |g_upcall_op_table| must be in sync! */
@@ -83,6 +84,7 @@ static const nfs41_upcall_op *g_upcall_op_table[] = {
     &nfs41_op_setzerodata,
     &nfs41_op_duplicatedata,
     &nfs41_op_offload_datacopy,
+    &nfs41_op_queryidmapinfo,
     &nfs41_op_setdaemondebuglevel,
     NULL, /* NFS41_SYSOP_SHUTDOWN */
     NULL

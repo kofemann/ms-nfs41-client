@@ -311,6 +311,10 @@ NTSTATUS handle_upcall(
         status = marshal_nfs41_duplicatedata(entry,
             pbOut, cbOut, len);
         break;
+    case NFS41_SYSOP_FSCTL_QUERY_IDMAP_INFO:
+        status = marshal_nfs41_queryidmapinfo(entry,
+            pbOut, cbOut, len);
+        break;
     default:
         status = STATUS_INVALID_PARAMETER;
         print_error("handle_upcall: Unknown nfs41 ops %d\n",
@@ -422,6 +426,10 @@ NTSTATUS nfs41_UpcallCreate(
             case NFS41_SYSOP_FSCTL_QUERYALLOCATEDRANGES:
                 entry->u.QueryAllocatedRanges.Buffer = NULL;
                 entry->u.QueryAllocatedRanges.BufferMdl = NULL;
+                break;
+            case NFS41_SYSOP_FSCTL_QUERY_IDMAP_INFO:
+                entry->u.QueryIdmapInfo.Buffer = NULL;
+                entry->u.QueryIdmapInfo.BufferMdl = NULL;
                 break;
         }
     }
@@ -718,6 +726,18 @@ NTSTATUS nfs41_downcall(
                 cur->u.QueryAllocatedRanges.BufferMdl = NULL;
             }
             break;
+        case NFS41_SYSOP_FSCTL_QUERY_IDMAP_INFO:
+            if (cur->u.QueryIdmapInfo.BufferMdl) {
+                (void)nfs41_UnmapLockedKernelPagesInNfsDaemonAddressSpace(
+                    cur->u.QueryIdmapInfo.Buffer,
+                    cur->u.QueryIdmapInfo.BufferMdl);
+                (void)nfs41_UnlockKernelPages(
+                    cur->u.QueryIdmapInfo.BufferMdl);
+                IoFreeMdl(cur->u.QueryIdmapInfo.BufferMdl);
+                cur->u.QueryIdmapInfo.Buffer = NULL;
+                cur->u.QueryIdmapInfo.BufferMdl = NULL;
+            }
+            break;
 #ifdef NFS41_DRIVER_MARK_OVERWRITTEN_LINKRENAME_DST_PATH_SRVOPEN_AS_STALE
         case NFS41_SYSOP_FILE_SET:
         case NFS41_SYSOP_FILE_SET_AT_CLEANUP:
@@ -796,6 +816,9 @@ NTSTATUS nfs41_downcall(
         case NFS41_SYSOP_FSCTL_DUPLICATE_DATA:
         case NFS41_SYSOP_FSCTL_OFFLOAD_DATACOPY:
             unmarshal_nfs41_duplicatedata(cur, &inbuf);
+            break;
+        case NFS41_SYSOP_FSCTL_QUERY_IDMAP_INFO:
+            unmarshal_nfs41_queryidmapinfo(cur, &inbuf);
             break;
         case NFS41_SYSOP_SET_DAEMON_DEBUGLEVEL:
         case NFS41_SYSOP_SHUTDOWN:

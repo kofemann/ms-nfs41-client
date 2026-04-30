@@ -712,6 +712,7 @@ const char *opcode2string(nfs41_opcodes opcode)
     case NFS41_SYSOP_FSCTL_DUPLICATE_DATA: return "NFS41_SYSOP_FSCTL_DUPLICATE_DATA";
     case NFS41_SYSOP_FSCTL_OFFLOAD_DATACOPY:
         return "NFS41_SYSOP_FSCTL_OFFLOAD_DATACOPY";
+    case NFS41_SYSOP_FSCTL_QUERY_IDMAP_INFO: return "NFS41_SYSOP_FSCTL_QUERY_IDMAP_INFO";
     default: return "UNKNOWN";
     }
 }

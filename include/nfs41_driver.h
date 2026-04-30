@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2023-2026 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -54,6 +54,9 @@
 #define IOCTL_NFS41_INVALCACHE  _RDR_CTL_CODE(9, METHOD_BUFFERED)
 #define IOCTL_NFS41_SET_DAEMON_DEBUG_LEVEL  _RDR_CTL_CODE(10, METHOD_BUFFERED)
 
+#define FSCTL_NFS41_QUERY_IDMAP_INFO \
+    CTL_CODE(FILE_DEVICE_FILE_SYSTEM, 0x800+64,  METHOD_NEITHER, FILE_READ_DATA)
+
 /*
  * NFS41_SYS_MAX_PATH_LEN - Maximum path length
  * Notes:
@@ -99,6 +102,7 @@ typedef enum _nfs41_opcodes {
     NFS41_SYSOP_FSCTL_SET_ZERO_DATA,
     NFS41_SYSOP_FSCTL_DUPLICATE_DATA,
     NFS41_SYSOP_FSCTL_OFFLOAD_DATACOPY,
+    NFS41_SYSOP_FSCTL_QUERY_IDMAP_INFO,
     NFS41_SYSOP_SET_DAEMON_DEBUGLEVEL,
     NFS41_SYSOP_SHUTDOWN,
     NFS41_SYSOP_INVALID_OPCODE1

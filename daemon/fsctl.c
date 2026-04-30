@@ -28,10 +28,12 @@
 #include "upcallutil.h"
 #include "daemon_debug.h"
 #include "util.h"
+#include "idmap.h"
 
-#define QARLVL 2 /* dprintf level for "query allocated ranges" logging */
-#define SZDLVL 2 /* dprintf level for "set zero data" logging */
-#define DDLVL  2 /* dprintf level for "duplicate data" logging */
+#define QARLVL      2   /* dprintf level for "query allocated ranges" logging */
+#define SZDLVL      2   /* dprintf level for "set zero data" logging */
+#define DDLVL       2   /* dprintf level for "duplicate data" logging */
+#define QIDMAPLVL   1   /* dprintf level for "query idmap" logging */
 
 static int parse_queryallocatedranges(
     const unsigned char *restrict buffer,
@@ -960,4 +962,204 @@ const nfs41_upcall_op nfs41_op_offload_datacopy = {
     .handle = handle_duplicatedata,
     .marshall = marshall_duplicatedata,
     .arg_size = sizeof(duplicatedata_upcall_args)
+};
+
+static int parse_queryidmapinfo(
+    const unsigned char *restrict buffer,
+    uint32_t length,
+    nfs41_upcall *upcall)
+{
+    int status;
+    queryidmapinfo_upcall_args *args = &upcall->args.queryidmapinfo;
+
+    status = safe_read(&buffer, &length, &args->outbuffersize, sizeof(args->outbuffersize));
+    if (status) goto out;
+    status = safe_read(&buffer, &length, &args->outbuffer, sizeof(args->outbuffer));
+    if (status) goto out;
+
+    EASSERT(length == 0);
+
+    DPRINTF(QIDMAPLVL, ("parse_queryidmapinfo: "
+        "parsing '%s' outbuffersize=%lu outbuffer=0x%p\n",
+        opcode2string(upcall->opcode),
+        (unsigned long)args->outbuffersize,
+        (void *)args->outbuffer));
+out:
+    return status;
+}
+
+static
+int handle_queryidmapinfo(void *daemon_context,
+    nfs41_upcall *upcall)
+{
+    queryidmapinfo_upcall_args *args = &upcall->args.queryidmapinfo;
+    nfs41_open_state *state = upcall->state_ref;
+    struct idmap_context *idmapper = state->session->client->root->idmapper;
+    idmapcache_entry *owner_ie = NULL;
+    idmapcache_entry *owner_group_ie = NULL;
+    int snprintf_len;
+    char *outbuffer = (char *)args->outbuffer;
+    size_t outbuffersize = (size_t)args->outbuffersize;
+    int status = ERROR_INVALID_PARAMETER;
+
+    DPRINTF(QIDMAPLVL,
+        ("--> handle_queryidmapinfo("
+            "state->path.path='%s')\n",
+            state->path.path));
+
+    args->buffer_overflow = FALSE;
+    args->returned_size = 0;
+
+    bitmap4 attr_request = {
+        .count = 2,
+        .arr[0] = 0,
+        .arr[1] = FATTR4_WORD1_OWNER | FATTR4_WORD1_OWNER_GROUP
+    };
+    nfs41_file_info info = {
+        .owner = info.owner_buf,
+        .owner_group = info.owner_group_buf
+    };
+
+    status = nfs41_getattr(state->session, &state->file,
+        &attr_request, &info);
+    if (status) {
+        eprintf("handle_queryidmapinfo(state->path='%s': nfs41_getattr() "
+            "failed with status=%d\n",
+            state->path.path,
+            status);
+        goto out;
+    }
+
+    /*
+     * Map owner to local uid
+     *
+     * |owner| can be numeric string ("1616"), plain username
+     *  ("gisburn") or username@domain ("gisburn@sun.com")
+     */
+
+    if (isdigit(info.owner[0])) {
+        idmapcache_idnumber nfs_id;
+
+        errno = 0;
+        nfs_id = strtol(info.owner, NULL, 10);
+
+        if (errno == 0) {
+            owner_ie = nfs41_idmap_user_lookup_by_nfsid(idmapper, nfs_id);
+        }
+    }
+    else {
+        EASSERT_MSG(IS_PRINCIPAL_NAME(info.owner),
+            ("info.owner='%s' is not a principal\n", info.owner));
+
+        owner_ie = nfs41_idmap_user_lookup_by_nfsname(idmapper, info.owner);
+    }
+
+    /*
+     * Map owner_group to local gid
+     *
+     * |owner_group| can be numeric string ("1616"), plain groupname
+     * ("gisgrp") or groupname@domain ("gisgrp@sun.com")
+     */
+
+    if (isdigit(info.owner_group[0])) {
+        idmapcache_idnumber nfs_id;
+
+        errno = 0;
+        nfs_id = strtol(info.owner_group, NULL, 10);
+
+        if (errno == 0) {
+            owner_group_ie = nfs41_idmap_group_lookup_by_nfsid(idmapper, nfs_id);
+        }
+    }
+    else {
+        EASSERT_MSG(IS_PRINCIPAL_NAME(info.owner_group),
+            ("info.owner_group='%s' is not a principal\n",
+            info.owner_group));
+
+        owner_group_ie = nfs41_idmap_group_lookup_by_nfsname(idmapper, info.owner_group);
+    }
+
+    /*
+     * Put filename, NFS { owner, owner_group } and idmapper data as CPV
+     * (ksh93 compound variable) text data into the output buffer
+     *
+     * FIXME: "nfspath" should be encoded as shell $'...' literal if it
+     * contains non-ASCII or |!isprint(c)| characters.
+     */
+    snprintf_len = snprintf(outbuffer, outbuffersize,
+        "(\n"
+        "\tnfspath='%s'\n"
+        "\tfattr4_owner='%s'\n"
+        "\tfattr4_owner_group='%s'\n"
+        "\tlocalusername='%s'\n"
+        "\tlocalgroupname='%s'\n"
+        "\tlocaluid=%ld\n"
+        "\tlocalgid=%ld\n"
+        "\tnfsuid=%ld\n"
+        "\tnfsgid=%ld\n"
+        ")\n",
+        state->path.path,
+        info.owner,
+        info.owner_group,
+        ((owner_ie != NULL)?owner_ie->win32name.buf:"<NULL>"),
+        ((owner_group_ie != NULL)?owner_group_ie->win32name.buf:"<NULL>"),
+        ((owner_ie != NULL)?(long)owner_ie->localid:-1L),
+        ((owner_group_ie != NULL)?(long)owner_group_ie->localid:-1L),
+        ((owner_ie != NULL)?(long)owner_ie->nfsid:-1L),
+        ((owner_group_ie != NULL)?(long)owner_group_ie->nfsid:-1L));
+
+    if (owner_ie != NULL)
+        idmapcache_entry_refcount_dec(owner_ie);
+    if (owner_group_ie != NULL)
+        idmapcache_entry_refcount_dec(owner_group_ie);
+
+    /*
+     * Return buffer size, either on success, or to return the size
+     * of the buffer which would be needed.
+     */
+    args->returned_size = (ULONG)snprintf_len;
+
+    if (snprintf_len == (int)outbuffersize) {
+        status = ERROR_MORE_DATA;
+    }
+    else {
+        status = ERROR_SUCCESS;
+    }
+
+out:
+    if (status == ERROR_MORE_DATA) {
+        status = NO_ERROR;
+        args->buffer_overflow = TRUE;
+    }
+
+    DPRINTF(QIDMAPLVL,
+        ("<-- handle_queryidmapinfo(args->buffer_overflow=%d, args->returned_size=%ld), "
+        "status=0x%lx\n",
+        (int)args->buffer_overflow,
+        (long)args->returned_size,
+        status));
+    return status;
+}
+
+static int marshall_queryidmapinfo(
+    unsigned char *restrict buffer,
+    uint32_t *restrict length,
+    nfs41_upcall *restrict upcall)
+{
+    int status;
+    const queryidmapinfo_upcall_args *args = &upcall->args.queryidmapinfo;
+
+    status = safe_write(&buffer, length, &args->buffer_overflow, sizeof(args->buffer_overflow));
+    if (status) goto out;
+    status = safe_write(&buffer, length, &args->returned_size, sizeof(args->returned_size));
+
+out:
+    return status;
+}
+
+const nfs41_upcall_op nfs41_op_queryidmapinfo = {
+    .parse = parse_queryidmapinfo,
+    .handle = handle_queryidmapinfo,
+    .marshall = marshall_queryidmapinfo,
+    .arg_size = sizeof(queryidmapinfo_upcall_args)
 };

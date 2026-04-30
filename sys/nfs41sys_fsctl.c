@@ -1423,6 +1423,220 @@ out:
     return status;
 }
 
+static
+NTSTATUS nfs41_QueryIdmapInfo(
+    IN OUT PRX_CONTEXT RxContext)
+{
+    NTSTATUS status = STATUS_INVALID_DEVICE_REQUEST;
+    nfs41_updowncall_entry *entry = NULL;
+    __notnull PMRX_SRV_OPEN SrvOpen = RxContext->pRelevantSrvOpen;
+    __notnull PNFS41_SRV_OPEN nfs41_srvopen = NFS41GetSrvOpenExtension(SrvOpen);
+    __notnull PNFS41_V_NET_ROOT_EXTENSION pVNetRootContext =
+        NFS41GetVNetRootExtension(SrvOpen->pVNetRoot);
+    __notnull PNFS41_NETROOT_EXTENSION pNetRootContext =
+        NFS41GetNetRootExtension(SrvOpen->pVNetRoot->pNetRoot);
+    __notnull XXCTL_LOWIO_COMPONENT *FsCtl =
+        &RxContext->LowIoContext.ParamsFor.FsCtl;
+    __notnull PFILE_ALLOCATED_RANGE_BUFFER out_textinfo_buffer =
+        (PFILE_ALLOCATED_RANGE_BUFFER)FsCtl->pOutputBuffer;
+    ULONG out_textinfo_buffer_len = FsCtl->OutputBufferLength;
+
+    DbgEn();
+
+    RxContext->IoStatusBlock.Information = 0;
+
+    /*
+     * No arguments == No argument checking required
+     */
+
+    status = nfs41_UpcallCreate(NFS41_SYSOP_FSCTL_QUERY_IDMAP_INFO,
+        &nfs41_srvopen->sec_ctx,
+        pVNetRootContext->session,
+        nfs41_srvopen->nfs41_open_state,
+        pNetRootContext->nfs41d_version,
+        SrvOpen->pAlreadyPrefixedName,
+        &entry);
+
+    if (status)
+        goto out;
+
+    entry->u.QueryIdmapInfo.BufferSize = out_textinfo_buffer_len;
+
+    /* lock the buffer for write access in user space */
+    entry->u.QueryIdmapInfo.BufferMdl = IoAllocateMdl(
+        out_textinfo_buffer,
+        out_textinfo_buffer_len,
+        FALSE, FALSE, NULL);
+    if (entry->u.QueryIdmapInfo.BufferMdl == NULL) {
+        status = STATUS_INTERNAL_ERROR;
+        DbgP("nfs41_QueryIdmapInfo: IoAllocateMdl() failed\n");
+        goto out;
+    }
+
+#pragma warning( push )
+/*
+ * C28145: "The opaque MDL structure should not be modified by a
+ * driver.", |MDL_MAPPING_CAN_FAIL| is the exception
+ */
+#pragma warning (disable : 28145)
+    entry->u.QueryIdmapInfo.BufferMdl->MdlFlags |=
+        MDL_MAPPING_CAN_FAIL;
+#pragma warning( pop )
+    status = nfs41_ProbeAndLockKernelPages(
+        entry->u.QueryIdmapInfo.BufferMdl,
+        IoModifyAccess);
+    if (status) {
+        DbgP("nfs41_QueryIdmapInfo: "
+            "nfs41_ProbeAndLockKernelPages() failed, status=0x%lx\n",
+            (long)status);
+        goto out;
+    }
+
+    status = nfs41_UpcallWaitForReply(entry, pVNetRootContext->timeout);
+    if (status) {
+        /* Timeout - |nfs41_downcall()| will free |entry|+contents */
+        entry = NULL;
+        goto out;
+    }
+
+    if (entry->status == NO_ERROR) {
+        DbgP("nfs41_QueryIdmapInfo: SUCCESS\n");
+
+        if (entry->u.QueryIdmapInfo.buffer_overflow) {
+            DbgP("nfs41_QueryIdmapInfo: buffer_overflow: "
+                "need at least a buffer with %ld bytes\n",
+                (long)entry->u.QueryIdmapInfo.returned_size);
+            status = RxContext->CurrentIrp->IoStatus.Status =
+                STATUS_BUFFER_OVERFLOW;
+            RxContext->IoStatusBlock.Information =
+                (ULONG_PTR)entry->u.QueryIdmapInfo.returned_size;
+        }
+        else {
+            status = RxContext->CurrentIrp->IoStatus.Status =
+                STATUS_SUCCESS;
+            RxContext->IoStatusBlock.Information =
+                (ULONG_PTR)entry->u.QueryIdmapInfo.returned_size;
+        }
+    }
+    else {
+        DbgP("nfs41_QueryIdmapInfo: FAILURE, entry->status=0x%lx\n",
+            entry->status);
+
+        status = map_setfile_error(entry->status);
+
+        RxContext->CurrentIrp->IoStatus.Status = status;
+        RxContext->IoStatusBlock.Information = 0;
+    }
+
+out:
+    if (entry) {
+        if (entry->u.QueryIdmapInfo.BufferMdl) {
+            (void)nfs41_UnlockKernelPages(
+                entry->u.QueryIdmapInfo.BufferMdl);
+            IoFreeMdl(entry->u.QueryIdmapInfo.BufferMdl);
+            entry->u.QueryIdmapInfo.BufferMdl = NULL;
+        }
+
+        nfs41_UpcallDestroy(entry);
+    }
+
+    DbgEx();
+    return status;
+}
+
+NTSTATUS marshal_nfs41_queryidmapinfo(
+    nfs41_updowncall_entry *entry,
+    unsigned char *buf,
+    ULONG buf_len,
+    ULONG *len)
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    ULONG header_len = 0;
+    unsigned char *tmp = buf;
+
+    status = marshal_nfs41_header(entry, tmp, buf_len, len);
+    if (status)
+        goto out;
+    tmp += *len;
+
+    header_len = *len + sizeof(ULONG) +
+        sizeof(HANDLE);
+    if (header_len > buf_len) {
+        DbgP("marshal_nfs41_queryidmapinfo: "
+            "upcall buffer too small: header_len(=%ld) > buf_len(=%ld)\n",
+            (long)header_len, (long)buf_len);
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto out;
+    }
+
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.QueryIdmapInfo.BufferSize,
+        sizeof(entry->u.QueryIdmapInfo.BufferSize));
+    tmp += sizeof(entry->u.QueryIdmapInfo.BufferSize);
+
+    if (entry->u.QueryIdmapInfo.BufferMdl) {
+        status = nfs41_MapLockedPagesInNfsDaemonAddressSpace(
+            &entry->u.QueryIdmapInfo.Buffer,
+            entry->u.QueryIdmapInfo.BufferMdl,
+            MmCached,
+            NormalPagePriority|MdlMappingNoExecute);
+        if (status != STATUS_SUCCESS) {
+            print_error("marshal_nfs41_queryidmapinfo: "
+                "nfs41_MapLockedPagesInNfsDaemonAddressSpace() failed, "
+                "status=0x%lx\n",
+                (long)status);
+            goto out;
+        }
+    }
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.QueryIdmapInfo.Buffer,
+        sizeof(entry->u.QueryIdmapInfo.Buffer));
+    tmp += sizeof(sizeof(entry->u.QueryIdmapInfo.Buffer));
+
+    *len = (ULONG)(tmp - buf);
+    if (*len != header_len) {
+        DbgP("marshal_nfs41_queryidmapinfo: "
+            "*len(=%ld) != header_len(=%ld)\n",
+            (long)*len, (long)header_len);
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto out;
+    }
+
+    DbgP("marshal_nfs41_queryidmapinfo: name='%wZ' "
+        "buffersize=0x%lx, buffer=0x%p\n",
+         entry->filename,
+         (long)entry->u.QueryIdmapInfo.BufferSize,
+         (void *)entry->u.QueryIdmapInfo.Buffer);
+out:
+    return status;
+}
+
+NTSTATUS unmarshal_nfs41_queryidmapinfo(
+    nfs41_updowncall_entry *cur,
+    const unsigned char *restrict *restrict buf)
+{
+    NTSTATUS status = STATUS_SUCCESS;
+
+    if (cur->u.QueryIdmapInfo.Buffer) {
+        (void)nfs41_UnmapLockedKernelPagesInNfsDaemonAddressSpace(
+            cur->u.QueryIdmapInfo.Buffer,
+            cur->u.QueryIdmapInfo.BufferMdl);
+        cur->u.QueryIdmapInfo.Buffer = NULL;
+    }
+
+    UPDOWNCALL_MEMCPY(&cur->u.QueryIdmapInfo.buffer_overflow,
+        *buf, sizeof(BOOLEAN));
+    *buf += sizeof(BOOLEAN);
+    UPDOWNCALL_MEMCPY(&cur->u.QueryIdmapInfo.returned_size,
+        *buf, sizeof(ULONG));
+    *buf += sizeof(ULONG);
+
+    DbgP("unmarshal_nfs41_queryidmapinfo: "
+        "buffer_overflow=%d returned_size=%lu\n",
+        (int)cur->u.QueryIdmapInfo.buffer_overflow,
+        cur->u.QueryIdmapInfo.returned_size);
+
+    return status;
+}
+
 NTSTATUS nfs41_FsCtl(
     IN OUT PRX_CONTEXT RxContext)
 {
@@ -1471,6 +1685,9 @@ NTSTATUS nfs41_FsCtl(
          * |KiProcessExpiredTimerList()|, e.g. when building gcc.
          */
         status = STATUS_INVALID_DEVICE_REQUEST;
+        break;
+    case FSCTL_NFS41_QUERY_IDMAP_INFO:
+        status = nfs41_QueryIdmapInfo(RxContext);
         break;
     default:
         break;

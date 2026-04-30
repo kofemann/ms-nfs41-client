@@ -347,6 +347,13 @@ typedef struct _updowncall_entry {
             ULONG returned_size;
         } QueryAllocatedRanges;
         struct {
+            PMDL BufferMdl;
+            ULONG BufferSize;
+            PVOID Buffer;
+            BOOLEAN buffer_overflow;
+            ULONG returned_size;
+        } QueryIdmapInfo;
+        struct {
             FILE_ZERO_DATA_INFORMATION setzerodata;
         } SetZeroData;
         struct {
@@ -792,6 +799,14 @@ NTSTATUS unmarshal_nfs41_duplicatedata(
     const unsigned char *restrict *restrict buf);
 void nfs41_remove_offloadcontext_for_srvopen(
     IN PMRX_SRV_OPEN pSrvopen);
+NTSTATUS marshal_nfs41_queryidmapinfo(
+    nfs41_updowncall_entry *entry,
+    unsigned char *buf,
+    ULONG buf_len,
+    ULONG *len);
+NTSTATUS unmarshal_nfs41_queryidmapinfo(
+    nfs41_updowncall_entry *cur,
+    const unsigned char *restrict *restrict buf);
 
 /* nfs41sys_ioctl.c */
 NTSTATUS nfs41_IoCtl(
