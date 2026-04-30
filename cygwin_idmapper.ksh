@@ -233,11 +233,24 @@ function setup_windows_builtin_accounts
 	#
 	# Process Windows builtin users
 	#
+	typeset -a passwd_sid_list
+	typeset -A c.getent_w_passwd_listbysid
+
+	# first build a list of SIDs and pass then to getent in one step - this saves lots of |fork(),exec()| calls
+	for s in "${!windows_builtin_user_list[@]}" ; do
+		nameref n=windows_builtin_user_list["$s"]
+		passwd_sid_list+=( "${n.sid}" )
+	done
+	getent -w passwd "${passwd_sid_list[@]}" | while read -r i ; do
+		c.getent_w_passwd_listbysid["${i##*:}"]=( getent_line="$i" )
+	done
+
+	# process user accounts
 	for s in "${!windows_builtin_user_list[@]}" ; do
 		nameref n=windows_builtin_user_list["$s"]
 
 		compound gpc
-		parse_getent_w_passwd2compound gpc "$(getent -w passwd "${n.sid}")"
+		parse_getent_w_passwd2compound gpc "${c.getent_w_passwd_listbysid["${n.sid}"]}"
 		if (( $? == 0 )) ; then
 			integer localuid
 
@@ -264,6 +277,19 @@ function setup_windows_builtin_accounts
 	#
 	# Process Windows builtin groups
 	#
+	typeset -a group_sid_list
+	typeset -A c.getent_w_group_listbysid
+
+	# first build a list of SIDs and pass then to getent in one step - this saves lots of |fork(),exec()| calls
+	for s in "${!windows_builtin_group_list[@]}" ; do
+		nameref n=windows_builtin_group_list["$s"]
+		group_sid_list+=( "${n.sid}" )
+	done
+	getent -w group "${group_sid_list[@]}" | while read -r i ; do
+		c.getent_w_group_listbysid["${i##*:}"]=( getent_line="$i" )
+	done
+
+	# process group accounts
 	for s in "${!windows_builtin_group_list[@]}" ; do
 		nameref n=windows_builtin_group_list["$s"]
 
@@ -276,7 +302,7 @@ function setup_windows_builtin_accounts
 			/cygdrive/c/Windows/system32/whoami /groups | grep -a -F 'S-1-1-0' | IFS=$' \t\n\r' read everyone_name dummy1
 			parse_getent_w_group2compound gpc "${everyone_name}:65550:\\${everyone_name}:S-1-1-0"
 		else
-			parse_getent_w_group2compound gpc "$(getent -w group "${n.sid}")"
+			parse_getent_w_group2compound gpc "${c.getent_w_group_listbysid["${n.sid}"]}"
 		fi
 		if (( $? == 0 )) ; then
 			integer localgid
@@ -1127,7 +1153,7 @@ function main_dispatch
 #
 set -o nounset
 
-export PATH='/bin:/usr/bin'
+export PATH='/usr/bin'
 export LC_ALL='en_US.UTF-8'
 
 main_dispatch "$@"
