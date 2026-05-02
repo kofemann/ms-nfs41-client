@@ -1091,6 +1091,7 @@ int handle_queryidmapinfo(void *daemon_context,
         "\tnfspath='%s'\n"
         "\tfattr4_owner='%s'\n"
         "\tfattr4_owner_group='%s'\n"
+        "\tidmapconfigname='%s'\n"
         "\tlocalusername='%s'\n"
         "\tlocalgroupname='%s'\n"
         "\tlocaluid=%ld\n"
@@ -1101,6 +1102,7 @@ int handle_queryidmapinfo(void *daemon_context,
         state->path.path,
         info.owner,
         info.owner_group,
+        idmapper->config.configname,
         ((owner_ie != NULL)?owner_ie->win32name.buf:"<NULL>"),
         ((owner_group_ie != NULL)?owner_group_ie->win32name.buf:"<NULL>"),
         ((owner_ie != NULL)?(long)owner_ie->localid:-1L),
