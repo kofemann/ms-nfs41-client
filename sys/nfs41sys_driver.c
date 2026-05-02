@@ -1222,9 +1222,9 @@ NTSTATUS nfs41_FsdDispatch(
     IN PDEVICE_OBJECT dev,
     IN PIRP Irp)
 {
-#ifdef DEBUG_FSDDISPATCH
+#if defined(DEBUG_FSDDISPATCH) || defined(DEBUG_WARN_POSIXUNLINKRENAME_CLASSES)
     PIO_STACK_LOCATION IrpSp = IoGetCurrentIrpStackLocation(Irp);
-#endif
+#endif /* defined(DEBUG_FSDDISPATCH) || defined(DEBUG_WARN_POSIXUNLINKRENAME_CLASSES) */
     NTSTATUS status;
 
 #ifdef DEBUG_FSDDISPATCH
@@ -1243,6 +1243,62 @@ NTSTATUS nfs41_FsdDispatch(
         status = STATUS_INVALID_DEVICE_REQUEST;
         goto out;
     }
+
+#ifdef DEBUG_WARN_POSIXUNLINKRENAME_CLASSES
+    if (IrpSp->MajorFunction == IRP_MJ_SET_INFORMATION) {
+        ULONG bufLen = IrpSp->Parameters.SetFile.Length;
+        PVOID buf = Irp->AssociatedIrp.SystemBuffer;
+
+        /*
+         * Warn if any of the |File.+InformationEx| classes are used, these
+         * should only be used when |FILE_SUPPORTS_POSIX_UNLINK_RENAME| is
+         * set
+         *
+         * Right now rdbss.lib does not implement support for these, and will
+         * NOT pass them to our RDR code
+         */
+        switch (IrpSp->Parameters.SetFile.FileInformationClass) {
+            case FileDispositionInformationEx:
+                DbgP("nfs41_FsdDispatch: Unsupported POSIX_UNLINK_RENAME "
+                    "FileDispositionInformationEx(Flags=0x%lx)\n",
+                    (long)((bufLen >= sizeof(FILE_DISPOSITION_INFORMATION_EX))?
+                        (((PFILE_DISPOSITION_INFORMATION_EX)buf)->Flags):
+                        ~0UL));
+                break;
+            case FileRenameInformationEx:
+                DbgP("nfs41_FsdDispatch: Unsupported POSIX_UNLINK_RENAME "
+                    "FileRenameInformationEx(Flags=0x%lx)\n",
+                    (long)((bufLen >= sizeof(FILE_RENAME_INFORMATION))?
+                        (((PFILE_RENAME_INFORMATION)buf)->Flags):
+                        ~0UL));
+                break;
+            case FileRenameInformationExBypassAccessCheck:
+                DbgP("nfs41_FsdDispatch: Unsupported POSIX_UNLINK_RENAME "
+                    "FileRenameInformationExBypassAccessCheck(Flags=0x%lx)\n",
+                    (long)((bufLen >= sizeof(FILE_RENAME_INFORMATION))?
+                        (((PFILE_RENAME_INFORMATION)buf)->Flags):
+                        ~0UL));
+                break;
+            case FileLinkInformationEx:
+                DbgP("nfs41_FsdDispatch: Unsupported POSIX_UNLINK_RENAME "
+                    "FileLinkInformationEx(Flags=0x%lx)\n",
+                    (long)((bufLen >= sizeof(FILE_LINK_INFORMATION))?
+                        (((PFILE_LINK_INFORMATION)buf)->Flags):
+                        ~0UL));
+                break;
+            case FileLinkInformationExBypassAccessCheck:
+                DbgP("nfs41_FsdDispatch: Unsupported POSIX_UNLINK_RENAME "
+                    "FileLinkInformationExBypassAccessCheck(Flags=0x%lx)\n",
+                    (long)((bufLen >= sizeof(FILE_LINK_INFORMATION))?
+                        (((PFILE_LINK_INFORMATION)buf)->Flags):
+                        ~0UL));
+                break;
+            default:
+                /* NOP */
+                break;
+        }
+    }
+#endif /* DEBUG_WARN_POSIXUNLINKRENAME_CLASSES */
 
     status = RxFsdDispatch((PRDBSS_DEVICE_OBJECT)dev,Irp);
     /* AGLO: 08/05/2009 - looks like RxFsdDispatch frees IrpSp */
