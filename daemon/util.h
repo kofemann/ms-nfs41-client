@@ -63,7 +63,11 @@ enum stable_how4;
 #define UTIL_GETRELTIME() (GetTickCount64()/1000ULL)
 #define UTIL_DIFFRELTIME(t1, t2) \
     (((signed long long)(t1))-((signed long long)(t2)))
+/* "daemon/idmap.h" has the same */
+#ifndef UTIL_RELTIMESTAMP_DEFINED
+#define UTIL_RELTIMESTAMP_DEFINED 1
 typedef ULONGLONG util_reltimestamp;
+#endif /* !UTIL_RELTIMESTAMP_DEFINED */
 
 #define PTR2PTRDIFF_T(p) ((ptrdiff_t)((char *)((void *)(p)) - ((char *)0)))
 #define PTRDIFF_T2PTR(d) ((void *)(((char *)0) + (d)))

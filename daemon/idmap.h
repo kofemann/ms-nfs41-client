@@ -53,6 +53,12 @@ typedef struct _idmap_namestr {
     size_t len;
 } idmap_namestr;
 
+/* from "daemon/util.h" */
+#ifndef UTIL_RELTIMESTAMP_DEFINED
+#define UTIL_RELTIMESTAMP_DEFINED 1
+typedef ULONGLONG util_reltimestamp;
+#endif /* !UTIL_RELTIMESTAMP_DEFINED */
+
 typedef struct _idmapcache_entry {
     idmap_namestr win32name;
     idmapcache_idnumber localid;
@@ -60,7 +66,7 @@ typedef struct _idmapcache_entry {
     idmap_namestr nfsname;
     idmapcache_idnumber nfsid;
 
-    time_t last_updated;
+    util_reltimestamp last_updated;
 } idmapcache_entry;
 
 typedef struct _idmapcache_context idmapcache_context;

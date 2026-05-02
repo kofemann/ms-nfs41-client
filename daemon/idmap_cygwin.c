@@ -757,12 +757,12 @@ idmapcache_entry *idmapcache_lookup(idmapcache_context *restrict ctx,
     const void *restrict search_val)
 {
     struct idmapcache_node *found_node = NULL;
-    time_t current_time;
+    util_reltimestamp current_time;
     struct idmapcache_node *node;
 
     AcquireSRWLockShared(&ctx->lock);
 
-    current_time = time(NULL);
+    current_time = UTIL_GETRELTIME();
 
     LIST_FOREACH(node, &ctx->head, list_node) {
         if ((current_time - node->entry.last_updated) > IDMAPCACHE_TTL_SECONDS)
@@ -781,15 +781,18 @@ idmapcache_entry *idmapcache_lookup(idmapcache_context *restrict ctx,
 }
 
 static
-void cleanup_expired_entries(idmapcache_context *restrict ctx, time_t current_time)
+void cleanup_expired_entries(idmapcache_context *restrict ctx, util_reltimestamp current_time)
 {
     struct idmapcache_node *node;
     struct idmapcache_node *tmpnode;
+    signed long long reltime_diff;
 
     for (node = LIST_FIRST(&ctx->head) ; node != NULL ; node = tmpnode) {
         tmpnode = LIST_NEXT(node, list_node);
+        reltime_diff =
+            UTIL_DIFFRELTIME(current_time, node->entry.last_updated);
 
-        if ((current_time - node->entry.last_updated) > IDMAPCACHE_TTL_SECONDS) {
+        if (reltime_diff > IDMAPCACHE_TTL_SECONDS) {
             LIST_REMOVE(node, list_node);
             idmapcache_entry_refcount_dec(&node->entry);
         }
@@ -869,7 +872,7 @@ idmapcache_entry *idmapcache_add(idmapcache_context *restrict ctx,
 
     AcquireSRWLockExclusive(&ctx->lock);
 
-    time_t current_time = time(NULL);
+    util_reltimestamp current_time = UTIL_GETRELTIME();
     new_node->entry.last_updated = current_time;
 
     cleanup_expired_entries(ctx, current_time);
