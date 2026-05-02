@@ -377,8 +377,9 @@ opt_o_argv_i_again:
                     *db = L'\0';
 
                     /* ... and convert them to a port number */
+                    errno = 0;
                     port_num = wcstol(digit_buff, NULL, 0);
-                    if ((port_num < 1) || (port_num > 65535)) {
+                    if ((port_num < 1) || (port_num > 65535) || (errno != 0)) {
                         (void)fwprintf(stderr,
                             L"NFSv4 TCP port number out of range.\n");
                         result = ERROR_BAD_ARGUMENTS;

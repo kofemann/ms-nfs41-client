@@ -306,10 +306,17 @@ bool_t parse_cmdlineargs(int argc, wchar_t *argv[], nfsd_args *out)
                 ++i;
                 if (i >= argc) {
                     (void)fprintf(stderr,
-                        "%ls: Missing debug level value\n", argv[0]);
+                        "%ls: Missing -d (debug level) value\n", argv[0]);
                     return FALSE;
                 }
+                errno = 0;
                 out->debug_level = wcstol(argv[i], NULL, 0);
+                if (errno != 0) {
+                    (void)fprintf(stderr,
+                        "%ls: Invalid -d (debug level) value, errno=%d\n",
+                        argv[0], errno);
+                    return FALSE;
+                }
             }
 #ifdef _DEBUG
             else if (!wcscmp(argv[i], L"--crtdbgmem")) {
@@ -357,7 +364,14 @@ bool_t parse_cmdlineargs(int argc, wchar_t *argv[], nfsd_args *out)
                         argv[0]);
                     return FALSE;
                 }
+                errno = 0;
                 nfs41_dg.num_worker_threads = wcstol(argv[i], NULL, 0);
+                if (errno != 0) {
+                    (void)fprintf(stderr,
+                        "%ls: Invalid value for --num_worker_threads, errno=%d\n",
+                        argv[0], (int)errno);
+                    return FALSE;
+                }
                 if (nfs41_dg.num_worker_threads < 16) {
                     (void)fprintf(stderr,
                         "%ls: --numworkerthreads requires at least "
