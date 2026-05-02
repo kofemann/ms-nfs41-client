@@ -297,7 +297,9 @@ NTSTATUS nfs41_QuerySecurityInformation(
                 InterlockedAdd64(&getacl.size, nfs41_fcb->aclcache.data_len);
 #endif
 
+#ifdef DEBUG_ACL_QUERY
                 DbgP("nfs41_QuerySecurityInformation: using cached ACL info\n");
+#endif /* DEBUG_ACL_QUERY */
                 goto out;
             }
             else {

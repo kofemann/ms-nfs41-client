@@ -377,9 +377,11 @@ void qocec_file_stat_information(
     OUT QUERY_ON_CREATE_FILE_STAT_INFORMATION *restrict qocfsi,
     IN const NFS41_FCB *restrict nfs41_fcb)
 {
+#ifdef DEBUG_EXTENDEDCREATEPARAMETERS
     DbgP("qocec_file_stat_information: "
         "qocfsi=0x%p, nfs41_fcb=0x%p\n",
         qocfsi, nfs41_fcb);
+#endif /* DEBUG_EXTENDEDCREATEPARAMETERS */
 
     qocfsi->FileId.QuadPart = nfs41_fcb->fileid;
     qocfsi->CreationTime    = nfs41_fcb->BasicInfo.CreationTime;
@@ -410,9 +412,11 @@ void qocec_file_stat_lx_information(
 {
     ULONG fsattrs;
 
+#ifdef DEBUG_EXTENDEDCREATEPARAMETERS
     DbgP("qocec_file_stat_lx_information: "
         "qocflxi=0x%p, nfs41_fcb=0x%p, pVNetRootContext=0x%p\n",
         qocflxi, nfs41_fcb, pVNetRootContext);
+#endif /* DEBUG_EXTENDEDCREATEPARAMETERS */
 
     qocflxi->EffectiveAccess =
         GENERIC_EXECUTE|GENERIC_WRITE|GENERIC_READ; /* FIXME */

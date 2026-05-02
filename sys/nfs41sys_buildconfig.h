@@ -70,11 +70,15 @@
 #define DEBUG_WARN_POSIXUNLINKRENAME_CLASSES 1
 #define DEBUG_MOUNTCONFIG
 //#define DEBUG_OPEN
+#define DEBUG_COLLAPSEOPEN 1
+#define DEBUG_AREFILESALIASED 1
+#define DEBUG_EXTENDEDCREATEPARAMETERS 1
 //#define DEBUG_CLOSE
 //#define DEBUG_CACHE
 #define DEBUG_INVALIDATE_CACHE
 //#define DEBUG_READ
 //#define DEBUG_WRITE
+#define DEBUG_FLUSH 1
 //#define DEBUG_DIR_QUERY
 //#define DEBUG_FILE_QUERY
 //#define DEBUG_FILE_SET
@@ -95,6 +99,7 @@
 //#define ENABLE_INDV_TIMINGS
 #elif defined(NDEBUG)
 /* Release build defines follow... */
+#define DEBUG_WARN_POSIXUNLINKRENAME_CLASSES 1
 #else
 #error Neither _DEBUG NOR _NDEBUG defined
 #endif

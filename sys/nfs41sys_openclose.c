@@ -369,6 +369,7 @@ NTSTATUS nfs41_AreFilesAliased(
         (nfs41_fcb_a->fsid_major == nfs41_fcb_b->fsid_major) &&
         (nfs41_fcb_a->fsid_minor == nfs41_fcb_b->fsid_minor)) {
 
+#ifdef DEBUG_AREFILESALIASED
         DbgP("nfs41_AreFilesAliased: "
             "a=0x%p b=0x%p aliases, fileid=0x%llx "
             "fsid_major=0x%llx fsid_minor=0x%llx\n",
@@ -376,9 +377,11 @@ NTSTATUS nfs41_AreFilesAliased(
             (long long)nfs41_fcb_a->fileid,
             (long long)nfs41_fcb_a->fsid_major,
             (long long)nfs41_fcb_a->fsid_minor);
+#endif /* DEBUG_AREFILESALIASED */
         return STATUS_MORE_PROCESSING_REQUIRED;
     }
     else {
+#ifdef DEBUG_AREFILESALIASED
         DbgP("nfs41_AreFilesAliased: "
             "a=0x%p b=0x%p NOT aliases, "
             "a=(fileid=0x%llx fsid_major=0x%llx fsid_minor=0x%llx) "
@@ -390,6 +393,7 @@ NTSTATUS nfs41_AreFilesAliased(
             (long long)nfs41_fcb_b->fileid,
             (long long)nfs41_fcb_b->fsid_major,
             (long long)nfs41_fcb_b->fsid_minor);
+#endif /* DEBUG_AREFILESALIASED */
         return STATUS_SUCCESS;
     }
 }
@@ -701,7 +705,9 @@ void nfs41_set_fileobject_flags(
     if ((fo->Flags &
         (FO_WRITE_THROUGH|FO_NO_INTERMEDIATE_BUFFERING)) == 0) {
         fo->Flags |= FO_CACHE_SUPPORTED;
+#ifdef DEBUG_OPEN
         DbgP("nfs41_set_fileobject_flags: set FO_CACHE_SUPPORTED\n");
+#endif /* DEBUG_OPEN */
     }
     else {
         fo->Flags &= ~FO_CACHE_SUPPORTED;
@@ -782,13 +788,18 @@ NTSTATUS nfs41_Create(
 #endif /* WINBUG_NO_COLLAPSE_IF_PRIMARYGROUPS_DIFFER */
     }
 
+#ifdef DEBUG_EXTENDEDCREATEPARAMETERS
     debug_printirpecps(RxContext->CurrentIrp);
+#endif /* DEBUG_EXTENDEDCREATEPARAMETERS */
 
     PQUERY_ON_CREATE_ECP_CONTEXT qocec =
         get_queryoncreateecpcontext(RxContext->CurrentIrp);
     if (qocec) {
-        DbgP("nfs41_Create: QUERY_ON_CREATE_ECP_CONTEXT.RequestedClasses=0x%lx\n",
+#ifdef DEBUG_EXTENDEDCREATEPARAMETERS
+        DbgP("nfs41_Create: "
+            "QUERY_ON_CREATE_ECP_CONTEXT.RequestedClasses=0x%lx\n",
             qocec->RequestedClasses);
+#endif /* DEBUG_EXTENDEDCREATEPARAMETERS */
     }
 
 #ifdef NFS41_DRIVER_ALLOW_CREATEFILE_ACLS
@@ -803,9 +814,11 @@ NTSTATUS nfs41_Create(
         SdBuffer = NULL;
     }
 
+#ifdef DEBUG_ACL_SET
     DbgP("nfs41_Create: "
         "SecurityDescriptor=0x%p, len=%lu\n",
         SdBuffer, SdLength);
+#endif /* DEBUG_ACL_SET */
 #endif /* NFS41_DRIVER_ALLOW_CREATEFILE_ACLS */
 
     status = nfs41_UpcallCreate(NFS41_SYSOP_OPEN, &nfs41_srvopen->sec_ctx,
@@ -1374,8 +1387,10 @@ NTSTATUS nfs41_ShouldTryToCollapseThisOpen(
     PNFS41_SRV_OPEN nfs41_srvopen = NFS41GetSrvOpenExtension(SrvOpen);
 
     if (SrvOpen == NULL) {
+#ifdef DEBUG_COLLAPSEOPEN
         DbgP("nfs41_ShouldTryToCollapseThisOpen: "
             "SrvOpen==NULL, status=STATUS_SUCCESS\n");
+#endif /* DEBUG_COLLAPSEOPEN */
         return STATUS_SUCCESS;
     }
 
@@ -1470,9 +1485,11 @@ NTSTATUS nfs41_ShouldTryToCollapseThisOpen(
 #endif /* WINBUG_NO_COLLAPSE_IF_PRIMARYGROUPS_DIFFER */
 
 out:
+#ifdef DEBUG_COLLAPSEOPEN
     DbgP("nfs41_ShouldTryToCollapseThisOpen: filename='%wZ', status=0x%lx\n",
         SrvOpen->pAlreadyPrefixedName,
         (long)status);
+#endif /* DEBUG_COLLAPSEOPEN */
 
     return status;
 #else
@@ -1507,13 +1524,18 @@ NTSTATUS nfs41_CollapseOpen(
      * - Check whether Cygwin/SFU EA must be handled
      */
 
+#ifdef DEBUG_EXTENDEDCREATEPARAMETERS
     debug_printirpecps(RxContext->CurrentIrp);
+#endif /* DEBUG_EXTENDEDCREATEPARAMETERS */
 
     PQUERY_ON_CREATE_ECP_CONTEXT qocec =
         get_queryoncreateecpcontext(RxContext->CurrentIrp);
     if (qocec) {
-        DbgP("nfs41_CollapseOpen: QUERY_ON_CREATE_ECP_CONTEXT.RequestedClasses=0x%lx\n",
+#ifdef DEBUG_EXTENDEDCREATEPARAMETERS
+        DbgP("nfs41_CollapseOpen: "
+            "QUERY_ON_CREATE_ECP_CONTEXT.RequestedClasses=0x%lx\n",
             qocec->RequestedClasses);
+#endif /* DEBUG_EXTENDEDCREATEPARAMETERS */
     }
 
     status = nfs41_createnetfobx(RxContext, SrvOpen);
@@ -1552,9 +1574,11 @@ NTSTATUS nfs41_CollapseOpen(
     status = STATUS_SUCCESS;
 
 out:
+#ifdef DEBUG_COLLAPSEOPEN
     DbgP("nfs41_CollapseOpen: collapsingopen for '%wZ', status=0x%lx\n",
         SrvOpen->pAlreadyPrefixedName,
         (long)status);
+#endif /* DEBUG_COLLAPSEOPEN */
 
     FsRtlExitFileSystem();
 #else

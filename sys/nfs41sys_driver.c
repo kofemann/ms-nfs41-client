@@ -1022,8 +1022,10 @@ VOID nfs41_remove_fcb_entry(
 NTSTATUS nfs41_Flush(
     IN OUT PRX_CONTEXT RxContext)
 {
+#ifdef DEBUG_FLUSH
     DbgP("nfs41_Flush: FileName='%wZ'\n",
         GET_ALREADY_PREFIXED_NAME_FROM_CONTEXT(RxContext));
+#endif /* DEBUG_FLUSH */
 
     return STATUS_SUCCESS;
 }
