@@ -83,7 +83,6 @@ static int get_superblock_attrs(
     IN nfs41_path_fh *file)
 {
     nfs41_root *root = session->client->root;
-    struct idmap_context *idmapper = root->idmapper;
     bool_t supports_named_attrs;
     int status;
     bitmap4 attr_request;
@@ -133,23 +132,6 @@ static int get_superblock_attrs(
     superblock->link_support = info.link_support;
     superblock->symlink_support = info.symlink_support;
     superblock->nfs_namedattr_support = supports_named_attrs;
-
-    if (idmapper->config.acl_capabilities == NFSSRVACLCAPS_AUTO) {
-        /*
-         * There is no way to detect whether the filesystem exported by the
-         * NFS server supports full NFSv4/ZFS ACLs, or only the
-         * POSIX-draft ACLs. Therefore we provide a idmapper setting, and
-         * the "default" we select based on the support for NFS named
-         * attributes, because typically filesystems which support NFS named
-         * attributes also have full NFSv4 ACL support.
-         * The exception is WindowsServer, which supports full NFSv4 ACLs,
-         * but currenly has no NFS named attribute support (yet).
-         */
-        if (superblock->nfs_namedattr_support)
-            idmapper->config.acl_capabilities = NFSSRVACLCAPS_FULL_ACL4_SUPPORT;
-        else
-            idmapper->config.acl_capabilities = NFSSRVACLCAPS_USE_LINUX_ACL_WORKAROUNDS;
-    }
 
 #ifdef NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS
     if (root->force_case_preserving == TRISTATE_BOOL_NOT_SET) {
@@ -327,10 +309,36 @@ out:
     return status;
 }
 
+void nfs41_superblock2idmapperaclsettings(
+    IN const nfs41_superblock *restrict superblock,
+    IN OUT struct idmap_context *restrict idmapper)
+{
+    EASSERT(superblock->supported_attrs.count != 0);
+
+    if (idmapper->config.acl_capabilities == NFSSRVACLCAPS_AUTO) {
+        /*
+         * There is no way to detect whether the filesystem exported by the
+         * NFS server supports full NFSv4/ZFS ACLs, or only the
+         * POSIX-draft ACLs. Therefore we provide a idmapper setting, and
+         * the "default" we select based on the support for NFS named
+         * attributes, because typically filesystems which support NFS named
+         * attributes also have full NFSv4 ACL support.
+         * The exception is WindowsServer, which supports full NFSv4 ACLs,
+         * but currenly has no NFS named attribute support (yet).
+         */
+        if (superblock->nfs_namedattr_support)
+            idmapper->config.acl_capabilities = NFSSRVACLCAPS_FULL_ACL4_SUPPORT;
+        else
+            idmapper->config.acl_capabilities = NFSSRVACLCAPS_USE_LINUX_ACL_WORKAROUNDS;
+    }
+}
+
 void nfs41_superblock_fs_attributes(
     IN const nfs41_superblock *restrict superblock,
     OUT NFS41_FILE_FS_ATTRIBUTE_INFORMATION *restrict FsAttrs)
 {
+    EASSERT(superblock->supported_attrs.count != 0);
+
     /*
      * |FileSystemAttributes| - general filesystem attributes
      *

@@ -528,6 +528,9 @@ static __inline void nfs41_superblock_supported_attrs_exclcreat(
 }
 
 struct _NFS41_FILE_FS_ATTRIBUTE_INFORMATION;
+void nfs41_superblock2idmapperaclsettings(
+    IN const nfs41_superblock *restrict superblock,
+    IN OUT struct idmap_context *restrict idmapper);
 void nfs41_superblock_fs_attributes(
     IN const nfs41_superblock *restrict superblock,
     OUT struct _NFS41_FILE_FS_ATTRIBUTE_INFORMATION *restrict FsAttrs);

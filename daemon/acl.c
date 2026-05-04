@@ -81,6 +81,8 @@ static int handle_getacl(void *daemon_context, nfs41_upcall *upcall)
     DPRINTF(ACLLVL1, ("--> handle_getacl(state->path.path='%s')\n",
         state->path.path));
 
+    nfs41_superblock2idmapperaclsettings(state->file.fh.superblock, idmapper);
+
     if (args->query_secinfo & DACL_SECURITY_INFORMATION) {
         owner_group_acl_bitmap.arr[0] |= FATTR4_WORD0_ACL;
     }
@@ -291,6 +293,8 @@ static int handle_setacl(void *daemon_context, nfs41_upcall *upcall)
 
     DPRINTF(ACLLVL1, ("--> handle_setacl(state->path.path='%s')\n",
         state->path.path));
+
+    nfs41_superblock2idmapperaclsettings(state->file.fh.superblock, idmapper);
 
     if (args->sec_desc == NULL) {
         eprintf("handle_setacl: args->sec_desc==NULL\n");
