@@ -241,6 +241,7 @@ bool get_token_groups_names(HANDLE tok,
         REJECT_WELL_KNOWN_SID(WinLocalSid);
         REJECT_WELL_KNOWN_SID(WinNTLMAuthenticationSid);
         REJECT_WELL_KNOWN_SID(WinBuiltinPerfLoggingUsersSid);
+        REJECT_WELL_KNOWN_SID(WinServiceSid);
 
         namesize = sizeof(namebuffer)-1;
 
