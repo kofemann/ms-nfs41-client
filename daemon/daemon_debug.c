@@ -116,7 +116,7 @@ void dprintf_out(const char *restrict format, ...)
     __declspec(thread) static bool in_dprintf_out = false;
 
     if (OpenThreadToken(GetCurrentThread(), TOKEN_QUERY, FALSE, &tok)) {
-        tok_src = "impersonated_user";
+        tok_src = "impersonate";
         free_tok = true;
     }
     else {
