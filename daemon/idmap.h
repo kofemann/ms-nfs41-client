@@ -92,12 +92,29 @@ idmapcache_entry *idmapcache_lookup_by_nfsid(idmapcache_context *restrict ctx,
 void idmapcache_entry_refcount_inc(idmapcache_entry *restrict e);
 void idmapcache_entry_refcount_dec(idmapcache_entry *restrict e);
 
+enum nfsserver_acl_capabilities {
+    NFSSRVACLCAPS_AUTO = 1,
+    NFSSRVACLCAPS_FULL_ACL4_SUPPORT = 2,
+    NFSSRVACLCAPS_USE_LINUX_ACL_WORKAROUNDS = 3
+};
+
 struct idmap_config {
     char configname[256];
 
     UINT timeout;
 
     bool use_numeric_uidgid;
+    /*
+     * |acl_capabilities| - There is no way to detect whether the filesystem
+     * exported by the NFS server supports full NFSv4/ZFS ACLs, or only the
+     * POSIX-draft ACLs. Therefore we provide a idmapper setting, and
+     * the "default" we select based on the support for NFS named
+     * attributes, because typically filesystems which support NFS named
+     * attributes also have full NFSv4 ACL support
+     * The exception is WindowsServer, which supports full NFSv4 ACLs,
+     * but currenly has no NFS named attribute support (yet).
+     */
+    enum nfsserver_acl_capabilities acl_capabilities;
 
     /* uid/gids to use if a user/group cannot be mapped */
     idmapcache_idnumber default_nfs_uid;

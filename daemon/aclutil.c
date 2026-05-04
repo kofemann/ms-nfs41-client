@@ -43,9 +43,9 @@
 static void map_winace2nfs4aceflags(BYTE win_aceflags, uint32_t *nfs4_aceflags);
 static void map_nfs4aceflags2winaceflags(uint32_t nfs4_aceflags, DWORD *win_aceflags);
 static void map_winaccessmask2nfs4acemask(ACCESS_MASK win_mask,
-    int file_type, bool nfs_namedattr_support, uint32_t *nfs4_mask);
+    int file_type, bool linux_acl_workarounds, uint32_t *nfs4_mask);
 static void map_nfs4acemask2winaccessmask(uint32_t nfs4_mask,
-    int file_type, bool nfs_namedattr_support, ACCESS_MASK *win_mask);
+    int file_type, bool linux_acl_workarounds, ACCESS_MASK *win_mask);
 
 void free_sids(PSID *sids, int count)
 {
@@ -188,8 +188,7 @@ int convert_nfs4acl_2_dacl(
     IN nfsacl41 *restrict acl,
     IN int file_type,
     OUT PACL *dacl_out,
-    OUT PSID **sids_out,
-    IN bool nfs_namedattr_support)
+    OUT PSID **sids_out)
 {
     int status = ERROR_NOT_SUPPORTED;
     BOOL success;
@@ -200,11 +199,13 @@ int convert_nfs4acl_2_dacl(
     PACL dacl;
 
     DPRINTF(ACLLVL2, ("--> convert_nfs4acl_2_dacl(acl=0x%p,"
-        "file_type='%s'(=%d), nfs_namedattr_support=%d)\n",
+        "file_type='%s'(=%d), acl_capabilities=%d)\n",
         acl, map_nfs_ftype2str(file_type), file_type,
-        (int)nfs_namedattr_support));
+        (int)idmapper->config.acl_capabilities));
 
     bool *skip_aces = _alloca(acl->count * sizeof(bool));
+
+    EASSERT(idmapper->config.acl_capabilities != NFSSRVACLCAPS_AUTO);
 
     /*
      * We use |calloc()| here to get |NULL| pointer for unallocated
@@ -331,7 +332,10 @@ sid_mapped:
         map_nfs4aceflags2winaceflags(curr_nfsace->aceflag,
             &win_aceflags);
         map_nfs4acemask2winaccessmask(curr_nfsace->acemask,
-            file_type, nfs_namedattr_support, &mask);
+            file_type,
+            (idmapper->config.acl_capabilities ==
+                NFSSRVACLCAPS_USE_LINUX_ACL_WORKAROUNDS),
+            &mask);
 
         if (DPRINTF_LEVEL_ENABLED(ACLLVL1)) {
             dprintf_out("nfs2win: acl->aces[%d].who='%s': "
@@ -539,7 +543,7 @@ static void map_nfs4aceflags2winaceflags(uint32_t nfs4_aceflags, DWORD *win_acef
 
 static
 void map_winaccessmask2nfs4acemask(ACCESS_MASK win_mask,
-    int file_type, bool nfs_namedattr_support, uint32_t *nfs4_mask)
+    int file_type, bool linux_acl_workarounds, uint32_t *nfs4_mask)
 {
     *nfs4_mask = 0;
 
@@ -553,7 +557,7 @@ void map_winaccessmask2nfs4acemask(ACCESS_MASK win_mask,
         uint32_t ace4_all_dir_filt = ACE4_ALL_DIR;
 
 #ifdef MAP_WIN32GENERIC2ACE4GENERIC
-        if (!nfs_namedattr_support) {
+        if (linux_acl_workarounds) {
             /*
              * Filter out unsupported features for
              * |GENERIC_*| --> |ACE_*ATTR| conversion.
@@ -663,7 +667,7 @@ void map_winaccessmask2nfs4acemask(ACCESS_MASK win_mask,
 
 static
 void map_nfs4acemask2winaccessmask(uint32_t nfs4_mask,
-    int file_type, bool nfs_namedattr_support, ACCESS_MASK *win_mask)
+    int file_type, bool linux_acl_workarounds, ACCESS_MASK *win_mask)
 {
     *win_mask = 0;
 
@@ -677,7 +681,7 @@ void map_nfs4acemask2winaccessmask(uint32_t nfs4_mask,
     uint32_t ace4_all_file_filt = ACE4_ALL_FILE;
     uint32_t ace4_all_dir_filt = ACE4_ALL_DIR;
 
-    if (!nfs_namedattr_support) {
+    if (linux_acl_workarounds) {
         /*
          * Filter out unsupported features for
          * |ACE_*ATTR| --> |GENERIC_*| conversion.
@@ -836,7 +840,6 @@ int map_sid2nfs4ace_who(
     IN PSID sid,
     IN PSID owner_sid,
     IN PSID group_sid,
-    IN bool nfs_namedattr_support,
     OUT char *who_out,
     OUT SID_NAME_USE *sid_type_out)
 {
@@ -863,7 +866,10 @@ int map_sid2nfs4ace_who(
 
     status = ERROR_SUCCESS;
 
-    if (nfs_namedattr_support == false) {
+    EASSERT(idmapper->config.acl_capabilities != NFSSRVACLCAPS_AUTO);
+
+    if (idmapper->config.acl_capabilities ==
+        NFSSRVACLCAPS_USE_LINUX_ACL_WORKAROUNDS) {
         /*
          * for ace mapping, we want to map owner's sid into "owner@"
          * but for set_owner attribute we want to map owner into a user name
@@ -1150,11 +1156,17 @@ int map_dacl_2_nfs4acl(
     IN PSID sid,
     IN PSID gsid,
     OUT nfsacl41 *nfs4_acl,
-    IN int file_type,
-    IN bool nfs_namedattr_support)
+    IN int file_type)
 {
     int status;
     BOOL success;
+    bool linux_acl_workarounds;
+
+    EASSERT(idmapper->config.acl_capabilities != NFSSRVACLCAPS_AUTO);
+    linux_acl_workarounds =
+        (idmapper->config.acl_capabilities ==
+            NFSSRVACLCAPS_USE_LINUX_ACL_WORKAROUNDS)?true:false;
+
     if (acl == NULL) {
         DPRINTF(ACLLVL2, ("this is a NULL dacl: all access to an object\n"));
         nfs4_acl->count = 1;
@@ -1171,7 +1183,7 @@ int map_dacl_2_nfs4acl(
             uint32_t ace4_all_dir_filt = ACE4_ALL_DIR;
 #ifdef MAP_WIN32GENERIC2ACE4GENERIC
             /* Filter out unsupported features */
-            if (!nfs_namedattr_support) {
+            if (!linux_acl_workarounds) {
                 ace4_all_dir_filt &= ~ACE4_RW_NAMED_ATTRS;
             }
 #endif /* MAP_WIN32GENERIC2ACE4GENERIC */
@@ -1181,7 +1193,7 @@ int map_dacl_2_nfs4acl(
             uint32_t ace4_all_file_filt = ACE4_ALL_FILE;
 #ifdef MAP_WIN32GENERIC2ACE4GENERIC
             /* Filter out unsupported features */
-            if (!nfs_namedattr_support) {
+            if (!linux_acl_workarounds) {
                 ace4_all_file_filt &= ~ACE4_RW_NAMED_ATTRS;
             }
 #endif /* MAP_WIN32GENERIC2ACE4GENERIC */
@@ -1269,7 +1281,7 @@ int map_dacl_2_nfs4acl(
 #endif /* NFS41_DRIVER_ACLS_SETACL_SKIP_WINNULLSID_ACES */
 
             status = map_sid2nfs4ace_who(idmapper, ace_sid,
-                sid, gsid, nfs_namedattr_support,
+                sid, gsid,
                 curr_nfsace->who, &who_sid_type);
             if (status != ERROR_SUCCESS)
                 goto out_free;
@@ -1279,7 +1291,7 @@ int map_dacl_2_nfs4acl(
             map_winace2nfs4aceflags(ace->AceFlags,
                 &curr_nfsace->aceflag);
             map_winaccessmask2nfs4acemask(win_mask,
-                file_type, nfs_namedattr_support,
+                file_type, linux_acl_workarounds,
                 &curr_nfsace->acemask);
 
             /*

@@ -43,7 +43,6 @@ int map_sid2nfs4ace_who(
     IN PSID sid,
     IN PSID owner_sid,
     IN PSID group_sid,
-    IN bool nfs_namedattr_support,
     OUT char *who_out,
     OUT SID_NAME_USE *sid_type_out);
 int convert_nfs4acl_2_dacl(
@@ -51,15 +50,13 @@ int convert_nfs4acl_2_dacl(
     IN nfsacl41 *restrict acl,
     IN int file_type,
     OUT PACL *dacl_out,
-    OUT PSID **sids_out,
-    IN bool nfs_namedattr_support);
+    OUT PSID **sids_out);
 int map_dacl_2_nfs4acl(
     IN OUT struct idmap_context *idmapper,
     IN PACL acl,
     IN PSID sid,
     IN PSID gsid,
     OUT nfsacl41 *nfs4_acl,
-    IN int file_type,
-    IN bool nfs_namedattr_support);
+    IN int file_type);
 
 #endif /* !__NFS41_DAEMON_ACLUTIL_H__ */

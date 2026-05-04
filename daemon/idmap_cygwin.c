@@ -1574,6 +1574,18 @@ int nfs41_idmap_create(
     (void)strcpy(context->config.configname, configname);
 
     /*
+     * These should really be per idmapper-config settings
+     */
+    context->config.use_numeric_uidgid = false;
+    /*
+     * |get_superblock_attrs()| will turn |NFSSRVACLCAPS_AUTO| into
+     * either |NFSSRVACLCAPS_FULL_ACL4_SUPPORT| or
+     * |NFSSRVACLCAPS_USE_LINUX_ACL_WORKAROUNDS|
+     */
+    context->config.acl_capabilities = NFSSRVACLCAPS_AUTO;
+    context->config.timeout = 6000;
+
+    /*
      * Defaults for nobody/nogroup
      * These should really be per idmapper-config settings
      */
@@ -1609,14 +1621,6 @@ int nfs41_idmap_create(
     DPRINTF(0,
         ("nfs41_idmap_create: well_known_lgrouplist='%s'\n",
         context->well_known_lgrouplist));
-
-#ifdef NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN
-    DPRINTF(1,
-        ("nfs41_idmap_create: Force context->config.timeout = 6000;\n"));
-    context->config.timeout = 6000;
-    /* FIXME: |use_numeric_uidgid| should be a idmapper option */
-    context->config.use_numeric_uidgid = false;
-#endif /* NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN */
 
     *context_out = context;
 

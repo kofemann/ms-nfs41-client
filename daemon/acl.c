@@ -166,8 +166,7 @@ static int handle_getacl(void *daemon_context, nfs41_upcall *upcall)
     if (args->query_secinfo & DACL_SECURITY_INFORMATION) {
         DPRINTF(ACLLVL2, ("handle_getacl: DACL_SECURITY_INFORMATION\n"));
         status = convert_nfs4acl_2_dacl(idmapper,
-            info.acl, state->type, &dacl, &sids,
-            state->file.fh.superblock->nfs_namedattr_support?true:false);
+            info.acl, state->type, &dacl, &sids);
         if (status)
             goto out;
         status = SetSecurityDescriptorDacl(&sec_desc, TRUE, dacl, TRUE);
@@ -308,8 +307,7 @@ static int handle_setacl(void *daemon_context, nfs41_upcall *upcall)
             goto out;
         }
 
-        status = map_sid2nfs4ace_who(idmapper, sid,
-            NULL, NULL, true,
+        status = map_sid2nfs4ace_who(idmapper, sid, NULL, NULL,
             ownerbuf, NULL);
         if (status)
             goto out;
@@ -331,7 +329,7 @@ static int handle_setacl(void *daemon_context, nfs41_upcall *upcall)
             goto out;
         }
 
-        status = map_sid2nfs4ace_who(idmapper, sid, NULL, NULL, true,
+        status = map_sid2nfs4ace_who(idmapper, sid, NULL, NULL,
             groupbuf, NULL);
         if (status)
             goto out;
@@ -368,8 +366,7 @@ static int handle_setacl(void *daemon_context, nfs41_upcall *upcall)
             goto out;
         }
         status = map_dacl_2_nfs4acl(idmapper, acl, sid, gsid, &nfs4_acl,
-             state->type,
-             state->file.fh.superblock->nfs_namedattr_support?true:false);
+             state->type);
         if (status)
             goto out;
 

@@ -1013,8 +1013,7 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
         status = map_dacl_2_nfs4acl(upcall->root_ref->idmapper,
             acl, sid, gsid,
             &create_nfs4_acl,
-            state->type,
-            false /* FIXME!! */);
+            state->type);
         if (status) {
             eprintf("handle_open: "
                 "map_dacl_2_nfs4acl() failed, status=%d\n",
