@@ -347,6 +347,7 @@ typedef struct _updowncall_entry {
             ULONG returned_size;
         } QueryAllocatedRanges;
         struct {
+            ULONG OutputFormat;
             PMDL BufferMdl;
             ULONG BufferSize;
             PVOID Buffer;

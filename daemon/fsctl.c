@@ -972,6 +972,8 @@ static int parse_queryidmapinfo(
     int status;
     queryidmapinfo_upcall_args *args = &upcall->args.queryidmapinfo;
 
+    status = safe_read(&buffer, &length, &args->outputformat, sizeof(args->outputformat));
+    if (status) goto out;
     status = safe_read(&buffer, &length, &args->outbuffersize, sizeof(args->outbuffersize));
     if (status) goto out;
     status = safe_read(&buffer, &length, &args->outbuffer, sizeof(args->outbuffer));
@@ -1079,69 +1081,126 @@ int handle_queryidmapinfo(void *daemon_context,
         owner_group_ie = nfs41_idmap_group_lookup_by_nfsname(idmapper, info.owner_group);
     }
 
-    /*
-     * Put filename, NFS { owner, owner_group } and idmapper data as CPV
-     * (ksh93 compound variable) text data into the output buffer
-     *
-     * FIXME: "nfspath" should be encoded as shell $'...' literal if it
-     * contains non-ASCII or |!isprint(c)| characters.
-     */
-    snprintf_len = snprintf(outbuffer, outbuffersize,
-        "(\n"
-        "\tnfspath='%s'\n"
-        "\tfattr4=(\n"
-        "\t\tfileid=0x%llx\n"
-        "\t\tfsid=( major=0x%llx minor=0x%llx )\n"
-        "\t\towner='%s'\n"
-        "\t\towner_group='%s'\n"
-        "\t)\n"
-        "\tidmapdata=(\n"
-        "\t\tidmapconfigname='%s'\n"
-        "\t\tlocalusername='%s'\n"
-        "\t\tlocalgroupname='%s'\n"
-        "\t\tlocaluid=%ld\n"
-        "\t\tlocalgid=%ld\n"
-        "\t\tnfsusername='%s'\n"
-        "\t\tnfsgroupname='%s'\n"
-        "\t\tnfsuid=%ld\n"
-        "\t\tnfsgid=%ld\n"
-        "\t)\n"
-        ")\n",
-        state->path.path,
-        (long long)info.fileid,
-        (long long)info.fsid.major,
-        (long long)info.fsid.minor,
-        info.owner,
-        info.owner_group,
-        idmapper->config.configname,
-        ((owner_ie != NULL)?owner_ie->win32name.buf:"<NULL>"),
-        ((owner_group_ie != NULL)?owner_group_ie->win32name.buf:"<NULL>"),
-        ((owner_ie != NULL)?(long)owner_ie->localid:-1L),
-        ((owner_group_ie != NULL)?(long)owner_group_ie->localid:-1L),
-        ((owner_ie != NULL)?owner_ie->nfsname.buf:"<NULL>"),
-        ((owner_group_ie != NULL)?owner_group_ie->nfsname.buf:"<NULL>"),
-        ((owner_ie != NULL)?(long)owner_ie->nfsid:-1L),
-        ((owner_group_ie != NULL)?(long)owner_group_ie->nfsid:-1L));
+    if (args->outputformat == FILE_NFS41_QUERY_IDMAP_FORMAT_CPV) {
+        /*
+         * Put filename, NFS { owner, owner_group } and idmapper data as CPV
+         * (ksh93 compound variable) text data into the output buffer
+         *
+         * FIXME: "nfspath" should be encoded as shell $'...' literal if it
+         * contains non-ASCII or |!isprint(c)| characters.
+         */
+        snprintf_len = snprintf(outbuffer, outbuffersize,
+            "(\n"
+            "\tnfspath='%s'\n"
+            "\ttypeset -C fattr4=(\n"
+            "\t\tfileid=0x%llx\n"
+            "\t\ttypeset -C fsid=( major=0x%llx minor=0x%llx )\n"
+            "\t\towner='%s'\n"
+            "\t\towner_group='%s'\n"
+            "\t)\n"
+            "\ttypeset -C idmapdata=(\n"
+            "\t\tidmapconfigname='%s'\n"
+            "\t\tlocalusername='%s'\n"
+            "\t\tlocalgroupname='%s'\n"
+            "\t\tlocaluid=%ld\n"
+            "\t\tlocalgid=%ld\n"
+            "\t\tnfsusername='%s'\n"
+            "\t\tnfsgroupname='%s'\n"
+            "\t\tnfsuid=%ld\n"
+            "\t\tnfsgid=%ld\n"
+            "\t)\n"
+            ")\n",
+            state->path.path,
+            (long long)info.fileid,
+            (long long)info.fsid.major,
+            (long long)info.fsid.minor,
+            info.owner,
+            info.owner_group,
+            idmapper->config.configname,
+            ((owner_ie != NULL)?owner_ie->win32name.buf:"<NULL>"),
+            ((owner_group_ie != NULL)?owner_group_ie->win32name.buf:"<NULL>"),
+            ((owner_ie != NULL)?(long)owner_ie->localid:-1L),
+            ((owner_group_ie != NULL)?(long)owner_group_ie->localid:-1L),
+            ((owner_ie != NULL)?owner_ie->nfsname.buf:"<NULL>"),
+            ((owner_group_ie != NULL)?owner_group_ie->nfsname.buf:"<NULL>"),
+            ((owner_ie != NULL)?(long)owner_ie->nfsid:-1L),
+            ((owner_group_ie != NULL)?(long)owner_group_ie->nfsid:-1L));
 
+        /*
+         * Return buffer size, either on success, or to return the size
+         * of the buffer which would be needed.
+         */
+        args->returned_size = (ULONG)snprintf_len;
+
+        if (snprintf_len == (int)outbuffersize) {
+            status = ERROR_MORE_DATA;
+        }
+        else {
+            status = ERROR_SUCCESS;
+        }
+    }
+    else if (args->outputformat == FILE_NFS41_QUERY_IDMAP_FORMAT_PLAINTEXT) {
+        /*
+         * Put filename, NFS { owner, owner_group } and idmapper data as UTF-8
+         * plain text data into the output buffer
+         */
+        snprintf_len = snprintf(outbuffer, outbuffersize,
+            "nfspath='%s'\n"
+            "fattr4_fileid=0x%llx\n"
+            "fattr4_fsid=0x%llx,0x%llx\n"
+            "fattr4_owner='%s'\n"
+            "fattr4_owner_group='%s'\n"
+            "idmapdata_idmapconfigname='%s'\n"
+            "idmapdata_localusername='%s'\n"
+            "idmapdata_localgroupname='%s'\n"
+            "idmapdata_localuid=%ld\n"
+            "idmapdata_localgid=%ld\n"
+            "idmapdata_nfsusername='%s'\n"
+            "idmapdata_nfsgroupname='%s'\n"
+            "idmapdata_nfsuid=%ld\n"
+            "idmapdata_nfsgid=%ld\n",
+            state->path.path,
+            (long long)info.fileid,
+            (long long)info.fsid.major,
+            (long long)info.fsid.minor,
+            info.owner,
+            info.owner_group,
+            idmapper->config.configname,
+            ((owner_ie != NULL)?owner_ie->win32name.buf:"<NULL>"),
+            ((owner_group_ie != NULL)?owner_group_ie->win32name.buf:"<NULL>"),
+            ((owner_ie != NULL)?(long)owner_ie->localid:-1L),
+            ((owner_group_ie != NULL)?(long)owner_group_ie->localid:-1L),
+            ((owner_ie != NULL)?owner_ie->nfsname.buf:"<NULL>"),
+            ((owner_group_ie != NULL)?owner_group_ie->nfsname.buf:"<NULL>"),
+            ((owner_ie != NULL)?(long)owner_ie->nfsid:-1L),
+            ((owner_group_ie != NULL)?(long)owner_group_ie->nfsid:-1L));
+
+        /*
+         * Return buffer size, either on success, or to return the size
+         * of the buffer which would be needed.
+         */
+        args->returned_size = (ULONG)snprintf_len;
+
+        if (snprintf_len == (int)outbuffersize) {
+            status = ERROR_MORE_DATA;
+        }
+        else {
+            status = ERROR_SUCCESS;
+        }
+    }
+    else {
+        eprintf("handle_queryidmapinfo: "
+            "Unsupported output format=%lx\n",
+            (long)args->outputformat);
+        status = ERROR_INVALID_PARAMETER;
+    }
+
+out:
     if (owner_ie != NULL)
         idmapcache_entry_refcount_dec(owner_ie);
     if (owner_group_ie != NULL)
         idmapcache_entry_refcount_dec(owner_group_ie);
 
-    /*
-     * Return buffer size, either on success, or to return the size
-     * of the buffer which would be needed.
-     */
-    args->returned_size = (ULONG)snprintf_len;
-
-    if (snprintf_len == (int)outbuffersize) {
-        status = ERROR_MORE_DATA;
-    }
-    else {
-        status = ERROR_SUCCESS;
-    }
-
-out:
     if (status == ERROR_MORE_DATA) {
         status = NO_ERROR;
         args->buffer_overflow = TRUE;

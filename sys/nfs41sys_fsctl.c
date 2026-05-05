@@ -1424,6 +1424,40 @@ out:
 }
 
 static
+NTSTATUS check_nfs41_queryidmapinfo_args(
+    PRX_CONTEXT RxContext)
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    XXCTL_LOWIO_COMPONENT *FsCtl =
+        &RxContext->LowIoContext.ParamsFor.FsCtl;
+
+    if (FsCtl->pInputBuffer == NULL) {
+        DbgP("check_nfs41_queryidmapinfo_args: "
+            "FsCtl->pInputBuffer == NULL\n");
+        status = STATUS_INVALID_USER_BUFFER;
+        goto out;
+    }
+
+    if (FsCtl->InputBufferLength <
+        sizeof(FILE_NFS41_QUERY_IDMAP_INFORMATION)) {
+        DbgP("check_nfs41_queryidmapinfo_args: "
+            "input buffer too small\n");
+        status = STATUS_BUFFER_TOO_SMALL;
+        goto out;
+    }
+
+    if (FsCtl->pOutputBuffer == NULL) {
+        DbgP("check_nfs41_queryidmapinfo_args: "
+            "FsCtl->pOutputBuffer == NULL\n");
+        status = STATUS_INVALID_USER_BUFFER;
+        goto out;
+    }
+
+out:
+    return status;
+}
+
+static
 NTSTATUS nfs41_QueryIdmapInfo(
     IN OUT PRX_CONTEXT RxContext)
 {
@@ -1437,17 +1471,23 @@ NTSTATUS nfs41_QueryIdmapInfo(
         NFS41GetNetRootExtension(SrvOpen->pVNetRoot->pNetRoot);
     __notnull XXCTL_LOWIO_COMPONENT *FsCtl =
         &RxContext->LowIoContext.ParamsFor.FsCtl;
-    __notnull PFILE_ALLOCATED_RANGE_BUFFER out_textinfo_buffer =
-        (PFILE_ALLOCATED_RANGE_BUFFER)FsCtl->pOutputBuffer;
+    __notnull const PFILE_NFS41_QUERY_IDMAP_INFORMATION inqueryinfobuffer =
+        (const PFILE_NFS41_QUERY_IDMAP_INFORMATION)FsCtl->pInputBuffer;
+    __notnull char * out_textinfo_buffer =
+        (char *)FsCtl->pOutputBuffer;
     ULONG out_textinfo_buffer_len = FsCtl->OutputBufferLength;
 
     DbgEn();
 
     RxContext->IoStatusBlock.Information = 0;
 
-    /*
-     * No arguments == No argument checking required
-     */
+    status = check_nfs41_queryidmapinfo_args(RxContext);
+    if (status) {
+        DbgP("nfs41_QueryIdmapInfo: "
+            "check_nfs41_queryidmapinfo_args() failed with status=0x%lx\n",
+            (long)status);
+        goto out;
+    }
 
     status = nfs41_UpcallCreate(NFS41_SYSOP_FSCTL_QUERY_IDMAP_INFO,
         &nfs41_srvopen->sec_ctx,
@@ -1460,6 +1500,7 @@ NTSTATUS nfs41_QueryIdmapInfo(
     if (status)
         goto out;
 
+    entry->u.QueryIdmapInfo.OutputFormat = inqueryinfobuffer->OutputFormat;
     entry->u.QueryIdmapInfo.BufferSize = out_textinfo_buffer_len;
 
     /* lock the buffer for write access in user space */
@@ -1559,7 +1600,7 @@ NTSTATUS marshal_nfs41_queryidmapinfo(
         goto out;
     tmp += *len;
 
-    header_len = *len + sizeof(ULONG) +
+    header_len = *len + sizeof(ULONG) + sizeof(ULONG) +
         sizeof(HANDLE);
     if (header_len > buf_len) {
         DbgP("marshal_nfs41_queryidmapinfo: "
@@ -1569,6 +1610,9 @@ NTSTATUS marshal_nfs41_queryidmapinfo(
         goto out;
     }
 
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.QueryIdmapInfo.OutputFormat,
+        sizeof(entry->u.QueryIdmapInfo.OutputFormat));
+    tmp += sizeof(entry->u.QueryIdmapInfo.OutputFormat);
     UPDOWNCALL_MEMCPY(tmp, &entry->u.QueryIdmapInfo.BufferSize,
         sizeof(entry->u.QueryIdmapInfo.BufferSize));
     tmp += sizeof(entry->u.QueryIdmapInfo.BufferSize);

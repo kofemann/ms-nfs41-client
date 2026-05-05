@@ -240,6 +240,7 @@ typedef struct __duplicatedata_upcall_args {
 } duplicatedata_upcall_args;
 
 typedef struct __queryidmapinfo_upcall_args {
+    ULONG                           outputformat;
     HANDLE                          outbuffer;
     ULONG                           outbuffersize;
     BOOLEAN                         buffer_overflow;

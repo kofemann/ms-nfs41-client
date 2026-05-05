@@ -1824,6 +1824,8 @@ cleanup:
     return retval;
 }
 
+#include "../include/nfs41_driver.h"
+
 static
 int fsctlnfs41queryidmapinfo(const char *progname, const char *filename)
 {
@@ -1831,7 +1833,14 @@ int fsctlnfs41queryidmapinfo(const char *progname, const char *filename)
     DWORD bytesReturned = 0;
     int retval = 0;
     DWORD lasterr;
-    char outbuff[1024];
+    char outbuff[2048];
+    FILE_NFS41_QUERY_IDMAP_INFORMATION nfsqidi = {
+#if 1
+        .OutputFormat = FILE_NFS41_QUERY_IDMAP_FORMAT_CPV
+#else
+        .OutputFormat = FILE_NFS41_QUERY_IDMAP_FORMAT_PLAINTEXT
+#endif
+    };
 
     /* |FILE_FLAG_BACKUP_SEMANTICS| is required to get a |HANDLE| to a dir */
     hFile = CreateFileA(filename,
@@ -1850,12 +1859,9 @@ int fsctlnfs41queryidmapinfo(const char *progname, const char *filename)
         return 1;
     }
 
-#define FSCTL_NFS41_QUERY_IDMAP_INFO \
-    CTL_CODE(FILE_DEVICE_FILE_SYSTEM, 0x800+64,  METHOD_NEITHER, FILE_READ_DATA)
-
     if (!DeviceIoControl(hFile,
        FSCTL_NFS41_QUERY_IDMAP_INFO,
-       NULL,  0,
+       &nfsqidi,  sizeof(nfsqidi),
        outbuff, sizeof(outbuff)-1,
        &bytesReturned,
        NULL)) {
