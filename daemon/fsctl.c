@@ -1012,7 +1012,7 @@ int handle_queryidmapinfo(void *daemon_context,
 
     bitmap4 attr_request = {
         .count = 2,
-        .arr[0] = 0,
+        .arr[0] = FATTR4_WORD0_FILEID|FATTR4_WORD0_FSID,
         .arr[1] = FATTR4_WORD1_OWNER | FATTR4_WORD1_OWNER_GROUP
     };
     nfs41_file_info info = {
@@ -1089,17 +1089,28 @@ int handle_queryidmapinfo(void *daemon_context,
     snprintf_len = snprintf(outbuffer, outbuffersize,
         "(\n"
         "\tnfspath='%s'\n"
-        "\tfattr4_owner='%s'\n"
-        "\tfattr4_owner_group='%s'\n"
-        "\tidmapconfigname='%s'\n"
-        "\tlocalusername='%s'\n"
-        "\tlocalgroupname='%s'\n"
-        "\tlocaluid=%ld\n"
-        "\tlocalgid=%ld\n"
-        "\tnfsuid=%ld\n"
-        "\tnfsgid=%ld\n"
+        "\tfattr4=(\n"
+        "\t\tfileid=0x%llx\n"
+        "\t\tfsid=( major=0x%llx minor=0x%llx )\n"
+        "\t\towner='%s'\n"
+        "\t\towner_group='%s'\n"
+        "\t)\n"
+        "\tidmapdata=(\n"
+        "\t\tidmapconfigname='%s'\n"
+        "\t\tlocalusername='%s'\n"
+        "\t\tlocalgroupname='%s'\n"
+        "\t\tlocaluid=%ld\n"
+        "\t\tlocalgid=%ld\n"
+        "\t\tnfsusername='%s'\n"
+        "\t\tnfsgroupname='%s'\n"
+        "\t\tnfsuid=%ld\n"
+        "\t\tnfsgid=%ld\n"
+        "\t)\n"
         ")\n",
         state->path.path,
+        (long long)info.fileid,
+        (long long)info.fsid.major,
+        (long long)info.fsid.minor,
         info.owner,
         info.owner_group,
         idmapper->config.configname,
@@ -1107,6 +1118,8 @@ int handle_queryidmapinfo(void *daemon_context,
         ((owner_group_ie != NULL)?owner_group_ie->win32name.buf:"<NULL>"),
         ((owner_ie != NULL)?(long)owner_ie->localid:-1L),
         ((owner_group_ie != NULL)?(long)owner_group_ie->localid:-1L),
+        ((owner_ie != NULL)?owner_ie->nfsname.buf:"<NULL>"),
+        ((owner_group_ie != NULL)?owner_group_ie->nfsname.buf:"<NULL>"),
         ((owner_ie != NULL)?(long)owner_ie->nfsid:-1L),
         ((owner_group_ie != NULL)?(long)owner_group_ie->nfsid:-1L));
 
