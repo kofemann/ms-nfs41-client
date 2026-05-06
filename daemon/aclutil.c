@@ -68,15 +68,22 @@ int check_4_special_nfs4_identifiers(const char *restrict who,
     /*
      * Compare |who| against known constant strings defined in the
      * NFSv4.1 RFC.
-     * Note that |ACE4_NOBODY| does not have a '@
+     * Note that |ACE4_NOBODY| does not have a '@', but some
+     * NFS servers (like FreeBSD 16) send "nobody@<domain>" instead
+     * of "nobody"(=|ACE4_NOBODY|). NFS servers can also send "65534"
      */
+#define IS_ACE4_NOBODY(nfsname) \
+    ((strcmp((nfsname), ACE4_NOBODY) == 0) || \
+    (strncmp((nfsname), (ACE4_NOBODY "@"), ACE4_NOBODY_LEN+1) == 0) || \
+    (strcmp((nfsname), "65534") == 0))
+
     if (strcmp(who, ACE4_OWNER) == 0)
         type = WinCreatorOwnerSid;
     else if (strcmp(who, ACE4_GROUP) == 0)
         type = WinCreatorGroupSid;
     else if (strcmp(who, ACE4_EVERYONE) == 0)
         type = WinWorldSid;
-    else if (strcmp(who, ACE4_NOBODY) == 0)
+    else if (IS_ACE4_NOBODY(who))
         type = WinNullSid;
     else
         *flag = false;
@@ -233,8 +240,7 @@ int convert_nfs4acl_2_dacl(
          * only supports POSIX ACLs translated to NFSv4 ACLs, which
          * corrupts the Cygwin data.
          */
-        if ((strcmp(curr_nfsace->who, ACE4_NOBODY) == 0) ||
-            ((strcmp(curr_nfsace->who, "65534") == 0))) {
+        if (IS_ACE4_NOBODY(curr_nfsace->who)) {
             DPRINTF(ACLLVL3, ("Skipping 'nobody' ACE, "
                 "win_i=%d nfs_i=%d\n", (int)win_i, (int)nfs_i));
             skip_aces[nfs_i] = true;
@@ -409,7 +415,12 @@ out_free_sids:
     goto out;
 }
 
-static int is_well_known_sid(PSID sid, char *who, SID_NAME_USE *snu_out)
+static
+bool is_well_known_sid(
+    IN PSID sid,
+    OUT char *who,
+    OUT SID_NAME_USE *snu_out,
+    OUT WELL_KNOWN_SID_TYPE *wkst_out)
 {
     const WELL_KNOWN_SID_TYPE test_types[] = {
         WinCreatorOwnerSid,
@@ -454,53 +465,55 @@ static int is_well_known_sid(PSID sid, char *who, SID_NAME_USE *snu_out)
             continue;
         }
 
+        *wkst_out = tt;
+
         DPRINTF(ACLLVL3, ("WELL_KNOWN_SID_TYPE=%d\n", (int)tt));
         switch(tt) {
             case WinCreatorOwnerSid:
                 (void)memcpy(who, ACE4_OWNER, ACE4_OWNER_LEN+1);
                 *snu_out = SidTypeUser;
-                return TRUE;
+                return true;
             case WinCreatorGroupSid:
                 (void)memcpy(who, ACE4_GROUP, ACE4_GROUP_LEN+1);
                 *snu_out = SidTypeGroup;
-                return TRUE;
+                return true;
             case WinNullSid:
                 (void)memcpy(who, ACE4_NOBODY, ACE4_NOBODY_LEN+1);
                 *snu_out = SidTypeUser;
-                return TRUE;
+                return true;
             case WinAnonymousSid:
                 (void)memcpy(who, ACE4_ANONYMOUS, ACE4_ANONYMOUS_LEN+1);
-                return TRUE;
+                return true;
             case WinWorldSid:
                 (void)memcpy(who, ACE4_EVERYONE, ACE4_EVERYONE_LEN+1);
                 *snu_out = SidTypeGroup;
-                return TRUE;
+                return true;
             case WinAuthenticatedUserSid:
                 (void)memcpy(who, ACE4_AUTHENTICATED, ACE4_AUTHENTICATED_LEN+1);
-                return TRUE;
+                return true;
             case WinDialupSid:
                 (void)memcpy(who, ACE4_DIALUP, ACE4_DIALUP_LEN+1);
-                return TRUE;
+                return true;
             case WinNetworkSid:
                 (void)memcpy(who, ACE4_NETWORK, ACE4_NETWORK_LEN+1);
-                return TRUE;
+                return true;
             case WinBatchSid:
                 (void)memcpy(who, ACE4_BATCH, ACE4_BATCH_LEN+1);
-                return TRUE;
+                return true;
             case WinInteractiveSid:
                 (void)memcpy(who, ACE4_INTERACTIVE, ACE4_INTERACTIVE_LEN+1);
-                return TRUE;
+                return true;
             case WinNetworkServiceSid:
             case WinLocalServiceSid:
             case WinServiceSid:
                 (void)memcpy(who, ACE4_SERVICE, ACE4_SERVICE_LEN+1);
-                return TRUE;
+                return true;
             default:
                 eprintf("is_well_known_sid: unknown tt=%d\n", (int)tt);
-                return FALSE;
+                return false;
         }
     }
-    return FALSE;
+    return false;
 }
 
 static void map_winace2nfs4aceflags(BYTE win_aceflags, uint32_t *nfs4_aceflags)
@@ -846,6 +859,7 @@ int map_sid2nfs4ace_who(
     int status;
     BOOL success;
     SID_NAME_USE sid_type = 0;
+    WELL_KNOWN_SID_TYPE sid_wkst = 0;
     /* |who_buf| needs space for user+domain */
     char who_buf[UTF8_PRINCIPALLEN+1];
     DWORD who_size = sizeof(who_buf);
@@ -895,9 +909,10 @@ int map_sid2nfs4ace_who(
         }
     }
 
-    success = is_well_known_sid(sid, who_out, &sid_type);
+    success = is_well_known_sid(sid, who_out, &sid_type, &sid_wkst);
     if (success) {
-        if (!strncmp(who_out, ACE4_NOBODY, ACE4_NOBODY_LEN)) {
+        /* What about "Unix_Group+65534" ? */
+        if (sid_wkst == WinNullSid) {
             who_size = (DWORD)ACE4_NOBODY_LEN;
             DPRINTF(0, ("map_sid2nfs4ace_who: mapping for nobody\n"));
             goto do_idmap_name;
