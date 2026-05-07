@@ -216,7 +216,8 @@ parse_varname:
 	}
 
 	n = namebuff;
-	while((*s != '\0') && isalnum(*s))
+	/* Variable name, characters are alnum+'_' */
+	while((*s != '\0') && (isalnum(*s) || (*s == '_')))
 		*n++ = *s++;
 	*n = '\0';
 
