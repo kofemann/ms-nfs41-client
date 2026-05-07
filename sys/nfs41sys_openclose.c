@@ -1438,15 +1438,15 @@ NTSTATUS nfs41_ShouldTryToCollapseThisOpen(
      * |pg_sidbuff| - Note that buffers with SID values must be 16byte
      * aligned on Windows 10/32bit
      */
-#if defined(_MSC_BUILD)
-    /* Visual Studio */
-    __declspec(align(16)) char pg_sidbuff[MAX_SID_BUFFER_SIZE];
-#elif defined(__clang__)
+#if defined(__clang__)
     /* clang */
     char pg_sidbuff[MAX_SID_BUFFER_SIZE] __attribute__((aligned(16)));
+#elif defined(_MSC_VER)
+    /* Visual Studio */
+    __declspec(align(16)) char pg_sidbuff[MAX_SID_BUFFER_SIZE];
 #else
 #error Compiler not supported yet
-#endif /* |_MSC_BUILD| */
+#endif /* |_MSC_VER| */
     PSID pg_sid = (PSID)&pg_sidbuff[0];
 
     (void)get_primarygroup_id(pg_sid);

@@ -34,7 +34,10 @@
 /*
  * Force inlining of |memcpy()| for up-/downcall buffers
  */
-#if defined(_MSC_BUILD)
+#if defined(__clang__)
+#define UPCALLUTIL_MEMCPY(dst, src, len) \
+    (void)__builtin_memcpy((dst), (src), (len))
+#elif defined(_MSC_VER)
 #if defined(_M_IX86) || defined(_M_X64)
 #pragma intrinsic(__movsb)
 #define UPCALLUTIL_MEMCPY(dst, src, len) \
@@ -46,9 +49,6 @@
 #else
 #error Unsupported architecture
 #endif
-#elif defined(__clang__)
-#define UPCALLUTIL_MEMCPY(dst, src, len) \
-    (void)memcpy((dst), (src), (len))
 #else
 #error Compiler not supported yet
 #endif

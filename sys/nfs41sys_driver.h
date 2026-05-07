@@ -41,7 +41,10 @@ typedef enum _nfs41_opcodes nfs41_opcodes;
 /*
  * Force inlining of |memcpy()| for up-/downcall buffers
  */
-#if defined(_MSC_BUILD)
+#if defined(__clang__)
+#define UPDOWNCALL_MEMCPY(dst, src, len) \
+    (void)__builtin_memcpy((dst), (src), (len))
+#elif defined(_MSC_VER)
 #if defined(_M_IX86) || defined(_M_X64)
 #pragma intrinsic(__movsb)
 #define UPDOWNCALL_MEMCPY(dst, src, len) \
@@ -53,9 +56,6 @@ typedef enum _nfs41_opcodes nfs41_opcodes;
 #else
 #error Unsupported architecture
 #endif
-#elif defined(__clang__)
-#define UPDOWNCALL_MEMCPY(dst, src, len) \
-    (void)memcpy((dst), (src), (len))
 #else
 #error Compiler not supported yet
 #endif
@@ -559,7 +559,7 @@ typedef struct _NFS41_SRV_OPEN {
      * |open_pg_sidbuff| - Note that buffers with SID values must be 16byte
      * aligned on Windows 10/32bit
      */
-#if defined(_MSC_BUILD)
+#if defined(_MSC_VER)
     /* Visual Studio */
     __declspec(align(16)) char open_pg_sidbuff[MAX_SID_BUFFER_SIZE];
 #elif defined(__clang__)
@@ -567,7 +567,7 @@ typedef struct _NFS41_SRV_OPEN {
     char open_pg_sidbuff[MAX_SID_BUFFER_SIZE] __attribute__((aligned(16)));
 #else
 #error Compiler not supported yet
-#endif /* |_MSC_BUILD| */
+#endif /* |_MSC_VER| */
 
     /* |open_pg_sid| - PrimaryGroup SID used for opening this NFS handle */
     PSID            open_pg_sid;
