@@ -559,6 +559,8 @@ function load_idmap_config
 				# - Different NFS servers might use different names for the same group
 				# (e.g. SAMBA vs. kernel CIFS server)
 				typeset -r servertype='linux'
+
+				typeset -i cache_ttl=$((60*5))
 			)
 
 			setup_windows_builtin_accounts c
@@ -582,6 +584,8 @@ function load_idmap_config
 				# - Different NFS servers might use different names for the same group
 				# (e.g. SAMBA vs. kernel CIFS server)
 				typeset -r servertype='linux'
+
+				typeset -i cache_ttl=$((60*5))
 			)
 
 			setup_windows_builtin_accounts c
@@ -787,11 +791,6 @@ function dispatch_lookup
 	typeset s
 	typeset stdout
 
-	if (( $# != 3 )) ; then
-		print -u2 -f "%0: Requires 3 arguments\n" "$0"
-		return 1
-	fi
-
 	#
 	# context variables for lookups
 	# (stored in compound variable so we
@@ -802,10 +801,13 @@ function dispatch_lookup
 		compound -A localgroups
 		mode="$1"
 		idmapconfigname="$2"
+	)
+
+	if (( $# >= 3 )) ; then
 		# strip '"' characters (for Cygwin 3.3 compatibility)
 		# note that "${2-//..." does NOT work!
-		name="${3//\"/}"
-	)
+		typeset c.name="${3//\"/}"
+	fi
 
 	if [[ ! -v COMPUTERNAME ]] ; then
 		printf -u2 -f $"ERROR: COMPUTERNAME var not set\n"
@@ -813,9 +815,13 @@ function dispatch_lookup
 		return 1
 	fi
 
-	load_idmap_config c "${c.idmapconfigname}"
+	load_idmap_config c "${c.idmapconfigname}" || return 1
 
 	case "${c.mode}" in
+		'print_idmapconfig')
+			print -v c.idmap_config
+			return 0
+			;;
 		'lookup_user_by_localname')
 			#
 			# Try static info
@@ -1131,7 +1137,7 @@ function main_dispatch
 	typeset mode="${1}"
 
 	case "${mode}" in
-		'lookup_'*)
+		'lookup_'* | 'print_idmapconfig')
 			dispatch_lookup "$@"
 			return $?
 			;;

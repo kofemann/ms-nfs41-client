@@ -39,8 +39,10 @@ int nfs41_idmap_map_nfsserverspec2idmappercfgname(
     IN unsigned short port,
     IN bool ispubnfs,
     OUT char *restrict res_idmappercfgname);
+int nfs41_idmap_get_idmapconfig(
+    IN const char *restrict idmappercfgname,
+    OUT int *restrict res_cache_ttl);
 
-#define IDMAPCACHE_TTL_SECONDS (60*5)
 #define IDMAPCACHE_MAXNAME_LEN 256
 
 /*
@@ -71,7 +73,7 @@ typedef struct _idmapcache_entry {
 
 typedef struct _idmapcache_context idmapcache_context;
 
-idmapcache_context *idmapcache_context_create(void);
+idmapcache_context *idmapcache_context_create(int cache_ttl);
 void idmapcache_context_destroy(idmapcache_context *restrict ctx);
 idmapcache_entry *idmapcache_add(idmapcache_context *restrict ctx,
     const char *restrict win32name,
@@ -101,9 +103,9 @@ enum nfsserver_acl_capabilities {
 struct idmap_config {
     char configname[256];
 
-    UINT timeout;
-
+    int cache_ttl;
     bool use_numeric_uidgid;
+
     /*
      * |acl_capabilities| - There is no way to detect whether the filesystem
      * exported by the NFS server supports full NFSv4/ZFS ACLs, or only the
@@ -121,9 +123,6 @@ struct idmap_config {
     idmapcache_idnumber default_nfs_gid;
     idmapcache_idnumber default_local_uid;
     idmapcache_idnumber default_local_gid;
-
-    /* caching configuration */
-    INT cache_ttl;
 };
 
 struct idmap_context {

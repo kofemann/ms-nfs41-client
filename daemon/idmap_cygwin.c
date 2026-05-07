@@ -669,6 +669,129 @@ fail:
 
     return res;
 }
+
+static
+int cygwin_get_idmapconfig(
+    IN const char *restrict idmappercfgname,
+    OUT int *restrict res_cache_ttl)
+{
+    char cmdbuff[1024];
+    char buff[2048];
+    DWORD num_buff_read;
+    subcmd_popen_context *script_pipe = NULL;
+    int res = 1;
+    void *cpvp = NULL;
+    int numcnv = 0;
+    int i = 0;
+    cpv_name_val cnv[64] = { 0 };
+    cpv_name_val *cnv_cur = NULL;
+
+    DPRINTF(CYGWINIDLVL,
+        ("--> cygwin_get_idmapconfig(idmappercfgname='%s')\n",
+        idmappercfgname));
+
+    if (idmappercfgname[0] == '\0') {
+        DPRINTF(0,
+            ("cygwin_get_idmapconfig(idmappercfgname='%s'): "
+            "ERROR: Empty idmappercfgname.\n",
+            idmappercfgname));
+        goto fail;
+    }
+
+    /* fixme: better quoting for |idmappercfgname| needed */
+    (void)snprintf(cmdbuff, sizeof(cmdbuff),
+        "%s \"%s\" \"%s\"",
+        CYGWIN_IDMAPPER_SCRIPT,
+        "print_idmapconfig",
+        idmappercfgname);
+    if ((script_pipe = subcmd_popen(cmdbuff)) == NULL) {
+        int last_error = GetLastError();
+        DPRINTF(0,
+            ("cygwin_get_idmapconfig(idmappercfgname='%s'): "
+            "'%s' failed, GetLastError()='%d'\n",
+            idmappercfgname,
+            cmdbuff,
+            last_error));
+        goto fail;
+    }
+
+    if (!subcmd_readcmdoutput(script_pipe,
+        buff, sizeof(buff), &num_buff_read)) {
+        DPRINTF(0,
+            ("cygwin_get_idmapconfig(idmappercfgname='%s'): "
+            "subcmd_readcmdoutput() failed\n",
+            idmappercfgname));
+        goto fail;
+    }
+
+    buff[num_buff_read] = '\0';
+
+    if (num_buff_read < 10) {
+        DPRINTF(0,
+            ("cygwin_get_idmapconfig(idmappercfgname='%s'): "
+            "Could not read enough data, returned %d\n",
+            idmappercfgname, (int)num_buff_read));
+        goto fail;
+    }
+
+    cpvp = cpv_create_parser(buff, 0/*CPVFLAG_DEBUG_OUTPUT*/);
+    if (!cpvp) {
+        DPRINTF(0,
+            ("cygwin_get_idmapconfig(idmappercfgname='%s'): "
+            "Could not create parser\n",
+            idmappercfgname));
+        goto fail;
+    }
+
+    if (cpv_read_cpv_header(cpvp)) {
+        DPRINTF(0,
+            ("cygwin_get_idmapconfig(idmappercfgname='%s'): "
+            "cpv_read_cpv_header failed\n",
+            idmappercfgname));
+        goto fail;
+    }
+
+    /* Loop parsing compound variable elements */
+    for (numcnv=0 ;
+        (cpv_parse_name_val(cpvp, &cnv[numcnv]) == 0) && (numcnv < 64) ;
+        numcnv++) {
+    }
+
+    for (i=0 ; i < numcnv ; i++) {
+        cnv_cur = &cnv[i];
+
+        if (!strcmp("cache_ttl", cnv_cur->cpv_name)) {
+            *res_cache_ttl = atoi(cnv_cur->cpv_value);
+        }
+    }
+
+    res = 0;
+fail:
+    if (script_pipe)
+        (void)subcmd_pclose(script_pipe);
+
+    for (i=0 ; i < numcnv ; i++) {
+        cpv_free_name_val_data(&cnv[i]);
+    }
+
+    cpv_free_parser(cpvp);
+
+    if (res == 0) {
+        DPRINTF(CYGWINIDLVL,
+            ("<-- cygwin_get_idmapconfig(idmappercfgname='%s'): "
+            "returning *res_cache_ttl=%d\n",
+            idmappercfgname,
+            ((res_cache_ttl != NULL)?*res_cache_ttl:-1)));
+    }
+    else {
+        DPRINTF(CYGWINIDLVL,
+            ("<-- cygwin_get_idmapconfig(idmappercfgname='%s'): "
+            "no match found\n",
+            idmappercfgname));
+    }
+
+    return res;
+}
 #endif /* NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN */
 
 int nfs41_idmap_map_nfsserverspec2idmappercfgname(
@@ -679,6 +802,13 @@ int nfs41_idmap_map_nfsserverspec2idmappercfgname(
 {
     return cygwin_map_nfsserverspec2idmappercfgname(hostname, port, ispubnfs,
         res_idmappercfgname);
+}
+
+int nfs41_idmap_get_idmapconfig(
+    IN const char *restrict idmappercfgname,
+    OUT int *restrict res_cache_ttl)
+{
+    return cygwin_get_idmapconfig(idmappercfgname, res_cache_ttl);
 }
 
 /*
@@ -697,8 +827,9 @@ struct idmapcache_node {
 LIST_HEAD(idmapcache_head, idmapcache_node);
 
 typedef struct _idmapcache_context {
-    struct idmapcache_head head;
+    int cache_ttl;
     SRWLOCK lock;
+    struct idmapcache_head head;
 } idmapcache_context;
 
 typedef bool (*idmapcache_cmp_fn)(const struct idmapcache_node *restrict entry, const void *restrict search_val);
@@ -765,7 +896,7 @@ idmapcache_entry *idmapcache_lookup(idmapcache_context *restrict ctx,
     current_time = UTIL_GETRELTIME();
 
     LIST_FOREACH(node, &ctx->head, list_node) {
-        if ((current_time - node->entry.last_updated) > IDMAPCACHE_TTL_SECONDS)
+        if ((current_time - node->entry.last_updated) > ctx->cache_ttl)
             continue;
 
         if (cmp(node, search_val)) {
@@ -792,20 +923,22 @@ void cleanup_expired_entries(idmapcache_context *restrict ctx, util_reltimestamp
         reltime_diff =
             UTIL_DIFFRELTIME(current_time, node->entry.last_updated);
 
-        if (reltime_diff > IDMAPCACHE_TTL_SECONDS) {
+        if (reltime_diff > ctx->cache_ttl) {
             LIST_REMOVE(node, list_node);
             idmapcache_entry_refcount_dec(&node->entry);
         }
     }
 }
 
-idmapcache_context *idmapcache_context_create(void)
+idmapcache_context *idmapcache_context_create(int cache_ttl)
 {
     idmapcache_context *ctx = malloc(sizeof(struct _idmapcache_context));
     if (ctx == NULL)
         return NULL;
 
     (void)memset(ctx, 0, sizeof(*ctx));
+
+    ctx->cache_ttl = cache_ttl;
     InitializeSRWLock(&ctx->lock);
     LIST_INIT(&ctx->head);
 
@@ -1564,6 +1697,7 @@ int nfs41_idmap_create(
 {
     struct idmap_context *context;
     int status = NO_ERROR;
+    int cache_ttl = -1;
 
     context = calloc(1, sizeof(struct idmap_context));
     if (context == NULL) {
@@ -1573,17 +1707,34 @@ int nfs41_idmap_create(
 
     (void)strcpy(context->config.configname, configname);
 
-    /*
-     * These should really be per idmapper-config settings
-     */
+    if (nfs41_idmap_get_idmapconfig(context->config.configname, &cache_ttl)) {
+        eprintf("nfs41_idmap_create: Cannot load idmap config '%s'\n",
+            context->config.configname);
+        status = GetLastError();
+        goto out;
+    }
+
+    if ((cache_ttl < 5) || (cache_ttl > (30*60))) {
+        eprintf("nfs41_idmap_create(configname='%s'): "
+            "Invalid cache_ttl=%d value, must be "
+            "(cache_ttl > 5) && (cache_ttl <= 30*60)\n",
+            context->config.configname, cache_ttl);
+        status = ERROR_INVALID_PARAMETER;
+    }
+
+    if (status != NO_ERROR) {
+        goto out;
+    }
+
     context->config.use_numeric_uidgid = false;
+
     /*
      * |get_superblock_attrs()| will turn |NFSSRVACLCAPS_AUTO| into
      * either |NFSSRVACLCAPS_FULL_ACL4_SUPPORT| or
      * |NFSSRVACLCAPS_USE_LINUX_ACL_WORKAROUNDS|
      */
     context->config.acl_capabilities = NFSSRVACLCAPS_AUTO;
-    context->config.timeout = 6000;
+    context->config.cache_ttl = cache_ttl;
 
     /*
      * Defaults for nobody/nogroup
@@ -1594,12 +1745,21 @@ int nfs41_idmap_create(
     context->config.default_local_uid = NFS_USER_NOBODY_UID;
     context->config.default_local_gid = NFS_GROUP_NOGROUP_GID;
 
+    DPRINTF(0,
+        ("nfs41_idmap_create(configname='%s'): "
+        "config=(use_numeric_uidgid=%d acl_capabilities=%d cache_ttl=%d)\n",
+        context->config.configname,
+        (int)context->config.use_numeric_uidgid,
+        (int)context->config.acl_capabilities,
+        context->config.cache_ttl));
+
     /* initialize the caches */
-    context->usercache = idmapcache_context_create();
-    context->groupcache = idmapcache_context_create();
+    context->usercache = idmapcache_context_create(context->config.cache_ttl);
+    context->groupcache = idmapcache_context_create(context->config.cache_ttl);
 
     if ((context->usercache == NULL) || (context->groupcache == NULL)) {
-        eprintf("nfs41_idmap_create: Cannot create idmapcache\n");
+        eprintf("nfs41_idmap_create(configname='%s'): "
+            "Cannot create idmapcache\n", context->config.configname);
         goto out_err_free;
     }
 
@@ -1613,14 +1773,15 @@ int nfs41_idmap_create(
     context->well_known_lgrouplist =
         build_well_known_localised_nfs_grouplist(context);
     if (context->well_known_lgrouplist == NULL) {
-        eprintf("nfs41_idmap_create: "
-            "build_well_known_localised_nfs_grouplist() failed\n");
+        eprintf("nfs41_idmap_create(configname='%s'): "
+            "build_well_known_localised_nfs_grouplist() failed\n",
+            context->config.configname);
         goto out_err_free;
     }
 
     DPRINTF(0,
-        ("nfs41_idmap_create: well_known_lgrouplist='%s'\n",
-        context->well_known_lgrouplist));
+        ("nfs41_idmap_create(configname='%s'): well_known_lgrouplist='%s'\n",
+        context->config.configname, context->well_known_lgrouplist));
 
     *context_out = context;
 
