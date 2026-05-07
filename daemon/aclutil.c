@@ -159,7 +159,9 @@ char *build_well_known_localised_nfs_grouplist(struct idmap_context *context)
         WinBuiltinAdministratorsSid,
         WinWorldSid,
         WinCreatorGroupSid,
+#ifndef NFS41_DRIVER_ACLS_SETACL_SKIP_WINNULLSID_ACES
         WinNullSid
+#endif /* NFS41_DRIVER_ACLS_SETACL_SKIP_WINNULLSID_ACES */
     };
 
     const size_t num_sids = sizeof(group_sids) / sizeof(group_sids[0]);
