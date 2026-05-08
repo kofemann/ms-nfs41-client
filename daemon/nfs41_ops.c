@@ -1400,7 +1400,18 @@ int nfs41_superblock_getattr(
         *supports_named_attrs = 0;
         status = NFS4_OK;
         break;
-
+#ifdef WORKAROUND_FOR_FREEBSD_NAMEDATTRSUPPORT_DETECTION_NFS4ERR_NOFILEHANDLE
+    case NFS4ERR_NOFILEHANDLE:
+        /*
+         * FreeBSD 16.0 *sometimes* returns |NFS4ERR_NOFILEHANDLE| for an
+         * exported ZFS filesystem with xattr=dir.
+         */
+        eprintf("nfs41_superblock_getattr: "
+            "Unexpected NFS error NFS4ERR_NOFILEHANDLE while probing "
+            "named attr support, assuming FS supports NFS named attributes\n",
+            nfs_error_string(status));
+        /* fall-through */
+#endif /* WORKAROUND_FOR_FREEBSD_NAMEDATTRSUPPORT_DETECTION_NFS4ERR_NOFILEHANDLE */
     case NFS4ERR_NOENT:
     case NFS4_OK:
         *supports_named_attrs = 1;

@@ -303,6 +303,13 @@
 #define WORKAROUND_FOR_FREEBSD_CREATIONFAILSWITHEPERM_BUGS_292283_293691 1
 
 /*
+ * |WORKAROUND_FOR_FREEBSD_NAMEDATTRSUPPORT_DETECTION_NFS4ERR_NOFILEHANDLE| -
+ * workaround for the issue that FreeBSD 16.0 nfsd *sporadically* returns
+ * |NFS4ERR_NOFILEHANDLE| when probing NFSv4 named attribute support.
+ */
+#define WORKAROUND_FOR_FREEBSD_NAMEDATTRSUPPORT_DETECTION_NFS4ERR_NOFILEHANDLE 1
+
+/*
  * |NFS41_DRIVER_STOMP_CYGWIN_SILLYRENAME_INVALID_UTF16_SEQUENCE_SUPPORT| -
  * support for stomping old+new Cygwin+MSYS2 "silly rename" invalid
  * Unicode sequences
