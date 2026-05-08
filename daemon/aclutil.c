@@ -147,9 +147,6 @@ char *get_account_from_sid(
 
 char *build_well_known_localised_nfs_grouplist(struct idmap_context *context)
 {
-    /* fixme: This should be a function argument */
-    extern nfs41_daemon_globals nfs41_dg;
-
     char *joined_str = NULL;
     char principal_buf[UTF8_PRINCIPALLEN+1];
 
@@ -866,9 +863,6 @@ int map_sid2nfs4ace_who(
     char who_buf[UTF8_PRINCIPALLEN+1];
     DWORD who_size = sizeof(who_buf);
     LPSTR sidstr = NULL;
-
-    /* fixme: This should be a function argument */
-    extern nfs41_daemon_globals nfs41_dg;
 
     DPRINTF(ACLLVL2, ("--> map_sid2nfs4ace_who("
         "sid=0x%p,owner_sid=0x%p, group_sid=0x%p)\n",

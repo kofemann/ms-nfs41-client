@@ -107,9 +107,6 @@ int map_current_user_to_ids(IN OUT struct idmap_context *idmapper,
     idmapcache_entry *user_ie = NULL;
     idmapcache_entry *group_ie = NULL;
 
-    /* fixme: This should be a function argument */
-    extern nfs41_daemon_globals nfs41_dg;
-
     if (!get_token_user_name(impersonation_tok, username)) {
         status = GetLastError();
         eprintf("map_current_user_to_ids: "

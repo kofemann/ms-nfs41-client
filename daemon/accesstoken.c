@@ -139,9 +139,6 @@ bool fill_auth_unix_aup_gids(
     int i;
     int num_groups;
 
-    /* fixme: This should be a function argument */
-    extern nfs41_daemon_globals nfs41_dg;
-
     /*
      * VS2019 |_alloca()| cannot be used in a loop, so we use multiple
      * pointers into one buffer instead
