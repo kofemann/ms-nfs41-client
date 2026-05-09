@@ -415,4 +415,17 @@
  */
 #define NFS41_DRIVER_MARK_OVERWRITTEN_LINKRENAME_DST_PATH_SRVOPEN_AS_STALE 1
 
+/*
+ * |NFS41_DRIVER_MAP_POSIXUNLINKRENAMECLASSES_HACK| - hack to
+ * map |FileDispositionInformationEx|, |FileRenameInformationEx|,
+ * |FileLinkInformationEx| to their non-|*Ex| counterparts,
+ * because rdbss.lib (currently) rejects them all as not supported classes
+ * before calling our driver code.
+ *
+ * This hack os DISABLED by default, and should only be used for
+ * testing/diagnostics
+ *
+ * #define NFS41_DRIVER_MAP_POSIXUNLINKRENAMECLASSES_HACK 1
+ */
+
 #endif /* !_NFS41_DRIVER_BUILDFEATURES_ */

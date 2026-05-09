@@ -356,6 +356,10 @@ void nfs41_superblock_fs_attributes(
     /* We support |FileCaseSensitiveInformation| to query each dir */
     FsAttrs->FileSystemAttributes |= FILE_SUPPORTS_CASE_SENSITIVE_DIRS;
 
+#ifdef NFS41_DRIVER_MAP_POSIXUNLINKRENAMECLASSES_HACK
+    FsAttrs->FileSystemAttributes |= FILE_SUPPORTS_POSIX_UNLINK_RENAME;
+#endif /* NFS41_DRIVER_MAP_POSIXUNLINKRENAMECLASSES_HACK */
+
     if (superblock->link_support)
         FsAttrs->FileSystemAttributes |= FILE_SUPPORTS_HARD_LINKS;
     if (superblock->symlink_support)

@@ -1219,12 +1219,106 @@ NTSTATUS nfs41_CompleteBufferingStateChangeRequest(
     return STATUS_SUCCESS;
 }
 
+#ifdef NFS41_DRIVER_MAP_POSIXUNLINKRENAMECLASSES_HACK
+NTSTATUS PosixClassesRxFsdDispatchWrapper(
+    IN PRDBSS_DEVICE_OBJECT RxDeviceObject,
+    IN OUT PIRP Irp)
+{
+    PIO_STACK_LOCATION irpSp = IoGetCurrentIrpStackLocation(Irp);
+
+    if (irpSp->MajorFunction == IRP_MJ_SET_INFORMATION) {
+        FILE_INFORMATION_CLASS infoClass = irpSp->Parameters.SetFile.FileInformationClass;
+        PVOID buffer = Irp->AssociatedIrp.SystemBuffer;
+        ULONG bufferLen = irpSp->Parameters.SetFile.Length;
+
+        if (buffer == NULL)
+            goto out;
+
+        /*
+         * Translate { FileRenameInformationEx, FileLinkInformationEx,
+         * FileLinkInformationEx } to their non-|*Ex| counterparts,
+         * because (currently) rdbss.lib rejects these classes even before
+         * calling our code.
+         *
+         * Directly mutating the buffer data here is a horrible hack, and
+         * is only "safe" because the kernel copied the data into it's own
+         * buffers.
+         */
+        if (infoClass == FileRenameInformationEx) {
+            if (bufferLen < (ULONG)FIELD_OFFSET(FILE_RENAME_INFORMATION, FileName)) {
+                Irp->IoStatus.Status = STATUS_INFO_LENGTH_MISMATCH;
+                Irp->IoStatus.Information = 0;
+                IoCompleteRequest(Irp, IO_NFS41FS_INCREMENT);
+                return STATUS_INFO_LENGTH_MISMATCH;
+            }
+
+            ULONG exFlags = *((PULONG)buffer);
+            *((PULONG)buffer) = 0UL;
+
+            *((PBOOLEAN)buffer) = (exFlags & FILE_RENAME_REPLACE_IF_EXISTS)?TRUE:FALSE;
+            irpSp->Parameters.SetFile.FileInformationClass = FileRenameInformation;
+
+            DbgP("PosixClassesRxFsdDispatchWrapper: Hack: "
+                "Mapping FileRenameInformationEx(Flags=0x%lx) to "
+                "FileRenameInformation\n",
+                (long)exFlags);
+        }
+        else if (infoClass == FileLinkInformationEx) {
+            if (bufferLen < (ULONG)FIELD_OFFSET(FILE_LINK_INFORMATION, FileName)) {
+                Irp->IoStatus.Status = STATUS_INFO_LENGTH_MISMATCH;
+                Irp->IoStatus.Information = 0;
+                IoCompleteRequest(Irp, IO_NFS41FS_INCREMENT);
+                return STATUS_INFO_LENGTH_MISMATCH;
+            }
+
+            ULONG exFlags = *((PULONG)buffer);
+            *((PULONG)buffer) = 0UL;
+
+            *((PBOOLEAN)buffer) = (exFlags & FILE_LINK_REPLACE_IF_EXISTS)?TRUE:FALSE;
+            irpSp->Parameters.SetFile.FileInformationClass = FileLinkInformation;
+
+            DbgP("PosixClassesRxFsdDispatchWrapper: Hack: "
+                "Mapping FileLinkInformationEx(Flags=0x%lx) to "
+                "FileLinkInformation\n",
+                (long)exFlags);
+        }
+        else if (infoClass == FileDispositionInformationEx) {
+            if (bufferLen < sizeof(FILE_DISPOSITION_INFORMATION_EX)) {
+                Irp->IoStatus.Status = STATUS_INFO_LENGTH_MISMATCH;
+                Irp->IoStatus.Information = 0;
+                IoCompleteRequest(Irp, IO_NFS41FS_INCREMENT);
+                return STATUS_INFO_LENGTH_MISMATCH;
+            }
+
+            ULONG exFlags = *((PULONG)buffer);
+            *((PULONG)buffer) = 0UL;
+
+            *((PBOOLEAN)buffer) = (exFlags & FILE_DISPOSITION_DELETE)?TRUE:FALSE;
+            irpSp->Parameters.SetFile.FileInformationClass = FileDispositionInformation;
+
+            /* Adjust the request length to match |FileDispositionInformation| */
+            irpSp->Parameters.SetFile.Length = sizeof(FILE_DISPOSITION_INFORMATION);
+
+            DbgP("PosixClassesRxFsdDispatchWrapper: Hack: "
+                "Mapping FileDispositionInformationEx(Flags=0x%lx) to "
+                "FileDispositionInformation\n",
+                (long)exFlags);
+        }
+    }
+
+out:
+    return RxFsdDispatch(RxDeviceObject, Irp);
+}
+#endif /* NFS41_DRIVER_MAP_POSIXUNLINKRENAMECLASSES_HACK */
+
 /* |nfs41_FsdDispatch()| - must be public symbol */
 NTSTATUS nfs41_FsdDispatch(
     IN PDEVICE_OBJECT dev,
     IN PIRP Irp)
 {
-#if defined(DEBUG_FSDDISPATCH) || defined(DEBUG_WARN_POSIXUNLINKRENAME_CLASSES)
+#if defined(DEBUG_FSDDISPATCH) || \
+    (defined(DEBUG_WARN_POSIXUNLINKRENAME_CLASSES) && \
+        !defined(NFS41_DRIVER_MAP_POSIXUNLINKRENAMECLASSES_HACK))
     PIO_STACK_LOCATION IrpSp = IoGetCurrentIrpStackLocation(Irp);
 #endif /* defined(DEBUG_FSDDISPATCH) || defined(DEBUG_WARN_POSIXUNLINKRENAME_CLASSES) */
     NTSTATUS status;
@@ -1246,6 +1340,10 @@ NTSTATUS nfs41_FsdDispatch(
         goto out;
     }
 
+#ifdef NFS41_DRIVER_MAP_POSIXUNLINKRENAMECLASSES_HACK
+    status = PosixClassesRxFsdDispatchWrapper((PRDBSS_DEVICE_OBJECT)dev,Irp);
+    /* AGLO: 08/05/2009 - looks like RxFsdDispatch frees IrpSp */
+#else
 #ifdef DEBUG_WARN_POSIXUNLINKRENAME_CLASSES
     if (IrpSp->MajorFunction == IRP_MJ_SET_INFORMATION) {
         ULONG bufLen = IrpSp->Parameters.SetFile.Length;
@@ -1304,6 +1402,7 @@ NTSTATUS nfs41_FsdDispatch(
 
     status = RxFsdDispatch((PRDBSS_DEVICE_OBJECT)dev,Irp);
     /* AGLO: 08/05/2009 - looks like RxFsdDispatch frees IrpSp */
+#endif /* NFS41_DRIVER_MAP_POSIXUNLINKRENAMECLASSES_HACK */
 
 out:
 #ifdef DEBUG_FSDDISPATCH
