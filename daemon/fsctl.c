@@ -1093,9 +1093,10 @@ int handle_queryidmapinfo(void *daemon_context,
             "(\n"
             "\tnfspath='%s'\n"
             "\ttypeset -C fattr4=(\n"
-            "\t\ttypeset -l -li16 fileid=0x%llx\n"
+            /* "16#<hex>" is ksh93/bash syntax for ISO C 0x<hex> */
+            "\t\ttypeset -l -i16 fileid=16#%llx\n"
             "\t\ttypeset -C fsid=( "
-            "typeset -l -i16 major=0x%llx ; typeset -l -i16 minor=0x%llx )\n"
+            "typeset -l -i16 major=16#%llx ; typeset -l -i16 minor=16#%llx )\n"
             "\t\towner='%s'\n"
             "\t\towner_group='%s'\n"
             "\t)\n"
