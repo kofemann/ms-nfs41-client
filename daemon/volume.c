@@ -37,11 +37,12 @@
 
 /* windows volume queries want size in 'units', so we have to
  * convert the nfs space_* attributes from bytes to units */
-#define SECTORS_PER_UNIT    8
-#define BYTES_PER_SECTOR    1024
-#define BYTES_PER_UNIT      (SECTORS_PER_UNIT * BYTES_PER_SECTOR)
+#define LOGICAL_SECTORS_PER_UNIT    8
+#define LOGICAL_BYTES_PER_SECTOR    1024
+#define PYSICAL_BYTES_PER_SECTOR    4096
+#define LOGICAL_BYTES_PER_UNIT      (LOGICAL_SECTORS_PER_UNIT * LOGICAL_BYTES_PER_SECTOR)
 
-#define TO_UNITS(bytes) (bytes / BYTES_PER_UNIT)
+#define TO_LOGICAL_UNITS(bytes) ((bytes) / LOGICAL_BYTES_PER_UNIT)
 
 #define VOLUME_CACHE_EXPIRATION 20
 
@@ -114,9 +115,9 @@ static int get_volume_size_info(
             query, info.space_avail, info.space_free, info.space_total));
     }
 
-    if (total_out) *total_out = TO_UNITS(info.space_total);
-    if (user_out) *user_out = TO_UNITS(info.space_avail);
-    if (avail_out) *avail_out = TO_UNITS(info.space_free);
+    if (total_out) *total_out = TO_LOGICAL_UNITS(info.space_total);
+    if (user_out) *user_out = TO_LOGICAL_UNITS(info.space_avail);
+    if (avail_out) *avail_out = TO_LOGICAL_UNITS(info.space_free);
 out:
     return status;
 }
@@ -173,8 +174,8 @@ static int handle_volume(void *daemon_context, nfs41_upcall *upcall)
 
     case FileFsSizeInformation:
         args->len = sizeof(args->info.size);
-        args->info.size.SectorsPerAllocationUnit = SECTORS_PER_UNIT;
-        args->info.size.BytesPerSector = BYTES_PER_SECTOR;
+        args->info.size.SectorsPerAllocationUnit = LOGICAL_SECTORS_PER_UNIT;
+        args->info.size.BytesPerSector = LOGICAL_BYTES_PER_SECTOR;
 
         status = get_volume_size_info(upcall->state_ref,
             "FileFsSizeInformation",
@@ -185,8 +186,8 @@ static int handle_volume(void *daemon_context, nfs41_upcall *upcall)
 
     case FileFsFullSizeInformation:
         args->len = sizeof(args->info.fullsize);
-        args->info.fullsize.SectorsPerAllocationUnit = SECTORS_PER_UNIT;
-        args->info.fullsize.BytesPerSector = BYTES_PER_SECTOR;
+        args->info.fullsize.SectorsPerAllocationUnit = LOGICAL_SECTORS_PER_UNIT;
+        args->info.fullsize.BytesPerSector = LOGICAL_BYTES_PER_SECTOR;
 
         status = get_volume_size_info(upcall->state_ref,
             "FileFsFullSizeInformation",
@@ -205,13 +206,14 @@ static int handle_volume(void *daemon_context, nfs41_upcall *upcall)
     case FileFsSectorSizeInformation:
         args->len = sizeof(args->info.sector_size);
 
-        args->info.sector_size.LogicalBytesPerSector = BYTES_PER_SECTOR;
+        args->info.sector_size.LogicalBytesPerSector =
+            LOGICAL_BYTES_PER_SECTOR;
         args->info.sector_size.PhysicalBytesPerSectorForAtomicity =
-            BYTES_PER_SECTOR;
+            PYSICAL_BYTES_PER_SECTOR;
         args->info.sector_size.PhysicalBytesPerSectorForPerformance =
-            BYTES_PER_SECTOR;
+            PYSICAL_BYTES_PER_SECTOR;
         args->info.sector_size.FileSystemEffectivePhysicalBytesPerSectorForAtomicity =
-            BYTES_PER_SECTOR;
+            PYSICAL_BYTES_PER_SECTOR;
         /*
          * |SSINFO_FLAGS_NO_SEEK_PENALTY| is required by
          * Cygwin/MSYS2/mingw to support sparse files
