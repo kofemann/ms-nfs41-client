@@ -70,6 +70,8 @@ DWORD EnumMounts(
 
 static DWORD ParseRemoteName(
     IN bool use_nfspubfh,
+    IN bool flag_nocache,
+    IN bool flag_writethru,
     IN int override_portnum,
     IN LPWSTR pRemoteName,
     IN OUT PMOUNT_OPTION_LIST pOptions,
@@ -268,6 +270,8 @@ int mount_main(int argc, wchar_t *argv[])
 #define MAX_MNTOPTS 128
     wchar_t *mntopts[MAX_MNTOPTS] = { 0 };
     int     num_mntopts = 0;
+    bool    flag_nocache = false;
+    bool    flag_writethru = false;
 
     result = InitializeMountOptions(&Options, MAX_OPTION_BUFFER_SIZE);
     if (result) {
@@ -313,6 +317,8 @@ int mount_main(int argc, wchar_t *argv[])
             /* mount option */
             else if ((!wcscmp(argv[i], L"-o")) ||
                     (!wcscmp(argv[i], L"--options"))) {
+                wchar_t *pns; /* port number string */
+
                 ++i;
                 if (i >= argc)
                 {
@@ -332,7 +338,7 @@ int mount_main(int argc, wchar_t *argv[])
                 mntopts[num_mntopts++] = argv[i];
 
                 wchar_t *argv_i = argv[i];
-                bool found_opt;
+                wchar_t *argv_i_nextopt;
 
 opt_o_argv_i_again:
                 /*
@@ -342,32 +348,26 @@ opt_o_argv_i_again:
                  * settings from a nfs://-URL can be overridden
                  * via -o options.
                  */
-                found_opt = false;
 
                 /*
                  * Extract "public" option
                  */
-                if (wcsstr(argv_i, L"public=0")) {
+                if (wcsncmp(argv_i, L"public=0", 8) == 0) {
                     use_nfspubfh = false;
                     argv_i += 8;
-                    found_opt = true;
                 }
-                else if (wcsstr(argv_i, L"public")) {
+                else if (wcsncmp(argv_i, L"public", 6) == 0) {
                     use_nfspubfh = true;
                     argv_i += 6;
-                    found_opt = true;
                 }
-
                 /*
                  * Extract port number
                  */
-                wchar_t *pns; /* port number string */
-                pns = wcsstr(argv_i, L"port=");
-                if (pns) {
+                else if (wcsncmp(argv_i, L"port=", 5) == 0) {
                     wchar_t *db;
                     wchar_t digit_buff[20];
 
-                    pns += 5; /* skip "port=" */
+                    pns = argv_i+5; /* skip "port=" */
 
                     /* Copy digits... */
                     for(db = digit_buff ;
@@ -387,7 +387,56 @@ opt_o_argv_i_again:
                     }
 
                     argv_i = pns-1;
-                    found_opt = true;
+                }
+                /*
+                 * Extract "nocache" option
+                 */
+                else if (wcsncmp(argv_i, L"nocache=0", 9) == 0) {
+                    flag_nocache = false;
+                    argv_i += 9;
+                }
+                else if (wcsncmp(argv_i, L"nocache", 7) == 0) {
+                    flag_nocache = true;
+                    argv_i += 7;
+                }
+                else if (wcsncmp(argv_i, L"cache=0", 7) == 0) {
+                    flag_nocache = true;
+                    argv_i += 7;
+                }
+                else if (wcsncmp(argv_i, L"cache", 5) == 0) {
+                    flag_nocache = false;
+                    argv_i += 5;
+                }
+                /*
+                 * Extract "writethru" option
+                 */
+                else if (wcsncmp(argv_i, L"nowritethru=0", 13) == 0) {
+                    flag_writethru = true;
+                    argv_i += 13;
+                }
+                else if (wcsncmp(argv_i, L"nowritethru", 11) == 0) {
+                    flag_writethru = false;
+                    argv_i += 11;
+                }
+                else if (wcsncmp(argv_i, L"writethru=0", 11) == 0) {
+                    flag_writethru = false;
+                    argv_i += 11;
+                }
+                else if (wcsncmp(argv_i, L"writethru", 9) == 0) {
+                    flag_writethru = true;
+                    argv_i += 9;
+                }
+                /* Skip other options */
+                else if ((argv_i_nextopt = wcsstr(argv_i, L",")) != NULL) {
+                    argv_i = argv_i_nextopt;
+                }
+                else {
+                    goto opt_o_argv_i_done;
+                }
+
+                /* Skip one or more L',' characters */
+                while ((*argv_i != L'\0') && (*argv_i == L',')) {
+                    argv_i++;
                 }
 
                 /*
@@ -395,9 +444,12 @@ opt_o_argv_i_again:
                  * so "port=666,port=888" will result in the port number
                  * "888"
                  */
-                if (found_opt) {
+                if (*argv_i != L'\0') {
                     goto opt_o_argv_i_again;
                 }
+
+opt_o_argv_i_done:
+                ;
             }
             /* mount option */
             else if ((!wcscmp(argv[i], L"-r")) ||
@@ -554,9 +606,15 @@ opt_o_argv_i_again:
          * options for a NFS mount point, which can be overridden via
          * -o below.
          */
-        result = ParseRemoteName(use_nfspubfh, port_num,
-            pRemoteName, &Options,
-            szParsedRemoteName, szRemoteName,
+
+        result = ParseRemoteName(use_nfspubfh,
+            flag_nocache,
+            flag_writethru,
+            port_num,
+            pRemoteName,
+            &Options,
+            szParsedRemoteName,
+            szRemoteName,
             NFS41_SYS_MAX_PATH_LEN);
         if (result)
             goto out;
@@ -863,6 +921,8 @@ wchar_t *utf8str2wcs(const char *utf8str)
 
 static DWORD ParseRemoteName(
     IN bool use_nfspubfh,
+    IN bool flag_nocache,
+    IN bool flag_writethru,
     IN int override_portnum,
     IN LPWSTR pRemoteName,
     IN OUT PMOUNT_OPTION_LIST pOptions,
@@ -880,8 +940,16 @@ static DWORD ParseRemoteName(
 #define SRVNAME_LEN (NFS41_SYS_MAX_PATH_LEN+1+32)
     wchar_t srvname[SRVNAME_LEN];
     url_parser_context *uctx = NULL;
+    wchar_t nfsunctagbuf[64];
 
     result = StringCchCopyW(premotename, NFS41_SYS_MAX_PATH_LEN, pRemoteName);
+
+    /* Create UNC tag */
+    (void)swprintf(nfsunctagbuf, sizeof(nfsunctagbuf)/sizeof(wchar_t),
+        L"%ls%ls%ls",
+        (use_nfspubfh?L"PUBNFS":L"NFS"),
+        (flag_nocache?L"_NOCACHE":L""),
+        (flag_writethru?L"_WRITETHRU":L""));
 
     /*
      * Support nfs://-URLS per RFC 2224 ("NFS URL
@@ -1140,13 +1208,13 @@ static DWORD ParseRemoteName(
 
         /*
 	 * 1. Append .ipv6-literal.net to hostname
-	 * 2. ALWAYS add port number to hostname, so UNC paths use it
-	 *   too
+	 * 2. ALWAYS add @NFS/@PUBNFS tag and port number to hostname, so
+	 * UNC paths use it too
 	 */
         (void)swprintf(srvname, SRVNAME_LEN,
             L"%ls.ipv6-literal.net@%ls@%d",
             premotename,
-            (use_nfspubfh?L"PUBNFS":L"NFS"),
+            nfsunctagbuf,
             port);
     }
     else {
@@ -1157,7 +1225,7 @@ static DWORD ParseRemoteName(
         (void)swprintf(srvname, SRVNAME_LEN,
             L"%ls@%ls@%d",
             premotename,
-            (use_nfspubfh?L"PUBNFS":L"NFS"),
+            nfsunctagbuf,
             port);
     }
 

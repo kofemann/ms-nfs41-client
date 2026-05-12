@@ -39,6 +39,8 @@ typedef struct __mount_upcall_args {
     DWORD       rsize;
     DWORD       wsize;
     DWORD       use_nfspubfh;
+    DWORD       write_thru;
+    DWORD       nocache;
     DWORD       nfsvers;
 #ifdef NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS
     tristate_bool force_case_preserving;

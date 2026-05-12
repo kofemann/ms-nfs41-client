@@ -228,6 +228,8 @@ typedef struct _updowncall_entry {
             DWORD wsize;
             DWORD lease_time;
             DWORD use_nfspubfh;
+            DWORD nocache;
+            DWORD write_thru;
             DWORD nfsvers;
 #ifdef NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS
             tristate_bool force_case_preserving;

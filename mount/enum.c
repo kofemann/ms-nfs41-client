@@ -59,7 +59,7 @@ void PrintMountLine(
     LPCWSTR s;
     wchar_t sc;
     bool is_pubfh = false;
-    bool found_unc_nfs_tag = false;
+    bool found_nfsunctag = false;
 
     for(b = cygwin_unc_buffer, s = remote ;
         (sc = *s++) != L'\0' ; ) {
@@ -148,7 +148,7 @@ void PrintMountLine(
         if (uc == '@') {
             /* |slash_counter == 0| means we are processing the UNC hostname */
             if (slash_counter == 0) {
-                if (found_unc_nfs_tag) {
+                if (found_nfsunctag) {
                     /*
                      * Replace '@' for UNC port number with ':' for
                      * URL port number
@@ -160,21 +160,32 @@ void PrintMountLine(
                     if (strncmp(utf8unc_p, "NFS", 3) == 0) {
                         /* Skip "NFS" */
                         utf8unc_p += 3;
-                        found_unc_nfs_tag = true;
+                        found_nfsunctag = true;
                     }
                     else if (strncmp(utf8unc_p, "PUBNFS", 6) == 0) {
                         /* Skip "PUBNFS" */
                         utf8unc_p += 6;
                         is_pubfh = true;
-                        found_unc_nfs_tag = true;
+                        found_nfsunctag = true;
                     }
-                    else {
+
+                    if (found_nfsunctag) {
+                        if (strncmp(utf8unc_p, "_NOCACHE", 8) == 0) {
+                            utf8unc_p += 8;
+                        }
+                        if (strncmp(utf8unc_p, "_WRITETHRU", 10) == 0) {
+                            utf8unc_p += 10;
+                        }
+                    }
+
+                    if (!found_nfsunctag) {
                         (void)fwprintf(stderr,
                             L"PrintMountLine: ## Internal error, "
                             "unknown UNC tag, utf8unc_p='%s'\n",
                             utf8unc_p);
                         goto out;
                     }
+
                     continue;
                 }
             }

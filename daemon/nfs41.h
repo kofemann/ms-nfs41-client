@@ -337,6 +337,8 @@ int nfs41_root_create(
     IN const char *name,
     IN uint32_t port,
     IN bool use_nfspubfh,
+    IN bool write_thru,
+    IN bool nocache,
 #ifdef NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS
     IN tristate_bool force_case_preserving,
     IN tristate_bool force_case_insensitive,
@@ -463,6 +465,8 @@ int nfs41_client_owner(
     IN uint32_t port,
     IN int nfsminorvers,
     IN bool use_nfspubfh,
+    IN bool write_thru,
+    IN bool nocache,
 #ifdef NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS
     IN tristate_bool force_case_preserving,
     IN tristate_bool force_case_insensitive,

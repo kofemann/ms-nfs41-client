@@ -77,8 +77,10 @@
 
 /*
  * In order to cooperate with other network providers,
- * we only claim paths of the format '\\server@NFS@<portnum>\path'
- * or '\\server@PUBNFS@<portnum>\path'
+ * we only claim paths of the format '\\server@NFS'*'@<portnum>\path',
+ * '\\server@PUBNFS'*'@<portnum>\path', e.g.
+ * '\\server@NFS@<portnum>\path','\\server@NFS_NOCACHE@<portnum>\path' etc.
+ * etc.
  */
 DECLARE_CONST_UNICODE_STRING(AUTH_NONE_NAME, L"none");
 DECLARE_CONST_UNICODE_STRING(AUTH_SYS_NAME, L"sys");

@@ -371,6 +371,8 @@ int nfs41_client_owner(
     IN uint32_t port,
     IN int nfsminorvers,
     IN bool use_nfspubfh,
+    IN bool write_thru,
+    IN bool nocache,
 #ifdef NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS
     IN tristate_bool force_case_preserving,
     IN tristate_bool force_case_insensitive,
@@ -442,6 +444,20 @@ int nfs41_client_owner(
 
     if (!CryptHashData(hash,
         (const BYTE*)&use_nfspubfh, (DWORD)sizeof(bool), 0)) {
+        status = GetLastError();
+        eprintf("CryptHashData() failed with %d\n", status);
+        goto out_hash;
+    }
+
+    if (!CryptHashData(hash,
+        (const BYTE*)&write_thru, (DWORD)sizeof(bool), 0)) {
+        status = GetLastError();
+        eprintf("CryptHashData() failed with %d\n", status);
+        goto out_hash;
+    }
+
+    if (!CryptHashData(hash,
+        (const BYTE*)&nocache, (DWORD)sizeof(bool), 0)) {
         status = GetLastError();
         eprintf("CryptHashData() failed with %d\n", status);
         goto out_hash;

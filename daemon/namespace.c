@@ -45,6 +45,8 @@ int nfs41_root_create(
     IN const char *name,
     IN uint32_t port,
     IN bool use_nfspubfh,
+    IN bool write_thru,
+    IN bool nocache,
 #ifdef NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS
     IN tristate_bool force_case_preserving,
     IN tristate_bool force_case_insensitive,
@@ -61,18 +63,20 @@ int nfs41_root_create(
 #ifdef NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS
     DPRINTF(NSLVL,
         ("--> nfs41_root_create(name='%s', port=%d, "
-            "use_nfspubfh=%d, "
+            "use_nfspubfh=%d, write_thru=%d, nocache=%d, "
             "force_case_preserving=%d force_case_insensitive=%d"
             "nfsvers=%d)\n",
-            name, port, (int)use_nfspubfh,
+            name, port,
+            (int)use_nfspubfh, (int)write_thru, (int)nocache,
             (int)force_case_preserving, (int)force_case_insensitive,
             (int)nfsvers));
 #else
     DPRINTF(NSLVL,
         ("--> nfs41_root_create(name='%s', port=%d, "
-            "use_nfspubfh=%d, "
+            "use_nfspubfh=%d, write_thru=%d, nocache=%d, "
             "nfsvers=%d)\n",
-            name, port, (int)use_nfspubfh,
+            name, port,
+            (int)use_nfspubfh, (int)write_thru, (int)nocache,
             (int)nfsvers));
 #endif /* NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS */
 
@@ -140,7 +144,7 @@ int nfs41_root_create(
 
     /* generate a unique client_owner */
     status = nfs41_client_owner(name, port, root->nfsminorvers,
-        use_nfspubfh,
+        use_nfspubfh, write_thru, nocache,
 #ifdef NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS
         root->force_case_preserving, root->force_case_insensitive,
 #endif /* NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS */

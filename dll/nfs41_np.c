@@ -527,6 +527,11 @@ NPAddConnection(
 static bool is_nfs_server_path(const wchar_t *serverpath)
 {
     if (serverpath[0] == L'\\') {
+        /*
+         * Check whether the UNC path is tagged with "@NFS"* or "@PUBNFS"* ...
+         * (there may be more tagging data after the initial prefix, like
+         * "@PUBNFS_NOCACHE" etc.)
+         */
         if ((wcsstr(serverpath, L"@NFS") != NULL) ||
             (wcsstr(serverpath, L"@PUBNFS") != NULL)) {
             return true;
@@ -635,10 +640,10 @@ NPAddConnection3(
     }
     ServerName[i] = L'\0';
 
-    /* Check for "@NFS" or "@PUBNFS" tag in UNC path */
+    /* Check for "@NFS"* or "@PUBNFS"* tag in UNC path */
     if (is_nfs_server_path(ServerName) == false) {
         DbgP((L"ServerName name '%ls' not tagged with "
-            "'@NFS' or '@PUBNFS'\n",
+            "'@NFS'* or '@PUBNFS'*\n",
             ServerName));
         Status = WN_BAD_NETNAME;
         goto out;
@@ -1372,10 +1377,10 @@ NPGetResourceParent(
     DbgP((L"--> NPGetResourceParent(pNetResource->lpRemoteName='%ls')\n",
         lpNetResource->lpRemoteName));
 
-    /* Check for "@NFS" or "@PUBNFS" tag in UNC path */
+    /* Check for "@NFS"* or "@PUBNFS"* tag in UNC path */
     if (is_nfs_unc_path(lpNetResource->lpRemoteName) == false) {
         DbgP((L"lpNetResource->lpRemoteName name '%ls' not tagged with "
-            "'@NFS' or '@PUBNFS'\n",
+            "'@NFS'* or '@PUBNFS'*\n",
             lpNetResource->lpRemoteName));
         Status = WN_BAD_NETNAME;
         goto out;
@@ -1508,10 +1513,10 @@ NPGetResourceInformation(
     DbgP((L"--> NPGetResourceInformation(lpNetResource->lpRemoteName='%ls')\n",
         lpNetResource->lpRemoteName));
 
-    /* Check for "@NFS" or "@PUBNFS" tag in UNC path */
+    /* Check for "@NFS"* or "@PUBNFS"* tag in UNC path */
     if (is_nfs_unc_path(lpNetResource->lpRemoteName) == false) {
         DbgP((L"lpNetResource->lpRemoteName name '%ls' not tagged with "
-            "'@NFS' or '@PUBNFS'\n",
+            "'@NFS'* or '@PUBNFS'*\n",
             lpNetResource->lpRemoteName));
         Status = WN_BAD_NETNAME;
         goto out;

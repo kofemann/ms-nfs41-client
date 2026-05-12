@@ -111,7 +111,7 @@ NTSTATUS marshal_nfs41_mount(
 
     header_len = *len +
         unicode_string_length_as_utf8(entry->u.Mount.srv_name) +
-        unicode_string_length_as_utf8(entry->u.Mount.root) + 5 * sizeof(DWORD)
+        unicode_string_length_as_utf8(entry->u.Mount.root) + 7 * sizeof(DWORD)
 #ifdef NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS
         + 2 * sizeof(tristate_bool)
 #endif /* NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS */
@@ -134,6 +134,10 @@ NTSTATUS marshal_nfs41_mount(
     UPDOWNCALL_MEMCPY(tmp, &entry->u.Mount.wsize, sizeof(DWORD));
     tmp += sizeof(DWORD);
     UPDOWNCALL_MEMCPY(tmp, &entry->u.Mount.use_nfspubfh, sizeof(DWORD));
+    tmp += sizeof(DWORD);
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.Mount.write_thru, sizeof(DWORD));
+    tmp += sizeof(DWORD);
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.Mount.nocache, sizeof(DWORD));
     tmp += sizeof(DWORD);
     UPDOWNCALL_MEMCPY(tmp, &entry->u.Mount.nfsvers, sizeof(DWORD));
     tmp += sizeof(DWORD);
@@ -298,6 +302,8 @@ NTSTATUS nfs41_mount(
     entry->u.Mount.rsize = config->ReadSize;
     entry->u.Mount.wsize = config->WriteSize;
     entry->u.Mount.use_nfspubfh = config->use_nfspubfh;
+    entry->u.Mount.nocache = config->nocache;
+    entry->u.Mount.write_thru = config->write_thru;
     entry->u.Mount.nfsvers = config->nfsvers;
 #ifdef NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS
     entry->u.Mount.force_case_preserving = config->force_case_preserving;
@@ -820,7 +826,7 @@ NTSTATUS netroot_has_nfs_tag(
     int state = 0;
     wchar_t *nfstag = NULL;
 
-    /* Scan \hostname@NFS@port\ or \hostname@PUBNFS@port\ */
+    /* Scan \hostname@NFS*@port\ or \hostname@PUBNFS*@port\ */
     for (i = 0 ; i < len ; i++) {
         wchar_t ch = NetRootName->Buffer[i];
 
@@ -947,14 +953,14 @@ NTSTATUS nfs41_CreateVNetRoot(
 
     /*
      * In order to cooperate with other network providers, we
-     * must only claim paths of the form '\\server@NFS@<port>\path'
-     * or '\\server@PUBNFS@<port>\path'
+     * must only claim paths of the form '\\server@NFS'*'@<port>\path'
+     * or '\\server@PUBNFS'*'@<port>\path'
      */
     bool pubfh_tag = false;
     status = netroot_has_nfs_tag(pSrvCall->pSrvCallName, pNetRoot->pNetRootName, &pubfh_tag);
     if (status) {
         print_error("nfs41_CreateVNetRoot: "
-            "NetRootName '%wZ' does not match '@NFS' or '@PUBNFS'!\n",
+            "NetRootName '%wZ' does not match '@NFS'* or '@PUBNFS'*!\n",
             pNetRoot->pNetRootName);
             goto out;
     }
@@ -996,10 +1002,10 @@ NTSTATUS nfs41_CreateVNetRoot(
 #endif /* NFS41_DRIVER_COLLAPSEOPEN */
     } else {
         /*
-         * Codepath for \\server@NFS@port\path or
-         * \\server@PUBNFS@port\path
+         * Codepath for \\server@NFS*@port\path or
+         * \\server@PUBNFS*@port\path
          */
-        DbgP("Codepath for \\\\server@(NFS|PUBNFS)@port\\path\n");
+        DbgP("Codepath for \\\\server@(NFS|PUBNFS)*@port\\path\n");
 
         /*
          * STATUS_NFS_SHARE_NOT_MOUNTED - status code for the case
@@ -1309,7 +1315,7 @@ NTSTATUS nfs41_CreateVNetRoot(
         RtlCopyLuid(&entry->login_id, &luid);
         /*
          * Save mount config so we can use it for
-         * \\server@(PUBNFS|NFS)@port\path mounts later
+         * \\server@(PUBNFS|NFS)*@port\path mounts later
          */
         copy_nfs41_mount_config(&entry->Config, Config);
         nfs41_AddEntry(pNetRootContext->mounts.lock,
