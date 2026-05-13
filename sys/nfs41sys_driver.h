@@ -949,7 +949,7 @@ ULONG nfs41_ExtendForCache(
     OUT PLARGE_INTEGER pNewAllocationSize);
 
 /* nfs41sys_symlink.c */
-NTSTATUS marshal_nfs41_symlink(
+NTSTATUS marshal_nfs41_symlink_get(
     nfs41_updowncall_entry *entry,
     unsigned char *buf,
     ULONG buf_len,
@@ -957,6 +957,11 @@ NTSTATUS marshal_nfs41_symlink(
 void unmarshal_nfs41_get_symlink(
     nfs41_updowncall_entry *cur,
     const unsigned char *restrict *restrict buf);
+NTSTATUS marshal_nfs41_symlink_set(
+    nfs41_updowncall_entry *entry,
+    unsigned char *buf,
+    ULONG buf_len,
+    ULONG *len);
 void unmarshal_nfs41_set_symlink(
     nfs41_updowncall_entry *cur,
     const unsigned char *restrict *restrict buf);

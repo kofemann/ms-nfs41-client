@@ -286,8 +286,10 @@ NTSTATUS handle_upcall(
         status = marshal_nfs41_eaget(entry, pbOut, cbOut, len);
         break;
     case NFS41_SYSOP_SYMLINK_GET:
+        status = marshal_nfs41_symlink_get(entry, pbOut, cbOut, len);
+        break;
     case NFS41_SYSOP_SYMLINK_SET:
-        status = marshal_nfs41_symlink(entry, pbOut, cbOut, len);
+        status = marshal_nfs41_symlink_set(entry, pbOut, cbOut, len);
         break;
     case NFS41_SYSOP_VOLUME_QUERY:
         status = marshal_nfs41_volume(entry, pbOut, cbOut, len);

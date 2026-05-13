@@ -73,7 +73,7 @@
 #include "win_reparse.h"
 
 
-NTSTATUS marshal_nfs41_symlink(
+NTSTATUS marshal_nfs41_symlink_get(
     nfs41_updowncall_entry *entry,
     unsigned char *buf,
     ULONG buf_len,
@@ -89,10 +89,8 @@ NTSTATUS marshal_nfs41_symlink(
     tmp += *len;
 
     header_len = *len + unicode_filename_length_as_utf8(entry->filename);
-    if (entry->opcode == NFS41_SYSOP_SYMLINK_SET)
-        header_len += unicode_filename_length_as_utf8(entry->u.Symlink.target);
     if (header_len > buf_len) {
-        DbgP("marshal_nfs41_symlink: "
+        DbgP("marshal_nfs41_symlink_get: "
             "upcall buffer too small: header_len(=%ld) > buf_len(=%ld)\n",
             (long)header_len, (long)buf_len);
         status = STATUS_INSUFFICIENT_RESOURCES;
@@ -101,31 +99,18 @@ NTSTATUS marshal_nfs41_symlink(
 
     status = marshall_unicode_filename_as_utf8(&tmp, entry->filename);
     if (status) goto out;
-    if (entry->opcode == NFS41_SYSOP_SYMLINK_SET) {
-        status = marshall_unicode_filename_as_utf8(&tmp, entry->u.Symlink.target);
-        if (status) goto out;
-    }
 
     *len = (ULONG)(tmp - buf);
     if (*len != header_len) {
-        DbgP("marshal_nfs41_symlink: *len(=%ld) != header_len(=%ld)\n",
+        DbgP("marshal_nfs41_symlink_get: *len(=%ld) != header_len(=%ld)\n",
             (long)*len, (long)header_len);
         status = STATUS_INSUFFICIENT_RESOURCES;
         goto out;
     }
 
 #ifdef DEBUG_MARSHAL_DETAIL
-    if (entry->opcode == NFS41_SYSOP_SYMLINK_SET) {
-        DbgP("marshal_nfs41_symlink: "
-            "SET: name '%wZ' symlink target '%wZ'\n",
-            entry->filename,
-            entry->u.Symlink.target);
-    }
-    else {
-        DbgP("marshal_nfs41_symlink: "
-            "GET: name '%wZ'\n",
-            entry->filename);
-    }
+    DbgP("marshal_nfs41_symlink_get: name='%wZ'\n",
+        entry->filename);
 #endif /* DEBUG_MARSHAL_DETAIL */
 out:
     return status;
@@ -145,6 +130,53 @@ void unmarshal_nfs41_get_symlink(
     UPDOWNCALL_MEMCPY(cur->u.Symlink.target->Buffer, *buf,
         cur->u.Symlink.target->Length);
     *buf += cur->u.Symlink.target->Length;
+}
+
+NTSTATUS marshal_nfs41_symlink_set(
+    nfs41_updowncall_entry *entry,
+    unsigned char *buf,
+    ULONG buf_len,
+    ULONG *len)
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    ULONG header_len = 0;
+    unsigned char *tmp = buf;
+
+    status = marshal_nfs41_header(entry, tmp, buf_len, len);
+    if (status)
+        goto out;
+    tmp += *len;
+
+    header_len = *len + unicode_filename_length_as_utf8(entry->filename);
+    header_len += unicode_filename_length_as_utf8(entry->u.Symlink.target);
+    if (header_len > buf_len) {
+        DbgP("marshal_nfs41_symlink_set: "
+            "upcall buffer too small: header_len(=%ld) > buf_len(=%ld)\n",
+            (long)header_len, (long)buf_len);
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto out;
+    }
+
+    status = marshall_unicode_filename_as_utf8(&tmp, entry->filename);
+    if (status) goto out;
+    status = marshall_unicode_filename_as_utf8(&tmp, entry->u.Symlink.target);
+    if (status) goto out;
+
+    *len = (ULONG)(tmp - buf);
+    if (*len != header_len) {
+        DbgP("marshal_nfs41_symlink_set: *len(=%ld) != header_len(=%ld)\n",
+            (long)*len, (long)header_len);
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto out;
+    }
+
+#ifdef DEBUG_MARSHAL_DETAIL
+    DbgP("marshal_nfs41_symlink_set: name='%wZ' symlink target '%wZ'\n",
+        entry->filename,
+        entry->u.Symlink.target);
+#endif /* DEBUG_MARSHAL_DETAIL */
+out:
+    return status;
 }
 
 void unmarshal_nfs41_set_symlink(

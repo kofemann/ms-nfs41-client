@@ -252,12 +252,10 @@ static int parse_symlink_get(
 
     EASSERT(length == 0);
 
-    args->target_set = NULL;
-
     DPRINTF(SYMLLVL1,
         ("parse_symlink_get: parsing NFS41_SYSOP_SYMLINK_GET: "
-        "path='%s' target='%s'\n",
-        args->path, args->target_set));
+        "path='%s'\n",
+        args->path));
 
 out:
     return status;
@@ -354,7 +352,7 @@ static int parse_symlink_set(
         goto out;
 
     /*
-     * args->target_set is not const because |handle_symlink_set()|
+     * |args->target_set| is not |const| because |handle_symlink_set()|
      * might have to replace '\\' with '/'
      */
     status = get_name(&buffer, &length,
