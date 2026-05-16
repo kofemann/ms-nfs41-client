@@ -592,4 +592,50 @@ typedef struct _FILE_ZERO_DATA_INFORMATION {
 } FILE_ZERO_DATA_INFORMATION, *PFILE_ZERO_DATA_INFORMATION;
 #endif /* !_WINIOCTL_ */
 
+/*
+ * Reparse points
+ */
+
+/* SYNLINK reparse points */
+#define SYMLINK_FLAG_RELATIVE   0x00000001
+#define SYMLINK_DIRECTORY       0x80000000
+#define SYMLINK_FILE            0x40000000
+
+#define SYMLINK_RESERVED_MASK   0xF0000000
+
+#ifdef _MSC_VER
+#pragma warning( push )
+/* Disable warning C4201 ("nonstandard extension used: nameless struct/union") */
+#pragma warning (disable : 4201)
+#endif /* _MSC_VER */
+typedef struct _REPARSE_DATA_BUFFER {
+    ULONG  ReparseTag;
+    USHORT ReparseDataLength;
+    USHORT Reserved;
+
+    union {
+        struct {
+            USHORT SubstituteNameOffset;
+            USHORT SubstituteNameLength;
+            USHORT PrintNameOffset;
+            USHORT PrintNameLength;
+            ULONG Flags;
+            WCHAR PathBuffer[1];
+        } SymbolicLinkReparseBuffer;
+        struct {
+            USHORT SubstituteNameOffset;
+            USHORT SubstituteNameLength;
+            USHORT PrintNameOffset;
+            USHORT PrintNameLength;
+            WCHAR PathBuffer[1];
+        } MountPointReparseBuffer;
+        struct {
+            UCHAR  DataBuffer[1];
+        } GenericReparseBuffer;
+    };
+} REPARSE_DATA_BUFFER, *PREPARSE_DATA_BUFFER;
+#ifdef _MSC_VER
+#pragma warning( pop )
+#endif /* _MSC_VER */
+
 #endif /* !_NFS41_FROM_KERNEL_ */

@@ -184,9 +184,13 @@ typedef struct __readdir_upcall_args {
 } readdir_upcall_args;
 
 typedef struct __symlink_upcall_args {
+    /* GET */
     nfs41_abs_path target_get;
     char *target_set;
     const char *path;
+    /* SET */
+    ULONG reparsebuflen;
+    void *reparsebuf;
 } symlink_upcall_args;
 
 typedef struct __volume_upcall_args {

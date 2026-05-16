@@ -463,7 +463,7 @@ static void copy_attrs(
         (void)strcpy(dst->owner, src->owner);
     }
     else {
-        /* this should only happen for newly created files/dirs */
+        /* this should only happen for newly created files/dirs/symlinks */
         dst->owner = NULL;
     }
     if (src->nc_attrs & NC_ATTR_OWNER_GROUP) {
@@ -472,7 +472,7 @@ static void copy_attrs(
         (void)strcpy(dst->owner_group, src->owner_group);
     }
     else {
-        /* this should only happen for newly created files/dirs */
+        /* this should only happen for newly created files/dirs/symlinks */
         dst->owner_group = NULL;
     }
     if (src->nc_attrs & NC_ATTR_FSID) {

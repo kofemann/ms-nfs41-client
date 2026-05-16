@@ -712,7 +712,7 @@ void open_get_localuidgid(
 #if 1
     EASSERT(info->attrmask.count >= 2);
 
-    /* this should only happen for newly created files/dirs */
+    /* this should only happen for newly created files/dirs/symlinks */
     if ((info->attrmask.count < 2) ||
         ((info->attrmask.arr[1] & FATTR4_WORD1_OWNER) == 0) ||
         ((info->attrmask.arr[1] & FATTR4_WORD1_OWNER_GROUP) == 0)) {

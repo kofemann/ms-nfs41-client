@@ -1,5 +1,5 @@
 #
-# ms-nfs41-client manual testing sequence, 2026-03-16
+# ms-nfs41-client manual testing sequence, 2026-05-16
 #
 # Draft version, needs to be turned into automated tests
 # if possible
@@ -266,9 +266,11 @@ ksh93 -c 'rm -f test1.txt ; command exec {n}>>test1.txt ; printf "fd=%d\n" $n ; 
 # 1. cmd.exe mklink dir
 mkdir mydir1
 cmd /C 'mklink /D symLinkmydir1 mydir1'
+cmd /C "mklink /D absoluteSymLinkmydir1 $(cygpath -w "$PWD/symLinkmydir1")"
 # 2. cmd.exe mklink file
 touch myfile1
 cmd /C 'mklink symLinkmyfile myfile1'
+cmd /C "mklink absoluteSymLinksymLinkmyfile $(cygpath -w "$PWD/myfile1")"
 # 3. powershell mklink dir
 mkdir mypsdir1
 powershell -Command 'New-Item -Path sym_mypsdir1 -ItemType SymbolicLink -Value mypsdir1'

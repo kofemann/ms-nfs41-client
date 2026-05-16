@@ -346,24 +346,24 @@ static int parse_symlink_set(
 {
     symlink_upcall_args *args = &upcall->args.symlink;
     int status;
+    ULONG reparsebuflen;
+    void *reparsebuf = NULL;
 
-    status = get_name(&buffer, &length, &args->path);
-    if (status)
-        goto out;
+    status = safe_read(&buffer, &length, &reparsebuflen, sizeof(ULONG));
+    if (status) goto out;
+    status = get_safe_read_bufferpos(&buffer, &length, reparsebuflen, &reparsebuf);
+    if (status) goto out;
 
-    /*
-     * |args->target_set| is not |const| because |handle_symlink_set()|
-     * might have to replace '\\' with '/'
-     */
-    status = get_name(&buffer, &length,
-        (const char **)(&args->target_set));
+    args->reparsebuflen = reparsebuflen;
+    args->reparsebuf = (PREPARSE_DATA_BUFFER)reparsebuf;
 
     EASSERT(length == 0);
 
     DPRINTF(SYMLLVL1,
         ("parse_symlink_set: parsing NFS41_SYSOP_SYMLINK_SET: "
-        "path='%s' target='%s'\n",
-        args->path, args->target_set));
+        "path='%s' args->(reparsebuflen=%ld,reparsebuf=0x%p)\n",
+        args->path,
+        (long)args->reparsebuflen, (void *)args->reparsebuf));
 
 out:
     return status;
@@ -374,13 +374,171 @@ static int handle_symlink_set(void *daemon_context, nfs41_upcall *upcall)
     symlink_upcall_args *args = &upcall->args.symlink;
     nfs41_open_state *state = upcall->state_ref;
     int status = NO_ERROR;
+    PREPARSE_DATA_BUFFER Reparse = args->reparsebuf;
+    ULONG TargetNameLen; /* len in bytes */
+    wchar_t *TargetNameBuf;
+    char targetbuf[NFS41_MAX_PATH_LEN];
+    char prefixed_targetname[NFS41_MAX_PATH_LEN];
+    char *targetname = targetbuf;
+    int targetbuflen = 0;
+    int targetnamelen = 0;
 
-    nfs41_file_info info, createattrs;
+    nfs41_file_info info;
 
-    /* don't send windows slashes to the server */
+    /*
+     * FIXME?!: Currently we only support |IO_REPARSE_TAG_SYMLINK|, but
+     * in the future we can add more reparse point types
+     */
+    if (Reparse->ReparseTag != IO_REPARSE_TAG_SYMLINK) {
+        eprintf("handle_symlink_set: "
+            "Reparse->ReparseTag != IO_REPARSE_TAG_SYMLINK\n");
+        status = ERROR_INVALID_REPARSE_DATA;
+        goto out;
+    }
+
+    TargetNameLen = Reparse->SymbolicLinkReparseBuffer.SubstituteNameLength;
+    TargetNameBuf = &Reparse->SymbolicLinkReparseBuffer.PathBuffer[
+        Reparse->SymbolicLinkReparseBuffer.SubstituteNameOffset/sizeof(WCHAR)];
+
+    targetbuflen = WideCharToMultiByte(CP_UTF8,
+        WC_ERR_INVALID_CHARS|WC_NO_BEST_FIT_CHARS,
+        TargetNameBuf,
+        TargetNameLen/sizeof(wchar_t),
+        targetbuf,
+        sizeof(targetbuf)-1,
+        NULL,
+        NULL);
+    if (targetbuflen == 0) {
+        status = GetLastError();
+        eprintf("handle_symlink_set: "
+            "WideCharToMultiByte() failed, status=%d\n",
+            status);
+        if (status == ERROR_SUCCESS) {
+            status = ERROR_INVALID_DATA;
+        }
+        goto out;
+    }
+
+    targetname = targetbuf;
+    targetnamelen = targetbuflen;
+
+    targetname[targetnamelen] = '\0';
+
+    DPRINTF(SYMLLVL1,
+        ("handle_symlink_set: targetname='%s'\n", targetname));
+
+    if (targetname[0] == '.') {
+        DPRINTF(SYMLLVL1,
+            ("handle_symlink_set: "
+            "relative path targetname='%s'\n",
+            targetname));
+    }
+    else {
+        DPRINTF(SYMLLVL1,
+            ("handle_symlink_set: "
+            "absolute path targetname='%s'\n",
+            targetname));
+
+        /* UNC path ? */
+        if ((targetnamelen > 8) &&
+            (memcmp(&targetname[0], "\\??\\UNC\\", 8) == 0)) {
+            /* Strip "\\??\\" prefix */
+            targetname += 4;
+            targetnamelen -= 4;
+
+            /*
+             * Turn "UNC\" into "\\"
+             * (we will convert the backslashes in UNC path to slashes below)
+             */
+            targetname += 2;
+            targetname[0] = L'\\';
+
+            DPRINTF(SYMLLVL1,
+                ("handle_symlink_set: "
+                "UNC targetname='%s'\n",
+                targetname));
+        }
+        /* DEVICELETTER path ? */
+        else if ((targetnamelen > 5) &&
+            (memcmp(&targetname[0], "\\??\\", 4) == 0) &&
+            (targetname[5] == ':')) {
+            char devletter;
+
+            DPRINTF(SYMLLVL1,
+                ("handle_symlink_set: "
+                "DEVLETTER targetname='%s'\n",
+                targetname));
+
+            /* Strip "\\??\\" prefix */
+            targetname += 4;
+            targetnamelen -= 4;
+
+            if ((targetname[1] != ':') ||
+                (targetname[2] != '\\')) {
+                status = ERROR_INVALID_PARAMETER;
+                eprintf("handle_symlink_set: "
+                    "DEVLETTER path '%s' should start with 'X:\\'\n",
+                    targetname);
+                goto out;
+            }
+
+            /* Get devletter and skip "X:\" */
+            devletter = (char)tolower(targetname[0]);
+            targetname += 3;
+            targetnamelen -= 3;
+
+            /*
+             * Stuff Cygwin /cygdrive/<deviceletter>/ prefix in front
+             * of path, userland daemon will convert the backslashes
+             * to slashes
+             *
+             * Note that this will also work for MSYS2, which converts
+             * /cygdrive/<deviceletter>/ to /<deviceletter>/
+             */
+            if ((targetnamelen+12+2) >= NFS41_MAX_PATH_LEN) {
+                status = ERROR_FILENAME_EXCED_RANGE;
+                goto out;
+            }
+
+            (void)snprintf(prefixed_targetname,
+                sizeof(prefixed_targetname)-1, "/cygdrive/%c/%s",
+                devletter,
+                targetname);
+
+            /* Put new buffer into target name */
+            targetname = prefixed_targetname;
+
+            DPRINTF(SYMLLVL1,
+                ("handle_symlink_set: "
+                "new targetname='%s'\n",
+                targetname));
+        }
+        else if ((targetnamelen > 1) &&
+            (
+                (targetname[0] == '\\') ||
+                (targetname[0] == '/') ||
+                (targetname[0] == ':')
+            )) {
+            eprintf("handle_symlink_set: "
+                "targetname='%s' should not start "
+                "with '/', '\\' or ':'\n",
+                targetname);
+            status = ERROR_INVALID_PARAMETER;
+            goto out;
+        }
+        else {
+            DPRINTF(SYMLLVL1,
+                ("handle_symlink_set: "
+                "relative symlink targetname='%s'\n",
+                targetname));
+        }
+    }
+
+    /* Do not send Windows slashes to the server */
     char *p;
-    for (p = args->target_set; *p; p++) {
-        if (*p == '\\') *p = '/';
+    for (p = targetname ; *p != '\0' ; p++) {
+        if (*p == '\\')
+            *p = '/';
     }
 
     if (state->file.fh.len) {
@@ -397,25 +555,27 @@ static int handle_symlink_set(void *daemon_context, nfs41_upcall *upcall)
         if (status) {
             eprintf("handle_symlink_set: "
                 "nfs41_remove() for symlink='%s' failed with '%s'\n",
-                args->target_set, nfs_error_string(status));
+                targetname, nfs_error_string(status));
             status = map_symlink_errors(status);
             goto out;
         }
     }
 
     /* create the symlink */
-    createattrs.attrmask.count = 2;
-    createattrs.attrmask.arr[0] = 0;
-    createattrs.attrmask.arr[1] = FATTR4_WORD1_MODE;
-    /* FIXME: We should get the "mode" value from the kernel */
-    createattrs.mode = 0777;
+    nfs41_file_info createattrs = {
+        .attrmask.count = 2,
+        .attrmask.arr[0] = 0,
+        .attrmask.arr[1] = FATTR4_WORD1_MODE,
+        /* FIXME: We should get the "mode" value from the kernel */
+        .mode = 0777
+    };
 
     status = nfs41_create(state->session, NF4LNK, &createattrs,
-        args->target_set, &state->parent, &state->file, &info);
+        targetname, &state->parent, &state->file, &info);
     if (status) {
         eprintf("handle_symlink_set: "
             "nfs41_create() for symlink='%s' failed with '%s'\n",
-            args->target_set, nfs_error_string(status));
+            targetname, nfs_error_string(status));
         status = map_symlink_errors(status);
         goto out;
     }
@@ -434,6 +594,7 @@ static int handle_symlink_set(void *daemon_context, nfs41_upcall *upcall)
 #endif /* NFS41_DRIVER_SETGID_NEWGRP_SUPPORT */
 
 out:
+
     return status;
 }
 
