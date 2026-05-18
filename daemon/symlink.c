@@ -243,21 +243,13 @@ static int parse_symlink_get(
     uint32_t length,
     nfs41_upcall *upcall)
 {
-    getsymlink_upcall_args *args = &upcall->args.getsymlink;
-    int status;
-
-    status = get_name(&buffer, &length, &args->path);
-    if (status)
-        goto out;
+    int status = NO_ERROR;
 
     EASSERT(length == 0);
 
     DPRINTF(SYMLLVL1,
-        ("parse_symlink_get: parsing NFS41_SYSOP_SYMLINK_GET: "
-        "path='%s'\n",
-        args->path));
+        ("parse_symlink_get: parsing NFS41_SYSOP_SYMLINK_GET:\n"));
 
-out:
     return status;
 }
 

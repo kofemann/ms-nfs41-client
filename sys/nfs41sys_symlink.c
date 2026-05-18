@@ -88,7 +88,7 @@ NTSTATUS marshal_nfs41_symlink_get(
         goto out;
     tmp += *len;
 
-    header_len = *len + unicode_filename_length_as_utf8(entry->filename);
+    header_len = *len;
     if (header_len > buf_len) {
         DbgP("marshal_nfs41_symlink_get: "
             "upcall buffer too small: header_len(=%ld) > buf_len(=%ld)\n",
@@ -96,9 +96,6 @@ NTSTATUS marshal_nfs41_symlink_get(
         status = STATUS_INSUFFICIENT_RESOURCES;
         goto out;
     }
-
-    status = marshall_unicode_filename_as_utf8(&tmp, entry->filename);
-    if (status) goto out;
 
     *len = (ULONG)(tmp - buf);
     if (*len != header_len) {
