@@ -28,7 +28,6 @@
 
 #include "nfs41_build_features.h"
 #include "daemon_debug.h"
-#include "nfs41_daemon.h"
 #include "util.h"
 #include "idmap.h"
 #include "sid.h"

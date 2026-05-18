@@ -25,7 +25,6 @@
 #define __NFS41_DAEMON_ACLUTIL_H__ 1
 
 #include "nfs41_build_features.h"
-#include "nfs41_daemon.h"
 #include "nfs41_types.h"
 #include "idmap.h"
 

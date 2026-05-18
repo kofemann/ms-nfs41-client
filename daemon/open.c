@@ -29,7 +29,6 @@
 #include "nfs41_build_features.h"
 #include "aclutil.h"
 #include "nfs41_ops.h"
-#include "nfs41_daemon.h"
 #include "delegation.h"
 #include "from_kernel.h"
 #include "daemon_debug.h"

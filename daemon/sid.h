@@ -26,7 +26,6 @@
 #define __NFS41_DAEMON_SID_H 1
 
 #include "nfs41_build_features.h"
-#include "nfs41_daemon.h"
 #include <stdbool.h>
 
 typedef struct _sidcache sidcache;

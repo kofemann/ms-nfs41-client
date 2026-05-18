@@ -25,13 +25,11 @@
 #include <strsafe.h>
 
 #include "nfs41_ops.h"
-#include "nfs41_daemon.h"
 #include "idmap.h"
 #include "util.h"
 #include "daemon_debug.h"
 /* for |ERROR_NFS_VERSION_MISMATCH|+|NFS_VERSION_AUTONEGOTIATION| */
 #include "nfs41_driver.h"
-
 
 
 #define NSLVL 2 /* dprintf level for namespace logging */

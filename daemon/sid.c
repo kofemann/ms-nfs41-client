@@ -30,7 +30,6 @@
 
 #include "nfs41_ops.h"
 #include "nfs41_build_features.h"
-#include "nfs41_daemon.h"
 #include "delegation.h"
 #include "daemon_debug.h"
 #include "util.h"

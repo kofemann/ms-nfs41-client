@@ -24,7 +24,6 @@
 #include "sid.h"
 #include "idmap.h"
 #include "daemon_debug.h"
-#include "nfs41_daemon.h"
 
 #ifndef _NFS41_DRIVER_BUILDFEATURES_
 #error NFS41 build config not included

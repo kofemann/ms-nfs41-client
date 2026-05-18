@@ -25,7 +25,6 @@
 #include <time.h>
 
 #include "nfs41_build_features.h"
-#include "nfs41_daemon.h"
 #include "nfs41_ops.h"
 #include "nfs41_compound.h"
 #include "nfs41_xdr.h"
