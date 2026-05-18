@@ -1356,10 +1356,15 @@ function simplenfs_build
 	set -o errexit
 
 	# get Maven
-	wget 'https://dlcdn.apache.org/maven/maven-3/3.9.15/binaries/apache-maven-3.9.15-bin.zip'
-	unzip apache-maven-3.9.15-bin.zip
-	chmod a+x $(find 'apache-maven-3.9.15' -iname \*.dll)
-	export PATH+=":$PWD/apache-maven-3.9.15/bin"
+	wget 'https://archive.apache.org/dist/maven/maven-3/3.9.16/binaries/apache-maven-3.9.16-bin.zip'
+	if [[ "$(openssl sha512 'apache-maven-3.9.16-bin.zip')" != *ed41650d42485cfc243fad22158caf9cbb5dc408ce7a09ddb94dd42a019de929ca43065bfa450612cf12bf78b5cafa3884b96c090de326ff590448c933454af3* ]] ; then
+		print -u2 -f $"ERROR: Error validating the SHA512 hash of downloaded apache-maven-3.9.16-bin.zip\n"
+		return 1
+	fi
+
+	unzip apache-maven-3.9.16-bin.zip
+	chmod a+x $(find 'apache-maven-3.9.16' -iname \*.dll)
+	export PATH+=":$PWD/apache-maven-3.9.16/bin"
 
 	# set maven repository cache
 	m2_repository_dir="$PWD/m2_repository"
@@ -1655,6 +1660,7 @@ function main
 			is_toolkit_pkg_installed itp 'git' || (( errc++ ))
 			is_toolkit_pkg_installed itp 'wget' || (( errc++ ))
 			is_toolkit_pkg_installed itp 'unzip' || (( errc++ ))
+			is_toolkit_pkg_installed itp 'openssl' || (( errc++ ))
 			is_cmd_installed 'java.exe' || (( errc++ ))
 			is_cmd_installed 'javac.exe' || (( errc++ ))
 			(( errc > 0 )) && return 1
