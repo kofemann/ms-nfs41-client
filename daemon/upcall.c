@@ -28,7 +28,7 @@
 #include "nfs41_build_features.h"
 #include "upcall.h"
 #include "upcallutil.h"
-#include "nfs41_driver.h" /* only for |NFS41_SYSOP_UNMOUNT| */
+#include "nfs41_driver.h" /* |NFS41_SYSOP_SYMLINK_GET|+|NFS41_SYSOP_UNMOUNT| */
 #include "daemon_debug.h"
 #include "util.h"
 
@@ -171,10 +171,11 @@ int upcall_parse(
 
     if (op) {
         /*
-         * |NFS41_SYSOP_UNMOUNT| has 0 payload,
+         * |NFS41_SYSOP_SYMLINK_GET|+|NFS41_SYSOP_UNMOUNT| has 0 payload,
          * |NFS41_SYSOP_SET_DAEMON_DEBUGLEVEL| has a |ULONG| payload
          */
-        if ((upcall_upcode != NFS41_SYSOP_UNMOUNT) &&
+        if ((upcall_upcode != NFS41_SYSOP_SYMLINK_GET) &&
+            (upcall_upcode != NFS41_SYSOP_UNMOUNT) &&
             (upcall_upcode != NFS41_SYSOP_SET_DAEMON_DEBUGLEVEL)) {
             EASSERT_MSG(op->arg_size >= sizeof(void*),
                 ("upcall->opcode=%u, op->arg_size=%ld\n",
@@ -186,7 +187,8 @@ int upcall_parse(
 
     if (op && op->parse) {
         /* |NFS41_SYSOP_UNMOUNT| has 0 payload */
-        if (upcall_upcode != NFS41_SYSOP_UNMOUNT) {
+        if ((upcall_upcode != NFS41_SYSOP_SYMLINK_GET) &&
+            (upcall_upcode != NFS41_SYSOP_UNMOUNT)) {
             EASSERT(length > 0);
         }
 

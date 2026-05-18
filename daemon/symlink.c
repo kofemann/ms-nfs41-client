@@ -243,7 +243,7 @@ static int parse_symlink_get(
     uint32_t length,
     nfs41_upcall *upcall)
 {
-    symlink_upcall_args *args = &upcall->args.symlink;
+    getsymlink_upcall_args *args = &upcall->args.getsymlink;
     int status;
 
     status = get_name(&buffer, &length, &args->path);
@@ -263,7 +263,7 @@ out:
 
 static int handle_symlink_get(void *daemon_context, nfs41_upcall *upcall)
 {
-    symlink_upcall_args *args = &upcall->args.symlink;
+    getsymlink_upcall_args *args = &upcall->args.getsymlink;
     nfs41_open_state *state = upcall->state_ref;
     int status = NO_ERROR;
 
@@ -292,7 +292,7 @@ static int marshall_symlink_get(
     uint32_t *restrict length,
     nfs41_upcall *restrict upcall)
 {
-    const symlink_upcall_args *args = &upcall->args.symlink;
+    const getsymlink_upcall_args *args = &upcall->args.getsymlink;
     unsigned short len = (args->target_get.len + 1) * sizeof(WCHAR);
     int status;
     int wc_len;
@@ -335,7 +335,7 @@ const nfs41_upcall_op nfs41_op_symlink_get = {
     .parse = parse_symlink_get,
     .handle = handle_symlink_get,
     .marshall = marshall_symlink_get,
-    .arg_size = sizeof(symlink_upcall_args)
+    .arg_size = sizeof(getsymlink_upcall_args)
 };
 
 /* NFS41_SYSOP_SYMLINK_SET */
@@ -344,7 +344,7 @@ static int parse_symlink_set(
     uint32_t length,
     nfs41_upcall *upcall)
 {
-    symlink_upcall_args *args = &upcall->args.symlink;
+    setsymlink_upcall_args *args = &upcall->args.setsymlink;
     int status;
     ULONG reparsebuflen;
     void *reparsebuf = NULL;
@@ -361,8 +361,7 @@ static int parse_symlink_set(
 
     DPRINTF(SYMLLVL1,
         ("parse_symlink_set: parsing NFS41_SYSOP_SYMLINK_SET: "
-        "path='%s' args->(reparsebuflen=%ld,reparsebuf=0x%p)\n",
-        args->path,
+        "args->(reparsebuflen=%ld,reparsebuf=0x%p)\n",
         (long)args->reparsebuflen, (void *)args->reparsebuf));
 
 out:
@@ -371,7 +370,7 @@ out:
 
 static int handle_symlink_set(void *daemon_context, nfs41_upcall *upcall)
 {
-    symlink_upcall_args *args = &upcall->args.symlink;
+    setsymlink_upcall_args *args = &upcall->args.setsymlink;
     nfs41_open_state *state = upcall->state_ref;
     int status = NO_ERROR;
     PREPARSE_DATA_BUFFER Reparse = args->reparsebuf;
@@ -601,5 +600,5 @@ out:
 const nfs41_upcall_op nfs41_op_symlink_set = {
     .parse = parse_symlink_set,
     .handle = handle_symlink_set,
-    .arg_size = sizeof(symlink_upcall_args)
+    .arg_size = sizeof(setsymlink_upcall_args)
 };
