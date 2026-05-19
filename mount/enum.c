@@ -176,6 +176,13 @@ void PrintMountLine(
                         if (strncmp(utf8unc_p, "_WRITETHRU", 10) == 0) {
                             utf8unc_p += 10;
                         }
+#ifdef NFS41_DRIVER_MOUNT_UNCTAGNUMS
+                        if (strncmp(utf8unc_p, "_TAG", 4) == 0) {
+                            utf8unc_p += 4;
+                            while (isdigit((int)*utf8unc_p))
+                                utf8unc_p++;
+                        }
+#endif /* NFS41_DRIVER_MOUNT_UNCTAGNUMS */
                     }
 
                     if (!found_nfsunctag) {

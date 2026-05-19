@@ -112,6 +112,9 @@ NTSTATUS marshal_nfs41_mount(
     header_len = *len +
         unicode_string_length_as_utf8(entry->u.Mount.srv_name) +
         unicode_string_length_as_utf8(entry->u.Mount.root) + 7 * sizeof(DWORD)
+#ifdef NFS41_DRIVER_MOUNT_UNCTAGNUMS
+        + 1 * sizeof(DWORD)
+#endif /* NFS41_DRIVER_MOUNT_UNCTAGNUMS */
 #ifdef NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS
         + 2 * sizeof(tristate_bool)
 #endif /* NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS */
@@ -135,6 +138,10 @@ NTSTATUS marshal_nfs41_mount(
     tmp += sizeof(DWORD);
     UPDOWNCALL_MEMCPY(tmp, &entry->u.Mount.use_nfspubfh, sizeof(DWORD));
     tmp += sizeof(DWORD);
+#ifdef NFS41_DRIVER_MOUNT_UNCTAGNUMS
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.Mount.unctagnum, sizeof(DWORD));
+    tmp += sizeof(DWORD);
+#endif /* NFS41_DRIVER_MOUNT_UNCTAGNUMS */
     UPDOWNCALL_MEMCPY(tmp, &entry->u.Mount.write_thru, sizeof(DWORD));
     tmp += sizeof(DWORD);
     UPDOWNCALL_MEMCPY(tmp, &entry->u.Mount.nocache, sizeof(DWORD));
@@ -302,6 +309,9 @@ NTSTATUS nfs41_mount(
     entry->u.Mount.rsize = config->ReadSize;
     entry->u.Mount.wsize = config->WriteSize;
     entry->u.Mount.use_nfspubfh = config->use_nfspubfh;
+#ifdef NFS41_DRIVER_MOUNT_UNCTAGNUMS
+    entry->u.Mount.unctagnum = config->unctagnum;
+#endif /* NFS41_DRIVER_MOUNT_UNCTAGNUMS */
     entry->u.Mount.nocache = config->nocache;
     entry->u.Mount.write_thru = config->write_thru;
     entry->u.Mount.nfsvers = config->nfsvers;
@@ -345,6 +355,9 @@ void nfs41_MountConfig_InitDefaults(
     Config->ReadSize = MOUNT_CONFIG_RW_SIZE_DEFAULT;
     Config->WriteSize = MOUNT_CONFIG_RW_SIZE_DEFAULT;
     Config->use_nfspubfh = FALSE;
+#ifdef NFS41_DRIVER_MOUNT_UNCTAGNUMS
+    Config->unctagnum = 0UL;
+#endif /* NFS41_DRIVER_MOUNT_UNCTAGNUMS */
     Config->nfsvers = NFS_VERSION_AUTONEGOTIATION;
     Config->ReadOnly = FALSE;
     Config->write_thru = FALSE;
@@ -571,6 +584,13 @@ NTSTATUS nfs41_MountConfig_ParseOptions(
             status = nfs41_MountConfig_ParseBoolean(Option, &usValue,
                 FALSE, &dummy);
         }
+#ifdef NFS41_DRIVER_MOUNT_UNCTAGNUMS
+        else if (wcsncmp(L"unctagnum", Name, NameLen) == 0) {
+            status = nfs41_MountConfig_ParseDword(Option, &usValue,
+                &Config->unctagnum, 0,
+                0xFFFF);
+        }
+#endif /* NFS41_DRIVER_MOUNT_UNCTAGNUMS */
         else if (wcsncmp(L"srvname", Name, NameLen) == 0) {
             if (usValue.Length > Config->SrvName.MaximumLength)
                 status = STATUS_NAME_TOO_LONG;
@@ -992,6 +1012,9 @@ NTSTATUS nfs41_CreateVNetRoot(
             goto out_free;
         }
 
+#ifdef NFS41_DRIVER_MOUNT_UNCTAGNUMS
+        pVNetRootContext->unctagnum = Config->unctagnum;
+#endif /* NFS41_DRIVER_MOUNT_UNCTAGNUMS */
         pVNetRootContext->nfsvers = Config->nfsvers;
         pVNetRootContext->read_only = Config->ReadOnly;
         pVNetRootContext->write_thru = Config->write_thru;
@@ -1118,6 +1141,9 @@ NTSTATUS nfs41_CreateVNetRoot(
             goto out_free;
         }
 
+#ifdef NFS41_DRIVER_MOUNT_UNCTAGNUMS
+        pVNetRootContext->unctagnum = Config->unctagnum;
+#endif /* NFS41_DRIVER_MOUNT_UNCTAGNUMS */
         pVNetRootContext->nfsvers = Config->nfsvers;
         pVNetRootContext->read_only = Config->ReadOnly;
         pVNetRootContext->write_thru = Config->write_thru;
@@ -1134,6 +1160,7 @@ NTSTATUS nfs41_CreateVNetRoot(
         "MntPt='%wZ', "
         "SrvName='%wZ', "
         "usenfspubfh=%d, "
+        "unctagnum=0x%lx, "
         "nfsvers=%d, "
         "ro=%d, "
         "writethru=%d, "
@@ -1153,6 +1180,11 @@ NTSTATUS nfs41_CreateVNetRoot(
         &Config->MntPt,
         &Config->SrvName,
         Config->use_nfspubfh?1:0,
+#ifdef NFS41_DRIVER_MOUNT_UNCTAGNUMS
+        (long)Config->unctagnum,
+#else
+        -1L,
+#endif /* NFS41_DRIVER_MOUNT_UNCTAGNUMS */
         (int)Config->nfsvers,
         Config->ReadOnly?1:0,
         Config->write_thru?1:0,

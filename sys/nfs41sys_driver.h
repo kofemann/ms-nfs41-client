@@ -228,6 +228,9 @@ typedef struct _updowncall_entry {
             DWORD wsize;
             DWORD lease_time;
             DWORD use_nfspubfh;
+#ifdef NFS41_DRIVER_MOUNT_UNCTAGNUMS
+            DWORD unctagnum;
+#endif /* NFS41_DRIVER_MOUNT_UNCTAGNUMS */
             DWORD nocache;
             DWORD write_thru;
             DWORD nfsvers;
@@ -395,6 +398,9 @@ typedef struct _NFS41_MOUNT_CREATEMODE {
 
 typedef struct _NFS41_MOUNT_CONFIG {
     BOOLEAN use_nfspubfh;
+#ifdef NFS41_DRIVER_MOUNT_UNCTAGNUMS
+    DWORD unctagnum;
+#endif /* NFS41_DRIVER_MOUNT_UNCTAGNUMS */
     DWORD nfsvers;
     DWORD ReadSize;
     DWORD WriteSize;
@@ -504,6 +510,9 @@ typedef struct _NFS41_V_NET_ROOT_EXTENSION {
     NFS41_MOUNT_CREATEMODE  file_createmode;
     WCHAR                   mntpt_buffer[NFS41_SYS_MAX_PATH_LEN];
     UNICODE_STRING          MntPt;
+#ifdef NFS41_DRIVER_MOUNT_UNCTAGNUMS
+    DWORD                   unctagnum;
+#endif /* NFS41_DRIVER_MOUNT_UNCTAGNUMS */
     DWORD                   nfsvers;
     BOOLEAN                 read_only;
     BOOLEAN                 write_thru;

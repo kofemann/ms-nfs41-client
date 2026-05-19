@@ -39,6 +39,9 @@ typedef struct __mount_upcall_args {
     DWORD       rsize;
     DWORD       wsize;
     DWORD       use_nfspubfh;
+#ifdef NFS41_DRIVER_MOUNT_UNCTAGNUMS
+    DWORD       unctagnum;
+#endif /* NFS41_DRIVER_MOUNT_UNCTAGNUMS */
     DWORD       write_thru;
     DWORD       nocache;
     DWORD       nfsvers;

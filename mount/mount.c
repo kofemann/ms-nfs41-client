@@ -70,6 +70,9 @@ DWORD EnumMounts(
 
 static DWORD ParseRemoteName(
     IN bool use_nfspubfh,
+#ifdef NFS41_DRIVER_MOUNT_UNCTAGNUMS
+    IN DWORD unctagnum,
+#endif /* NFS41_DRIVER_MOUNT_UNCTAGNUMS */
     IN bool flag_nocache,
     IN bool flag_writethru,
     IN int override_portnum,
@@ -147,6 +150,11 @@ void PrintMountUsage(LPWSTR pProcess)
         "\tro\tmount as read-only\n"
         "\trw\tmount as read-write (default)\n"
         "\tport=#\tTCP port to use (defaults to 2049)\n"
+#ifdef NFS41_DRIVER_MOUNT_UNCTAGNUMS
+        "\tunctagnum=#\tAdd tag <number> to UNC path tag to mount the same server\n"
+            "\t\tmultiple times over separate connections\n"
+#endif /* NFS41_DRIVER_MOUNT_UNCTAGNUMS */
+
         "\tvers=#\tNFS protocol version, either 4.1 or 4.2\n"
             "\t\tIf this option is not specified, the client negotiates a\n"
             "\t\tsuitable version with the server, trying version 4.2 and then 4.1\n"
@@ -270,6 +278,9 @@ int mount_main(int argc, wchar_t *argv[])
 #define MAX_MNTOPTS 128
     wchar_t *mntopts[MAX_MNTOPTS] = { 0 };
     int     num_mntopts = 0;
+#ifdef NFS41_DRIVER_MOUNT_UNCTAGNUMS
+    DWORD   unctagnum = 0UL;
+#endif /* NFS41_DRIVER_MOUNT_UNCTAGNUMS */
     bool    flag_nocache = false;
     bool    flag_writethru = false;
 
@@ -360,6 +371,36 @@ opt_o_argv_i_again:
                     use_nfspubfh = true;
                     argv_i += 6;
                 }
+#ifdef NFS41_DRIVER_MOUNT_UNCTAGNUMS
+                /*
+                 * Extract UNC tag number
+                 */
+                else if (wcsncmp(argv_i, L"unctagnum=", 10) == 0) {
+                    wchar_t *db;
+                    wchar_t digit_buff[20];
+
+                    pns = argv_i+10; /* skip "unctagnum=" */
+
+                    /* Copy digits... */
+                    for(db = digit_buff ;
+                        iswdigit(*pns) &&
+                        ((db-digit_buff) < sizeof(digit_buff)) ; )
+                        *db++ = *pns++;
+                    *db = L'\0';
+
+                    /* ... and convert them to a unctagnum number */
+                    errno = 0;
+                    unctagnum = wcstol(digit_buff, NULL, 0);
+                    if ((unctagnum < 0) || (unctagnum > 65535) || (errno != 0)) {
+                        (void)fwprintf(stderr,
+                            L"Invalid UNC tag number.\n");
+                        result = ERROR_BAD_ARGUMENTS;
+                        goto out;
+                    }
+
+                    argv_i = pns-1;
+                }
+#endif /* NFS41_DRIVER_MOUNT_UNCTAGNUMS */
                 /*
                  * Extract port number
                  */
@@ -608,6 +649,9 @@ opt_o_argv_i_done:
          */
 
         result = ParseRemoteName(use_nfspubfh,
+#ifdef NFS41_DRIVER_MOUNT_UNCTAGNUMS
+            unctagnum,
+#endif /* NFS41_DRIVER_MOUNT_UNCTAGNUMS */
             flag_nocache,
             flag_writethru,
             port_num,
@@ -921,6 +965,9 @@ wchar_t *utf8str2wcs(const char *utf8str)
 
 static DWORD ParseRemoteName(
     IN bool use_nfspubfh,
+#ifdef NFS41_DRIVER_MOUNT_UNCTAGNUMS
+    IN DWORD unctagnum,
+#endif /* NFS41_DRIVER_MOUNT_UNCTAGNUMS */
     IN bool flag_nocache,
     IN bool flag_writethru,
     IN int override_portnum,
@@ -945,11 +992,24 @@ static DWORD ParseRemoteName(
     result = StringCchCopyW(premotename, NFS41_SYS_MAX_PATH_LEN, pRemoteName);
 
     /* Create UNC tag */
-    (void)swprintf(nfsunctagbuf, sizeof(nfsunctagbuf)/sizeof(wchar_t),
-        L"%ls%ls%ls",
-        (use_nfspubfh?L"PUBNFS":L"NFS"),
-        (flag_nocache?L"_NOCACHE":L""),
-        (flag_writethru?L"_WRITETHRU":L""));
+#ifdef NFS41_DRIVER_MOUNT_UNCTAGNUMS
+    if (unctagnum != 0UL) {
+        (void)swprintf(nfsunctagbuf, sizeof(nfsunctagbuf)/sizeof(wchar_t),
+            L"%ls%ls%ls_TAG%ld",
+            (use_nfspubfh?L"PUBNFS":L"NFS"),
+            (flag_nocache?L"_NOCACHE":L""),
+            (flag_writethru?L"_WRITETHRU":L""),
+            (long)unctagnum);
+    }
+    else
+#endif /* NFS41_DRIVER_MOUNT_UNCTAGNUMS */
+    {
+        (void)swprintf(nfsunctagbuf, sizeof(nfsunctagbuf)/sizeof(wchar_t),
+            L"%ls%ls%ls",
+            (use_nfspubfh?L"PUBNFS":L"NFS"),
+            (flag_nocache?L"_NOCACHE":L""),
+            (flag_writethru?L"_WRITETHRU":L""));
+    }
 
     /*
      * Support nfs://-URLS per RFC 2224 ("NFS URL

@@ -24,6 +24,7 @@
 #include <Windows.h>
 #include <strsafe.h>
 
+#include "nfs41_build_features.h"
 #include "nfs41_ops.h"
 #include "idmap.h"
 #include "util.h"
@@ -43,6 +44,9 @@ int nfs41_root_create(
     IN const char *name,
     IN uint32_t port,
     IN bool use_nfspubfh,
+#ifdef NFS41_DRIVER_MOUNT_UNCTAGNUMS
+    IN DWORD unctagnum,
+#endif /* NFS41_DRIVER_MOUNT_UNCTAGNUMS */
     IN bool write_thru,
     IN bool nocache,
 #ifdef NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS
@@ -58,23 +62,33 @@ int nfs41_root_create(
     int status = NO_ERROR;
     nfs41_root *root;
 
+#ifndef NFS41_DRIVER_MOUNT_UNCTAGNUMS
+    long unctagnum = -1;
+#endif /* !NFS41_DRIVER_MOUNT_UNCTAGNUMS */
+
 #ifdef NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS
     DPRINTF(NSLVL,
         ("--> nfs41_root_create(name='%s', port=%d, "
-            "use_nfspubfh=%d, write_thru=%d, nocache=%d, "
+            "use_nfspubfh=%d, unctagnum=%ld, "
+            "write_thru=%d, nocache=%d, "
             "force_case_preserving=%d force_case_insensitive=%d"
             "nfsvers=%d)\n",
             name, port,
-            (int)use_nfspubfh, (int)write_thru, (int)nocache,
+            (int)use_nfspubfh,
+            (long)unctagnum,
+            (int)write_thru, (int)nocache,
             (int)force_case_preserving, (int)force_case_insensitive,
             (int)nfsvers));
 #else
     DPRINTF(NSLVL,
         ("--> nfs41_root_create(name='%s', port=%d, "
-            "use_nfspubfh=%d, write_thru=%d, nocache=%d, "
+            "use_nfspubfh=%d, unctagnum=0x%lx, "
+            "write_thru=%d, nocache=%d, "
             "nfsvers=%d)\n",
             name, port,
-            (int)use_nfspubfh, (int)write_thru, (int)nocache,
+            (int)use_nfspubfh,
+            (long)unctagnum,
+            (int)write_thru, (int)nocache,
             (int)nfsvers));
 #endif /* NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS */
 
@@ -142,7 +156,11 @@ int nfs41_root_create(
 
     /* generate a unique client_owner */
     status = nfs41_client_owner(name, port, root->nfsminorvers,
-        use_nfspubfh, write_thru, nocache,
+        use_nfspubfh,
+#ifdef NFS41_DRIVER_MOUNT_UNCTAGNUMS
+        unctagnum,
+#endif /* NFS41_DRIVER_MOUNT_UNCTAGNUMS */
+        write_thru, nocache,
 #ifdef NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS
         root->force_case_preserving, root->force_case_insensitive,
 #endif /* NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS */

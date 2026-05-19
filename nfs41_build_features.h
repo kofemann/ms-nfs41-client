@@ -428,4 +428,12 @@
  * #define NFS41_DRIVER_MAP_POSIXUNLINKRENAMECLASSES_HACK 1
  */
 
+/*
+ * |NFS41_DRIVER_MOUNT_UNCTAGNUMS| - add "tag" numbers to
+ * UNC paths (e.g. the "_TAG4" in "\\1.2.3.4@NFS_TAG4@2049\casei001_pool")
+ * to be able to mount the same filesystem via multiple
+ * independent connections.
+ */
+#define NFS41_DRIVER_MOUNT_UNCTAGNUMS 1
+
 #endif /* !_NFS41_DRIVER_BUILDFEATURES_ */

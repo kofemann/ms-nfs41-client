@@ -59,6 +59,10 @@ static int parse_mount(
     if (status) goto out;
     status = safe_read(&buffer, &length, &args->use_nfspubfh, sizeof(DWORD));
     if (status) goto out;
+#ifdef NFS41_DRIVER_MOUNT_UNCTAGNUMS
+    status = safe_read(&buffer, &length, &args->unctagnum, sizeof(DWORD));
+    if (status) goto out;
+#endif /* NFS41_DRIVER_MOUNT_UNCTAGNUMS */
     status = safe_read(&buffer, &length, &args->write_thru, sizeof(DWORD));
     if (status) goto out;
     status = safe_read(&buffer, &length, &args->nocache, sizeof(DWORD));
@@ -76,25 +80,36 @@ static int parse_mount(
 
     EASSERT(length == 0);
 
+#ifdef NFS41_DRIVER_MOUNT_UNCTAGNUMS
+    long unctagnum = args->unctagnum;
+#else
+    long unctagnum = -1;
+#endif /* NFS41_DRIVER_MOUNT_UNCTAGNUMS */
+
 #ifdef NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS
     DPRINTF(1, ("parsing NFS41_SYSOP_MOUNT: hostport='%s' root='%s' "
         "sec_flavor='%s' rsize=%d wsize=%d "
-        "use_nfspubfh=%d write_thru=%d nocache=%d "
+        "use_nfspubfh=%d unctagnum=0x%lx write_thru=%d nocache=%d "
         "nfsvers=%d force_case_preserving=%d force_case_insensitive=%d\n",
         args->hostport, args->path, secflavorop2name(args->sec_flavor),
         (int)args->rsize, (int)args->wsize,
-        (int)args->use_nfspubfh, (int)args->write_thru, (int)args->nocache,
+        (int)args->use_nfspubfh,
+        (long)unctagnum,
+
+        (int)args->write_thru, (int)args->nocache,
         (int)args->nfsvers,
         (int)args->force_case_preserving,
         (int)args->force_case_insensitive));
 #else
     DPRINTF(1, ("parsing NFS41_SYSOP_MOUNT: hostport='%s' root='%s' "
         "sec_flavor='%s' rsize=%d wsize=%d "
-        "use_nfspubfh=%d write_thru=%d nocache=%d "
+        "use_nfspubfh=%d unctagnum=0x%lx write_thru=%d nocache=%d "
         "nfsvers=%d\n",
         args->hostport, args->path, secflavorop2name(args->sec_flavor),
         (int)args->rsize, (int)args->wsize,
-        (int)args->use_nfspubfh, (int)args->write_thru, (int)args->nocache,
+        (int)args->use_nfspubfh,
+        (long)unctagnum,
+        (int)args->write_thru, (int)args->nocache,
         (int)args->nfsvers));
 #endif /* NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS */
 
@@ -291,6 +306,9 @@ static int handle_mount(void *daemon_context, nfs41_upcall *upcall)
         // create root
         status = nfs41_root_create(hostname, port,
             args->use_nfspubfh?true:false,
+#ifdef NFS41_DRIVER_MOUNT_UNCTAGNUMS
+            args->unctagnum,
+#endif /* NFS41_DRIVER_MOUNT_UNCTAGNUMS */
             args->write_thru?true:false,
             args->nocache?true:false,
 #ifdef NFS41_DRIVER_HACK_FORCE_FILENAME_CASE_MOUNTOPTIONS
