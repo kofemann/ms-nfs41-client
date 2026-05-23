@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2024-2025 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2024-2026 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -27,7 +27,7 @@
 #include "daemon_debug.h"
 
 
-#define CBXLVL 2 /* dprintf level for callback xdr logging */
+#define CBXLVL 0 /* dprintf level for callback xdr logging */
 #define CBX_ERR(msg) DPRINTF(CBXLVL, ("'%s': failed at '%s'\n", __func__, (msg)))
 
 
