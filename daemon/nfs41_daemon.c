@@ -651,7 +651,7 @@ void set_nfs_daemon_privileges(void)
 #ifdef STANDALONE_NFSD
 void __cdecl wmain(int argc, wchar_t *argv[])
 #else
-VOID ServiceStart(DWORD argc, LPTSTR *argv)
+VOID ServiceStart(DWORD argc, LPWSTR *argv)
 #endif
 {
     DWORD status = 0, len;
