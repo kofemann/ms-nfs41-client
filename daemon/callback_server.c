@@ -489,11 +489,13 @@ static void handle_cb_compound(nfs41_rpc_clnt *rpc_clnt, cb_req *req, struct cb_
             res->status = NFS4_OK;
             break;
         case OP_CB_ILLEGAL:
-            DPRINTF(1, ("OP_CB_ILLEGAL\n"));
+            eprintf("OP_CB_ILLEGAL\n");
+            /* FIXME: Maybe |NFS4ERR_OP_ILLEGAL| is better ? */
             res->status = NFS4ERR_NOTSUPP;
             break;
         default:
             eprintf("operation %u not supported\n", argop->opnum);
+            /* FIXME: Maybe |NFS4ERR_OP_ILLEGAL| is better ? */
             res->status = NFS4ERR_NOTSUPP;
             break;
         }
