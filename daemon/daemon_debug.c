@@ -750,7 +750,9 @@ const char* map_SID_NAME_USE2str(SID_NAME_USE snu)
         SID_NAME_USE_TO_STRLITERAL(SidTypeUnknown)
         SID_NAME_USE_TO_STRLITERAL(SidTypeComputer)
         SID_NAME_USE_TO_STRLITERAL(SidTypeLabel)
+#ifndef __REACTOS__
         SID_NAME_USE_TO_STRLITERAL(SidTypeLogonSession)
+#endif /* !__REACTOS__ */
     }
     return "<unknown SID_NAME_USE type>";
 }
