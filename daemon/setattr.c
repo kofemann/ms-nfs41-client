@@ -142,10 +142,12 @@ static int handle_nfs41_setattr_basicinfo(void *daemon_context,
             info.attrmask.count = __max(info.attrmask.count, 2);
         }
 
+#ifdef FILE_ATTRIBUTE_EA
         EASSERT_MSG(((basic_info->FileAttributes & FILE_ATTRIBUTE_EA) == 0),
             ("handle_nfs41_setattr_basicinfo(args->path='%s)': "
             "Unsupported flag FILE_ATTRIBUTE_EA ignored.\n",
             args->path));
+#endif /* FILE_ATTRIBUTE_EA */
         EASSERT_MSG(((basic_info->FileAttributes & FILE_ATTRIBUTE_COMPRESSED) == 0),
             ("handle_nfs41_setattr_basicinfo(args->path='%s)': "
             "Unsupported flag FILE_ATTRIBUTE_COMPRESSED ignored.\n",
