@@ -234,11 +234,11 @@ void nfs_to_remote_protocol_info(
 
     rpi_out->Flags = 0;
     /*
-     * We can always set |REMOTE_PROTOCOL_INFO_FLAG_PERSISTENT_HANDLE|
+     * We can always set |REMOTE_PROTOCOL_FLAG_PERSISTENT_HANDLE|
      * because NFSv4.1 always does a "preserves the open state across
      * disconnects/failover with proper replay handling"
      */
-    rpi_out->Flags |= REMOTE_PROTOCOL_INFO_FLAG_PERSISTENT_HANDLE;
+    rpi_out->Flags |= REMOTE_PROTOCOL_FLAG_PERSISTENT_HANDLE;
     /*
      * FIXME: |FILE_REMOTE_PROTOCOL_INFORMATION.Flags| should include
      * |REMOTE_PROTOCOL_FLAG_PRIVACY| (krb5p) and
