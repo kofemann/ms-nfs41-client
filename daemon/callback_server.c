@@ -1,8 +1,10 @@
 /* NFSv4.1 client for Windows
- * Copyright © 2012 The Regents of the University of Michigan
+ * Copyright (C) 2012 The Regents of the University of Michigan
+ * Copyright (C) 2023-2026 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
+ * Roland Mainz <roland.mainz@nrubsig.org>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -377,9 +379,9 @@ static void handle_cb_compound(nfs41_rpc_clnt *rpc_clnt, cb_req *req, struct cb_
         goto out;
     }
     res->status = status;
-    StringCchCopyA(res->tag.str, CB_COMPOUND_MAX_TAG, g_server_tag);
-    res->tag.str[CB_COMPOUND_MAX_TAG-1] = 0;
-    res->tag.len = (uint32_t)strlen(res->tag.str);
+    StringCchCopyNA(res->tag.str, CB_COMPOUND_MAX_TAG, args.tag.str, args.tag.len);
+    res->tag.str[args.tag.len] = 0;
+    res->tag.len = args.tag.len;
     res->resarray = calloc(args.argarray_count, sizeof(struct cb_resop));
     if (res->resarray == NULL) {
         res->status = NFS4ERR_SERVERFAULT;
