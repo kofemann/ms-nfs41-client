@@ -409,7 +409,9 @@ static void handle_cb_compound(nfs41_rpc_clnt *rpc_clnt, cb_req *req, struct cb_
          * position of CB_COMPOUND, NFS4ERR_OP_NOT_IN_SESSION MUST 
          * be returned.
          */
-        if (i == 0 && argop->opnum != OP_CB_SEQUENCE) {
+        if ((i == 0) &&
+            (argop->opnum != OP_CB_SEQUENCE) &&
+            (argop->opnum != OP_CB_ILLEGAL)) {
             res->status = resop->res.status = NFS4ERR_OP_NOT_IN_SESSION;
             break;
         }
