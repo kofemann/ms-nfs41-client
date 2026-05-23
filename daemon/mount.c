@@ -257,7 +257,14 @@ static int handle_mount(void *daemon_context, nfs41_upcall *upcall)
         goto out;
     }
 
-    (void)strcpy_s(hostname, sizeof(hostname), args->hostport);
+    if (strlen(args->hostport) >= sizeof(hostname)) {
+        eprintf("handle_mount: hostport too long\n");
+        status = ERROR_BAD_NETPATH;
+        goto out;
+    }
+
+    (void)strcpy(hostname, args->hostport);
+
     s = strchr(hostname, '@');
     if (s) {
         char *tmps;
