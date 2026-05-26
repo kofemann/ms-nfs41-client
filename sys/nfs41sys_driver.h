@@ -331,12 +331,12 @@ typedef struct _updowncall_entry {
             ULONG buf_len;
         } QueryEa;
         struct {
-            /* GET */
-            PUNICODE_STRING target;
-            /* SET */
-            ULONG reparsebufferlen;
+            USHORT reparsebufferlen;
             void *reparsebuffer;
-        } Symlink;
+        } SetSymlink;
+        struct {
+            PUNICODE_STRING target;
+        } GetSymlink;
         struct {
             FS_INFORMATION_CLASS query;
             PVOID buf;

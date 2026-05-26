@@ -512,7 +512,7 @@ NTSTATUS QueryCygwinSymlink(
         NetRootContext->nfs41d_version, SrvOpen->pAlreadyPrefixedName, &entry);
     if (status) goto out;
 
-    entry->u.Symlink.target = &TargetName;
+    entry->u.GetSymlink.target = &TargetName;
 
     status = nfs41_UpcallWaitForReply(entry, VNetRootContext->timeout);
     if (status) {
@@ -532,7 +532,7 @@ NTSTATUS QueryCygwinSymlink(
         RxContext->Info.LengthRemaining = HeaderLen + info->EaValueLength;
     } else if (status == STATUS_BUFFER_TOO_SMALL) {
         RxContext->InformationToReturn = (ULONG_PTR)HeaderLen +
-            entry->u.Symlink.target->Length;
+            entry->u.GetSymlink.target->Length;
     }
 out:
     if (entry) {

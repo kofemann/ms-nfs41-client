@@ -117,16 +117,16 @@ void unmarshal_nfs41_get_symlink(
     nfs41_updowncall_entry *cur,
     const unsigned char *restrict *restrict buf)
 {
-    UPDOWNCALL_MEMCPY(&cur->u.Symlink.target->Length, *buf, sizeof(USHORT));
+    UPDOWNCALL_MEMCPY(&cur->u.GetSymlink.target->Length, *buf, sizeof(USHORT));
     *buf += sizeof(USHORT);
-    if (cur->u.Symlink.target->Length >
-            cur->u.Symlink.target->MaximumLength) {
+    if (cur->u.GetSymlink.target->Length >
+            cur->u.GetSymlink.target->MaximumLength) {
         cur->status = STATUS_BUFFER_TOO_SMALL;
         return;
     }
-    UPDOWNCALL_MEMCPY(cur->u.Symlink.target->Buffer, *buf,
-        cur->u.Symlink.target->Length);
-    *buf += cur->u.Symlink.target->Length;
+    UPDOWNCALL_MEMCPY(cur->u.GetSymlink.target->Buffer, *buf,
+        cur->u.GetSymlink.target->Length);
+    *buf += cur->u.GetSymlink.target->Length;
 }
 
 NTSTATUS marshal_nfs41_symlink_set(
@@ -145,7 +145,7 @@ NTSTATUS marshal_nfs41_symlink_set(
     tmp += *len;
 
     header_len = *len;
-    header_len += sizeof(ULONG) + entry->u.Symlink.reparsebufferlen;
+    header_len += sizeof(USHORT) + entry->u.SetSymlink.reparsebufferlen;
     if (header_len > buf_len) {
         DbgP("marshal_nfs41_symlink_set: "
             "upcall buffer too small: header_len(=%ld) > buf_len(=%ld)\n",
@@ -154,11 +154,13 @@ NTSTATUS marshal_nfs41_symlink_set(
         goto out;
     }
 
-    UPDOWNCALL_MEMCPY(tmp, &entry->u.Symlink.reparsebufferlen, sizeof(ULONG));
-    tmp += sizeof(ULONG);
     UPDOWNCALL_MEMCPY(tmp,
-        entry->u.Symlink.reparsebuffer, entry->u.Symlink.reparsebufferlen);
-    tmp += entry->u.Symlink.reparsebufferlen;
+        &entry->u.SetSymlink.reparsebufferlen, sizeof(USHORT));
+    tmp += sizeof(USHORT);
+    UPDOWNCALL_MEMCPY(tmp,
+        entry->u.SetSymlink.reparsebuffer,
+        entry->u.SetSymlink.reparsebufferlen);
+    tmp += entry->u.SetSymlink.reparsebufferlen;
 
     *len = (ULONG)(tmp - buf);
     if (*len != header_len) {
@@ -318,8 +320,9 @@ NTSTATUS nfs41_SetSymlinkReparsePoint(
         pNetRootContext->nfs41d_version, SrvOpen->pAlreadyPrefixedName, &entry);
     if (status) goto out;
 
-    entry->u.Symlink.reparsebufferlen = ReparseLen;
-    entry->u.Symlink.reparsebuffer = Reparse;
+    /* |ReparseLen| cannot be larger than |MAXIMUM_REPARSE_DATA_BUFFER_SIZE| */
+    entry->u.SetSymlink.reparsebufferlen = (USHORT)ReparseLen;
+    entry->u.SetSymlink.reparsebuffer = Reparse;
 
     status = nfs41_UpcallWaitForReply(entry, VNetRootContext->timeout);
     if (status) {
@@ -503,7 +506,7 @@ NTSTATUS nfs41_GetSymlinkReparsePoint(
         pNetRootContext->nfs41d_version, SrvOpen->pAlreadyPrefixedName, &entry);
     if (status) goto out;
 
-    entry->u.Symlink.target = &TargetName;
+    entry->u.GetSymlink.target = &TargetName;
 
     status = nfs41_UpcallWaitForReply(entry, VNetRootContext->timeout);
     if (status) {

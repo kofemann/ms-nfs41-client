@@ -337,10 +337,10 @@ static int parse_symlink_set(
 {
     setsymlink_upcall_args *args = &upcall->args.setsymlink;
     int status;
-    ULONG reparsebuflen;
+    USHORT reparsebuflen;
     void *reparsebuf = NULL;
 
-    status = safe_read(&buffer, &length, &reparsebuflen, sizeof(ULONG));
+    status = safe_read(&buffer, &length, &reparsebuflen, sizeof(USHORT));
     if (status) goto out;
     status = get_safe_read_bufferpos(&buffer, &length, reparsebuflen, &reparsebuf);
     if (status) goto out;
@@ -385,6 +385,11 @@ static int handle_symlink_set(void *daemon_context, nfs41_upcall *upcall)
         status = ERROR_INVALID_REPARSE_DATA;
         goto out;
     }
+
+    /*
+     * FIXME: We should validate the data in |Reparse| using
+     * |args->reparsebuflen|
+     */
 
     TargetNameLen = Reparse->SymbolicLinkReparseBuffer.SubstituteNameLength;
     TargetNameBuf = &Reparse->SymbolicLinkReparseBuffer.PathBuffer[

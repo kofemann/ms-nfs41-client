@@ -187,7 +187,7 @@ typedef struct __readdir_upcall_args {
 } readdir_upcall_args;
 
 typedef struct __setsymlink_upcall_args {
-    ULONG reparsebuflen;
+    USHORT reparsebuflen;
     void *reparsebuf;
 } setsymlink_upcall_args;
 
