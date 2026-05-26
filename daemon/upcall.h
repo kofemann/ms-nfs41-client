@@ -192,10 +192,7 @@ typedef struct __setsymlink_upcall_args {
 } setsymlink_upcall_args;
 
 typedef struct __getsymlink_upcall_args {
-    /* GET */
     nfs41_abs_path target_get;
-    char *target_set;
-    const char *path;
 } getsymlink_upcall_args;
 
 typedef struct __volume_upcall_args {
