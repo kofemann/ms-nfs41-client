@@ -64,8 +64,10 @@ NTSTATUS nfs41_MapLockedPagesInNfsDaemonAddressSpace(
 NTSTATUS nfs41_UnmapLockedKernelPagesInNfsDaemonAddressSpace(
     __in PVOID BaseAddress,
     __in PMDL  MemoryDescriptorList);
+#ifdef NFS41_DRIVER_ECP_SUPPORT
 PQUERY_ON_CREATE_ECP_CONTEXT get_queryoncreateecpcontext(
     __in PIRP Irp);
+#endif /* NFS41_DRIVER_ECP_SUPPORT */
 _Success_(return == true) bool
 get_primarygroup_id(
     _Out_writes_bytes_(MAX_SID_BUFFER_SIZE) SID *restrict ret_sid);

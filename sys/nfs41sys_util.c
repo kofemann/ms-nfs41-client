@@ -282,6 +282,7 @@ NTSTATUS nfs41_UnmapLockedKernelPagesInNfsDaemonAddressSpace(
     return status;
 }
 
+#ifdef NFS41_DRIVER_ECP_SUPPORT
 PQUERY_ON_CREATE_ECP_CONTEXT get_queryoncreateecpcontext(
     __in PIRP Irp)
 {
@@ -308,6 +309,7 @@ PQUERY_ON_CREATE_ECP_CONTEXT get_queryoncreateecpcontext(
 
     return (PQUERY_ON_CREATE_ECP_CONTEXT)ecpContext;
 }
+#endif /* NFS41_DRIVER_ECP_SUPPORT */
 
 _Success_(return == true) bool
 get_primarygroup_id(

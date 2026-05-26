@@ -59,6 +59,11 @@
 #define WINBUG_NO_COLLAPSE_IF_PRIMARYGROUPS_DIFFER 1
 #endif /* NFS41_DRIVER_COLLAPSEOPEN */
 
+/* Build Extended Create Parameter support ? */
+#if (NTDDI_VERSION >= NTDDI_VISTA)
+#define NFS41_DRIVER_ECP_SUPPORT 1
+#endif /* (NTDDI_VERSION >= NTDDI_VISTA) */
+
 /* debugging printout defines */
 #if defined(_DEBUG)
 /* Debug build defines follow... */
@@ -72,7 +77,9 @@
 //#define DEBUG_OPEN
 #define DEBUG_COLLAPSEOPEN 1
 #define DEBUG_AREFILESALIASED 1
+#ifdef NFS41_DRIVER_ECP_SUPPORT
 #define DEBUG_EXTENDEDCREATEPARAMETERS 1
+#endif /* NFS41_DRIVER_ECP_SUPPORT */
 //#define DEBUG_CLOSE
 //#define DEBUG_CACHE
 #define DEBUG_INVALIDATE_CACHE

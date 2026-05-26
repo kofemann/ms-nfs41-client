@@ -50,6 +50,7 @@
 #include <rx.h>
 
 #include "nfs41_driver.h"
+#include "nfs41sys_buildconfig.h"
 #include "nfs41sys_debug.h"
 #include <stdio.h>
 #include <stdarg.h>
@@ -1593,6 +1594,7 @@ void print_debug_header(
         print_irp_flags(0, RxContext->CurrentIrp);
 }
 
+#ifdef NFS41_DRIVER_ECP_SUPPORT
 /*
  * Print Extended Create Parameters (ECP)
  */
@@ -1718,3 +1720,4 @@ void debug_printirpecps(PIRP irp)
         currentContext = nextContext;
     }
 }
+#endif /* NFS41_DRIVER_ECP_SUPPORT */

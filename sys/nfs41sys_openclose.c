@@ -788,6 +788,7 @@ NTSTATUS nfs41_Create(
 #endif /* WINBUG_NO_COLLAPSE_IF_PRIMARYGROUPS_DIFFER */
     }
 
+#ifdef NFS41_DRIVER_ECP_SUPPORT
 #ifdef DEBUG_EXTENDEDCREATEPARAMETERS
     debug_printirpecps(RxContext->CurrentIrp);
 #endif /* DEBUG_EXTENDEDCREATEPARAMETERS */
@@ -801,6 +802,7 @@ NTSTATUS nfs41_Create(
             qocec->RequestedClasses);
 #endif /* DEBUG_EXTENDEDCREATEPARAMETERS */
     }
+#endif /* NFS41_DRIVER_ECP_SUPPORT */
 
 #ifdef NFS41_DRIVER_ALLOW_CREATEFILE_ACLS
     ULONG SdLength = RxContext->Create.SdLength;
@@ -1301,6 +1303,7 @@ retry_on_link:
             !pVNetRootContext->read_only)
         nfs41_fcb->StandardInfo.DeletePending = TRUE;
 
+#ifdef NFS41_DRIVER_ECP_SUPPORT
     if (qocec) {
         if (qocec->RequestedClasses & QoCFileStatInformation) {
             qocec_file_stat_information(&qocec->StatInformation, nfs41_fcb);
@@ -1322,6 +1325,7 @@ retry_on_link:
 
         FsRtlAcknowledgeEcp(qocec);
     }
+#endif /* NFS41_DRIVER_ECP_SUPPORT */
 
     RxContext->Create.ReturnedCreateInformation =
         map_disposition_to_create_retval(params->Disposition, entry->errno);
@@ -1524,6 +1528,7 @@ NTSTATUS nfs41_CollapseOpen(
      * - Check whether Cygwin/SFU EA must be handled
      */
 
+#ifdef NFS41_DRIVER_ECP_SUPPORT
 #ifdef DEBUG_EXTENDEDCREATEPARAMETERS
     debug_printirpecps(RxContext->CurrentIrp);
 #endif /* DEBUG_EXTENDEDCREATEPARAMETERS */
@@ -1537,11 +1542,13 @@ NTSTATUS nfs41_CollapseOpen(
             qocec->RequestedClasses);
 #endif /* DEBUG_EXTENDEDCREATEPARAMETERS */
     }
+#endif /* NFS41_DRIVER_ECP_SUPPORT */
 
     status = nfs41_createnetfobx(RxContext, SrvOpen);
     if (status)
         goto out;
 
+#ifdef NFS41_DRIVER_ECP_SUPPORT
     if (qocec) {
         if (qocec->RequestedClasses & QoCFileStatInformation) {
             qocec_file_stat_information(&qocec->StatInformation, nfs41_fcb);
@@ -1563,6 +1570,7 @@ NTSTATUS nfs41_CollapseOpen(
 
         FsRtlAcknowledgeEcp(qocec);
     }
+#endif /* NFS41_DRIVER_ECP_SUPPORT */
 
     if (nfs41_fcb->StandardInfo.Directory == FALSE) {
         nfs41_set_fileobject_flags(params, pVNetRootContext,

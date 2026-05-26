@@ -95,6 +95,7 @@ DECLARE_CONST_ANSI_STRING(NfsV3Attributes, EA_NFSV3ATTRIBUTES);
 DECLARE_CONST_ANSI_STRING(NfsSymlinkTargetName, EA_NFSSYMLINKTARGETNAME);
 DECLARE_CONST_ANSI_STRING(NfsActOnLink, EA_NFSACTONLINK);
 
+#ifdef NFS41_DRIVER_ECP_SUPPORT
 /*
  * |GUID_ECP_OPEN_AS_BLOCK_DEVICE| - "open as a block device"
  * From https://www.snia.org/sites/default/files/files2/files2/SDC2013/presentations/Workloads/Barreto_Kurjanowicz-Shared_VHDX-v3.pdf
@@ -128,6 +129,7 @@ DEFINE_GUID(GUID_ECP_OPEN_PARAMETERS,
     0xcd0a93c3, 0x3bb7, 0x463d,
     0xac, 0xcb, 0x96, 0x9d, 0x34, 0x35, 0xa5, 0xa5);
 #endif /* !(NTDDI_VERSION >= NTDDI_WIN10_RS3) */
+#endif /* NFS41_DRIVER_ECP_SUPPORT */
 
 #ifdef USE_LOOKASIDELISTEX_FOR_UPDOWNCALLENTRY_MEM
 LOOKASIDE_LIST_EX updowncall_entry_upcall_lookasidelist;
