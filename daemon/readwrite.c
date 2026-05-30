@@ -347,6 +347,7 @@ static int write_to_mds(
     readwrite_upcall_args *args = &upcall->args.rw;
     nfs41_write_verf verf;
     enum stable_how4 stable, committed;
+    bool need_commit;
     unsigned char *p;
     const uint32_t maxwritesize = max_write_size(session, &file->fh);
     uint32_t to_send, reloffset, len;
@@ -412,8 +413,13 @@ retry_write:
     to_send = args->len;
     reloffset = 0;
     len = 0;
-    stable = to_send <= maxwritesize ? FILE_SYNC4 : UNSTABLE4;
-    committed = FILE_SYNC4;
+    /*
+     * FIXME: We should use |FILE_SYNC4| instead of |DATA_SYNC4| if the file
+     * was opened with |FILE_WRITE_THROUGH|
+     */
+    stable = (to_send <= maxwritesize) ? DATA_SYNC4 : UNSTABLE4;
+    committed = DATA_SYNC4;
+    need_commit = false;
 
     if (to_send > maxwritesize) {
         DPRINTF(1, ("handle_nfs41_write: writing %lu in chunks of %lu\n",
@@ -438,9 +444,13 @@ retry_write:
         if (!verify_write(&verf, &committed)) {
             if (retries--) goto retry_write;
             goto out_verify_failed;
+
         }
+        if (verf.committed == UNSTABLE4)
+            need_commit = true;
     }
-    if (committed != FILE_SYNC4) {
+
+    if (need_commit) {
         DPRINTF(1, ("sending COMMIT for offset=%llu and len=%d\n",
             (unsigned long long)args->offset,
             (unsigned long)len));

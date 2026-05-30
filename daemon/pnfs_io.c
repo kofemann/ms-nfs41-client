@@ -1,8 +1,10 @@
 /* NFSv4.1 client for Windows
- * Copyright © 2012 The Regents of the University of Michigan
+ * Copyright (C) 2012 The Regents of the University of Michigan
+ * Copyright (C) 2024-2026 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
+ * Roland Mainz <roland.mainz@nrubsig.org>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -165,7 +167,11 @@ static enum pnfs_status thread_init(
 {
     thread->pattern = pattern;
     thread->layout = layout;
-    thread->stable = FILE_SYNC4;
+    /*
+     * FIXME: We should use |FILE_SYNC4| instead of |DATA_SYNC4| if the file
+     * was opened with |FILE_WRITE_THROUGH|
+     */
+    thread->stable = DATA_SYNC4;
     thread->offset = offset;
     thread->id = stripeid;
 
@@ -446,7 +452,11 @@ static uint64_t pattern_bytes_transferred(
     uint64_t lowest_offset = pattern->offset_end;
     uint32_t i;
 
-    if (stable) *stable = FILE_SYNC4;
+    /*
+     * FIXME: We should use |FILE_SYNC4| instead of |DATA_SYNC4| if the file
+     * was opened with |FILE_WRITE_THROUGH|
+     */
+    if (stable) *stable = DATA_SYNC4;
 
     for (i = 0; i < pattern->count; i++) {
         lowest_offset = min(lowest_offset, pattern->threads[i].offset);
@@ -588,7 +598,11 @@ static uint32_t WINAPI file_layout_write_thread(void *args)
 
 retry_write:
     thread->offset = offset_start;
-    thread->stable = FILE_SYNC4;
+    /*
+     * FIXME: We should use |FILE_SYNC4| instead of |DATA_SYNC4| if the file
+     * was opened with |FILE_WRITE_THROUGH|
+     */
+    thread->stable = DATA_SYNC4;
     commit_min = NFS4_UINT64_MAX;
     commit_max = 0;
     total_written = 0;
@@ -645,8 +659,13 @@ retry_write:
             goto retry_write;
         status = PNFSERR_IO;
     } else {
-        /* on successful commit, leave pnfs_status unchanged; if the
-         * layout was recalled, we still want to return the error */
+        /*
+         * on successful commit, leave pnfs_status unchanged; if the
+         * layout was recalled, we still want to return the error
+         *
+         * FIXME: We should use |FILE_SYNC4| instead of |DATA_SYNC4| if the file
+         * was opened with |FILE_WRITE_THROUGH|
+         */
         thread->stable = DATA_SYNC4;
     }
 out:
