@@ -1001,7 +1001,7 @@ int get_nfs3attr(const char *progname, const char *filename)
     IO_STATUS_BLOCK io;
 
     fgeai_buf.fgeai.NextEntryOffset = 0;
-    fgeai_buf.fgeai.EaNameLength = 15;
+    fgeai_buf.fgeai.EaNameLength = EA_NFSV3ATTRIBUTES_LEN;
     (void)strcpy(fgeai_buf.fgeai.EaName, EA_NFSV3ATTRIBUTES);
 
     status = ZwQueryEaFile(fileHandle, &io,

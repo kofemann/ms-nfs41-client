@@ -185,7 +185,7 @@ static NTSTATUS ea_get_nfs3attr(
     EaListLength = 0;
 
     (void)strcpy(EaQuery->EaName, "NfsV3Attributes");
-    EaQuery->EaNameLength = 15;
+    EaQuery->EaNameLength = EA_NFSV3ATTRIBUTES_LEN;
     EaQuery->NextEntryOffset = FIELD_OFFSET(FILE_GET_EA_INFORMATION, EaName) + EaQuery->EaNameLength + 1;
 
     EaListLength += EaQuery->NextEntryOffset;
