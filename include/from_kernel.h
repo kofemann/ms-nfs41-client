@@ -597,11 +597,13 @@ typedef struct _FILE_ZERO_DATA_INFORMATION {
  */
 
 /* SYNLINK reparse points */
+#ifndef SYMLINK_FLAG_RELATIVE
 #define SYMLINK_FLAG_RELATIVE   0x00000001
 #define SYMLINK_DIRECTORY       0x80000000
 #define SYMLINK_FILE            0x40000000
 
 #define SYMLINK_RESERVED_MASK   0xF0000000
+#endif /* !SYMLINK_FLAG_RELATIVE */
 
 #ifdef _MSC_VER
 #pragma warning( push )
