@@ -724,18 +724,24 @@ Within WSL mount UNC path returned by `/sbin/nfs_mount`
         A::EVERYONE@:rtcy
 
 - `nfs_mount.exe` vs. reserved ports: By default the NFSv4 server on
-  Solaris, Illumos, Linux etc. only accepts connections if the NFSv4
-  client uses a "privileged (TCP) port", i.e., using a TCP port number
-  \< 1024. If `nfsd.exe`/`nfsd_debug.exe` is started without the Windows
-  privilege to use reserved ports, then a mount attempt can fail. This
-  can be worked around on the NFSv4 server side - on Linux using the
-  "insecure" export option in `/etc/exports` and on Solaris/Illumos
-  using export option "resvport" (see `nfs(5)`).
+  Solaris, Illumos, FreeBSD, Linux etc. only accepts connections if the
+  NFSv4 client uses a "privileged (TCP) port", i.e. is using a TCP port
+  number \<1024. If `nfsd.exe` is started without the Windows privilege
+  to use reserved ports, then a mount attempt can fail.
 
-- Accessing mounts from a VMware/QEMU/VirtualBox VM using NAT requires
-  the the "insecure" export option in `/etc/exports` and on
-  Solaris/Illumos using export option "resvport" (see `nfs(5)`), as the
-  NFSv4 client source TCP port will be \>= 1024.
+  This can be worked around on the NFSv4 server side - on Linux using
+  the `insecure` export option in `/etc/exports`, on Solaris/Illumos
+  using export option `resvport` (see Solaris/Illumos `nfs(5)`) and on
+  FreeBSD execute a `/usr/sbin/sysrc nfs_reserved_port_only="NO"` (see
+  FreeBSD `RC.CONF(5)`).
+
+- Accessing mounts from a VMware/QEMU/VirtualBox/BHYVE/Hyper-V/etc. VM
+  using NAT requires on Linux the `insecure` export option in
+  `/etc/exports`, on Solaris/Illumos the export option `resvport` (see
+  Solaris/Illumos `nfs(5)`) and on FreeBSD the
+  `/usr/sbin/sysrc nfs_reserved_port_only="NO"` command (see FreeBSD
+  `RC.CONF(5)`), as the NFSv4 client source TCP port will likely be \>=
+  1024.
 
 - Install: Adding Windows accounts+groups to the NFSv4 server:
   `ms-nfs41-client` comes with `/sbin/cygwinaccount2nfs4account` to

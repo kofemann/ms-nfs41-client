@@ -856,10 +856,23 @@ A::EVERYONE@:rtcy</programlisting>
         </itemizedlist>
       </listitem>
       <listitem>
-        <para><filename>nfs_mount.exe</filename> vs. reserved ports: By default the NFSv4 server on Solaris, Illumos, Linux etc. only accepts connections if the NFSv4 client uses a "privileged (TCP) port", i.e., using a TCP port number &lt; 1024. If <filename>nfsd.exe</filename>/<filename>nfsd_debug.exe</filename> is started without the Windows privilege to use reserved ports, then a mount attempt can fail. This can be worked around on the NFSv4 server side - on Linux using the "insecure" export option in <filename>/etc/exports</filename> and on Solaris/Illumos using export option "resvport" (see <command>nfs(5)</command>).</para>
+        <para><filename>nfs_mount.exe</filename> vs. reserved ports:
+        By default the NFSv4 server on Solaris, Illumos, FreeBSD, Linux etc. only accepts connections if the NFSv4 client uses a "privileged (TCP) port",
+        i.e. is using a TCP port number &lt;1024. If <filename>nfsd.exe</filename> is started without the Windows
+        privilege to use reserved ports, then a mount attempt can fail.</para>
+        <para>This can be worked around on the NFSv4 server side - on Linux using the <literal>insecure</literal>
+        export option in <filename>/etc/exports</filename>, on Solaris/Illumos using export option <literal>resvport</literal>
+        (see Solaris/Illumos <citerefentry><refentrytitle>nfs</refentrytitle><manvolnum>5</manvolnum></citerefentry>) and on
+        FreeBSD execute a <command>/usr/sbin/sysrc nfs_reserved_port_only="NO"</command> (see
+        FreeBSD <citerefentry><refentrytitle>RC.CONF</refentrytitle><manvolnum>5</manvolnum></citerefentry>).</para>
       </listitem>
       <listitem>
-        <para>Accessing mounts from a VMware/QEMU/VirtualBox VM using NAT requires the the "insecure" export option in <filename>/etc/exports</filename> and on Solaris/Illumos using export option "resvport" (see <command>nfs(5)</command>), as the NFSv4 client source TCP port will be &gt;= 1024.</para>
+        <para>Accessing mounts from a VMware/QEMU/VirtualBox/BHYVE/Hyper-V/etc. VM using NAT requires on Linux the <literal>insecure</literal>
+        export option in <filename>/etc/exports</filename>, on Solaris/Illumos the export option <literal>resvport</literal>
+        (see Solaris/Illumos <citerefentry><refentrytitle>nfs</refentrytitle><manvolnum>5</manvolnum></citerefentry>)
+        and on FreeBSD the <command>/usr/sbin/sysrc nfs_reserved_port_only="NO"</command> command (see
+        FreeBSD <citerefentry><refentrytitle>RC.CONF</refentrytitle><manvolnum>5</manvolnum></citerefentry>),
+        as the NFSv4 client source TCP port will likely be &gt;= 1024.</para>
       </listitem>
       <listitem>
         <para>Install: Adding Windows accounts+groups to the NFSv4 server: <literal>ms-nfs41-client</literal> comes with <filename>/sbin/cygwinaccount2nfs4account</filename> to convert the Win32/Cygwin account information of the (current) user+groups to a small script for the NFSv4 server to set-up these accounts on the server side.</para>
