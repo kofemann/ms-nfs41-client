@@ -88,7 +88,8 @@ NFSv4.2/NFSv4.1 filesystem driver for Windows 10/11 & Windows Server
     `cd //derfwnb4966@NFS@2049/bigdisk/mysqldb4/`
 
   - Symlinks on NFS can redirect to other filesystems via UNC syntax and
-    work with Cygwin, MSYS2, cmd.exe, powershell etc., e.g.:
+    work with Cygwin, MSYS2, cmd.exe, powershell, Microsoft CoreUtils
+    etc., e.g.:
 
         mklink /D symlnk1_to_h_tmp \\lab17@NFS@2049\export\home\rsm\tmp
 
@@ -216,8 +217,9 @@ NFSv4.2/NFSv4.1 filesystem driver for Windows 10/11 & Windows Server
 
   - Pass-through for NFS `/dev-Symlinks` (e.g. `/dev/null`) to Cygwin
 
-  - Interoperability for symlinks between Cygwin, powershell, cmd.exe
-    and other POSIX-compatible NFSv4.2/NFSv4.1 clients.
+  - Interoperability for symlinks between Cygwin, cmd.exe, powershell,
+    Microsoft CoreUtils, and other POSIX-compatible NFSv4.2/NFSv4.1
+    clients.
 
 - Support for NFSv4 public mounts (i.e., use the NFSv4 public file
   handle lookup protocol via
@@ -256,6 +258,8 @@ NFSv4.2/NFSv4.1 filesystem driver for Windows 10/11 & Windows Server
     NFS Ganesha, …)
 
   - All tools from Cygwin/MSYS2/MinGW
+
+  - Microsoft [CoreUtils](https://github.com/microsoft/coreutils/)
 
   - Visual Studio (tested: VS2019 Community, VS2022 Community, VS2026
     Community Insiders)

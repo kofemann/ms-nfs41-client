@@ -74,7 +74,7 @@
               <para>Cygwin/MSYS2 bash+ksh93 support UNC paths, e.g., <command>cd //derfwnb4966@NFS@2049/bigdisk/mysqldb4/</command></para>
             </listitem>
             <listitem>
-              <para>Symlinks on NFS can redirect to other filesystems via UNC syntax and work with Cygwin, MSYS2, cmd.exe, powershell etc., e.g.:
+              <para>Symlinks on NFS can redirect to other filesystems via UNC syntax and work with Cygwin, MSYS2, cmd.exe, powershell, Microsoft CoreUtils etc., e.g.:
                 <programlisting>mklink /D symlnk1_to_h_tmp \\lab17@NFS@2049\export\home\rsm\tmp</programlisting>
               </para>
             </listitem>
@@ -239,7 +239,7 @@
               <para>Pass-through for NFS <filename>/dev-Symlinks</filename> (e.g. <filename>/dev/null</filename>) to Cygwin</para>
             </listitem>
             <listitem>
-              <para>Interoperability for symlinks between Cygwin, powershell, cmd.exe and other POSIX-compatible NFSv4.2/NFSv4.1 clients.</para>
+              <para>Interoperability for symlinks between Cygwin, cmd.exe, powershell, Microsoft CoreUtils, and other POSIX-compatible NFSv4.2/NFSv4.1 clients.</para>
             </listitem>
           </itemizedlist>
         </para>
@@ -294,6 +294,9 @@
             </listitem>
             <listitem>
               <para>All tools from Cygwin/MSYS2/MinGW</para>
+            </listitem>
+            <listitem>
+              <para>Microsoft <link xl:href="https://github.com/microsoft/coreutils/">CoreUtils</link></para>
             </listitem>
             <listitem>
               <para>Visual Studio (tested: VS2019 Community, VS2022 Community, VS2026 Community Insiders)</para>
