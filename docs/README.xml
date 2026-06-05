@@ -378,6 +378,7 @@
                   <member><literal>libiconv2</literal></member>
                   <member><literal>procps-ng</literal></member>
                   <member><literal>util-linux</literal></member>
+                  <member><literal>p7zip</literal></member>
                 </simplelist>
               </para>
             </listitem>
@@ -445,6 +446,7 @@
                   <member><literal>time</literal></member>
                   <member><literal>coreutils</literal></member>
                   <member><literal>util-linux</literal></member>
+                  <member><literal>p7zip</literal></member>
                   <member><literal>grep</literal></member>
                   <member><literal>sed</literal></member>
                   <member><literal>emacs</literal></member>
@@ -504,7 +506,7 @@ cd download</programlisting>
       </listitem>
       <listitem>
         <para>Run installer with these arguments:</para>
-        <programlisting>setup-x86_64.exe -q --site "https://mirrors.kernel.org/sourceware/cygwin" -P cygwin,cygwin-devel,cygrunsrv,cygutils,cygutils-extra,bash,bzip2,coreutils,getent,gdb,grep,hostname,less,libiconv,libiconv2,pax,pbzip2,procps-ng,sed,tar,time,util-linux,wget,libnfs-utils,make,bmake,git,dos2unix,unzip</programlisting>
+        <programlisting>setup-x86_64.exe -q --site "https://mirrors.kernel.org/sourceware/cygwin" -P cygwin,cygwin-devel,cygrunsrv,cygutils,cygutils-extra,bash,bzip2,coreutils,getent,gdb,grep,hostname,less,libiconv,libiconv2,pax,pbzip2,procps-ng,sed,tar,time,util-linux,p7zip,wget,libnfs-utils,make,bmake,git,dos2unix,unzip</programlisting>
       </listitem>
     </orderedlist>
 
@@ -524,7 +526,7 @@ cd download</programlisting>
       </listitem>
       <listitem>
         <para>Run installer with these arguments:</para>
-        <programlisting>setup-x86.exe --allow-unsupported-windows -q --no-verify --site "http://ctm.crouchingtigerhiddenfruitbat.org/pub/cygwin/circa/2022/11/23/063457" -P cygwin,cygwin-devel,cygrunsrv,cygutils,cygutils-extra,bash,bzip2,coreutils,getent,gdb,grep,hostname,less,libiconv,libiconv2,pax,pbzip2,procps-ng,sed,tar,time,util-linux,wget,libnfs-utils,make,git,dos2unix,unzip</programlisting>
+        <programlisting>setup-x86.exe --allow-unsupported-windows -q --no-verify --site "http://ctm.crouchingtigerhiddenfruitbat.org/pub/cygwin/circa/2022/11/23/063457" -P cygwin,cygwin-devel,cygrunsrv,cygutils,cygutils-extra,bash,bzip2,coreutils,getent,gdb,grep,hostname,less,libiconv,libiconv2,pax,pbzip2,procps-ng,sed,tar,time,util-linux,p7zip,wget,libnfs-utils,make,git,dos2unix,unzip</programlisting>
       </listitem>
     </orderedlist>
   </section>
@@ -544,7 +546,7 @@ chmod a+x 'msys2-x86_64-20250830.exe'
       <listitem>
         <para>Install extra packages:</para>
         <para>Start MSYS2 UCRT mintty and execute this:</para>
-        <programlisting>pacman -S --noconfirm base-devel gcc clang sed time coreutils util-linux grep sed emacs gdb make autoconf automake gettext gettext-devel git subversion flex bison unzip pax tar libiconv-devel ncurses-devel gmp-devel mpfr-devel mpc-devel isl-devel procps-ng libiconv-devel</programlisting>
+        <programlisting>pacman -S --noconfirm base-devel gcc clang sed time coreutils util-linux p7zip grep sed emacs gdb make autoconf automake gettext gettext-devel git subversion flex bison unzip pax tar libiconv-devel ncurses-devel gmp-devel mpfr-devel mpc-devel isl-devel procps-ng libiconv-devel</programlisting>
       </listitem>
     </orderedlist>
     <note>
