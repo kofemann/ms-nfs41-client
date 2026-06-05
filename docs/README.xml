@@ -636,7 +636,7 @@ $ /sbin/msnfs41client install
                     <para>DOS devices are virtualised per LSA Logon, so each Logon needs to do a separate <command>nfs_mount.exe</command> to mount a NFSv4 share. The exception are mounts created by user "SYSTEM", such mounts are available to all users/logons. (see <command>PsExec</command> or function "su_system" in <filename>msnfs41client.bash</filename> how to run a process as user "SYSTEM")</para>
                   </listitem>
                   <listitem>
-                    <para><command>nfsd_debug.exe</command> will run as user "SYSTEM", but will do user impersonation for each request</para>
+                    <para><command>nfsd.exe</command> will run as user "SYSTEM", but will do user impersonation for each request</para>
                   </listitem>
                   <listitem>
                     <para>stopping the service will NOT unmount filesystems, and due to a bug a reboot is required to restart and mount any NFSv4 filesystems again</para>
@@ -661,7 +661,7 @@ $ /sbin/msnfs41client install
                   </listitem>
                   <listitem>
                     <para>Start service automatically (default):</para>
-                    <para>(<command>nfsd_debug.exe</command> will be started automagically, but mounts are not restored):</para>
+                    <para>(<command>nfsd.exe</command> will be started automagically, but mounts are not restored):</para>
                     <programlisting>$ /sbin/msnfs41client enableautostartservices</programlisting>
                   </listitem>
                   <listitem>
@@ -814,7 +814,7 @@ $ mount -t drvfs '\\10.49.202.230@NFS@2049\bigdisk' /mnt/bigdisk</programlisting
               <programlisting>powershell -Command 'Set-MpPreference -DisableRealtimeMonitoring 1'</programlisting>
             </listitem>
             <listitem>
-              <para>Option 2: Add "<filename>nfsd.exe</filename>", "<filename>nfsd_debug.exe</filename>", "<filename>ksh93.exe</filename>", "<filename>bash.exe</filename>", "<filename>git.exe</filename>" and other offending commands to the process name whitelist.</para>
+              <para>Option 2: Add "<filename>nfsd.exe</filename>", "<filename>ksh93.exe</filename>", "<filename>bash.exe</filename>", "<filename>git.exe</filename>" and other offending commands to the process name whitelist.</para>
             </listitem>
           </itemizedlist>
         </para>
@@ -890,7 +890,7 @@ A::EVERYONE@:rtcy</programlisting>
         <para>The kernel driver ("<filename>nfs41_driver.sys</filename>") does not yet have a cryptographic signature for SecureBoot - which means it will only work if SecureBoot is turned off (otherwise <command>$ /sbin/msnfs41client install #</command> will FAIL!).</para>
       </listitem>
       <listitem>
-        <para>If <filename>nfsd_debug.exe</filename> crashes or gets killed, the only safe way to run it again requires a reboot.</para>
+        <para>If <filename>nfsd.exe</filename> crashes or gets killed, the only safe way to run it again requires a reboot.</para>
       </listitem>
       <listitem>
         <para>Native LDAP support does not work yet, right now all user/group lookups are done via a Cygwin/shell-script based idmapper.</para>
@@ -974,7 +974,7 @@ Datei befindet. Versuchen Sie, die Datei woanders zu speichern.</programlisting>
     <itemizedlist>
       <listitem>
         <para>Debug level of NFS Client daemon:</para>
-        <para><filename>nfsd_debug.exe</filename> has the <literal>-d</literal> option to set a level for debug output. Edit <filename>/sbin/msnfs41client</filename> to set the <literal>"-d"</literal> option.</para>
+        <para><filename>nfsd.exe</filename> has the <literal>-d</literal> option to set a level for debug output. Edit <filename>/sbin/msnfs41client</filename> to set the <literal>"-d"</literal> option.</para>
       </listitem>
       <listitem>
         <para>Viewing kernel debug output:</para>

@@ -279,7 +279,7 @@ bindresvport_sa(int sd, struct sockaddr *sa)
 	 *
 	 * For now we ignore this, and assume noone will do more
 	 * than |NPORTS| { mount, umount }-sequences during
-	 * nfsd.exe/nfsd_debug.exe lifetime
+	 * nfsd.exe lifetime
 	 */
 out:
 	BRP_D((void)fprintf(stdout,

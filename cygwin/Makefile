@@ -1,7 +1,7 @@
 #
 # ms-nfs41-client/cygwin/Makefile
 #
-# Simple (Cygwin) Makfile for quick&dirty nfsd_debug.exe testing
+# Simple (Cygwin) Makfile for quick&dirty nfsd.exe testing
 #
 # Written by Roland Mainz <roland.mainz@nrubsig.org>
 #

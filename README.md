@@ -494,8 +494,8 @@ NFS server side.
     users/logons. (see `PsExec` or function "su_system" in
     `msnfs41client.bash` how to run a process as user "SYSTEM")
 
-  - `nfsd_debug.exe` will run as user "SYSTEM", but will do user
-    impersonation for each request
+  - `nfsd.exe` will run as user "SYSTEM", but will do user impersonation
+    for each request
 
   - stopping the service will NOT unmount filesystems, and due to a bug
     a reboot is required to restart and mount any NFSv4 filesystems
@@ -517,7 +517,7 @@ NFS server side.
 
   - Start service automatically (default):
 
-    (`nfsd_debug.exe` will be started automagically, but mounts are not
+    (`nfsd.exe` will be started automagically, but mounts are not
     restored):
 
         $ /sbin/msnfs41client enableautostartservices
@@ -684,9 +684,8 @@ Within WSL mount UNC path returned by `/sbin/nfs_mount`
 
         powershell -Command 'Set-MpPreference -DisableRealtimeMonitoring 1'
 
-  - Option 2: Add "`nfsd.exe`", "`nfsd_debug.exe`", "`ksh93.exe`",
-    "`bash.exe`", "`git.exe`" and other offending commands to the
-    process name whitelist.
+  - Option 2: Add "`nfsd.exe`", "`ksh93.exe`", "`bash.exe`", "`git.exe`"
+    and other offending commands to the process name whitelist.
 
 - performance: Use `vmxnet3` in VMware to improve performance
 
@@ -762,8 +761,8 @@ Within WSL mount UNC path returned by `/sbin/nfs_mount`
   if SecureBoot is turned off (otherwise
   `$ /sbin/msnfs41client install #` will FAIL!).
 
-- If `nfsd_debug.exe` crashes or gets killed, the only safe way to run
-  it again requires a reboot.
+- If `nfsd.exe` crashes or gets killed, the only safe way to run it
+  again requires a reboot.
 
 - Native LDAP support does not work yet, right now all user/group
   lookups are done via a Cygwin/shell-script based idmapper.
@@ -865,8 +864,8 @@ Within WSL mount UNC path returned by `/sbin/nfs_mount`
 
 - Debug level of NFS Client daemon:
 
-  `nfsd_debug.exe` has the `-d` option to set a level for debug output.
-  Edit `/sbin/msnfs41client` to set the `"-d"` option.
+  `nfsd.exe` has the `-d` option to set a level for debug output. Edit
+  `/sbin/msnfs41client` to set the `"-d"` option.
 
 - Viewing kernel debug output:
 
