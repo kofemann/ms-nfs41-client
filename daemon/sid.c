@@ -52,7 +52,7 @@ int create_unknownsid(
     *sid_len = MAX_SID_BUFFER_SIZE;
     *sid = malloc(*sid_len);
     if (*sid == NULL) {
-        status = ERROR_INSUFFICIENT_BUFFER;
+        status = ERROR_NOT_ENOUGH_MEMORY;
         goto err;
     }
 
