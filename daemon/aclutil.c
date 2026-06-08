@@ -315,8 +315,10 @@ sid_mapped:
     size += sizeof(ACL) + (sizeof(ACCESS_ALLOWED_ACE)*win_i);
     size = align4(size); /* align size on |DWORD| boundry */
     dacl = malloc(size);
-    if (dacl == NULL)
+    if (dacl == NULL) {
+        status = ERROR_NOT_ENOUGH_MEMORY;
         goto out_free_sids;
+    }
 
     success = InitializeAcl(dacl, size, ACL_REVISION);
     if (!success) {
@@ -409,7 +411,6 @@ out_free_dacl:
     free(dacl);
 out_free_sids:
     free_sids(sids, win_i);
-    status = GetLastError();
     goto out;
 }
 
