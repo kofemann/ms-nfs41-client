@@ -506,7 +506,7 @@ int map_nfs4servername_2_sid(
 
     *sid = malloc(MAX_SID_BUFFER_SIZE);
     if (*sid == NULL) {
-        status = GetLastError();
+        status = ERROR_NOT_ENOUGH_MEMORY;
         goto out;
     }
     *sid_len = MAX_SID_BUFFER_SIZE;

@@ -877,7 +877,7 @@ int read_entire_dir(
     buffer_len = READDIR_LEN_INITIAL;
     buffer = calloc(1, buffer_len);
     if (buffer == NULL) {
-        status = GetLastError();
+        status = ERROR_NOT_ENOUGH_MEMORY;
         goto out;
     }
 

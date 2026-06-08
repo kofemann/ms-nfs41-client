@@ -167,7 +167,7 @@ int nfs41_rpc_clnt_create(
     bool_t needcb = 1;
     rpc = calloc(1, sizeof(nfs41_rpc_clnt));
     if (rpc == NULL) {
-        status = GetLastError();
+        status = ERROR_NOT_ENOUGH_MEMORY;
         goto out;
     }
 #ifdef NO_CB_4_KRB5P

@@ -231,7 +231,7 @@ static int attr_cache_init(
     /* allocate a pool of entries */
     cache->pool = calloc(max_entries, ATTR_ENTRY_SIZE);
     if (cache->pool == NULL) {
-        status = GetLastError();
+        status = ERROR_NOT_ENOUGH_MEMORY;
         goto out;
     }
 
@@ -1050,7 +1050,7 @@ int nfs41_name_cache_create(
     /* allocate the cache */
     cache = calloc(1, sizeof(struct nfs41_name_cache));
     if (cache == NULL) {
-        status = GetLastError();
+        status = ERROR_NOT_ENOUGH_MEMORY;
         goto out;
     }
 
@@ -1085,7 +1085,7 @@ int nfs41_name_cache_create(
     /* allocate a pool of entries */
     cache->pool = calloc(cache->max_entries, NAME_ENTRY_SIZE);
     if (cache->pool == NULL) {
-        status = GetLastError();
+        status = ERROR_NOT_ENOUGH_MEMORY;
         goto out_err_cache;
     }
 

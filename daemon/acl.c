@@ -193,7 +193,7 @@ static int handle_getacl(void *daemon_context, nfs41_upcall *upcall)
     }
     args->sec_desc = malloc(args->sec_desc_len);
     if (args->sec_desc == NULL) {
-        status = GetLastError();
+        status = ERROR_NOT_ENOUGH_MEMORY;
         goto out;
     }
     status = MakeSelfRelativeSD(&sec_desc, args->sec_desc, &args->sec_desc_len);

@@ -122,7 +122,7 @@ int nfs41_client_create(
 
     client = calloc(1, sizeof(nfs41_client));
     if (client == NULL) {
-        status = GetLastError();
+        status = ERROR_NOT_ENOUGH_MEMORY;
         goto out_err_rpc;
     }
 

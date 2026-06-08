@@ -48,7 +48,7 @@ static int delegation_create(
 
     state = calloc(1, sizeof(nfs41_delegation_state));
     if (state == NULL) {
-        status = GetLastError();
+        status = ERROR_NOT_ENOUGH_MEMORY;
         goto out;
     }
 

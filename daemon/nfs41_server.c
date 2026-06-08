@@ -107,7 +107,7 @@ static int server_create(
 
     server = calloc(1, sizeof(nfs41_server));
     if (server == NULL) {
-        status = GetLastError();
+        status = ERROR_NOT_ENOUGH_MEMORY;
         eprintf("failed to allocate server '%s'\n", info->owner);
         goto out;
     }

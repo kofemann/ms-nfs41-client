@@ -226,7 +226,7 @@ static int handle_lock_retry(void *deamon_context, nfs41_upcall *upcall)
     /* allocate the lock state */
     lock = calloc(1, sizeof(nfs41_lock_state));
     if (lock == NULL) {
-        status = GetLastError();
+        status = ERROR_NOT_ENOUGH_MEMORY;
         goto out;
     }
     lock->offset = args->offset;

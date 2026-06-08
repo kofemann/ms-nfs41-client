@@ -792,7 +792,7 @@ static int handle_readdir(void *deamon_context, nfs41_upcall *upcall)
 
     entry_buf = calloc(max_buf_len, sizeof(unsigned char));
     if (entry_buf == NULL) {
-        status = GetLastError();
+        status = ERROR_NOT_ENOUGH_MEMORY;
         goto out_free_cookie;
     }
 fetch_entries:

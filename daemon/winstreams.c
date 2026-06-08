@@ -438,7 +438,7 @@ int get_stream_list(
     }
     stream_list = calloc(1, stream_list_size);
     if (stream_list == NULL) {
-        status = GetLastError();
+        status = ERROR_NOT_ENOUGH_MEMORY;
         goto out_free;
     }
 
@@ -532,7 +532,7 @@ int get_streaminformation(
         streamsize = ALIGNED_STREAMINFOSIZE(base_stream.StreamNameLength);
         stream = calloc(1, streamsize);
         if (stream == NULL) {
-            status = GetLastError();
+            status = ERROR_NOT_ENOUGH_MEMORY;
             goto out;
         }
         (void)memcpy(stream, &base_stream, sizeof(base_stream));

@@ -1701,7 +1701,7 @@ int nfs41_idmap_create(
 
     context = calloc(1, sizeof(struct idmap_context));
     if (context == NULL) {
-        status = GetLastError();
+        status = ERROR_NOT_ENOUGH_MEMORY;
         goto out;
     }
 

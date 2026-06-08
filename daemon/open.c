@@ -51,7 +51,7 @@ static int create_open_state(
 
     state = calloc(1, sizeof(nfs41_open_state));
     if (state == NULL) {
-        status = GetLastError();
+        status = ERROR_NOT_ENOUGH_MEMORY;
         goto out;
     }
 

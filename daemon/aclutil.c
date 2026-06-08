@@ -218,7 +218,7 @@ int convert_nfs4acl_2_dacl(
      */
     sids = calloc(acl->count, sizeof(PSID));
     if (sids == NULL) {
-        status = GetLastError();
+        status = ERROR_NOT_ENOUGH_MEMORY;
         goto out;
     }
     for (nfs_i = win_i = 0; nfs_i < acl->count; nfs_i++) {
@@ -1182,7 +1182,7 @@ int map_dacl_2_nfs4acl(
         nfs4_acl->count = 1;
         nfs4_acl->aces = calloc(1, sizeof(nfsace4));
         if (nfs4_acl->aces == NULL) {
-            status = GetLastError();
+            status = ERROR_NOT_ENOUGH_MEMORY;
             goto out;
         }
         nfs4_acl->flag = 0;
@@ -1225,7 +1225,7 @@ int map_dacl_2_nfs4acl(
 
         nfs4_acl->aces = calloc(acl->AceCount, sizeof(nfsace4));
         if (nfs4_acl->aces == NULL) {
-            status = GetLastError();
+            status = ERROR_NOT_ENOUGH_MEMORY;
             goto out;
         }
         nfs4_acl->flag = 0;

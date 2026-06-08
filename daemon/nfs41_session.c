@@ -292,7 +292,7 @@ static int session_alloc(
 
     session = calloc(1, sizeof(nfs41_session));
     if (session == NULL) {
-        status = GetLastError();
+        status = ERROR_NOT_ENOUGH_MEMORY;
         goto out;
     }
     session->client = client;

@@ -445,7 +445,7 @@ static int get_ea_list(
     }
     ea_list = calloc(1, ea_size);
     if (ea_list == NULL) {
-        status = GetLastError();
+        status = ERROR_NOT_ENOUGH_MEMORY;
         goto out_free;
     }
 
@@ -677,7 +677,7 @@ static int handle_getexattr(void *daemon_context, nfs41_upcall *upcall)
 
     args->buf = malloc(args->buf_len);
     if (args->buf == NULL) {
-        status = GetLastError();
+        status = ERROR_NOT_ENOUGH_MEMORY;
         goto out;
     }
 

@@ -94,7 +94,7 @@ int nfs41_root_create(
 
     root = calloc(1, sizeof(nfs41_root));
     if (root == NULL) {
-        status = GetLastError();
+        status = ERROR_NOT_ENOUGH_MEMORY;
         goto out;
     }
 

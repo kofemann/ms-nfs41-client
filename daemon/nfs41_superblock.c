@@ -63,7 +63,7 @@ static int superblock_create(
 
     superblock = calloc(1, sizeof(nfs41_superblock));
     if (superblock == NULL) {
-        status = GetLastError();
+        status = ERROR_NOT_ENOUGH_MEMORY;
         eprintf("failed to allocate superblock "
             "for fsid(%llu,%llu)\n", fsid->major, fsid->minor);
         goto out;
