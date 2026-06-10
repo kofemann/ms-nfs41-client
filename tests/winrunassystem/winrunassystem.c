@@ -2,7 +2,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2025 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (c) 2025-2026 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -712,48 +712,67 @@ int wmain(int argc, wchar_t *argv[])
  * be whitelisted in MS Defender
  */
 
-/* Paths to nfs_mount*.exe */
-#ifdef _WIN64
-#define NFS_MOUNT_PATH L"C:\\cygwin64\\sbin\\nfs_mount.exe"
-#define NFS_MOUNT_PATH_X86 L"C:\\cygwin64\\sbin\\nfs_mount.i686.exe"
-#define NFS_MOUNT_PATH_AMD64 L"C:\\cygwin64\\sbin\\nfs_mount.x86_64.exe"
-#else
-#define NFS_MOUNT_PATH L"C:\\cygwin\\sbin\\nfs_mount.exe"
-#define NFS_MOUNT_PATH_X86 L"C:\\cygwin\\sbin\\nfs_mount.i686.exe"
-#define NFS_MOUNT_PATH_AMD64 L"C:\\cygwin\\sbin\\nfs_mount.x86_64.exe"
-#endif /* _WIN64 */
+/* nfs_mount*.exe names */
+#define NFS_MOUNT_EXE L"nfs_mount.exe"
+#define NFS_MOUNT_EXE_X86 L"nfs_mount.i686.exe"
+#define NFS_MOUNT_EXE_AMD64 L"nfs_mount.x86_64.exe"
 /* FIXME: What about ARM64 ? */
 
 int wmain(int argc, wchar_t *argv[])
 {
     int i;
-    const wchar_t *nfs_mount_path;
+    const wchar_t *nfs_mount_exe;
+    wchar_t exepath[MAX_PATH+1];
 
     /*
-     * Select nfs_mount.exe binary based on our argv[0] name, e.g.
-     * "nfs_globalmount.i686.exe" ---> "/sbin/nfs_mount.i686.exe",
-     * "nfs_globalmount.x86_64.exe" ---> "/sbin/nfs_mount.x86_64.exe",
+     * Select nfs_mount.exe binary name on our argv[0] name, e.g.
+     * "nfs_globalmount.i686.exe" ---> "nfs_mount.i686.exe",
+     * "nfs_globalmount.x86_64.exe" ---> "nfs_mount.x86_64.exe",
      * etc
      *
      * FIXME: What about ARM64 ?
      */
     if (wcsstr(argv[0], L".i686") != NULL) {
-        nfs_mount_path = NFS_MOUNT_PATH_X86;
+        nfs_mount_exe = NFS_MOUNT_EXE_X86;
     }
     else if (wcsstr(argv[0], L".x86_64") != NULL) {
-        nfs_mount_path = NFS_MOUNT_PATH_AMD64;
+        nfs_mount_exe = NFS_MOUNT_EXE_AMD64;
     }
     else {
-        nfs_mount_path = NFS_MOUNT_PATH;
+        nfs_mount_exe = NFS_MOUNT_EXE;
     }
 
+    if (GetModuleFileNameW(NULL, exepath, MAX_PATH) == 0) {
+        (void)fwprintf(stderr,
+            L"%ls: ERROR: Cannot obtain module path, lasterr=%d\n",
+            argv[0], (int)GetLastError());
+        return 20;
+    }
+
+    /*
+     * Replace filename with the name of the nfs_mount*.exe binary
+     * in the same directory
+     */
+    wchar_t *exe_last_slash = wcsrchr(exepath, L'\\');
+    if (exe_last_slash == NULL) {
+        (void)fwprintf(stderr,
+            L"%ls: ERROR: Module path(='%ls') does not contain a backslash\n",
+            argv[0], exepath);
+        return 20;
+    }
+
+    (void)wcscpy(exe_last_slash + 1, nfs_mount_exe);
+
+    /*
+     * run as service, or call main function of service
+     */
     if ((argc > 2) && (wcscmp(argv[1], L"--service") == 0)) {
         return winrunassystem_main(argc, argv);
     }
     else {
         wchar_t **new_argv = (wchar_t **)alloca(sizeof(wchar_t *)*(argc+3));
         new_argv[0] = argv[0];
-        new_argv[1] = (wchar_t *)nfs_mount_path;
+        new_argv[1] = (wchar_t *)exepath;
         for (i=1 ; i < argc ; i++)
             new_argv[i+1] = argv[i];
         return winrunassystem_main(argc+1, new_argv);
