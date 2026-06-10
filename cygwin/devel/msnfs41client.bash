@@ -41,7 +41,7 @@
 # in /home/roland_mainz/work/win_pstools/)
 # * Usage:
 # Shell1: cd /cygdrive/c/Users/roland_mainz/Downloads/ms-nfs41-client-x64/ms-nfs41-client-x64 && bash ../msnfs41client.bash run_deamon
-# Shell2: cd /cygdrive/c/Users/roland_mainz/Downloads/ms-nfs41-client-x64/ms-nfs41-client-x64 && bash ../msnfs41client.bash mount_homedir
+# Shell2: /sbin/nfs_mount.exe -o rw 'H' derfwpc5131_ipv4:/export/home2/rmainz
 #
 # 2. Mount for all users:
 # * Requires:
@@ -1004,43 +1004,6 @@ function nfsclient_system_umount_globaldirs
 	return 1
 }
 
-function nfsclient_mount_homedir
-{
-	set -o xtrace
-	set -o nounset
-	set -o errexit
-
-	if ! nfsclient_waitfor_clientdaemon ; then
-		printf $"%s: nfsd*.exe not running.\n" "$0" 1>&2
-		return 1
-	fi
-
-	#nfs_mount -p -o sec=sys H 'derfwpc5131:/export/home2/rmainz'
-	#nfs_mount -p -o sec=sys H '[fe80::219:99ff:feae:73ce]:/export/home2/rmainz'
-	nfs_mount -p -o sec=sys H 'derfwpc5131_ipv6linklocal:/export/home2/rmainz'
-	mkdir -p '/home/rmainz'
-	# FIXME: is "notexec" correct in this case ?
-	mount -o posix=1,sparse,notexec 'H:' '/home/rmainz'
-	return $?
-}
-
-function nfsclient_umount_homedir
-{
-	set -o xtrace
-	set -o nounset
-	typeset -i res
-
-	nfs_mount -d H
-	(( res=$? ))
-
-	if (( res == 0 )) ; then
-		# remove bind mount
-		umount '/home/rmainz' && rmdir '/home/rmainz'
-	fi
-
-	return $res
-}
-
 function require_cmd
 {
 	typeset cmd="$1"
@@ -1254,23 +1217,6 @@ function main
 			(( numerr > 0 )) && return 1
 
 			nfsclient_system_umount_globaldirs
-			return $?
-			;;
-		'mount_homedir')
-			check_machine_arch || (( numerr++ ))
-			require_cmd 'nfs_mount.exe' || (( numerr++ ))
-			require_cmd 'tasklist.exe' || (( numerr++ ))
-			(( numerr > 0 )) && return 1
-
-			nfsclient_mount_homedir
-			return $?
-			;;
-		'umount_homedir')
-			check_machine_arch || (( numerr++ ))
-			require_cmd 'nfs_mount.exe' || (( numerr++ ))
-			(( numerr > 0 )) && return 1
-
-			nfsclient_umount_homedir
 			return $?
 			;;
 		# misc
