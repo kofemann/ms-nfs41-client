@@ -1,9 +1,9 @@
-msnfs41client_bootbypass.bash - use BootBypass to install an unsigned driver
+opensource_driver_bootbypass.bash - use BootBypass to install an unsigned driver
 
 ** Intro:
-The msnfs41client_bootbypass.bash is used to install an unsigned
-Windows/System32/drivers/nfs41_driver.sys on Windows 10/x86-64 or
-Windows 11/x86-64 for TESTING purposes ONLY.
+The opensource_driver_bootbypass.bash is used to install unsigned
+OpenZFS.sys, btrfs.sys, nfs41_driver.sys, filedisk.sys kernel modules on
+Windows 10/x86-64 or Windows 11/x86-64 for TESTING purposes ONLY.
 32bit Windows installations and Windows on ARM64 are NOT supported.
 
 
@@ -13,9 +13,7 @@ production environments.
 
 
 ** Usage:
-Run $ bash msnfs41client_bootbypass.bash # from an elevated Cygwin shell,
-or $ C:\cygwin64\bin\bash.exe msnfs41client_bootbypass.bash # from an
-elevated powershell.
+Run $ bash opensource_driver_bootbypass.bash # from an elevated Cygwin shell.
 
 
 ** Notes:

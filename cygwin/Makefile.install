@@ -35,7 +35,7 @@ installdest:
 	mkdir -p $(DESTDIR)/lib
 	mkdir -p $(DESTDIR)/lib/msnfs41client
 	mkdir -p $(DESTDIR)/lib/msnfs41client/contrib
-	mkdir -p $(DESTDIR)/lib/msnfs41client/contrib/msnfs41client_bb
+	mkdir -p $(DESTDIR)/lib/msnfs41client/contrib/opensource_driver_bb
 	mkdir -p $(DESTDIR)/lib/msnfs41client/i686
 	if [[ "$(VS_BUILD_DIR_X64)" != '' ]] ; then mkdir -p $(DESTDIR)/lib/msnfs41client/x64 ; fi
 	if [[ "$(VS_BUILD_DIR_ARM64)" != '' ]] ; then mkdir -p $(DESTDIR)/lib/msnfs41client/arm64 ; fi
@@ -209,8 +209,8 @@ installdest:
 	fi
 	cp $(PROJECT_BASEDIR_DIR)/cygwin/cygwin_ksh93/ksh.kshrc $(DESTDIR)/etc/ksh.kshrc
 	@ printf '# Packaging lib/contrib\n'
-	cp $(PROJECT_BASEDIR_DIR)/contrib/msnfs41client_bootbypass/msnfs41client_bootbypass.txt		$(DESTDIR)/lib/msnfs41client/contrib/msnfs41client_bb/msnfs41client_bootbypass.txt
-	cp $(PROJECT_BASEDIR_DIR)/contrib/msnfs41client_bootbypass/msnfs41client_bootbypass.bash	$(DESTDIR)/lib/msnfs41client/contrib/msnfs41client_bb/msnfs41client_bootbypass.bash
+	cp $(PROJECT_BASEDIR_DIR)/contrib/opensource_driver_bootbypass/opensource_driver_bootbypass.txt		$(DESTDIR)/lib/msnfs41client/contrib/opensource_driver_bb/opensource_driver_bootbypass.txt
+	cp $(PROJECT_BASEDIR_DIR)/contrib/opensource_driver_bootbypass/opensource_driver_bootbypass.bash	$(DESTDIR)/lib/msnfs41client/contrib/opensource_driver_bb/opensource_driver_bootbypass.bash
 	@ printf '# Packaging libs\n'
 	set -o errexit -o pipefail ; \
 	typeset msbuildpath="$$(which MSBuild.exe)" ; \
