@@ -30,6 +30,45 @@
 
 # Author: Takeshi Nishimura <takeshi.nishimura.linux@gmail.com>
 
+get_authenticodesignature()
+{
+    powershell -NoProfile -Command "(Get-AuthenticodeSignature "$(cygpath -w "$1")").Status"
+}
+
+print_driversini_section()
+{
+    typeset driverpath="$1"
+    typeset drivername="$(basename "$driverpath")"
+    typeset servicename="${drivername%.sys}"
+
+    if [[ ! -f "$driverpath" ]] ; then
+        return 0
+    fi
+
+    if [[ "$(get_authenticodesignature "$driverpath")" == "Valid"* ]] ; then
+        printf "#-------- Driver %s has valid Secureboot signature\n" "$drivername" 1>&2
+        return 0
+    fi
+
+    printf "#-------- Adding drivers.ini section for %s\n" "$(basename "$driverpath")" 1>&2
+
+cat <<EOF
+[Driver$((driversection_count))]
+Action=LOAD
+AutoPatch=YES
+ServiceName=${servicename}
+ImagePath=\\SystemRoot\\System32\\drivers\\${drivername}
+DriverType=1
+StartType=1
+
+EOF
+
+    ((driversection_count+=1))
+
+    return 0
+}
+
+# START:
 rm -f BootBypass.7z
 wget 'https://github.com/wesmar/BootBypass/releases/download/latest/BootBypass.7z'
 if [[ "$(sha256sum BootBypass.7z)" != *'340d2ce4575d767d8054dab1fe175ba8436737e812daaeb9d8e1f617045b36d9'* ]] ; then
@@ -40,76 +79,26 @@ fi
 rm -f bb.exe deploy.ps1 drivers.ini
 7za -pgithub.com e BootBypass.7z
 
-typeset -i driversection_count=0
 
 {
 # BEGIN drivers.ini generation
+declare -g driversection_count=0
+
 cat <<EOF
 [Config]
 Execute=YES
 RestoreHVCI=YES
 Verbose=NO
-DriverDevice=\Device\kvc
+DriverDevice=\\Device\\kvc
 IoControlCode_Read=2147491912
 IoControlCode_Write=2147491916
 
 EOF
 
-if [[ -f '/cygdrive/c/Windows/System32/drivers/OpenZFS.sys' ]] ; then
-printf "#-------- Adding section for OpenZFS\n" 1>&2
-cat <<EOF
-[Driver$((driversection_count++))]
-Action=LOAD
-AutoPatch=YES
-ServiceName=OpenZFS
-ImagePath=\SystemRoot\System32\drivers\OpenZFS.sys
-DriverType=1
-StartType=1
-
-EOF
-fi
-
-if [[ -f '/cygdrive/c/Windows/System32/drivers/btrfs.sys' ]] ; then
-printf "#-------- Adding section for btrfs\n" 1>&2
-cat <<EOF
-[Driver$((driversection_count++))]
-Action=LOAD
-AutoPatch=YES
-ServiceName=filedisk
-ImagePath=\SystemRoot\System32\drivers\btrfs.sys
-DriverType=1
-StartType=1
-
-EOF
-fi
-
-if [[ -f '/cygdrive/c/Windows/System32/drivers/nfs41_driver.sys' ]] ; then
-printf "#-------- Adding section for nfs41_driver\n" 1>&2
-cat <<EOF
-[Driver$((driversection_count++))]
-Action=LOAD
-AutoPatch=YES
-ServiceName=nfs41_driver
-ImagePath=\SystemRoot\System32\drivers\nfs41_driver.sys
-DriverType=1
-StartType=1
-
-EOF
-fi
-
-if [[ -f '/cygdrive/c/Windows/System32/drivers/filedisk.sys' ]] ; then
-printf "#-------- Adding section for filedisk\n" 1>&2
-cat <<EOF
-[Driver$((driversection_count++))]
-Action=LOAD
-AutoPatch=YES
-ServiceName=filedisk
-ImagePath=\SystemRoot\System32\drivers\filedisk.sys
-DriverType=1
-StartType=1
-
-EOF
-fi
+print_driversini_section '/cygdrive/c/Windows/System32/drivers/OpenZFS.sys'
+print_driversini_section '/cygdrive/c/Windows/System32/drivers/btrfs.sys'
+print_driversini_section '/cygdrive/c/Windows/System32/drivers/nfs41_driver.sys'
+print_driversini_section '/cygdrive/c/Windows/System32/drivers/filedisk.sys'
 
 # END drivers.ini generation
 } | sed 's/$/\r/' | { printf '\xFF\xFE' ; iconv -t UTF16LE ; } >'drivers.ini'
