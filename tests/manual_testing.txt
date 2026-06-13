@@ -1,5 +1,5 @@
 #
-# ms-nfs41-client manual testing sequence, 2026-05-16
+# ms-nfs41-client manual testing sequence, 2026-06-13
 #
 # Draft version, needs to be turned into automated tests
 # if possible
@@ -1235,6 +1235,18 @@ cd
 filedisk /umount U:
 lssparse /cygdrive/n/winntfs_filedisk_001.img
 rm /cygdrive/n/winntfs_filedisk_001.img
+
+
+#
+# OpenZFS - create ZFS filesystem with NFSv4.2 sparse file as storage
+#
+
+# mount NFSv4.x filesystem via nfs_globalmount.exe (global filesystem)
+# cd into NFS subdir
+truncate -s $((16*1024*1024*1024)) poolfile1.bin
+chmod a+rw poolfile1.bin
+# note: optionally you can add -O utf8only=on
+zpool.exe create -O casesensitivity=insensitive -O driveletter=U nfspool1 "\\\\?\\$(cygpath -w "$PWD/poolfile1.bin")"
 
 
 #
