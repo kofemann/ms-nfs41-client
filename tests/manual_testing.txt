@@ -1,5 +1,5 @@
 #
-# ms-nfs41-client manual testing sequence, 2026-06-13
+# ms-nfs41-client manual testing sequence, 2026-06-15
 #
 # Draft version, needs to be turned into automated tests
 # if possible
@@ -1241,12 +1241,28 @@ rm /cygdrive/n/winntfs_filedisk_001.img
 # OpenZFS - create ZFS filesystem with NFSv4.2 sparse file as storage
 #
 
-# mount NFSv4.x filesystem via nfs_globalmount.exe (global filesystem)
+General: All following commands assume that the NFS filesystem
+has been mounted via nfs_globalmount.exe (global filesystem)
+
+1. Create ZFS pool and assign it the drive letter "U:":
+---- snip ----
 # cd into NFS subdir
 truncate -s $((16*1024*1024*1024)) poolfile1.bin
 chmod a+rw poolfile1.bin
 # note: optionally you can add -O utf8only=on
-zpool.exe create -O casesensitivity=insensitive -O driveletter=U nfspool1 "\\\\?\\$(cygpath -w "$PWD/poolfile1.bin")"
+zpool.exe create -o ashift=15 -O casesensitivity=insensitive -O driveletter=U nfspool1 "\\\\?\\$(cygpath -w "$PWD/poolfile1.bin")"
+---- snip ----
+
+2. Unmount+remove pool:
+---- snip ----
+zpool export nfspool1
+---- snip ----
+
+3. Import pool and mount it again:
+---- snip ----
+# cd into NFS subdir
+zpool.exe import -d "$(cygpath -w "$PWD")" nfspool1
+---- snip ----
 
 
 #
