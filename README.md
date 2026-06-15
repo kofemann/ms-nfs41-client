@@ -252,6 +252,9 @@ NFSv4.2/NFSv4.1 filesystem driver for Windows 10/11 & Windows Server
     different primary group, e.g.,
     `$ winsg [-] -g group [-c command | /C command] #`
 
+- Support for hosting filesystems (like
+  [OpenZFS](https://openzfsonwindows.org/)) as (sparse) files
+
 - Software compatibility:
 
   - Any NFSv4.2/NFSv4.1 server (Linux, Solaris, Illumos, FreeBSD, nfs4j,
@@ -265,6 +268,9 @@ NFSv4.2/NFSv4.1 filesystem driver for Windows 10/11 & Windows Server
 
   - Visual Studio (tested: VS2019 Community, VS2022 Community, VS2026
     Community Insiders)
+
+  - [OpenZFS](https://openzfsonwindows.org/) - host ZFS filesystem as
+    (sparse) file(s) on NFS
 
   - VMware Workstation (can use VMs hosted on NFSv4.2/NFSv4.1
     filesystem)

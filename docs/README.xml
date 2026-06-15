@@ -288,6 +288,9 @@
         </para>
       </listitem>
       <listitem>
+        <para>Support for hosting filesystems (like <link xl:href="https://openzfsonwindows.org/">OpenZFS</link>) as (sparse) files</para>
+      </listitem>
+      <listitem>
         <para>Software compatibility:
           <itemizedlist>
             <listitem>
@@ -304,6 +307,9 @@
             </listitem>
             <listitem>
               <para>Visual Studio (tested: VS2019 Community, VS2022 Community, VS2026 Community Insiders)</para>
+            </listitem>
+            <listitem>
+              <para><link xl:href="https://openzfsonwindows.org/">OpenZFS</link> - host ZFS filesystem as (sparse) file(s) on NFS</para>
             </listitem>
             <listitem>
               <para>VMware Workstation (can use VMs hosted on NFSv4.2/NFSv4.1 filesystem)</para>
