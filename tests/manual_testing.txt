@@ -1249,8 +1249,13 @@ has been mounted via nfs_globalmount.exe (global filesystem)
 # cd into NFS subdir
 truncate -s $((16*1024*1024*1024)) poolfile1.bin
 chmod a+rw poolfile1.bin
-# note: optionally you can add -O utf8only=on
-zpool.exe create -o ashift=15 -O casesensitivity=insensitive -O driveletter=U nfspool1 "\\\\?\\$(cygpath -w "$PWD/poolfile1.bin")"
+# Create pool:
+# - ashift=15 defines 32k blocks
+# - autotrim=on makes sure that we use "poolfile1.bin" as sparse file
+# - casesensitivity=insensitive defines a case-insensitive filesystem
+# - driveletter=U sets the fs mount point to U:
+# - optionally you can add -O utf8only=on
+zpool.exe create -o ashift=15 -o autotrim=on -O casesensitivity=insensitive -O driveletter=U nfspool1 "\\\\?\\$(cygpath -w "$PWD/poolfile1.bin")"
 ---- snip ----
 
 2. Unmount+remove pool:
