@@ -309,7 +309,17 @@
               <para>Visual Studio (tested: VS2019 Community, VS2022 Community, VS2026 Community Insiders)</para>
             </listitem>
             <listitem>
-              <para><link xl:href="https://openzfsonwindows.org/">OpenZFS</link> - host ZFS filesystem as (sparse) file(s) on NFS</para>
+              <para><link xl:href="https://openzfsonwindows.org/">OpenZFS</link> - Supports ZFS pools stored as NFS (sparse) files, hosting...
+                <itemizedlist>
+                  <listitem>ZFS filesystems</listitem>
+                  <listitem>ZFS ZVOLS (ZFS virtual disk drives), which can then be used for...
+                    <itemizedlist>
+                      <listitem>filesystems like NTFS, ReFS, FAT, ...</listitem>
+                      <listitem>hosting disks for Hyper/V VMs, VMware VMs, ...</listitem>
+                    </itemizedlist>
+                  </listitem>
+                </itemizedlist>
+              </para>
             </listitem>
             <listitem>
               <para>VMware Workstation (can use VMs hosted on NFSv4.2/NFSv4.1 filesystem)</para>

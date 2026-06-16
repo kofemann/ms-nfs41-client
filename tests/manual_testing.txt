@@ -1,5 +1,5 @@
 #
-# ms-nfs41-client manual testing sequence, 2026-06-15
+# ms-nfs41-client manual testing sequence, 2026-06-16
 #
 # Draft version, needs to be turned into automated tests
 # if possible
@@ -1244,10 +1244,12 @@ rm /cygdrive/n/winntfs_filedisk_001.img
 General: All following commands assume that the NFS filesystem
 has been mounted via nfs_globalmount.exe (global filesystem)
 
+#### Create ZFS pool on NFS filesystem
+
 1. Create ZFS pool and assign it the drive letter "U:":
 ---- snip ----
 # cd into NFS subdir
-truncate -s $((16*1024*1024*1024)) poolfile1.bin
+truncate -s $((128*1024*1024*1024)) poolfile1.bin
 chmod a+rw poolfile1.bin
 # Create pool:
 # - ashift=15 defines 32k blocks
@@ -1268,6 +1270,23 @@ zpool export nfspool1
 # cd into NFS subdir
 zpool.exe import -d "$(cygpath -w "$PWD")" nfspool1
 ---- snip ----
+
+
+#### Create ZFS virtual disk device on NFS filesystem
+1. Create zpool "nfspool1" as described above
+2. Create new virtual disk device "nfspool1/myblock1":
+---- snip ----
+zfs create -V 32G nfspool1/myblock1
+---- snip ----
+3. List all ZFS virtual disk devices (which should include "nfspool1/myblock1"):
+---- snip ----
+$ powershell -Command 'Get-PhysicalDisk -Manufacturer "OpenZFS"'
+
+Number FriendlyName    SerialNumber      MediaType   CanPool OperationalStatus HealthStatus Usage       Size
+------ ------------    ------------      ---------   ------- ----------------- ------------ -----       ----
+1      OpenZFS WinZVOL nfspool1/myblock1 Unspecified False   OK                Healthy      Auto-Select 32 GB
+---- snip ----
+4. The virtual disk "nfspool1/myblock1" (Disk 1) can now be formatted with NTFS/ReFS, used for a HyperV VM disk etc.
 
 
 #

@@ -269,8 +269,13 @@ NFSv4.2/NFSv4.1 filesystem driver for Windows 10/11 & Windows Server
   - Visual Studio (tested: VS2019 Community, VS2022 Community, VS2026
     Community Insiders)
 
-  - [OpenZFS](https://openzfsonwindows.org/) - host ZFS filesystem as
-    (sparse) file(s) on NFS
+  - [OpenZFS](https://openzfsonwindows.org/) - Supports ZFS pools stored
+    as NFS (sparse) files, hosting...
+
+    - ZFS filesystems
+    - ZFS ZVOLS (ZFS virtual disk drives), which can then be used for...
+      - filesystems like NTFS, ReFS, FAT, ...
+      - hosting disks for Hyper/V VMs, VMware VMs, ...
 
   - VMware Workstation (can use VMs hosted on NFSv4.2/NFSv4.1
     filesystem)
