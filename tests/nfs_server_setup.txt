@@ -259,8 +259,7 @@ service nfsd start
 #
 mkdir -p /data
 truncate -s 32G /data/zfs_casei001.img
-zpool create -O casesensitivity=insensitive -O utf8only=on test_casei001_pool /data/zfs_casei001.img
-zfs set xattr=dir test_casei001_pool
+zpool create -O xattr=dir -O casesensitivity=insensitive -O utf8only=on test_casei001_pool /data/zfs_casei001.img
 zfs get xattr,casesensitivity test_casei001_pool # verify: Must be "casesensitivity=insensitive,xattr=dir"
 printf '/test_casei001_pool -network=10.49.202.0 -mask=255.255.255.0  -sec=sys\n' >>'/etc/exports'
 mkdir /test_casei001_pool/casei_tests

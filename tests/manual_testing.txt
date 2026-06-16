@@ -1257,7 +1257,7 @@ chmod a+rw poolfile1.bin
 # - casesensitivity=insensitive defines a case-insensitive filesystem
 # - driveletter=U sets the fs mount point to U:
 # - optionally you can add -O utf8only=on
-zpool.exe create -o ashift=15 -o autotrim=on -O casesensitivity=insensitive -O driveletter=U nfspool1 "\\\\?\\$(cygpath -w "$PWD/poolfile1.bin")"
+zpool.exe create -o ashift=15 -o autotrim=on -O xattr=dir -O casesensitivity=insensitive -O driveletter=U nfspool1 "\\\\?\\$(cygpath -w "$PWD/poolfile1.bin")"
 ---- snip ----
 
 2. Unmount+remove pool:
