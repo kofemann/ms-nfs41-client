@@ -159,6 +159,10 @@ int cmd_find(int ac, wchar_t *av[])
 
     for (i=2 ; i < ac ; i++) {
         if (av[i][0] == L'/') {
+            /*
+             * We do not support --help/-h because we must support files
+             * starting with '-'
+             */
             if (wcscmp(av[i], L"/?") == 0)
                 print_usage = true;
             else if (wcscmp(av[i], L"/s") == 0)
@@ -298,6 +302,10 @@ int cmd_createstream(int ac, wchar_t *av[])
 
     for (i=2 ; i < ac ; i++) {
         if (av[i][0] == L'/') {
+            /*
+             * We do not support --help/-h because we must support files
+             * starting with '-'
+             */
             if (wcscmp(av[i], L"/?") == 0)
                 print_usage = true;
             else if (wcscmp(av[i], L"/O") == 0)
@@ -410,6 +418,10 @@ int cmd_catstream(int ac, wchar_t *av[])
 
     for (i=2 ; i < ac ; i++) {
         if (av[i][0] == L'/') {
+            /*
+             * We do not support --help/-h because we must support files
+             * starting with '-'
+             */
             if (wcscmp(av[i], L"/?") == 0)
                 print_usage = true;
             else {
@@ -521,6 +533,10 @@ int cmd_renamestream(int ac, wchar_t *av[])
 
     for (i=2 ; i < ac ; i++) {
         if (av[i][0] == L'/') {
+            /*
+             * We do not support --help/-h because we must support files
+             * starting with '-'
+             */
             if (wcscmp(av[i], L"/?") == 0)
                 print_usage = true;
             else {
@@ -636,6 +652,10 @@ int cmd_deletestream(int ac, wchar_t *av[])
 
     for (i=2 ; i < ac ; i++) {
         if (av[i][0] == L'/') {
+            /*
+             * We do not support --help/-h because we must support files
+             * starting with '-'
+             */
             if (wcscmp(av[i], L"/?") == 0)
                 print_usage = true;
             else {
@@ -716,6 +736,10 @@ int cmd_info(int ac, wchar_t *av[])
 
     for (i=2 ; i < ac ; i++) {
         if (av[i][0] == L'/') {
+            /*
+             * We do not support --help/-h because we must support files
+             * starting with '-'
+             */
             if (wcscmp(av[i], L"/?") == 0)
                 print_usage = true;
             else {
@@ -863,6 +887,12 @@ int wmain(int ac, wchar_t *av[])
     }
     else if (wcscmp(av[1], L"deletestream") == 0) {
         return cmd_deletestream(ac, av);
+    }
+    else if ((wcscmp(av[1], L"/?") == 0) ||
+        (wcscmp(av[1], L"--help") == 0) ||
+        (wcscmp(av[1], L"-h") == 0)) {
+        (void)usage(av[0]);
+        return EXIT_USAGE;
     }
     else {
         (void)fwprintf(stderr,
