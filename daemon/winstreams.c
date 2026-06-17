@@ -227,6 +227,7 @@ int parse_win32stream_name(
 
 static
 uint32_t calculate_stream_list_length(
+    IN const nfs41_file_info *basefile_info,
     IN const nfs41_component *restrict basefile_name,
     IN const unsigned char *restrict position,
     IN uint32_t remaining)
@@ -234,12 +235,15 @@ uint32_t calculate_stream_list_length(
     const nfs41_readdir_entry *entry;
     uint32_t length = 0;
 
-    /*
-     * We always have to add a dummy "::$DATA" entry for the default stream!
-     *
-     * (|FILE_STREAM_INFORMATION.StreamName| = L"::$DATA" == 8*sizeof(wchar_t))
-     */
-    length += ALIGNED_STREAMINFOSIZE(8*sizeof(wchar_t));
+    if (basefile_info->type != NF4DIR) {
+        /*
+         * We always have to add a dummy "::$DATA" entry for the default
+         * stream of a file!
+         *
+         * (|FILE_STREAM_INFORMATION.StreamName| = L"::$DATA" == 8*sizeof(wchar_t))
+         */
+        length += ALIGNED_STREAMINFOSIZE(8*sizeof(wchar_t));
+    }
 
     /*
      * Enumerate streams
@@ -300,22 +304,25 @@ void populate_stream_list(
     PFILE_STREAM_INFORMATION last_win_stream = NULL;
     bool is_win_stream;
 
-    /*
-     * We always have to add a dummy "::$DATA" entry for the default stream!
-     */
-    FILE_STREAM_INFORMATION base_stream = {
-        .NextEntryOffset = 0,
-        /* "::$DATA" == 8*sizeof(wchar_t) */
-        .StreamNameLength = 8*sizeof(wchar_t),
-        .StreamSize.QuadPart = basefile_info->size,
-        .StreamAllocationSize.QuadPart = basefile_info->space_used
-    };
-    (void)memcpy(stream, &base_stream, sizeof(base_stream));
-    (void)wmemcpy(stream->StreamName, L"::$DATA", 8);
-    stream->NextEntryOffset =
-        ALIGNED_STREAMINFOSIZE(stream->StreamNameLength);
-    last_win_stream = stream;
-    stream = STREAMINFO_NEXT_ENTRY(stream);
+    if (basefile_info->type != NF4DIR) {
+        /*
+         * We always have to add a dummy "::$DATA" entry for the
+         * default stream of a file!
+         */
+        FILE_STREAM_INFORMATION base_stream = {
+            .NextEntryOffset = 0,
+            /* "::$DATA" == 8*sizeof(wchar_t) */
+            .StreamNameLength = 8*sizeof(wchar_t),
+            .StreamSize.QuadPart = basefile_info->size,
+            .StreamAllocationSize.QuadPart = basefile_info->space_used
+        };
+        (void)memcpy(stream, &base_stream, sizeof(base_stream));
+        (void)wmemcpy(stream->StreamName, L"::$DATA", 8);
+        stream->NextEntryOffset =
+            ALIGNED_STREAMINFOSIZE(stream->StreamNameLength);
+        last_win_stream = stream;
+        stream = STREAMINFO_NEXT_ENTRY(stream);
+    }
 
     /*
      * Enumerate streams
@@ -429,7 +436,8 @@ int get_stream_list(
     if (status)
         goto out;
 
-    stream_list_size = calculate_stream_list_length(&streamfile->name,
+    stream_list_size = calculate_stream_list_length(basefile_info,
+        &streamfile->name,
         entry_list, entry_len);
     if (stream_list_size == 0) {
         *streamlist_out = NULL;
@@ -512,14 +520,27 @@ int get_streaminformation(
      * not have an attribute directory by default)
      */
     if (status == NFS4ERR_NOENT) {
-        FILE_STREAM_INFORMATION *stream;
-        size_t streamsize;
-
-        /* Return a default "file::$DATA" entry */
         DPRINTF(0,
             ("get_streaminformation(name='%.*s'): "
             "no named attribute directory\n",
             (int)state->file.name.len, state->file.name.name));
+
+        if (basefile_info->type == NF4DIR) {
+            /*
+             * NTFS does not return a default "::$DATA" entry for
+             * directories
+             */
+            status = ERROR_HANDLE_EOF;
+            *streamlist_out = NULL;
+            *streamlist_out_size = (ULONG)0;
+            goto out;
+        }
+
+        /*
+         * Return a default "::$DATA" entry for files
+         */
+        FILE_STREAM_INFORMATION *stream;
+        size_t streamsize;
 
         FILE_STREAM_INFORMATION base_stream = {
             .NextEntryOffset = 0,
