@@ -127,10 +127,10 @@ typedef struct __getattr_upcall_args {
     FILE_STAT_INFORMATION stat_info;
     FILE_STAT_LX_INFORMATION stat_lx_info;
 #endif /* NFS41_DRIVER_WSL_SUPPORT */
-#ifdef NFS41_WINSTREAMS_SUPPORT
+#ifdef NFS41_DRIVER_WINSTREAMS_SUPPORT
     PFILE_STREAM_INFORMATION stream_info_list;
     ULONG stream_info_list_size;
-#endif /* NFS41_WINSTREAMS_SUPPORT */
+#endif /* NFS41_DRIVER_WINSTREAMS_SUPPORT */
     int query_class;
     int buf_len;
     int query_reply_len;

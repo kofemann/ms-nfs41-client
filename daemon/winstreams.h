@@ -55,7 +55,7 @@ bool is_stream_component(const nfs41_component *restrict comp)
     return false;
 }
 
-#ifdef NFS41_WINSTREAMS_SUPPORT
+#ifdef NFS41_DRIVER_WINSTREAMS_SUPPORT
 
 int parse_win32stream_name(
     IN const char *restrict path,
@@ -73,6 +73,6 @@ int get_streaminformation(
     OUT ULONG *streamlist_out_size);
 void free_streaminformation(
     IN FILE_STREAM_INFORMATION *restrict streamlist);
-#endif /* NFS41_WINSTREAMS_SUPPORT */
+#endif /* NFS41_DRIVER_WINSTREAMS_SUPPORT */
 
 #endif /* !__NFS41_DAEMON_WINSTREAMS_H__ */

@@ -366,9 +366,9 @@ void nfs41_superblock_fs_attributes(
         FsAttrs->FileSystemAttributes |= FILE_SUPPORTS_REPARSE_POINTS;
     if (superblock->nfs_namedattr_support) {
         FsAttrs->FileSystemAttributes |= FILE_SUPPORTS_EXTENDED_ATTRIBUTES;
-#ifdef NFS41_WINSTREAMS_SUPPORT
+#ifdef NFS41_DRIVER_WINSTREAMS_SUPPORT
         FsAttrs->FileSystemAttributes |= FILE_NAMED_STREAMS;
-#endif /* NFS41_WINSTREAMS_SUPPORT */
+#endif /* NFS41_DRIVER_WINSTREAMS_SUPPORT */
     }
     if (superblock->case_preserving)
         FsAttrs->FileSystemAttributes |= FILE_CASE_PRESERVED_NAMES;

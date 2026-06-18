@@ -472,7 +472,7 @@ int nfs41_open(
     bool_t current_fh_is_dir;
     bool_t already_delegated = delegation->type == OPEN_DELEGATE_READ
         || delegation->type == OPEN_DELEGATE_WRITE;
-#ifdef NFS41_WINSTREAMS_SUPPORT
+#ifdef NFS41_DRIVER_WINSTREAMS_SUPPORT
     char base_buf[NFS41_MAX_PATH_LEN+1];
     char stream_buf[NFS41_MAX_COMPONENT_LEN+1];
     bool is_stream = false;
@@ -482,12 +482,12 @@ int nfs41_open(
     nfs41_lookup_res lookup_res;
     nfs41_openattr_args openattr_args;
     nfs41_openattr_res openattr_res;
-#endif /* NFS41_WINSTREAMS_SUPPORT */
+#endif /* NFS41_DRIVER_WINSTREAMS_SUPPORT */
 
     EASSERT_IS_VALID_NON_NULL_PTR(parent);
     EASSERT_IS_VALID_NON_NULL_PTR(parent->fh.superblock);
 
-#ifdef NFS41_WINSTREAMS_SUPPORT
+#ifdef NFS41_DRIVER_WINSTREAMS_SUPPORT
     if (file->name.name) {
         if (is_stream_path_fh(file)) {
             status = parse_win32stream_name(file->name.name, false,
@@ -503,7 +503,7 @@ int nfs41_open(
             }
         }
     }
-#endif /* NFS41_WINSTREAMS_SUPPORT */
+#endif /* NFS41_DRIVER_WINSTREAMS_SUPPORT */
 
     /* depending on the claim type, OPEN expects CURRENT_FH set
      * to either the parent directory, or to the file itself */
@@ -554,7 +554,7 @@ int nfs41_open(
         putfh_args[0].in_recovery = 0;
     }
 
-#ifdef NFS41_WINSTREAMS_SUPPORT
+#ifdef NFS41_DRIVER_WINSTREAMS_SUPPORT
     if (is_stream && (stream_comp.len > 0)) {
         compound_add_op(&compound, OP_LOOKUP, &lookup_args, &lookup_res);
         lookup_args.name = &base_comp;
@@ -562,7 +562,7 @@ int nfs41_open(
         /* If we are creating the stream, we should allow creating the attr dir */
         openattr_args.createdir = (create == OPEN4_CREATE) ? TRUE : FALSE;
     }
-#endif /* NFS41_WINSTREAMS_SUPPORT */
+#endif /* NFS41_DRIVER_WINSTREAMS_SUPPORT */
 
     compound_add_op(&compound, OP_OPEN, &open_args, &open_res);
     open_args.seqid = 0;
@@ -590,7 +590,7 @@ int nfs41_open(
     }
     open_args.claim = claim;
 
-#ifdef NFS41_WINSTREAMS_SUPPORT
+#ifdef NFS41_DRIVER_WINSTREAMS_SUPPORT
     if (is_stream &&
         ((claim->claim == CLAIM_NULL) ||
             (claim->claim == CLAIM_DELEGATE_CUR))) {
@@ -608,7 +608,7 @@ int nfs41_open(
                 claim->u.deleg_cur.name = &base_comp;
         }
     }
-#endif /* NFS41_WINSTREAMS_SUPPORT */
+#endif /* NFS41_DRIVER_WINSTREAMS_SUPPORT */
 
     open_res.resok4.stateid = stateid;
     open_res.resok4.delegation = delegation;
@@ -645,10 +645,10 @@ int nfs41_open(
 
     /* This can happen if |nfs41_open()| is called by the EA code */
     if (dir_info.type == NF4ATTRDIR) {
-#ifdef NFS41_WINSTREAMS_SUPPORT
+#ifdef NFS41_DRIVER_WINSTREAMS_SUPPORT
         /* This codepath should not be triggered by Win32 streams! */
         EASSERT(!(is_stream && (stream_comp.len > 0)));
-#endif /* NFS41_WINSTREAMS_SUPPORT */
+#endif /* NFS41_DRIVER_WINSTREAMS_SUPPORT */
 
         file->fh.superblock = parent->fh.superblock;
         goto out;
@@ -700,7 +700,7 @@ int nfs41_create(
     nfs41_file_info dir_info;
     nfs41_savefh_res savefh_res;
     nfs41_restorefh_res restorefh_res;
-#ifdef NFS41_WINSTREAMS_SUPPORT
+#ifdef NFS41_DRIVER_WINSTREAMS_SUPPORT
     char base_buf[NFS41_MAX_PATH_LEN+1];
     char stream_buf[NFS41_MAX_COMPONENT_LEN+1];
     bool is_stream = false;
@@ -726,7 +726,7 @@ int nfs41_create(
             }
         }
     }
-#endif /* NFS41_WINSTREAMS_SUPPORT */
+#endif /* NFS41_DRIVER_WINSTREAMS_SUPPORT */
 
     nfs41_superblock_getattr_mask(parent->fh.superblock, &attr_request);
 
@@ -742,14 +742,14 @@ int nfs41_create(
 
     compound_add_op(&compound, OP_SAVEFH, NULL, &savefh_res);
 
-#ifdef NFS41_WINSTREAMS_SUPPORT
+#ifdef NFS41_DRIVER_WINSTREAMS_SUPPORT
     if (is_stream && (stream_comp.len > 0)) {
         compound_add_op(&compound, OP_LOOKUP, &lookup_args, &lookup_res);
         lookup_args.name = &base_comp;
         compound_add_op(&compound, OP_OPENATTR, &openattr_args, &openattr_res);
         openattr_args.createdir = TRUE;
     }
-#endif /* NFS41_WINSTREAMS_SUPPORT */
+#endif /* NFS41_DRIVER_WINSTREAMS_SUPPORT */
 
     compound_add_op(&compound, OP_CREATE, &create_args, &create_res);
     create_args.objtype.type = type;
@@ -758,7 +758,7 @@ int nfs41_create(
         create_args.objtype.u.lnk.linkdata_len = (uint32_t)strlen(symlink);
     }
 
-#ifdef NFS41_WINSTREAMS_SUPPORT
+#ifdef NFS41_DRIVER_WINSTREAMS_SUPPORT
     if (is_stream) {
         if (stream_comp.len > 0)
             create_args.name = &stream_comp;
@@ -766,7 +766,7 @@ int nfs41_create(
             create_args.name = &base_comp;
     }
     else
-#endif /* NFS41_WINSTREAMS_SUPPORT */
+#endif /* NFS41_DRIVER_WINSTREAMS_SUPPORT */
     {
         create_args.name = &file->name;
     }
@@ -1442,7 +1442,7 @@ int nfs41_remove(
     nfs41_getattr_res getattr_res NDSH(= { 0 });
     bitmap4 attr_request;
     nfs41_file_info info;
-#ifdef NFS41_WINSTREAMS_SUPPORT
+#ifdef NFS41_DRIVER_WINSTREAMS_SUPPORT
     char base_buf[NFS41_MAX_PATH_LEN+1];
     char stream_buf[NFS41_MAX_COMPONENT_LEN+1];
     bool is_stream = false;
@@ -1468,7 +1468,7 @@ int nfs41_remove(
             }
         }
     }
-#endif /* NFS41_WINSTREAMS_SUPPORT */
+#endif /* NFS41_DRIVER_WINSTREAMS_SUPPORT */
 
     nfs41_superblock_getattr_mask(parent->fh.superblock, &attr_request);
 
@@ -1482,17 +1482,17 @@ int nfs41_remove(
     putfh_args.file = parent;
     putfh_args.in_recovery = 0;
 
-#ifdef NFS41_WINSTREAMS_SUPPORT
+#ifdef NFS41_DRIVER_WINSTREAMS_SUPPORT
     if (is_stream && (stream_comp.len > 0)) {
         compound_add_op(&compound, OP_LOOKUP, &lookup_args, &lookup_res);
         lookup_args.name = &base_comp;
         compound_add_op(&compound, OP_OPENATTR, &openattr_args, &openattr_res);
         openattr_args.createdir = FALSE;
     }
-#endif /* NFS41_WINSTREAMS_SUPPORT */
+#endif /* NFS41_DRIVER_WINSTREAMS_SUPPORT */
 
     compound_add_op(&compound, OP_REMOVE, &remove_args, &remove_res);
-#ifdef NFS41_WINSTREAMS_SUPPORT
+#ifdef NFS41_DRIVER_WINSTREAMS_SUPPORT
     if (is_stream) {
         if (stream_comp.len > 0)
             remove_args.target = &stream_comp;
@@ -1500,7 +1500,7 @@ int nfs41_remove(
             remove_args.target = &base_comp;
     }
     else
-#endif /* NFS41_WINSTREAMS_SUPPORT */
+#endif /* NFS41_DRIVER_WINSTREAMS_SUPPORT */
     {
         remove_args.target = target;
     }
@@ -1572,7 +1572,7 @@ int nfs41_rename(
         (int)dst_dir->name.len,  dst_dir->name.name,
         (int)dst_name->len,      dst_name->name));
 
-#ifdef NFS41_WINSTREAMS_SUPPORT
+#ifdef NFS41_DRIVER_WINSTREAMS_SUPPORT
     char src_base_buf[NFS41_MAX_PATH_LEN+1];
     char src_stream_buf[NFS41_MAX_COMPONENT_LEN+1];
     char dst_base_buf[NFS41_MAX_PATH_LEN+1];
@@ -1630,7 +1630,7 @@ int nfs41_rename(
             dst_dir = src_dir;
         }
     }
-#endif /* NFS41_WINSTREAMS_SUPPORT */
+#endif /* NFS41_DRIVER_WINSTREAMS_SUPPORT */
 
     nfs41_superblock_getattr_mask(src_dir->fh.superblock, &attr_request);
 
@@ -1644,7 +1644,7 @@ int nfs41_rename(
     src_putfh_args.file = src_dir;
     src_putfh_args.in_recovery = 0;
 
-#ifdef NFS41_WINSTREAMS_SUPPORT
+#ifdef NFS41_DRIVER_WINSTREAMS_SUPPORT
     if (src_is_stream && (src_stream_comp.len > 0)) {
         compound_add_op(&compound, OP_LOOKUP, &src_lookup_args, &src_lookup_res);
         src_lookup_args.name = &src_base_comp;
@@ -1652,7 +1652,7 @@ int nfs41_rename(
         /* Do not create the src named attr dir */
         src_openattr_args.createdir = FALSE;
     }
-#endif /* NFS41_WINSTREAMS_SUPPORT */
+#endif /* NFS41_DRIVER_WINSTREAMS_SUPPORT */
 
     compound_add_op(&compound, OP_SAVEFH, NULL, &savefh_res);
 
@@ -1660,7 +1660,7 @@ int nfs41_rename(
     dst_putfh_args.file = dst_dir;
     dst_putfh_args.in_recovery = 0;
 
-#ifdef NFS41_WINSTREAMS_SUPPORT
+#ifdef NFS41_DRIVER_WINSTREAMS_SUPPORT
     if (dst_is_stream && (dst_stream_comp.len > 0)) {
         compound_add_op(&compound, OP_LOOKUP, &dst_lookup_args, &dst_lookup_res);
         dst_lookup_args.name = &dst_base_comp;
@@ -1672,11 +1672,11 @@ int nfs41_rename(
          */
         dst_openattr_args.createdir = TRUE;
     }
-#endif /* NFS41_WINSTREAMS_SUPPORT */
+#endif /* NFS41_DRIVER_WINSTREAMS_SUPPORT */
 
     compound_add_op(&compound, OP_RENAME, &rename_args, &rename_res);
 
-#ifdef NFS41_WINSTREAMS_SUPPORT
+#ifdef NFS41_DRIVER_WINSTREAMS_SUPPORT
     if (src_is_stream) {
         if (src_stream_comp.len > 0)
             rename_args.oldname = &src_stream_comp;
@@ -1684,12 +1684,12 @@ int nfs41_rename(
             rename_args.oldname = &src_base_comp;
     }
     else
-#endif /* NFS41_WINSTREAMS_SUPPORT */
+#endif /* NFS41_DRIVER_WINSTREAMS_SUPPORT */
     {
         rename_args.oldname = src_name;
     }
 
-#ifdef NFS41_WINSTREAMS_SUPPORT
+#ifdef NFS41_DRIVER_WINSTREAMS_SUPPORT
     if (dst_is_stream) {
         if (dst_stream_comp.len > 0)
             rename_args.newname = &dst_stream_comp;
@@ -1697,7 +1697,7 @@ int nfs41_rename(
             rename_args.newname = &dst_base_comp;
     }
     else
-#endif /* NFS41_WINSTREAMS_SUPPORT */
+#endif /* NFS41_DRIVER_WINSTREAMS_SUPPORT */
     {
         rename_args.newname = dst_name;
     }
@@ -1874,7 +1874,7 @@ int nfs41_link(
     nfs41_file_info info = { 0 };
     nfs41_path_fh file;
 
-#ifdef NFS41_WINSTREAMS_SUPPORT
+#ifdef NFS41_DRIVER_WINSTREAMS_SUPPORT
     if (src->name.name) {
         EASSERT_MSG(is_stream_path_fh(src) == false,
             ("nfs41_link: Streams not implemented yet\n"));
@@ -1887,7 +1887,7 @@ int nfs41_link(
         EASSERT_MSG(is_stream_component(target) == false,
             ("nfs41_link: Streams not implemented yet\n"));
     }
-#endif /* NFS41_WINSTREAMS_SUPPORT */
+#endif /* NFS41_DRIVER_WINSTREAMS_SUPPORT */
 
 #ifdef NFS41_DRIVER_STABILITY_HACKS
     /* gisburn: fixme, see comment about |NDSH| above */
@@ -1992,12 +1992,12 @@ int nfs41_readlink(
     nfs41_putfh_res putfh_res;
     nfs41_readlink_res readlink_res;
 
-#ifdef NFS41_WINSTREAMS_SUPPORT
+#ifdef NFS41_DRIVER_WINSTREAMS_SUPPORT
     if (file->name.name) {
         EASSERT_MSG(is_stream_path_fh(file) == false,
             ("nfs41_readlink: Streams not implemented yet\n"));
     }
-#endif /* NFS41_WINSTREAMS_SUPPORT */
+#endif /* NFS41_DRIVER_WINSTREAMS_SUPPORT */
 
     compound_init(&compound, session->client->root->nfsminorvers,
         argops, resops, "readlink");
@@ -2281,12 +2281,12 @@ int nfs41_secinfo(
     nfs41_secinfo_args secinfo_args;
     nfs41_secinfo_no_name_res secinfo_res;
 
-#ifdef NFS41_WINSTREAMS_SUPPORT
+#ifdef NFS41_DRIVER_WINSTREAMS_SUPPORT
     if (name->name) {
         EASSERT_MSG(is_stream_component(name) == false,
             ("nfs41_secinfo: Streams not implemented yet\n"));
     }
-#endif /* NFS41_WINSTREAMS_SUPPORT */
+#endif /* NFS41_DRIVER_WINSTREAMS_SUPPORT */
 
     compound_init(&compound, session->client->root->nfsminorvers,
         argops, resops, "secinfo");

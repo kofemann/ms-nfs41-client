@@ -38,7 +38,7 @@
 #include "daemon_debug.h"
 #include "util.h"
 
-#ifdef NFS41_WINSTREAMS_SUPPORT
+#ifdef NFS41_DRIVER_WINSTREAMS_SUPPORT
 
 #define WINSTRLVL 1 /* |dprintf()| level for Windows streams logging */
 
@@ -590,4 +590,4 @@ void free_streaminformation(
     free(streamlist);
 }
 
-#endif /* NFS41_WINSTREAMS_SUPPORT */
+#endif /* NFS41_DRIVER_WINSTREAMS_SUPPORT */

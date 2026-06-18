@@ -33,9 +33,9 @@
 #include "upcallutil.h"
 #include "fileinfoutil.h"
 #include "daemon_debug.h"
-#ifdef NFS41_WINSTREAMS_SUPPORT
+#ifdef NFS41_DRIVER_WINSTREAMS_SUPPORT
 #include "winstreams.h"
-#endif /* NFS41_WINSTREAMS_SUPPORT */
+#endif /* NFS41_DRIVER_WINSTREAMS_SUPPORT */
 
 
 int nfs41_cached_getattr(
@@ -208,7 +208,7 @@ static int handle_getattr(void *daemon_context, nfs41_upcall *upcall)
             &args->stat_lx_info);
         break;
 #endif /* NFS41_DRIVER_WSL_SUPPORT */
-#ifdef NFS41_WINSTREAMS_SUPPORT
+#ifdef NFS41_DRIVER_WINSTREAMS_SUPPORT
     case FileStreamInformation:
         args->stream_info_list = NULL;
         status = get_streaminformation(state,
@@ -216,7 +216,7 @@ static int handle_getattr(void *daemon_context, nfs41_upcall *upcall)
             &args->stream_info_list,
             &args->stream_info_list_size);
         break;
-#endif /* NFS41_WINSTREAMS_SUPPORT */
+#endif /* NFS41_DRIVER_WINSTREAMS_SUPPORT */
     default:
         eprintf("handle_getattr(state->path.path='%s'): "
             "unhandled file query class %d\n",
@@ -305,7 +305,7 @@ static int marshall_getattr(
         if (status) goto out;
         break;
 #endif /* NFS41_DRIVER_WSL_SUPPORT */
-#ifdef NFS41_WINSTREAMS_SUPPORT
+#ifdef NFS41_DRIVER_WINSTREAMS_SUPPORT
     case FileStreamInformation:
         info_len = args->stream_info_list_size;
         status = safe_write(&buffer, length, &info_len, sizeof(info_len));
@@ -313,7 +313,7 @@ static int marshall_getattr(
         status = safe_write(&buffer, length, args->stream_info_list, info_len);
         if (status) goto out;
         break;
-#endif /* NFS41_WINSTREAMS_SUPPORT */
+#endif /* NFS41_DRIVER_WINSTREAMS_SUPPORT */
     default:
         eprintf("marshall_getattr: unknown file query class %d\n",
             args->query_class);
@@ -324,12 +324,12 @@ static int marshall_getattr(
     if (status) goto out;
     DPRINTF(1, ("NFS41_SYSOP_FILE_QUERY: downcall changattr=%llu\n", args->ctime));
 out:
-#ifdef NFS41_WINSTREAMS_SUPPORT
+#ifdef NFS41_DRIVER_WINSTREAMS_SUPPORT
     if (args->query_class == FileStreamInformation) {
         free_streaminformation(args->stream_info_list);
         args->stream_info_list = NULL;
     }
-#endif /* NFS41_WINSTREAMS_SUPPORT */
+#endif /* NFS41_DRIVER_WINSTREAMS_SUPPORT */
 
     return status;
 }

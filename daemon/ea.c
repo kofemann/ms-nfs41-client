@@ -33,9 +33,9 @@
 #include "upcallutil.h"
 #include "daemon_debug.h"
 #include "nfs_ea.h"
-#ifdef NFS41_WINSTREAMS_SUPPORT
+#ifdef NFS41_DRIVER_WINSTREAMS_SUPPORT
 #include "winstreams.h"
-#endif /* NFS41_WINSTREAMS_SUPPORT */
+#endif /* NFS41_DRIVER_WINSTREAMS_SUPPORT */
 
 /*
  * Compile safeguard to see whether |NFS4_EASIZE+header| will still fit into
@@ -231,7 +231,7 @@ static int handle_setexattr(void *daemon_context, nfs41_upcall *upcall)
         goto out;
     }
 
-#ifdef NFS41_WINSTREAMS_SUPPORT
+#ifdef NFS41_DRIVER_WINSTREAMS_SUPPORT
     /*
      * FIXME: Setting EA with stream name is not supported
      * (yet), the expectation is that doing this for stream "abc:str1" will
@@ -247,7 +247,7 @@ static int handle_setexattr(void *daemon_context, nfs41_upcall *upcall)
             (int)state->file.name.len, state->file.name.name));
         return ERROR_NOT_SUPPORTED;
     }
-#endif /* NFS41_WINSTREAMS_SUPPORT */
+#endif /* NFS41_DRIVER_WINSTREAMS_SUPPORT */
 
     /* break read delegations before SETATTR */
     nfs41_delegation_return(state->session, &state->file,
@@ -606,7 +606,7 @@ static int handle_getexattr(void *daemon_context, nfs41_upcall *upcall)
     uint32_t remaining, needed, index = 0;
     int status;
 
-#ifdef NFS41_WINSTREAMS_SUPPORT
+#ifdef NFS41_DRIVER_WINSTREAMS_SUPPORT
     /*
      * FIXME: Getting EA with stream name is not supported
      * (yet), the expectation is that doing this for stream "abc:str1" will
@@ -622,7 +622,7 @@ static int handle_getexattr(void *daemon_context, nfs41_upcall *upcall)
             (int)state->file.name.len, state->file.name.name));
         return ERROR_NOT_SUPPORTED;
     }
-#endif /* NFS41_WINSTREAMS_SUPPORT */
+#endif /* NFS41_DRIVER_WINSTREAMS_SUPPORT */
 
     status = nfs41_rpc_openattr(state->session, &state->file, FALSE, &parent.fh);
     if (status == NFS4ERR_NOENT) { /* no named attribute directory */

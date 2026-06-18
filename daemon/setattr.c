@@ -347,9 +347,9 @@ static int handle_nfs41_rename(void *daemon_context, setattr_upcall_args *args)
     nfs41_path_fh dst_dir, dst;
     nfs41_component dst_name, *src_name;
     uint32_t depth = 0;
-#ifdef NFS41_REJECT_CYGWIN_SILLYRENAME_FOR_DIRS
+#ifdef NFS41_DRIVER_REJECT_CYGWIN_SILLYRENAME_FOR_DIRS
     bool is_cygwin_silly_rename = false;
-#endif /* NFS41_REJECT_CYGWIN_SILLYRENAME_FOR_DIRS */
+#endif /* NFS41_DRIVER_REJECT_CYGWIN_SILLYRENAME_FOR_DIRS */
     int status;
 
 #ifdef NFS41_DRIVER_MARK_OVERWRITTEN_LINKRENAME_DST_PATH_SRVOPEN_AS_STALE
@@ -406,7 +406,7 @@ static int handle_nfs41_rename(void *daemon_context, setattr_upcall_args *args)
 
     EASSERT((rename->FileNameLength%sizeof(wchar_t)) == 0);
 
-#ifdef NFS41_REJECT_CYGWIN_SILLYRENAME_FOR_DIRS
+#ifdef NFS41_DRIVER_REJECT_CYGWIN_SILLYRENAME_FOR_DIRS
     if ((ren_fnl > 4) &&
         (wmemcmp(rename->FileName, L".cyg", 4) == 0)) {
         is_cygwin_silly_rename = true;
@@ -427,7 +427,7 @@ static int handle_nfs41_rename(void *daemon_context, setattr_upcall_args *args)
         status = ERROR_NOT_SAME_DEVICE;
         goto out;
     }
-#endif /* NFS41_REJECT_CYGWIN_SILLYRENAME_FOR_DIRS */
+#endif /* NFS41_DRIVER_REJECT_CYGWIN_SILLYRENAME_FOR_DIRS */
 
     dst_path.len = (unsigned short)WideCharToMultiByte(CP_UTF8,
         WC_ERR_INVALID_CHARS|WC_NO_BEST_FIT_CHARS,
@@ -447,7 +447,7 @@ static int handle_nfs41_rename(void *daemon_context, setattr_upcall_args *args)
 
     dst_path.path[dst_path.len] = '\0';
 
-#ifdef NFS41_WINSTREAMS_SUPPORT
+#ifdef NFS41_DRIVER_WINSTREAMS_SUPPORT
     /*
      * Handle NTFS-style renaming of a Win32 named stream to another stream
      * name of the same base filename, e.g.
@@ -509,7 +509,7 @@ static int handle_nfs41_rename(void *daemon_context, setattr_upcall_args *args)
         ReleaseSRWLockShared(&src_path->lock);
     }
     else
-#endif /* NFS41_WINSTREAMS_SUPPORT */
+#endif /* NFS41_DRIVER_WINSTREAMS_SUPPORT */
     if ((dst_path.len > 2) && (dst_path.path[0] == '\\') &&
         (dst_path.path[1] == '\\')) {
         DPRINTF(0,

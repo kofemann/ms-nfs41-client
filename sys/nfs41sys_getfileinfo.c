@@ -116,14 +116,14 @@ void unmarshal_nfs41_getattr(
     nfs41_updowncall_entry *cur,
     const unsigned char *restrict *restrict buf)
 {
-#ifdef NFS41_WINSTREAMS_SUPPORT
+#ifdef NFS41_DRIVER_WINSTREAMS_SUPPORT
     if (cur->u.QueryFile.InfoClass == FileStreamInformation) {
         /* FIXME: If we do a partial read, what happens to ChangeTime below ? */
         unmarshal_nfs41_attrget(cur,
             cur->u.QueryFile.buf, &cur->u.QueryFile.buf_len, buf, TRUE);
     }
     else
-#endif /* NFS41_WINSTREAMS_SUPPORT */
+#endif /* NFS41_DRIVER_WINSTREAMS_SUPPORT */
     {
         unmarshal_nfs41_attrget(cur,
             cur->u.QueryFile.buf, &cur->u.QueryFile.buf_len, buf, FALSE);
@@ -357,9 +357,9 @@ NTSTATUS nfs41_QueryFileInformation(
     case FileStatInformation:
     case FileStatLxInformation:
 #endif /* NFS41_DRIVER_WSL_SUPPORT */
-#ifdef NFS41_WINSTREAMS_SUPPORT
+#ifdef NFS41_DRIVER_WINSTREAMS_SUPPORT
     case FileStreamInformation:
-#endif /* NFS41_WINSTREAMS_SUPPORT */
+#endif /* NFS41_DRIVER_WINSTREAMS_SUPPORT */
         break;
     default:
         print_error("nfs41_QueryFileInformation: "
@@ -396,7 +396,7 @@ NTSTATUS nfs41_QueryFileInformation(
         status = STATUS_BUFFER_TOO_SMALL;
     }
     else
-#ifdef NFS41_WINSTREAMS_SUPPORT
+#ifdef NFS41_DRIVER_WINSTREAMS_SUPPORT
     if ((InfoClass == FileStreamInformation) &&
         (entry->status == STATUS_BUFFER_OVERFLOW)) {
         /*
@@ -409,7 +409,7 @@ NTSTATUS nfs41_QueryFileInformation(
             "entry->status == STATUS_BUFFER_OVERFLOW\n");
         status = STATUS_BUFFER_OVERFLOW;
     } else
-#endif /* NFS41_WINSTREAMS_SUPPORT */
+#endif /* NFS41_DRIVER_WINSTREAMS_SUPPORT */
     if (entry->status == STATUS_SUCCESS) {
 #ifdef DEBUG_FILE_QUERY
         print_error("nfs41_QueryFileInformation: entry->status == STATUS_SUCCESS\n");
@@ -478,9 +478,9 @@ NTSTATUS nfs41_QueryFileInformation(
         case FileStatInformation:
         case FileStatLxInformation:
 #endif /* NFS41_DRIVER_WSL_SUPPORT */
-#ifdef NFS41_WINSTREAMS_SUPPORT
+#ifdef NFS41_DRIVER_WINSTREAMS_SUPPORT
         case FileStreamInformation:
-#endif /* NFS41_WINSTREAMS_SUPPORT */
+#endif /* NFS41_DRIVER_WINSTREAMS_SUPPORT */
             break;
         default:
             print_error("nfs41_QueryFileInformation: "

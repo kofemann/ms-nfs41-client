@@ -34,7 +34,8 @@
 #include "nfs41_windowsbugs_workarounds.h"
 
 /*
- * NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES - return local uid/gid values
+ * NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES - return local uid/gid
+ * values
  */
 #define NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES 1
 
@@ -284,15 +285,15 @@
 #define NFS41_DRIVER_ALLOW_CREATEFILE_ACLS 1
 
 /*
- * |NFS41_WINSTREAMS_SUPPORT| - Enable Win32 named streams support using
- * NFSv4.1 named attributes
+ * |NFS41_DRIVER_WINSTREAMS_SUPPORT| - Enable Win32 named streams support
+ * using NFSv4.1 named attributes
  */
-#define NFS41_WINSTREAMS_SUPPORT 1
+#define NFS41_DRIVER_WINSTREAMS_SUPPORT 1
 
 /*
- * |WORKAROUND_FOR_FREEBSD_CREATIONFAILSWITHEPERM_BUGS_292283_293691| - workaround
- * for FreeBSD bugs #292283 and #293691 which causes file/dir creation to fail
- * with |EPERM| if |FATTR4_SYSTEM|, |FATTR4_HIDDEN| (and for
+ * |WORKAROUND_FOR_FREEBSD_CREATIONFAILSWITHEPERM_BUGS_292283_293691| -
+ * workaround for FreeBSD bugs #292283 and #293691 which causes file/dir
+ * creation to fail with |EPERM| if |FATTR4_SYSTEM|, |FATTR4_HIDDEN| (and for
  * FreeBSD 16-CURRENT20260302 |FATTR4_ARCHIVE|) attributes are provided to a
  * FreeBSD NFS server
  *
@@ -344,11 +345,11 @@
 #define NFS41_DRIVER_STOMP_CYGWIN_SILLYRENAME_INVALID_UTF16_SEQUENCE_SUPPORT 1
 
 /*
- * |NFS41_REJECT_CYGWIN_SILLYRENAME_FOR_DIRS| - Reject Cygwin sillyrename
+ * |NFS41_DRIVER_REJECT_CYGWIN_SILLYRENAME_FOR_DIRS| - Reject Cygwin sillyrename
  * (i.e. files/dirs with open handles get renamed to '.cyg*' on delete)
  * for directories, as this breaks parallel git checkouts
  */
-#define NFS41_REJECT_CYGWIN_SILLYRENAME_FOR_DIRS 1
+#define NFS41_DRIVER_REJECT_CYGWIN_SILLYRENAME_FOR_DIRS 1
 
 /*
  * |NFS41_DRIVER_COLLAPSEOPEN| - SRV_OPEN collapse support

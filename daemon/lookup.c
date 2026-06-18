@@ -32,9 +32,9 @@
 #include "fileinfoutil.h"
 #include "util.h"
 #include "daemon_debug.h"
-#ifdef NFS41_WINSTREAMS_SUPPORT
+#ifdef NFS41_DRIVER_WINSTREAMS_SUPPORT
 #include "winstreams.h"
-#endif /* NFS41_WINSTREAMS_SUPPORT */
+#endif /* NFS41_DRIVER_WINSTREAMS_SUPPORT */
 
 
 #define LULVL 2 /* dprintf level for lookup logging */
@@ -516,7 +516,7 @@ int nfs41_lookup(
 
     DPRINTF(LULVL, ("--> nfs41_lookup('%s')\n", path.path));
 
-#ifdef NFS41_WINSTREAMS_SUPPORT
+#ifdef NFS41_DRIVER_WINSTREAMS_SUPPORT
     /* Fast check for potential stream: Look for a colon */
     if (is_stream_path(path_inout)) {
         char base_name[NFS41_MAX_PATH_LEN+1];
@@ -667,7 +667,7 @@ int nfs41_lookup(
             }
         }
     }
-#endif /* NFS41_WINSTREAMS_SUPPORT */
+#endif /* NFS41_DRIVER_WINSTREAMS_SUPPORT */
 
     if (parent_out == NULL) parent_out = &parent;
     if (target_out == NULL) target_out = &target;

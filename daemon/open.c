@@ -283,7 +283,7 @@ static int open_or_delegate(
 {
     int status;
 
-#ifdef NFS41_WINSTREAMS_SUPPORT
+#ifdef NFS41_DRIVER_WINSTREAMS_SUPPORT
     /*
      * FIXME: We get |NFS4ERR_BAD_STATEID| from Solaris 11.4 nfsd if we try
      * to read a NFS named attribute if the base file has a delegation.
@@ -300,7 +300,7 @@ static int open_or_delegate(
 #else
     /* check for existing delegation */
     status = nfs41_delegate_open(state, create, createattrs, info);
-#endif /* NFS41_WINSTREAMS_SUPPORT */
+#endif /* NFS41_DRIVER_WINSTREAMS_SUPPORT */
 
     /* get an open stateid if we have no delegation stateid */
     if (status)
