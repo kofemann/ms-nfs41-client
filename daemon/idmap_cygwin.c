@@ -80,10 +80,17 @@ int cygwin_getent_passwd(
         mode, cfgname, name));
 
     if (name[0] == '\0') {
-        DPRINTF(0,
-            ("cygwin_getent_passwd(mode='%s',cfgname='%s',name='%s'): "
+        eprintf("cygwin_getent_passwd(mode='%s',cfgname='%s',name='%s'): "
             "ERROR: Empty user name.\n",
-            mode, cfgname, name));
+            mode, cfgname, name);
+        goto fail;
+    }
+
+    if (str_has_posixshell_specialchars(name) ||
+        str_has_win32cmdexe_specialchars(name)) {
+        eprintf("cygwin_getent_passwd(mode='%s',cfgname='%s',name='%s'): "
+            "ERROR: user name contains POSIX sh/cmd.exe special characters.\n",
+            mode, cfgname, name);
         goto fail;
     }
 
@@ -313,10 +320,17 @@ int cygwin_getent_group(
         mode, cfgname, name));
 
     if (name[0] == '\0') {
-        DPRINTF(0,
-            ("cygwin_getent_group(mode='%s',cfgname='%s',name='%s'): "
+        eprintf("cygwin_getent_group(mode='%s',cfgname='%s',name='%s'): "
             "ERROR: Empty group name.\n",
-            mode, cfgname, name));
+            mode, cfgname, name);
+        goto fail;
+    }
+
+    if (str_has_posixshell_specialchars(name) ||
+        str_has_win32cmdexe_specialchars(name)) {
+        eprintf("cygwin_getent_group(mode='%s',cfgname='%s',name='%s'): "
+            "ERROR: group name contains POSIX sh/cmd.exe special characters.\n",
+            mode, cfgname, name);
         goto fail;
     }
 

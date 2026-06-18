@@ -76,6 +76,8 @@ typedef ULONGLONG util_reltimestamp;
 #define EA_VALUE(ea) \
     ((void *)((unsigned char *)(ea)->EaName + (ea)->EaNameLength + 1))
 
+bool str_has_posixshell_specialchars(const char *restrict s);
+bool str_has_win32cmdexe_specialchars(const char *restrict s);
 char *stpcpy(char *restrict s1, const char *restrict s2);
 
 static __inline

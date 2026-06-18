@@ -40,6 +40,20 @@
 #endif /* NFS41_DRIVER_SETGID_NEWGRP_SUPPORT */
 
 
+bool str_has_posixshell_specialchars(const char *restrict s)
+{
+    const char posixshell_specialchars[] = "!|&;<>()$`\\\"' \t\n*?[]";
+
+    return (strpbrk(s, posixshell_specialchars) != NULL)?true:false;
+}
+
+bool str_has_win32cmdexe_specialchars(const char *restrict s)
+{
+    const char win32cmdexe_specialchars[] = "&|<>()^%!\" \t\n";
+
+    return (strpbrk(s, win32cmdexe_specialchars) != NULL)?true:false;
+}
+
 char *stpcpy(char *restrict s1, const char *restrict s2)
 {
     size_t l = strlen(s2);
