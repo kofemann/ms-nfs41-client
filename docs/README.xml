@@ -47,10 +47,14 @@
         <para>Support for long paths (up to 4096 bytes), no Windows MAXPATH limit</para>
       </listitem>
       <listitem>
-        <para>Unicode support
+        <para>Unicode and GB 18030 support for filenames
           <itemizedlist>
             <listitem>
-              <para>File names can use any Unicode character supported by the NFS server's filesystem.</para>
+              <para>Unicode and <link xl:href="https://en.wikipedia.org/wiki/GB_18030">GB 18030</link>
+              support for file-, directory- and streamnames, including Unicode codepoints above the
+              <link xl:href="https://en.wikipedia.org/wiki/Plane_(Unicode)">Basic Multilingual Plane</link>,
+              assuming the filesystem exported by the NFS server supports the matching Unicode codepoints.
+              </para>
             </listitem>
             <listitem>
               <para><literal>nfs://</literal>-URLs can be used to mount filesystems with non-ASCII characters in the mount path, independent of current locale.</para>
@@ -165,19 +169,6 @@
           <itemizedlist>
             <listitem>
               <para>Requires NFSv4.1 server which supports the <literal>|FATTR4_WORD0_CASE_INSENSITIVE|</literal> attribute set to <literal>TRUE</literal> (currently Windows Server NFSv4.1 server exporting NTFS).</para>
-            </listitem>
-          </itemizedlist>
-        </para>
-      </listitem>
-      <listitem>
-        <para>Unicode and GB 18030 support for filenames
-          <itemizedlist>
-            <listitem>
-              <para>Unicode and <link xl:href="https://en.wikipedia.org/wiki/GB_18030">GB 18030</link>
-              support for file-, directory- and streamnames, including Unicode codepoints above the
-              <link xl:href="https://en.wikipedia.org/wiki/Plane_(Unicode)">Basic Multilingual Plane</link>,
-              assuming the filesystem exported by the NFS server supports the matching Unicode codepoints.
-              </para>
             </listitem>
           </itemizedlist>
         </para>
