@@ -1,5 +1,5 @@
 #
-# ms-nfs41-client manual testing sequence, 2026-06-17
+# ms-nfs41-client manual testing sequence, 2026-06-20
 #
 # Draft version, needs to be turned into automated tests
 # if possible
@@ -1247,8 +1247,11 @@ rm /cygdrive/n/winntfs_filedisk_001.img
 # OpenZFS - create ZFS filesystem with NFSv4.2 sparse file as storage
 #
 
-General: All following commands assume that the NFS filesystem
+General:
+- All following commands assume that the NFS filesystem
 has been mounted via nfs_globalmount.exe (global filesystem)
+- Instructions are for OpenZFS version
+https://github.com/openzfsonwindows/openzfs/releases/tag/zfswin-2.4.1rc11
 
 #### Create ZFS pool on NFS filesystem
 
