@@ -37,7 +37,10 @@
 # - build bash:
 #   $ ksh93 nfsbuildtest.ksh93 bash clean
 #   $ ksh93 nfsbuildtest.ksh93 bash createcache
-#   $ ksh93 nfsbuildtest.ksh93 bash build.parallel
+#   $ ksh93 nfsbuildtest.ksh93 bash build.gcc.serial
+#   $ ksh93 nfsbuildtest.ksh93 bash build.gcc.parallel
+#   $ ksh93 nfsbuildtest.ksh93 bash build.clang.serial
+#   $ ksh93 nfsbuildtest.ksh93 bash build.clang.parallel
 #
 # - build gcc:
 #   $ ksh93 nfsbuildtest.ksh93 gcc clean
@@ -354,6 +357,27 @@ function bash_createcache
 }
 
 
+function patch_bash_clang_variables_sv_home_prototype
+{
+{
+cat <<EOF
+diff --git a/variables.c b/variables.c
+index 610629ab..68831577 100644
+--- a/variables.c
++++ b/variables.c
+@@ -5893,6 +5893,7 @@ sv_winsize (name)
+ /* Update the value of HOME in the export environment so tilde expansion will
+    work on cygwin. */
+ #if defined (__CYGWIN__)
++void
+ sv_home (name)
+      char *name;
+ {
+EOF
+} | patch -p1 --ignore-whitespace
+    return $?
+}
+
 function bash_build
 {
 	set -o xtrace
@@ -444,6 +468,7 @@ function bash_build
 	#
 	# patch sources and configure build
 	#
+	patch_bash_clang_variables_sv_home_prototype
 
 	# original mkinstalldirs cannot handle UNC paths
 	printf '#!/bin/sh\n# original mkinstalldirs cannot handle Cygwin UNC paths\nmkdir -p "$@"\nexit $?\n' >'mkinstalldirs'
@@ -459,6 +484,16 @@ function bash_build
 
 	if $config_use_posix_ksh93_builtins ; then
 		(set -o xtrace ; sed -i "s/\/bin\/sh/\/bin\/ksh93/g" $(find . -name 'configure') )
+	fi
+
+	# select compiler
+	if [[ "$subcmd" == *.gcc* ]] ; then
+		export CC='/usr/bin/gcc'
+	elif [[ "$subcmd" == *.clang* ]] ; then
+		export CC='/usr/bin/clang'
+	else
+		print -u2 -f $"Neither '.gcc' or '.clang' set in subcmd='%q'.\n" "$subcmd"
+		return 1
 	fi
 
 	if is_cygwin && (( (cygwin_vers.major*1000+cygwin_vers.minor) >= 3005 )) ; then
@@ -1561,6 +1596,9 @@ function main
 			;;
 		'bash_build'*)
 			is_toolkit_pkg_installed itp 'git' || (( errc++ ))
+			if [[ "$subcmd" == *.clang* ]] ; then
+				is_toolkit_pkg_installed itp 'clang' || (( errc++ ))
+			fi
 			is_toolkit_pkg_installed itp 'gcc-core' || (( errc++ ))
 			is_toolkit_pkg_installed itp 'gcc-g++' || (( errc++ ))
 			is_toolkit_pkg_installed itp 'autoconf' || (( errc++ ))
