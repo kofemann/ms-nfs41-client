@@ -123,7 +123,7 @@ static int get_superblock_attrs(
         superblock->maxwrite = session->fore_chan_attrs.ca_maxrequestsize;
 
     logprintf("get_superblock_attrs(fsid=(%llu,%llu)): "
-        "superblock.(maxread=%ld, maxwrite=%ld)\n",
+        "superblock.(maxread=%ld,maxwrite=%ld)\n",
         superblock->fsid.major, superblock->fsid.minor,
         (long)superblock->maxread, (long)superblock->maxwrite);
 
@@ -164,7 +164,7 @@ static int get_superblock_attrs(
 #ifndef NFS41_DRIVER_CASEINSENSITIVE_FS_SUPPORT
     if (superblock->case_insensitive) {
         eprintf("get_superblock_attrs(fsid=(%llu,%llu)): "
-            "case-insensitive filesystem support not compiled in, "
+            "case-insensitive filesystem support not compiled in,"
             "please set NFS41_DRIVER_CASEINSENSITIVE_FS_SUPPORT in "
             "build config\n",
             superblock->fsid.major, superblock->fsid.minor,
@@ -284,7 +284,7 @@ static int get_superblock_attrs(
 
     /* Filename case handling */
     logprintf("get_superblock_attrs(fsid=(%llu,%llu)): "
-        "Case handling: case_insensitive=%d, case_preserving=%d\n",
+        "Case handling: case_insensitive=%d,case_preserving=%d\n",
         superblock->fsid.major, superblock->fsid.minor,
         (int)superblock->case_insensitive,
         (int)superblock->case_preserving);
