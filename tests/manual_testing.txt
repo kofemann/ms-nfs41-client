@@ -1,5 +1,5 @@
 #
-# ms-nfs41-client manual testing sequence, 2026-06-20
+# ms-nfs41-client manual testing sequence, 2026-06-24
 #
 # Draft version, needs to be turned into automated tests
 # if possible
@@ -1251,7 +1251,15 @@ General:
 - All following commands assume that the NFS filesystem
 has been mounted via nfs_globalmount.exe (global filesystem)
 - Instructions are for OpenZFS version
-https://github.com/openzfsonwindows/openzfs/releases/tag/zfswin-2.4.1rc11
+https://github.com/openzfsonwindows/openzfs/releases/tag/zfswin-2.4.1rc12
+
+#### OpenZFS Installation
+---- snip ----
+wget 'https://github.com/openzfsonwindows/openzfs/releases/download/zfswin-2.4.1rc12/OpenZFSOnWindows-debug-2.4.1rc12.exe'
+chmod a+x OpenZFSOnWindows-debug-2.4.1rc12.exe
+./OpenZFSOnWindows-debug-2.4.1rc12
+---- snip ----
+
 
 #### Create ZFS pool on NFS filesystem
 
@@ -1269,12 +1277,12 @@ chmod a+rw poolfile1.bin
 zpool.exe create -o ashift=15 -o autotrim=on -O xattr=dir -O casesensitivity=insensitive -O driveletter=U nfspool1 "\\\\?\\$(cygpath -w "$PWD/poolfile1.bin")"
 ---- snip ----
 
-2. Unmount+remove pool:
+2. Unmount+remove ZFS pool:
 ---- snip ----
 zpool export nfspool1
 ---- snip ----
 
-3. Import pool and mount it again:
+3. Import ZFS pool and mount it again:
 ---- snip ----
 # cd into NFS subdir
 zpool.exe import -d "$(cygpath -w "$PWD")" nfspool1
