@@ -1168,6 +1168,7 @@ function main
 			#require_cmd 'cdb.exe' || (( numerr++ ))
 			require_cmd 'nfsd.exe' || (( numerr++ ))
 			require_cmd 'nfs_mount.exe' || (( numerr++ ))
+			require_cmd 'nfs_globalmount.exe' || (( numerr++ ))
 			require_cmd 'ksh93.exe' || (( numerr++ ))
 			require_file '/lib/msnfs41client/cygwin_idmapper.ksh' || (( numerr++ ))
 			(( numerr > 0 )) && return 1
