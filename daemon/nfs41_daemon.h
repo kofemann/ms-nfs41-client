@@ -34,6 +34,8 @@
  * Global data of the daemon process
  */
 typedef struct __nfs41_daemon_globals {
+    /* Path to Cygwin or MSYS2 installation */
+    wchar_t cygwin_root[MAX_PATH+1];
     SSIZE_T num_worker_threads;
     int crtdbgmem_flags;
     char nfs41_nii_name[256];

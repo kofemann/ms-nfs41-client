@@ -64,6 +64,11 @@ static const char FILE_NETCONFIG[] = "C:\\etc\\netconfig";
 
 /* Globals */
 nfs41_daemon_globals nfs41_dg = {
+#ifdef _WIN64
+    .cygwin_root = L"C:\\cygwin64",
+#else
+    .cygwin_root = L"C:\\cygwin",
+#endif /* _WIN64 */
     .num_worker_threads = DEFAULT_NUM_THREADS,
     .crtdbgmem_flags = NFS41D_GLOBALS_CRTDBGMEM_FLAGS_NOT_SET,
 };
@@ -230,16 +235,23 @@ typedef struct _nfsd_args {
     int debug_level;
 } nfsd_args;
 
-static bool_t check_for_files()
+static bool_t check_for_files(const wchar_t *argv0)
 {
-    FILE *fd;
-     
-    fd = fopen(FILE_NETCONFIG, "r");
-    if (fd == NULL) {
-        fprintf(stderr,"nfsd() failed to open file '%s'\n", FILE_NETCONFIG);
+    if (_access(FILE_NETCONFIG, 04) != 0) {
+        (void)fprintf(stderr,
+            "%ls: ERROR: Cannot read netconfig file '%s'\n",
+            argv0,
+            FILE_NETCONFIG);
         return FALSE;
     }
-    fclose(fd);
+
+    if (_waccess(nfs41_dg.cygwin_root, 00) != 0) {
+        (void)fprintf(stderr, "%ls: ERROR: Cannot access Cygwin root '%ls'\n",
+            argv0,
+            nfs41_dg.cygwin_root);
+        return FALSE;
+    }
+
     return TRUE;
 }
 
@@ -250,6 +262,8 @@ static void PrintUsage(const wchar_t *argv0)
         "\t-V, --version, /?\tversion\n"
         "\t-d <debug_level>\n"
         "\t--numworkerthreads <value-between 16 and %d>\n"
+        "\t--cygwinroot <Win32 path>\n"
+        "\t--msys2root <Win32 path>\n"
 #ifdef _DEBUG
         "\t--crtdbgmem <'allocmem'|'leakcheck'|'delayfree',\n"
             "\t\t'all', 'none' or 'default'>\n"
@@ -367,6 +381,33 @@ bool_t parse_cmdlineargs(int argc, wchar_t *argv[], nfsd_args *out)
                 }
             }
 #endif /* _DEBUG */
+            else if ((!wcscmp(argv[i], L"--cygwinroot")) ||
+                (!wcscmp(argv[i], L"--msys2root"))) {
+                ++i;
+                if (i >= argc) {
+                    (void)fprintf(stderr,
+                        "%ls: Missing options for %ls\n",
+                        argv[0], argv[i-1]);
+                    return FALSE;
+                }
+
+                const wchar_t *cygwin_root = argv[i];
+                size_t cygwin_root_len = wcslen(cygwin_root);
+
+                if (cygwin_root_len >= MAX_PATH) {
+                    (void)fprintf(stderr,
+                        "%ls: ERROR: %ls length >= MAX_PATH\n",
+                        argv[0], argv[i-1]);
+                    return FALSE;
+                }
+
+                (void)wcscpy(nfs41_dg.cygwin_root, cygwin_root);
+                /* Stomp trailing slash/backslash */
+                if ((nfs41_dg.cygwin_root[cygwin_root_len] == L'\\') ||
+                    (nfs41_dg.cygwin_root[cygwin_root_len] == L'/')) {
+                    nfs41_dg.cygwin_root[cygwin_root_len] = L'\0';
+                }
+            }
             else if (!wcscmp(argv[i], L"--numworkerthreads")) {
                 ++i;
                 if (i >= argc) {
@@ -578,13 +619,15 @@ void init_version_string(void)
     /*
      * Add cygwin version, if Cygwin idmapper is enabled
      */
-#ifdef _WIN64
-#define CYGWIN_UNAME_A_CMD "C:\\cygwin64\\bin\\uname.exe -a"
-#else
-#define CYGWIN_UNAME_A_CMD "C:\\cygwin\\bin\\uname.exe -a"
-#endif /*  _WIN64 */
+    char cygwin_uname_a_cmd[MAX_PATH];
+    (void)snprintf(cygwin_uname_a_cmd,
+        sizeof(cygwin_uname_a_cmd),
+        "%ls\\bin\\uname.exe -a",
+        nfs41_dg.cygwin_root);
+
     subcmd_popen_context *scmd_uname =
-        subcmd_popen(CYGWIN_UNAME_A_CMD);
+        subcmd_popen(cygwin_uname_a_cmd);
+
     if (scmd_uname) {
         char unamebuf[256];
         char *s;
@@ -661,9 +704,9 @@ VOID ServiceStart(DWORD argc, LPWSTR *argv)
     int i;
     nfsd_args cmd_args;
 
-    if (!check_for_files())
-        exit(1);
     if (!parse_cmdlineargs(argc, argv, &cmd_args))
+        exit(1);
+    if (!check_for_files(argv[0]))
         exit(1);
     set_debug_level(cmd_args.debug_level);
     open_log_files();

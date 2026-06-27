@@ -675,6 +675,7 @@ function nfsclient_rundeamon
 		'nfsd.exe'
 		'-debug'
 		'-d' '0'
+		#'--cygwinroot' 'C:\x'
 		#'--numworkerthreads' '512'
 	)
 
@@ -804,6 +805,7 @@ function nfsclient_system_rundeamon
 		'nfsd.exe'
 		'-debug'
 		'-d' '0'
+		#'--cygwinroot' 'C:\x'
 		#'--numworkerthreads' '512'
 	)
 

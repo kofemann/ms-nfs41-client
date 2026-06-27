@@ -31,6 +31,7 @@
 #include "util.h"
 #include "aclutil.h"
 #include "nfs41_const.h"
+#include "nfs41_daemon.h"
 #include "list.h"
 #include "daemon_debug.h"
 #ifdef NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN
@@ -39,15 +40,12 @@
 
 #define CYGWINIDLVL 2   /* dprintf level for idmap logging */
 
-#ifdef _WIN64
 #define CYGWIN_IDMAPPER_SCRIPT \
-    ("C:\\cygwin64\\bin\\ksh93.exe " \
-    "/cygdrive/c/cygwin64/lib/msnfs41client/cygwin_idmapper.ksh")
-#else
-#define CYGWIN_IDMAPPER_SCRIPT \
-    ("C:\\cygwin\\bin\\ksh93.exe " \
-    "/cygdrive/c/cygwin/lib/msnfs41client/cygwin_idmapper.ksh")
-#endif /* _WIN64 */
+    "/lib/msnfs41client/cygwin_idmapper.ksh"
+
+/* Globals */
+extern nfs41_daemon_globals nfs41_dg;
+
 
 #ifdef NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN
 static
@@ -101,7 +99,9 @@ int cygwin_getent_passwd(
 
     /* fixme: better quoting for |name| needed */
     (void)snprintf(cmdbuff, sizeof(cmdbuff),
-        "%s \"%s\" \"%s\" \"%s\"",
+        "%ls%s \"%s\" \"%s\" \"%s\" \"%s\"",
+        nfs41_dg.cygwin_root,
+        "\\bin\\ksh93.exe ",
         CYGWIN_IDMAPPER_SCRIPT,
         mode,
         cfgname,
@@ -341,7 +341,9 @@ int cygwin_getent_group(
 
     /* fixme: better quoting for |name| needed */
     (void)snprintf(cmdbuff, sizeof(cmdbuff),
-        "%s \"%s\" \"%s\" \"%s\"",
+        "%ls%s \"%s\" \"%s\" \"%s\" \"%s\"",
+        nfs41_dg.cygwin_root,
+        "\\bin\\ksh93.exe ",
         CYGWIN_IDMAPPER_SCRIPT,
         mode,
         cfgname,
@@ -571,7 +573,9 @@ int cygwin_map_nfsserverspec2idmappercfgname(
 
     /* fixme: better quoting for |serverspec_cpv| needed */
     (void)snprintf(cmdbuff, sizeof(cmdbuff),
-        "%s \"%s\" \"%s\"",
+        "%ls%s \"%s\" \"%s\" \"%s\"",
+        nfs41_dg.cygwin_root,
+        "\\bin\\ksh93.exe ",
         CYGWIN_IDMAPPER_SCRIPT,
         "map_nfsserverspec2idmappercfgname",
         serverspec_cpv);
@@ -714,7 +718,9 @@ int cygwin_get_idmapconfig(
 
     /* fixme: better quoting for |idmappercfgname| needed */
     (void)snprintf(cmdbuff, sizeof(cmdbuff),
-        "%s \"%s\" \"%s\"",
+        "%ls%s \"%s\" \"%s\" \"%s\"",
+        nfs41_dg.cygwin_root,
+        "\\bin\\ksh93.exe ",
         CYGWIN_IDMAPPER_SCRIPT,
         "print_idmapconfig",
         idmappercfgname);
