@@ -38,7 +38,7 @@
 #
 # 1. Mount for current users:
 # (requires PsExec from https://download.sysinternals.com/files/PSTools.zip
-# in /home/roland_mainz/work/win_pstools/)
+# in ${PATH})
 # * Usage:
 # Shell1: cd /cygdrive/c/Users/roland_mainz/Downloads/ms-nfs41-client-x64/ms-nfs41-client-x64 && bash ../msnfs41client.bash run_deamon
 # Shell2: /sbin/nfs_mount.exe -o rw 'H' derfwpc5131_ipv4:/export/home2/rmainz
@@ -46,7 +46,7 @@
 # 2. Mount for all users:
 # * Requires:
 # - Windows admin rights (Cygwin --> Run terminal as Adminstrator)
-# - PsExec from https://download.sysinternals.com/files/PSTools.zip in /home/roland_mainz/work/win_pstools/)
+# - PsExec from https://download.sysinternals.com/files/PSTools.zip in ${PATH})
 # * Usage:
 # Shell1: cd /cygdrive/c/Users/roland_mainz/Downloads/ms-nfs41-client-x64/ms-nfs41-client-x64 && bash ../msnfs41client.bash sys_run_deamon
 # Shell2: cd /cygdrive/c/Users/roland_mainz/Downloads/ms-nfs41-client-x64/ms-nfs41-client-x64 && bash ../msnfs41client.bash sys_mount_globaldirs
@@ -1104,9 +1104,6 @@ function main
 	# PATH to VSDiagnostics.exe and AgentConfigs
 	vsdiagnostics_path='/cygdrive/c/Program Files (x86)/Microsoft Visual Studio/2019/Community/Team Tools/DiagnosticsHub/Collector/'
 	PATH+=":${vsdiagnostics_path}"
-
-	# my own path to pstools
-	PATH+=':/home/roland_mainz/work/win_pstools/'
 
 	# my own path to DebugView
 	PATH+=':/cygdrive/c/Users/roland_mainz/download/DebugView'
