@@ -36,6 +36,9 @@
 typedef struct __nfs41_daemon_globals {
     /* Path to Cygwin or MSYS2 installation */
     wchar_t cygwin_root[MAX_PATH+1];
+#ifdef NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN
+    wchar_t cygwin_idmapper_script[MAX_PATH+1];
+#endif /* NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN */
     SSIZE_T num_worker_threads;
     int crtdbgmem_flags;
     char nfs41_nii_name[256];

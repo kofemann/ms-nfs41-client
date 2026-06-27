@@ -44,6 +44,7 @@
 #include "upcall.h"
 #include "sid.h"
 #include "accesstoken.h"
+#include "idmap.h"
 #include "util.h"
 #ifdef __REACTOS__
 #define GIT_COMMIT_ID "reactos-native-build"
@@ -69,6 +70,9 @@ nfs41_daemon_globals nfs41_dg = {
 #else
     .cygwin_root = L"C:\\cygwin",
 #endif /* _WIN64 */
+#ifdef NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN
+    .cygwin_idmapper_script = L"",
+#endif /* NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN */
     .num_worker_threads = DEFAULT_NUM_THREADS,
     .crtdbgmem_flags = NFS41D_GLOBALS_CRTDBGMEM_FLAGS_NOT_SET,
 };
@@ -708,6 +712,10 @@ VOID ServiceStart(DWORD argc, LPWSTR *argv)
         exit(1);
     if (!check_for_files(argv[0]))
         exit(1);
+#ifdef NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN
+    if (!init_cygwin_idmapper_globals(argv[0]))
+        exit(1);
+#endif /* NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN */
     set_debug_level(cmd_args.debug_level);
     open_log_files();
     sidcache_init();

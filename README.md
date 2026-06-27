@@ -454,6 +454,17 @@ Cygwin 32bit can be installed like this:
 
     $ (cd / && tar -xf ~/download/${bintarball.base_filename}.tar.bz2 )
     $ /sbin/msnfs41client install
+
+    # Configuring the idmapper:
+    # Copy idmapper default script to /etc/msnfs41client/cygwin_idmapper.ksh
+    # and then edit /etc/msnfs41client/cygwin_idmapper.ksh to
+    # replace the scripts default Windows domain ("GLOBAL.LOC")
+    # with your Windows domain and the scripts default NFS domain ("global.loc")
+    # with your default NFS domain
+    # Mappings for users and groups must be added if the account names
+    # on the Windows side do not match the account names on the NFS
+    # server side exactly.
+    cp /lib/msnfs41client/cygwin_idmapper.ksh /etc/msnfs41client/cygwin_idmapper.ksh
     <REBOOT>
 
 ## Deinstallation

@@ -40,14 +40,70 @@
 
 #define CYGWINIDLVL 2   /* dprintf level for idmap logging */
 
-#define CYGWIN_IDMAPPER_SCRIPT \
-    "/lib/msnfs41client/cygwin_idmapper.ksh"
-
 /* Globals */
 extern nfs41_daemon_globals nfs41_dg;
 
 
 #ifdef NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN
+#define CYGWIN_IDMAPPER_SCRIPT_WIN32PATH \
+    L"msnfs41client\\cygwin_idmapper.ksh"
+#define CYGWIN_IDMAPPER_SCRIPT_PATH \
+    L"msnfs41client/cygwin_idmapper.ksh"
+
+typedef struct {
+    const wchar_t *win32path;
+    const wchar_t *path;
+} idmappathset;
+
+bool init_cygwin_idmapper_globals(const wchar_t *argv0)
+{
+    /*
+     * Get location of the Cygwin idmapper script. The factory-default
+     * version sits in /usr/lib/msnfs41client/cygwin_idmapper.ksh,
+     * and users should copy it to /etc/lib/msnfs41client/cygwin_idmapper.ksh
+     * before making any modifications
+     */
+    #define NUM_IDMAPSCRIPTPATHS 3
+    const idmappathset idmapscriptpath[] = {
+        {
+            .win32path = L"%ls\\etc\\" CYGWIN_IDMAPPER_SCRIPT_WIN32PATH,
+            .path = L"/etc/" CYGWIN_IDMAPPER_SCRIPT_PATH
+        },
+        {
+            .win32path = L"%ls\\lib\\" CYGWIN_IDMAPPER_SCRIPT_WIN32PATH,
+            .path = L"/lib/" CYGWIN_IDMAPPER_SCRIPT_PATH },
+        {
+            .win32path = L"%ls\\usr\\lib\\" CYGWIN_IDMAPPER_SCRIPT_WIN32PATH,
+            .path = L"/usr/lib/" CYGWIN_IDMAPPER_SCRIPT_PATH
+        },
+    };
+
+    if (nfs41_dg.cygwin_idmapper_script[0] == L'\0') {
+        int i;
+        wchar_t pathbuf[MAX_PATH];
+
+        for (i = 0 ; i < NUM_IDMAPSCRIPTPATHS ;  i++) {
+            (void)swprintf(pathbuf, sizeof(pathbuf),
+                idmapscriptpath[i].win32path,
+                nfs41_dg.cygwin_root);
+            if (_waccess(pathbuf, 04) == 0) {
+                (void)wcscpy(nfs41_dg.cygwin_idmapper_script,
+                    idmapscriptpath[i].path);
+                break;
+            }
+        }
+
+        if (i == NUM_IDMAPSCRIPTPATHS) {
+            (void)fprintf(stderr,
+                "%ls: ERROR: Cannot find Cygwin idmapper script\n",
+                argv0);
+            return false;
+        }
+    }
+
+    return true;
+}
+
 static
 int cygwin_getent_passwd(
     const char *restrict mode,
@@ -99,10 +155,10 @@ int cygwin_getent_passwd(
 
     /* fixme: better quoting for |name| needed */
     (void)snprintf(cmdbuff, sizeof(cmdbuff),
-        "%ls%s \"%s\" \"%s\" \"%s\" \"%s\"",
+        "%ls%s \"%ls\" \"%s\" \"%s\" \"%s\"",
         nfs41_dg.cygwin_root,
         "\\bin\\ksh93.exe ",
-        CYGWIN_IDMAPPER_SCRIPT,
+        nfs41_dg.cygwin_idmapper_script,
         mode,
         cfgname,
         name);
@@ -341,10 +397,10 @@ int cygwin_getent_group(
 
     /* fixme: better quoting for |name| needed */
     (void)snprintf(cmdbuff, sizeof(cmdbuff),
-        "%ls%s \"%s\" \"%s\" \"%s\" \"%s\"",
+        "%ls%s \"%ls\" \"%s\" \"%s\" \"%s\"",
         nfs41_dg.cygwin_root,
         "\\bin\\ksh93.exe ",
-        CYGWIN_IDMAPPER_SCRIPT,
+        nfs41_dg.cygwin_idmapper_script,
         mode,
         cfgname,
         name);
@@ -573,10 +629,10 @@ int cygwin_map_nfsserverspec2idmappercfgname(
 
     /* fixme: better quoting for |serverspec_cpv| needed */
     (void)snprintf(cmdbuff, sizeof(cmdbuff),
-        "%ls%s \"%s\" \"%s\" \"%s\"",
+        "%ls%s \"%ls\" \"%s\" \"%s\"",
         nfs41_dg.cygwin_root,
         "\\bin\\ksh93.exe ",
-        CYGWIN_IDMAPPER_SCRIPT,
+        nfs41_dg.cygwin_idmapper_script,
         "map_nfsserverspec2idmappercfgname",
         serverspec_cpv);
     if ((script_pipe = subcmd_popen(cmdbuff)) == NULL) {
@@ -718,10 +774,10 @@ int cygwin_get_idmapconfig(
 
     /* fixme: better quoting for |idmappercfgname| needed */
     (void)snprintf(cmdbuff, sizeof(cmdbuff),
-        "%ls%s \"%s\" \"%s\" \"%s\"",
+        "%ls%s \"%ls\" \"%s\" \"%s\"",
         nfs41_dg.cygwin_root,
         "\\bin\\ksh93.exe ",
-        CYGWIN_IDMAPPER_SCRIPT,
+        nfs41_dg.cygwin_idmapper_script,
         "print_idmapconfig",
         idmappercfgname);
     if ((script_pipe = subcmd_popen(cmdbuff)) == NULL) {
@@ -1726,6 +1782,12 @@ int nfs41_idmap_create(
     }
 
     (void)strcpy(context->config.configname, configname);
+
+#ifdef NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN
+    DPRINTF(0,
+        ("nfs41_idmap_create: Using Cygwin idmapper script '%ls'\n",
+        nfs41_dg.cygwin_idmapper_script));
+#endif /* NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN */
 
     if (nfs41_idmap_get_idmapconfig(context->config.configname, &cache_ttl)) {
         eprintf("nfs41_idmap_create: Cannot load idmap config '%s'\n",

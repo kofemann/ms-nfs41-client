@@ -168,4 +168,8 @@ idmapcache_entry *nfs41_idmap_group_lookup_by_nfsid(
     struct idmap_context *context,
     idmapcache_idnumber search_nfslid);
 
+#ifdef NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN
+bool init_cygwin_idmapper_globals(const wchar_t *argv0);
+#endif /* NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN */
+
 #endif /* !IDMAP_H */

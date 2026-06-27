@@ -428,6 +428,11 @@ function nfsclient_install
 		} >'/etc/fstab.msnfs41client'
 	fi
 
+	#
+	# create /etc/msnfs41client/ if not present (yet)
+	#
+	mkdir -p '/etc/msnfs41client'
+
 	if [[ "$cmd" != *devinstall* ]] ; then
 		nfsclient_enable_autostartservices
 	fi
