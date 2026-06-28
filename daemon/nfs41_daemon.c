@@ -578,13 +578,26 @@ void init_version_string(void)
     /*
      * Add cygwin version, if Cygwin idmapper is enabled
      */
+    char cygwin_uname_cmd[1024];
 #ifdef _WIN64
 #define CYGWIN_UNAME_A_CMD "C:\\cygwin64\\bin\\uname.exe -a"
 #else
 #define CYGWIN_UNAME_A_CMD "C:\\cygwin\\bin\\uname.exe -a"
 #endif /*  _WIN64 */
+    if (get_cygwin_root_for_nfsd(cygwin_uname_cmd,
+        sizeof(cygwin_uname_cmd))) {
+        char cygwin_root[1024];
+        (void)StringCchCopyA(cygwin_root, sizeof(cygwin_root),
+            cygwin_uname_cmd);
+        (void)snprintf(cygwin_uname_cmd, sizeof(cygwin_uname_cmd),
+            "\"%s\\bin\\uname.exe\" -a", cygwin_root);
+    }
+    else {
+        (void)StringCchCopyA(cygwin_uname_cmd, sizeof(cygwin_uname_cmd),
+            CYGWIN_UNAME_A_CMD);
+    }
     subcmd_popen_context *scmd_uname =
-        subcmd_popen(CYGWIN_UNAME_A_CMD);
+        subcmd_popen(cygwin_uname_cmd);
     if (scmd_uname) {
         char unamebuf[256];
         char *s;

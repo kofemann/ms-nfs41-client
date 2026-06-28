@@ -49,6 +49,23 @@
     "/cygdrive/c/cygwin/lib/msnfs41client/cygwin_idmapper.ksh")
 #endif /* _WIN64 */
 
+static
+void get_cygwin_idmapper_script(
+    OUT char *restrict cmdbuff,
+    IN size_t cmdbuff_size)
+{
+    char cygwin_root[1024];
+
+    if (get_cygwin_root_for_nfsd(cygwin_root, sizeof(cygwin_root))) {
+        (void)snprintf(cmdbuff, cmdbuff_size,
+            "\"%s\\bin\\ksh93.exe\" /lib/msnfs41client/cygwin_idmapper.ksh",
+            cygwin_root);
+    }
+    else {
+        (void)StringCchCopyA(cmdbuff, cmdbuff_size, CYGWIN_IDMAPPER_SCRIPT);
+    }
+}
+
 #ifdef NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN
 static
 int cygwin_getent_passwd(
@@ -74,6 +91,7 @@ int cygwin_getent_passwd(
     cpv_name_val *cnv_cur = NULL;
     const char *localaccountname = NULL;
     const char *nfsowner = NULL;
+    char idmapper_script_cmd[1024];
 
     DPRINTF(CYGWINIDLVL,
         ("--> cygwin_getent_passwd(mode='%s',cfgname='%s',name='%s')\n",
@@ -100,9 +118,11 @@ int cygwin_getent_passwd(
     }
 
     /* fixme: better quoting for |name| needed */
+    get_cygwin_idmapper_script(idmapper_script_cmd,
+        sizeof(idmapper_script_cmd));
     (void)snprintf(cmdbuff, sizeof(cmdbuff),
         "%s \"%s\" \"%s\" \"%s\"",
-        CYGWIN_IDMAPPER_SCRIPT,
+        idmapper_script_cmd,
         mode,
         cfgname,
         name);
@@ -311,9 +331,9 @@ int cygwin_getent_group(
     int i = 0;
     cpv_name_val cnv[64] = { 0 };
     cpv_name_val *cnv_cur = NULL;
-
     const char *localgroupname = NULL;
     const char *nfsownergroup = NULL;
+    char idmapper_script_cmd[1024];
 
     DPRINTF(CYGWINIDLVL,
         ("--> cygwin_getent_group(mode='%s',cfgname='%s',name='%s')\n",
@@ -340,9 +360,11 @@ int cygwin_getent_group(
     }
 
     /* fixme: better quoting for |name| needed */
+    get_cygwin_idmapper_script(idmapper_script_cmd,
+        sizeof(idmapper_script_cmd));
     (void)snprintf(cmdbuff, sizeof(cmdbuff),
         "%s \"%s\" \"%s\" \"%s\"",
-        CYGWIN_IDMAPPER_SCRIPT,
+        idmapper_script_cmd,
         mode,
         cfgname,
         name);
@@ -545,6 +567,7 @@ int cygwin_map_nfsserverspec2idmappercfgname(
     cpv_name_val cnv[64] = { 0 };
     cpv_name_val *cnv_cur = NULL;
     const char *idmappercfgname = NULL;
+    char idmapper_script_cmd[1024];
 
     DPRINTF(CYGWINIDLVL,
         ("--> cygwin_map_nfsserverspec2idmappercfgname"
@@ -570,9 +593,11 @@ int cygwin_map_nfsserverspec2idmappercfgname(
         hostname, (unsigned int)port, (int)ispubnfs);
 
     /* fixme: better quoting for |serverspec_cpv| needed */
+    get_cygwin_idmapper_script(idmapper_script_cmd,
+        sizeof(idmapper_script_cmd));
     (void)snprintf(cmdbuff, sizeof(cmdbuff),
         "%s \"%s\" \"%s\"",
-        CYGWIN_IDMAPPER_SCRIPT,
+        idmapper_script_cmd,
         "map_nfsserverspec2idmappercfgname",
         serverspec_cpv);
     if ((script_pipe = subcmd_popen(cmdbuff)) == NULL) {
@@ -699,6 +724,7 @@ int cygwin_get_idmapconfig(
     int i = 0;
     cpv_name_val cnv[64] = { 0 };
     cpv_name_val *cnv_cur = NULL;
+    char idmapper_script_cmd[1024];
 
     DPRINTF(CYGWINIDLVL,
         ("--> cygwin_get_idmapconfig(idmappercfgname='%s')\n",
@@ -713,9 +739,11 @@ int cygwin_get_idmapconfig(
     }
 
     /* fixme: better quoting for |idmappercfgname| needed */
+    get_cygwin_idmapper_script(idmapper_script_cmd,
+        sizeof(idmapper_script_cmd));
     (void)snprintf(cmdbuff, sizeof(cmdbuff),
         "%s \"%s\" \"%s\"",
-        CYGWIN_IDMAPPER_SCRIPT,
+        idmapper_script_cmd,
         "print_idmapconfig",
         idmappercfgname);
     if ((script_pipe = subcmd_popen(cmdbuff)) == NULL) {
