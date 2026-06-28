@@ -60,6 +60,42 @@ char *stpcpy(char *restrict s1, const char *restrict s2)
     return ((char *)memcpy(s1, s2, (l+1)*sizeof(char))) + l*sizeof(char);
 }
 
+bool get_cygwin_root_for_nfsd(
+    OUT char *restrict root_out,
+    IN size_t root_out_size)
+{
+    wchar_t moduleW[1024];
+    char moduleA[1024];
+    const char suffix[] = "\\lib\\msnfs41client\\nfsd.exe";
+    size_t module_len;
+    size_t suffix_len = strlen(suffix);
+    DWORD moduleW_len;
+
+    if ((root_out == NULL) || (root_out_size == 0))
+        return false;
+
+    moduleW_len = GetModuleFileNameW(NULL, moduleW,
+        (DWORD)(sizeof(moduleW) / sizeof(moduleW[0])));
+    if ((moduleW_len == 0) ||
+        (moduleW_len >= (sizeof(moduleW) / sizeof(moduleW[0])))) {
+        return false;
+    }
+
+    if (WideCharToMultiByte(CP_UTF8, 0, moduleW, -1, moduleA,
+        (int)sizeof(moduleA), NULL, NULL) == 0) {
+        return false;
+    }
+
+    module_len = strlen(moduleA);
+    if ((module_len <= suffix_len) ||
+        (_stricmp(moduleA + module_len - suffix_len, suffix) != 0)) {
+        return false;
+    }
+
+    moduleA[module_len - suffix_len] = '\0';
+    return SUCCEEDED(StringCchCopyA(root_out, root_out_size, moduleA));
+}
+
 const char* strip_path(
     IN const char *path,
     OUT uint32_t *len_out)

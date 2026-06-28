@@ -79,6 +79,7 @@ typedef ULONGLONG util_reltimestamp;
 bool str_has_posixshell_specialchars(const char *restrict s);
 bool str_has_win32cmdexe_specialchars(const char *restrict s);
 char *stpcpy(char *restrict s1, const char *restrict s2);
+bool get_cygwin_root_for_nfsd(char *restrict root_out, size_t root_out_size);
 
 static __inline
 void *mempcpy(void *restrict dest, const void *restrict src, size_t n)

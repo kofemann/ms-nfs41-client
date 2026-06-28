@@ -105,14 +105,14 @@ function check_machine_arch
 
 	case "${uname_m}" in
 		'x86_64')
-			if [[ "${winpwd}" != 'C:\cygwin64\'* ]] ; then
+			if [[ "${winpwd}" != ?:\\cygwin64\\* ]] ; then
 				printf $"%s: Requires 64bit Cygwin\n" "$0" 1>&2
 				return 1
 			fi
 			return 0
 			;;
 		'i686')
-			if [[ "${winpwd}" != 'C:\cygwin\'* ]] ; then
+			if [[ "${winpwd}" != ?:\\cygwin\\* ]] ; then
 				printf $"%s: Requires 32bit Cygwin\n" "$0" 1>&2
 				return 1
 			fi
@@ -373,8 +373,8 @@ function nfsclient_install
 	# '/var/log/ms-nfs41-client-service.log' at any time
 	#
 	touch '/var/log/ms-nfs41-client-service.log'
-	chown SYSTEM:SYSTEM '/var/log/ms-nfs41-client-service.log'
 	chmod u+w,go-w '/var/log/ms-nfs41-client-service.log'
+	chown SYSTEM:SYSTEM '/var/log/ms-nfs41-client-service.log'
 
 	# install new 'ms-nfs41-client-service'
 	cygrunsrv --install \
@@ -405,8 +405,8 @@ function nfsclient_install
 	# '/var/log/ms-nfs41-client-globalmountall-service.log' at any time
 	#
 	touch '/var/log/ms-nfs41-client-globalmountall-service.log'
-	chown SYSTEM:SYSTEM '/var/log/ms-nfs41-client-globalmountall-service.log'
 	chmod u+w,go-w '/var/log/ms-nfs41-client-globalmountall-service.log'
+	chown SYSTEM:SYSTEM '/var/log/ms-nfs41-client-globalmountall-service.log'
 
 	# install new 'ms-nfs41-client-globalmountall-service'
 	cygrunsrv --install \
