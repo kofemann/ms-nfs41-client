@@ -373,7 +373,8 @@ function nfsclient_install
 	# '/var/log/ms-nfs41-client-service.log' at any time
 	#
 	touch '/var/log/ms-nfs41-client-service.log'
-	chown SYSTEM:SYSTEM '/var/log/ms-nfs41-client-service.log'
+	# uid/gid 18 is "SYSTEM", we use numeric value here because "SYSTEM" account name can be localised
+	chown 18:18 '/var/log/ms-nfs41-client-service.log'
 	chmod u+w,go-w '/var/log/ms-nfs41-client-service.log'
 
 	# install new 'ms-nfs41-client-service'
@@ -405,7 +406,8 @@ function nfsclient_install
 	# '/var/log/ms-nfs41-client-globalmountall-service.log' at any time
 	#
 	touch '/var/log/ms-nfs41-client-globalmountall-service.log'
-	chown SYSTEM:SYSTEM '/var/log/ms-nfs41-client-globalmountall-service.log'
+	# uid/gid 18 is "SYSTEM", we use numeric value here because "SYSTEM" account name can be localised
+	chown 18:18 '/var/log/ms-nfs41-client-globalmountall-service.log'
 	chmod u+w,go-w '/var/log/ms-nfs41-client-globalmountall-service.log'
 
 	# install new 'ms-nfs41-client-globalmountall-service'
