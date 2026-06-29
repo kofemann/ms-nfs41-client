@@ -95,37 +95,6 @@ function print_secureboot_status
 	return 0
 }
 
-function check_machine_arch
-{
-	typeset winpwd
-	typeset uname_m
-
-	winpwd="$(cygpath -w "${sbinpath}")"
-	uname_m="$(uname -m)"
-
-	case "${uname_m}" in
-		'x86_64')
-			if [[ "${winpwd}" != 'C:\cygwin64\'* ]] ; then
-				printf $"%s: Requires 64bit Cygwin\n" "$0" 1>&2
-				return 1
-			fi
-			return 0
-			;;
-		'i686')
-			if [[ "${winpwd}" != 'C:\cygwin\'* ]] ; then
-				printf $"%s: Requires 32bit Cygwin\n" "$0" 1>&2
-				return 1
-			fi
-			return 0
-			;;
-		*)
-			printf $"%s: Unknown arch/Cygwin combination ('%s'/'%s')\n" "$0" "${uname_m}" "${winpwd}" 1>&2
-			return 1
-			;;
-	esac
-	# not reached
-}
-
 function is_service_stopped
 {
 	typeset service_name="$1"
@@ -1112,7 +1081,6 @@ function main
 
 	case "$cmd" in
 		'install' | 'devinstall')
-			check_machine_arch || (( numerr++ ))
 			require_cmd 'regtool.exe' || (( numerr++ ))
 			require_cmd 'cygrunsrv.exe' || (( numerr++ ))
 			require_cmd 'rundll32.exe' || (( numerr++ ))
@@ -1129,7 +1097,6 @@ function main
 			return $?
 			;;
 		'enableautostartservices')
-			check_machine_arch || (( numerr++ ))
 			require_cmd 'sc.exe' || (( numerr++ ))
 			if ! is_windows_admin_account ; then
 				printf $"%s: %q requires Windows Adminstator permissions.\n" "$0" "$cmd"
@@ -1141,7 +1108,6 @@ function main
 			return $?
 			;;
 		'disableautostartservices')
-			check_machine_arch || (( numerr++ ))
 			require_cmd 'sc.exe' || (( numerr++ ))
 			if ! is_windows_admin_account ; then
 				printf $"%s: %q requires Windows Adminstator permissions.\n" "$0" "$cmd"
@@ -1157,7 +1123,6 @@ function main
 		# as 'install' can always overwrite an existing driver
 		#
 		'removedriver')
-			check_machine_arch || (( numerr++ ))
 			require_cmd 'nfs_install.exe' || (( numerr++ ))
 			require_cmd 'rundll32.exe' || (( numerr++ ))
 			if ! is_windows_admin_account ; then
@@ -1170,7 +1135,6 @@ function main
 			return $?
 			;;
 		'run_deamon' | 'run_daemon')
-			check_machine_arch || (( numerr++ ))
 			#require_cmd 'cdb.exe' || (( numerr++ ))
 			require_cmd 'nfsd.exe' || (( numerr++ ))
 			require_cmd 'nfs_mount.exe' || (( numerr++ ))
@@ -1183,7 +1147,6 @@ function main
 			return $?
 			;;
 		'sys_run_deamon' | 'sys_run_daemon')
-			check_machine_arch || (( numerr++ ))
 			#require_cmd 'cdb.exe' || (( numerr++ ))
 			require_cmd 'PsExec.exe' || (( numerr++ ))
 			require_cmd 'nfsd.exe' || (( numerr++ ))
@@ -1200,7 +1163,6 @@ function main
 			return $?
 			;;
 		'sys_mount_globaldirs')
-			check_machine_arch || (( numerr++ ))
 			require_cmd 'nfs_mount.exe' || (( numerr++ ))
 			require_cmd 'mountall_msnfs41client' || (( numerr++ ))
 			require_cmd 'tasklist.exe' || (( numerr++ ))
@@ -1214,7 +1176,6 @@ function main
 			return $?
 			;;
 		'sys_umount_globaldirs')
-			check_machine_arch || (( numerr++ ))
 			require_cmd 'nfs_mount.exe' || (( numerr++ ))
 			require_cmd 'PsExec.exe' || (( numerr++ ))
 			if ! is_windows_admin_account ; then
@@ -1228,7 +1189,6 @@ function main
 			;;
 		# misc
 		'attach_debugger_to_daemon')
-			check_machine_arch || (( numerr++ ))
 			require_cmd 'tasklist.exe' || (( numerr++ ))
 			require_cmd 'cdb.exe' || (( numerr++ ))
 			if ! is_windows_admin_account ; then
@@ -1241,7 +1201,6 @@ function main
 			return $?
 			;;
 		'watch_kernel_debuglog')
-			check_machine_arch || (( numerr++ ))
 			require_cmd 'catdbgprint' || (( numerr++ ))
 			if ! is_windows_admin_account ; then
 				printf $"%s: %q requires Windows Adminstator permissions.\n" "$0" "$cmd"
@@ -1253,7 +1212,6 @@ function main
 			return $?
 			;;
 		'watch_nfs_traffic')
-			check_machine_arch || (( numerr++ ))
 			require_cmd 'powershell' || (( numerr++ ))
 			require_cmd '/cygdrive/c/Program Files/Wireshark/tshark' || (( numerr++ ))
 
@@ -1263,7 +1221,6 @@ function main
 			return $?
 			;;
 		'sys_terminal')
-			check_machine_arch || (( numerr++ ))
 			require_cmd 'mintty.exe' || (( numerr++ ))
 			require_cmd 'PsExec.exe' || (( numerr++ ))
 			if ! is_windows_admin_account ; then
