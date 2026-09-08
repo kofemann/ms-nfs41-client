@@ -1060,11 +1060,11 @@ void enable_caching(
 
     if (SrvOpen->DesiredAccess & FILE_READ_DATA)
         flag = ENABLE_READ_CACHING;
-    if ((SrvOpen->DesiredAccess & FILE_WRITE_DATA) &&
+    if ((SrvOpen->DesiredAccess & (FILE_WRITE_DATA|FILE_APPEND_DATA)) &&
             !nfs41_fobx->write_thru)
         flag = ENABLE_WRITE_CACHING;
     if ((SrvOpen->DesiredAccess & FILE_READ_DATA) &&
-            (SrvOpen->DesiredAccess & FILE_WRITE_DATA) &&
+            (SrvOpen->DesiredAccess & (FILE_WRITE_DATA|FILE_APPEND_DATA)) &&
             !nfs41_fobx->write_thru)
         flag = ENABLE_READWRITE_CACHING;
 
