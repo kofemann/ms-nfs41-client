@@ -351,6 +351,14 @@ NTSTATUS nfs41_invalidate_cache(
         srv_open, srv_open->pAlreadyPrefixedName);
 #endif
     __try {
+        PNFS41_SRV_OPEN nfs41_srvopen = NFS41GetSrvOpenExtension(srv_open);
+
+        /*
+         * FIXME: We should change this to set a specific delegation state,
+         * and adjust the buffering accordingly
+         */
+        nfs41_srvopen->deleg_type = NFS41_OPEN_DELEGATE_NONE;
+
         RxIndicateChangeOfBufferingStateForSrvOpen(
             srv_open->pFcb->pNetRoot->pSrvCall, srv_open,
             srv_open->Key, ULongToPtr(flag));
