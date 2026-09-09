@@ -994,9 +994,9 @@ typedef struct __nfs41_setattr_res {
 
 /* OP_WANT_DELEGATION */
 typedef struct __deleg_claim4 {
-    uint32_t                claim;
+    enum open_claim_type4       claim;
     /* case CLAIM_PREVIOUS: */
-    uint32_t                prev_delegate_type;
+    enum open_delegation_type4  prev_delegate_type;
 } deleg_claim4;
 
 typedef struct __nfs41_want_delegation_args {

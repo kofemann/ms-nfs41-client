@@ -2340,17 +2340,15 @@ static bool_t decode_open_none_delegation4(
     XDR *xdr,
     open_delegation4 *delegation)
 {
-    enum_t why_no_deleg;
-    bool_t will_signal;
-
-    if (!xdr_enum(xdr, (enum_t*)&why_no_deleg))
+    if (!xdr_enum(xdr, (enum_t*)&delegation->why_no_delegation))
         return FALSE;
 
-    switch (why_no_deleg)
+    delegation->will_signal = FALSE;
+    switch (delegation->why_no_delegation)
     {
     case WND4_CONTENTION:
     case WND4_RESOURCE:
-        return xdr_bool(xdr, &will_signal);
+        return xdr_bool(xdr, &delegation->will_signal);
     default:
         return TRUE;
     }
@@ -3057,6 +3055,27 @@ static bool_t decode_op_setattr(
 /*
  * OP_WANT_DELEGATION
  */
+static bool_t encode_deleg_claim4(
+    XDR *xdr,
+    deleg_claim4 *claim)
+{
+    if (!xdr_enum(xdr, (enum_t *)&claim->claim))
+        return FALSE;
+
+    switch (claim->claim)
+    {
+        case CLAIM_FH:
+        case CLAIM_DELEG_PREV_FH:
+            return TRUE;
+        case CLAIM_PREVIOUS:
+            return xdr_enum(xdr, (enum_t *)&claim->prev_delegate_type);
+        default:
+            eprintf("encode_deleg_claim4: unsupported claim=%d\n",
+                (int)claim->claim);
+        return FALSE;
+    }
+}
+
 static bool_t encode_op_want_delegation(
     XDR *xdr,
     nfs_argop4 *argop)
@@ -3069,11 +3088,7 @@ static bool_t encode_op_want_delegation(
     if (!xdr_uint32_t(xdr, &args->want))
         return FALSE;
 
-    if (!xdr_uint32_t(xdr, &args->claim->claim))
-        return FALSE;
-
-    return args->claim->claim != CLAIM_PREVIOUS ||
-        xdr_uint32_t(xdr, &args->claim->prev_delegate_type);
+    return encode_deleg_claim4(xdr, args->claim);
 }
 
 static bool_t decode_op_want_delegation(
@@ -3106,8 +3121,9 @@ static bool_t decode_op_want_delegation(
     case OPEN_DELEGATE_WRITE:
         return decode_open_write_delegation4(xdr, res->delegation);
     default:
-        eprintf("decode_open_res_ok: delegation type %d not "
-            "supported.\n", res->delegation->type);
+        eprintf("decode_op_want_delegation: "
+            "delegation type=%d not supported\n",
+            (int)res->delegation->type);
         return FALSE;
     }
 }
