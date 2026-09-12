@@ -251,6 +251,13 @@ typedef struct __queryidmapinfo_upcall_args {
     ULONG                           returned_size;
 } queryidmapinfo_upcall_args;
 
+typedef struct __querydelegationinfo_upcall_args {
+    ULONGLONG fsid_major;
+    ULONGLONG fsid_minor;
+    ULONGLONG fileid;
+    ULONG deleg_type;
+} querydelegationinfo_upcall_args;
+
 typedef struct __setdaemondebuglevel_upcall_args {
     LONG debuglevel;
 } setdaemondebuglevel_upcall_args;
@@ -276,6 +283,7 @@ typedef union __upcall_args {
     setzerodata_upcall_args setzerodata;
     duplicatedata_upcall_args duplicatedata;
     queryidmapinfo_upcall_args queryidmapinfo;
+    querydelegationinfo_upcall_args querydelegationinfo;
     setdaemondebuglevel_upcall_args setdaemondebuglevel;
 } upcall_args;
 

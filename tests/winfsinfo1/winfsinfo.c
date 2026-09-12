@@ -1884,6 +1884,96 @@ out:
 }
 
 
+
+static const char *delegation_type_name(ULONG type)
+{
+    switch (type) {
+        case NFS41_OPEN_DELEGATE_NONE:      return "OPEN_DELEGATE_NONE";
+        case NFS41_OPEN_DELEGATE_READ:      return "OPEN_DELEGATE_READ";
+        case NFS41_OPEN_DELEGATE_WRITE:     return "OPEN_DELEGATE_WRITE";
+        case NFS41_OPEN_DELEGATE_NONE_EXT:  return "OPEN_DELEGATE_NONE_EXT";
+        default:                            return NULL;
+    }
+}
+
+static int fsctlnfs41querydelegationinfo(
+    const char *progname,
+    const char *mode,
+    const char *filename)
+{
+    FILE_NFS41_QUERY_DELEGATION_INFORMATION info = { 0 };
+    const char *type_name;
+    DWORD bytes_returned = 0;
+    DWORD desiredAccess = 0;
+    HANDLE hFile;
+
+    if ((mode == NULL) || (filename == NULL)) {
+        (void)fprintf(stderr, "%s: "
+            "fsctlnfs41querydelegationinfo <read|write|execute|all> filename\n",
+            progname);
+        return EXIT_FAILURE;
+    }
+
+    if (strstr(mode, "read") != NULL)
+        desiredAccess |= GENERIC_READ;
+    if (strstr(mode, "write") != NULL)
+        desiredAccess |= GENERIC_WRITE;
+    if (strstr(mode, "execute") != NULL)
+        desiredAccess |= GENERIC_EXECUTE;
+    if (strstr(mode, "all") != NULL)
+        desiredAccess |= GENERIC_ALL;
+
+    /*
+     * FIXME: We need a parameter to ask for read, write, or read/write to
+     * get read or write delegations
+     */
+    hFile = CreateFileA(filename, desiredAccess,
+        (FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE),
+        NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
+    if (hFile == INVALID_HANDLE_VALUE) {
+        (void)fprintf(stderr, "%s: Error opening file '%s', lasterr=%d\n",
+            progname, filename, (int)GetLastError());
+        return EXIT_FAILURE;
+    }
+
+    if (!DeviceIoControl(hFile, FSCTL_NFS41_QUERY_DELEGATION_INFO,
+        NULL, 0, &info, sizeof(info), &bytes_returned, NULL)) {
+        (void)fprintf(stderr,
+            "%s: FSCTL_NFS41_QUERY_DELEGATION_INFO failed, lasterr=%d\n",
+            progname, (int)GetLastError());
+        (void)CloseHandle(hFile);
+        return EXIT_FAILURE;
+    }
+    (void)CloseHandle(hFile);
+
+    if (bytes_returned != sizeof(info)) {
+        (void)fprintf(stderr, "%s: returned %lu bytes, expected %ld\n",
+            progname, bytes_returned, (long)sizeof(info));
+        return EXIT_FAILURE;
+    }
+
+    type_name = delegation_type_name(info.DelegType);
+    if (type_name == NULL) {
+        (void)fprintf(stderr, "%s: invalid delegation type %lu\n",
+            progname, (unsigned long)info.DelegType);
+        return EXIT_FAILURE;
+    }
+
+    (void)printf("nfs41_delegation_info=(\n"
+        "\tfsid=( major=16#%llx minor=16#%llx )\n"
+        "\tfileid=16#%llx\n"
+        "\tdeleg_type=%lu\n"
+        "\tdeleg_type_name='%s'\n"
+        ")\n",
+        (unsigned long long)info.FsId.Major,
+        (unsigned long long)info.FsId.Minor,
+        (unsigned long long)info.FileId,
+        (unsigned long)info.DelegType,
+        /* |info.Reserved0| not used */
+        type_name);
+    return EXIT_SUCCESS;
+}
+
 static
 void usage(void)
 {
@@ -1913,9 +2003,10 @@ void usage(void)
         "fsctlqueryallocatedranges|"
         "get_wnetgetresourceinformation|"
         "get_wnetgetresourceparent|"
-        "fsctlnfs41queryidmapinfo"
+        "fsctlnfs41queryidmapinfo|"
+        "fsctlnfs41querydelegationinfo"
 
-        "> path\n");
+        "> args\n");
 }
 
 int main(int ac, char *av[])
@@ -2007,6 +2098,9 @@ int main(int ac, char *av[])
     }
     else if (!strcmp(subcmd, "fsctlnfs41queryidmapinfo")) {
         return fsctlnfs41queryidmapinfo(av[0], av[2]);
+    }
+    else if (!strcmp(subcmd, "fsctlnfs41querydelegationinfo")) {
+        return fsctlnfs41querydelegationinfo(av[0], av[2], av[3]);
     }
     else {
         (void)fprintf(stderr, "%s: Unknown subcmd '%s'\n", av[0], subcmd);

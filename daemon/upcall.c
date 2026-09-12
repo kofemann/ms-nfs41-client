@@ -55,6 +55,7 @@ extern const nfs41_upcall_op nfs41_op_setzerodata;
 extern const nfs41_upcall_op nfs41_op_duplicatedata;
 extern const nfs41_upcall_op nfs41_op_offload_datacopy;
 extern const nfs41_upcall_op nfs41_op_queryidmapinfo;
+extern const nfs41_upcall_op nfs41_op_querydelegationinfo;
 extern const nfs41_upcall_op nfs41_op_setdaemondebuglevel;
 
 /* |_nfs41_opcodes| and |g_upcall_op_table| must be in sync! */
@@ -84,6 +85,7 @@ static const nfs41_upcall_op *g_upcall_op_table[] = {
     &nfs41_op_duplicatedata,
     &nfs41_op_offload_datacopy,
     &nfs41_op_queryidmapinfo,
+    &nfs41_op_querydelegationinfo,
     &nfs41_op_setdaemondebuglevel,
     NULL, /* NFS41_SYSOP_SHUTDOWN */
     NULL
@@ -187,7 +189,8 @@ int upcall_parse(
     if (op && op->parse) {
         /* |NFS41_SYSOP_UNMOUNT| has 0 payload */
         if ((upcall_upcode != NFS41_SYSOP_SYMLINK_GET) &&
-            (upcall_upcode != NFS41_SYSOP_UNMOUNT)) {
+            (upcall_upcode != NFS41_SYSOP_UNMOUNT) &&
+            (upcall_upcode != NFS41_SYSOP_FSCTL_QUERY_DELEGATION_INFO)) {
             EASSERT(length > 0);
         }
 

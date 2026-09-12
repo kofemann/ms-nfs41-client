@@ -96,6 +96,11 @@ int nfs41_client_delegation_recall_any(
     IN bool recall_read_delegs,
     IN bool recall_write_delegs);
 
+int nfs41_delegation_get_type(
+    IN nfs41_client *client,
+    IN const nfs41_fh *fh,
+    OUT enum open_delegation_type4 *restrict deleg_type);
+
 int nfs41_delegation_getattr(
     IN nfs41_client *client,
     IN const nfs41_fh *fh,

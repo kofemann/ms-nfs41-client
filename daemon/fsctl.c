@@ -35,6 +35,7 @@
 #define SZDLVL      2   /* dprintf level for "set zero data" logging */
 #define DDLVL       2   /* dprintf level for "duplicate data" logging */
 #define QIDMAPLVL   1   /* dprintf level for "query idmap" logging */
+#define QDELEGLVL   1   /* dprintf level for "query delegation" logging */
 
 #define COPY_COMMIT_MAX_COUNT (UINT32_MAX)
 
@@ -1332,4 +1333,106 @@ const nfs41_upcall_op nfs41_op_queryidmapinfo = {
     .handle = handle_queryidmapinfo,
     .marshall = marshall_queryidmapinfo,
     .arg_size = sizeof(queryidmapinfo_upcall_args)
+};
+
+static int parse_querydelegationinfo(
+    const unsigned char *restrict buffer,
+    uint32_t length,
+    nfs41_upcall *upcall)
+{
+    int status = ERROR_SUCCESS;
+
+    EASSERT(length == 0);
+
+    return status;
+}
+
+static int handle_querydelegationinfo(
+    void *daemon_context,
+    nfs41_upcall *upcall)
+{
+    querydelegationinfo_upcall_args *args =
+        &upcall->args.querydelegationinfo;
+    nfs41_open_state *state = upcall->state_ref;
+    enum open_delegation_type4 deleg_type = OPEN_DELEGATE_NONE;
+    bitmap4 attr_request = {
+        .count = 1,
+        .arr[0] = FATTR4_WORD0_FILEID|FATTR4_WORD0_FSID
+    };
+    nfs41_file_info info = { 0 };
+    int status;
+
+    DPRINTF(QDELEGLVL,
+        ("--> handle_querydelegationinfo("
+            "state->path.path='%s')\n",
+            state->path.path));
+
+    status = nfs41_getattr(state->session, &state->file,
+        &attr_request, &info);
+    if (status) {
+        status = nfs_to_windows_error(status, ERROR_BAD_NET_RESP);
+        goto out;
+    }
+
+    status = nfs41_delegation_get_type(state->session->client,
+        &state->file.fh, &deleg_type);
+    if (status) {
+        /*
+         * FIXME: |nfs41_delegation_get_type()| should return a better error
+         * code than |NFS4ERR_BADHANDLE| if a delegation could not be found
+         */
+        if (status == NFS4ERR_BADHANDLE) {
+            /* |ERROR_NOT_FOUND| - see |map_fsctl_deleg_error()| */
+            status = ERROR_NOT_FOUND;
+            goto out;
+        }
+
+        status = nfs_to_windows_error(status, ERROR_BAD_NET_RESP);
+        goto out;
+    }
+
+    args->fsid_major = info.fsid.major;
+    args->fsid_minor = info.fsid.minor;
+    args->fileid = info.fileid;
+    args->deleg_type = (ULONG)deleg_type;
+    status = ERROR_SUCCESS;
+
+out:
+    DPRINTF(QDELEGLVL,
+        ("<-- handle_querydelegationinfo("
+            "state->path.path='%s'), status=%d\n",
+            state->path.path, status));
+    return status;
+}
+
+static int marshall_querydelegationinfo(
+    unsigned char *restrict buffer,
+    uint32_t *restrict length,
+    nfs41_upcall *restrict upcall)
+{
+    const querydelegationinfo_upcall_args *args =
+        &upcall->args.querydelegationinfo;
+    int status;
+
+    status = safe_write(&buffer, length,
+        &args->fsid_major, sizeof(args->fsid_major));
+    if (status) goto out;
+    status = safe_write(&buffer, length,
+        &args->fsid_minor, sizeof(args->fsid_minor));
+    if (status) goto out;
+    status = safe_write(&buffer, length,
+        &args->fileid, sizeof(args->fileid));
+    if (status) goto out;
+    status = safe_write(&buffer, length,
+        &args->deleg_type, sizeof(args->deleg_type));
+
+out:
+    return status;
+}
+
+const nfs41_upcall_op nfs41_op_querydelegationinfo = {
+    .parse = parse_querydelegationinfo,
+    .handle = handle_querydelegationinfo,
+    .marshall = marshall_querydelegationinfo,
+    .arg_size = sizeof(querydelegationinfo_upcall_args)
 };

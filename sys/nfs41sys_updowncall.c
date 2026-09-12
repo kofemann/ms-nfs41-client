@@ -316,6 +316,10 @@ NTSTATUS handle_upcall(
         status = marshal_nfs41_queryidmapinfo(entry,
             pbOut, cbOut, len);
         break;
+    case NFS41_SYSOP_FSCTL_QUERY_DELEGATION_INFO:
+        status = marshal_nfs41_querydelegationinfo(entry,
+            pbOut, cbOut, len);
+        break;
     default:
         status = STATUS_INVALID_PARAMETER;
         print_error("handle_upcall: Unknown nfs41 ops %d\n",
@@ -819,6 +823,9 @@ NTSTATUS nfs41_downcall(
             break;
         case NFS41_SYSOP_FSCTL_QUERY_IDMAP_INFO:
             unmarshal_nfs41_queryidmapinfo(cur, &inbuf);
+            break;
+        case NFS41_SYSOP_FSCTL_QUERY_DELEGATION_INFO:
+            unmarshal_nfs41_querydelegationinfo(cur, &inbuf);
             break;
         case NFS41_SYSOP_SET_DAEMON_DEBUGLEVEL:
         case NFS41_SYSOP_SHUTDOWN:

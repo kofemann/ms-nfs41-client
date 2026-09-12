@@ -357,6 +357,12 @@ typedef struct _updowncall_entry {
             ULONG returned_size;
         } QueryIdmapInfo;
         struct {
+            ULONGLONG fsid_major;
+            ULONGLONG fsid_minor;
+            ULONGLONG fileid;
+            ULONG deleg_type;
+        } QueryDelegationInfo;
+        struct {
             FILE_ZERO_DATA_INFORMATION setzerodata;
         } SetZeroData;
         struct {
@@ -779,6 +785,14 @@ NTSTATUS marshal_nfs41_queryidmapinfo(
     ULONG buf_len,
     ULONG *len);
 NTSTATUS unmarshal_nfs41_queryidmapinfo(
+    nfs41_updowncall_entry *cur,
+    const unsigned char *restrict *restrict buf);
+NTSTATUS marshal_nfs41_querydelegationinfo(
+    nfs41_updowncall_entry *entry,
+    unsigned char *buf,
+    ULONG buf_len,
+    ULONG *len);
+NTSTATUS unmarshal_nfs41_querydelegationinfo(
     nfs41_updowncall_entry *cur,
     const unsigned char *restrict *restrict buf);
 

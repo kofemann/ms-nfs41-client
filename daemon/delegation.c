@@ -449,6 +449,23 @@ static int delegation_find(
     return status;
 }
 
+int nfs41_delegation_get_type(
+    IN nfs41_client *client,
+    IN const nfs41_fh *fh,
+    OUT enum open_delegation_type4 *restrict deleg_type)
+{
+    nfs41_delegation_state *deleg = NULL;
+    int status;
+
+    status = delegation_find(client, fh, deleg_file_cmp, &deleg);
+    if (status != NFS4_OK)
+        return status;
+
+    *deleg_type = deleg->state.type;
+    nfs41_delegation_deref(deleg);
+    return NFS4_OK;
+}
+
 static int delegation_truncate(
     IN nfs41_delegation_state *deleg,
     IN nfs41_client *client,

@@ -1681,6 +1681,159 @@ NTSTATUS unmarshal_nfs41_queryidmapinfo(
     return status;
 }
 
+static
+NTSTATUS map_fsctl_deleg_error(
+    DWORD error)
+{
+    switch (error) {
+    case NO_ERROR:                          return STATUS_SUCCESS;
+    case ERROR_DIR_NOT_EMPTY:               return STATUS_DIRECTORY_NOT_EMPTY;
+    case ERROR_FILE_EXISTS:                 return STATUS_OBJECT_NAME_COLLISION;
+    case ERROR_FILE_NOT_FOUND:              return STATUS_OBJECT_NAME_NOT_FOUND;
+    case ERROR_PATH_NOT_FOUND:              return STATUS_OBJECT_PATH_NOT_FOUND;
+    case ERROR_ACCESS_DENIED:               return STATUS_ACCESS_DENIED;
+    case ERROR_DIRECTORY_NOT_SUPPORTED:     return STATUS_FILE_IS_A_DIRECTORY;
+    case ERROR_FILE_INVALID:                return STATUS_FILE_INVALID;
+    case ERROR_NOT_SAME_DEVICE:             return STATUS_NOT_SAME_DEVICE;
+    case ERROR_CALL_NOT_IMPLEMENTED:        return STATUS_NOT_IMPLEMENTED;
+    case ERROR_NOT_SUPPORTED:               return STATUS_NOT_SUPPORTED;
+    case ERROR_NETWORK_ACCESS_DENIED:       return STATUS_NETWORK_ACCESS_DENIED;
+    case ERROR_NETNAME_DELETED:             return STATUS_NETWORK_NAME_DELETED;
+    case ERROR_BUFFER_OVERFLOW:             return STATUS_INSUFFICIENT_RESOURCES;
+    case ERROR_DISK_FULL:                   return STATUS_DISK_FULL;
+    case ERROR_DISK_QUOTA_EXCEEDED:         return STATUS_DISK_QUOTA_EXCEEDED;
+    case ERROR_FILE_TOO_LARGE:              return STATUS_FILE_TOO_LARGE;
+    case ERROR_INSUFFICIENT_BUFFER:         return STATUS_BUFFER_TOO_SMALL;
+    case ERROR_MORE_DATA:                   return STATUS_BUFFER_OVERFLOW;
+    case ERROR_INVALID_NAME:                return STATUS_OBJECT_NAME_INVALID;
+    case ERROR_INTERNAL_ERROR:              return STATUS_INTERNAL_ERROR;
+    /*
+     * deleg control errors
+     */
+    /* |ERROR_NOT_FOUND| - see |handle_querydelegationinfo()| */
+    case ERROR_NOT_FOUND:                   return STATUS_NOT_FOUND;
+    default:
+        print_error("map_fsctl_deleg_error: "
+            "failed to map windows ERROR_0x%lx to NTSTATUS; "
+            "defaulting to STATUS_INVALID_PARAMETER\n",
+            (long)error);
+    case ERROR_INVALID_PARAMETER:       return STATUS_INVALID_PARAMETER;
+    }
+}
+
+static
+NTSTATUS check_nfs41_querydelegationinfo_args(
+    PRX_CONTEXT RxContext)
+{
+    XXCTL_LOWIO_COMPONENT *FsCtl =
+        &RxContext->LowIoContext.ParamsFor.FsCtl;
+
+    if (FsCtl->pOutputBuffer == NULL)
+        return STATUS_INVALID_USER_BUFFER;
+
+    if (FsCtl->OutputBufferLength <
+        sizeof(FILE_NFS41_QUERY_DELEGATION_INFORMATION)) {
+        RxContext->InformationToReturn =
+            sizeof(FILE_NFS41_QUERY_DELEGATION_INFORMATION);
+        return STATUS_BUFFER_TOO_SMALL;
+    }
+
+    return STATUS_SUCCESS;
+}
+
+static
+NTSTATUS nfs41_QueryDelegationInfo(
+    IN OUT PRX_CONTEXT RxContext)
+{
+    NTSTATUS status;
+    nfs41_updowncall_entry *entry = NULL;
+    PMRX_SRV_OPEN SrvOpen = RxContext->pRelevantSrvOpen;
+    PNFS41_SRV_OPEN nfs41_srvopen = NFS41GetSrvOpenExtension(SrvOpen);
+    PNFS41_V_NET_ROOT_EXTENSION pVNetRootContext =
+        NFS41GetVNetRootExtension(SrvOpen->pVNetRoot);
+    PNFS41_NETROOT_EXTENSION pNetRootContext =
+        NFS41GetNetRootExtension(SrvOpen->pVNetRoot->pNetRoot);
+    XXCTL_LOWIO_COMPONENT *FsCtl =
+        &RxContext->LowIoContext.ParamsFor.FsCtl;
+    PFILE_NFS41_QUERY_DELEGATION_INFORMATION output =
+        (PFILE_NFS41_QUERY_DELEGATION_INFORMATION)FsCtl->pOutputBuffer;
+
+    DbgEn();
+    RxContext->IoStatusBlock.Information = 0;
+
+    status = check_nfs41_querydelegationinfo_args(RxContext);
+    if (status)
+        goto out;
+
+    status = nfs41_UpcallCreate(
+        NFS41_SYSOP_FSCTL_QUERY_DELEGATION_INFO,
+        &nfs41_srvopen->sec_ctx,
+        pVNetRootContext->session,
+        nfs41_srvopen->nfs41_open_state,
+        pNetRootContext->nfs41d_version,
+        SrvOpen->pAlreadyPrefixedName,
+        &entry);
+    if (status)
+        goto out;
+
+    status = nfs41_UpcallWaitForReply(entry, pVNetRootContext->timeout);
+    if (status) {
+        /* |nfs41_downcall()| owns an abandoned entry */
+        entry = NULL;
+        goto out;
+    }
+
+    if (entry->status != NO_ERROR) {
+        status = map_fsctl_deleg_error(entry->status);
+        RxContext->CurrentIrp->IoStatus.Status = status;
+        goto out;
+    }
+
+    output->FsId.Major  = entry->u.QueryDelegationInfo.fsid_major;
+    output->FsId.Minor  = entry->u.QueryDelegationInfo.fsid_minor;
+    output->FileId      = entry->u.QueryDelegationInfo.fileid;
+    output->DelegType   = entry->u.QueryDelegationInfo.deleg_type;
+    output->Reserved0   = 0UL;
+
+    status = RxContext->CurrentIrp->IoStatus.Status = STATUS_SUCCESS;
+    RxContext->IoStatusBlock.Information = sizeof(*output);
+
+out:
+    if (entry)
+        nfs41_UpcallDestroy(entry);
+    DbgEx();
+    return status;
+}
+
+NTSTATUS marshal_nfs41_querydelegationinfo(
+    nfs41_updowncall_entry *entry,
+    unsigned char *buf,
+    ULONG buf_len,
+    ULONG *len)
+{
+    /* This operation has no payload */
+    return marshal_nfs41_header(entry, buf, buf_len, len);
+}
+
+NTSTATUS unmarshal_nfs41_querydelegationinfo(
+    nfs41_updowncall_entry *cur,
+    const unsigned char *restrict *restrict buf)
+{
+    UPDOWNCALL_MEMCPY(&cur->u.QueryDelegationInfo.fsid_major,
+        *buf, sizeof(cur->u.QueryDelegationInfo.fsid_major));
+    *buf += sizeof(cur->u.QueryDelegationInfo.fsid_major);
+    UPDOWNCALL_MEMCPY(&cur->u.QueryDelegationInfo.fsid_minor,
+        *buf, sizeof(cur->u.QueryDelegationInfo.fsid_minor));
+    *buf += sizeof(cur->u.QueryDelegationInfo.fsid_minor);
+    UPDOWNCALL_MEMCPY(&cur->u.QueryDelegationInfo.fileid,
+        *buf, sizeof(cur->u.QueryDelegationInfo.fileid));
+    *buf += sizeof(cur->u.QueryDelegationInfo.fileid);
+    UPDOWNCALL_MEMCPY(&cur->u.QueryDelegationInfo.deleg_type,
+        *buf, sizeof(cur->u.QueryDelegationInfo.deleg_type));
+    *buf += sizeof(cur->u.QueryDelegationInfo.deleg_type);
+    return STATUS_SUCCESS;
+}
+
 NTSTATUS nfs41_FsCtl(
     IN OUT PRX_CONTEXT RxContext)
 {
@@ -1732,6 +1885,9 @@ NTSTATUS nfs41_FsCtl(
         break;
     case FSCTL_NFS41_QUERY_IDMAP_INFO:
         status = nfs41_QueryIdmapInfo(RxContext);
+        break;
+    case FSCTL_NFS41_QUERY_DELEGATION_INFO:
+        status = nfs41_QueryDelegationInfo(RxContext);
         break;
     default:
         break;
