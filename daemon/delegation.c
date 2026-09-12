@@ -277,15 +277,31 @@ static int delegation_return(
     int status;
 
     if (deleg->srv_open) {
-        /* make an upcall to the kernel: invalide data cache */
+        /*
+         * Make a downcall to the kernel to flush outstanding data/disable
+         * caching BEFORE we return the delegation
+         *
+         * FIXME: Does this have to be somehow "atomic" to avoid that another
+         * thread gets the delegation while we're in the middle of returning
+         * this one ?
+         */
         HANDLE pipe;
-        unsigned char inbuf[sizeof(HANDLE)], *buffer = inbuf;
-        DWORD inbuf_len = sizeof(HANDLE), outbuf_len;
+        unsigned char inbuf[sizeof(HANDLE)+sizeof(ULONG)];
+        unsigned char *buffer = inbuf;
+        DWORD inbuf_len = sizeof(HANDLE)+sizeof(ULONG);
+        DWORD outbuf_len;
         BOOL success;
         uint32_t length;
+        ULONG deleg_type = NFS41_OPEN_DELEGATE_NONE;
+
+        EASSERT((deleg->state.type == NFS41_OPEN_DELEGATE_READ) ||
+            (deleg->state.type == NFS41_OPEN_DELEGATE_WRITE));
+
         DPRINTF(1,
-            ("delegation_return: making a downcall for srv_open=0x%p\n",
-            deleg->srv_open));
+            ("delegation_return: "
+            "making a downcall for srv_open=0x%p, was deleg->state.type=%d\n",
+            deleg->srv_open, (int)deleg->state.type));
+
         pipe = create_nfs41sys_device_pipe();
         if (pipe == INVALID_HANDLE_VALUE) {
             eprintf("delegation_return: "
@@ -293,8 +309,11 @@ static int delegation_return(
                 (int)GetLastError());
             goto out_downcall;
         }
+
         length = inbuf_len;
         safe_write(&buffer, &length, &deleg->srv_open, sizeof(HANDLE));
+        safe_write(&buffer, &length, &deleg_type, sizeof(ULONG));
+        EASSERT(length == 0);
 
         success = DeviceIoControl(pipe, IOCTL_NFS41_INVALCACHE,
             inbuf, inbuf_len,

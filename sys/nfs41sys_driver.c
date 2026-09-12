@@ -341,36 +341,58 @@ NTSTATUS nfs41_invalidate_cache(
 {
     PLOWIO_CONTEXT LowIoContext = &RxContext->LowIoContext;
     const unsigned char *inbuf = LowIoContext->ParamsFor.IoCtl.pInputBuffer;
-    ULONG flag = DISABLE_CACHING;
+    const unsigned char *tmp = inbuf;
+    ULONG flag;
     PMRX_SRV_OPEN srv_open;
+    ULONG deleg_type;
     NTSTATUS status;
 
-    UPDOWNCALL_MEMCPY(&srv_open, inbuf, sizeof(HANDLE));
+    UPDOWNCALL_MEMCPY(&srv_open, tmp, sizeof(HANDLE));
+    tmp += sizeof(HANDLE);
+    UPDOWNCALL_MEMCPY(&deleg_type, tmp, sizeof(ULONG));
+    //tmp += sizeof(ULONG);
+
 #ifdef DEBUG_INVALIDATE_CACHE
-    DbgP("nfs41_invalidate_cache: received srv_open=0x%p '%wZ'\n",
-        srv_open, srv_open->pAlreadyPrefixedName);
-#endif
+    DbgP("nfs41_invalidate_cache: "
+        "received srv_open=0x%p, pAlreadyPrefixedName='%wZ', deleg_type=%ld\n",
+        srv_open,
+        srv_open->pAlreadyPrefixedName,
+        (long)deleg_type);
+#endif /* DEBUG_INVALIDATE_CACHE */
     __try {
         PNFS41_SRV_OPEN nfs41_srvopen = NFS41GetSrvOpenExtension(srv_open);
+        nfs41_srvopen->deleg_type = deleg_type;
 
-        /*
-         * FIXME: We should change this to set a specific delegation state,
-         * and adjust the buffering accordingly
-         */
-        nfs41_srvopen->deleg_type = NFS41_OPEN_DELEGATE_NONE;
+        switch(deleg_type) {
+            case NFS41_OPEN_DELEGATE_NONE:
+            case NFS41_OPEN_DELEGATE_NONE_EXT:
+                /* FIXME: Should we flush here ? */
+                srv_open->BufferingFlags &=
+                    ~(FCB_STATE_READBUFFERING_ENABLED |
+                    FCB_STATE_READCACHING_ENABLED |
+                    FCB_STATE_WRITECACHING_ENABLED |
+                    FCB_STATE_WRITEBUFFERING_ENABLED);
 
-        RxIndicateChangeOfBufferingStateForSrvOpen(
-            srv_open->pFcb->pNetRoot->pSrvCall, srv_open,
-            srv_open->Key, ULongToPtr(flag));
-        status = STATUS_SUCCESS;
+                flag = DISABLE_CACHING;
+                RxIndicateChangeOfBufferingStateForSrvOpen(
+                    srv_open->pFcb->pNetRoot->pSrvCall, srv_open,
+                    srv_open->Key, ULongToPtr(flag));
+                status = STATUS_SUCCESS;
+                break;
+            default:
+                status = STATUS_INVALID_PARAMETER;
+                break;
+        }
     } __except(EXCEPTION_EXECUTE_HANDLER) {
         NTSTATUS code;
         code = GetExceptionCode();
-        print_error("nfs41_invalidate_cache: srv_open=0x%p '%wZ': "
+        print_error("nfs41_invalidate_cache: "
+            "srv_open=0x%p, pAlreadyPrefixedName='%wZ', deleg_type=%ld: "
             "RxIndicateChangeOfBufferingStateForSrvOpen() "
             "failed due to exception 0x%lx\n",
             srv_open,
             srv_open->pAlreadyPrefixedName,
+            (long)deleg_type,
             (long)code);
         status = STATUS_INTERNAL_ERROR;
     }
