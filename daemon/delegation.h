@@ -96,6 +96,10 @@ int nfs41_client_delegation_recall_any(
     IN bool recall_read_delegs,
     IN bool recall_write_delegs);
 
+int nfs41_delegation_return_file(
+    IN nfs41_session *session,
+    IN nfs41_path_fh *file);
+
 int nfs41_delegation_get_type(
     IN nfs41_client *client,
     IN const nfs41_fh *fh,

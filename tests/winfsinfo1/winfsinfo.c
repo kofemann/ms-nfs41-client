@@ -1974,6 +1974,161 @@ static int fsctlnfs41querydelegationinfo(
     return EXIT_SUCCESS;
 }
 
+static const char *why_no_delegation_name(ULONG why)
+{
+    switch (why) {
+        case NFS41_WND4_NOT_WANTED: return "WND4_NOT_WANTED";
+        case NFS41_WND4_CONTENTION: return "WND4_CONTENTION";
+        case NFS41_WND4_RESOURCE: return "WND4_RESOURCE";
+        case NFS41_WND4_NOT_SUPP_FTYPE: return "WND4_NOT_SUPP_FTYPE";
+        case NFS41_WND4_WRITE_DELEG_NOT_SUPP_FTYPE:
+            return "WND4_WRITE_DELEG_NOT_SUPP_FTYPE";
+        case NFS41_WND4_NOT_SUPP_UPGRADE: return "WND4_NOT_SUPP_UPGRADE";
+        case NFS41_WND4_NOT_SUPP_DOWNGRADE: return "WND4_NOT_SUPP_DOWNGRADE";
+        case NFS41_WND4_CANCELED: return "WND4_CANCELED";
+        case NFS41_WND4_IS_DIR: return "WND4_IS_DIR";
+        default: return NULL;
+    }
+}
+
+static int fsctlnfs41delegationtest(const char *progname,
+    const char *command_list, const char *filename)
+{
+    char *commands;
+    char *saveptr = NULL;
+    char *command;
+    HANDLE hFile;
+    int retval = EXIT_FAILURE;
+    size_t command_list_len;
+    unsigned int command_number = 0;
+
+    command_list_len = strlen(command_list);
+    commands = malloc(command_list_len + 1);
+    if (commands == NULL) {
+        (void)fprintf(stderr, "%s: malloc() failed\n", progname);
+        return EXIT_FAILURE;
+    }
+    (void)memcpy(commands, command_list, command_list_len + 1);
+
+    hFile = CreateFileA(filename, GENERIC_READ | GENERIC_WRITE,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
+    if (hFile == INVALID_HANDLE_VALUE) {
+        (void)fprintf(stderr, "%s: Error opening file '%s', lasterr=%d\n",
+            progname, filename, (int)GetLastError());
+        free(commands);
+        return EXIT_FAILURE;
+    }
+
+    command = strtok_r(commands, ",", &saveptr);
+    if (command == NULL) {
+        (void)fprintf(stderr, "%s: delegation command list is empty\n",
+            progname);
+        goto out;
+    }
+
+    do {
+        DWORD bytes_returned = 0;
+
+        command_number++;
+        if (!strcmp(command, "requestreaddeleg") ||
+            !strcmp(command, "requestwritedeleg")) {
+            nfs41_open_delegation_type request =
+                !strcmp(command, "requestreaddeleg") ?
+                NFS41_OPEN_DELEGATE_READ : NFS41_OPEN_DELEGATE_WRITE;
+            FILE_NFS41_REQUEST_DELEGATION_RESULT result = { 0 };
+            const char *type_name;
+            const char *why_name = NULL;
+
+            if (!DeviceIoControl(hFile, FSCTL_NFS41_REQUEST_DELEGATION,
+                &request, sizeof(request), &result, sizeof(result),
+                &bytes_returned, NULL)) {
+                (void)fprintf(stderr,
+                    "%s: command %u ('%s'): "
+                    "FSCTL_NFS41_REQUEST_DELEGATION failed, lasterr=%d\n",
+                    progname, command_number, command, (int)GetLastError());
+                goto out;
+            }
+            if (bytes_returned != sizeof(result)) {
+                (void)fprintf(stderr,
+                    "%s: command %u ('%s'): returned %lu bytes, expected %ld\n",
+                    progname, command_number, command, bytes_returned,
+                    (long)sizeof(result));
+                goto out;
+            }
+
+            type_name = delegation_type_name(result.DelegType);
+            if (type_name == NULL) {
+                (void)fprintf(stderr,
+                    "%s: command %u ('%s'): invalid delegation type %lu\n",
+                    progname, command_number, command,
+                    (unsigned long)result.DelegType);
+                goto out;
+            }
+            if (result.DelegType == NFS41_OPEN_DELEGATE_NONE_EXT) {
+                why_name = why_no_delegation_name(result.WhyNoDelegation);
+                if (why_name == NULL) {
+                    (void)fprintf(stderr,
+                        "%s: command %u ('%s'): "
+                        "invalid why_no_delegation4 %lu\n",
+                        progname, command_number, command,
+                        (unsigned long)result.WhyNoDelegation);
+                    goto out;
+                }
+            }
+
+            (void)printf("nfs41_delegation_test_result=(\n"
+                "\tcommand_number=%u\n"
+                "\tcommand='%s'\n"
+                "\tdeleg_type=%lu\n"
+                "\tdeleg_type_name='%s'\n",
+                command_number, command, (unsigned long)result.DelegType,
+                type_name);
+            if (why_name != NULL) {
+                (void)printf("\twhy_no_delegation=%lu\n"
+                    "\twhy_no_delegation_name='%s'\n",
+                    (unsigned long)result.WhyNoDelegation, why_name);
+            }
+            (void)printf(")\n");
+        }
+        else if (!strcmp(command, "returndeleg")) {
+            if (!DeviceIoControl(hFile, FSCTL_NFS41_RETURN_DELEGATION,
+                NULL, 0, NULL, 0, &bytes_returned, NULL)) {
+                (void)fprintf(stderr,
+                    "%s: command %u ('%s'): "
+                    "FSCTL_NFS41_RETURN_DELEGATION failed, lasterr=%d\n",
+                    progname, command_number, command, (int)GetLastError());
+                goto out;
+            }
+            if (bytes_returned != 0) {
+                (void)fprintf(stderr,
+                    "%s: command %u ('%s'): returned %lu bytes, expected 0\n",
+                    progname, command_number, command, bytes_returned);
+                goto out;
+            }
+            (void)printf("nfs41_delegation_test_result=(\n"
+                "\tcommand_number=%u\n"
+                "\tcommand='%s'\n"
+                "\tstatus=success\n"
+                ")\n", command_number, command);
+        }
+        else {
+            (void)fprintf(stderr,
+                "%s: command %u: unknown delegation command '%s'\n",
+                progname, command_number, command);
+            goto out;
+        }
+
+        command = strtok_r(NULL, ",", &saveptr);
+    } while (command != NULL);
+
+    retval = EXIT_SUCCESS;
+out:
+    (void)CloseHandle(hFile);
+    free(commands);
+    return retval;
+}
+
 static
 void usage(void)
 {
@@ -2004,7 +2159,8 @@ void usage(void)
         "get_wnetgetresourceinformation|"
         "get_wnetgetresourceparent|"
         "fsctlnfs41queryidmapinfo|"
-        "fsctlnfs41querydelegationinfo"
+        "fsctlnfs41querydelegationinfo|"
+        "fsctlnfs41delegationtest"
 
         "> args\n");
 }
@@ -2101,6 +2257,16 @@ int main(int ac, char *av[])
     }
     else if (!strcmp(subcmd, "fsctlnfs41querydelegationinfo")) {
         return fsctlnfs41querydelegationinfo(av[0], av[2], av[3]);
+    }
+    else if (!strcmp(subcmd, "fsctlnfs41delegationtest")) {
+        if (ac != 4) {
+            (void)fprintf(stderr, "%s: fsctlnfs41delegationtest "
+                "command[,command...] filename\n"
+                "commands: requestreaddeleg, requestwritedeleg, "
+                "returndeleg\n", av[0]);
+            return EXIT_FAILURE;
+        }
+        return fsctlnfs41delegationtest(av[0], av[2], av[3]);
     }
     else {
         (void)fprintf(stderr, "%s: Unknown subcmd '%s'\n", av[0], subcmd);

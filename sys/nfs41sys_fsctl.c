@@ -1834,6 +1834,169 @@ NTSTATUS unmarshal_nfs41_querydelegationinfo(
     return STATUS_SUCCESS;
 }
 
+
+static NTSTATUS nfs41_RequestDelegation(
+    IN OUT PRX_CONTEXT RxContext)
+{
+    NTSTATUS status;
+    nfs41_updowncall_entry *entry = NULL;
+    PMRX_SRV_OPEN SrvOpen = RxContext->pRelevantSrvOpen;
+    PNFS41_SRV_OPEN nfs41_srvopen = NFS41GetSrvOpenExtension(SrvOpen);
+    PNFS41_V_NET_ROOT_EXTENSION pVNetRootContext =
+        NFS41GetVNetRootExtension(SrvOpen->pVNetRoot);
+    PNFS41_NETROOT_EXTENSION pNetRootContext =
+        NFS41GetNetRootExtension(SrvOpen->pVNetRoot->pNetRoot);
+    XXCTL_LOWIO_COMPONENT *FsCtl =
+        &RxContext->LowIoContext.ParamsFor.FsCtl;
+    const nfs41_open_delegation_type *input;
+    PFILE_NFS41_REQUEST_DELEGATION_RESULT output;
+
+    RxContext->IoStatusBlock.Information = 0;
+
+    if ((FsCtl->pInputBuffer == NULL) ||
+        (FsCtl->InputBufferLength != sizeof(*input)))
+        return STATUS_INVALID_PARAMETER;
+
+    input = (const nfs41_open_delegation_type *)FsCtl->pInputBuffer;
+    if ((*input != NFS41_OPEN_DELEGATE_READ) &&
+        (*input != NFS41_OPEN_DELEGATE_WRITE))
+        return STATUS_INVALID_PARAMETER;
+
+    if ((FsCtl->pOutputBuffer == NULL) ||
+        (FsCtl->OutputBufferLength <
+        sizeof(FILE_NFS41_REQUEST_DELEGATION_RESULT))) {
+        RxContext->InformationToReturn =
+            sizeof(FILE_NFS41_REQUEST_DELEGATION_RESULT);
+        return STATUS_BUFFER_TOO_SMALL;
+    }
+    output = (PFILE_NFS41_REQUEST_DELEGATION_RESULT)FsCtl->pOutputBuffer;
+
+    status = nfs41_UpcallCreate(NFS41_SYSOP_FSCTL_REQUEST_DELEGATION,
+        &nfs41_srvopen->sec_ctx,
+        pVNetRootContext->session,
+        nfs41_srvopen->nfs41_open_state,
+        pNetRootContext->nfs41d_version,
+        SrvOpen->pAlreadyPrefixedName,
+        &entry);
+    if (status)
+        goto out;
+
+    entry->u.RequestDelegation.requested_type = (ULONG)*input;
+
+    status = nfs41_UpcallWaitForReply(entry, pVNetRootContext->timeout);
+    if (status) {
+        /* Timeout - |nfs41_downcall()| will free |entry|+contents */
+        entry = NULL;
+        goto out;
+    }
+
+    if (entry->status != NO_ERROR) {
+        status = map_fsctl_deleg_error(entry->status);
+        RxContext->CurrentIrp->IoStatus.Status = status;
+        goto out;
+    }
+
+    output->DelegType = (nfs41_open_delegation_type)
+        entry->u.RequestDelegation.deleg_type;
+    output->WhyNoDelegation = (nfs41_why_no_delegation)
+        entry->u.RequestDelegation.why_no_delegation;
+
+    status = RxContext->CurrentIrp->IoStatus.Status = STATUS_SUCCESS;
+    RxContext->IoStatusBlock.Information = sizeof(*output);
+out:
+    if (entry)
+        nfs41_UpcallDestroy(entry);
+    return status;
+}
+
+static NTSTATUS nfs41_ReturnDelegation(
+    IN OUT PRX_CONTEXT RxContext)
+{
+    NTSTATUS status;
+    nfs41_updowncall_entry *entry = NULL;
+    PMRX_SRV_OPEN SrvOpen = RxContext->pRelevantSrvOpen;
+    PNFS41_SRV_OPEN nfs41_srvopen = NFS41GetSrvOpenExtension(SrvOpen);
+    PNFS41_V_NET_ROOT_EXTENSION pVNetRootContext =
+        NFS41GetVNetRootExtension(SrvOpen->pVNetRoot);
+    PNFS41_NETROOT_EXTENSION pNetRootContext =
+        NFS41GetNetRootExtension(SrvOpen->pVNetRoot->pNetRoot);
+    XXCTL_LOWIO_COMPONENT *FsCtl =
+        &RxContext->LowIoContext.ParamsFor.FsCtl;
+
+    RxContext->IoStatusBlock.Information = 0;
+
+    if (FsCtl->InputBufferLength != 0)
+        return STATUS_INVALID_PARAMETER;
+
+    status = nfs41_UpcallCreate(NFS41_SYSOP_FSCTL_RETURN_DELEGATION,
+        &nfs41_srvopen->sec_ctx,
+        pVNetRootContext->session,
+        nfs41_srvopen->nfs41_open_state,
+        pNetRootContext->nfs41d_version,
+        SrvOpen->pAlreadyPrefixedName,
+        &entry);
+    if (status)
+        goto out;
+
+    status = nfs41_UpcallWaitForReply(entry, pVNetRootContext->timeout);
+    if (status) {
+        /* Timeout - |nfs41_downcall()| will free |entry|+contents */
+        entry = NULL;
+        goto out;
+    }
+
+    if (entry->status != NO_ERROR) {
+        status = map_fsctl_deleg_error(entry->status);
+        RxContext->CurrentIrp->IoStatus.Status = status;
+        goto out;
+    }
+
+    status = RxContext->CurrentIrp->IoStatus.Status = STATUS_SUCCESS;
+out:
+    if (entry)
+        nfs41_UpcallDestroy(entry);
+    return status;
+}
+
+NTSTATUS marshal_nfs41_requestdelegation(
+    nfs41_updowncall_entry *entry,
+    unsigned char *buf,
+    ULONG buf_len,
+    ULONG *len)
+{
+    NTSTATUS status;
+    ULONG required;
+    unsigned char *tmp = buf;
+
+    status = marshal_nfs41_header(entry, tmp, buf_len, len);
+    if (status)
+        return status;
+    tmp += *len;
+
+    required = *len + sizeof(entry->u.RequestDelegation.requested_type);
+    if (required > buf_len)
+        return STATUS_INSUFFICIENT_RESOURCES;
+
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.RequestDelegation.requested_type,
+        sizeof(entry->u.RequestDelegation.requested_type));
+    tmp += sizeof(entry->u.RequestDelegation.requested_type);
+    *len = (ULONG)(tmp - buf);
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS unmarshal_nfs41_requestdelegation(
+    nfs41_updowncall_entry *cur,
+    const unsigned char *restrict *restrict buf)
+{
+    UPDOWNCALL_MEMCPY(&cur->u.RequestDelegation.deleg_type, *buf,
+        sizeof(cur->u.RequestDelegation.deleg_type));
+    *buf += sizeof(cur->u.RequestDelegation.deleg_type);
+    UPDOWNCALL_MEMCPY(&cur->u.RequestDelegation.why_no_delegation, *buf,
+        sizeof(cur->u.RequestDelegation.why_no_delegation));
+    *buf += sizeof(cur->u.RequestDelegation.why_no_delegation);
+    return STATUS_SUCCESS;
+}
+
 NTSTATUS nfs41_FsCtl(
     IN OUT PRX_CONTEXT RxContext)
 {
@@ -1888,6 +2051,12 @@ NTSTATUS nfs41_FsCtl(
         break;
     case FSCTL_NFS41_QUERY_DELEGATION_INFO:
         status = nfs41_QueryDelegationInfo(RxContext);
+        break;
+    case FSCTL_NFS41_REQUEST_DELEGATION:
+        status = nfs41_RequestDelegation(RxContext);
+        break;
+    case FSCTL_NFS41_RETURN_DELEGATION:
+        status = nfs41_ReturnDelegation(RxContext);
         break;
     default:
         break;

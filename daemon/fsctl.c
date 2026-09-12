@@ -36,6 +36,8 @@
 #define DDLVL       2   /* dprintf level for "duplicate data" logging */
 #define QIDMAPLVL   1   /* dprintf level for "query idmap" logging */
 #define QDELEGLVL   1   /* dprintf level for "query delegation" logging */
+#define RETDELEGLVL 1   /* dprintf level for "return delegation" logging */
+#define REQDELEGLVL 1   /* dprintf level for "request delegation" logging */
 
 #define COPY_COMMIT_MAX_COUNT (UINT32_MAX)
 
@@ -1435,4 +1437,217 @@ const nfs41_upcall_op nfs41_op_querydelegationinfo = {
     .handle = handle_querydelegationinfo,
     .marshall = marshall_querydelegationinfo,
     .arg_size = sizeof(querydelegationinfo_upcall_args)
+};
+
+static int parse_requestdelegation(const unsigned char *restrict buffer,
+    uint32_t length, nfs41_upcall *upcall)
+{
+    int status;
+
+    status = safe_read(&buffer, &length,
+        &upcall->args.requestdelegation.requested_type,
+        sizeof(upcall->args.requestdelegation.requested_type));
+    if (status) goto out;
+
+    EASSERT(length == 0);
+
+out:
+    return ERROR_SUCCESS;
+}
+
+static int handle_requestdelegation(void *daemon_context, nfs41_upcall *upcall)
+{
+    requestdelegation_upcall_args *args = &upcall->args.requestdelegation;
+    nfs41_open_state *state = upcall->state_ref;
+#define FSCTL_REQDELEG_REJECT_IF_DELEGATION_EXISTS 1
+
+#ifdef FSCTL_REQDELEG_REJECT_IF_DELEGATION_EXISTS
+    enum open_delegation_type4 current;
+#endif /* FSCTL_REQDELEG_REJECT_IF_DELEGATION_EXISTS */
+
+    enum open_delegation_type4 requested =
+        (enum open_delegation_type4)args->requested_type;
+    open_delegation4 delegation = { 0 };
+    nfs41_delegation_state *deleg_state = NULL;
+    deleg_claim4 claim = { .claim = CLAIM_FH, .prev_delegate_type = 0 };
+    uint32_t want;
+    int status;
+
+    DPRINTF(REQDELEGLVL,
+        ("--> handle_requestdelegation("
+            "state->path.path='%s', requested_type=%d)\n",
+            state->path.path, requested));
+
+    if ((requested != OPEN_DELEGATE_READ) &&
+        (requested != OPEN_DELEGATE_WRITE)) {
+        eprintf("handle_requestdelegation: "
+            "Illegal requested_type=%d\n", (int)requested);
+        status = ERROR_INVALID_PARAMETER;
+        goto out;
+    }
+
+/*
+ * FIXME: We should check whether the same delegation returned multiple times
+ */
+#ifdef FSCTL_REQDELEG_REJECT_IF_DELEGATION_EXISTS
+    status = nfs41_delegation_get_type(state->session->client,
+        &state->file.fh, &current);
+    if (status == NFS4_OK) {
+        DPRINTF(REQDELEGLVL,
+            ("handle_requestdelegation: delegation already exists\n"));
+        status = ERROR_ALREADY_EXISTS;
+        goto out;
+    }
+    if (status != NFS4ERR_BADHANDLE) {
+        status = nfs_to_windows_error(status, ERROR_BAD_NET_RESP);
+        goto out;
+    }
+#endif /* FSCTL_REQDELEG_REJECT_IF_DELEGATION_EXISTS */
+
+    want = requested == OPEN_DELEGATE_READ ?
+        OPEN4_SHARE_ACCESS_WANT_READ_DELEG :
+        OPEN4_SHARE_ACCESS_WANT_WRITE_DELEG;
+    status = nfs41_want_delegation(state->session, &state->file,
+        &claim, want, TRUE, &delegation);
+    if (status) {
+        status = nfs_to_windows_error(status, ERROR_BAD_NET_RESP);
+        goto out;
+    }
+
+    args->deleg_type = (ULONG)delegation.type;
+    args->why_no_delegation =
+        delegation.type == OPEN_DELEGATE_NONE_EXT ?
+            (ULONG)delegation.why_no_delegation : 0UL;
+
+    DPRINTF(REQDELEGLVL,
+        ("handle_requestdelegation: "
+        "args->(deleg_type=%lu, why_no_delegation=%lu)\n",
+        (unsigned long)args->deleg_type,
+        (unsigned long)args->why_no_delegation));
+
+    switch(delegation.type) {
+        case OPEN_DELEGATE_READ:
+        case OPEN_DELEGATE_WRITE:
+            status = nfs41_delegation_granted(state->session, &state->parent,
+                &state->file, &delegation, TRUE, &deleg_state);
+            if (status) {
+                status = nfs_to_windows_error(status, ERROR_BAD_NET_RESP);
+                goto out;
+            }
+            nfs41_delegation_deref(deleg_state);
+            status = ERROR_SUCCESS;
+            break;
+        case OPEN_DELEGATE_NONE:
+        case OPEN_DELEGATE_NONE_EXT:
+            status = ERROR_SUCCESS;
+            break;
+        default:
+            eprintf("handle_requestdelegation: "
+                "Unexpected delegation.type=%d\n",
+                (int)delegation.type);
+            status = ERROR_INTERNAL_ERROR;
+            break;
+    }
+
+out:
+    DPRINTF(REQDELEGLVL,
+        ("<-- handle_requestdelegation("
+            "state->path.path='%s'), status=%d\n",
+            state->path.path, status));
+    return status;
+}
+
+static int marshall_requestdelegation(unsigned char *restrict buffer,
+    uint32_t *restrict length, nfs41_upcall *restrict upcall)
+{
+    requestdelegation_upcall_args *args = &upcall->args.requestdelegation;
+    int status;
+
+    status = safe_write(&buffer, length,
+        &args->deleg_type, sizeof(args->deleg_type));
+    if (status) goto out;
+    status = safe_write(&buffer, length,
+        &args->why_no_delegation, sizeof(args->why_no_delegation));
+
+out:
+    return status;
+}
+
+const nfs41_upcall_op nfs41_op_requestdelegation = {
+    .parse = parse_requestdelegation,
+    .handle = handle_requestdelegation,
+    .marshall = marshall_requestdelegation,
+    .arg_size = sizeof(requestdelegation_upcall_args)
+};
+
+static int handle_returndelegation(void *daemon_context, nfs41_upcall *upcall)
+{
+    nfs41_open_state *state = upcall->state_ref;
+    enum open_delegation_type4 current;
+    int status;
+
+    DPRINTF(RETDELEGLVL,
+        ("--> handle_returndelegation("
+            "state->path.path='%s')\n",
+            state->path.path));
+
+    status = nfs41_delegation_get_type(state->session->client,
+        &state->file.fh, &current);
+    if (status == NFS4ERR_BADHANDLE) {
+        status = ERROR_NOT_FOUND;
+        goto out;
+    }
+
+    if (status) {
+        status = nfs_to_windows_error(status, ERROR_BAD_NET_RESP);
+        goto out;
+    }
+
+    status = nfs41_delegation_return_file(state->session, &state->file);
+
+    if (status == NFS4ERR_BADHANDLE) {
+        /*
+         * FIXME: |nfs41_delegation_return_file()| should return a better
+         * error code than |NFS4ERR_BADHANDLE| if a delegation could not
+         * be found
+         */
+        status = ERROR_NOT_FOUND;
+        goto out;
+    }
+    if (status) {
+        status = nfs_to_windows_error(status, ERROR_BAD_NET_RESP);
+        goto out;
+    }
+
+    status = ERROR_SUCCESS;
+
+out:
+    DPRINTF(RETDELEGLVL,
+        ("<-- handle_returndelegation("
+            "state->path.path='%s'), status=%d\n",
+            state->path.path, status));
+    return status;
+}
+
+static int parse_returndelegation(const unsigned char *restrict buffer,
+    uint32_t length, nfs41_upcall *upcall)
+{
+    int status = ERROR_SUCCESS;
+
+    EASSERT(length == 0);
+
+    return status;
+}
+
+static int marshall_returndelegation(unsigned char *restrict buffer,
+    uint32_t *restrict length, nfs41_upcall *restrict upcall)
+{
+    return ERROR_SUCCESS;
+}
+
+const nfs41_upcall_op nfs41_op_returndelegation = {
+    .parse = parse_returndelegation,
+    .handle = handle_returndelegation,
+    .marshall = marshall_returndelegation,
+    .arg_size = 0
 };

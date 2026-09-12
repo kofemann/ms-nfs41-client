@@ -449,6 +449,36 @@ static int delegation_find(
     return status;
 }
 
+int nfs41_delegation_return_file(
+    IN nfs41_session *session,
+    IN nfs41_path_fh *file)
+{
+    nfs41_client *client = session->client;
+    nfs41_delegation_state *deleg;
+    int status;
+
+    status = delegation_find(client, &file->fh, deleg_file_cmp, &deleg);
+    if (status)
+        return status;
+
+    AcquireSRWLockExclusive(&deleg->lock);
+    if (deleg->status == DELEGATION_GRANTED) {
+        deleg->status = DELEGATION_RETURNING;
+        status = NFS4_OK;
+    } else {
+        while (deleg->status == DELEGATION_RETURNING)
+            SleepConditionVariableSRW(&deleg->cond, &deleg->lock, INFINITE, 0);
+        status = NFS4ERR_BADHANDLE;
+    }
+    ReleaseSRWLockExclusive(&deleg->lock);
+
+    if (status == NFS4_OK)
+        status = delegation_return(client, deleg, FALSE, TRUE);
+
+    nfs41_delegation_deref(deleg);
+    return status;
+}
+
 int nfs41_delegation_get_type(
     IN nfs41_client *client,
     IN const nfs41_fh *fh,

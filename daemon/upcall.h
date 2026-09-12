@@ -258,6 +258,12 @@ typedef struct __querydelegationinfo_upcall_args {
     ULONG deleg_type;
 } querydelegationinfo_upcall_args;
 
+typedef struct __requestdelegation_upcall_args {
+    ULONG requested_type;
+    ULONG deleg_type;
+    ULONG why_no_delegation;
+} requestdelegation_upcall_args;
+
 typedef struct __setdaemondebuglevel_upcall_args {
     LONG debuglevel;
 } setdaemondebuglevel_upcall_args;
@@ -284,6 +290,7 @@ typedef union __upcall_args {
     duplicatedata_upcall_args duplicatedata;
     queryidmapinfo_upcall_args queryidmapinfo;
     querydelegationinfo_upcall_args querydelegationinfo;
+    requestdelegation_upcall_args requestdelegation;
     setdaemondebuglevel_upcall_args setdaemondebuglevel;
 } upcall_args;
 

@@ -56,6 +56,8 @@ extern const nfs41_upcall_op nfs41_op_duplicatedata;
 extern const nfs41_upcall_op nfs41_op_offload_datacopy;
 extern const nfs41_upcall_op nfs41_op_queryidmapinfo;
 extern const nfs41_upcall_op nfs41_op_querydelegationinfo;
+extern const nfs41_upcall_op nfs41_op_requestdelegation;
+extern const nfs41_upcall_op nfs41_op_returndelegation;
 extern const nfs41_upcall_op nfs41_op_setdaemondebuglevel;
 
 /* |_nfs41_opcodes| and |g_upcall_op_table| must be in sync! */
@@ -86,6 +88,8 @@ static const nfs41_upcall_op *g_upcall_op_table[] = {
     &nfs41_op_offload_datacopy,
     &nfs41_op_queryidmapinfo,
     &nfs41_op_querydelegationinfo,
+    &nfs41_op_requestdelegation,
+    &nfs41_op_returndelegation,
     &nfs41_op_setdaemondebuglevel,
     NULL, /* NFS41_SYSOP_SHUTDOWN */
     NULL
@@ -172,12 +176,14 @@ int upcall_parse(
 
     if (op) {
         /*
-         * |NFS41_SYSOP_SYMLINK_GET|+|NFS41_SYSOP_UNMOUNT| has 0 payload,
+         * { |NFS41_SYSOP_SYMLINK_GET|, |NFS41_SYSOP_UNMOUNT|,
+         * |NFS41_SYSOP_FSCTL_RETURN_DELEGATION| } have a 0byte payload,
          * |NFS41_SYSOP_SET_DAEMON_DEBUGLEVEL| has a |ULONG| payload
          */
         if ((upcall_upcode != NFS41_SYSOP_SYMLINK_GET) &&
             (upcall_upcode != NFS41_SYSOP_UNMOUNT) &&
-            (upcall_upcode != NFS41_SYSOP_SET_DAEMON_DEBUGLEVEL)) {
+            (upcall_upcode != NFS41_SYSOP_SET_DAEMON_DEBUGLEVEL) &&
+            (upcall_upcode != NFS41_SYSOP_FSCTL_RETURN_DELEGATION)) {
             EASSERT_MSG(op->arg_size >= sizeof(void*),
                 ("upcall->opcode=%u, op->arg_size=%ld\n",
                 (unsigned int)upcall_upcode,
@@ -187,10 +193,12 @@ int upcall_parse(
     }
 
     if (op && op->parse) {
-        /* |NFS41_SYSOP_UNMOUNT| has 0 payload */
+        /* Skip opcalls with 0 payload */
         if ((upcall_upcode != NFS41_SYSOP_SYMLINK_GET) &&
             (upcall_upcode != NFS41_SYSOP_UNMOUNT) &&
-            (upcall_upcode != NFS41_SYSOP_FSCTL_QUERY_DELEGATION_INFO)) {
+            (upcall_upcode != NFS41_SYSOP_FSCTL_QUERY_DELEGATION_INFO) &&
+            (upcall_upcode != NFS41_SYSOP_FSCTL_REQUEST_DELEGATION) &&
+            (upcall_upcode != NFS41_SYSOP_FSCTL_RETURN_DELEGATION)) {
             EASSERT(length > 0);
         }
 
