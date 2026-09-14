@@ -520,13 +520,13 @@ static void map_access_2_allowdeny(
     }
 
     if (access_mask_readaccess && access_mask_writeaccess) {
-        *allow = OPEN4_SHARE_ACCESS_BOTH;
+        *allow = OPEN4_SHARE_ACCESS_BOTH | OPEN4_SHARE_ACCESS_WANT_WRITE_DELEG;
     }
     else if (access_mask_readaccess) {
-        *allow = OPEN4_SHARE_ACCESS_READ;
+        *allow = OPEN4_SHARE_ACCESS_READ | OPEN4_SHARE_ACCESS_WANT_READ_DELEG;
     }
     else if (access_mask_writeaccess) {
-        *allow = OPEN4_SHARE_ACCESS_WRITE;
+        *allow = OPEN4_SHARE_ACCESS_WRITE | OPEN4_SHARE_ACCESS_WANT_WRITE_DELEG;
     }
     else {
         EASSERT_MSG(false,
