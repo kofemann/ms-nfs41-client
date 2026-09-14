@@ -851,7 +851,7 @@ int delayxid(LONGLONG xid, LONGLONG moredelaysecs)
     }
     else {
         status = GetLastError();
-        eprintf("delayxid: IOCTL_NFS41_INVALCACHE failed, lasterr=%d\n",
+        eprintf("delayxid: IOCTL_NFS41_DELAYXID failed, lasterr=%d\n",
             status);
     }
     close_nfs41sys_device_pipe(pipe);
