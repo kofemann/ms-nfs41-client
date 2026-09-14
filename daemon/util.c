@@ -765,6 +765,61 @@ void close_nfs41sys_device_pipe(HANDLE pipe)
     (void)CloseHandle(pipe);
 }
 
+int nfs41_notify_kernel_delegation_state(
+    IN HANDLE srv_open,
+    IN ULONG deleg_type)
+{
+    HANDLE pipe;
+    unsigned char inbuf[sizeof(HANDLE) + sizeof(ULONG)];
+    unsigned char *buffer = inbuf;
+    uint32_t length = sizeof(inbuf);
+    DWORD outbuf_len = 0;
+    BOOL success;
+    int status;
+
+    if ((deleg_type != NFS41_OPEN_DELEGATE_NONE) &&
+            (deleg_type != NFS41_OPEN_DELEGATE_READ) &&
+            (deleg_type != NFS41_OPEN_DELEGATE_WRITE) &&
+            (deleg_type != NFS41_OPEN_DELEGATE_NONE_EXT)) {
+        eprintf("nfs41_notify_kernel_delegation_state: "
+            "invalid deleg_type=%lu\n", (unsigned long)deleg_type);
+        return ERROR_INVALID_PARAMETER;
+    }
+
+    pipe = create_nfs41sys_device_pipe();
+    if (pipe == INVALID_HANDLE_VALUE) {
+        status = GetLastError();
+        eprintf("nfs41_notify_kernel_delegation_state: "
+            "Unable to open downcall pipe, lasterr=%d\n", status);
+        return status;
+    }
+
+    status = safe_write(&buffer, &length, &srv_open, sizeof(HANDLE));
+    if (status)
+        goto out;
+    status = safe_write(&buffer, &length, &deleg_type,
+        sizeof(deleg_type));
+    if (status)
+        goto out;
+    EASSERT(length == 0);
+
+    success = DeviceIoControl(pipe, IOCTL_NFS41_INVALCACHE,
+        inbuf, sizeof(inbuf), NULL, 0, &outbuf_len, NULL);
+    if (!success) {
+        status = GetLastError();
+        eprintf("nfs41_notify_kernel_delegation_state: "
+            "IOCTL_NFS41_INVALCACHE failed for srv_open=0x%p, "
+            "deleg_type=%lu, lasterr=%d\n", srv_open,
+            (unsigned long)deleg_type, status);
+        goto out;
+    }
+    status = ERROR_SUCCESS;
+
+out:
+    close_nfs41sys_device_pipe(pipe);
+    return status;
+}
+
 int delayxid(LONGLONG xid, LONGLONG moredelaysecs)
 {
     int status;

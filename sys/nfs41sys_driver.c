@@ -340,63 +340,60 @@ NTSTATUS nfs41_invalidate_cache(
     IN PRX_CONTEXT RxContext)
 {
     PLOWIO_CONTEXT LowIoContext = &RxContext->LowIoContext;
-    const unsigned char *inbuf = LowIoContext->ParamsFor.IoCtl.pInputBuffer;
-    const unsigned char *tmp = inbuf;
-    ULONG flag;
+    const unsigned char *tmp = LowIoContext->ParamsFor.IoCtl.pInputBuffer;
     PMRX_SRV_OPEN srv_open;
     ULONG deleg_type;
     NTSTATUS status;
+
+    if (LowIoContext->ParamsFor.IoCtl.InputBufferLength <
+            (sizeof(HANDLE) + sizeof(ULONG)))
+        return STATUS_BUFFER_TOO_SMALL;
 
     UPDOWNCALL_MEMCPY(&srv_open, tmp, sizeof(HANDLE));
     tmp += sizeof(HANDLE);
     UPDOWNCALL_MEMCPY(&deleg_type, tmp, sizeof(ULONG));
     //tmp += sizeof(ULONG);
 
-#ifdef DEBUG_INVALIDATE_CACHE
-    DbgP("nfs41_invalidate_cache: "
-        "received srv_open=0x%p, pAlreadyPrefixedName='%wZ', deleg_type=%ld\n",
-        srv_open,
-        srv_open->pAlreadyPrefixedName,
-        (long)deleg_type);
-#endif /* DEBUG_INVALIDATE_CACHE */
+    switch (deleg_type) {
+        case NFS41_OPEN_DELEGATE_NONE:
+        case NFS41_OPEN_DELEGATE_READ:
+        case NFS41_OPEN_DELEGATE_WRITE:
+        case NFS41_OPEN_DELEGATE_NONE_EXT:
+            break;
+        default:
+            status = STATUS_INVALID_PARAMETER;
+            goto out;
+    }
+
     __try {
         PNFS41_SRV_OPEN nfs41_srvopen = NFS41GetSrvOpenExtension(srv_open);
-        nfs41_srvopen->deleg_type = deleg_type;
-
-        switch(deleg_type) {
-            case NFS41_OPEN_DELEGATE_NONE:
-            case NFS41_OPEN_DELEGATE_NONE_EXT:
-                /* FIXME: Should we flush here ? */
-                srv_open->BufferingFlags &=
-                    ~(FCB_STATE_READBUFFERING_ENABLED |
-                    FCB_STATE_READCACHING_ENABLED |
-                    FCB_STATE_WRITECACHING_ENABLED |
-                    FCB_STATE_WRITEBUFFERING_ENABLED);
-
-                flag = DISABLE_CACHING;
-                RxIndicateChangeOfBufferingStateForSrvOpen(
-                    srv_open->pFcb->pNetRoot->pSrvCall, srv_open,
-                    srv_open->Key, ULongToPtr(flag));
-                status = STATUS_SUCCESS;
-                break;
-            default:
-                status = STATUS_INVALID_PARAMETER;
-                break;
-        }
+        nfs41_srvopen->deleg_type = (nfs41_open_delegation_type)deleg_type;
+#ifdef DEBUG_INVALIDATE_CACHE
+        DbgP("nfs41_invalidate_cache: "
+            "srv_open=0x%p,filename='%wZ',deleg_type=%lu\n",
+            srv_open,
+            srv_open->pAlreadyPrefixedName,
+            (unsigned long)deleg_type);
+#endif /* DEBUG_INVALIDATE_CACHE */
+        RxIndicateChangeOfBufferingStateForSrvOpen(
+            srv_open->pFcb->pNetRoot->pSrvCall, srv_open,
+            srv_open->Key, ULongToPtr(deleg_type));
+        status = STATUS_SUCCESS;
     } __except(EXCEPTION_EXECUTE_HANDLER) {
         NTSTATUS code;
         code = GetExceptionCode();
         print_error("nfs41_invalidate_cache: "
-            "srv_open=0x%p, pAlreadyPrefixedName='%wZ', deleg_type=%ld: "
+            "srv_open=0x%p,filename='%wZ',deleg_type=%lu: "
             "RxIndicateChangeOfBufferingStateForSrvOpen() "
             "failed due to exception 0x%lx\n",
             srv_open,
             srv_open->pAlreadyPrefixedName,
-            (long)deleg_type,
+            (unsigned long)deleg_type,
             (long)code);
         status = STATUS_INTERNAL_ERROR;
     }
 
+out:
     return status;
 }
 
@@ -1021,83 +1018,112 @@ NTSTATUS nfs41_IsValidDirectory (
     return STATUS_SUCCESS;
 }
 
+ULONG nfs41_compute_deleg_buffering_state(
+    IN PMRX_SRV_OPEN srv_open,
+    IN nfs41_open_delegation_type deleg_type)
+{
+    PNFS41_SRV_OPEN nfs41_srvopen = NFS41GetSrvOpenExtension(srv_open);
+    ULONG fcbstate = 0;
+
+    /*
+     * Configure read buffering based on |deleg_type| and
+     * |params->DesiredAccess|
+     */
+    if (!nfs41_srvopen->nocache &&
+            (srv_open->DesiredAccess & FILE_READ_DATA) &&
+            ((deleg_type == NFS41_OPEN_DELEGATE_READ) ||
+             (deleg_type == NFS41_OPEN_DELEGATE_WRITE))) {
+        fcbstate |= FCB_STATE_READBUFFERING_ENABLED |
+            FCB_STATE_READCACHING_ENABLED;
+    }
+
+    /*
+     * Configure write buffering based on |deleg_type| and
+     * |params->DesiredAccess|
+     */
+    if (!nfs41_srvopen->nocache && !nfs41_srvopen->write_thru &&
+            (srv_open->DesiredAccess & (FILE_WRITE_DATA | FILE_APPEND_DATA)) &&
+            (deleg_type == NFS41_OPEN_DELEGATE_WRITE)) {
+        fcbstate |= FCB_STATE_WRITECACHING_ENABLED |
+            FCB_STATE_WRITEBUFFERING_ENABLED;
+    }
+
+    DbgP("nfs41_compute_deleg_buffering_state"
+        "(srv_open(=0x%p)=(filename='%wZ'),deleg_type=%lu):"
+        "nc=%d,wt=%d,DesiredAccess=0x%lx: "
+        "fcbstate=(state=0x%lx(rb=%d,wb=%d))\n",
+        srv_open,
+        srv_open->pAlreadyPrefixedName,
+        (unsigned long)deleg_type,
+        (int)nfs41_srvopen->nocache,
+        (int)nfs41_srvopen->write_thru,
+        (long)srv_open->DesiredAccess,
+        (long)fcbstate,
+        ((int)(fcbstate & FCB_STATE_READBUFFERING_ENABLED)?1:0),
+        ((int)(fcbstate & FCB_STATE_WRITECACHING_ENABLED)?1:0));
+
+    return fcbstate;
+}
+
 NTSTATUS nfs41_ComputeNewBufferingState(
     IN OUT PMRX_SRV_OPEN pSrvOpen,
     IN PVOID pMRxContext,
     OUT ULONG *pNewBufferingState)
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    ULONG flag = PtrToUlong(pMRxContext);
-#ifdef DEBUG_CACHE
-    ULONG oldFlags = pSrvOpen->BufferingFlags;
-#endif /* DEBUG_CACHE */
-    switch(flag) {
-    case DISABLE_CACHING:
-        if (pSrvOpen->BufferingFlags &
-            (FCB_STATE_READBUFFERING_ENABLED | FCB_STATE_READCACHING_ENABLED))
-            pSrvOpen->BufferingFlags &=
-                ~(FCB_STATE_READBUFFERING_ENABLED |
-                  FCB_STATE_READCACHING_ENABLED);
-        if (pSrvOpen->BufferingFlags &
-            (FCB_STATE_WRITECACHING_ENABLED | FCB_STATE_WRITEBUFFERING_ENABLED))
-            pSrvOpen->BufferingFlags &=
-                ~(FCB_STATE_WRITECACHING_ENABLED |
-                  FCB_STATE_WRITEBUFFERING_ENABLED);
-        pSrvOpen->BufferingFlags |= FCB_STATE_DISABLE_LOCAL_BUFFERING;
-        break;
-    case ENABLE_READ_CACHING:
-        pSrvOpen->BufferingFlags |=
-            (FCB_STATE_READBUFFERING_ENABLED | FCB_STATE_READCACHING_ENABLED);
-        pSrvOpen->BufferingFlags &= ~FCB_STATE_DISABLE_LOCAL_BUFFERING;
-        break;
-    case ENABLE_WRITE_CACHING:
-        pSrvOpen->BufferingFlags |=
-            (FCB_STATE_WRITECACHING_ENABLED | FCB_STATE_WRITEBUFFERING_ENABLED);
-        pSrvOpen->BufferingFlags &= ~FCB_STATE_DISABLE_LOCAL_BUFFERING;
-        break;
-    case ENABLE_READWRITE_CACHING:
-        pSrvOpen->BufferingFlags |=
-            (FCB_STATE_READBUFFERING_ENABLED | FCB_STATE_READCACHING_ENABLED |
-            FCB_STATE_WRITECACHING_ENABLED | FCB_STATE_WRITEBUFFERING_ENABLED);
-        pSrvOpen->BufferingFlags &= ~FCB_STATE_DISABLE_LOCAL_BUFFERING;
-        break;
+    NTSTATUS status;
+    nfs41_open_delegation_type deleg_type =
+        (nfs41_open_delegation_type)PtrToUlong(pMRxContext);
+    ULONG fcbstate;
+
+    switch (deleg_type) {
+        case NFS41_OPEN_DELEGATE_NONE:
+        case NFS41_OPEN_DELEGATE_READ:
+        case NFS41_OPEN_DELEGATE_WRITE:
+        case NFS41_OPEN_DELEGATE_NONE_EXT:
+            break;
+        default:
+            status = STATUS_INVALID_PARAMETER;
+            goto out;
+    }
+
+    /*
+     * Clear flags which |nfs41_compute_deleg_buffering_state()|
+     * will recalculate
+     */
+    fcbstate = pSrvOpen->BufferingFlags &
+        ~(FCB_STATE_READBUFFERING_ENABLED |
+          FCB_STATE_READCACHING_ENABLED |
+          FCB_STATE_WRITECACHING_ENABLED |
+          FCB_STATE_WRITEBUFFERING_ENABLED |
+          FCB_STATE_DISABLE_LOCAL_BUFFERING);
+
+    fcbstate |= nfs41_compute_deleg_buffering_state(pSrvOpen, deleg_type);
+
+    if ((fcbstate & (FCB_STATE_READBUFFERING_ENABLED |
+            FCB_STATE_READCACHING_ENABLED |
+            FCB_STATE_WRITECACHING_ENABLED |
+            FCB_STATE_WRITEBUFFERING_ENABLED)) == 0) {
+        fcbstate |= FCB_STATE_DISABLE_LOCAL_BUFFERING;
     }
 
 #ifdef DEBUG_CACHE
-    DbgP("nfs41_ComputeNewBufferingState: '%wZ' pSrvOpen 0x%p Old %08x New %08x\n",
-         pSrvOpen->pAlreadyPrefixedName, pSrvOpen, oldFlags,
-         pSrvOpen->BufferingFlags);
-    *pNewBufferingState = pSrvOpen->BufferingFlags;
+    DbgP("nfs41_ComputeNewBufferingState"
+        "(pSrvOpen(=0x%p)=(filename='%wZ',BufferingFlags=0x%lx)):"
+        "deleg_type=%lu,DesiredAccess=0x%lx,*pNewBufferingState=0x%lx\n",
+        pSrvOpen,
+        pSrvOpen->pAlreadyPrefixedName,
+        (long)pSrvOpen->BufferingFlags,
+        (unsigned long)deleg_type,
+        (unsigned long)pSrvOpen->DesiredAccess,
+        (long)fcbstate);
 #endif /* DEBUG_CACHE */
+
+    *pNewBufferingState = fcbstate;
+
+    status = STATUS_SUCCESS;
+
+out:
     return status;
-}
-
-void enable_caching(
-    PMRX_SRV_OPEN SrvOpen,
-    PNFS41_FOBX nfs41_fobx,
-    ULONGLONG ChangeTime,
-    HANDLE session)
-{
-    ULONG flag = 0;
-
-    if (SrvOpen->DesiredAccess & FILE_READ_DATA)
-        flag = ENABLE_READ_CACHING;
-    if ((SrvOpen->DesiredAccess & (FILE_WRITE_DATA|FILE_APPEND_DATA)) &&
-            !nfs41_fobx->write_thru)
-        flag = ENABLE_WRITE_CACHING;
-    if ((SrvOpen->DesiredAccess & FILE_READ_DATA) &&
-            (SrvOpen->DesiredAccess & (FILE_WRITE_DATA|FILE_APPEND_DATA)) &&
-            !nfs41_fobx->write_thru)
-        flag = ENABLE_READWRITE_CACHING;
-
-#if defined(DEBUG_WRITE) || defined(DEBUG_READ)
-    print_caching_level(1, flag, SrvOpen->pAlreadyPrefixedName);
-#endif /* defined(DEBUG_WRITE) || defined(DEBUG_READ) */
-
-    if (!flag)
-        return;
-
-    RxChangeBufferingState((PSRV_OPEN)SrvOpen, ULongToPtr(flag), 1);
 }
 
 NTSTATUS nfs41_CompleteBufferingStateChangeRequest(

@@ -285,48 +285,18 @@ static int delegation_return(
          * thread gets the delegation while we're in the middle of returning
          * this one ?
          */
-        HANDLE pipe;
-        unsigned char inbuf[sizeof(HANDLE)+sizeof(ULONG)];
-        unsigned char *buffer = inbuf;
-        DWORD inbuf_len = sizeof(HANDLE)+sizeof(ULONG);
-        DWORD outbuf_len;
-        BOOL success;
-        uint32_t length;
-        ULONG deleg_type = NFS41_OPEN_DELEGATE_NONE;
-
         EASSERT((deleg->state.type == NFS41_OPEN_DELEGATE_READ) ||
             (deleg->state.type == NFS41_OPEN_DELEGATE_WRITE));
 
         DPRINTF(1,
             ("delegation_return: "
-            "making a downcall for srv_open=0x%p, was deleg->state.type=%d\n",
+            "notifying kernel for srv_open=0x%p, was deleg->state.type=%d\n",
             deleg->srv_open, (int)deleg->state.type));
 
-        pipe = create_nfs41sys_device_pipe();
-        if (pipe == INVALID_HANDLE_VALUE) {
-            eprintf("delegation_return: "
-                "Unable to open downcall pipe, lasterr=%d\n",
-                (int)GetLastError());
-            goto out_downcall;
-        }
-
-        length = inbuf_len;
-        safe_write(&buffer, &length, &deleg->srv_open, sizeof(HANDLE));
-        safe_write(&buffer, &length, &deleg_type, sizeof(ULONG));
-        EASSERT(length == 0);
-
-        success = DeviceIoControl(pipe, IOCTL_NFS41_INVALCACHE,
-            inbuf, inbuf_len,
-            NULL, 0,
-            (LPDWORD)&outbuf_len, NULL);
-        if (!success) {
-            eprintf("delegation_return: "
-                "IOCTL_NFS41_INVALCACHE failed, lasterr=%d\n",
-                (int)GetLastError());
-        }
-        close_nfs41sys_device_pipe(pipe);
-    }
-out_downcall:
+        /* Disable delegation-dependent caching before DELEGRETURN */
+        (void)nfs41_notify_kernel_delegation_state(deleg->srv_open,
+            NFS41_OPEN_DELEGATE_NONE);
+     }
 
     /* recover opens and locks associated with the delegation */
     while ((open = deleg_open_find(&client->state, deleg)) != NULL) {

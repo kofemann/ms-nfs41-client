@@ -1535,10 +1535,23 @@ static int handle_requestdelegation(void *daemon_context, nfs41_upcall *upcall)
                 goto out;
             }
             nfs41_delegation_deref(deleg_state);
+
+            /*
+             * Tell the kernel to recompute RDBSS buffering from the
+             * new delegation type and the |SRV_OPEN| DesiredAccess
+             */
+            (void)nfs41_notify_kernel_delegation_state(state->srv_open,
+                (ULONG)delegation.type);
             status = ERROR_SUCCESS;
             break;
         case OPEN_DELEGATE_NONE:
         case OPEN_DELEGATE_NONE_EXT:
+            /*
+             * Tell the kernel to recompute RDBSS buffering from the
+             * new delegation type and the |SRV_OPEN| DesiredAccess
+             */
+            (void)nfs41_notify_kernel_delegation_state(state->srv_open,
+                (ULONG)delegation.type);
             status = ERROR_SUCCESS;
             break;
         default:

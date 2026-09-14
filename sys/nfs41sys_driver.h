@@ -560,6 +560,8 @@ typedef struct _NFS41_SRV_OPEN {
     SECURITY_CLIENT_CONTEXT sec_ctx;
     HANDLE          nfs41_open_state;
     nfs41_open_delegation_type deleg_type;
+    BOOLEAN         write_thru;
+    BOOLEAN         nocache;
 #ifdef WINBUG_NO_COLLAPSE_IF_PRIMARYGROUPS_DIFFER
     /*
      * |open_pg_sidbuff| - Note that buffers with SID values must be 16byte
@@ -726,11 +728,9 @@ NTSTATUS marshal_nfs41_set_daemon_debuglevel(
     unsigned char *buf,
     ULONG buf_len,
     ULONG *len);
-void enable_caching(
-    PMRX_SRV_OPEN SrvOpen,
-    PNFS41_FOBX nfs41_fobx,
-    ULONGLONG ChangeTime,
-    HANDLE session);
+ULONG nfs41_compute_deleg_buffering_state(
+    IN PMRX_SRV_OPEN SrvOpen,
+    IN nfs41_open_delegation_type deleg_type);
 #ifdef DEBUG_OPENFILES
 void print_open_files_netroot(
     IN OUT PNET_ROOT NetRoot);

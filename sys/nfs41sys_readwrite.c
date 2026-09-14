@@ -244,8 +244,6 @@ NTSTATUS nfs41_Read(
         NFS41GetVNetRootExtension(SrvOpen->pVNetRoot);
     __notnull PNFS41_NETROOT_EXTENSION pNetRootContext =
         NFS41GetNetRootExtension(SrvOpen->pVNetRoot->pNetRoot);
-    __notnull PNFS41_FCB nfs41_fcb = NFS41GetFcbExtension(RxContext->pFcb);
-    __notnull PNFS41_FOBX nfs41_fobx = NFS41GetFobxExtension(RxContext->pFobx);
     LONGLONG io_delay;
 #ifdef ENABLE_TIMINGS
     LARGE_INTEGER t1, t2;
@@ -301,17 +299,6 @@ NTSTATUS nfs41_Read(
 #endif
         status = RxContext->CurrentIrp->IoStatus.Status = STATUS_SUCCESS;
         RxContext->IoStatusBlock.Information = entry->u.ReadWrite.buf_len;
-
-        if ((!BooleanFlagOn(LowIoContext->ParamsFor.ReadWrite.Flags,
-                LOWIO_READWRITEFLAG_PAGING_IO) &&
-                (SrvOpen->DesiredAccess & FILE_READ_DATA) &&
-                !pVNetRootContext->nocache && !nfs41_fobx->nocache &&
-                !(SrvOpen->BufferingFlags &
-                (FCB_STATE_READBUFFERING_ENABLED |
-                 FCB_STATE_READCACHING_ENABLED)))) {
-            enable_caching(SrvOpen, nfs41_fobx, nfs41_fcb->changeattr,
-                pVNetRootContext->session);
-        }
     } else {
         status = map_readwrite_errors(entry->status);
         RxContext->CurrentIrp->IoStatus.Status = status;
@@ -374,7 +361,6 @@ NTSTATUS nfs41_Write(
     __notnull PNFS41_NETROOT_EXTENSION pNetRootContext =
         NFS41GetNetRootExtension(SrvOpen->pVNetRoot->pNetRoot);
     __notnull PNFS41_FCB nfs41_fcb = NFS41GetFcbExtension(RxContext->pFcb);
-    __notnull PNFS41_FOBX nfs41_fobx = NFS41GetFobxExtension(RxContext->pFobx);
     DWORD io_delay;
 #ifdef ENABLE_TIMINGS
     LARGE_INTEGER t1, t2;
@@ -433,20 +419,6 @@ NTSTATUS nfs41_Write(
         status = RxContext->CurrentIrp->IoStatus.Status = STATUS_SUCCESS;
         RxContext->IoStatusBlock.Information = entry->u.ReadWrite.buf_len;
         nfs41_fcb->changeattr = entry->ChangeTime;
-
-        //re-enable write buffering
-        if (!BooleanFlagOn(LowIoContext->ParamsFor.ReadWrite.Flags,
-                LOWIO_READWRITEFLAG_PAGING_IO) &&
-                (SrvOpen->DesiredAccess & (FILE_WRITE_DATA | FILE_APPEND_DATA)) &&
-                !pVNetRootContext->write_thru &&
-                !pVNetRootContext->nocache &&
-                !nfs41_fobx->write_thru && !nfs41_fobx->nocache &&
-                !(SrvOpen->BufferingFlags &
-                (FCB_STATE_WRITEBUFFERING_ENABLED |
-                 FCB_STATE_WRITECACHING_ENABLED))) {
-            enable_caching(SrvOpen, nfs41_fobx, nfs41_fcb->changeattr,
-                pVNetRootContext->session);
-        }
     } else {
         status = map_readwrite_errors(entry->status);
         RxContext->CurrentIrp->IoStatus.Status = status;

@@ -454,6 +454,9 @@ int parse_fs_location_server_address(IN const char *restrict inaddr,
 
 HANDLE create_nfs41sys_device_pipe(void);
 void close_nfs41sys_device_pipe(HANDLE pipe);
+int nfs41_notify_kernel_delegation_state(
+    IN HANDLE srv_open,
+    IN ULONG deleg_type);
 
 int delayxid(LONGLONG xid, LONGLONG moredelaysecs);
 

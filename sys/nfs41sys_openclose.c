@@ -1250,45 +1250,26 @@ retry_on_link:
                 SrvOpen->pAlreadyPrefixedName);
         }
 
-        /*
-         * Configure write buffering based on |params->DesiredAccess|
-         */
-        if (((params->CreateOptions & FILE_WRITE_THROUGH) == 0) &&
-                (pVNetRootContext->write_thru == FALSE) &&
-                ((nfs41_srvopen->deleg_type == NFS41_OPEN_DELEGATE_WRITE) ||
-                (params->DesiredAccess & (FILE_WRITE_DATA | FILE_APPEND_DATA)))) {
-#ifdef DEBUG_OPEN
-            DbgP("nfs41_Create: enabling write buffering\n");
-#endif
-            SrvOpen->BufferingFlags |=
-                (FCB_STATE_WRITECACHING_ENABLED |
-                FCB_STATE_WRITEBUFFERING_ENABLED);
-        } else if ((params->CreateOptions & FILE_WRITE_THROUGH) ||
-                    pVNetRootContext->write_thru) {
-            nfs41_fobx->write_thru = TRUE;
-        }
+        /* Save constraints needed when a delegation changes later... */
+        nfs41_srvopen->write_thru =
+            ((params->CreateOptions & FILE_WRITE_THROUGH) != 0) ||
+            pVNetRootContext->write_thru;
+        nfs41_srvopen->nocache =
+            ((params->CreateOptions & FILE_NO_INTERMEDIATE_BUFFERING) != 0) ||
+            pVNetRootContext->nocache;
+        nfs41_fobx->write_thru = nfs41_srvopen->write_thru;
+        nfs41_fobx->nocache = nfs41_srvopen->nocache;
 
-        /*
-         * Configure read buffering based on |params->DesiredAccess|
-         */
-        if (((nfs41_srvopen->deleg_type == NFS41_OPEN_DELEGATE_READ) ||
-            (nfs41_srvopen->deleg_type == NFS41_OPEN_DELEGATE_WRITE)) ||
-                (params->DesiredAccess & FILE_READ_DATA)) {
-#ifdef DEBUG_OPEN
-            DbgP("nfs41_Create: enabling read buffering\n");
-#endif
-            SrvOpen->BufferingFlags |=
-                (FCB_STATE_READBUFFERING_ENABLED |
-                FCB_STATE_READCACHING_ENABLED);
-        }
+        SrvOpen->BufferingFlags |=
+            nfs41_compute_deleg_buffering_state(SrvOpen,
+                nfs41_srvopen->deleg_type);
 
-        if (pVNetRootContext->nocache ||
-                (params->CreateOptions & FILE_NO_INTERMEDIATE_BUFFERING)) {
-#ifdef DEBUG_OPEN
-            DbgP("nfs41_Create: disabling buffering\n");
-#endif
-            SrvOpen->BufferingFlags = FCB_STATE_DISABLE_LOCAL_BUFFERING;
-            nfs41_fobx->nocache = TRUE;
+        if ((SrvOpen->BufferingFlags &
+            (FCB_STATE_READBUFFERING_ENABLED |
+            FCB_STATE_READCACHING_ENABLED |
+            FCB_STATE_WRITECACHING_ENABLED |
+            FCB_STATE_WRITEBUFFERING_ENABLED)) == 0) {
+            SrvOpen->BufferingFlags |= FCB_STATE_DISABLE_LOCAL_BUFFERING;
         }
     }
 
