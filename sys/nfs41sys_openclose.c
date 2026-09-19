@@ -325,8 +325,12 @@ NTSTATUS unmarshal_nfs41_open(
         cur->u.Open.symlink.Buffer = RxAllocatePoolWithTag(NonPagedPoolNx,
             cur->u.Open.symlink.MaximumLength, NFS41_MM_POOLTAG);
         if (cur->u.Open.symlink.Buffer == NULL) {
+            print_error("unmarshal_nfs41_open: "
+                "cannot allocate cur->u.Open.symlink.MaximumLength=%ld bytes "
+                "for cur->u.Open.symlink.Buffer\n",
+                (long)cur->u.Open.symlink.MaximumLength);
             cur->status = STATUS_INSUFFICIENT_RESOURCES;
-            status = STATUS_UNSUCCESSFUL;
+            status = STATUS_INSUFFICIENT_RESOURCES;
             goto out;
         }
         UPDOWNCALL_MEMCPY(cur->u.Open.symlink.Buffer, *buf,
@@ -1010,6 +1014,9 @@ retry_on_link:
         AbsPath.Buffer = RxAllocatePoolWithTag(NonPagedPoolNx,
             AbsPath.MaximumLength, NFS41_MM_POOLTAG);
         if (AbsPath.Buffer == NULL) {
+            print_error("nfs41_Create: "
+                "Cannot allocate AbsPath.MaximumLength=%ld bytes for AbsPath.Buffer\n",
+                (long)AbsPath.MaximumLength);
             status = STATUS_INSUFFICIENT_RESOURCES;
             goto out;
         }
