@@ -250,8 +250,8 @@ static void create_nfs3_attrs(
         attrs->type = NF3REG;
     attrs->mode = nfs41_fcb->mode;
 #ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES
-    attrs->uid = nfs41_fcb->owner_local_uid;
-    attrs->gid = nfs41_fcb->owner_group_local_gid;
+    attrs->uid = nfs41_fcb->local_uid;
+    attrs->gid = nfs41_fcb->local_gid;
 #endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
     attrs->nlink = nfs41_fcb->StandardInfo.NumberOfLinks;
     attrs->size = nfs41_fcb->StandardInfo.EndOfFile.QuadPart;

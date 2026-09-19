@@ -301,9 +301,9 @@ NTSTATUS unmarshal_nfs41_open(
     UPDOWNCALL_MEMCPY(&cur->u.Open.mode, *buf, sizeof(DWORD));
     *buf += sizeof(DWORD);
 #ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES
-    UPDOWNCALL_MEMCPY(&cur->u.Open.owner_local_uid, *buf, sizeof(DWORD));
+    UPDOWNCALL_MEMCPY(&cur->u.Open.local_uid, *buf, sizeof(DWORD));
     *buf += sizeof(DWORD);
-    UPDOWNCALL_MEMCPY(&cur->u.Open.owner_group_local_gid, *buf, sizeof(DWORD));
+    UPDOWNCALL_MEMCPY(&cur->u.Open.local_gid, *buf, sizeof(DWORD));
     *buf += sizeof(DWORD);
 #endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
     UPDOWNCALL_MEMCPY(&cur->ChangeTime, *buf, sizeof(ULONGLONG));
@@ -342,7 +342,7 @@ NTSTATUS unmarshal_nfs41_open(
     DbgP("unmarshal_nfs41_open: "
         "open_state 0x%p fileid=0x%llx fsid=(0x%llx.0x%llx) mode 0%o "
 #ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES
-        "owner_local_uid %u owner_group_local_gid %u "
+        "local_uid=%lu local_gid=%lu "
 #endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
         "changeattr %llu "
         "deleg_type %d\n",
@@ -350,7 +350,8 @@ NTSTATUS unmarshal_nfs41_open(
         cur->u.Open.fsid_major, cur->u.Open.fsid_minor,
         cur->u.Open.mode,
 #ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES
-        cur->u.Open.owner_local_uid, cur->u.Open.owner_group_local_gid,
+        (unsigned long)cur->u.Open.local_uid,
+        (unsigned long)cur->u.Open.local_gid,
 #endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
         cur->ChangeTime, cur->u.Open.deleg_type);
 #endif /* DEBUG_MARSHAL_DETAIL */
@@ -1107,8 +1108,8 @@ retry_on_link:
         nfs41_fcb->fsid_minor = entry->u.Open.fsid_minor;
         nfs41_fcb->mode = entry->u.Open.mode;
 #ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES
-        nfs41_fcb->owner_local_uid = entry->u.Open.owner_local_uid;
-        nfs41_fcb->owner_group_local_gid = entry->u.Open.owner_group_local_gid;
+        nfs41_fcb->local_uid = entry->u.Open.local_uid;
+        nfs41_fcb->local_gid = entry->u.Open.local_gid;
 #endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
         nfs41_fcb->changeattr = entry->ChangeTime;
         if (((params->CreateOptions & FILE_DELETE_ON_CLOSE) &&

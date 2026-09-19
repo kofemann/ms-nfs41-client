@@ -701,8 +701,8 @@ static
 void open_get_localuidgid(
     IN nfs41_open_state *restrict state,
     IN OUT nfs41_file_info *restrict info,
-    OUT DWORD *restrict owner_local_uid,
-    OUT DWORD *restrict owner_group_local_gid)
+    OUT DWORD *restrict local_uid,
+    OUT DWORD *restrict local_gid)
 {
     int status = 0;
     struct idmap_context *idmapper = state->session->client->root->idmapper;
@@ -731,8 +731,8 @@ void open_get_localuidgid(
                 "failed with status=%d\n",
                 state->path.path,
                 status);
-            *owner_local_uid = idmapper->config.default_local_uid;
-            *owner_group_local_gid = idmapper->config.default_local_gid;
+            *local_uid = idmapper->config.default_local_uid;
+            *local_gid = idmapper->config.default_local_gid;
             goto out;
         }
 
@@ -789,16 +789,16 @@ void open_get_localuidgid(
     }
 
     if (ie != NULL) {
-         *owner_local_uid = ie->localid;
+         *local_uid = ie->localid;
         idmapcache_entry_refcount_dec(ie);
     }
     else {
-        *owner_local_uid = idmapper->config.default_local_uid;
+        *local_uid = idmapper->config.default_local_uid;
         eprintf("open_get_localuidgid(state->path='%s'): "
             "no username mapping for info->owner='%s', fake uid=%u\n",
             state->path.path,
             info->owner,
-            (unsigned int)*owner_local_uid);
+            (unsigned int)*local_uid);
     }
 
     /*
@@ -837,16 +837,16 @@ void open_get_localuidgid(
     }
 
     if (ie != NULL) {
-        *owner_group_local_gid = ie->localid;
+        *local_gid = ie->localid;
         idmapcache_entry_refcount_dec(ie);
     }
     else {
-        *owner_group_local_gid = idmapper->config.default_local_gid;
+        *local_gid = idmapper->config.default_local_gid;
         eprintf("open_get_localuidgid(state->path='%s'): "
             "no group mapping for info->owner_group='%s', fake gid=%u\n",
             state->path.path,
             info->owner_group,
-            (unsigned int)*owner_group_local_gid);
+            (unsigned int)*local_gid);
     }
 
 out:
@@ -854,8 +854,8 @@ out:
         ("open_get_localuidgid(state->path='%s'): "
         "stat: info->owner='%s'/local_uid=%u, info->owner_group='%s'/local_gid=%u\n",
         state->path.path,
-        info->owner, (unsigned int)*owner_local_uid,
-        info->owner_group, (unsigned int)*owner_group_local_gid));
+        info->owner, (unsigned int)*local_uid,
+        info->owner_group, (unsigned int)*local_gid));
 }
 #endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
 
@@ -1275,7 +1275,7 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
         EASSERT(bitmap_isset(&info.attrmask, 0, FATTR4_WORD0_CHANGE));
         args->changeattr = info.change;
         /*
-         + |args->owner_local_uid| and |args->owner_group_local_gid|
+         + |args->local_uid| and |args->local_gid|
          * is set below
          */
     } else {
@@ -1438,8 +1438,8 @@ supersede_retry:
     if (status == 0) {
         open_get_localuidgid(state,
             &info,
-            &args->owner_local_uid,
-            &args->owner_group_local_gid);
+            &args->local_uid,
+            &args->local_gid);
     }
 #endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
 
@@ -1487,9 +1487,9 @@ static int marshall_open(
     status = safe_write(&buffer, length, &args->mode, sizeof(args->mode));
     if (status) goto out;
 #ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES
-    status = safe_write(&buffer, length, &args->owner_local_uid, sizeof(args->owner_local_uid));
+    status = safe_write(&buffer, length, &args->local_uid, sizeof(args->local_uid));
     if (status) goto out;
-    status = safe_write(&buffer, length, &args->owner_group_local_gid, sizeof(args->owner_group_local_gid));
+    status = safe_write(&buffer, length, &args->local_gid, sizeof(args->local_gid));
     if (status) goto out;
 #endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
     status = safe_write(&buffer, length, &args->changeattr, sizeof(args->changeattr));

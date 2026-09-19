@@ -270,8 +270,10 @@ typedef struct _updowncall_entry {
             LONG open_owner_id;
             DWORD mode;
 #ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES
-            DWORD owner_local_uid;
-            DWORD owner_group_local_gid;
+            /* |local_uid| - |FATTR4_OWNER| idmapped into local uid */
+            DWORD local_uid;
+            /* |local_gid| - |FATTR4_OWNER_GROUP| idmapped into local gid */
+            DWORD local_gid;
 #endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
             HANDLE srv_open;
             DWORD deleg_type;
@@ -531,8 +533,10 @@ typedef struct _NFS41_FCB {
     BOOLEAN                 DeletePending;
     DWORD                   mode;
 #ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES
-    DWORD                   owner_local_uid;       /* owner mapped into local uid */
-    DWORD                   owner_group_local_gid; /* owner group mapped into local gid */
+    /* |local_uid| - |FATTR4_OWNER| idmapped into local uid */
+    DWORD                   local_uid;
+    /* |local_gid| - |FATTR4_OWNER_GROUP| idmapped into local gid */
+    DWORD                   local_gid;
 #endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
     struct {
         FAST_MUTEX lock;

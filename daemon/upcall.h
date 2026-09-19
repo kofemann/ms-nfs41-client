@@ -70,8 +70,10 @@ typedef struct __open_upcall_args {
     LONG open_owner_id;
     DWORD mode;
 #ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES
-    DWORD owner_local_uid;         /* owner mapped into local uid */
-    DWORD owner_group_local_gid;   /* owner group mapped into local gid */
+    /* |local_uid| - |FATTR4_OWNER| idmapped into local uid */
+    DWORD local_uid;
+    /* |local_gid| - |FATTR4_OWNER_GROUP| idmapped into local gid */
+    DWORD local_gid;
 #endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
     ULONGLONG changeattr;
     HANDLE srv_open;

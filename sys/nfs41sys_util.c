@@ -427,8 +427,8 @@ void qocec_file_stat_lx_information(
         LX_FILE_METADATA_HAS_GID |
         LX_FILE_METADATA_HAS_MODE;
 
-    qocflxi->LxUid = nfs41_fcb->owner_local_uid;
-    qocflxi->LxGid = nfs41_fcb->owner_group_local_gid;
+    qocflxi->LxUid = nfs41_fcb->local_uid;
+    qocflxi->LxGid = nfs41_fcb->local_gid;
 
     qocflxi->LxMode = 0UL;
 
