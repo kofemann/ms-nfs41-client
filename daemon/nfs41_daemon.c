@@ -211,12 +211,27 @@ write_downcall:
             NULL, 0,
             (LPDWORD)&outbuf_len, NULL);
         if (!success) {
+            DWORD lasterr;
+            const char *pn;
+
+            lasterr = GetLastError();
+
+            if ((upcall.state_ref != NULL) &&
+                (upcall.state_ref != INVALID_HANDLE_VALUE) &&
+                (upcall.state_ref->ref_count > 0)) {
+                pn = upcall.state_ref->path.path;
+            }
+            else {
+                pn = "<no-state_ref>";
+            }
+
             eprintf("nfsd_worker_thread_main: "
                 "IOCTL_NFS41_WRITE failed with "
-                "lasterr=%d xid=%lld opcode='%s'\n",
-                (int)GetLastError(),
+                "lasterr=%d xid=%lld opcode='%s' path='%s'\n",
+                (int)lasterr,
                 upcall.xid,
-                opcode2string(upcall.opcode));
+                opcode2string(upcall.opcode),
+                pn);
             upcall_cancel(&upcall);
         }
         if (upcall.status != NFSD_VERSION_MISMATCH)
