@@ -380,6 +380,8 @@ static int parse_open(
     if (status) goto out;
     status = safe_read(&buffer, &length, &args->srv_open, sizeof(HANDLE));
     if (status) goto out;
+    status = safe_read(&buffer, &length, &args->fobx, sizeof(HANDLE));
+    if (status) goto out;
     status = parse_abs_path(&buffer, &length, &args->symlink);
     if (status) goto out;
     status = safe_read(&buffer, &length, &args->ea, sizeof(HANDLE));
@@ -393,11 +395,11 @@ static int parse_open(
         "isvolumemntpt=%d access mask=%d "
         "access mode=%d\n\tfile attrs=0x%x create attrs=0x%x "
         "(kernel) disposition=%d\n\topen_owner_id=%d mode=0%o "
-        "srv_open=0x%p symlink=%s ea=0x%p\n",
+        "srv_open=0x%p fobx=0x%p symlink=%s ea=0x%p\n",
         args->path, (int)args->isvolumemntpt, args->access_mask,
         args->access_mode, args->file_attrs, args->create_opts,
         args->disposition, args->open_owner_id, args->mode,
-        args->srv_open,
+        args->srv_open, args->fobx,
         args->symlink.path, args->ea));
 
     if (DPRINTF_LEVEL_ENABLED(2)) {
@@ -1589,6 +1591,69 @@ out:
     DPRINTF(1, ("<-- cancel_open() returning %d\n", status));
 }
 
+/* NFS41_SYSOP_COLLAPSE_OPEN */
+static int parse_collapse_open(
+    const unsigned char *restrict buffer,
+    uint32_t length,
+    nfs41_upcall *upcall)
+{
+    int status;
+    collapse_open_upcall_args *args = &upcall->args.collapse_open;
+
+    status = safe_read(&buffer, &length, &args->srv_open, sizeof(HANDLE));
+    if (status) goto out;
+    status = safe_read(&buffer, &length, &args->fobx, sizeof(HANDLE));
+    if (status) goto out;
+
+    EASSERT_MSG((length == 0),
+        ("parse_collapse_open: leftover length=%ld\n", (long)length));
+
+out:
+    return status;
+}
+
+static int handle_collapse_open(void *daemon_context, nfs41_upcall *upcall)
+{
+    const collapse_open_upcall_args *args = &upcall->args.collapse_open;
+
+    DPRINTF(1,
+        ("handle_collapse_open: srv_open=0x%p, fobx=0x%p\n",
+        args->srv_open, args->fobx));
+
+    return ERROR_SUCCESS;
+}
+
+/* NFS41_SYSOP_CLEANUP_FOBX */
+static int parse_cleanup_fobx(
+    const unsigned char *restrict buffer,
+    uint32_t length,
+    nfs41_upcall *upcall)
+{
+    int status;
+    cleanup_fobx_upcall_args *args = &upcall->args.cleanup_fobx;
+
+    status = safe_read(&buffer, &length, &args->srv_open, sizeof(HANDLE));
+    if (status) goto out;
+    status = safe_read(&buffer, &length, &args->fobx, sizeof(HANDLE));
+    if (status) goto out;
+
+    EASSERT_MSG((length == 0),
+        ("parse_cleanup_fobx: leftover length=%ld\n", (long)length));
+
+out:
+    return status;
+}
+
+static int handle_cleanup_fobx(void *daemon_context, nfs41_upcall *upcall)
+{
+    const cleanup_fobx_upcall_args *args = &upcall->args.cleanup_fobx;
+
+    DPRINTF(1,
+        ("handle_cleanup_fobx: srv_open=0x%p, fobx=0x%p\n",
+        args->srv_open, args->fobx));
+
+    return ERROR_SUCCESS;
+}
 
 /* NFS41_SYSOP_CLOSE */
 static int parse_close(
@@ -1708,7 +1773,6 @@ static void cleanup_close(nfs41_upcall *upcall)
     nfs41_open_state_deref(upcall->state_ref);
 }
 
-
 const nfs41_upcall_op nfs41_op_open = {
     .parse = parse_open,
     .handle = handle_open,
@@ -1716,6 +1780,19 @@ const nfs41_upcall_op nfs41_op_open = {
     .cancel = cancel_open,
     .arg_size = sizeof(open_upcall_args)
 };
+
+const nfs41_upcall_op nfs41_op_collapse_open = {
+    .parse = parse_collapse_open,
+    .handle = handle_collapse_open,
+    .arg_size = sizeof(collapse_open_upcall_args)
+};
+
+const nfs41_upcall_op nfs41_op_cleanup_fobx = {
+    .parse = parse_cleanup_fobx,
+    .handle = handle_cleanup_fobx,
+    .arg_size = sizeof(cleanup_fobx_upcall_args)
+};
+
 const nfs41_upcall_op nfs41_op_close = {
     .parse = parse_close,
     .handle = handle_close,

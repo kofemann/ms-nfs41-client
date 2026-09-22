@@ -77,12 +77,23 @@ typedef struct __open_upcall_args {
 #endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
     ULONGLONG changeattr;
     HANDLE srv_open;
+    HANDLE fobx;
     DWORD deleg_type;
     PFILE_FULL_EA_INFORMATION ea;
     BOOLEAN created;
     BOOLEAN symlink_embedded;
     nfs41_sysop_open_symlinktarget_type symlinktarget_type;
 } open_upcall_args;
+
+typedef struct __collapse_open_upcall_args {
+    HANDLE srv_open;
+    HANDLE fobx;
+} collapse_open_upcall_args;
+
+typedef struct __cleanup_fobx_upcall_args {
+    HANDLE srv_open;
+    HANDLE fobx;
+} cleanup_fobx_upcall_args;
 
 typedef struct __close_upcall_args {
     HANDLE srv_open;
@@ -273,6 +284,8 @@ typedef struct __setdaemondebuglevel_upcall_args {
 typedef union __upcall_args {
     mount_upcall_args       mount;
     open_upcall_args        open;
+    collapse_open_upcall_args   collapse_open;
+    cleanup_fobx_upcall_args    cleanup_fobx;
     close_upcall_args       close;
     readwrite_upcall_args   rw;
     lock_upcall_args        lock;

@@ -253,6 +253,12 @@ NTSTATUS handle_upcall(
     case NFS41_SYSOP_OPEN:
         status = marshal_nfs41_open(entry, pbOut, cbOut, len);
         break;
+    case NFS41_SYSOP_COLLAPSE_OPEN:
+        status = marshal_nfs41_collapse_open(entry, pbOut, cbOut, len);
+        break;
+    case NFS41_SYSOP_CLEANUP_FOBX:
+        status = marshal_nfs41_cleanup_fobx(entry, pbOut, cbOut, len);
+        break;
     case NFS41_SYSOP_READ:
         status = marshal_nfs41_rw(entry, pbOut, cbOut, len);
         break;

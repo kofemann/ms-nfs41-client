@@ -276,12 +276,21 @@ typedef struct _updowncall_entry {
             DWORD local_gid;
 #endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
             HANDLE srv_open;
+            HANDLE fobx;
             DWORD deleg_type;
             BOOLEAN symlink_embedded;
             nfs41_sysop_open_symlinktarget_type symlinktarget_type;
             PMDL EaMdl;
             PVOID EaBuffer;
         } Open;
+        struct {
+            HANDLE srv_open;
+            HANDLE fobx;
+        } CollapseOpen;
+        struct {
+            HANDLE srv_open;
+            HANDLE fobx;
+        } CleanupFobx;
         struct {
             HANDLE srv_open;
             BOOLEAN remove;
@@ -903,6 +912,16 @@ NTSTATUS nfs41_DeleteConnection(
 
 /* nfs41sys_openclose.c */
 NTSTATUS marshal_nfs41_open(
+    nfs41_updowncall_entry *entry,
+    unsigned char *buf,
+    ULONG buf_len,
+    ULONG *len);
+NTSTATUS marshal_nfs41_collapse_open(
+    nfs41_updowncall_entry *entry,
+    unsigned char *buf,
+    ULONG buf_len,
+    ULONG *len);
+NTSTATUS marshal_nfs41_cleanup_fobx(
     nfs41_updowncall_entry *entry,
     unsigned char *buf,
     ULONG buf_len,

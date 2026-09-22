@@ -59,6 +59,8 @@ extern const nfs41_upcall_op nfs41_op_querydelegationinfo;
 extern const nfs41_upcall_op nfs41_op_requestdelegation;
 extern const nfs41_upcall_op nfs41_op_returndelegation;
 extern const nfs41_upcall_op nfs41_op_setdaemondebuglevel;
+extern const nfs41_upcall_op nfs41_op_collapse_open;
+extern const nfs41_upcall_op nfs41_op_cleanup_fobx;
 
 /* |_nfs41_opcodes| and |g_upcall_op_table| must be in sync! */
 static const nfs41_upcall_op *g_upcall_op_table[] = {
@@ -66,6 +68,8 @@ static const nfs41_upcall_op *g_upcall_op_table[] = {
     &nfs41_op_mount,
     &nfs41_op_unmount,
     &nfs41_op_open,
+    &nfs41_op_collapse_open,
+    &nfs41_op_cleanup_fobx,
     &nfs41_op_close,
     &nfs41_op_read,
     &nfs41_op_write,

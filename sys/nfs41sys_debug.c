@@ -694,6 +694,8 @@ const char *opcode2string(nfs41_opcodes opcode)
     case NFS41_SYSOP_MOUNT: return "NFS41_SYSOP_MOUNT";
     case NFS41_SYSOP_UNMOUNT: return "NFS41_SYSOP_UNMOUNT";
     case NFS41_SYSOP_OPEN: return "NFS41_SYSOP_OPEN";
+    case NFS41_SYSOP_COLLAPSE_OPEN: return "NFS41_SYSOP_COLLAPSE_OPEN";
+    case NFS41_SYSOP_CLEANUP_FOBX: return "NFS41_SYSOP_CLEANUP_FOBX";
     case NFS41_SYSOP_CLOSE: return "NFS41_SYSOP_CLOSE";
     case NFS41_SYSOP_READ: return "NFS41_SYSOP_READ";
     case NFS41_SYSOP_WRITE: return "NFS41_SYSOP_WRITE";

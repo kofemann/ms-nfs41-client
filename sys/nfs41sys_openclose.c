@@ -128,7 +128,7 @@ NTSTATUS marshal_nfs41_open(
         1 * sizeof(tristate_bool) +
         7 * sizeof(ULONG) +
         1 * sizeof(BOOLEAN) +
-        2 * sizeof(HANDLE) +
+        3 * sizeof(HANDLE) +
 #ifdef NFS41_DRIVER_ALLOW_CREATEFILE_ACLS
         entry->u.Open.SdLength + 1 * sizeof(ULONG) +
 #endif /* NFS41_DRIVER_ALLOW_CREATEFILE_ACLS */
@@ -175,6 +175,8 @@ NTSTATUS marshal_nfs41_open(
     tmp += sizeof(DWORD);
     UPDOWNCALL_MEMCPY(tmp, &entry->u.Open.srv_open, sizeof(HANDLE));
     tmp += sizeof(HANDLE);
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.Open.fobx, sizeof(HANDLE));
+    tmp += sizeof(HANDLE);
     status = marshall_unicode_filename_as_utf8(&tmp, &entry->u.Open.symlink);
     if (status) goto out;
 
@@ -217,6 +219,62 @@ NTSTATUS marshal_nfs41_open(
 #endif
 out:
     return status;
+}
+
+NTSTATUS marshal_nfs41_collapse_open(
+    nfs41_updowncall_entry *entry,
+    unsigned char *buf,
+    ULONG buf_len,
+    ULONG *len)
+{
+    NTSTATUS status;
+    ULONG header_len;
+    unsigned char *tmp = buf;
+
+    status = marshal_nfs41_header(entry, tmp, buf_len, len);
+    if (status)
+        return status;
+    tmp += *len;
+
+    header_len = *len + 2 * sizeof(HANDLE);
+    if (header_len > buf_len)
+        return STATUS_INSUFFICIENT_RESOURCES;
+
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.CollapseOpen.srv_open, sizeof(HANDLE));
+    tmp += sizeof(HANDLE);
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.CollapseOpen.fobx, sizeof(HANDLE));
+    tmp += sizeof(HANDLE);
+
+    *len = (ULONG)(tmp - buf);
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS marshal_nfs41_cleanup_fobx(
+    nfs41_updowncall_entry *entry,
+    unsigned char *buf,
+    ULONG buf_len,
+    ULONG *len)
+{
+    NTSTATUS status;
+    ULONG header_len;
+    unsigned char *tmp = buf;
+
+    status = marshal_nfs41_header(entry, tmp, buf_len, len);
+    if (status)
+        return status;
+    tmp += *len;
+
+    header_len = *len + 2 * sizeof(HANDLE);
+    if (header_len > buf_len)
+        return STATUS_INSUFFICIENT_RESOURCES;
+
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.CleanupFobx.srv_open, sizeof(HANDLE));
+    tmp += sizeof(HANDLE);
+    UPDOWNCALL_MEMCPY(tmp, &entry->u.CleanupFobx.fobx, sizeof(HANDLE));
+    tmp += sizeof(HANDLE);
+
+    *len = (ULONG)(tmp - buf);
+    return STATUS_SUCCESS;
 }
 
 NTSTATUS marshal_nfs41_close(
@@ -864,6 +922,7 @@ NTSTATUS nfs41_Create(
     entry->u.Open.SdBuffer = SdBuffer;
 #endif /* NFS41_DRIVER_ALLOW_CREATEFILE_ACLS */
     entry->u.Open.srv_open = SrvOpen;
+    entry->u.Open.fobx = RxContext->pFobx;
     /* treat the NfsActOnLink ea as FILE_OPEN_REPARSE_POINT */
     if ((ea && AnsiStrEq(&NfsActOnLink, ea->EaName, ea->EaNameLength)) ||
             (entry->u.Open.access_mask & DELETE))
@@ -1497,10 +1556,14 @@ NTSTATUS nfs41_CollapseOpen(
 {
 #ifdef NFS41_DRIVER_COLLAPSEOPEN
     NTSTATUS status;
+    nfs41_updowncall_entry *entry = NULL;
     PNT_CREATE_PARAMETERS params = &RxContext->Create.NtCreateParameters;
     PMRX_SRV_OPEN SrvOpen = RxContext->pRelevantSrvOpen;
+    PNFS41_SRV_OPEN nfs41_srvopen = NFS41GetSrvOpenExtension(SrvOpen);
     PNFS41_V_NET_ROOT_EXTENSION pVNetRootContext =
         NFS41GetVNetRootExtension(SrvOpen->pVNetRoot);
+    PNFS41_NETROOT_EXTENSION pNetRootContext =
+        NFS41GetNetRootExtension(SrvOpen->pVNetRoot->pNetRoot);
     PMRX_FCB Fcb = RxContext->pFcb;
     PNFS41_FCB nfs41_fcb = NFS41GetFcbExtension(Fcb);
 
@@ -1528,6 +1591,27 @@ NTSTATUS nfs41_CollapseOpen(
 #endif /* NFS41_DRIVER_ECP_SUPPORT */
 
     status = nfs41_createnetfobx(RxContext, SrvOpen);
+    if (status)
+        goto out;
+
+    status = nfs41_UpcallCreate(NFS41_SYSOP_COLLAPSE_OPEN,
+        &nfs41_srvopen->sec_ctx, pVNetRootContext->session,
+        nfs41_srvopen->nfs41_open_state, pNetRootContext->nfs41d_version,
+        SrvOpen->pAlreadyPrefixedName, &entry);
+    if (status)
+        goto out;
+
+    entry->u.CollapseOpen.srv_open = SrvOpen;
+    entry->u.CollapseOpen.fobx = RxContext->pFobx;
+
+    status = nfs41_UpcallWaitForReply(entry, pVNetRootContext->timeout);
+    if (status) {
+        /* Timeout - |nfs41_downcall()| will free |entry|+contents */
+        entry = NULL;
+        goto out;
+    }
+
+    status = map_close_errors(entry->status);
     if (status)
         goto out;
 
@@ -1565,6 +1649,10 @@ NTSTATUS nfs41_CollapseOpen(
     status = STATUS_SUCCESS;
 
 out:
+    if (entry) {
+        nfs41_UpcallDestroy(entry);
+    }
+
 #ifdef DEBUG_COLLAPSEOPEN
     DbgP("nfs41_CollapseOpen: collapsingopen for '%wZ', status=0x%lx\n",
         SrvOpen->pAlreadyPrefixedName,
@@ -1604,12 +1692,45 @@ NTSTATUS
 nfs41_CleanupFobx(
     IN PRX_CONTEXT RxContext)
 {
+    NTSTATUS status = STATUS_INSUFFICIENT_RESOURCES;
+    nfs41_updowncall_entry *entry = NULL;
+    __notnull PMRX_SRV_OPEN SrvOpen = RxContext->pRelevantSrvOpen;
+    __notnull PMRX_FOBX Fobx = RxContext->pFobx;
+    __notnull PNFS41_SRV_OPEN nfs41_srvopen = NFS41GetSrvOpenExtension(SrvOpen);
+    __notnull PNFS41_V_NET_ROOT_EXTENSION pVNetRootContext =
+        NFS41GetVNetRootExtension(SrvOpen->pVNetRoot);
+    __notnull PNFS41_NETROOT_EXTENSION pNetRootContext =
+        NFS41GetNetRootExtension(SrvOpen->pVNetRoot->pNetRoot);
+
 #ifdef DEBUG_CLOSE
     DbgP("nfs41_CleanupFobx: FileName is '%wZ'\n",
         &RxContext->CurrentIrpSp->FileObject->FileName);
 #endif /* DEBUG_CLOSE */
 
-    return STATUS_SUCCESS;
+    status = nfs41_UpcallCreate(NFS41_SYSOP_CLEANUP_FOBX,
+        &nfs41_srvopen->sec_ctx, pVNetRootContext->session,
+        nfs41_srvopen->nfs41_open_state, pNetRootContext->nfs41d_version,
+        SrvOpen->pAlreadyPrefixedName, &entry);
+    if (status)
+        goto out;
+
+    entry->u.CleanupFobx.srv_open = SrvOpen;
+    entry->u.CleanupFobx.fobx = Fobx;
+
+    status = nfs41_UpcallWaitForReply(entry, pVNetRootContext->timeout);
+    if (status) {
+        /* Timeout - |nfs41_downcall()| will free |entry|+contents */
+        entry = NULL;
+        goto out;
+    }
+
+    status = map_close_errors(entry->status);
+
+out:
+    if (entry) {
+        nfs41_UpcallDestroy(entry);
+    }
+    return status;
 }
 
 
