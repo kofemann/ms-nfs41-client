@@ -397,6 +397,7 @@
                   <member><literal>cygrunsrv</literal></member>
                   <member><literal>cygutils</literal></member>
                   <member><literal>cygutils-extra</literal></member>
+                  <member><literal>csih</literal></member>
                   <member><literal>libiconv</literal></member>
                   <member><literal>libiconv2</literal></member>
                   <member><literal>procps-ng</literal></member>
@@ -529,7 +530,7 @@ cd download</programlisting>
       </listitem>
       <listitem>
         <para>Run installer with these arguments:</para>
-        <programlisting>setup-x86_64.exe -q --site "https://mirrors.kernel.org/sourceware/cygwin" -P cygwin,cygwin-devel,cygrunsrv,cygutils,cygutils-extra,bash,bzip2,coreutils,getent,gdb,grep,hostname,less,libiconv,libiconv2,pax,pbzip2,procps-ng,sed,tar,time,util-linux,p7zip,wget,libnfs-utils,make,bmake,git,dos2unix,unzip</programlisting>
+        <programlisting>setup-x86_64.exe -q --site "https://mirrors.kernel.org/sourceware/cygwin" -P cygwin,cygwin-devel,cygrunsrv,cygutils,cygutils-extra,csih,bash,bzip2,coreutils,getent,gdb,grep,hostname,less,libiconv,libiconv2,pax,pbzip2,procps-ng,sed,tar,time,util-linux,p7zip,wget,libnfs-utils,make,bmake,git,dos2unix,unzip</programlisting>
       </listitem>
     </orderedlist>
 
@@ -549,7 +550,7 @@ cd download</programlisting>
       </listitem>
       <listitem>
         <para>Run installer with these arguments:</para>
-        <programlisting>setup-x86.exe --allow-unsupported-windows -q --no-verify --site "http://ctm.crouchingtigerhiddenfruitbat.org/pub/cygwin/circa/2022/11/23/063457" -P cygwin,cygwin-devel,cygrunsrv,cygutils,cygutils-extra,bash,bzip2,coreutils,getent,gdb,grep,hostname,less,libiconv,libiconv2,pax,pbzip2,procps-ng,sed,tar,time,util-linux,p7zip,wget,libnfs-utils,make,git,dos2unix,unzip</programlisting>
+        <programlisting>setup-x86.exe --allow-unsupported-windows -q --no-verify --site "http://ctm.crouchingtigerhiddenfruitbat.org/pub/cygwin/circa/2022/11/23/063457" -P cygwin,cygwin-devel,cygrunsrv,cygutils,cygutils-extra,csih,bash,bzip2,coreutils,getent,gdb,grep,hostname,less,libiconv,libiconv2,pax,pbzip2,procps-ng,sed,tar,time,util-linux,p7zip,wget,libnfs-utils,make,git,dos2unix,unzip</programlisting>
       </listitem>
     </orderedlist>
   </section>

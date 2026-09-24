@@ -296,10 +296,9 @@ function setup_windows_builtin_accounts
 		compound gpc
 		# SID 'S-1-1-0' is a special case because Cygwin /usr/bin/getent group/passwd cannot look it up
 		if [[ "${n.sid}" == 'S-1-1-0' ]] ; then
-			# NOTE: Using powershell is slow, do we use system32/whoami
-			typeset everyone_name dummy1
-			#/cygdrive/c/Windows/System32/WindowsPowerShell/v1.0/powershell -Command $'(Get-CimInstance Win32_Account -Filter "SID=\'S-1-1-0\'").Name' | IFS=$' \t\n\r' read everyone_name
-			/cygdrive/c/Windows/system32/whoami /groups | grep -a -F 'S-1-1-0' | IFS=$' \t\n\r' read everyone_name dummy1
+			typeset everyone_name
+			# strip $'\r' from getAccountName output
+			/usr/lib/csih/getAccountName -n 1 | IFS=$'\n\r' read everyone_name
 			parse_getent_w_group2compound gpc "${everyone_name}:65550:\\${everyone_name}:S-1-1-0"
 		else
 			parse_getent_w_group2compound gpc "${c.getent_w_group_listbysid["${n.sid}"]}"

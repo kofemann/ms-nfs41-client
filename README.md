@@ -325,7 +325,7 @@ NFSv4.2/NFSv4.1 filesystem driver for Windows 10/11 & Windows Server
     - 32bit: \>= 3.3.6
 
   - Packages (required): `cygwin`, `cygrunsrv`, `cygutils`,
-    `cygutils-extra`, `libiconv`, `libiconv2`, `procps-ng`,
+    `cygutils-extra`, `csih`, `libiconv`, `libiconv2`, `procps-ng`,
     `util-linux`, `p7zip`
 
   - Packages (optional, recommended, required to build ms-nfs41-client):
@@ -383,7 +383,7 @@ Cygwin 64bit can be installed like this:
 
 3.  Run installer with these arguments:
 
-        setup-x86_64.exe -q --site "https://mirrors.kernel.org/sourceware/cygwin" -P cygwin,cygwin-devel,cygrunsrv,cygutils,cygutils-extra,bash,bzip2,coreutils,getent,gdb,grep,hostname,less,libiconv,libiconv2,pax,pbzip2,procps-ng,sed,tar,time,util-linux,p7zip,wget,libnfs-utils,make,bmake,git,dos2unix,unzip
+        setup-x86_64.exe -q --site "https://mirrors.kernel.org/sourceware/cygwin" -P cygwin,cygwin-devel,cygrunsrv,cygutils,cygutils-extra,csih,bash,bzip2,coreutils,getent,gdb,grep,hostname,less,libiconv,libiconv2,pax,pbzip2,procps-ng,sed,tar,time,util-linux,p7zip,wget,libnfs-utils,make,bmake,git,dos2unix,unzip
 
 Cygwin 32bit can be installed like this:
 
@@ -401,7 +401,7 @@ Cygwin 32bit can be installed like this:
 
 3.  Run installer with these arguments:
 
-        setup-x86.exe --allow-unsupported-windows -q --no-verify --site "http://ctm.crouchingtigerhiddenfruitbat.org/pub/cygwin/circa/2022/11/23/063457" -P cygwin,cygwin-devel,cygrunsrv,cygutils,cygutils-extra,bash,bzip2,coreutils,getent,gdb,grep,hostname,less,libiconv,libiconv2,pax,pbzip2,procps-ng,sed,tar,time,util-linux,p7zip,wget,libnfs-utils,make,git,dos2unix,unzip
+        setup-x86.exe --allow-unsupported-windows -q --no-verify --site "http://ctm.crouchingtigerhiddenfruitbat.org/pub/cygwin/circa/2022/11/23/063457" -P cygwin,cygwin-devel,cygrunsrv,cygutils,cygutils-extra,csih,bash,bzip2,coreutils,getent,gdb,grep,hostname,less,libiconv,libiconv2,pax,pbzip2,procps-ng,sed,tar,time,util-linux,p7zip,wget,libnfs-utils,make,git,dos2unix,unzip
 
 ## Download and install MSYS2/64bit \[OPTIONAL\]
 
