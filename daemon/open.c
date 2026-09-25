@@ -257,10 +257,18 @@ static int do_open(
     nfs41_delegation_granted(state->session, &state->parent,
         &state->file, &delegation, TRUE, &deleg_state);
     if (deleg_state) {
-        deleg_state->srv_open = state->srv_open;
-        DPRINTF(1, ("do_open: "
-            "received delegation: saving srv_open = 0x%p\n",
-            state->srv_open));
+        nfs41_delegation_srv_open *entry = calloc(1, sizeof(*entry));
+
+        if (entry != NULL) {
+            entry->srv_open = state->srv_open;
+            list_init(&entry->entry);
+            AcquireSRWLockExclusive(&deleg_state->lock);
+            list_add_tail(&deleg_state->srv_opens, &entry->entry);
+            ReleaseSRWLockExclusive(&deleg_state->lock);
+            DPRINTF(1, ("do_open: "
+                "received delegation: adding srv_open=0x%p\n",
+                entry->srv_open));
+        }
     }
 
     AcquireSRWLockExclusive(&state->lock);
@@ -1716,8 +1724,9 @@ static int handle_close(void *deamon_context, nfs41_upcall *upcall)
     if (state->type == NF4REG || state->type == NF4NAMEDATTR)
         pnfs_layout_state_close(state->session, state, args->remove);
 
-    if (state->srv_open == args->srv_open)
-        nfs41_delegation_remove_srvopen(state->session, &state->file);
+    EASSERT(state->srv_open == args->srv_open);
+    nfs41_delegation_remove_srvopen(state->session, &state->file,
+        args->srv_open);
 
     if (args->remove) {
         nfs41_component *name = &state->file.name;

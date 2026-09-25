@@ -103,6 +103,11 @@ enum delegation_status {
     DELEGATION_RETURNED,
 };
 
+typedef struct __nfs41_delegation_srv_open {
+    struct list_entry entry;
+    HANDLE srv_open;
+} nfs41_delegation_srv_open;
+
 typedef struct __nfs41_delegation_state {
     open_delegation4 state;
     nfs41_abs_path path;
@@ -117,7 +122,8 @@ typedef struct __nfs41_delegation_state {
 
     bool_t revoked; /* for recovery, accessed under client.state.lock */
 
-    HANDLE srv_open; /* for rdbss cache invalidation */
+    /* |nfs41_delegation_srv_open| entries for RDBSS cache management */
+    struct list_entry srv_opens;
 } nfs41_delegation_state;
 
 typedef struct __nfs41_lock_state {

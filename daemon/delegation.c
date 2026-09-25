@@ -64,6 +64,7 @@ static int delegation_create(
     fh_copy(&state->parent.fh, &parent->fh);
 
     list_init(&state->client_entry);
+    list_init(&state->srv_opens);
     state->status = DELEGATION_GRANTED;
     InitializeSRWLock(&state->lock);
     InitializeConditionVariable(&state->cond);
@@ -87,8 +88,10 @@ void nfs41_delegation_deref(
     const LONG count = InterlockedDecrement(&state->ref_count);
     DPRINTF(DGLVL, ("nfs41_delegation_deref('%s') count %d\n",
         state->path.path, count));
-    if (count == 0)
+    if (count == 0) {
+        EASSERT(list_empty(&state->srv_opens));
         free(state);
+    }
 }
 
 #define open_entry(pos) list_container(pos, nfs41_open_state, client_entry)
@@ -276,27 +279,36 @@ static int delegation_return(
     nfs41_open_state *open;
     int status;
 
-    if (deleg->srv_open) {
-        /*
-         * Make a downcall to the kernel to flush outstanding data/disable
-         * caching BEFORE we return the delegation
-         *
-         * FIXME: Does this have to be somehow "atomic" to avoid that another
-         * thread gets the delegation while we're in the middle of returning
-         * this one ?
-         */
+    /*
+     * Make a downcall to the kernel for every SRV_OPEN associated with the
+     * delegation, including duplicate entries. Remove one entry at a time so
+     * the delegation lock is not held across the downcall
+     */
+    for (;;) {
+        nfs41_delegation_srv_open *entry;
+
+        AcquireSRWLockExclusive(&deleg->lock);
+        if (list_empty(&deleg->srv_opens)) {
+            ReleaseSRWLockExclusive(&deleg->lock);
+            break;
+        }
+        entry = list_container(deleg->srv_opens.next,
+            nfs41_delegation_srv_open, entry);
+        list_remove(&entry->entry);
+        ReleaseSRWLockExclusive(&deleg->lock);
+
         EASSERT((deleg->state.type == NFS41_OPEN_DELEGATE_READ) ||
             (deleg->state.type == NFS41_OPEN_DELEGATE_WRITE));
-
         DPRINTF(1,
             ("delegation_return: "
             "notifying kernel for srv_open=0x%p, was deleg->state.type=%d\n",
-            deleg->srv_open, (int)deleg->state.type));
+            entry->srv_open, (int)deleg->state.type));
 
         /* Disable delegation-dependent caching before DELEGRETURN */
-        (void)nfs41_notify_kernel_delegation_state(deleg->srv_open,
+        (void)nfs41_notify_kernel_delegation_state(entry->srv_open,
             NFS41_OPEN_DELEGATE_NONE);
-     }
+        free(entry);
+    }
 
     /* recover opens and locks associated with the delegation */
     while ((open = deleg_open_find(&client->state, deleg)) != NULL) {
@@ -549,11 +561,20 @@ int nfs41_delegate_open(
         stateid4_cpy(&stateid.stateid, &deleg->state.stateid);
     }
     if (!status) {
-        DPRINTF(1,
-            ("nfs41_delegate_open: "
-            "updating srv_open from 0x%p to 0x%p\n",
-            deleg->srv_open, state->srv_open));
-        deleg->srv_open = state->srv_open;
+        nfs41_delegation_srv_open *entry;
+
+        entry = calloc(1, sizeof(*entry));
+        if (entry == NULL) {
+            status = ERROR_NOT_ENOUGH_MEMORY;
+        } else {
+            entry->srv_open = state->srv_open;
+            list_init(&entry->entry);
+            list_add_tail(&deleg->srv_opens, &entry->entry);
+            DPRINTF(1,
+                ("nfs41_delegate_open: "
+                "adding srv_open=0x%p to delegation list\n",
+                entry->srv_open));
+        }
     }
     ReleaseSRWLockExclusive(&deleg->lock);
 
@@ -659,17 +680,29 @@ out_unlock:
 
 void nfs41_delegation_remove_srvopen(
     IN nfs41_session *session,
-    IN nfs41_path_fh *file)
+    IN nfs41_path_fh *file,
+    IN HANDLE srv_open)
 {
     nfs41_delegation_state *deleg = NULL;
+    struct list_entry *entry, *tmp;
 
     /* find a delegation for this file */
     if (delegation_find(session->client, &file->fh, deleg_file_cmp, &deleg))
         return;
-    DPRINTF(1, ("nfs41_delegation_remove_srvopen: removing reference to "
-        "srv_open=0x%p\n", deleg->srv_open));
+
     AcquireSRWLockExclusive(&deleg->lock);
-    deleg->srv_open = NULL;
+    list_for_each_tmp(entry, tmp, &deleg->srv_opens) {
+        nfs41_delegation_srv_open *srv_open_entry = list_container(entry,
+            nfs41_delegation_srv_open, entry);
+
+        if (srv_open_entry->srv_open != srv_open)
+            continue;
+
+        DPRINTF(1, ("nfs41_delegation_remove_srvopen: removing reference to "
+            "srv_open=0x%p\n", srv_open_entry->srv_open));
+        list_remove(&srv_open_entry->entry);
+        free(srv_open_entry);
+    }
     ReleaseSRWLockExclusive(&deleg->lock);
     nfs41_delegation_deref(deleg);
 }

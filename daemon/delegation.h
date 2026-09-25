@@ -63,7 +63,8 @@ int nfs41_delegation_to_open(
 
 void nfs41_delegation_remove_srvopen(
     IN nfs41_session *session,
-    IN nfs41_path_fh *file);
+    IN nfs41_path_fh *file,
+    IN HANDLE srv_open);
 
 /* synchronous delegation return */
 #ifdef DELEGATION_RETURN_ON_CONFLICT
