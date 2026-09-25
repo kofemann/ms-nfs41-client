@@ -30,7 +30,13 @@
 #include "daemon_debug.h"
 
 
-#define CBSLVL 2 /* dprintf level for callback server logging */
+/* dprintf levels for callback server logging */
+enum {
+    CBSLVL1 = 0/* 1 */,
+    CBSLVL2 = 2,
+    CBSLVL3 = 3
+};
+
 
 
 static const char g_server_tag[] = "ms-nfs41-callback";
@@ -78,7 +84,8 @@ static enum_t handle_cb_layoutrecall(
         break;
     }
 
-    DPRINTF(CBSLVL, ("  OP_CB_LAYOUTRECALL { '%s', '%s', recall %u } '%s'\n",
+    DPRINTF(CBSLVL2,
+        ("  OP_CB_LAYOUTRECALL { '%s', '%s', recall %u } '%s'\n",
         pnfs_layout_type_string(args->type),
         pnfs_iomode_string(args->iomode), args->recall.type,
         nfs_error_string(res->status)));
@@ -94,7 +101,7 @@ static enum_t handle_cb_recall_slot(
     res->status = nfs41_session_recall_slot(rpc_clnt->client->session,
         args->target_highest_slotid);
 
-    DPRINTF(CBSLVL, ("  OP_CB_RECALL_SLOT { %u } '%s'\n",
+    DPRINTF(CBSLVL2, ("  OP_CB_RECALL_SLOT { %u } '%s'\n",
         args->target_highest_slotid, nfs_error_string(res->status)));
     return res->status;
 }
@@ -116,20 +123,23 @@ static enum_t handle_cb_sequence(
     /* validate the sessionid */
     if (memcmp(cb_session->cb_sessionid, args->sessionid,
             NFS4_SESSIONID_SIZE)) {
-        eprintf("[cb] received sessionid doesn't match session\n");
+        eprintf("handle_cb_sequence: "
+            "received sessionid doesn't match session\n");
         res->status = NFS4ERR_BADSESSION;
         goto out;
     }
 
     /* we only support 1 slot for the back channel so slotid MUST be 0 */
     if (args->slotid != 0) {
-        eprintf("[cb] received unexpected slotid=%d\n", args->slotid);
+        eprintf("handle_cb_sequence: "
+            "received unexpected slotid=%d\n", (int)args->slotid);
         res->status = NFS4ERR_BADSLOT;
         goto out;
     }
     if (args->highest_slotid != 0) {
-        eprintf("[cb] received unexpected highest_slotid=%d\n", 
-            args->highest_slotid);
+        eprintf("handle_cb_sequence: "
+            "received unexpected highest_slotid=%d\n",
+            (int)args->highest_slotid);
         res->status = NFS4ERR_BAD_HIGH_SLOT;
         goto out;
     }
@@ -150,8 +160,9 @@ static enum_t handle_cb_sequence(
 
     /* error on any unexpected seqids */
     if (args->sequenceid != cb_session->cb_seqnum+1) {
-        eprintf("[cb] bad received seq#=%d, expected=%d\n", 
-            args->sequenceid, cb_session->cb_seqnum+1);
+        eprintf("handle_cb_sequence: "
+            "bad received seq#=%d, expected=%d\n",
+            (int)args->sequenceid, (int)(cb_session->cb_seqnum+1));
         res->status = NFS4ERR_SEQ_MISORDERED;
         goto out;
     }
@@ -166,7 +177,7 @@ static enum_t handle_cb_sequence(
     res->ok.target_highest_slotid = args->highest_slotid;
 
 out:
-    DPRINTF(CBSLVL, ("  OP_CB_SEQUENCE { seqid %u, slot %u, cachethis %d } "
+    DPRINTF(CBSLVL2, ("  OP_CB_SEQUENCE { seqid %u, slot %u, cachethis %d } "
         "%s\n", args->sequenceid, args->slotid, args->cachethis,
         nfs_error_string(res->status)));
     return status;
@@ -219,7 +230,7 @@ static enum_t handle_cb_recall_any(
     EASSERT(!bitmap_isset(&args->type_mask,
         0, RCA4_TYPE_MASK_WORD0_BLK_LAYOUT));
 
-    DPRINTF(CBSLVL,
+    DPRINTF(CBSLVL2,
         ("  OP_CB_RECALL_ANY={args->objects_to_keep=%ld,"
         "args->type_mask={.count=%ld,.arr={0x%lx,0x%lx,0x%lx}}}\n",
         (long)args->objects_to_keep,
@@ -346,7 +357,7 @@ static int replay_cache_read(
 
     replay = calloc(1, sizeof(struct cb_compound_res));
     if (replay == NULL) {
-        eprintf("[cb] failed to allocate replay buffer\n");
+        eprintf("replay_cache_read: failed to allocate replay buffer\n");
         status = NFS4ERR_SERVERFAULT;
         goto out;
     }
@@ -355,7 +366,7 @@ static int replay_cache_read(
     xdrmem_create(&xdr, (char*)session->replay.res.buffer,
         NFS41_MAX_SERVER_CACHE, XDR_DECODE);
     if (!proc_cb_compound_res(&xdr, replay)) {
-        eprintf("[cb] failed to decode replay buffer\n");
+        eprintf("replay_cache_read: failed to decode replay buffer\n");
         status = NFS4ERR_SEQ_FALSE_RETRY;
         goto out_free_replay;
     }
@@ -363,13 +374,15 @@ static int replay_cache_read(
     /* if we cached the arguments, use them to validate the retry */
     if (session->replay.arg.length) {
         if (!replay_validate_args(args, &session->replay.arg)) {
-            eprintf("[cb] retry attempt with different arguments\n");
+            eprintf("replay_cache_read: "
+                "retry attempt with different arguments\n");
             status = NFS4ERR_SEQ_FALSE_RETRY;
             goto out_free_replay;
         }
     } else { /* otherwise, comparing opnums is the best we can do */
         if (!replay_validate_ops(args, replay)) {
-            eprintf("[cb] retry attempt with different operations\n");
+            eprintf("replay_cache_read: "
+                "retry attempt with different operations\n");
             status = NFS4ERR_SEQ_FALSE_RETRY;
             goto out_free_replay;
         }
@@ -379,7 +392,8 @@ static int replay_cache_read(
     xdr.x_op = XDR_FREE;
     proc_cb_compound_res(&xdr, res);
 
-    DPRINTF(2, ("[cb] retry: returning cached response\n"));
+    DPRINTF(CBSLVL3,
+        ("replay_cache_read: retry: returning cached response\n"));
 
     *res_out = replay;
 out:
@@ -403,12 +417,13 @@ static void handle_cb_compound(nfs41_rpc_clnt *rpc_clnt, cb_req *req, struct cb_
     bool_t cachethis = FALSE;
     uint32_t i, status = NFS4_OK;
 
-    DPRINTF(CBSLVL, ("--> handle_cb_compound()\n"));
+    DPRINTF(CBSLVL2, ("--> handle_cb_compound()\n"));
 
     /* decode the arguments */
     if (!proc_cb_compound_args(xdr, &args)) {
         status = NFS4ERR_BADXDR;
-        eprintf("failed to decode compound arguments\n");
+        eprintf("handle_cb_compound: "
+            "failed to decode compound arguments\n");
     }
 
     /* allocate the compound results */
@@ -427,7 +442,9 @@ static void handle_cb_compound(nfs41_rpc_clnt *rpc_clnt, cb_req *req, struct cb_
         goto out;
     }
 
-    DPRINTF(CBSLVL, ("CB_COMPOUND('%s', %u)\n", args.tag.str, args.argarray_count));
+    DPRINTF(CBSLVL2,
+        ("CB_COMPOUND('%s', %u)\n",
+        args.tag.str, args.argarray_count));
     if ((args.minorversion != 1) && (args.minorversion != 2)) {
         res->status = NFS4ERR_MINOR_VERS_MISMATCH; //XXXXX
         eprintf("handle_cb_compound: args.minorversion %u != 1/2\n",
@@ -465,17 +482,17 @@ static void handle_cb_compound(nfs41_rpc_clnt *rpc_clnt, cb_req *req, struct cb_
 
         switch (argop->opnum) {
         case OP_CB_LAYOUTRECALL:
-            DPRINTF(1, ("OP_CB_LAYOUTRECALL\n"));
+            DPRINTF(CBSLVL1, ("handle_cb_compound: OP_CB_LAYOUTRECALL\n"));
             res->status = handle_cb_layoutrecall(rpc_clnt,
                 &argop->args.layoutrecall, &resop->res.layoutrecall);
             break;
         case OP_CB_RECALL_SLOT:
-            DPRINTF(1, ("OP_CB_RECALL_SLOT\n"));
+            DPRINTF(CBSLVL1, ("handle_cb_compound: OP_CB_RECALL_SLOT\n"));
             res->status = handle_cb_recall_slot(rpc_clnt,
                 &argop->args.recall_slot, &resop->res.recall_slot);
             break;
         case OP_CB_SEQUENCE:
-            DPRINTF(1, ("OP_CB_SEQUENCE\n"));
+            DPRINTF(CBSLVL1, ("handle_cb_compound: OP_CB_SEQUENCE\n"));
             status = handle_cb_sequence(rpc_clnt, &argop->args.sequence,
                 &resop->res.sequence, &session, &cachethis);
 
@@ -490,55 +507,56 @@ static void handle_cb_compound(nfs41_rpc_clnt *rpc_clnt, cb_req *req, struct cb_
                 res->status = resop->res.sequence.status;
             break;
         case OP_CB_GETATTR:
-            DPRINTF(1, ("OP_CB_GETATTR\n"));
+            DPRINTF(CBSLVL1, ("handle_cb_compound: OP_CB_GETATTR\n"));
             res->status = handle_cb_getattr(rpc_clnt,
                 &argop->args.getattr, &resop->res.getattr);
             break;
         case OP_CB_RECALL:
-            DPRINTF(1, ("OP_CB_RECALL\n"));
+            DPRINTF(CBSLVL1, ("handle_cb_compound: OP_CB_RECALL\n"));
             res->status = handle_cb_recall(rpc_clnt,
                 &argop->args.recall, &resop->res.recall);
             break;
         case OP_CB_NOTIFY:
-            DPRINTF(1, ("OP_CB_NOTIFY\n"));
+            DPRINTF(CBSLVL1, ("handle_cb_compound: OP_CB_NOTIFY\n"));
             res->status = NFS4ERR_NOTSUPP;
             break;
         case OP_CB_PUSH_DELEG:
-            DPRINTF(1, ("OP_CB_PUSH_DELEG\n"));
+            DPRINTF(CBSLVL1, ("handle_cb_compound: OP_CB_PUSH_DELEG\n"));
             res->status = NFS4ERR_NOTSUPP;
             break;
         case OP_CB_RECALL_ANY:
-            DPRINTF(1, ("OP_CB_RECALL_ANY\n"));
+            DPRINTF(CBSLVL1, ("handle_cb_compound: OP_CB_RECALL_ANY\n"));
             res->status = handle_cb_recall_any(rpc_clnt,
                 &argop->args.recall_any, &resop->res.recall_any);
             break;
         case OP_CB_RECALLABLE_OBJ_AVAIL:
-            DPRINTF(1, ("OP_CB_RECALLABLE_OBJ_AVAIL\n"));
+            DPRINTF(CBSLVL1, ("handle_cb_compound: OP_CB_RECALLABLE_OBJ_AVAIL\n"));
             res->status = NFS4ERR_NOTSUPP;
             break;
         case OP_CB_WANTS_CANCELLED:
-            DPRINTF(1, ("OP_CB_WANTS_CANCELLED\n"));
+            DPRINTF(CBSLVL1, ("handle_cb_compound: OP_CB_WANTS_CANCELLED\n"));
             res->status = NFS4ERR_NOTSUPP;
             break;
         case OP_CB_NOTIFY_LOCK:
-            DPRINTF(1, ("OP_CB_NOTIFY_LOCK\n"));
+            DPRINTF(CBSLVL1, ("handle_cb_compound: OP_CB_NOTIFY_LOCK\n"));
             res->status = NFS4ERR_NOTSUPP;
             break;
         case OP_CB_NOTIFY_DEVICEID:
-            DPRINTF(1, ("OP_CB_NOTIFY_DEVICEID\n"));
+            DPRINTF(CBSLVL1, ("handle_cb_compound: OP_CB_NOTIFY_DEVICEID\n"));
             res->status = NFS4_OK;
             break;
         case OP_CB_OFFLOAD:
-            DPRINTF(1, ("OP_CB_OFFLOAD\n"));
+            DPRINTF(CBSLVL1, ("handle_cb_compound: OP_CB_OFFLOAD\n"));
             res->status = NFS4ERR_NOTSUPP;
             break;
         case OP_CB_ILLEGAL:
-            eprintf("OP_CB_ILLEGAL\n");
+            eprintf("handle_cb_compound: OP_CB_ILLEGAL\n");
             /* FIXME: Maybe |NFS4ERR_OP_ILLEGAL| is better ? */
             res->status = NFS4ERR_NOTSUPP;
             break;
         default:
-            eprintf("operation %u not supported\n", argop->opnum);
+            eprintf("handle_cb_compound: "
+                "operation %u not supported\n", (unsigned int)argop->opnum);
             /* FIXME: Maybe |NFS4ERR_OP_ILLEGAL| is better ? */
             res->status = NFS4ERR_NOTSUPP;
             break;
@@ -552,11 +570,13 @@ out:
     /* free the arguments */
     xdr->x_op = XDR_FREE;
     if (!proc_cb_compound_args(xdr, &args)) {
-        eprintf("handle_cb_compound: proc_cb_compound_args() for XDR_FREE failed\n");
+        eprintf("handle_cb_compound: "
+            "proc_cb_compound_args() for XDR_FREE failed\n");
     }
 
     *reply = res;
-    DPRINTF(CBSLVL, ("<-- handle_cb_compound() returning '%s' (%u results)\n",
+    DPRINTF(CBSLVL2,
+        ("<-- handle_cb_compound() returning '%s' (%u results)\n",
         nfs_error_string(res ? res->status : status),
         res ? res->resarray_count : 0));
 }
@@ -568,25 +588,28 @@ int nfs41_handle_callback(void *rpc_clnt, void *cb, void **arg_reply)
     cb_req *request = (cb_req *)cb;
     uint32_t status = 0;
 
-    DPRINTF(1, ("nfs41_handle_callback: received call\n"));
+    DPRINTF(CBSLVL3, ("nfs41_handle_callback: received call\n"));
     if (request->rq_prog != NFS41_RPC_CBPROGRAM) {
-        eprintf("invalid rpc program %u\n", request->rq_prog);
+        eprintf("nfs41_handle_callback: invalid rpc program %u\n",
+            (unsigned int)request->rq_prog);
         status = 2;
         goto out;
     }
 
     switch (request->rq_proc) {
     case CB_NULL:
-        DPRINTF(1, ("CB_NULL\n"));
+        DPRINTF(CBSLVL3, ("nfs41_handle_callback: CB_NULL\n"));
         break;
 
     case CB_COMPOUND:
-        DPRINTF(1, ("CB_COMPOUND\n"));
+        DPRINTF(CBSLVL3, ("nfs41_handle_callback: CB_COMPOUND\n"));
         handle_cb_compound(rpc, request, reply);
         break;
 
     default:
-        DPRINTF(1, ("invalid rpc procedure %u\n", request->rq_proc));
+        DPRINTF(0,
+            ("nfs41_handle_callback: invalid rpc procedure %u\n",
+            (unsigned int)request->rq_proc));
         status = 3;
         goto out;
     }
