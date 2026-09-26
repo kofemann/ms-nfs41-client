@@ -48,8 +48,13 @@ enum {
 
 #define NAME_CACHE_EXPIRATION 30 /* TODO: get from configuration */
 
-/* allow up to 32M of memory for name and attribute cache entries */
+#ifdef NFS41_DRIVER_WORKAROUND_SMALL_DBG_FOOTPRINT
+/* Use 64k of memory for name and attribute cache entries */
+#define NAME_CACHE_MAX_SIZE (64*1024L)
+#else
+/* Allow up to 32M of memory for name and attribute cache entries */
 #define NAME_CACHE_MAX_SIZE (32*1024*1024L)
+#endif /* NFS41_DRIVER_WORKAROUND_SMALL_DBG_FOOTPRINT */
 
 /* negative lookup caching
  *

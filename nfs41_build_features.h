@@ -420,4 +420,11 @@
  */
 #define NFS41_DRIVER_WORKAROUND_LINUX_NFSD_CB_RECALL_ANY_KEEP_ZERO_COUNT 1
 
+/*
+ * |NFS41_DRIVER_WORKAROUND_SMALL_DBG_FOOTPRINT| -
+ * limit cache sizes and number of threads for now to aid with debugging
+ *
+ * #define NFS41_DRIVER_WORKAROUND_SMALL_DBG_FOOTPRINT 1
+ */
+
 #endif /* !_NFS41_DRIVER_BUILDFEATURES_ */

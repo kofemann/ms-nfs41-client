@@ -58,7 +58,12 @@
 
 /* nfs41_dg.num_worker_threads sets the actual number of worker threads */
 #define MAX_NUM_THREADS 1024
+
+#ifdef NFS41_DRIVER_WORKAROUND_SMALL_DBG_FOOTPRINT
+#define DEFAULT_NUM_THREADS 16
+#else
 #define DEFAULT_NUM_THREADS 128
+#endif /* NFS41_DRIVER_WORKAROUND_SMALL_DBG_FOOTPRINT */
 DWORD NFS41D_VERSION = 0;
 
 static const char FILE_NETCONFIG[] = "C:\\etc\\netconfig";
