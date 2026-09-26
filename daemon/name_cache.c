@@ -38,6 +38,7 @@
 #include "tree.h"
 #include "daemon_debug.h"
 
+// #define NAMECACHE_DEBUG_ALLOC 1
 
 /* dprintf levels for name cache logging */
 enum {
@@ -551,7 +552,9 @@ RB_HEAD(name_tree_ci, name_cache_entry);
 
 struct nfs41_name_cache {
     struct name_cache_entry *root;
+#ifndef NAMECACHE_DEBUG_ALLOC
     struct name_cache_entry *pool;
+#endif /* !NAMECACHE_DEBUG_ALLOC */
     struct attr_cache       attributes;
     struct list_entry       exp_entries; /* list of entries by expiry */
     uint32_t                expiration;
@@ -769,6 +772,18 @@ static __inline void name_cache_unlink(
     list_add_tail(&cache->exp_entries, &entry->exp_entry);
 }
 
+#ifdef NAMECACHE_DEBUG_ALLOC
+static __inline void name_cache_entry_free(
+    IN struct nfs41_name_cache *cache,
+    IN struct name_cache_entry *entry)
+{
+    name_cache_unlink(cache, entry);
+    list_remove(&entry->exp_entry);
+    free(entry);
+    cache->entries--;
+}
+#endif /* NAMECACHE_DEBUG_ALLOC */
+
 static void name_cache_unlink_children_recursive(
     IN struct nfs41_name_cache *cache,
     IN struct name_cache_entry *parent)
@@ -787,6 +802,31 @@ static int name_cache_entry_create(
     int status = NO_ERROR;
     struct name_cache_entry *entry;
 
+#ifdef NAMECACHE_DEBUG_ALLOC
+    if (cache->entries >= cache->max_entries) {
+        /* scavenge and free the oldest entry */
+        if (list_empty(&cache->exp_entries)) {
+            status = ERROR_OUTOFMEMORY;
+            goto out;
+        }
+        entry = name_entry(cache->exp_entries.prev);
+
+        DPRINTF(NCLVL2, ("name_cache_entry_create('%s') freeing scavenged 0x%p\n",
+            component->name, entry));
+        name_cache_entry_free(cache, entry);
+    }
+
+    entry = malloc(NAME_ENTRY_SIZE);
+    if (entry == NULL) {
+        status = ERROR_NOT_ENOUGH_MEMORY;
+        goto out;
+    }
+    ZeroMemory(entry, NAME_ENTRY_SIZE);
+    cache->entries++;
+
+    list_init(&entry->exp_entry);
+    list_add_tail(&cache->exp_entries, &entry->exp_entry);
+#else
     if (cache->entries >= cache->max_entries) {
         /* scavenge the oldest entry */
         if (list_empty(&cache->exp_entries)) {
@@ -804,6 +844,7 @@ static int name_cache_entry_create(
         list_init(&entry->exp_entry);
         list_add_tail(&cache->exp_entries, &entry->exp_entry);
     }
+#endif /* NAMECACHE_DEBUG_ALLOC */
 
     /* Add back pointer to entry */
     entry->name_cache = cache;
@@ -1071,6 +1112,9 @@ out:
     return status;
 
 out_err:
+#ifdef NAMECACHE_DEBUG_ALLOC
+    name_cache_entry_free(cache, *target_out);
+#endif /* NAMECACHE_DEBUG_ALLOC */
     *target_out = NULL;
     goto out;
 }
@@ -1126,12 +1170,14 @@ int nfs41_name_cache_create(
     cache->max_delegations = NAME_CACHE_MAX_ENTRIES / 2;
     InitializeSRWLock(&cache->lock);
 
+#ifndef NAMECACHE_DEBUG_ALLOC
     /* allocate a pool of entries */
     cache->pool = calloc(cache->max_entries, NAME_ENTRY_SIZE);
     if (cache->pool == NULL) {
         status = ERROR_NOT_ENOUGH_MEMORY;
         goto out_err_cache;
     }
+#endif /* !NAMECACHE_DEBUG_ALLOC */
 
     /* initialize the attribute cache */
     status = attr_cache_init(&cache->attributes, cache->max_entries);
@@ -1143,7 +1189,9 @@ out:
     return status;
 
 out_err_pool:
+#ifndef NAMECACHE_DEBUG_ALLOC
     free(cache->pool);
+#endif /* !NAMECACHE_DEBUG_ALLOC */
 out_err_cache:
 #ifdef NFS41_DRIVER_CASEINSENSITIVE_FS_SUPPORT
     if (cache->icu_coll) {
@@ -1162,6 +1210,22 @@ int nfs41_name_cache_free(
 
     DPRINTF(NCLVL1, ("nfs41_name_cache_free()\n"));
 
+#ifdef NAMECACHE_DEBUG_ALLOC
+    /* Unlink every tree entry.  This also releases references into the
+     * attribute cache and puts all name entries on exp_entries. */
+    if (cache->root)
+        name_cache_unlink(cache, cache->root);
+
+    /* Name entries are allocated individually in debug mode. */
+    while (!list_empty(&cache->exp_entries)) {
+        struct name_cache_entry *entry = name_entry(cache->exp_entries.next);
+        list_remove(&entry->exp_entry);
+        free(entry);
+        cache->entries--;
+    }
+    EASSERT(cache->entries == 0);
+#endif /* NAMECACHE_DEBUG_ALLOC */
+
     /* free the attribute cache */
     attr_cache_free(&cache->attributes);
 
@@ -1172,8 +1236,10 @@ int nfs41_name_cache_free(
     }
 #endif /* NFS41_DRIVER_CASEINSENSITIVE_FS_SUPPORT */
 
+#ifndef NAMECACHE_DEBUG_ALLOC
     /* free the name entry pool */
     free(cache->pool);
+#endif /* !NAMECACHE_DEBUG_ALLOC */
     free(cache);
     *cache_out = NULL;
     return status;
