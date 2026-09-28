@@ -205,6 +205,11 @@ static __inline void attr_cache_entry_free(
 {
     DPRINTF(NCLVL1, ("attr_cache_entry_free(%llu)\n", entry->fileid));
     RB_REMOVE(attr_tree, &cache->head, entry);
+
+#ifndef NAMECACHE_DEBUG_ALLOC
+    (void)memset(entry, 0xEE, ATTR_ENTRY_SIZE);
+#endif /* !NAMECACHE_DEBUG_ALLOC */
+
     /* add it back to free_entries */
     list_add_tail(&cache->free_entries, &entry->free_entry);
 }
