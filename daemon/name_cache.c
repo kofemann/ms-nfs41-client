@@ -38,6 +38,11 @@
 #include "tree.h"
 #include "daemon_debug.h"
 
+/*
+ * |NAMECACHE_DEBUG_ALLOC| - use |malloc()|/|free()| for namecache
+ * allocations so tools like Rational Purify or DrMemory can
+ * be used to debug the namecache
+ */
 // #define NAMECACHE_DEBUG_ALLOC 1
 
 /*
@@ -120,7 +125,9 @@ static __inline bool is_delegation(
 /* attribute cache */
 struct attr_cache_entry {
     RB_ENTRY(attr_cache_entry) rbnode;
+#ifndef NAMECACHE_DEBUG_ALLOC
     struct list_entry       free_entry;
+#endif /* !NAMECACHE_DEBUG_ALLOC */
     uint32_t                nc_attrs;
     uint64_t                change;
     uint64_t                size;
@@ -155,8 +162,13 @@ RB_HEAD(attr_tree, attr_cache_entry);
 
 struct attr_cache {
     struct attr_tree        head;
+#ifdef NAMECACHE_DEBUG_ALLOC
+    uint32_t                allocated_entries;
+    uint32_t                max_entries;
+#else
     struct attr_cache_entry *pool;
     struct list_entry       free_entries;
+#endif /* NAMECACHE_DEBUG_ALLOC */
 };
 
 static int attr_cmp(struct attr_cache_entry *lhs, struct attr_cache_entry *rhs)
@@ -167,7 +179,9 @@ RB_GENERATE(attr_tree, attr_cache_entry, rbnode, attr_cmp)
 
 
 /* attr_cache_entry */
+#ifndef NAMECACHE_DEBUG_ALLOC
 #define attr_entry(pos) list_container(pos, struct attr_cache_entry, free_entry)
+#endif /* !NAMECACHE_DEBUG_ALLOC */
 
 static int attr_cache_entry_create(
     IN struct attr_cache *cache,
@@ -177,6 +191,19 @@ static int attr_cache_entry_create(
     struct attr_cache_entry *entry;
     int status = NO_ERROR;
 
+#ifdef NAMECACHE_DEBUG_ALLOC
+    if (cache->allocated_entries >= cache->max_entries) {
+        status = ERROR_OUTOFMEMORY;
+        goto out;
+    }
+
+    entry = calloc(1, ATTR_ENTRY_SIZE);
+    if (entry == NULL) {
+        status = ERROR_OUTOFMEMORY;
+        goto out;
+    }
+    cache->allocated_entries++;
+#else
     /* get the next entry from free_entries and remove it */
     if (list_empty(&cache->free_entries)) {
         status = ERROR_OUTOFMEMORY;
@@ -184,6 +211,7 @@ static int attr_cache_entry_create(
     }
     entry = attr_entry(cache->free_entries.next);
     list_remove(&entry->free_entry);
+#endif /* NAMECACHE_DEBUG_ALLOC */
 
     entry->nc_attrs = 0;
     entry->change = 0ULL;
@@ -206,12 +234,16 @@ static __inline void attr_cache_entry_free(
     DPRINTF(NCLVL1, ("attr_cache_entry_free(%llu)\n", entry->fileid));
     RB_REMOVE(attr_tree, &cache->head, entry);
 
-#ifndef NAMECACHE_DEBUG_ALLOC
+#ifdef NAMECACHE_DEBUG_ALLOC
+    EASSERT(cache->allocated_entries > 0);
+    cache->allocated_entries--;
+    free(entry);
+#else
     (void)memset(entry, 0xEE, ATTR_ENTRY_SIZE);
-#endif /* !NAMECACHE_DEBUG_ALLOC */
 
     /* add it back to free_entries */
     list_add_tail(&cache->free_entries, &entry->free_entry);
+#endif /* NAMECACHE_DEBUG_ALLOC */
 }
 
 static __inline void attr_cache_entry_ref(
@@ -247,9 +279,15 @@ static int attr_cache_init(
     IN struct attr_cache *cache,
     IN uint32_t max_entries)
 {
+#ifndef NAMECACHE_DEBUG_ALLOC
     uint32_t i;
+#endif /* !NAMECACHE_DEBUG_ALLOC */
     int status = NO_ERROR;
 
+#ifdef NAMECACHE_DEBUG_ALLOC
+    cache->allocated_entries = 0;
+    cache->max_entries = max_entries;
+#else
     /* allocate a pool of entries */
     cache->pool = calloc(max_entries, ATTR_ENTRY_SIZE);
     if (cache->pool == NULL) {
@@ -263,17 +301,24 @@ static int attr_cache_init(
         list_init(&cache->pool[i].free_entry);
         list_add_tail(&cache->free_entries, &cache->pool[i].free_entry);
     }
+
 out:
+#endif /* NAMECACHE_DEBUG_ALLOC */
+
     return status;
 }
 
 static void attr_cache_free(
     IN struct attr_cache *cache)
 {
+#ifdef NAMECACHE_DEBUG_ALLOC
+    EASSERT(cache->allocated_entries == 0);
+#else
     /* free the pool */
     free(cache->pool);
     cache->pool = NULL;
     list_init(&cache->free_entries);
+#endif /* NAMECACHE_DEBUG_ALLOC */
 }
 
 static struct attr_cache_entry* attr_cache_search(
@@ -859,12 +904,11 @@ static int name_cache_entry_create(
         name_cache_entry_free(cache, entry);
     }
 
-    entry = malloc(NAME_ENTRY_SIZE);
+    entry = calloc(1, NAME_ENTRY_SIZE);
     if (entry == NULL) {
         status = ERROR_NOT_ENOUGH_MEMORY;
         goto out;
     }
-    ZeroMemory(entry, NAME_ENTRY_SIZE);
     cache->entries++;
 
     list_init(&entry->exp_entry);
