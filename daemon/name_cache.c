@@ -1533,8 +1533,10 @@ int nfs41_name_cache_delegreturn(
     status = name_cache_lookup(cache, caseinsensitivesearch, 0, path,
         name->name + name->len, NULL, &parent, &target, NULL);
     if (status == NO_ERROR) {
-        /* put the name cache entry back on the exp_entries list */
-        list_add_head(&cache->exp_entries, &target->exp_entry);
+        /* Add only detached entries - linked entries are moved below... */
+        if (list_empty(&target->exp_entry)) {
+            list_add_head(&cache->exp_entries, &target->exp_entry);
+        }
         name_cache_entry_updated(cache, target);
 
         attributes = target->attributes;
