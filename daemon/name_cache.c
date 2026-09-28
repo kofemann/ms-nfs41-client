@@ -538,6 +538,8 @@ struct name_cache_entry {
     util_reltimestamp         expiration;
     struct nfs41_name_cache *name_cache;
     unsigned short          component_len;
+    uint32_t                cached_child_count;
+    uint32_t                eviction_pin_count;
 };
 #define NAME_ENTRY_SIZE sizeof(struct name_cache_entry)
 
@@ -742,7 +744,11 @@ static __inline void name_cache_remove(
     IN struct name_cache_entry *entry,
     IN struct name_cache_entry *parent)
 {
+    EASSERT(entry->parent == parent);
+    EASSERT(parent->cached_child_count > 0);
+
     RB_REMOVE(name_tree_cs, (struct name_tree_cs *)&parent->rbchildren, entry);
+    parent->cached_child_count--;
     entry->parent = NULL;
 }
 
@@ -777,6 +783,9 @@ static __inline void name_cache_entry_free(
     IN struct nfs41_name_cache *cache,
     IN struct name_cache_entry *entry)
 {
+    EASSERT(entry->cached_child_count == 0);
+    EASSERT(entry->eviction_pin_count == 0);
+
     name_cache_unlink(cache, entry);
     list_remove(&entry->exp_entry);
     free(entry);
@@ -792,6 +801,24 @@ static void name_cache_unlink_children_recursive(
     RB_FOREACH_SAFE(entry, name_tree_cs,
         (struct name_tree_cs *)&parent->rbchildren, tmp)
         name_cache_unlink(cache, entry);
+
+    EASSERT(parent->cached_child_count == 0);
+}
+
+/* Return the least-recently-used leaf which is not in active use */
+static struct name_cache_entry *name_cache_entry_find_evictable(
+    IN struct nfs41_name_cache *cache)
+{
+    struct list_entry *pos;
+
+    for (pos = cache->exp_entries.prev;
+            pos != &cache->exp_entries; pos = pos->prev) {
+        struct name_cache_entry *entry = name_entry(pos);
+        if (entry->cached_child_count != 0 || entry->eviction_pin_count != 0)
+            continue;
+        return entry;
+    }
+    return NULL;
 }
 
 static int name_cache_entry_create(
@@ -804,12 +831,12 @@ static int name_cache_entry_create(
 
 #ifdef NAMECACHE_DEBUG_ALLOC
     if (cache->entries >= cache->max_entries) {
-        /* scavenge and free the oldest entry */
-        if (list_empty(&cache->exp_entries)) {
+        /* scavenge and free the oldest unpinned leaf */
+        entry = name_cache_entry_find_evictable(cache);
+        if (entry == NULL) {
             status = ERROR_OUTOFMEMORY;
             goto out;
         }
-        entry = name_entry(cache->exp_entries.prev);
 
         DPRINTF(NCLVL2, ("name_cache_entry_create('%s') freeing scavenged 0x%p\n",
             component->name, entry));
@@ -828,12 +855,12 @@ static int name_cache_entry_create(
     list_add_tail(&cache->exp_entries, &entry->exp_entry);
 #else
     if (cache->entries >= cache->max_entries) {
-        /* scavenge the oldest entry */
-        if (list_empty(&cache->exp_entries)) {
+        /* scavenge the oldest unpinned leaf */
+        entry = name_cache_entry_find_evictable(cache);
+        if (entry == NULL) {
             status = ERROR_OUTOFMEMORY;
             goto out;
         }
-        entry = name_entry(cache->exp_entries.prev);
         name_cache_unlink(cache, entry);
 
         DPRINTF(NCLVL2, ("name_cache_entry_create('%s') scavenged 0x%p\n",
@@ -1074,8 +1101,11 @@ static int name_cache_insert(
 
     DPRINTF(NCLVL2, ("--> name_cache_insert('%s')\n", entry->component));
 
-    if (name_tree_insert(&parent->rbchildren, entry, caseinsensitivesearch))
+    if (name_tree_insert(&parent->rbchildren, entry, caseinsensitivesearch)) {
         status = ERROR_FILE_EXISTS;
+    } else {
+        parent->cached_child_count++;
+    }
     entry->parent = parent;
 
     DPRINTF(NCLVL2, ("<-- name_cache_insert() returning %u\n", status));
@@ -1098,13 +1128,19 @@ static int name_cache_find_or_create(
     if (*target_out)
         goto out;
 
+    EASSERT(parent->eviction_pin_count != UINT32_MAX);
+    parent->eviction_pin_count++;
+
     status = name_cache_entry_create(cache, component, target_out);
     if (status)
-        goto out;
+        goto out_unpin;
 
     status = name_cache_insert(*target_out, parent, caseinsensitivesearch);
     if (status)
         goto out_err;
+
+    EASSERT(parent->eviction_pin_count > 0);
+    parent->eviction_pin_count--;
 
 out:
     DPRINTF(NCLVL1, ("<-- name_cache_find_or_create() returning %d\n",
@@ -1116,6 +1152,10 @@ out_err:
     name_cache_entry_free(cache, *target_out);
 #endif /* NAMECACHE_DEBUG_ALLOC */
     *target_out = NULL;
+
+out_unpin:
+    EASSERT(parent->eviction_pin_count > 0);
+    parent->eviction_pin_count--;
     goto out;
 }
 
