@@ -40,6 +40,17 @@
 
 // #define NAMECACHE_DEBUG_ALLOC 1
 
+/*
+ * |NAMECACHE_WORKAROUND_DETACH_FAILED_INSERT| - Workaround for failed insert.
+ * We keep failed RB_INSERT entries detached. The entry was not linked into
+ * the parent tree, so setting parent would make cleanup remove a node never
+ * added.
+ * This contains the error path but does not explain a lookup/insert mismatch.
+ *
+ * FIXME: We should find the real issue.
+ */
+#define NAMECACHE_WORKAROUND_DETACH_FAILED_INSERT 1
+
 /* dprintf levels for name cache logging */
 enum {
     NCLVL1 = 2,
@@ -1101,12 +1112,21 @@ static int name_cache_insert(
 
     DPRINTF(NCLVL2, ("--> name_cache_insert('%s')\n", entry->component));
 
+#if NAMECACHE_WORKAROUND_DETACH_FAILED_INSERT
+    if (name_tree_insert(&parent->rbchildren, entry, caseinsensitivesearch)) {
+        status = ERROR_FILE_EXISTS;
+    } else {
+        entry->parent = parent;
+        parent->cached_child_count++;
+    }
+#else
     if (name_tree_insert(&parent->rbchildren, entry, caseinsensitivesearch)) {
         status = ERROR_FILE_EXISTS;
     } else {
         parent->cached_child_count++;
     }
     entry->parent = parent;
+#endif /* NAMECACHE_WORKAROUND_DETACH_FAILED_INSERT */
 
     DPRINTF(NCLVL2, ("<-- name_cache_insert() returning %u\n", status));
     return status;
