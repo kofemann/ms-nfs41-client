@@ -489,7 +489,7 @@ subcmd_popen_context *subcmd_popen(const char *command)
     }
 
     if (!CreateProcessW(NULL,
-        commandW, NULL, NULL, TRUE, 0, NULL, NULL, &si,
+        commandW, NULL, NULL, TRUE, CREATE_NO_WINDOW, NULL, NULL, &si,
         &pinfo->pi)) {
         DPRINTF(0, ("subcmd_popen: cannot create process\n"));
         goto fail;
