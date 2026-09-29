@@ -277,6 +277,7 @@ typedef struct _updowncall_entry {
 #endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
             HANDLE srv_open;
             HANDLE fobx;
+            DWORD want_deleg;
             DWORD deleg_type;
             BOOLEAN symlink_embedded;
             nfs41_sysop_open_symlinktarget_type symlinktarget_type;
@@ -572,6 +573,7 @@ typedef struct _NFS41_SRV_OPEN {
      */
     SECURITY_CLIENT_CONTEXT sec_ctx;
     HANDLE          nfs41_open_state;
+    ULONG           want_deleg;
     nfs41_open_delegation_type deleg_type;
     BOOLEAN         write_thru;
     BOOLEAN         nocache;

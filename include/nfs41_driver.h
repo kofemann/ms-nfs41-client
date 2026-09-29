@@ -191,6 +191,27 @@ typedef enum _nfs41_why_no_delegation {
     NFS41_WND4_IS_DIR = 8
 } nfs41_why_no_delegation;
 
+/* |OPEN4_SHARE_*| flags from "daemon/nfs41_ops.h" */
+#define OPEN4_SHARE_ACCESS_READ         0x00000001
+#define OPEN4_SHARE_ACCESS_WRITE        0x00000002
+#define OPEN4_SHARE_ACCESS_BOTH         0x00000003
+
+#define OPEN4_SHARE_DENY_NONE           0x00000000
+#define OPEN4_SHARE_DENY_READ           0x00000001
+#define OPEN4_SHARE_DENY_WRITE          0x00000002
+#define OPEN4_SHARE_DENY_BOTH           0x00000003
+
+#define OPEN4_SHARE_ACCESS_WANT_DELEG_MASK          0xFF00
+#define OPEN4_SHARE_ACCESS_WANT_NO_PREFERENCE       0x0000
+#define OPEN4_SHARE_ACCESS_WANT_READ_DELEG          0x0100
+#define OPEN4_SHARE_ACCESS_WANT_WRITE_DELEG         0x0200
+#define OPEN4_SHARE_ACCESS_WANT_ANY_DELEG           0x0300
+#define OPEN4_SHARE_ACCESS_WANT_NO_DELEG            0x0400
+#define OPEN4_SHARE_ACCESS_WANT_CANCEL              0x0500
+
+#define OPEN4_SHARE_ACCESS_WANT_SIGNAL_DELEG_WHEN_RESRC_AVAIL   0x10000
+#define OPEN4_SHARE_ACCESS_WANT_PUSH_DELEG_WHEN_UNCONTENDED     0x20000
+
 /* Same as "daemon/nfs41_ops.h" |open_delegation_type4| */
 typedef enum _nfs41_open_delegation_type {
     NFS41_OPEN_DELEGATE_NONE      = 0,

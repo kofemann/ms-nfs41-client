@@ -342,6 +342,7 @@ NTSTATUS nfs41_invalidate_cache(
     PLOWIO_CONTEXT LowIoContext = &RxContext->LowIoContext;
     const unsigned char *tmp = LowIoContext->ParamsFor.IoCtl.pInputBuffer;
     PMRX_SRV_OPEN srv_open;
+    ULONG want_deleg = 0;
     ULONG deleg_type;
     NTSTATUS status;
 
@@ -367,12 +368,15 @@ NTSTATUS nfs41_invalidate_cache(
 
     __try {
         PNFS41_SRV_OPEN nfs41_srvopen = NFS41GetSrvOpenExtension(srv_open);
+        want_deleg = nfs41_srvopen->want_deleg;
         nfs41_srvopen->deleg_type = (nfs41_open_delegation_type)deleg_type;
 #ifdef DEBUG_INVALIDATE_CACHE
         DbgP("nfs41_invalidate_cache: "
-            "srv_open=0x%p,filename='%wZ',deleg_type=%lu\n",
+            "srv_open=0x%p,filename='%wZ',want_deleg=0x%lx,"
+            "deleg_type=%lu\n",
             srv_open,
             srv_open->pAlreadyPrefixedName,
+            (unsigned long)want_deleg,
             (unsigned long)deleg_type);
 #endif /* DEBUG_INVALIDATE_CACHE */
         RxIndicateChangeOfBufferingStateForSrvOpen(
@@ -383,11 +387,13 @@ NTSTATUS nfs41_invalidate_cache(
         NTSTATUS code;
         code = GetExceptionCode();
         print_error("nfs41_invalidate_cache: "
-            "srv_open=0x%p,filename='%wZ',deleg_type=%lu: "
+            "srv_open=0x%p,filename='%wZ',want_deleg=0x%lx,"
+            "deleg_type=%lu: "
             "RxIndicateChangeOfBufferingStateForSrvOpen() "
             "failed due to exception 0x%lx\n",
             srv_open,
             srv_open->pAlreadyPrefixedName,
+            (unsigned long)want_deleg,
             (unsigned long)deleg_type,
             (long)code);
         status = STATUS_INTERNAL_ERROR;
@@ -1057,11 +1063,13 @@ ULONG nfs41_compute_deleg_buffering_state(
     }
 
     DbgP("nfs41_compute_deleg_buffering_state"
-        "(srv_open(=0x%p)=(filename='%wZ'),deleg_type=%lu):"
+        "(srv_open(=0x%p)=(filename='%wZ'),want_deleg=0x%lx,"
+        "deleg_type=%lu):"
         "nc=%d,wt=%d,DesiredAccess=0x%lx: "
         "fcbstate=(state=0x%lx(rc=%d,wc=%d))\n",
         srv_open,
         srv_open->pAlreadyPrefixedName,
+        (unsigned long)nfs41_srvopen->want_deleg,
         (unsigned long)deleg_type,
         (int)nfs41_srvopen->nocache,
         (int)nfs41_srvopen->write_thru,
@@ -1081,6 +1089,10 @@ NTSTATUS nfs41_ComputeNewBufferingState(
     NTSTATUS status;
     nfs41_open_delegation_type deleg_type =
         (nfs41_open_delegation_type)PtrToUlong(pMRxContext);
+#ifdef DEBUG_CACHE
+    PNFS41_SRV_OPEN nfs41_srvopen =
+        NFS41GetSrvOpenExtension(pSrvOpen);
+#endif /* DEBUG_CACHE */
     ULONG fcbstate;
 
     switch (deleg_type) {
@@ -1117,10 +1129,12 @@ NTSTATUS nfs41_ComputeNewBufferingState(
 #ifdef DEBUG_CACHE
     DbgP("nfs41_ComputeNewBufferingState"
         "(pSrvOpen(=0x%p)=(filename='%wZ',BufferingFlags=0x%lx)):"
-        "deleg_type=%lu,DesiredAccess=0x%lx,*pNewBufferingState=0x%lx\n",
+        "want_deleg=0x%lx,deleg_type=%lu,DesiredAccess=0x%lx,"
+        "*pNewBufferingState=0x%lx\n",
         pSrvOpen,
         pSrvOpen->pAlreadyPrefixedName,
         (long)pSrvOpen->BufferingFlags,
+        (unsigned long)nfs41_srvopen->want_deleg,
         (unsigned long)deleg_type,
         (unsigned long)pSrvOpen->DesiredAccess,
         (long)fcbstate);

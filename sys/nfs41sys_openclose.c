@@ -366,6 +366,8 @@ NTSTATUS unmarshal_nfs41_open(
 #endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
     UPDOWNCALL_MEMCPY(&cur->ChangeTime, *buf, sizeof(ULONGLONG));
     *buf += sizeof(ULONGLONG);
+    UPDOWNCALL_MEMCPY(&cur->u.Open.want_deleg, *buf, sizeof(DWORD));
+    *buf += sizeof(DWORD);
     UPDOWNCALL_MEMCPY(&cur->u.Open.deleg_type, *buf, sizeof(DWORD));
     *buf += sizeof(DWORD);
     if (cur->errno == ERROR_REPARSE) {
@@ -406,8 +408,8 @@ NTSTATUS unmarshal_nfs41_open(
 #ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES
         "local_uid=%lu local_gid=%lu "
 #endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
-        "changeattr %llu "
-        "deleg_type %d\n",
+        "changeattr=%llu "
+        "want_deleg=0x%lx deleg_type=%lu\n",
         cur->open_state, cur->u.Open.fileid,
         cur->u.Open.fsid_major, cur->u.Open.fsid_minor,
         cur->u.Open.mode,
@@ -415,7 +417,9 @@ NTSTATUS unmarshal_nfs41_open(
         (unsigned long)cur->u.Open.local_uid,
         (unsigned long)cur->u.Open.local_gid,
 #endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
-        cur->ChangeTime, cur->u.Open.deleg_type);
+        cur->ChangeTime,
+        (unsigned long)cur->u.Open.want_deleg,
+        (unsigned long)cur->u.Open.deleg_type);
 #endif /* DEBUG_MARSHAL_DETAIL */
 out:
     return status;
@@ -1295,10 +1299,13 @@ retry_on_link:
 
     if (!nfs41_fcb->StandardInfo.Directory &&
             isDataAccess(params->DesiredAccess)) {
+        nfs41_srvopen->want_deleg = entry->u.Open.want_deleg;
         nfs41_srvopen->deleg_type = entry->u.Open.deleg_type;
 
-        DbgP("nfs41_Create: srv_open=0x%p, deleg_type=%d, ctime=%llu\n",
-            SrvOpen, nfs41_srvopen->deleg_type, entry->ChangeTime);
+        DbgP("nfs41_Create: "
+            "srv_open=0x%p,want_deleg=0x%lx,deleg_type=%lu,ctime=%llu\n",
+            SrvOpen, (unsigned long)nfs41_srvopen->want_deleg,
+            (unsigned long)nfs41_srvopen->deleg_type, entry->ChangeTime);
 
         /* We always cache file size and file times locally */
         SrvOpen->BufferingFlags |=

@@ -78,6 +78,7 @@ typedef struct __open_upcall_args {
     ULONGLONG changeattr;
     HANDLE srv_open;
     HANDLE fobx;
+    DWORD want_deleg;
     DWORD deleg_type;
     PFILE_FULL_EA_INFORMATION ea;
     BOOLEAN created;

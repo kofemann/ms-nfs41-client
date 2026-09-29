@@ -1882,6 +1882,9 @@ static NTSTATUS nfs41_RequestDelegation(
         goto out;
 
     entry->u.RequestDelegation.requested_type = (ULONG)*input;
+    nfs41_srvopen->want_deleg =
+        (*input == NFS41_OPEN_DELEGATE_READ) ?
+        OPEN4_SHARE_ACCESS_WANT_READ_DELEG : OPEN4_SHARE_ACCESS_WANT_WRITE_DELEG;
 
     status = nfs41_UpcallWaitForReply(entry, pVNetRootContext->timeout);
     if (status) {
@@ -1937,6 +1940,8 @@ static NTSTATUS nfs41_ReturnDelegation(
         &entry);
     if (status)
         goto out;
+
+    nfs41_srvopen->want_deleg = OPEN4_SHARE_ACCESS_WANT_NO_DELEG;
 
     status = nfs41_UpcallWaitForReply(entry, pVNetRootContext->timeout);
     if (status) {

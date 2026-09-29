@@ -1327,6 +1327,8 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
 
         map_access_2_allowdeny(args->access_mask, args->access_mode,
             args->disposition, &state->share_access, &state->share_deny);
+        args->want_deleg =
+            state->share_access & OPEN4_SHARE_ACCESS_WANT_DELEG_MASK;
         status = map_disposition_2_nfsopen(args->disposition, status, 
                     state->session->flags & CREATE_SESSION4_FLAG_PERSIST, 
                     &create, &createhowmode, &upcall->last_error);
@@ -1503,6 +1505,8 @@ static int marshall_open(
     if (status) goto out;
 #endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
     status = safe_write(&buffer, length, &args->changeattr, sizeof(args->changeattr));
+    if (status) goto out;
+    status = safe_write(&buffer, length, &args->want_deleg, sizeof(args->want_deleg));
     if (status) goto out;
     status = safe_write(&buffer, length, &args->deleg_type, sizeof(args->deleg_type));
     if (status) goto out;
