@@ -488,9 +488,14 @@ subcmd_popen_context *subcmd_popen(const char *command)
         goto fail;
     }
 
-    if (!CreateProcessW(NULL,
-        commandW, NULL, NULL, TRUE, CREATE_NO_WINDOW, NULL, NULL, &si,
-        &pinfo->pi)) {
+    /*
+     * Run pipe child with the same class (|HIGH_PRIORITY_CLASS|) as
+     * the rest of the daemon...
+     */
+    if (!CreateProcessW(NULL, commandW,
+        NULL, NULL,
+        TRUE, (HIGH_PRIORITY_CLASS|CREATE_NO_WINDOW), NULL, NULL,
+        &si, &pinfo->pi)) {
         DPRINTF(0, ("subcmd_popen: cannot create process\n"));
         goto fail;
     }
