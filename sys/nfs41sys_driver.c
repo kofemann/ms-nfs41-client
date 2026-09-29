@@ -1059,7 +1059,7 @@ ULONG nfs41_compute_deleg_buffering_state(
     DbgP("nfs41_compute_deleg_buffering_state"
         "(srv_open(=0x%p)=(filename='%wZ'),deleg_type=%lu):"
         "nc=%d,wt=%d,DesiredAccess=0x%lx: "
-        "fcbstate=(state=0x%lx(rb=%d,wb=%d))\n",
+        "fcbstate=(state=0x%lx(rc=%d,wc=%d))\n",
         srv_open,
         srv_open->pAlreadyPrefixedName,
         (unsigned long)deleg_type,
@@ -1067,7 +1067,7 @@ ULONG nfs41_compute_deleg_buffering_state(
         (int)nfs41_srvopen->write_thru,
         (long)srv_open->DesiredAccess,
         (long)fcbstate,
-        ((int)(fcbstate & FCB_STATE_READBUFFERING_ENABLED)?1:0),
+        ((int)(fcbstate & FCB_STATE_READCACHING_ENABLED)?1:0),
         ((int)(fcbstate & FCB_STATE_WRITECACHING_ENABLED)?1:0));
 
     return fcbstate;
