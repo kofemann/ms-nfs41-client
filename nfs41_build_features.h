@@ -427,4 +427,11 @@
  * #define NFS41_DRIVER_WORKAROUND_SMALL_DBG_FOOTPRINT 1
  */
 
+/*
+ * |NFS41_DRIVER_FEATURE_DELEGATION_SCAVENGER| - periodically return
+ * delegations which have no associated srv_open pointers (which means:
+ * they are not in-use by the kernel)
+ */
+#define NFS41_DRIVER_FEATURE_DELEGATION_SCAVENGER 1
+
 #endif /* !_NFS41_DRIVER_BUILDFEATURES_ */

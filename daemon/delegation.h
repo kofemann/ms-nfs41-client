@@ -118,6 +118,13 @@ int nfs41_delegation_getattr(
 int nfs41_client_delegation_recovery(
     IN nfs41_client *client);
 
+#ifdef NFS41_DRIVER_FEATURE_DELEGATION_SCAVENGER
+void nfs41_client_delegation_scavenger_mark(
+    IN OUT nfs41_client *client);
+void nfs41_client_delegation_scavenger_sweep(
+    IN OUT nfs41_client *client);
+#endif /* NFS41_DRIVER_FEATURE_DELEGATION_SCAVENGER */
+
 /* attempt to return the least recently used delegation;
  * fails with NFS4ERR_BADHANDLE if all delegations are in use */
 int nfs41_client_delegation_return_lru(

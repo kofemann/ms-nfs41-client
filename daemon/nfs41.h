@@ -124,6 +124,9 @@ typedef struct __nfs41_delegation_state {
 
     /* |nfs41_delegation_srv_open| entries for RDBSS cache management */
     struct list_entry srv_opens;
+#ifdef NFS41_DRIVER_FEATURE_DELEGATION_SCAVENGER
+    uint16_t delegscavenger_mark;
+#endif /* NFS41_DRIVER_FEATURE_DELEGATION_SCAVENGER */
 } nfs41_delegation_state;
 
 typedef struct __nfs41_lock_state {

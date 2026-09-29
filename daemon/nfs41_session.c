@@ -30,6 +30,9 @@
 #include "nfs41_callback.h"
 #include "util.h"
 #include "daemon_debug.h"
+#ifdef NFS41_DRIVER_FEATURE_DELEGATION_SCAVENGER
+#include "delegation.h"
+#endif /* NFS41_DRIVER_FEATURE_DELEGATION_SCAVENGER */
 
 
 /* after a CB_RECALL_SLOT or NFS4ERR_BADSLOT, wait a short time for the
@@ -267,6 +270,17 @@ static unsigned int WINAPI renew_session_thread_main(void *args)
                     "nfs41_send_sequence() failed status=%d\n",
                     (void *)session, status);
             }
+#ifdef NFS41_DRIVER_FEATURE_DELEGATION_SCAVENGER
+            else {
+                /*
+                 * FIXME: Is this the right place to run the deleg scavenger ?
+                 * The "marking" phase is pretty lightweight, but the
+                 * "sweeping" phase can block due to RPC calls
+                 */
+                nfs41_client_delegation_scavenger_mark(session->client);
+                nfs41_client_delegation_scavenger_sweep(session->client);
+            }
+#endif /* NFS41_DRIVER_FEATURE_DELEGATION_SCAVENGER */
         }
         else if (event_status == WAIT_OBJECT_0) {
             /* event received, renew thread should exit */

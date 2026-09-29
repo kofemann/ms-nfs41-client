@@ -35,6 +35,9 @@
 #include "util.h"
 
 #define DGLVL 2 /* dprintf level for delegation logging */
+#ifdef NFS41_DRIVER_FEATURE_DELEGATION_SCAVENGER
+#define DGSCAVLVL 0 /* dprintf level for delegation scavenger logging */
+#endif /* NFS41_DRIVER_FEATURE_DELEGATION_SCAVENGER */
 
 
 /* allocation and reference counting */
@@ -1167,6 +1170,115 @@ int nfs41_client_delegation_recovery(
 out:
     return status;
 }
+
+
+#ifdef NFS41_DRIVER_FEATURE_DELEGATION_SCAVENGER
+#define DELEGSCAVENGER_MAXMARK 2
+#define DELEGSCAVENGER_MAXRETURN_PER_SWEEP 256
+
+/*
+ * |nfs41_client_delegation_scavenger_mark()| - Delegation scavenger phase 1:
+ * Age delegations which have no associated srv_open pointers.
+ * Any srv_open activity resets the age to zero.
+ */
+void nfs41_client_delegation_scavenger_mark(
+    IN OUT nfs41_client *client)
+{
+    struct list_entry *entry;
+    nfs41_delegation_state *deleg;
+    long stat_unused_delegations = 0L;
+    long stat_used_delegations = 0L;
+
+    EnterCriticalSection(&client->state.lock);
+    list_for_each(entry, &client->state.delegations) {
+        deleg = deleg_entry(entry);
+
+        AcquireSRWLockExclusive(&deleg->lock);
+        if (list_empty(&deleg->srv_opens)) {
+            deleg->delegscavenger_mark++;
+
+            EASSERT(deleg->delegscavenger_mark < 1024);
+
+            stat_unused_delegations++;
+        } else {
+            deleg->delegscavenger_mark = 0;
+
+            stat_used_delegations++;
+        }
+        ReleaseSRWLockExclusive(&deleg->lock);
+    }
+    LeaveCriticalSection(&client->state.lock);
+
+    if ((stat_unused_delegations+stat_used_delegations) > 0) {
+        DPRINTF(DGSCAVLVL,
+            ("nfs41_client_delegation_scavenger_mark(root=0x%p): "
+                "num_delegations=%ld, deleg_in_use=%ld, deleg_unused=%d\n",
+                client->root,
+                (long)(stat_unused_delegations+stat_used_delegations),
+                stat_used_delegations, stat_unused_delegations));
+    }
+}
+
+/*
+ * |nfs41_client_delegation_scavenger_sweep()| - Delegation scavenger pase 2:
+ * Return all delegations which have remained without an
+ * associated srv_open for more than |DELEGSCAVENGER_MAXMARK| cycles.
+ * Select and mark one delegation at a time, then perform
+ * the potentially blocking DELEGRETURN without holding that lock.
+ */
+void nfs41_client_delegation_scavenger_sweep(
+    IN OUT nfs41_client *client)
+{
+    struct list_entry *entry;
+    nfs41_delegation_state *deleg;
+    int status;
+    int num_delegs;
+
+    for (num_delegs = 0 ;
+        num_delegs < DELEGSCAVENGER_MAXRETURN_PER_SWEEP ;
+        num_delegs++) {
+        deleg = NULL;
+
+        EnterCriticalSection(&client->state.lock);
+        list_for_each(entry, &client->state.delegations) {
+            nfs41_delegation_state *candidate = deleg_entry(entry);
+
+            AcquireSRWLockExclusive(&candidate->lock);
+            if (!list_empty(&candidate->srv_opens)) {
+                candidate->delegscavenger_mark = 0;
+            } else if ((candidate->status == DELEGATION_GRANTED) &&
+                (candidate->delegscavenger_mark > DELEGSCAVENGER_MAXMARK)) {
+                candidate->status = DELEGATION_RETURNING;
+                candidate->delegscavenger_mark = 0;
+                deleg = candidate;
+            }
+            ReleaseSRWLockExclusive(&candidate->lock);
+
+            if (deleg != NULL)
+                break;
+        }
+        LeaveCriticalSection(&client->state.lock);
+
+        if (deleg == NULL)
+            break;
+
+        char saved_path[NFS41_MAX_PATH_LEN];
+        (void)memcpy(saved_path, deleg->path.path, deleg->path.len);
+        saved_path[deleg->path.len] = '\0';
+
+        status = delegation_return(client, deleg, FALSE, TRUE);
+
+        DPRINTF(DGSCAVLVL,
+            ("nfs41_client_delegation_scavenger_sweep(root=0x%p): "
+            "returned delegation, deleg->path='%s', status=%d\n",
+            client->root,
+            saved_path, status));
+
+        if (status == NFS4ERR_BADSESSION)
+            break;
+    }
+}
+#endif /* NFS41_DRIVER_FEATURE_DELEGATION_SCAVENGER */
 
 
 int nfs41_client_delegation_return_lru(
