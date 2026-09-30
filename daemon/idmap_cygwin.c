@@ -148,10 +148,10 @@ int cygwin_getent_passwd(
         goto fail;
     }
 
-    if (!isdigit(name[0])) {
-        EASSERT_MSG(IS_PRINCIPAL_NAME(name),
-            ("name='%s' is not a principal\n", name));
-    }
+    enum nfsownerstr_type ont = strclassifynfsowner(name);
+    EASSERT_MSG(((ont == NFSOWNERSTR_PRINCIPAL) ||
+        (ont == NFSOWNERSTR_UID_GID)),
+        ("cygwin_getent_passwd: name='%s' is not a principal\n", name));
 
     /* fixme: better quoting for |name| needed */
     (void)snprintf(cmdbuff, sizeof(cmdbuff),
@@ -407,10 +407,10 @@ int cygwin_getent_group(
         goto fail;
     }
 
-    if (!isdigit(name[0])) {
-        EASSERT_MSG(IS_PRINCIPAL_NAME(name),
-            ("name='%s' is not a principal\n", name));
-    }
+    enum nfsownerstr_type ont = strclassifynfsowner(name);
+    EASSERT_MSG(((ont == NFSOWNERSTR_PRINCIPAL) ||
+        (ont == NFSOWNERSTR_UID_GID)),
+        ("cygwin_getent_group: name='%s' is not a principal\n", name));
 
     /* fixme: better quoting for |name| needed */
     (void)snprintf(cmdbuff, sizeof(cmdbuff),

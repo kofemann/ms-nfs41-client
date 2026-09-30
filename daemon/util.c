@@ -22,6 +22,7 @@
  */
 
 #include <Windows.h>
+#include <ctype.h>
 #include <strsafe.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -39,6 +40,30 @@
 #include "accesstoken.h"
 #endif /* NFS41_DRIVER_SETGID_NEWGRP_SUPPORT */
 
+
+enum nfsownerstr_type strclassifynfsowner(const char *restrict name)
+{
+    const unsigned char *p;
+    bool all_digits = true;
+    size_t at_count = 0;
+
+    if (name[0] == '\0')
+        return NFSOWNERSTR_EMPTY;
+
+    for (p = (const unsigned char *)name; *p != '\0'; p++) {
+        if (!isdigit(*p))
+            all_digits = false;
+        if (*p == '@')
+            at_count++;
+    }
+
+    if (all_digits)
+        return NFSOWNERSTR_UID_GID;
+    if (at_count == 1)
+        return NFSOWNERSTR_PRINCIPAL;
+
+    return NFSOWNERSTR_OTHER;
+}
 
 bool str_has_posixshell_specialchars(const char *restrict s)
 {

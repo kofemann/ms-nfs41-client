@@ -426,37 +426,37 @@ int map_nfs4servername_2_sid(
         ("--> map_nfs4servername_2_sid(query=0x%x,nfsname='%s')\n",
         query, nfsname));
 
-    if (isdigit(nfsname[0])) {
-        idmapcache_idnumber nfs_id;
+    switch (strclassifynfsowner(nfsname)) {
+        case NFSOWNERSTR_UID_GID:
+            idmapcache_idnumber nfs_id;
 
-        errno = 0;
-        nfs_id = strtol(nfsname, NULL, 10);
-        if (errno != 0) {
-            DPRINTF(0,
-                ("map_nfs4servername_2_sid(nfsname='%s'): "
-                "strtol() failed to map string to number, errno=%d\n",
-                nfsname, (int)errno));
-            status = ERROR_NOT_FOUND;
-            goto out;
-        }
+            /*
+             * We can safely use |atol()| here because
+             * |strclassifynfsowner(...) == NFSOWNERSTR_UID_GID| guarantees
+             * that the string only has digits
+             */
+            nfs_id = atol(nfsname);
 
-        if ((nfs_ie == NULL) && (query & OWNER_SECURITY_INFORMATION)) {
-            nfs_ie = nfs41_idmap_user_lookup_by_nfsid(idmapper, nfs_id);
-        }
-        if ((nfs_ie == NULL) && (query & GROUP_SECURITY_INFORMATION)) {
-            nfs_ie = nfs41_idmap_group_lookup_by_nfsid(idmapper, nfs_id);
-        }
-    }
-    else {
-        EASSERT_MSG(IS_PRINCIPAL_NAME(nfsname),
-            ("nfsname='%s' is not a principal\n", nfsname));
-
-        if ((nfs_ie == NULL) && (query & OWNER_SECURITY_INFORMATION)) {
-            nfs_ie = nfs41_idmap_user_lookup_by_nfsname(idmapper, nfsname);
-        }
-        if ((nfs_ie == NULL) && (query & GROUP_SECURITY_INFORMATION)) {
-            nfs_ie = nfs41_idmap_group_lookup_by_nfsname(idmapper, nfsname);
-        }
+            if ((nfs_ie == NULL) && (query & OWNER_SECURITY_INFORMATION)) {
+                nfs_ie = nfs41_idmap_user_lookup_by_nfsid(idmapper, nfs_id);
+            }
+            if ((nfs_ie == NULL) && (query & GROUP_SECURITY_INFORMATION)) {
+                nfs_ie = nfs41_idmap_group_lookup_by_nfsid(idmapper, nfs_id);
+            }
+            break;
+        default:
+            EASSERT_MSG(false,
+                ("map_nfs4servername_2_sid: "
+                "nfsname='%s' is not a principal\n", nfsname));
+            /* fall-through */
+        case NFSOWNERSTR_PRINCIPAL:
+            if ((nfs_ie == NULL) && (query & OWNER_SECURITY_INFORMATION)) {
+                nfs_ie = nfs41_idmap_user_lookup_by_nfsname(idmapper, nfsname);
+            }
+            if ((nfs_ie == NULL) && (query & GROUP_SECURITY_INFORMATION)) {
+                nfs_ie = nfs41_idmap_group_lookup_by_nfsname(idmapper, nfsname);
+            }
+            break;
     }
 
     if (nfs_ie == NULL) {

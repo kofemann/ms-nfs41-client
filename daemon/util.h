@@ -39,6 +39,15 @@ typedef struct __nfs41_file_info nfs41_file_info;
 typedef struct __nfs41_superblock nfs41_superblock;
 enum stable_how4;
 
+enum nfsownerstr_type {
+    NFSOWNERSTR_UID_GID     = 1,
+    NFSOWNERSTR_PRINCIPAL   = 2,
+    NFSOWNERSTR_EMPTY       = 9,
+    NFSOWNERSTR_OTHER       = 10
+};
+
+enum nfsownerstr_type strclassifynfsowner(const char *restrict name);
+
 /* Is this a name@domain principal-like string ? */
 #define IS_PRINCIPAL_NAME(name) \
     (((strchr((name), '@') != NULL) || \

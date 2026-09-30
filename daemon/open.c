@@ -716,7 +716,8 @@ void open_get_localuidgid(
 {
     int status = 0;
     struct idmap_context *idmapper = state->session->client->root->idmapper;
-    idmapcache_entry *ie;
+    idmapcache_entry *owner_ie;
+    idmapcache_entry *owner_group_ie;
 
 #if 1
     EASSERT(info->attrmask.count >= 2);
@@ -761,8 +762,6 @@ void open_get_localuidgid(
     EASSERT(info->owner_group != NULL);
     EASSERT(info->owner == info->owner_buf);
     EASSERT(info->owner_group == info->owner_group_buf);
-    EASSERT(strlen(info->owner) > 0);
-    EASSERT(strlen(info->owner_group) > 0);
 
     /*
      * Map owner to local uid
@@ -770,37 +769,70 @@ void open_get_localuidgid(
      * |owner| can be numeric string ("1616"), plain username
      *  ("gisburn") or username@domain ("gisburn@sun.com")
      */
-    ie = NULL;
 
-    if (isdigit(info->owner[0])) {
-        idmapcache_idnumber nfs_id;
+    switch(strclassifynfsowner(info->owner)) {
+        case NFSOWNERSTR_UID_GID:
+            idmapcache_idnumber nfs_uid;
 
-        errno = 0;
-        nfs_id = strtol(info->owner, NULL, 10);
+            /*
+             * We can safely use |atol()| here because
+             * |strclassifynfsowner(...) == NFSOWNERSTR_UID_GID| guarantees
+             * that the string only has digits
+             */
+            nfs_uid = atol(info->owner);
 
-        if (errno == 0) {
-            ie = nfs41_idmap_user_lookup_by_nfsid(idmapper, nfs_id);
-        }
-        else {
-            DPRINTF(0,
-                ("open_get_localuidgid(state->path='%s'): "
-                "strtol(info->owner='%s') failed to map string to number, "
-                "errno=%d\n",
-                state->path.path,
-                info->owner,
-                (int)errno));
-        }
+            owner_ie =
+                nfs41_idmap_user_lookup_by_nfsid(idmapper, nfs_uid);
+            break;
+        default:
+            EASSERT_MSG(false,
+                ("open_get_localuidgid: "
+                "info->owner='%s' is not a principal\n",
+                info->owner));
+            /* fall-through */
+        case NFSOWNERSTR_PRINCIPAL:
+            owner_ie =
+                nfs41_idmap_user_lookup_by_nfsname(idmapper, info->owner);
+            break;
     }
-    else {
-        EASSERT_MSG(IS_PRINCIPAL_NAME(info->owner),
-            ("info->owner='%s' is not a principal\n", info->owner));
 
-        ie = nfs41_idmap_user_lookup_by_nfsname(idmapper, info->owner);
+    /*
+     * Map owner_group to local gid
+     *
+     * |owner_group| can be numeric string ("1616"), plain groupname
+     * ("gisgrp") or groupname@domain ("gisgrp@sun.com")
+     */
+
+    switch(strclassifynfsowner(info->owner_group)) {
+        case NFSOWNERSTR_UID_GID:
+            idmapcache_idnumber nfs_gid;
+
+            /*
+             * We can safely use |atol()| here because
+             * |strclassifynfsowner(...) == NFSOWNERSTR_UID_GID| guarantees
+             * that the string only has digits
+             */
+            nfs_gid = atol(info->owner_group);
+
+            owner_group_ie =
+                nfs41_idmap_group_lookup_by_nfsid(idmapper, nfs_gid);
+            break;
+        default:
+            EASSERT_MSG(false,
+                ("open_get_localuidgid: "
+                "info->owner_group='%s' is not a principal\n",
+                info->owner_group));
+            /* fall-through */
+        case NFSOWNERSTR_PRINCIPAL:
+            owner_group_ie =
+                nfs41_idmap_group_lookup_by_nfsname(idmapper,
+                    info->owner_group);
+            break;
     }
 
-    if (ie != NULL) {
-         *local_uid = ie->localid;
-        idmapcache_entry_refcount_dec(ie);
+    if (owner_ie != NULL) {
+         *local_uid = owner_ie->localid;
+        idmapcache_entry_refcount_dec(owner_ie);
     }
     else {
         *local_uid = idmapper->config.default_local_uid;
@@ -811,44 +843,9 @@ void open_get_localuidgid(
             (unsigned int)*local_uid);
     }
 
-    /*
-     * Map owner_group to local gid
-     *
-     * |owner_group| can be numeric string ("1616"), plain groupname
-     * ("gisgrp") or groupname@domain ("gisgrp@sun.com")
-     */
-    ie = NULL;
-
-    if (isdigit(info->owner_group[0])) {
-        idmapcache_idnumber nfs_id;
-
-        errno = 0;
-        nfs_id = strtol(info->owner_group, NULL, 10);
-
-        if (errno == 0) {
-            ie = nfs41_idmap_group_lookup_by_nfsid(idmapper, nfs_id);
-        }
-        else {
-            DPRINTF(0,
-                ("open_get_localuidgid(state->path='%s'): "
-                "strtol(info->owner_group='%s') failed to map string to number, "
-                "errno=%d\n",
-                state->path.path,
-                info->owner_group,
-                (int)errno));
-        }
-    }
-    else {
-        EASSERT_MSG(IS_PRINCIPAL_NAME(info->owner_group),
-            ("info->owner_group='%s' is not a principal\n",
-            info->owner_group));
-
-        ie = nfs41_idmap_group_lookup_by_nfsname(idmapper, info->owner_group);
-    }
-
-    if (ie != NULL) {
-        *local_gid = ie->localid;
-        idmapcache_entry_refcount_dec(ie);
+    if (owner_group_ie != NULL) {
+        *local_gid = owner_group_ie->localid;
+        idmapcache_entry_refcount_dec(owner_group_ie);
     }
     else {
         *local_gid = idmapper->config.default_local_gid;

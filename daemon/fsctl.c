@@ -1132,21 +1132,30 @@ int handle_queryidmapinfo(void *daemon_context,
      *  ("gisburn") or username@domain ("gisburn@sun.com")
      */
 
-    if (isdigit(info.owner[0])) {
-        idmapcache_idnumber nfs_id;
+    switch(strclassifynfsowner(info.owner)) {
+        case NFSOWNERSTR_UID_GID:
+            idmapcache_idnumber nfs_uid;
 
-        errno = 0;
-        nfs_id = strtol(info.owner, NULL, 10);
+            /*
+             * We can safely use |atol()| here because
+             * |strclassifynfsowner(...) == NFSOWNERSTR_UID_GID| guarantees
+             * that the string only has digits
+             */
+            nfs_uid = atol(info.owner);
 
-        if (errno == 0) {
-            owner_ie = nfs41_idmap_user_lookup_by_nfsid(idmapper, nfs_id);
-        }
-    }
-    else {
-        EASSERT_MSG(IS_PRINCIPAL_NAME(info.owner),
-            ("info.owner='%s' is not a principal\n", info.owner));
-
-        owner_ie = nfs41_idmap_user_lookup_by_nfsname(idmapper, info.owner);
+            owner_ie =
+                nfs41_idmap_user_lookup_by_nfsid(idmapper, nfs_uid);
+            break;
+        default:
+            EASSERT_MSG(false,
+                ("handle_queryidmapinfo: "
+                "info.owner='%s' is not a principal\n",
+                info.owner));
+            /* fall-through */
+        case NFSOWNERSTR_PRINCIPAL:
+            owner_ie =
+                nfs41_idmap_user_lookup_by_nfsname(idmapper, info.owner);
+            break;
     }
 
     /*
@@ -1156,22 +1165,30 @@ int handle_queryidmapinfo(void *daemon_context,
      * ("gisgrp") or groupname@domain ("gisgrp@sun.com")
      */
 
-    if (isdigit(info.owner_group[0])) {
-        idmapcache_idnumber nfs_id;
+    switch(strclassifynfsowner(info.owner_group)) {
+        case NFSOWNERSTR_UID_GID:
+            idmapcache_idnumber nfs_gid;
 
-        errno = 0;
-        nfs_id = strtol(info.owner_group, NULL, 10);
+            /*
+             * We can safely use |atol()| here because
+             * |strclassifynfsowner(...) == NFSOWNERSTR_UID_GID| guarantees
+             * that the string only has digits
+             */
+            nfs_gid = atol(info.owner_group);
 
-        if (errno == 0) {
-            owner_group_ie = nfs41_idmap_group_lookup_by_nfsid(idmapper, nfs_id);
-        }
-    }
-    else {
-        EASSERT_MSG(IS_PRINCIPAL_NAME(info.owner_group),
-            ("info.owner_group='%s' is not a principal\n",
-            info.owner_group));
-
-        owner_group_ie = nfs41_idmap_group_lookup_by_nfsname(idmapper, info.owner_group);
+            owner_group_ie =
+                nfs41_idmap_group_lookup_by_nfsid(idmapper, nfs_gid);
+            break;
+        default:
+            EASSERT_MSG(false,
+                ("handle_queryidmapinfo: "
+                "info.owner_group='%s' is not a principal\n",
+                info.owner_group));
+            /* fall-through */
+        case NFSOWNERSTR_PRINCIPAL:
+            owner_group_ie =
+                nfs41_idmap_group_lookup_by_nfsname(idmapper, info.owner_group);
+            break;
     }
 
     if (args->outputformat == FILE_NFS41_QUERY_IDMAP_FORMAT_CPV) {
