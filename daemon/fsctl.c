@@ -420,9 +420,6 @@ int handle_setzerodata(void *daemon_context,
         goto out;
     }
 
-    nfs41_delegation_return(state->session, &state->file,
-        OPEN_DELEGATE_READ, FALSE);
-
     nfs41_open_stateid_arg(state, &stateid);
 
     status = nfs42_deallocate(session, file, &stateid,

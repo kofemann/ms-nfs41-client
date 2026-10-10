@@ -520,7 +520,14 @@ NTSTATUS nfs41_SetZeroData(
      * writes in the kernel cache at the same location where the
      * DEALLOCATE should do it's work.
      */
-    (void)RxPurgeFcbInSystemCache((PFCB)RxContext->pFcb, NULL, 0L, TRUE, TRUE);
+    status = RxPurgeFcbInSystemCache((PFCB)RxContext->pFcb,
+        NULL, 0L, TRUE, TRUE);
+    if (!NT_SUCCESS(status)) {
+        DbgP("nfs41_SetZeroData: "
+            "RxPurgeFcbInSystemCache() failed, status=0x%lx\n",
+            (long)status);
+        goto out;
+    }
 
     status = nfs41_UpcallCreate(NFS41_SYSOP_FSCTL_SET_ZERO_DATA,
         &nfs41_srvopen->sec_ctx,
