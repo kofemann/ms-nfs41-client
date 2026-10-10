@@ -288,9 +288,6 @@ int handle_queryallocatedranges(void *daemon_context,
             "got space for %ld records\n",
             (int)num_records));
 
-    nfs41_delegation_return(state->session, &state->file,
-        OPEN_DELEGATE_READ, FALSE);
-
     args->buffer_overflow = FALSE;
     args->returned_size = 0;
 

@@ -158,6 +158,20 @@ NTSTATUS nfs41_QueryAllocatedRanges(
         (long long)in_range_buffer->FileOffset.QuadPart,
         (long long)in_range_buffer->Length.QuadPart);
 
+    /*
+     * NFSv4.2 SEEK runs on the server. Flush dirty cached writes and wait
+     * for the lazy writer so that |SEEK_DATA|/|SEEK_HOLE| observes the
+     * current file contents. No purge is needed because this operation
+     * does not modify the file.
+     */
+    status = RxFlushFcbInSystemCache((PFCB)RxContext->pFcb, TRUE);
+    if (!NT_SUCCESS(status)) {
+        DbgP("nfs41_QueryAllocatedRanges: "
+            "RxFlushFcbInSystemCache() failed, status=0x%lx\n",
+            (long)status);
+        goto out;
+    }
+
     status = nfs41_UpcallCreate(NFS41_SYSOP_FSCTL_QUERYALLOCATEDRANGES,
         &nfs41_srvopen->sec_ctx,
         pVNetRootContext->session,
