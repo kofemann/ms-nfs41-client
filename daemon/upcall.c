@@ -136,7 +136,7 @@ int upcall_parse(
     /* parse common elements */
     status = safe_read(&buffer, &length, &version, sizeof(uint32_t));
     if (status) goto out;
-    status = safe_read(&buffer, &length, &upcall->xid, sizeof(uint64_t));
+    status = safe_read(&buffer, &length, &upcall->kxid, sizeof(KXID));
     if (status) goto out;
     /* |sizeof(enum)| might not be the same as |sizeof(uint32_t)| */
     status = safe_read(&buffer, &length, &upcall_upcode, sizeof(uint32_t));
@@ -148,11 +148,11 @@ int upcall_parse(
     if (status) goto out;
 
     DPRINTF(2,
-        ("time=%lld version=%ld xid=%lld opcode='%s' "
+        ("time=%lld version=%ld kxid=%lld opcode='%s' "
         "root_ref=0x%p state_ref=0x%p\n",
         (long long)time(NULL),
         (long)version,
-        (long long)upcall->xid,
+        (long long)upcall->kxid,
         opcode2string(upcall_upcode),
         upcall->root_ref,
         upcall->state_ref));
@@ -251,7 +251,7 @@ void upcall_marshall(
 write_downcall:
     length = orig_len;
     buffer = orig_buf;
-    safe_write(&buffer, &length, &upcall->xid, sizeof(upcall->xid));
+    safe_write(&buffer, &length, &upcall->kxid, sizeof(upcall->kxid));
     safe_write(&buffer, &length, &upcall->opcode, sizeof(upcall->opcode));
     safe_write(&buffer, &length, &upcall->status, sizeof(upcall->status));
     safe_write(&buffer, &length, &upcall->last_error, sizeof(upcall->last_error));

@@ -169,7 +169,7 @@ nfs41_updowncall_list downcalllist;
 
 nfs41_offloadcontext_list offloadcontextlist;
 
-LONGLONG xid = 0;
+KXID kxid = 0LL;
 LONG open_owner_id = 1;
 
 
@@ -281,7 +281,7 @@ NTSTATUS marshal_nfs41_header(
     ULONG header_len = 0;
     unsigned char *tmp = buf;
 
-    header_len = sizeof(entry->version) + sizeof(entry->xid) +
+    header_len = sizeof(entry->version) + sizeof(entry->kxid) +
         sizeof(entry->opcode) + 2 * sizeof(HANDLE);
     if (header_len > buf_len) {
         DbgP("marshal_nfs41_header: "
@@ -295,8 +295,8 @@ NTSTATUS marshal_nfs41_header(
 
     UPDOWNCALL_MEMCPY(tmp, &entry->version, sizeof(entry->version));
     tmp += sizeof(entry->version);
-    UPDOWNCALL_MEMCPY(tmp, &entry->xid, sizeof(entry->xid));
-    tmp += sizeof(entry->xid);
+    UPDOWNCALL_MEMCPY(tmp, &entry->kxid, sizeof(entry->kxid));
+    tmp += sizeof(entry->kxid);
     UPDOWNCALL_MEMCPY(tmp, &entry->opcode, sizeof(entry->opcode));
     tmp += sizeof(entry->opcode);
     UPDOWNCALL_MEMCPY(tmp, &entry->session, sizeof(HANDLE));
@@ -313,9 +313,9 @@ NTSTATUS marshal_nfs41_header(
     }
 
 #ifdef DEBUG_MARSHAL_HEADER
-    DbgP("[upcall hdr] xid=%lld op='%s'%s filename='%wZ' vers=%d "
+    DbgP("[upcall hdr] kxid=%lld op='%s'%s filename='%wZ' vers=%d "
         "sess=0x%p open_state=0x%p\n",
-        entry->xid,
+        (long long)entry->kxid,
         opcode2string(entry->opcode),
         (entry->async_op?"(async)":""),
         entry->filename,
@@ -750,8 +750,8 @@ NTSTATUS nfs41_DevFcbXXXControlFile(
         case IOCTL_NFS41_WRITE:
             status = nfs41_downcall(RxContext);
             break;
-        case IOCTL_NFS41_DELAYXID:
-            status = nfs41_delayxid(RxContext);
+        case IOCTL_NFS41_DELAYKXID:
+            status = nfs41_delaykxid(RxContext);
             break;
         case IOCTL_NFS41_ADDCONN:
             status = nfs41_CreateConnection(RxContext, &RxContext->PostRequest);

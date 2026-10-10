@@ -791,14 +791,15 @@ void print_open_error(int on, int status)
 }
 
 void print_wait_status(int on, const char *prefix, NTSTATUS status,
-    const char *opcode, PVOID entry, LONGLONG xid)
+    const char *opcode, PVOID entry, KXID kxid)
 {
     if (!on) return;
     switch (status) {
     case STATUS_SUCCESS:
         if (opcode)
-            DbgP("'%s' Got a wakeup call, finishing '%s' entry=0x%p xid=%lld\n",
-                prefix, opcode, entry, xid);
+            DbgP("'%s': "
+                "Got a wakeup call, finishing '%s' entry=0x%p kxid=%lld\n",
+                prefix, opcode, entry, (long long)kxid);
         else
             DbgP("'%s' Got a wakeup call\n", prefix);
         break;

@@ -343,7 +343,7 @@ process_rpc_call:
         xdrs->x_op = XDR_ENCODE;
         __xdrrec_setblock(xdrs);
         reply_msg.rm_xid = ct->reply_msg.rm_xid;
-        (void)fprintf(stdout, "%04lx: cb: replying to xid=%x\n",
+        (void)fprintf(stdout, "%04lx: cb: replying to rpcxid=%x\n",
             (long)GetCurrentThreadId(),
             (int)ct->reply_msg.rm_xid);
         ct->reply_msg.rm_xid = 0;

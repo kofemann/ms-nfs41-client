@@ -184,7 +184,7 @@ typedef enum _nfs41_updowncall_state {
 
 /* Used for downcall processing */
 typedef struct _updowncall_entry_header {
-    LONGLONG xid;
+    KXID kxid;
     nfs41_opcodes opcode;
     NTSTATUS status;
 #undef errno
@@ -651,7 +651,7 @@ extern nfs41_offloadcontext_list offloadcontextlist;
 /* Globals */
 extern KEVENT upcallEvent;
 
-extern LONGLONG xid;
+extern KXID kxid;
 extern LONG open_owner_id;
 
 #ifdef NFS41_DRIVER_SYSTEM_LUID_MOUNTS_ARE_GLOBAL
@@ -1033,7 +1033,7 @@ NTSTATUS nfs41_upcall(
     IN PRX_CONTEXT RxContext);
 NTSTATUS nfs41_downcall(
     IN PRX_CONTEXT RxContext);
-NTSTATUS nfs41_delayxid(
+NTSTATUS nfs41_delaykxid(
     IN PRX_CONTEXT RxContext);
 
 /* nfs41sys_getfileinfo.c */

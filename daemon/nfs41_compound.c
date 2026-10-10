@@ -342,12 +342,12 @@ retry:
                 delayby));
 #ifdef NFS41_DRIVER_HACK_HANDLE_NFS_DELAY_GRACE_WIP
             {
-                extern __declspec(thread) LONGLONG curr_upcall_xid;
-                if (curr_upcall_xid != -1) {
+                extern __declspec(thread) KXID curr_upcall_kxid;
+                if (curr_upcall_kxid != -1) {
                     DPRINTF(0,
-                        ("compound_encode_send_decode: delayxid(xid=%llu)\n",
-                        curr_upcall_xid));
-                    (void)delayxid(curr_upcall_xid, 60);
+                        ("compound_encode_send_decode: delaykxid(kxid=%lld)\n",
+                        (long long)curr_upcall_kxid));
+                    (void)delaykxid(curr_upcall_kxid, 60);
                 }
             }
 #endif /* NFS41_DRIVER_HACK_HANDLE_NFS_DELAY_GRACE_WIP */

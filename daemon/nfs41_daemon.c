@@ -93,7 +93,8 @@ typedef struct _nfs41_process_thread {
 } nfs41_process_thread;
 
 #ifdef NFS41_DRIVER_HACK_HANDLE_NFS_DELAY_GRACE_WIP
-/* Store the current kernel XID in |curr_upcall_xid|
+/*
+ * Store the current kernel KXID in |curr_upcall_kxid|
  * so |compound_encode_send_decode()| can use this to extend the
  * kernel timout
  * This code still requires some cleanup, as we do not
@@ -101,7 +102,7 @@ typedef struct _nfs41_process_thread {
  * access the current kernel XID. As hackish quickfix we
  * use this thread-local variable to store the current XID.
  */
-__declspec(thread) LONGLONG curr_upcall_xid = -1;
+__declspec(thread) KXID curr_upcall_kxid = -1LL;
 #endif /* NFS41_DRIVER_HACK_HANDLE_NFS_DELAY_GRACE_WIP */
 
 static unsigned int nfsd_worker_thread_main(void *args)
@@ -166,7 +167,7 @@ static unsigned int nfsd_worker_thread_main(void *args)
         }
 
 #ifdef NFS41_DRIVER_HACK_HANDLE_NFS_DELAY_GRACE_WIP
-        curr_upcall_xid = upcall.xid;
+        curr_upcall_kxid = upcall.kxid;
 #endif /* NFS41_DRIVER_HACK_HANDLE_NFS_DELAY_GRACE_WIP */
 
         if (!OpenThreadToken(GetCurrentThread(),
@@ -186,8 +187,8 @@ static unsigned int nfsd_worker_thread_main(void *args)
         status = upcall_handle(&nfs41_dg, &upcall);
 
 write_downcall:
-        DPRINTF(1, ("writing downcall: xid=%lld opcode='%s' status=%d "
-            "get_last_error=%d\n", upcall.xid, opcode2string(upcall.opcode),
+        DPRINTF(1, ("writing downcall: kxid=%lld opcode='%s' status=%d "
+            "get_last_error=%d\n", upcall.kxid, opcode2string(upcall.opcode),
             upcall.status, upcall.last_error));
 
         upcall_marshall(&upcall, inbuf, UPCALL_BUF_SIZE, (uint32_t*)&inbuf_len);
@@ -201,13 +202,13 @@ write_downcall:
         upcall.currentthread_token = INVALID_HANDLE_VALUE;
 
 #ifdef NFS41_DRIVER_HACK_HANDLE_NFS_DELAY_GRACE_WIP
-        curr_upcall_xid = -1LL;
+        curr_upcall_kxid = -1LL;
 #endif /* NFS41_DRIVER_HACK_HANDLE_NFS_DELAY_GRACE_WIP */
 
         DPRINTF(2,
             ("making a downcall: "
-            "xid=%lld inbuf_len=%ld opcode='%s' status=%d\n",
-            upcall.xid,
+            "kxid=%lld inbuf_len=%ld opcode='%s' status=%d\n",
+            upcall.kxid,
             (long)inbuf_len,
             opcode2string(upcall.opcode),
             upcall.status));
@@ -232,9 +233,9 @@ write_downcall:
 
             eprintf("nfsd_worker_thread_main: "
                 "IOCTL_NFS41_WRITE failed with "
-                "lasterr=%d xid=%lld opcode='%s' path='%s'\n",
+                "lasterr=%d kxid=%lld opcode='%s' path='%s'\n",
                 (int)lasterr,
-                upcall.xid,
+                upcall.kxid,
                 opcode2string(upcall.opcode),
                 pn);
             upcall_cancel(&upcall);

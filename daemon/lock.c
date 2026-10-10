@@ -318,7 +318,7 @@ retry_lock:
         DPRINTF(1,
             ("handle_lock(state->path.path='%s'): retry in %ldms\n",
             state->path.path, (long)poll_delay));
-        (void)delayxid(upcall->xid, 30LL+((long long)poll_delay/1000LL));
+        (void)delaykxid(upcall->kxid, 30LL+((long long)poll_delay/1000LL));
         Sleep(poll_delay);
 
         goto retry_lock;

@@ -35,7 +35,7 @@
 #include "sid.h"
 #include "nfs41_ops.h"
 #include <devioctl.h>
-#include "nfs41_driver.h" /* for |delayxid()| */
+#include "nfs41_driver.h" /* for |delaykxid()| */
 #ifdef NFS41_DRIVER_SETGID_NEWGRP_SUPPORT
 #include "accesstoken.h"
 #endif /* NFS41_DRIVER_SETGID_NEWGRP_SUPPORT */
@@ -850,29 +850,33 @@ out:
     return status;
 }
 
-int delayxid(LONGLONG xid, LONGLONG moredelaysecs)
+int delaykxid(KXID kxid, LONGLONG moredelaysecs)
 {
     int status;
     HANDLE pipe;
-    unsigned char inbuf[sizeof(LONGLONG)*2], *buffer = inbuf;
-    DWORD inbuf_len = sizeof(LONGLONG)*2, outbuf_len;
+    unsigned char inbuf[sizeof(KXID)+sizeof(LONGLONG)];
+    unsigned char *buffer = inbuf;
+    DWORD inbuf_len = sizeof(KXID)+sizeof(LONGLONG);
+    DWORD outbuf_len;
     BOOL success;
     uint32_t length;
 
     pipe = create_nfs41sys_device_pipe();
     if (pipe == INVALID_HANDLE_VALUE) {
         status = GetLastError();
-        eprintf("delayxid: Unable to open downcall pipe. lasterr=%d\n",
+        eprintf("delaykxid(kxid=%lld): "
+            "Unable to open downcall pipe, lasterr=%d\n",
+            (long long)kxid,
             status);
         return status;
     }
 
     length = inbuf_len;
-    safe_write(&buffer, &length, &xid, sizeof(xid));
+    safe_write(&buffer, &length, &kxid, sizeof(kxid));
     safe_write(&buffer, &length, &moredelaysecs, sizeof(moredelaysecs));
     EASSERT(length == 0);
 
-    success = DeviceIoControl(pipe, IOCTL_NFS41_DELAYXID,
+    success = DeviceIoControl(pipe, IOCTL_NFS41_DELAYKXID,
         inbuf, inbuf_len,
         NULL, 0,
         &outbuf_len, NULL);
@@ -881,7 +885,9 @@ int delayxid(LONGLONG xid, LONGLONG moredelaysecs)
     }
     else {
         status = GetLastError();
-        eprintf("delayxid: IOCTL_NFS41_DELAYXID failed, lasterr=%d\n",
+        eprintf("delaykxid(kxid=%lld): "
+            "IOCTL_NFS41_DELAYKXID failed, lasterr=%d\n",
+            (long long)kxid,
             status);
     }
     close_nfs41sys_device_pipe(pipe);

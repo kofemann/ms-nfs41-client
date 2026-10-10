@@ -59,8 +59,9 @@ void print_get_ea(int on, PFILE_GET_EA_INFORMATION info);
 void print_caching_level(int on, ULONG flag, PUNICODE_STRING s);
 const char *opcode2string(nfs41_opcodes opcode);
 void print_open_error(int on, int status);
+typedef LONGLONG KXID;
 void print_wait_status(int on, const char *str, NTSTATUS status,
-                       const char *opcode, PVOID entry, LONGLONG xid);
+    const char *opcode, PVOID entry, KXID kxid);
 void print_acl_args(SECURITY_INFORMATION info);
 const char *fsctl2string(ULONG fsctl);
 const char *reparsetag2string(ULONG tag);

@@ -467,7 +467,8 @@ int nfs41_notify_kernel_delegation_state(
     IN HANDLE srv_open,
     IN ULONG deleg_type);
 
-int delayxid(LONGLONG xid, LONGLONG moredelaysecs);
+typedef LONGLONG KXID;
+int delaykxid(KXID xid, LONGLONG moredelaysecs);
 
 #ifdef NFS41_DRIVER_SETGID_NEWGRP_SUPPORT
 typedef struct __nfs41_daemon_globals nfs41_daemon_globals;

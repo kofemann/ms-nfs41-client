@@ -109,8 +109,8 @@ static void unmarshal_nfs41_header(
     updowncall_entry_header *restrict tmp,
     const unsigned char *restrict *restrict buf)
 {
-    UPDOWNCALL_MEMCPY(&tmp->xid, *buf, sizeof(tmp->xid));
-    *buf += sizeof(tmp->xid);
+    UPDOWNCALL_MEMCPY(&tmp->kxid, *buf, sizeof(tmp->kxid));
+    *buf += sizeof(tmp->kxid);
     UPDOWNCALL_MEMCPY(&tmp->opcode, *buf, sizeof(tmp->opcode));
     *buf += sizeof(tmp->opcode);
     UPDOWNCALL_MEMCPY(&tmp->status, *buf, sizeof(tmp->status));
@@ -119,8 +119,8 @@ static void unmarshal_nfs41_header(
     *buf += sizeof(tmp->errno);
 #ifdef DEBUG_MARSHAL_HEADER
     DbgP("[downcall hdr] "
-        "xid=%lld op='%s' status=0x%lx errno=%d\n",
-        tmp->xid,
+        "kxid=%lld op='%s' status=0x%lx errno=%d\n",
+        (long long)tmp->kxid,
         opcode2string(tmp->opcode),
         (long)tmp->status,
         tmp->errno);
@@ -368,7 +368,7 @@ NTSTATUS nfs41_UpcallCreate(
     }
 
     RtlZeroMemory(entry, sizeof(nfs41_updowncall_entry));
-    entry->xid = InterlockedIncrement64(&xid);
+    entry->kxid = InterlockedIncrement64(&kxid);
     entry->opcode = opcode;
     entry->state = NFS41_WAITING_FOR_UPCALL;
     entry->session = session;
@@ -486,7 +486,7 @@ NTSTATUS nfs41_UpcallWaitForReply(
     FsRtlEnterFileSystem();
 
     /*
-     * |entry->timeout_secs| can be increased by |nfs41_delayxid()| from
+     * |entry->timeout_secs| can be increased by |nfs41_delaykxid()| from
      * another userland thread!
      */
     entry->timeout_secs = (LONG)secs;
@@ -512,7 +512,7 @@ retry_wait:
 
     print_wait_status(0, "[downcall]", status,
         opcode2string(entry->opcode), entry,
-        entry->xid);
+        entry->kxid);
 
     switch(status) {
     case STATUS_SUCCESS:
@@ -530,11 +530,11 @@ retry_wait:
         if (done_processing) {
             DbgP("nfs41_UpcallWaitForReply: KeWaitForSingleObject() "
                 "returned status(=0x%lx), "
-                "entry(=0x%p)=(xid=%lld,opcode='%s',"
+                "entry(=0x%p)=(kxid=%lld,opcode='%s',"
                 "state==NFS41_DONE_PROCESSING)\n",
                 (long)status,
                 entry,
-                entry->xid,
+                (long long)entry->kxid,
                 opcode2string(entry->opcode));
             status = STATUS_SUCCESS;
             break;
@@ -546,17 +546,17 @@ retry_wait:
          * decrement the timout value.
          * This prevents endless retry loops in case of APC storms or
          * that the calling thread is in the process of being terminated.
-         * 2. ... |nfs41_delayxid()| might have increased the timeout
+         * 2. ... |nfs41_delaykxid()| might have increased the timeout
          */
         KeQueryTickCount(&currTicks);
         if (((currTicks.QuadPart - startTicks.QuadPart) * tickIncrement) <=
             SECONDS(InterlockedAdd(&entry->timeout_secs, 0))) {
             DbgP("nfs41_UpcallWaitForReply: KeWaitForSingleObject() "
                 "returned status(=0x%lx), "
-                "retry waiting for entry(=0x%p)=(xid=%lld,opcode='%s')\n",
+                "retry waiting for entry(=0x%p)=(kxid=%lld,opcode='%s')\n",
                 (long)status,
                 entry,
-                entry->xid,
+                (long long)entry->kxid,
                 opcode2string(entry->opcode));
             goto retry_wait;
         }
@@ -575,10 +575,10 @@ retry_wait:
         /*
          * Abandon request |entry| ...
          */
-        DbgP("[upcall] abandoning '%s' entry=0x%p xid=%lld\n",
+        DbgP("[upcall] abandoning '%s' entry=0x%p kxid=%lld\n",
             opcode2string(entry->opcode),
             entry,
-            entry->xid);
+            (long long)entry->kxid);
         entry->state = NFS41_NOT_WAITING;
         ExReleaseFastMutexUnsafe(&entry->lock);
         goto out;
@@ -680,7 +680,7 @@ NTSTATUS nfs41_downcall(
     while (pEntry != NULL) {
         cur = (nfs41_updowncall_entry *)CONTAINING_RECORD(pEntry,
                 nfs41_updowncall_entry, next);
-        if (cur->xid == header_tmp.xid) {
+        if (cur->kxid == header_tmp.kxid) {
             found = true;
             break;
         }
@@ -691,8 +691,8 @@ NTSTATUS nfs41_downcall(
     ExReleaseFastMutexUnsafe(&downcalllist.lock);
     SeStopImpersonatingClient();
     if (!found) {
-        print_error("nfs41_downcall: Did not find xid=%lld entry\n",
-            header_tmp.xid);
+        print_error("nfs41_downcall: Did not find kxid=%lld entry\n",
+            (long long)header_tmp.kxid);
         status = STATUS_NOT_FOUND;
         goto out_free;
     }
@@ -700,8 +700,8 @@ NTSTATUS nfs41_downcall(
     ExAcquireFastMutexUnsafe(&cur->lock);
     if (cur->state == NFS41_NOT_WAITING) {
         DbgP("nfs41_downcall: "
-            "Nobody is waiting for this request (xid=%lld)!\n",
-            cur->xid);
+            "Nobody is waiting for this request (kxid=%lld)!\n",
+            (long long)cur->kxid);
         switch(cur->opcode) {
         case NFS41_SYSOP_WRITE:
         case NFS41_SYSOP_READ:
@@ -863,11 +863,11 @@ NTSTATUS nfs41_downcall(
             (!((header_tmp.opcode == NFS41_SYSOP_FILE_QUERY) &&
                 (cur->u.QueryFile.InfoClass == FileStreamInformation))) &&
             (bytesread_from_inbuf != inbuf_len)) {
-            print_error("nfs41_downcall: ASSERT: '%s' (xid=%lld): "
+            print_error("nfs41_downcall: ASSERT: '%s' (kxid=%lld): "
                 "(inbuf(=0x%p)-inbuf_orig(=0x%p))(=%ld) != inbuf_len(=%ld), "
                 "cur->status=%d\n",
                 opcode2string(header_tmp.opcode),
-                cur->xid,
+                (long long)cur->kxid,
                 inbuf,
                 inbuf_orig,
                 (long)bytesread_from_inbuf,
@@ -896,9 +896,9 @@ NTSTATUS nfs41_downcall(
                 nfs41_UpcallDestroy(cur);
                 break;
             default:
-                print_error("nfs41_downcall: xid=%lld "
+                print_error("nfs41_downcall: kxid=%lld "
                     "unknown async opcode=%d ####\n",
-                    cur->xid, (int)cur->opcode);
+                    (long long)cur->kxid, (int)cur->opcode);
                 break;
         }
     } else {
@@ -911,7 +911,7 @@ out_free:
     return status;
 }
 
-NTSTATUS nfs41_delayxid(
+NTSTATUS nfs41_delaykxid(
     IN PRX_CONTEXT RxContext)
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -928,15 +928,15 @@ NTSTATUS nfs41_delayxid(
     inbuf = inbuf_orig = LowIoContext->ParamsFor.IoCtl.pInputBuffer;
 
 #ifdef DEBUG_PRINT_DOWNCALL_HEXBUF
-    print_hexbuf("delayxid buffer", inbuf, inbuf_len);
+    print_hexbuf("delaykxid buffer", inbuf, inbuf_len);
 #endif /* DEBUG_PRINT_DOWNCALL_HEXBUF */
 
-    LONGLONG delayxid;
+    KXID delaykxid;
     LONGLONG moredelay;
 
     /* Unmarshal XID+delay value */
-    UPDOWNCALL_MEMCPY(&delayxid, inbuf, sizeof(delayxid));
-    inbuf += sizeof(delayxid);
+    UPDOWNCALL_MEMCPY(&delaykxid, inbuf, sizeof(delaykxid));
+    inbuf += sizeof(delaykxid);
     UPDOWNCALL_MEMCPY(&moredelay, inbuf, sizeof(moredelay));
     inbuf += sizeof(moredelay);
 
@@ -945,9 +945,9 @@ NTSTATUS nfs41_delayxid(
      */
     ULONG bytesread_from_inbuf = (ULONG)(inbuf - inbuf_orig);
     if (bytesread_from_inbuf != inbuf_len) {
-        print_error("nfs41_delayxid: ASSERT (xid=%lld): "
+        print_error("nfs41_delaykxid: ASSERT (kxid=%lld): "
             "(inbuf(=0x%p)-inbuf_orig(=0x%p))(=%ld) != inbuf_len(=%ld)\n",
-            delayxid,
+            (long long)delaykxid,
             inbuf,
             inbuf_orig,
             (long)bytesread_from_inbuf,
@@ -961,7 +961,7 @@ NTSTATUS nfs41_delayxid(
     while (pEntry != NULL) {
         cur = (nfs41_updowncall_entry *)CONTAINING_RECORD(pEntry,
                 nfs41_updowncall_entry, next);
-        if (cur->xid == delayxid) {
+        if (cur->kxid == delaykxid) {
             found = true;
             break;
         }
@@ -972,13 +972,14 @@ NTSTATUS nfs41_delayxid(
     ExReleaseFastMutexUnsafe(&downcalllist.lock);
 
     if (!found) {
-        print_error("nfs41_delayxid: Did not find xid=%lld entry\n", delayxid);
+        print_error("nfs41_delaykxid: Did not find kxid=%lld entry\n",
+            (long long)delaykxid);
         status = STATUS_NOT_FOUND;
         goto out;
     }
 
-    DbgP("nfs41_delayxid: Adding moredelay=%llu xid=%lld entry\n",
-        moredelay, delayxid);
+    DbgP("nfs41_delaykxid: Adding moredelay=%lld kxid=%lld entry\n",
+        (long long)moredelay, (long long)delaykxid);
 
     (void)InterlockedAdd(&cur->timeout_secs, (LONG)moredelay);
 

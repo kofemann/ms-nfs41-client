@@ -313,7 +313,7 @@ typedef union __upcall_args {
 typedef enum _nfs41_opcodes nfs41_opcodes;
 
 typedef struct __nfs41_upcall {
-    uint64_t                xid;
+    KXID                    kxid;
     nfs41_opcodes           opcode;
     uint32_t                status;
     uint32_t                last_error;
