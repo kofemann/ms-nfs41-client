@@ -286,10 +286,24 @@ static void replay_cache_write(
             xdrmem_create(&xdr, (char*)session->replay.arg.buffer,
                 NFS41_MAX_SERVER_CACHE, XDR_ENCODE);
 
-            if (proc_cb_compound_args(&xdr, args))
+            if (proc_cb_compound_args(&xdr, args)) {
                 session->replay.arg.length = XDR_GETPOS(&xdr);
+            } else {
+                EASSERT_MSG(false,
+                    ("replay_cache_write: callback arguments exceed "
+                    "NFS41_MAX_SERVER_CACHE=%lu bytes\n",
+                    (unsigned long)NFS41_MAX_SERVER_CACHE));
+            }
         }
-    } else if (cachethis) {
+    } else {
+        EASSERT_MSG(false,
+            ("replay_cache_write: callback reply exceeds "
+            "NFS41_MAX_SERVER_CACHE=%lu bytes\n",
+            (unsigned long)NFS41_MAX_SERVER_CACHE));
+
+        if (!cachethis)
+            return;
+
         /* on failure, only return errors if caching was requested */
         res->status = NFS4ERR_REP_TOO_BIG_TO_CACHE;
 
