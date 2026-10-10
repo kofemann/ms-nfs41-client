@@ -947,11 +947,26 @@ NTSTATUS nfs41_CreateSrvCall(
      * $ powershell -Command 'Get-SmbClientConfiguration | Select DormantFileLimit'
      * - It seems most RDBSS users use |2^n-1| values, but we do not know yet
      * *WHY* they use this formula.
+     * - A value of 1023 triggers a performance issue if we set the RDBSS
+     * buffering+caching based on whether we have NFS read/read-write
+     * delegations, because the delegations get returned or CB_RECALL'ed FAR
+     * too often, e.g. many SETATTR calls just return delegation before
+     * calling SETATTR, or get a CB_RECALL. Typically this happens for
+     * setting the ACL/DACL, setting the POSIX mode bits, or doing a
+     * rename/link.
+     * The "fix" would be to get the delegation back via NFS WANT_DELEGATION,
+     * but that has not been implemented yet. A lower value for
+     * |MaximumNumberOfCloseDelayedFiles| therefore currently means we have
+     * less cases where we re-use a NFS open state where the delegation
+     * has been returned/recalled (which means: No RDBSS buffering/caching).
+     * FIXME: We should increase |MaximumNumberOfCloseDelayedFiles| back
+     * to |1024-1| again once we have NFS WANT_DELEGATION support to get
+     * delegations back after SETATTR.
      */
 #ifdef NFS41_DRIVER_WORKAROUND_SMALL_DBG_FOOTPRINT
     pSrvCall->MaximumNumberOfCloseDelayedFiles = 32-1;
 #else
-    pSrvCall->MaximumNumberOfCloseDelayedFiles = 1024-1;
+    pSrvCall->MaximumNumberOfCloseDelayedFiles = 128-1;
 #endif /* NFS41_DRIVER_WORKAROUND_SMALL_DBG_FOOTPRINT */
 
     DbgP("nfs41_CreateSrvCall: "
