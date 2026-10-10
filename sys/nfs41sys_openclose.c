@@ -1131,6 +1131,16 @@ retry_on_link:
             (long)status,
             &RxContext->CurrentIrpSp->FileObject->FileName);
 
+        if (!ReparseRequired) {
+            /*
+             * Ownership of the |AbsPath.Buffer| memory will only changed by
+             * |RxPrepareToReparseSymbolicLink()| if |ReparseRequired == TRUE|,
+             * otherwise we have to free it outselves
+             */
+            RxFreePool(AbsPath.Buffer);
+            AbsPath.Buffer = NULL;
+        }
+
         if (status == STATUS_SUCCESS) {
             /* if a reparse is not required, reopen the link itself.  this
              * happens with operations on cygwin symlinks, where the reparse
