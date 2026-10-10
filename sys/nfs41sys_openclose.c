@@ -890,6 +890,21 @@ NTSTATUS nfs41_Create(
 #endif /* DEBUG_ACL_SET */
 #endif /* NFS41_DRIVER_ALLOW_CREATEFILE_ACLS */
 
+    /*
+     * Create |RxContext->pFobx| before upcall so we can pass the pointer
+     * to the daemon.
+     * |RxCollapseOrCreateSrvOpen()| will cleanup the FOBX on |nfs41_Create()|
+     * failure
+     */
+    status = nfs41_createnetfobx(RxContext, SrvOpen);
+    if (status)
+        goto out;
+#ifdef DEBUG_OPEN
+    DbgP("nfs41_Create: created RxContext->pFobx=0x%p\n",
+        RxContext->pFobx);
+#endif /* DEBUG_OPEN */
+    nfs41_fobx = NFS41GetFobxExtension(RxContext->pFobx);
+
     status = nfs41_UpcallCreate(NFS41_SYSOP_OPEN, &nfs41_srvopen->sec_ctx,
         pVNetRootContext->session, INVALID_HANDLE_VALUE,
         pNetRootContext->nfs41d_version,
@@ -1153,15 +1168,6 @@ retry_on_link:
     }
 
     nfs41_srvopen->nfs41_open_state = entry->open_state;
-
-    status = nfs41_createnetfobx(RxContext, SrvOpen);
-    if (status)
-        goto out;
-
-#ifdef DEBUG_OPEN
-    DbgP("nfs41_Create: created FOBX 0x%p\n", RxContext->pFobx);
-#endif
-    nfs41_fobx = NFS41GetFobxExtension(RxContext->pFobx);
 
     // we get attributes only for data access and file (not directories)
     if (Fcb->OpenCount == 0 ||
@@ -1600,6 +1606,10 @@ NTSTATUS nfs41_CollapseOpen(
     status = nfs41_createnetfobx(RxContext, SrvOpen);
     if (status)
         goto out;
+#ifdef DEBUG_OPEN
+    DbgP("nfs41_CollapseOpen: created RxContext->pFobx=0x%p\n",
+        RxContext->pFobx);
+#endif /* DEBUG_OPEN */
 
     status = nfs41_UpcallCreate(NFS41_SYSOP_COLLAPSE_OPEN,
         &nfs41_srvopen->sec_ctx, pVNetRootContext->session,
