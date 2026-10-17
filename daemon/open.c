@@ -79,6 +79,7 @@ static int create_open_state(
     state->owner.owner_len = (uint32_t)strlen((const char*)state->owner.owner);
 
     InitializeSRWLock(&state->lock);
+    list_init(&state->fobxs);
     state->ref_count = 1; /* will be released in |cleanup_close()| */
     list_init(&state->locks.list);
     list_init(&state->client_entry);
@@ -101,6 +102,46 @@ out_free:
     goto out;
 }
 
+static int open_state_add_fobx(
+    IN nfs41_open_state *state,
+    IN HANDLE fobx)
+{
+    nfs41_open_fobx *entry = calloc(1, sizeof(*entry));
+
+    if (entry == NULL)
+        return ERROR_NOT_ENOUGH_MEMORY;
+    entry->fobx = fobx;
+    list_init(&entry->entry);
+
+    AcquireSRWLockExclusive(&state->lock);
+    list_add_tail(&state->fobxs, &entry->entry);
+    ReleaseSRWLockExclusive(&state->lock);
+    return ERROR_SUCCESS;
+}
+
+static bool open_state_remove_fobx(
+    IN nfs41_open_state *state,
+    IN HANDLE fobx)
+{
+    struct list_entry *entry, *tmp;
+    bool found = false;
+
+    AcquireSRWLockExclusive(&state->lock);
+    EASSERT(!list_empty(&state->fobxs));
+    list_for_each_tmp(entry, tmp, &state->fobxs) {
+        nfs41_open_fobx *fobx_entry = list_container(entry,
+            nfs41_open_fobx, entry);
+        if (fobx_entry->fobx != fobx)
+            continue;
+        list_remove(&fobx_entry->entry);
+        free(fobx_entry);
+        found = true;
+        break;
+    }
+    ReleaseSRWLockExclusive(&state->lock);
+    return found;
+}
+
 static void open_state_free(
     IN nfs41_open_state *state)
 {
@@ -111,6 +152,10 @@ static void open_state_free(
 
     EASSERT(waitSRWlock(&state->lock) == TRUE);
     EASSERT(waitSRWlock(&state->path.lock) == TRUE);
+
+    /* free associated FOBX and lock state */
+    list_for_each_tmp(entry, tmp, &state->fobxs)
+        free(list_container(entry, nfs41_open_fobx, entry));
 
     /* free associated lock state */
     list_for_each_tmp(entry, tmp, &state->locks.list)
@@ -257,13 +302,21 @@ static int do_open(
     nfs41_delegation_granted(state->session, &state->parent,
         &state->file, &delegation, TRUE, &deleg_state);
     if (deleg_state) {
-        nfs41_delegation_srv_open *entry = calloc(1, sizeof(*entry));
+        nfs41_delegation_fobx *entry = calloc(1, sizeof(*entry));
 
         if (entry != NULL) {
+            nfs41_open_fobx *open_fobx;
+
+            AcquireSRWLockShared(&state->lock);
+            EASSERT(!list_empty(&state->fobxs));
+            open_fobx = list_container(state->fobxs.next,
+                nfs41_open_fobx, entry);
             entry->srv_open = state->srv_open;
+            entry->fobx = open_fobx->fobx;
+            ReleaseSRWLockShared(&state->lock);
             list_init(&entry->entry);
             AcquireSRWLockExclusive(&deleg_state->lock);
-            list_add_tail(&deleg_state->srv_opens, &entry->entry);
+            list_add_tail(&deleg_state->fobxs, &entry->entry);
             ReleaseSRWLockExclusive(&deleg_state->lock);
             DPRINTF(1, ("do_open: "
                 "received delegation: adding srv_open=0x%p\n",
@@ -969,6 +1022,9 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
         goto out;
     }
     state->srv_open = args->srv_open;
+    status = open_state_add_fobx(state, args->fobx);
+    if (status)
+        goto out;
 
     // first check if windows told us it's a directory
     if (args->create_opts & FILE_DIRECTORY_FILE)
@@ -1625,11 +1681,41 @@ static int handle_collapse_open(void *daemon_context, nfs41_upcall *upcall)
 {
     const collapse_open_upcall_args *args = &upcall->args.collapse_open;
 
+    nfs41_open_state *state = upcall->state_ref;
+    nfs41_delegation_state *deleg = NULL;
+    int status;
+
     DPRINTF(1,
-        ("handle_collapse_open: srv_open=0x%p, fobx=0x%p\n",
+        ("handle_collapse_open: srv_open=0x%p,fobx=0x%p\n",
         args->srv_open, args->fobx));
 
-    return ERROR_SUCCESS;
+    EASSERT(state->srv_open == args->srv_open);
+
+    status = open_state_add_fobx(state, args->fobx);
+    if (status)
+        goto out;
+
+    AcquireSRWLockShared(&state->lock);
+    if (state->delegation.state) {
+        deleg = state->delegation.state;
+        nfs41_delegation_ref(deleg);
+    }
+    ReleaseSRWLockShared(&state->lock);
+
+    if (deleg) {
+        status = nfs41_delegation_add_fobx(deleg, state->srv_open,
+            args->fobx);
+        nfs41_delegation_deref(deleg);
+
+        if (status) {
+            bool fobx_found;
+            fobx_found = open_state_remove_fobx(state, args->fobx);
+            EASSERT(fobx_found == true);
+            goto out;
+        }
+    }
+out:
+    return status;
 }
 
 /* NFS41_SYSOP_CLEANUP_FOBX */
@@ -1656,10 +1742,19 @@ out:
 static int handle_cleanup_fobx(void *daemon_context, nfs41_upcall *upcall)
 {
     const cleanup_fobx_upcall_args *args = &upcall->args.cleanup_fobx;
+    bool fobx_found;
+    nfs41_open_state *state = upcall->state_ref;
 
     DPRINTF(1,
-        ("handle_cleanup_fobx: srv_open=0x%p, fobx=0x%p\n",
+        ("handle_cleanup_fobx: srv_open=0x%p,fobx=0x%p\n",
         args->srv_open, args->fobx));
+
+    EASSERT(state->srv_open == args->srv_open);
+
+    nfs41_delegation_remove_fobx(state->session, &state->file,
+        args->srv_open, args->fobx);
+    fobx_found = open_state_remove_fobx(state, args->fobx);
+    EASSERT(fobx_found == true);
 
     return ERROR_SUCCESS;
 }
@@ -1726,8 +1821,10 @@ static int handle_close(void *deamon_context, nfs41_upcall *upcall)
         pnfs_layout_state_close(state->session, state, args->remove);
 
     EASSERT(state->srv_open == args->srv_open);
-    nfs41_delegation_remove_srvopen(state->session, &state->file,
-        args->srv_open);
+
+    AcquireSRWLockShared(&state->lock);
+    EASSERT(list_empty(&state->fobxs));
+    ReleaseSRWLockShared(&state->lock);
 
     if (args->remove) {
         nfs41_component *name = &state->file.name;

@@ -67,7 +67,7 @@ static int delegation_create(
     fh_copy(&state->parent.fh, &parent->fh);
 
     list_init(&state->client_entry);
-    list_init(&state->srv_opens);
+    list_init(&state->fobxs);
     state->status = DELEGATION_GRANTED;
     InitializeSRWLock(&state->lock);
     InitializeConditionVariable(&state->cond);
@@ -92,7 +92,7 @@ void nfs41_delegation_deref(
     DPRINTF(DGLVL, ("nfs41_delegation_deref('%s') count %d\n",
         state->path.path, count));
     if (count == 0) {
-        EASSERT(list_empty(&state->srv_opens));
+        EASSERT(list_empty(&state->fobxs));
         free(state);
     }
 }
@@ -288,15 +288,15 @@ static int delegation_return(
      * the delegation lock is not held across the downcall
      */
     for (;;) {
-        nfs41_delegation_srv_open *entry;
+        nfs41_delegation_fobx *entry;
 
         AcquireSRWLockExclusive(&deleg->lock);
-        if (list_empty(&deleg->srv_opens)) {
+        if (list_empty(&deleg->fobxs)) {
             ReleaseSRWLockExclusive(&deleg->lock);
             break;
         }
-        entry = list_container(deleg->srv_opens.next,
-            nfs41_delegation_srv_open, entry);
+        entry = list_container(deleg->fobxs.next,
+            nfs41_delegation_fobx, entry);
         list_remove(&entry->entry);
         ReleaseSRWLockExclusive(&deleg->lock);
 
@@ -304,8 +304,8 @@ static int delegation_return(
             (deleg->state.type == NFS41_OPEN_DELEGATE_WRITE));
         DPRINTF(1,
             ("delegation_return: "
-            "notifying kernel for srv_open=0x%p, was deleg->state.type=%d\n",
-            entry->srv_open, (int)deleg->state.type));
+            "notifying kernel for srv_open=0x%p,fobx=0x%p; was deleg->state.type=%d\n",
+            entry->srv_open, entry->fobx, (int)deleg->state.type));
 
         /* Disable delegation-dependent caching before DELEGRETURN */
         (void)nfs41_notify_kernel_delegation_state(entry->srv_open,
@@ -564,19 +564,27 @@ int nfs41_delegate_open(
         stateid4_cpy(&stateid.stateid, &deleg->state.stateid);
     }
     if (!status) {
-        nfs41_delegation_srv_open *entry;
+        nfs41_delegation_fobx *entry;
 
         entry = calloc(1, sizeof(*entry));
         if (entry == NULL) {
             status = ERROR_NOT_ENOUGH_MEMORY;
         } else {
+            nfs41_open_fobx *open_fobx;
+
+            AcquireSRWLockShared(&state->lock);
+            EASSERT(!list_empty(&state->fobxs));
+            open_fobx = list_container(state->fobxs.next,
+                nfs41_open_fobx, entry);
             entry->srv_open = state->srv_open;
+            entry->fobx = open_fobx->fobx;
+            ReleaseSRWLockShared(&state->lock);
             list_init(&entry->entry);
-            list_add_tail(&deleg->srv_opens, &entry->entry);
+            list_add_tail(&deleg->fobxs, &entry->entry);
             DPRINTF(1,
                 ("nfs41_delegate_open: "
-                "adding srv_open=0x%p to delegation list\n",
-                entry->srv_open));
+                "adding srv_open=0x%p,fobx=0x%p to delegation list\n",
+                entry->srv_open, entry->fobx));
         }
     }
     ReleaseSRWLockExclusive(&deleg->lock);
@@ -681,30 +689,61 @@ out_unlock:
     return status;
 }
 
-void nfs41_delegation_remove_srvopen(
+int nfs41_delegation_add_fobx(
+    IN nfs41_delegation_state *deleg,
+    IN HANDLE srv_open,
+    IN HANDLE fobx)
+{
+    nfs41_delegation_fobx *entry;
+    int status = ERROR_NOT_ENOUGH_MEMORY;
+
+    entry = calloc(1, sizeof(*entry));
+    if (entry == NULL)
+        goto out;
+
+    entry->srv_open = srv_open;
+    entry->fobx = fobx;
+    list_init(&entry->entry);
+
+    AcquireSRWLockExclusive(&deleg->lock);
+    if (deleg->status == DELEGATION_GRANTED) {
+        list_add_tail(&deleg->fobxs, &entry->entry);
+        entry = NULL;
+    }
+    ReleaseSRWLockExclusive(&deleg->lock);
+
+    free(entry);
+    status = ERROR_SUCCESS;
+out:
+    return status;
+}
+
+void nfs41_delegation_remove_fobx(
     IN nfs41_session *session,
     IN nfs41_path_fh *file,
-    IN HANDLE srv_open)
+    IN HANDLE srv_open,
+    IN HANDLE fobx)
 {
     nfs41_delegation_state *deleg = NULL;
     struct list_entry *entry, *tmp;
 
-    /* find a delegation for this file */
     if (delegation_find(session->client, &file->fh, deleg_file_cmp, &deleg))
         return;
 
     AcquireSRWLockExclusive(&deleg->lock);
-    list_for_each_tmp(entry, tmp, &deleg->srv_opens) {
-        nfs41_delegation_srv_open *srv_open_entry = list_container(entry,
-            nfs41_delegation_srv_open, entry);
+    list_for_each_tmp(entry, tmp, &deleg->fobxs) {
+        nfs41_delegation_fobx *fobx_entry = list_container(entry,
+            nfs41_delegation_fobx, entry);
 
-        if (srv_open_entry->srv_open != srv_open)
+        if (!((fobx_entry->srv_open == srv_open) && (fobx_entry->fobx == fobx)))
             continue;
 
-        DPRINTF(1, ("nfs41_delegation_remove_srvopen: removing reference to "
-            "srv_open=0x%p\n", srv_open_entry->srv_open));
-        list_remove(&srv_open_entry->entry);
-        free(srv_open_entry);
+        DPRINTF(1, ("nfs41_delegation_remove_fobx: "
+            "removing srv_open=0x%p,fobx=0x%p\n",
+            fobx_entry->srv_open, fobx_entry->fobx));
+        list_remove(&fobx_entry->entry);
+        free(fobx_entry);
+        break;
     }
     ReleaseSRWLockExclusive(&deleg->lock);
     nfs41_delegation_deref(deleg);
@@ -1178,8 +1217,8 @@ out:
 
 /*
  * |nfs41_client_delegation_scavenger_mark()| - Delegation scavenger phase 1:
- * Age delegations which have no associated srv_open pointers.
- * Any srv_open activity resets the age to zero.
+ * Age delegations which have no associated FOBX pointers.
+ * Any FOBX activity resets the age to zero.
  */
 void nfs41_client_delegation_scavenger_mark(
     IN OUT nfs41_client *client)
@@ -1194,7 +1233,7 @@ void nfs41_client_delegation_scavenger_mark(
         deleg = deleg_entry(entry);
 
         AcquireSRWLockExclusive(&deleg->lock);
-        if (list_empty(&deleg->srv_opens)) {
+        if (list_empty(&deleg->fobxs)) {
             deleg->delegscavenger_mark++;
 
             EASSERT(deleg->delegscavenger_mark < 1024);
@@ -1222,7 +1261,7 @@ void nfs41_client_delegation_scavenger_mark(
 /*
  * |nfs41_client_delegation_scavenger_sweep()| - Delegation scavenger pase 2:
  * Return all delegations which have remained without an
- * associated srv_open for more than |DELEGSCAVENGER_MAXMARK| cycles.
+ * associated FOBX for more than |DELEGSCAVENGER_MAXMARK| cycles.
  * Select and mark one delegation at a time, then perform
  * the potentially blocking DELEGRETURN without holding that lock.
  */
@@ -1244,7 +1283,7 @@ void nfs41_client_delegation_scavenger_sweep(
             nfs41_delegation_state *candidate = deleg_entry(entry);
 
             AcquireSRWLockExclusive(&candidate->lock);
-            if (!list_empty(&candidate->srv_opens)) {
+            if (!list_empty(&candidate->fobxs)) {
                 candidate->delegscavenger_mark = 0;
             } else if ((candidate->status == DELEGATION_GRANTED) &&
                 (candidate->delegscavenger_mark > DELEGSCAVENGER_MAXMARK)) {

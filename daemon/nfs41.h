@@ -103,10 +103,16 @@ enum delegation_status {
     DELEGATION_RETURNED,
 };
 
-typedef struct __nfs41_delegation_srv_open {
+typedef struct __nfs41_delegation_fobx {
     struct list_entry entry;
     HANDLE srv_open;
-} nfs41_delegation_srv_open;
+    HANDLE fobx;
+} nfs41_delegation_fobx;
+
+typedef struct __nfs41_open_fobx {
+    struct list_entry entry;
+    HANDLE fobx;
+} nfs41_open_fobx;
 
 typedef struct __nfs41_delegation_state {
     open_delegation4 state;
@@ -122,8 +128,8 @@ typedef struct __nfs41_delegation_state {
 
     bool_t revoked; /* for recovery, accessed under client.state.lock */
 
-    /* |nfs41_delegation_srv_open| entries for RDBSS cache management */
-    struct list_entry srv_opens;
+    /* |nfs41_delegation_fobx| entries for RDBSS cache management */
+    struct list_entry fobxs;
 #ifdef NFS41_DRIVER_FEATURE_DELEGATION_SCAVENGER
     uint16_t delegscavenger_mark;
 #endif /* NFS41_DRIVER_FEATURE_DELEGATION_SCAVENGER */
@@ -182,6 +188,8 @@ typedef struct __nfs41_open_state {
     } ea;
 
     HANDLE srv_open; /* for data cache invalidation */
+    /* |nfs41_open_fobx| entries associated with this SRV_OPEN */
+    struct list_entry fobxs;
 } nfs41_open_state;
 
 typedef struct __nfs41_rpc_clnt {
