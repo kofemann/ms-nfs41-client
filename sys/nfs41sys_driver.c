@@ -1032,9 +1032,11 @@ NTSTATUS nfs41_DeallocateForFcb(
 {
     __notnull PNFS41_FCB nfs41_fcb = NFS41GetFcbExtension(pFcb);
 
-    if (nfs41_fcb->aclcache.data) {
-        RxFreePool(nfs41_fcb->aclcache.data);
-        nfs41_fcb->aclcache.data = NULL;
+    if (nfs41_fcb->initialised) {
+        if (nfs41_fcb->aclcache.data) {
+            RxFreePool(nfs41_fcb->aclcache.data);
+            nfs41_fcb->aclcache.data = NULL;
+        }
     }
 
     return STATUS_SUCCESS;
