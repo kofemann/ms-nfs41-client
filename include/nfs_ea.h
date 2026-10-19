@@ -1,6 +1,6 @@
 /*
  * NFSv4.1 client for Windows
- * Copyright (C) 2024-2025 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2024-2026 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Roland Mainz <roland.mainz@nrubsig.org>
  *
@@ -30,10 +30,10 @@
 #define EA_NFSV3ATTRIBUTES_LEN (15)
 
 #define EA_NFSSYMLINKTARGETNAME "NfsSymlinkTargetName"
-#define EA_NFSSYMLINKTARGETNAME_LEN (17)
+#define EA_NFSSYMLINKTARGETNAME_LEN (20)
 
 #define EA_NFSACTONLINK "NfsActOnLink"
-#define EA_NFSACTONLINK_LEN (11)
+#define EA_NFSACTONLINK_LEN (12)
 
 /*
  * "NfsV3Attributes" uses |nfs3_attrs| as content
