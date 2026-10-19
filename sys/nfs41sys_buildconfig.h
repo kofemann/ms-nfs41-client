@@ -25,6 +25,8 @@
 
 /* Driver build config */
 
+#define NFS41_DRIVER_VOLUME_QUERY_CACHE 1
+
 /*
  * |FORCE_POSIX_SEMANTICS_DELETE| is for bug-by-bug compatibility with the
  * original Windows NFSv3 filesystem driver

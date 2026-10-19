@@ -132,6 +132,7 @@ typedef struct __nfs41_timings {
 #define NFS41_MM_POOLTAG_OPEN   ('open')
 #define NFS41_MM_POOLTAG_UP     ('upca')
 #define NFS41_MM_POOLTAG_DOWN   ('down')
+#define NFS41_MM_VOLUME_CACHE   ('volc')
 
 
 DECLARE_EXTERN_DECLARE_CONST_UNICODE_STRING(AUTH_NONE_NAME);
@@ -509,6 +510,28 @@ typedef struct _NFS41_NETROOT_EXTENSION {
         (((pNetRoot) == NULL) ? NULL :          \
         (PNFS41_NETROOT_EXTENSION)((pNetRoot)->Context))
 
+#ifdef NFS41_DRIVER_VOLUME_QUERY_CACHE
+#define NFS41_VOLUME_QUERY_CACHE_TTL_SECONDS 10ULL
+
+typedef struct _NFS41_VOLUME_QUERY_CACHE_VALUE {
+    PVOID data;
+    size_t size;
+    ULONGLONG time_to_live;
+} NFS41_VOLUME_QUERY_CACHE_VALUE, *PNFS41_VOLUME_QUERY_CACHE_VALUE;
+
+/*
+ * |NFS41_VOLUME_QUERY_CACHE_FSID_ENTRY| - One vnetroot might span multiple
+ * NFS filesystems with different properties, therefore we need
+ * an entry per fsid.
+ */
+typedef struct _NFS41_VOLUME_QUERY_CACHE_FSID_ENTRY {
+    LIST_ENTRY next;
+    ULONGLONG fsid_major;
+    ULONGLONG fsid_minor;
+    NFS41_VOLUME_QUERY_CACHE_VALUE values[FileFsMaximumInformation];
+} NFS41_VOLUME_QUERY_CACHE_FSID_ENTRY, *PNFS41_VOLUME_QUERY_CACHE_FSID_ENTRY;
+#endif /* NFS41_DRIVER_VOLUME_QUERY_CACHE */
+
 typedef struct _NFS41_V_NET_ROOT_EXTENSION {
     HANDLE                  session;
     NFS41_FILE_FS_ATTRIBUTE_INFORMATION FsAttrs;
@@ -525,6 +548,13 @@ typedef struct _NFS41_V_NET_ROOT_EXTENSION {
     BOOLEAN                 read_only;
     BOOLEAN                 write_thru;
     BOOLEAN                 nocache;
+#ifdef NFS41_DRIVER_VOLUME_QUERY_CACHE
+    struct {
+        FAST_MUTEX lock;
+        LIST_ENTRY entries;
+        BOOLEAN initialised;
+    } volumequerycache;
+#endif /* NFS41_DRIVER_VOLUME_QUERY_CACHE */
 #ifdef NFS41_DRIVER_COLLAPSEOPEN
     BOOLEAN                 srvopencollapse;
 #endif /* NFS41_DRIVER_COLLAPSEOPEN */

@@ -797,6 +797,49 @@ NTSTATUS netroot_has_nfs_tag(
     return status;
 }
 
+#ifdef NFS41_DRIVER_VOLUME_QUERY_CACHE
+static
+void nfs41_volume_query_cache_init(
+    PNFS41_V_NET_ROOT_EXTENSION vnetroot)
+{
+    ExInitializeFastMutex(&vnetroot->volumequerycache.lock);
+    InitializeListHead(&vnetroot->volumequerycache.entries);
+    vnetroot->volumequerycache.initialised = true;
+}
+
+static
+void nfs41_volume_query_cache_destroy(
+    PNFS41_V_NET_ROOT_EXTENSION vnetroot)
+{
+    if (!vnetroot->volumequerycache.initialised)
+        return;
+
+    ExAcquireFastMutexUnsafe(&vnetroot->volumequerycache.lock);
+
+    while (!IsListEmpty(&vnetroot->volumequerycache.entries)) {
+        PLIST_ENTRY list_entry =
+            RemoveHeadList(&vnetroot->volumequerycache.entries);
+        PNFS41_VOLUME_QUERY_CACHE_FSID_ENTRY cache_entry =
+            CONTAINING_RECORD(list_entry,
+                NFS41_VOLUME_QUERY_CACHE_FSID_ENTRY,
+                next);
+        FS_INFORMATION_CLASS info_class;
+
+        for (info_class = 0;
+             info_class < FileFsMaximumInformation;
+             info_class++) {
+            if (cache_entry->values[info_class].data != NULL)
+                RxFreePool(cache_entry->values[info_class].data);
+        }
+        RxFreePool(cache_entry);
+    }
+
+    ExReleaseFastMutexUnsafe(&vnetroot->volumequerycache.lock);
+
+    vnetroot->volumequerycache.initialised = false;
+}
+#endif /* NFS41_DRIVER_VOLUME_QUERY_CACHE */
+
 NTSTATUS nfs41_CreateVNetRoot(
     IN OUT PMRX_CREATENETROOT_CONTEXT pCreateNetRootContext)
 {
@@ -835,6 +878,10 @@ NTSTATUS nfs41_CreateVNetRoot(
         (long)pCreateNetRootContext->NetRootStatus);
 #endif
     FsRtlEnterFileSystem();
+
+#ifdef NFS41_DRIVER_VOLUME_QUERY_CACHE
+    nfs41_volume_query_cache_init(pVNetRootContext);
+#endif /* NFS41_DRIVER_VOLUME_QUERY_CACHE */
 
     if ((pNetRoot->Type != NET_ROOT_DISK) &&
         (pNetRoot->Type != NET_ROOT_WILD) &&
@@ -1429,6 +1476,10 @@ NTSTATUS nfs41_FinalizeVNetRoot(
     DbgP("nfs41_FinalizeVNetRoot(pVNetRoot=0x%p),pNetRoot=0x%p\n",
         pVNetRoot,
         pNetRoot);
+
+#ifdef NFS41_DRIVER_VOLUME_QUERY_CACHE
+    nfs41_volume_query_cache_destroy(pVNetRootContext);
+#endif /* NFS41_DRIVER_VOLUME_QUERY_CACHE */
 
     nfs41_print_mounts(pNetRootContext);
 

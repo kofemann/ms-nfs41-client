@@ -148,6 +148,143 @@ NTSTATUS map_volume_errors(
     }
 }
 
+#ifdef NFS41_DRIVER_VOLUME_QUERY_CACHE
+static
+PNFS41_VOLUME_QUERY_CACHE_FSID_ENTRY find_volume_query_cache_fsid_entry(
+    PNFS41_V_NET_ROOT_EXTENSION vnetroot,
+    ULONGLONG fsid_major,
+    ULONGLONG fsid_minor)
+{
+    PLIST_ENTRY list_entry;
+
+    for (list_entry = vnetroot->volumequerycache.entries.Flink;
+         list_entry != &vnetroot->volumequerycache.entries;
+         list_entry = list_entry->Flink) {
+        PNFS41_VOLUME_QUERY_CACHE_FSID_ENTRY cache_entry = CONTAINING_RECORD(
+            list_entry, NFS41_VOLUME_QUERY_CACHE_FSID_ENTRY, next);
+
+        if ((cache_entry->fsid_major == fsid_major) &&
+            (cache_entry->fsid_minor == fsid_minor))
+            return cache_entry;
+    }
+    return NULL;
+}
+
+static
+bool volume_query_cache_lookup(
+    PNFS41_V_NET_ROOT_EXTENSION vnetroot,
+    PNFS41_FCB fcb,
+    FS_INFORMATION_CLASS info_class,
+    PVOID buffer,
+    ULONG buffer_size,
+    PULONG copied_size,
+    PNTSTATUS status)
+{
+    PNFS41_VOLUME_QUERY_CACHE_FSID_ENTRY cache_entry;
+    PNFS41_VOLUME_QUERY_CACHE_VALUE value;
+    ULONGLONG now = KeQueryInterruptTime();
+    size_t copy_size;
+    bool found = false;
+
+    ExAcquireFastMutexUnsafe(&vnetroot->volumequerycache.lock);
+    cache_entry = find_volume_query_cache_fsid_entry(vnetroot,
+        fcb->fsid_major, fcb->fsid_minor);
+    if (cache_entry == NULL)
+        goto out;
+
+    value = &cache_entry->values[info_class];
+    if (value->data == NULL)
+        goto out;
+
+    if (now >= value->time_to_live) {
+        DbgP("volume_query_cache_lookup: cache entry expired: "
+            "fsid=(major=0x%llx,minor=0x%llx) infoclass=%d "
+            "size=%lld ttl=%lld\n",
+            (long long)fcb->fsid_major, (long long)fcb->fsid_minor,
+            (int)info_class,
+            (long long)value->size,
+            (long long)value->time_to_live);
+        RxFreePool(value->data);
+        value->data = NULL;
+        value->size = 0;
+        value->time_to_live = 0;
+        goto out;
+    }
+
+    copy_size = min(value->size, (size_t)buffer_size);
+    if (copy_size != 0)
+        (void)memcpy(buffer, value->data, copy_size);
+    *copied_size = (ULONG)copy_size;
+    *status = (copy_size == value->size) ?
+        STATUS_SUCCESS : STATUS_BUFFER_OVERFLOW;
+
+    DbgP("volume_query_cache_lookup: cache used: "
+        "fsid=(major=0x%llx,minor=0x%llx) infoclass=%d "
+        "size=%lld ttl=%lld\n",
+         (long long)fcb->fsid_major, (long long)fcb->fsid_minor,
+         (int)info_class,
+         (long long)value->size, (long long)value->time_to_live);
+    found = true;
+out:
+    ExReleaseFastMutexUnsafe(&vnetroot->volumequerycache.lock);
+    return found;
+}
+
+static
+void volume_query_cache_store(
+    PNFS41_V_NET_ROOT_EXTENSION vnetroot,
+    PNFS41_FCB fcb,
+    FS_INFORMATION_CLASS info_class,
+    PVOID data,
+    size_t size)
+{
+    PNFS41_VOLUME_QUERY_CACHE_FSID_ENTRY cache_entry;
+    PVOID new_data;
+
+    new_data = RxAllocatePoolWithTag(NonPagedPoolNx, size,
+        NFS41_MM_VOLUME_CACHE);
+    if (new_data == NULL)
+        return;
+    (void)memcpy(new_data, data, size);
+
+    ExAcquireFastMutexUnsafe(&vnetroot->volumequerycache.lock);
+
+    cache_entry = find_volume_query_cache_fsid_entry(vnetroot,
+        fcb->fsid_major, fcb->fsid_minor);
+
+    /* No entry for this fsid ? Then create one... */
+    if (cache_entry == NULL) {
+        cache_entry = RxAllocatePoolWithTag(NonPagedPoolNx,
+            sizeof(NFS41_VOLUME_QUERY_CACHE_FSID_ENTRY), NFS41_MM_VOLUME_CACHE);
+        if (cache_entry == NULL) {
+            RxFreePool(new_data);
+            goto out;
+        }
+
+        (void)memset(cache_entry, 0, sizeof(NFS41_VOLUME_QUERY_CACHE_FSID_ENTRY));
+        cache_entry->fsid_major = fcb->fsid_major;
+        cache_entry->fsid_minor = fcb->fsid_minor;
+
+        InsertTailList(&vnetroot->volumequerycache.entries, &cache_entry->next);
+    }
+
+    /*
+     * Remove any data which might have appeared while we made the
+     * daemon upcall (e.g. >= two parallel lookups) ...
+     */
+    if (cache_entry->values[info_class].data != NULL)
+        RxFreePool(cache_entry->values[info_class].data);
+
+    cache_entry->values[info_class].data = new_data;
+    cache_entry->values[info_class].size = size;
+    cache_entry->values[info_class].time_to_live = KeQueryInterruptTime() +
+        NFS41_VOLUME_QUERY_CACHE_TTL_SECONDS * 10ULL * 1000ULL * 1000ULL;
+
+out:
+    ExReleaseFastMutexUnsafe(&vnetroot->volumequerycache.lock);
+}
+#endif /* NFS41_DRIVER_VOLUME_QUERY_CACHE */
+
 NTSTATUS nfs41_QueryVolumeInformation(
     IN OUT PRX_CONTEXT RxContext)
 {
@@ -161,6 +298,10 @@ NTSTATUS nfs41_QueryVolumeInformation(
         NFS41GetVNetRootExtension(SrvOpen->pVNetRoot);
     __notnull PNFS41_NETROOT_EXTENSION pNetRootContext =
         NFS41GetNetRootExtension(SrvOpen->pVNetRoot->pNetRoot);
+#ifdef NFS41_DRIVER_VOLUME_QUERY_CACHE
+    __notnull PNFS41_FCB nfs41_fcb = NFS41GetFcbExtension(RxContext->pFcb);
+    ULONG cached_size = 0;
+#endif /* NFS41_DRIVER_VOLUME_QUERY_CACHE */
 
 #ifdef ENABLE_TIMINGS
     LARGE_INTEGER t1, t2;
@@ -208,6 +349,15 @@ NTSTATUS nfs41_QueryVolumeInformation(
         status = STATUS_NOT_SUPPORTED;
         goto out;
     }
+#ifdef NFS41_DRIVER_VOLUME_QUERY_CACHE
+    if (volume_query_cache_lookup(pVNetRootContext, nfs41_fcb, InfoClass,
+            RxContext->Info.Buffer, RxContext->Info.LengthRemaining,
+            &cached_size, &status)) {
+        RxContext->Info.LengthRemaining -= cached_size;
+        goto out;
+    }
+#endif /* NFS41_DRIVER_VOLUME_QUERY_CACHE */
+
     status = nfs41_UpcallCreate(NFS41_SYSOP_VOLUME_QUERY, &nfs41_srvopen->sec_ctx,
         pVNetRootContext->session, nfs41_srvopen->nfs41_open_state,
         pNetRootContext->nfs41d_version, SrvOpen->pAlreadyPrefixedName, &entry);
@@ -237,6 +387,14 @@ NTSTATUS nfs41_QueryVolumeInformation(
         InterlockedAdd64(&volume.size, entry->u.Volume.buf_len);
 #endif
         RxContext->Info.LengthRemaining -= entry->u.Volume.buf_len;
+#ifdef NFS41_DRIVER_VOLUME_QUERY_CACHE
+        /*
+         * We must only cache on |STATUS_SUCCESS| but NOT if we got a
+         * |STATUS_BUFFER_OVERFLOW|!
+         */
+        volume_query_cache_store(pVNetRootContext, nfs41_fcb, InfoClass,
+            RxContext->Info.Buffer, entry->u.Volume.buf_len);
+#endif /* NFS41_DRIVER_VOLUME_QUERY_CACHE */
         status = STATUS_SUCCESS;
     } else {
         status = map_volume_errors(entry->status);
