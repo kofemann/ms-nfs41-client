@@ -1072,6 +1072,89 @@ done:
 }
 
 static
+int get_nfssymlinktargetname(const char *progname, const char *filename)
+{
+    unsigned char output[65536];
+    IO_STATUS_BLOCK io;
+    NTSTATUS status;
+    struct {
+        FILE_GET_EA_INFORMATION ea;
+        char tail[sizeof(EA_NFSSYMLINKTARGETNAME)+1];
+    } request = { 0 };
+    HANDLE h;
+
+    h = CreateFileA(filename,
+        FILE_READ_EA,FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,
+        NULL,
+        OPEN_EXISTING,
+        FILE_FLAG_BACKUP_SEMANTICS|FILE_FLAG_OPEN_REPARSE_POINT,
+        NULL);
+    if (h == INVALID_HANDLE_VALUE) {
+        (void)fprintf(stderr, "%s: CreateFileA('%s') failed, lasterr=%d\n",
+            progname, filename, (int)GetLastError());
+        return EXIT_FAILURE;
+    }
+
+    request.ea.EaNameLength = EA_NFSSYMLINKTARGETNAME_LEN;
+    (void)memcpy(request.ea.EaName, EA_NFSSYMLINKTARGETNAME, EA_NFSSYMLINKTARGETNAME_LEN+1);
+
+    status = ZwQueryEaFile(h,
+        &io,output,sizeof(output),
+        TRUE,
+        &request.ea,
+        FIELD_OFFSET(FILE_GET_EA_INFORMATION,EaName)+EA_NFSSYMLINKTARGETNAME_LEN+1,
+        NULL,
+        TRUE);
+    if (status < 0) {
+        (void)fprintf(stderr,
+            "%s: ZwQueryEaFile('%s', '%s') failed, ntstatus=0x%lx\n",
+            progname, filename, EA_NFSSYMLINKTARGETNAME,
+            (long)status);
+        (void)CloseHandle(h);
+        return EXIT_FAILURE;
+    }
+
+    FILE_FULL_EA_INFORMATION *ea = (FILE_FULL_EA_INFORMATION *)output;
+    if (ea->EaNameLength != EA_NFSSYMLINKTARGETNAME_LEN) {
+        (void)fprintf(stderr,
+            "%s: unexpected EA name length %u, expected %u\n",
+            progname, (unsigned int)ea->EaNameLength,
+            (unsigned int)EA_NFSSYMLINKTARGETNAME_LEN);
+        (void)CloseHandle(h);
+        return EXIT_FAILURE;
+    }
+
+    if ((ea->EaValueLength == 0) ||
+        ((ea->EaValueLength % sizeof(wchar_t)) != 0)) {
+        (void)fprintf(stderr,
+            "%s: invalid '%s' value length %u; IoStatus.Information=%llu\n",
+            progname, EA_NFSSYMLINKTARGETNAME,
+            (unsigned)ea->EaValueLength,
+            (unsigned long long)io.Information);
+        (void)CloseHandle(h);
+        return EXIT_FAILURE;
+    }
+
+    const wchar_t *value = (const wchar_t *)(ea->EaName+ea->EaNameLength+1);
+    (void)fprintf(stderr,
+        "%s: '%s' returned EaNameLength=%u, EaValueLength=%u, "
+        "IoStatus.Information=%llu\n", progname, EA_NFSSYMLINKTARGETNAME,
+        (unsigned)ea->EaNameLength, (unsigned)ea->EaValueLength,
+        (unsigned long long)io.Information);
+
+    /* AST/ksh93 compound variable format */
+    (void)printf("(\n"
+        "\tname='%s'\n"
+        "\tvalue='%.*ls'\n"
+        ")\n",
+        EA_NFSSYMLINKTARGETNAME,
+        (int)(ea->EaValueLength/sizeof(wchar_t)),
+        value);
+    (void)CloseHandle(h);
+    return EXIT_SUCCESS;
+}
+
+static
 int get_file_remote_protocol_info(const char *progname, const char *filename)
 {
     int res = EXIT_FAILURE;
@@ -2151,6 +2234,7 @@ void usage(void)
 #endif /* FILE_CS_FLAG_CASE_SENSITIVE_DIR */
         "getfiletime|"
         "nfs3attr|"
+        "nfssymlinktargetname|"
         "fileremoteprotocolinfo|"
         "fileidinfo|"
         "filenetworkphysicalnameinfo|"
@@ -2230,6 +2314,9 @@ int main(int ac, char *av[])
 #endif /* FILE_CS_FLAG_CASE_SENSITIVE_DIR */
     else if (!strcmp(subcmd, "nfs3attr")) {
         return get_nfs3attr(av[0], av[2]);
+    }
+    else if (!strcmp(subcmd, "nfssymlinktargetname")) {
+        return get_nfssymlinktargetname(av[0], av[2]);
     }
     else if (!strcmp(subcmd, "fileremoteprotocolinfo")) {
         return get_file_remote_protocol_info(av[0], av[2]);
