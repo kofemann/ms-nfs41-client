@@ -1153,6 +1153,8 @@ function main
 			require_cmd 'nfs_mount.exe' || (( numerr++ ))
 			require_cmd 'nfs_globalmount.exe' || (( numerr++ ))
 			require_cmd 'ksh93.exe' || (( numerr++ ))
+			# idmapper depends on getAccountName.exe
+			require_file '/usr/lib/csih/getAccountName.exe' || (( numerr++ ))
 			require_file '/lib/msnfs41client/cygwin_idmapper.ksh' || (( numerr++ ))
 			(( numerr > 0 )) && return 1
 
@@ -1165,6 +1167,8 @@ function main
 			require_cmd 'nfsd.exe' || (( numerr++ ))
 			require_cmd 'nfs_mount.exe' || (( numerr++ ))
 			require_cmd 'ksh93.exe' || (( numerr++ ))
+			# idmapper depends on getAccountName.exe
+			require_file '/usr/lib/csih/getAccountName.exe' || (( numerr++ ))
 			require_file '/lib/msnfs41client/cygwin_idmapper.ksh' || (( numerr++ ))
 			if ! is_windows_admin_account ; then
 				printf $"%s: %q requires Windows Adminstator permissions.\n" "$0" "$cmd"
