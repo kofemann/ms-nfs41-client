@@ -196,7 +196,7 @@ static __inline void bitmap_or(
         if (dst->arr[i])
             count = i+1;
     }
-    dst->count = min(dst->count, count);
+    dst->count = count;
 }
 
 static __inline void bitmap4_cpy(
