@@ -24,6 +24,13 @@
 #ifndef _NFS41_FROM_KERNEL_
 #define _NFS41_FROM_KERNEL_ 1
 
+#ifndef FIELD_OFFSET
+#define FIELD_OFFSET(type, field)       ((LONG)(LONG_PTR)&(((type *)0)->field))
+#endif /* !FIELD_OFFSET */
+#ifndef UFIELD_OFFSET
+#define UFIELD_OFFSET(type, field)      ((ULONG)(LONG_PTR)&(((type *)0)->field))
+#endif /* !UFIELD_OFFSET */
+
 #define FILE_DIRECTORY_FILE                     0x00000001
 #define FILE_WRITE_THROUGH                      0x00000002
 #define FILE_SEQUENTIAL_ONLY                    0x00000004
@@ -599,11 +606,14 @@ typedef struct _FILE_ZERO_DATA_INFORMATION {
 /* SYNLINK reparse points */
 #ifndef SYMLINK_FLAG_RELATIVE
 #define SYMLINK_FLAG_RELATIVE   0x00000001
+#endif /* !SYMLINK_FLAG_RELATIVE */
+
+#ifndef SYMLINK_DIRECTORY
 #define SYMLINK_DIRECTORY       0x80000000
 #define SYMLINK_FILE            0x40000000
 
 #define SYMLINK_RESERVED_MASK   0xF0000000
-#endif /* !SYMLINK_FLAG_RELATIVE */
+#endif /* !SYMLINK_DIRECTORY */
 
 #ifdef _MSC_VER
 #pragma warning( push )
@@ -639,5 +649,9 @@ typedef struct _REPARSE_DATA_BUFFER {
 #ifdef _MSC_VER
 #pragma warning( pop )
 #endif /* _MSC_VER */
+
+#define REPARSE_DATA_BUFFER_HEADER_SIZE \
+    UFIELD_OFFSET(REPARSE_DATA_BUFFER, GenericReparseBuffer)
+
 
 #endif /* !_NFS41_FROM_KERNEL_ */
