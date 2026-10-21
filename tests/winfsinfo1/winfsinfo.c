@@ -36,6 +36,8 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <windows.h>
+#include <stddef.h>
+#include <string.h>
 #include <npapi.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -43,6 +45,7 @@
 
 #include "nfs_ea.h"
 #include "from_kernel.h"
+#include "win_reparse.h"
 
 static
 bool filetime2localsystemtime(const FILETIME *ft, SYSTEMTIME *st)
@@ -1069,6 +1072,186 @@ int get_nfs3attr(const char *progname, const char *filename)
 done:
     (void)CloseHandle(fileHandle);
     return res;
+}
+
+
+static
+bool reparse_range_is_valid(size_t data_length, size_t offset, size_t length)
+{
+    return offset <= data_length && length <= data_length - offset;
+}
+
+static
+int get_reparsepoint(const char *progname, const char *filename)
+{
+    unsigned char buffer[MAXIMUM_REPARSE_DATA_BUFFER_SIZE];
+    REPARSE_DATA_BUFFER *rdb = (REPARSE_DATA_BUFFER *)buffer;
+    DWORD bytes_returned = 0;
+    size_t data_length;
+    HANDLE h;
+
+    h = CreateFileA(filename,
+        0,
+        (FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE),
+        NULL,
+        OPEN_EXISTING,
+        (FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT),
+        NULL);
+    if (h == INVALID_HANDLE_VALUE) {
+        (void)fprintf(stderr,
+            "%s: Error opening reparse point '%s'. lasterr=%d\n",
+            progname, filename, (int)GetLastError());
+        return EXIT_FAILURE;
+    }
+
+    if (!DeviceIoControl(h,
+            FSCTL_GET_REPARSE_POINT, NULL, 0,
+            buffer, (DWORD)sizeof(buffer),
+            &bytes_returned, NULL)) {
+        (void)fprintf(stderr,
+            "%s: FSCTL_GET_REPARSE_POINT failed for '%s', lasterr=%d\n",
+            progname, filename, (int)GetLastError());
+        (void)CloseHandle(h);
+        return EXIT_FAILURE;
+    }
+
+    (void)CloseHandle(h);
+
+    if ((bytes_returned < REPARSE_DATA_BUFFER_HEADER_SIZE) ||
+        (rdb->ReparseDataLength >
+            (bytes_returned - REPARSE_DATA_BUFFER_HEADER_SIZE))) {
+        (void)fprintf(stderr,
+            "%s: Invalid reparse data length %ld for filename='%s' "
+            "(bytes_returned=%ld)\n",
+            progname, (long)rdb->ReparseDataLength, filename,
+            (long)bytes_returned);
+        return EXIT_FAILURE;
+    }
+
+    data_length = rdb->ReparseDataLength;
+    (void)printf("(\n");
+    (void)printf("(\tfilename='%s'\n", filename);
+    (void)printf("\treparse_tag=16#%lx\n", (unsigned long)rdb->ReparseTag);
+    (void)printf("\treparse_data_length=%u\n", (unsigned int)data_length);
+
+    switch (rdb->ReparseTag) {
+    case IO_REPARSE_TAG_SYMLINK:
+    {
+        size_t path_data_length;
+        ULONG symlink_flags;
+        if (data_length < 12U)
+            goto invalid_reparse_data;
+        path_data_length = data_length - 12U;
+
+        /* Validation */
+        if (!reparse_range_is_valid(path_data_length,
+                rdb->SymbolicLinkReparseBuffer.SubstituteNameOffset,
+                rdb->SymbolicLinkReparseBuffer.SubstituteNameLength) ||
+            !reparse_range_is_valid(path_data_length,
+                rdb->SymbolicLinkReparseBuffer.PrintNameOffset,
+                rdb->SymbolicLinkReparseBuffer.PrintNameLength) ||
+            ((rdb->SymbolicLinkReparseBuffer.SubstituteNameLength % sizeof(wchar_t)) != 0U) ||
+            ((rdb->SymbolicLinkReparseBuffer.PrintNameLength % sizeof(wchar_t)) != 0U))
+            goto invalid_reparse_data;
+        (void)printf("\ttag_name='IO_REPARSE_TAG_SYMLINK'\n");
+
+        (void)printf("\ttypeset -A Flags=(\n");
+        symlink_flags = rdb->SymbolicLinkReparseBuffer.Flags;
+#define TESTSYMLINKFLAG(s) \
+        if (symlink_flags & (s)) { \
+            (void)printf("\t\t['%s']=0x%lx\n", (#s), (unsigned long)(s)); \
+            symlink_flags &= ~(s); \
+        }
+        TESTSYMLINKFLAG(SYMLINK_FLAG_RELATIVE);
+        TESTSYMLINKFLAG(SYMLINK_DIRECTORY);
+        TESTSYMLINKFLAG(SYMLINK_FILE);
+        if (symlink_flags)
+            (void)printf("\t\t['remainingflags']=0x%lx\n",
+                (unsigned long)symlink_flags);
+#undef TESTSYMLINKFLAG
+        (void)printf("\t)\n");
+        (void)printf("\tsubstitute_name_offset=%u\n",
+            (unsigned int)rdb->SymbolicLinkReparseBuffer.SubstituteNameOffset);
+        (void)printf("\tsubstitute_name_length=%u\n",
+            (unsigned int)rdb->SymbolicLinkReparseBuffer.SubstituteNameLength);
+        (void)printf("\tprint_name_offset=%u\n",
+            (unsigned int)rdb->SymbolicLinkReparseBuffer.PrintNameOffset);
+        (void)printf("\tprint_name_length=%u\n",
+            (unsigned int)rdb->SymbolicLinkReparseBuffer.PrintNameLength);
+        (void)printf("\tsubstitute_name='%.*ls'\n",
+            (int)(rdb->SymbolicLinkReparseBuffer.SubstituteNameLength / sizeof(wchar_t)),
+            (wchar_t *)((unsigned char *)rdb->SymbolicLinkReparseBuffer.PathBuffer + rdb->SymbolicLinkReparseBuffer.SubstituteNameOffset));
+        (void)printf("\tprint_name='%.*ls'\n",
+            (int)(rdb->SymbolicLinkReparseBuffer.PrintNameLength / sizeof(wchar_t)),
+            (wchar_t *)((unsigned char *)rdb->SymbolicLinkReparseBuffer.PathBuffer + rdb->SymbolicLinkReparseBuffer.PrintNameOffset));
+    }
+        break;
+
+    case IO_REPARSE_TAG_MOUNT_POINT:
+    {
+        size_t path_data_length;
+        if (data_length < 8U)
+            goto invalid_reparse_data;
+        path_data_length = data_length - 8U;
+
+        /* Validation */
+        if (!reparse_range_is_valid(path_data_length,
+                rdb->MountPointReparseBuffer.SubstituteNameOffset, rdb->MountPointReparseBuffer.SubstituteNameLength) ||
+            !reparse_range_is_valid(path_data_length,
+                rdb->MountPointReparseBuffer.PrintNameOffset, rdb->MountPointReparseBuffer.PrintNameLength) ||
+            ((rdb->MountPointReparseBuffer.SubstituteNameLength % sizeof(wchar_t)) != 0U) ||
+            (((rdb->MountPointReparseBuffer.PrintNameLength % sizeof(wchar_t))) != 0U))
+            goto invalid_reparse_data;
+
+        (void)printf("\ttag_name='IO_REPARSE_TAG_MOUNT_POINT'\n");
+        (void)printf("\tsubstitute_name_offset=%u\n",
+            (unsigned int)rdb->MountPointReparseBuffer.SubstituteNameOffset);
+        (void)printf("\tsubstitute_name_length=%u\n",
+            (unsigned int)rdb->MountPointReparseBuffer.SubstituteNameLength);
+        (void)printf("\tprint_name_offset=%u\n",
+            (unsigned int)rdb->MountPointReparseBuffer.PrintNameOffset);
+        (void)printf("\tprint_name_length=%u\n",
+            (unsigned int)rdb->MountPointReparseBuffer.PrintNameLength);
+        (void)printf("\tsubstitute_name='%.*ls'\n",
+            (int)(rdb->MountPointReparseBuffer.SubstituteNameLength / sizeof(wchar_t)),
+            (wchar_t *)((unsigned char *)rdb->MountPointReparseBuffer.PathBuffer + rdb->MountPointReparseBuffer.SubstituteNameOffset));
+        (void)printf("\tprint_name='%.*ls'\n",
+            (int)(rdb->MountPointReparseBuffer.PrintNameLength / sizeof(wchar_t)),
+            (wchar_t *)((unsigned char *)rdb->MountPointReparseBuffer.PathBuffer + rdb->MountPointReparseBuffer.PrintNameOffset));
+    }
+        break;
+
+    case IO_REPARSE_TAG_LX_SYMLINK:
+    {
+        unsigned char *data = rdb->GenericReparseBuffer.DataBuffer;
+        uint32_t file_type;
+        if (data_length < sizeof(file_type))
+            goto invalid_reparse_data;
+        (void)memcpy(&file_type, data, sizeof(file_type));
+        (void)printf("\ttag_name='IO_REPARSE_TAG_LX_SYMLINK'\n");
+        (void)printf("\tfile_type=%lu\n", (unsigned long)file_type);
+        (void)printf("\ttarget='%.*s'\n",
+            (int)(data_length - sizeof(file_type)),
+            (char *)(data + sizeof(file_type)));
+    }
+        break;
+
+    default:
+        /* FIXME: Support more reparse tags! */
+        (void)printf("\ttag_name='UNKNOWN_0x%lx'\n",
+            (long)rdb->ReparseTag);
+        break;
+    }
+
+    (void)printf(")\n");
+
+    return EXIT_SUCCESS;
+
+invalid_reparse_data:
+    (void)fprintf(stderr,
+        "%s: Invalid data for reparse tag 0x%lx in '%s'\n",
+        progname, (unsigned long)rdb->ReparseTag, filename);
+    return EXIT_FAILURE;
 }
 
 static
@@ -2235,6 +2418,7 @@ void usage(void)
         "getfiletime|"
         "nfs3attr|"
         "nfssymlinktargetname|"
+        "reparsepoint|"
         "fileremoteprotocolinfo|"
         "fileidinfo|"
         "filenetworkphysicalnameinfo|"
@@ -2317,6 +2501,9 @@ int main(int ac, char *av[])
     }
     else if (!strcmp(subcmd, "nfssymlinktargetname")) {
         return get_nfssymlinktargetname(av[0], av[2]);
+    }
+    else if (!strcmp(subcmd, "reparsepoint")) {
+        return get_reparsepoint(av[0], av[2]);
     }
     else if (!strcmp(subcmd, "fileremoteprotocolinfo")) {
         return get_file_remote_protocol_info(av[0], av[2]);
