@@ -901,53 +901,55 @@ int delaykxid(KXID kxid, LONGLONG moredelaysecs)
  * fetching groupname from auth token for new files and
  * do a "manual" chgrp on the new file
  */
+idmapcache_entry *get_token_primarygroup_idmap_entry(
+    IN HANDLE currentthread_token,
+    IN struct idmap_context *idmapper)
+{
+    char win32groupname[256];
+
+    if (!get_token_primarygroup_name(currentthread_token, win32groupname)) {
+        eprintf("get_token_primarygroup_idmap_entry: "
+            "get_token_primarygroup_name() failed\n");
+        return NULL;
+    }
+
+    EASSERT_MSG(IS_PRINCIPAL_NAME(win32groupname),
+        ("get_token_primarygroup_idmap_entry: win32groupname='%s' "
+        "is not a principal\n", win32groupname));
+
+    return nfs41_idmap_group_lookup_by_win32name(idmapper, win32groupname);
+}
+
+#ifdef NFS41_DRIVER_SETGID_NEWGRP_SUPPORT_FIXUP
 int chgrp_to_primarygroup(
     IN HANDLE currentthread_token,
     IN nfs41_open_state *state)
 {
     int chgrp_status = NO_ERROR;
-    idmapcache_entry *group_ie = NULL;
-    struct idmap_context *idmapper = state->session->client->root->idmapper;
-    char win32groupname[256];
+    nfs41_root *root = state->session->client->root;
+    struct idmap_context *idmapper = root->idmapper;
+    idmapcache_entry *group_ie;
 
-    /*
-     * |RPCSEC_AUTH_NONE| does not have any
-     * user/group information, therefore newgrp will be a
-     * NOP here.
-     */
-    if (state->session->client->rpc->sec_flavor == RPCSEC_AUTH_NONE) {
-        return NO_ERROR;
+    if (root->warn_once_chgrp_fixup_required == false) {
+        DPRINTF(0,
+            ("chgrp_to_primarygroup(state->file.name.name='%s'): "
+            "root=0x%p does not support |FATTR4_WORD1_OWNER_GROUP| "
+            "for file/dir creation\n",
+            state->file.name.name, root));
+        root->warn_once_chgrp_fixup_required = true;
     }
 
-    /* fixme: we should store the |owner_group| name in |upcall| */
-    if (!get_token_primarygroup_name(currentthread_token,
-        win32groupname)) {
-        eprintf("chgrp_to_primarygroup(state->file.name.name='%s'): "
-            "get_token_primarygroup_name() failed.\n",
-            state->file.name.name);
-        goto out;
-    }
-
-    EASSERT_MSG(IS_PRINCIPAL_NAME(win32groupname),
-        ("chgrp_to_primarygroup: win32groupname='%s' is not a principal\n",
-        win32groupname));
-
-    group_ie = nfs41_idmap_group_lookup_by_win32name(idmapper, win32groupname);
+    group_ie = get_token_primarygroup_idmap_entry(currentthread_token, idmapper);
     if (group_ie == NULL) {
         eprintf("chgrp_to_primarygroup(state->file.name.name='%s'): "
-            "nfs41_idmap_group_lookup_by_win32name(name='%s') failed\n",
-            state->file.name.name,
-            win32groupname);
-        goto out;
+            "get_token_primarygroup_idmap_entry() failed\n",
+            state->file.name.name);
+        return ERROR_NONE_MAPPED;
     }
 
-    DPRINTF(1,
-        ("chgrp_to_primarygroup(state->file.name.name='%s'): "
-        "owner_group='%s'\n",
-        state->file.name.name,
-        group_ie->nfsname.buf));
+    DPRINTF(1, ("chgrp_to_primarygroup(state->file.name.name='%s'): "
+        "owner_group='%s'\n", state->file.name.name, group_ie->nfsname.buf));
 
-    stateid_arg stateid;
     nfs41_file_info createchgrpattrs = {
         .attrmask.count = 2,
         .attrmask.arr[0] = 0,
@@ -956,24 +958,22 @@ int chgrp_to_primarygroup(
     };
     (void)strcpy(createchgrpattrs.owner_group, group_ie->nfsname.buf);
 
+    stateid_arg stateid;
     nfs41_open_stateid_arg(state, &stateid);
-    chgrp_status = nfs41_setattr(state->session,
-        &state->file, &stateid, &createchgrpattrs);
+
+    chgrp_status = nfs41_setattr(state->session, &state->file, &stateid,
+        &createchgrpattrs);
     if (chgrp_status) {
         eprintf("chgrp_to_primarygroup(state->file.name.name='%s'): "
-            "nfs41_setattr(owner_group='%s') "
-            "failed with error '%s'.\n",
-            state->file.name.name,
-            group_ie->nfsname.buf,
+            "nfs41_setattr(owner_group='%s') failed with error '%s'\n",
+            state->file.name.name, group_ie->nfsname.buf,
             nfs_error_string(chgrp_status));
     }
 
-out:
-    if (group_ie != NULL)
-        idmapcache_entry_refcount_dec(group_ie);
-
+    idmapcache_entry_refcount_dec(group_ie);
     return chgrp_status;
 }
+#endif /* NFS41_DRIVER_SETGID_NEWGRP_SUPPORT_FIXUP */
 #endif /* NFS41_DRIVER_SETGID_NEWGRP_SUPPORT */
 
 

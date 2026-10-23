@@ -92,6 +92,11 @@ int nfs41_root_create(
     root->supports_nfs42_copy       = false;
     root->supports_nfs42_deallocate = false;
     root->supports_nfs42_clone      = false;
+
+#ifdef NFS41_DRIVER_SETGID_NEWGRP_SUPPORT_FIXUP
+    root->warn_once_chgrp_fixup_required    = false;
+#endif /* NFS41_DRIVER_SETGID_NEWGRP_SUPPORT_FIXUP */
+
     if (nfsvers == NFS_VERSION_AUTONEGOTIATION) {
         /*
          * Use auto negotiation, |nfs41_root_mount_addrs()| will

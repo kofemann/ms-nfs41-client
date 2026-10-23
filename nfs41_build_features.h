@@ -80,10 +80,24 @@
 #define NFS41_DRIVER_USE_LARGE_SOCKET_RCVSND_BUFFERS 1
 
 /*
- * Support /usr/bin/newgrp&co, which have a non-default
- * |TOKEN_PRIMARY_GROUP|
+ * |NFS41_DRIVER_SETGID_NEWGRP_SUPPORT| - Support /usr/bin/newgrp&co,
+ * which have a non-default |TOKEN_PRIMARY_GROUP|, by fetching the
+ * primary group name and pass |FATTR4_WORD1_OWNER_GROUP| as CREATE
+ * argument
+ *
+ * This works with FreeBSD, Solaris, Illumos, NFS-Ganesha NFS servers,
+ * but not Linux (see |NFS41_DRIVER_SETGID_NEWGRP_SUPPORT_FIXUP|
+ * below)
  */
 #define NFS41_DRIVER_SETGID_NEWGRP_SUPPORT 1
+
+/*
+ * |NFS41_DRIVER_SETGID_NEWGRP_SUPPORT_FIXUP| - Work around NFS servers
+ * (like Linux) which ignore |FATTR4_WORD1_OWNER_GROUP| during CREATE
+ * by fixing the group with SETATTR, but only when CREATE returned a
+ * different group
+ */
+#define NFS41_DRIVER_SETGID_NEWGRP_SUPPORT_FIXUP 1
 
 /*
  * Disable 8DOT3 ShortName filename generation.

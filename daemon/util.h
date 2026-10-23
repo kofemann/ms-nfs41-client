@@ -472,15 +472,19 @@ int delaykxid(KXID xid, LONGLONG moredelaysecs);
 
 #ifdef NFS41_DRIVER_SETGID_NEWGRP_SUPPORT
 typedef struct __nfs41_daemon_globals nfs41_daemon_globals;
+typedef struct _idmapcache_entry idmapcache_entry;
+struct idmap_context;
 
-/*
- * Hack: Support |setgid()|/newgrp(1)/sg(1)/winsg(1) by
- * fetching groupname from auth token for new files and
- * do a "manual" chgrp on the new file
- */
+idmapcache_entry *get_token_primarygroup_idmap_entry(
+    IN HANDLE currentthread_token,
+    IN struct idmap_context *idmapper);
+
+
+#ifdef NFS41_DRIVER_SETGID_NEWGRP_SUPPORT_FIXUP
 int chgrp_to_primarygroup(
     IN HANDLE currentthread_token,
     IN nfs41_open_state *state);
+#endif /* NFS41_DRIVER_SETGID_NEWGRP_SUPPORT_FIXUP */
 #endif /* NFS41_DRIVER_SETGID_NEWGRP_SUPPORT */
 
 typedef struct __bitmap4 bitmap4;

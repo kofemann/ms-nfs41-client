@@ -330,6 +330,9 @@ typedef struct __nfs41_root {
     bool supports_nfs42_copy;
     bool supports_nfs42_deallocate;
     bool supports_nfs42_clone;
+#ifdef NFS41_DRIVER_SETGID_NEWGRP_SUPPORT_FIXUP
+    bool warn_once_chgrp_fixup_required;
+#endif /* NFS41_DRIVER_SETGID_NEWGRP_SUPPORT_FIXUP */
     DWORD nfsminorvers;
     uint32_t wsize;
     uint32_t rsize;

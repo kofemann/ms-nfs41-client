@@ -29,6 +29,7 @@
 #include "upcall.h"
 #include "upcallutil.h"
 #include "util.h"
+#include "idmap.h"
 #include "daemon_debug.h"
 
 /* |DPRINTF()| levels for acl logging */
@@ -373,7 +374,11 @@ static int handle_symlink_set(void *daemon_context, nfs41_upcall *upcall)
     int targetbuflen = 0;
     int targetnamelen = 0;
 
+#ifdef NFS41_DRIVER_SETGID_NEWGRP_SUPPORT
+    nfs41_file_info info = { .owner = NULL, .owner_group = NULL };
+#else
     nfs41_file_info info;
+#endif /* NFS41_DRIVER_SETGID_NEWGRP_SUPPORT */
 
     /*
      * FIXME?!: Currently we only support |IO_REPARSE_TAG_SYMLINK|, but
@@ -557,6 +562,10 @@ static int handle_symlink_set(void *daemon_context, nfs41_upcall *upcall)
     }
 
     /* create the symlink */
+#ifdef NFS41_DRIVER_SETGID_NEWGRP_SUPPORT
+    idmapcache_entry *group_ie = NULL;
+    bool owner_group_needs_fixup = false;
+#endif /* NFS41_DRIVER_SETGID_NEWGRP_SUPPORT */
     nfs41_file_info createattrs = {
         .attrmask.count = 2,
         .attrmask.arr[0] = 0,
@@ -565,8 +574,33 @@ static int handle_symlink_set(void *daemon_context, nfs41_upcall *upcall)
         .mode = 0777
     };
 
+#ifdef NFS41_DRIVER_SETGID_NEWGRP_SUPPORT
+    if (state->session->client->rpc->sec_flavor != RPCSEC_AUTH_NONE) {
+        group_ie = get_token_primarygroup_idmap_entry(
+            upcall->currentthread_token, state->session->client->root->idmapper);
+        if (group_ie == NULL) {
+            status = ERROR_NONE_MAPPED;
+            goto out;
+        }
+        createattrs.owner_group = createattrs.owner_group_buf;
+        (void)strcpy(createattrs.owner_group, group_ie->nfsname.buf);
+        createattrs.attrmask.arr[1] |= FATTR4_WORD1_OWNER_GROUP;
+    }
+#endif /* NFS41_DRIVER_SETGID_NEWGRP_SUPPORT */
+
     status = nfs41_create(state->session, NF4LNK, &createattrs,
         targetname, &state->parent, &state->file, &info);
+#ifdef NFS41_DRIVER_SETGID_NEWGRP_SUPPORT
+    if (group_ie != NULL) {
+        if (status == NFS4_OK) {
+            owner_group_needs_fixup =
+                (!bitmap_isset(&info.attrmask, 1, FATTR4_WORD1_OWNER_GROUP) ||
+                (strcmp(info.owner_group, group_ie->nfsname.buf) != 0));
+        }
+        idmapcache_entry_refcount_dec(group_ie);
+        group_ie = NULL;
+    }
+#endif /* NFS41_DRIVER_SETGID_NEWGRP_SUPPORT */
     if (status) {
         eprintf("handle_symlink_set: "
             "nfs41_create() for symlink='%s' failed with '%s'\n",
@@ -575,18 +609,12 @@ static int handle_symlink_set(void *daemon_context, nfs41_upcall *upcall)
         goto out;
     }
 
-#ifdef NFS41_DRIVER_SETGID_NEWGRP_SUPPORT
-    /*
-     * Hack: Support |setgid()|/newgrp(1)/sg(1)/winsg(1) by
-     * fetching groupname from auth token for new files and
-     * do a "manual" chgrp on the new file
-     *
-     * Note that |RPCSEC_AUTH_NONE| does not have any
-     * user/group information, therefore newgrp will be a
-     * NOP here.
-     */
-    (void)chgrp_to_primarygroup(upcall->currentthread_token, state);
-#endif /* NFS41_DRIVER_SETGID_NEWGRP_SUPPORT */
+#if defined(NFS41_DRIVER_SETGID_NEWGRP_SUPPORT) && \
+    defined(NFS41_DRIVER_SETGID_NEWGRP_SUPPORT_FIXUP)
+    if (owner_group_needs_fixup) {
+        (void)chgrp_to_primarygroup(upcall->currentthread_token, state);
+    }
+#endif /* NFS41_DRIVER_SETGID_NEWGRP_SUPPORT && FIXUP */
 
 out:
 
