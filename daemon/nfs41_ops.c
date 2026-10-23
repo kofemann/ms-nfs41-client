@@ -464,11 +464,15 @@ int nfs41_open(
     nfs41_op_open_res open_res;
     nfs41_getfh_res getfh_res;
     bitmap4 attr_request;
+    bitmap4 dir_attr_request;
     nfs41_getattr_args getattr_args;
-    nfs41_getattr_res getattr_res NDSH(= { 0 }), pgetattr_res NDSH(= { 0 });
+    nfs41_getattr_args dir_getattr_args;
+    nfs41_getattr_res getattr_res NDSH(= { 0 });
+    nfs41_getattr_res dir_getattr_res NDSH(= { 0 });
     nfs41_savefh_res savefh_res;
     nfs41_restorefh_res restorefh_res;
-    nfs41_file_info tmp_info, dir_info;
+    nfs41_file_info tmp_info = { .owner = NULL, .owner_group = NULL };
+    nfs41_file_info dir_info;
     bool_t current_fh_is_dir;
     bool_t already_delegated = delegation->type == OPEN_DELEGATE_READ
         || delegation->type == OPEN_DELEGATE_WRITE;
@@ -516,6 +520,7 @@ int nfs41_open(
         /* SEQUENCE; PUTFH(dir); SAVEFH; OPEN;
          * GETFH(file); GETATTR(file); RESTOREFH(dir); GETATTR */
         nfs41_superblock_getattr_mask(parent->fh.superblock, &attr_request);
+        nfs41_superblock_getattr_mask(parent->fh.superblock, &dir_attr_request);
         break;
     case CLAIM_PREVIOUS:
     case CLAIM_FH:
@@ -526,13 +531,39 @@ int nfs41_open(
         current_fh_is_dir = FALSE;
         /* SEQUENCE; PUTFH(file); OPEN; GETATTR(file); PUTFH(dir); GETATTR */
         nfs41_superblock_getattr_mask(file->fh.superblock, &attr_request);
+        nfs41_superblock_getattr_mask(file->fh.superblock, &dir_attr_request);
         break;
     }
 
     if (info == NULL)
         info = &tmp_info;
 
+    /*
+     * If we set owner and/or owner_group make sure we ask
+     * the server to send the values back for two reasons:
+     * 1, Handle cases like "all_squash" (e.g. nfsd turns
+     * owner/owner_group always into "nobody"/"nogroup")
+     * 2. Make sure we update the name cache with the new
+     * owner/owner_group
+     *
+     * Note that this can be a bit tricky as we might pass
+     * a "name@domain" string to the server, but get a numeric
+     * uid/gid as strings back, which means the name cache
+     * might have both representations.
+     */
+    if (createattrs) {
+        if (bitmap_isset(&createattrs->attrmask, 1, FATTR4_WORD1_OWNER)) {
+            attr_request.count = __max(attr_request.count, 2);
+            attr_request.arr[1] |= FATTR4_WORD1_OWNER;
+        }
+        if (bitmap_isset(&createattrs->attrmask, 1, FATTR4_WORD1_OWNER_GROUP)) {
+            attr_request.count = __max(attr_request.count, 2);
+            attr_request.arr[1] |= FATTR4_WORD1_OWNER_GROUP;
+        }
+    }
+
     attr_request.arr[0] |= FATTR4_WORD0_FSID;
+    dir_attr_request.arr[0] |= FATTR4_WORD0_FSID;
 
     compound_init(&compound, session->client->root->nfsminorvers,
         argops, resops, "open");
@@ -631,10 +662,10 @@ int nfs41_open(
         putfh_args[1].in_recovery = 0;
     }
 
-    compound_add_op(&compound, OP_GETATTR, &getattr_args, &pgetattr_res);
-    getattr_args.attr_request = &attr_request;
-    pgetattr_res.obj_attributes.attr_vals_len = NFS4_OPAQUE_LIMIT_ATTR;
-    pgetattr_res.info = &dir_info;
+    compound_add_op(&compound, OP_GETATTR, &dir_getattr_args, &dir_getattr_res);
+    dir_getattr_args.attr_request = &dir_attr_request;
+    dir_getattr_res.obj_attributes.attr_vals_len = NFS4_OPAQUE_LIMIT_ATTR;
+    dir_getattr_res.info = &dir_info;
 
     status = compound_encode_send_decode(session, &compound, try_recovery);
     if (status)
@@ -669,7 +700,8 @@ int nfs41_open(
 
     /* update the name/attr cache with the results */
     open_update_cache(session, parent, file, try_recovery, delegation,
-        already_delegated, &open_res.resok4.cinfo, &pgetattr_res, &getattr_res);
+        already_delegated, &open_res.resok4.cinfo,
+        &dir_getattr_res, &getattr_res);
 out:
     return status;
 }
@@ -695,8 +727,11 @@ int nfs41_create(
     nfs41_create_res create_res;
     nfs41_getfh_res getfh_res;
     nfs41_getattr_args getattr_args;
-    nfs41_getattr_res getattr_res NDSH(= { 0 }), pgetattr_res NDSH(= { 0 });
+    nfs41_getattr_args dir_getattr_args;
+    nfs41_getattr_res getattr_res NDSH(= { 0 });
+    nfs41_getattr_res dir_getattr_res NDSH(= { 0 });
     bitmap4 attr_request;
+    bitmap4 dir_attr_request;
     nfs41_file_info dir_info;
     nfs41_savefh_res savefh_res;
     nfs41_restorefh_res restorefh_res;
@@ -729,6 +764,29 @@ int nfs41_create(
 #endif /* NFS41_DRIVER_WINSTREAMS_SUPPORT */
 
     nfs41_superblock_getattr_mask(parent->fh.superblock, &attr_request);
+    nfs41_superblock_getattr_mask(parent->fh.superblock, &dir_attr_request);
+
+    /*
+     * If we set owner and/or owner_group make sure we ask
+     * the server to send the values back for two reasons:
+     * 1, Handle cases like "all_squash" (e.g. nfsd turns
+     * owner/owner_group always into "nobody"/"nogroup")
+     * 2. Make sure we update the name cache with the new
+     * owner/owner_group
+     *
+     * Note that this can be a bit tricky as we might pass
+     * a "name@domain" string to the server, but get a numeric
+     * uid/gid as strings back, which means the name cache
+     * might have both representations.
+     */
+    if (bitmap_isset(&createattrs->attrmask, 1, FATTR4_WORD1_OWNER)) {
+        attr_request.count = __max(attr_request.count, 2);
+        attr_request.arr[1] |= FATTR4_WORD1_OWNER;
+    }
+    if (bitmap_isset(&createattrs->attrmask, 1, FATTR4_WORD1_OWNER_GROUP)) {
+        attr_request.count = __max(attr_request.count, 2);
+        attr_request.arr[1] |= FATTR4_WORD1_OWNER_GROUP;
+    }
 
     compound_init(&compound, session->client->root->nfsminorvers,
         argops, resops, "create");
@@ -784,10 +842,10 @@ int nfs41_create(
 
     compound_add_op(&compound, OP_RESTOREFH, NULL, &restorefh_res);
 
-    compound_add_op(&compound, OP_GETATTR, &getattr_args, &pgetattr_res);
-    getattr_args.attr_request = &attr_request;
-    pgetattr_res.obj_attributes.attr_vals_len = NFS4_OPAQUE_LIMIT_ATTR;
-    pgetattr_res.info = &dir_info;
+    compound_add_op(&compound, OP_GETATTR, &dir_getattr_args, &dir_getattr_res);
+    dir_getattr_args.attr_request = &dir_attr_request;
+    dir_getattr_res.obj_attributes.attr_vals_len = NFS4_OPAQUE_LIMIT_ATTR;
+    dir_getattr_res.info = &dir_info;
 
     status = compound_encode_send_decode(session, &compound, TRUE);
     if (status)
@@ -801,7 +859,7 @@ int nfs41_create(
     file->fh.superblock = parent->fh.superblock;
 
     /* update the attributes of the parent directory */
-    bitmap4_cpy(&dir_info.attrmask, &pgetattr_res.obj_attributes.attrmask);
+    bitmap4_cpy(&dir_info.attrmask, &dir_getattr_res.obj_attributes.attrmask);
     nfs41_attr_cache_update(session_name_cache(session),
         parent->fh.fileid, &dir_info);
 
