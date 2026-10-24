@@ -775,11 +775,14 @@ void open_get_localuidgid(
 #if 1
     EASSERT(info->attrmask.count >= 2);
 
-    /* this should only happen for newly created files/dirs/symlinks */
+    /* This should never happen... */
     if ((info->attrmask.count < 2) ||
         ((info->attrmask.arr[1] & FATTR4_WORD1_OWNER) == 0) ||
         ((info->attrmask.arr[1] & FATTR4_WORD1_OWNER_GROUP) == 0)) {
         bitmap4 og_attr_request;
+
+        DPRINTF(0, ("open_get_localuidgid: "
+            "manually getting FATTR4_WORD1_OWNER+FATTR4_WORD1_OWNER_GROUP info\n"));
         nfs41_file_info og_info = { 0 };
 
         og_attr_request.count = 2;

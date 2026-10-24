@@ -551,16 +551,8 @@ int nfs41_open(
      * uid/gid as strings back, which means the name cache
      * might have both representations.
      */
-    if (createattrs) {
-        if (bitmap_isset(&createattrs->attrmask, 1, FATTR4_WORD1_OWNER)) {
-            attr_request.count = __max(attr_request.count, 2);
-            attr_request.arr[1] |= FATTR4_WORD1_OWNER;
-        }
-        if (bitmap_isset(&createattrs->attrmask, 1, FATTR4_WORD1_OWNER_GROUP)) {
-            attr_request.count = __max(attr_request.count, 2);
-            attr_request.arr[1] |= FATTR4_WORD1_OWNER_GROUP;
-        }
-    }
+    attr_request.count = __max(attr_request.count, 2);
+    attr_request.arr[1] |= FATTR4_WORD1_OWNER|FATTR4_WORD1_OWNER_GROUP;
 
     attr_request.arr[0] |= FATTR4_WORD0_FSID;
     dir_attr_request.arr[0] |= FATTR4_WORD0_FSID;
@@ -779,14 +771,8 @@ int nfs41_create(
      * uid/gid as strings back, which means the name cache
      * might have both representations.
      */
-    if (bitmap_isset(&createattrs->attrmask, 1, FATTR4_WORD1_OWNER)) {
-        attr_request.count = __max(attr_request.count, 2);
-        attr_request.arr[1] |= FATTR4_WORD1_OWNER;
-    }
-    if (bitmap_isset(&createattrs->attrmask, 1, FATTR4_WORD1_OWNER_GROUP)) {
-        attr_request.count = __max(attr_request.count, 2);
-        attr_request.arr[1] |= FATTR4_WORD1_OWNER_GROUP;
-    }
+    attr_request.count = __max(attr_request.count, 2);
+    attr_request.arr[1] |= FATTR4_WORD1_OWNER|FATTR4_WORD1_OWNER_GROUP;
 
     compound_init(&compound, session->client->root->nfsminorvers,
         argops, resops, "create");
@@ -1874,13 +1860,10 @@ int nfs41_setattr(
      * uid/gid as strings back, which means the name cache
      * might have both representations.
      */
-    if (bitmap_isset(&info->attrmask, 1, FATTR4_WORD1_OWNER)) {
+    if (bitmap_isset(&info->attrmask, 1, FATTR4_WORD1_OWNER) ||
+        bitmap_isset(&info->attrmask, 1, FATTR4_WORD1_OWNER_GROUP)) {
         attr_request.count = __max(attr_request.count, 2);
-        attr_request.arr[1] |= FATTR4_WORD1_OWNER;
-    }
-    if (bitmap_isset(&info->attrmask, 1, FATTR4_WORD1_OWNER_GROUP)) {
-        attr_request.count = __max(attr_request.count, 2);
-        attr_request.arr[1] |= FATTR4_WORD1_OWNER_GROUP;
+        attr_request.arr[1] |= FATTR4_WORD1_OWNER|FATTR4_WORD1_OWNER_GROUP;
     }
 
     compound_add_op(&compound, OP_GETATTR, &getattr_args, &getattr_res);

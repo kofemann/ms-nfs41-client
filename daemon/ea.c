@@ -472,7 +472,7 @@ static int get_ea_value(
     open_claim4 claim;
     stateid_arg stateid;
     open_delegation4 delegation = { 0 };
-    nfs41_file_info info;
+    nfs41_file_info info = { .owner = NULL, .owner_group = NULL };
     unsigned char *buffer;
     uint32_t diff, bytes_read;
     bool_t eof;
