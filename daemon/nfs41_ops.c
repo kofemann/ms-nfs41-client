@@ -1614,7 +1614,8 @@ int nfs41_rename(
     nfs41_putfh_res dst_putfh_res;
     nfs41_rename_args rename_args;
     nfs41_rename_res rename_res;
-    nfs41_getattr_args getattr_args;
+    nfs41_getattr_args src_getattr_args;
+    nfs41_getattr_args dst_getattr_args;
     nfs41_getattr_res src_getattr_res NDSH(= { 0 }), dst_getattr_res NDSH(= { 0 });
     nfs41_file_info src_info, dst_info;
     bitmap4 attr_request;
@@ -1763,8 +1764,8 @@ int nfs41_rename(
     dst_putfh_args.file = dst_dir;
     dst_putfh_args.in_recovery = 0;
 
-    compound_add_op(&compound, OP_GETATTR, &getattr_args, &dst_getattr_res);
-    getattr_args.attr_request = &attr_request;
+    compound_add_op(&compound, OP_GETATTR, &dst_getattr_args, &dst_getattr_res);
+    dst_getattr_args.attr_request = &attr_request;
     dst_getattr_res.obj_attributes.attr_vals_len = NFS4_OPAQUE_LIMIT_ATTR;
     dst_getattr_res.info = &dst_info;
 
@@ -1772,7 +1773,8 @@ int nfs41_rename(
     src_putfh_args.file = src_dir;
     src_putfh_args.in_recovery = 0;
 
-    compound_add_op(&compound, OP_GETATTR, &getattr_args, &src_getattr_res);
+    compound_add_op(&compound, OP_GETATTR, &src_getattr_args, &src_getattr_res);
+    src_getattr_args.attr_request = &attr_request;
     src_getattr_res.obj_attributes.attr_vals_len = NFS4_OPAQUE_LIMIT_ATTR;
     src_getattr_res.info = &src_info;
 
@@ -1926,8 +1928,10 @@ int nfs41_link(
     nfs41_lookup_args lookup_args;
     nfs41_lookup_res lookup_res;
     nfs41_getfh_res getfh_res;
-    nfs41_getattr_args getattr_args[2];
-    nfs41_getattr_res getattr_res[2];
+    nfs41_getattr_args dst_dir_getattr_args;
+    nfs41_getattr_res dst_dir_getattr_res;
+    nfs41_getattr_args target_getattr_args;
+    nfs41_getattr_res target_getattr_res;
     nfs41_file_info info = { 0 };
     nfs41_path_fh file;
 
@@ -1948,7 +1952,8 @@ int nfs41_link(
 
 #ifdef NFS41_DRIVER_STABILITY_HACKS
     /* gisburn: fixme, see comment about |NDSH| above */
-    (void)memset(getattr_res, 0, sizeof(getattr_res));
+    (void)memset(&dst_dir_getattr_res, 0, sizeof(nfs41_getattr_res));
+    (void)memset(&target_getattr_res, 0, sizeof(nfs41_getattr_res));
 #endif /* NFS41_DRIVER_STABILITY_HACKS */
 
     nfs41_superblock_getattr_mask(src->fh.superblock, &info.attrmask);
@@ -1977,20 +1982,20 @@ int nfs41_link(
     link_args.newname = target;
 
     /* GETATTR(dst_dir) */
-    compound_add_op(&compound, OP_GETATTR, &getattr_args[0], &getattr_res[0]);
-    getattr_args[0].attr_request = &info.attrmask;
-    getattr_res[0].obj_attributes.attr_vals_len = NFS4_OPAQUE_LIMIT_ATTR;
-    getattr_res[0].info = &info;
+    compound_add_op(&compound, OP_GETATTR, &dst_dir_getattr_args, &dst_dir_getattr_res);
+    dst_dir_getattr_args.attr_request = &info.attrmask;
+    dst_dir_getattr_res.obj_attributes.attr_vals_len = NFS4_OPAQUE_LIMIT_ATTR;
+    dst_dir_getattr_res.info = &info;
 
     /* LOOKUP(target) */
     compound_add_op(&compound, OP_LOOKUP, &lookup_args, &lookup_res);
     lookup_args.name = target;
 
     /* GETATTR(target) */
-    compound_add_op(&compound, OP_GETATTR, &getattr_args[1], &getattr_res[1]);
-    getattr_args[1].attr_request = &cinfo->attrmask;
-    getattr_res[1].obj_attributes.attr_vals_len = NFS4_OPAQUE_LIMIT_ATTR;
-    getattr_res[1].info = cinfo;
+    compound_add_op(&compound, OP_GETATTR, &target_getattr_args, &target_getattr_res);
+    target_getattr_args.attr_request = &cinfo->attrmask;
+    target_getattr_res.obj_attributes.attr_vals_len = NFS4_OPAQUE_LIMIT_ATTR;
+    target_getattr_res.info = cinfo;
 
     /* GETFH(target) */
     compound_add_op(&compound, OP_GETFH, NULL, &getfh_res);
@@ -2003,7 +2008,7 @@ int nfs41_link(
     if (compound_error(status = compound.res.status))
         goto out;
 
-    bitmap4_cpy(&cinfo->attrmask, &getattr_res[1].obj_attributes.attrmask);
+    bitmap4_cpy(&cinfo->attrmask, &target_getattr_res.obj_attributes.attrmask);
 
     /* fill in the file handle's fileid and superblock */
     EASSERT(bitmap_isset(&cinfo->attrmask, 0, FATTR4_WORD0_FILEID));
@@ -2015,7 +2020,7 @@ int nfs41_link(
         goto out;
 
     /* update the attributes of the destination directory */
-    bitmap4_cpy(&info.attrmask, &getattr_res[0].obj_attributes.attrmask);
+    bitmap4_cpy(&info.attrmask, &dst_dir_getattr_res.obj_attributes.attrmask);
     nfs41_attr_cache_update(session_name_cache(session),
         info.fileid, &info);
 
