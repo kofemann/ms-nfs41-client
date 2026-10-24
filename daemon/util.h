@@ -159,6 +159,8 @@ static __inline void bitmap_set(
     if (mask->count > word)
         mask->arr[word] |= flag;
     else {
+        while (mask->count < word)
+            mask->arr[mask->count++] = 0;
         mask->count = word + 1;
         mask->arr[word] = flag;
     }
