@@ -475,67 +475,6 @@ out:
     return status;
 }
 
-NTSTATUS QueryCygwinSymlink(
-    IN OUT PRX_CONTEXT RxContext,
-    IN PFILE_GET_EA_INFORMATION query,
-    OUT PFILE_FULL_EA_INFORMATION info)
-{
-    __notnull PMRX_SRV_OPEN SrvOpen = RxContext->pRelevantSrvOpen;
-    __notnull PNFS41_SRV_OPEN nfs41_srvopen = NFS41GetSrvOpenExtension(SrvOpen);
-    __notnull PNFS41_V_NET_ROOT_EXTENSION VNetRootContext =
-            NFS41GetVNetRootExtension(SrvOpen->pVNetRoot);
-    __notnull PNFS41_NETROOT_EXTENSION NetRootContext =
-            NFS41GetNetRootExtension(SrvOpen->pVNetRoot->pNetRoot);
-    nfs41_updowncall_entry *entry = NULL;
-    UNICODE_STRING TargetName;
-    const USHORT HeaderLen = FIELD_OFFSET(FILE_FULL_EA_INFORMATION, EaName) +
-        query->EaNameLength + 1;
-    NTSTATUS status;
-
-    if (RxContext->Info.LengthRemaining < HeaderLen) {
-        status = STATUS_BUFFER_TOO_SMALL;
-        RxContext->InformationToReturn = HeaderLen;
-        goto out;
-    }
-
-    TargetName.Buffer = (PWCH)(info->EaName + query->EaNameLength + 1);
-    TargetName.MaximumLength = (USHORT)min(RxContext->Info.LengthRemaining -
-        HeaderLen, 0xFFFF);
-
-    status = nfs41_UpcallCreate(NFS41_SYSOP_SYMLINK_GET, &nfs41_srvopen->sec_ctx,
-        VNetRootContext->session, nfs41_srvopen->nfs41_open_state,
-        NetRootContext->nfs41d_version, SrvOpen->pAlreadyPrefixedName, &entry);
-    if (status) goto out;
-
-    entry->u.GetSymlink.target = &TargetName;
-
-    status = nfs41_UpcallWaitForReply(entry, VNetRootContext->timeout);
-    if (status) {
-        /* Timeout - |nfs41_downcall()| will free |entry|+contents */
-        entry = NULL;
-        goto out;
-    }
-
-    status = map_setea_error(entry->status);
-    if (status == STATUS_SUCCESS) {
-        info->NextEntryOffset = 0;
-        info->Flags = 0;
-        info->EaNameLength = query->EaNameLength;
-        info->EaValueLength = TargetName.Length - sizeof(UNICODE_NULL);
-        TargetName.Buffer[TargetName.Length/sizeof(WCHAR)] = UNICODE_NULL;
-        UPDOWNCALL_MEMCPY(info->EaName, query->EaName, query->EaNameLength);
-        RxContext->Info.LengthRemaining = HeaderLen + info->EaValueLength;
-    } else if (status == STATUS_BUFFER_TOO_SMALL) {
-        RxContext->InformationToReturn = (ULONG_PTR)HeaderLen +
-            entry->u.GetSymlink.target->Length;
-    }
-out:
-    if (entry) {
-        nfs41_UpcallDestroy(entry);
-    }
-    return status;
-}
-
 NTSTATUS QueryCygwinEA(
     IN OUT PRX_CONTEXT RxContext,
     IN PFILE_GET_EA_INFORMATION query,
@@ -545,31 +484,6 @@ NTSTATUS QueryCygwinEA(
 
     if (query == NULL)
         goto out;
-
-    if (AnsiStrEq(&NfsSymlinkTargetName, query->EaName, query->EaNameLength)) {
-        __notnull PNFS41_FCB nfs41_fcb = NFS41GetFcbExtension(RxContext->pFcb);
-        if (nfs41_fcb->BasicInfo.FileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) {
-            status = QueryCygwinSymlink(RxContext, query, info);
-            goto out;
-        } else {
-            const LONG LengthRequired = sizeof(FILE_FULL_EA_INFORMATION) +
-                NfsSymlinkTargetName.Length - sizeof(CHAR);
-            if (LengthRequired > RxContext->Info.LengthRemaining) {
-                status = STATUS_BUFFER_TOO_SMALL;
-                RxContext->InformationToReturn = LengthRequired;
-                goto out;
-            }
-            info->NextEntryOffset = 0;
-            info->Flags = 0;
-            info->EaValueLength = 0;
-            info->EaNameLength = (UCHAR)NfsActOnLink.Length;
-            UPDOWNCALL_MEMCPY(info->EaName, NfsSymlinkTargetName.Buffer,
-                NfsSymlinkTargetName.Length);
-            RxContext->Info.LengthRemaining = LengthRequired;
-            status = STATUS_SUCCESS;
-            goto out;
-        }
-    }
 
     if (AnsiStrEq(&NfsV3Attributes, query->EaName, query->EaNameLength)) {
         nfs3_attrs attrs;

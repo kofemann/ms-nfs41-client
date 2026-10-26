@@ -31,6 +31,7 @@
 #include "delegation.h"
 #include "upcall.h"
 #include "upcallutil.h"
+#include "util.h"
 #include "daemon_debug.h"
 #include "nfs_ea.h"
 #ifdef NFS41_DRIVER_WINSTREAMS_SUPPORT
@@ -596,6 +597,70 @@ static int overflow_error(
     return NO_ERROR;
 }
 
+
+static int get_cygwin_symlink_ea(
+    IN nfs41_open_state *state,
+    IN const PFILE_GET_EA_INFORMATION query,
+    IN OUT getexattr_upcall_args *args)
+{
+    PFILE_FULL_EA_INFORMATION ea = (PFILE_FULL_EA_INFORMATION)args->buf;
+    char target[NFS41_MAX_PATH_LEN];
+    uint32_t target_len;
+    uint32_t header_len = FIELD_OFFSET(FILE_FULL_EA_INFORMATION, EaName) +
+        query->EaNameLength + 1;
+    uint32_t needed;
+    int status = NO_ERROR;
+    int wc_len;
+
+    if (state->type != NF4LNK) {
+        /*
+         * SFU+Cygwin expects an empty "NfsSymlinkTargetName" EA for
+         * non-links
+         */
+        target_len = 0;
+    } else {
+        status = nfs41_readlink(state->session, &state->file,
+            NFS41_MAX_PATH_LEN, target, &target_len);
+    }
+    if (status) {
+        eprintf("get_cygwin_symlink_ea: "
+            "nfs41_readlink() for filename='%s' failed with '%s'\n",
+            state->file.path->path, nfs_error_string(status));
+        return map_symlink_errors(status);
+    }
+
+    wc_len = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS,
+        target, (int)target_len, NULL, 0);
+    if ((target_len != 0) && (wc_len == 0)) {
+        eprintf("get_cygwin_symlink_ea: "
+            "MultiByteToWideChar() failed, lasterr=%d\n",
+            (int)GetLastError());
+        return ERROR_INVALID_DATA;
+    }
+
+    needed = header_len + (uint32_t)wc_len * sizeof(wchar_t);
+    if (args->buf_len < needed)
+        return overflow_error(args, NULL, needed);
+
+    ea->NextEntryOffset = 0;
+    ea->Flags = 0;
+    ea->EaNameLength = query->EaNameLength;
+    ea->EaValueLength = (USHORT)(wc_len * sizeof(wchar_t));
+    (void)memcpy(ea->EaName, query->EaName, query->EaNameLength);
+    ea->EaName[query->EaNameLength] = '\0';
+
+    if (wc_len != 0) {
+        int converted = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS,
+            target, (int)target_len,
+            (LPWSTR)(ea->EaName + query->EaNameLength + 1), wc_len);
+        if (converted != wc_len)
+            return ERROR_INVALID_DATA;
+    }
+
+    args->buf_len = needed;
+    return NO_ERROR;
+}
+
 static int handle_getexattr(void *daemon_context, nfs41_upcall *upcall)
 {
     getexattr_upcall_args *args = &upcall->args.getexattr;
@@ -623,6 +688,24 @@ static int handle_getexattr(void *daemon_context, nfs41_upcall *upcall)
         return ERROR_NOT_SUPPORTED;
     }
 #endif /* NFS41_DRIVER_WINSTREAMS_SUPPORT */
+
+    /* returned ea information can't exceed the downcall buffer size */
+    if (args->buf_len > UPCALL_BUF_SIZE - 2 * sizeof(uint32_t))
+        args->buf_len = UPCALL_BUF_SIZE - 2 * sizeof(uint32_t);
+
+    args->buf = malloc(args->buf_len);
+    if (args->buf == NULL) {
+        status = ERROR_NOT_ENOUGH_MEMORY;
+        goto out;
+    }
+
+    /* NfsSymlinkTargetName is a synthetic Cygwin EA, not an NFS named attr */
+    if ((query != NULL) &&
+        (query->EaNameLength == EA_NFSSYMLINKTARGETNAME_LEN) &&
+        (memcmp(query->EaName, EA_NFSSYMLINKTARGETNAME,
+            EA_NFSSYMLINKTARGETNAME_LEN) == 0)) {
+        return get_cygwin_symlink_ea(state, query, args);
+    }
 
     status = nfs41_rpc_openattr(state->session, &state->file, FALSE, &parent.fh);
     if (status == NFS4ERR_NOENT) { /* no named attribute directory */
@@ -669,16 +752,6 @@ static int handle_getexattr(void *daemon_context, nfs41_upcall *upcall)
             }
             query = (PFILE_GET_EA_INFORMATION)EA_NEXT_ENTRY(query);
         }
-    }
-
-    /* returned ea information can't exceed the downcall buffer size */
-    if (args->buf_len > UPCALL_BUF_SIZE - 2 * sizeof(uint32_t))
-        args->buf_len = UPCALL_BUF_SIZE - 2 * sizeof(uint32_t);
-
-    args->buf = malloc(args->buf_len);
-    if (args->buf == NULL) {
-        status = ERROR_NOT_ENOUGH_MEMORY;
-        goto out;
     }
 
     ea = (PFILE_FULL_EA_INFORMATION)args->buf;
@@ -746,6 +819,7 @@ out:
 
 out_free:
     free(args->buf);
+    args->buf = NULL;
     goto out;
 }
 
