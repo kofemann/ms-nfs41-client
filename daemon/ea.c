@@ -201,8 +201,6 @@ static int parse_setexattr(
     int status;
     setexattr_upcall_args *args = &upcall->args.setexattr;
 
-    status = get_name(&buffer, &length, &args->path);
-    if (status) goto out;
     status = safe_read(&buffer, &length, &args->mode, sizeof(args->mode));
     if (status) goto out;
     status = safe_read(&buffer, &length, &args->buf_len, sizeof(args->buf_len));
@@ -302,8 +300,6 @@ static int parse_getexattr(
     int status;
     getexattr_upcall_args *args = &upcall->args.getexattr;
 
-    status = get_name(&buffer, &length, &args->path);
-    if (status) goto out;
     status = safe_read(&buffer, &length, &args->eaindex, sizeof(args->eaindex));
     if (status) goto out;
     status = safe_read(&buffer, &length, &args->restart, sizeof(args->restart));
@@ -625,7 +621,7 @@ static int get_cygwin_symlink_ea(
     if (status) {
         eprintf("get_cygwin_symlink_ea: "
             "nfs41_readlink() for filename='%s' failed with '%s'\n",
-            state->file.path->path, nfs_error_string(status));
+            state->path.path, nfs_error_string(status));
         return map_symlink_errors(status);
     }
 
@@ -709,7 +705,9 @@ static int handle_getexattr(void *daemon_context, nfs41_upcall *upcall)
 
     status = nfs41_rpc_openattr(state->session, &state->file, FALSE, &parent.fh);
     if (status == NFS4ERR_NOENT) { /* no named attribute directory */
-        DPRINTF(EALVL, ("no named attribute directory for '%s'\n", args->path));
+        DPRINTF(EALVL,
+            ("no named attribute directory for '%s'\n",
+            state->path.path));
         if (query == NULL) {
             status = empty_ea_error(args->eaindex, args->restart);
             goto out;
@@ -730,8 +728,9 @@ static int handle_getexattr(void *daemon_context, nfs41_upcall *upcall)
             goto out;
 
         if (query == NULL) { /* the file has no EAs */
-            DPRINTF(EALVL, ("empty named attribute directory for '%s'\n",
-                args->path));
+            DPRINTF(EALVL,
+                ("empty named attribute directory for '%s'\n",
+                state->path.path));
             status = empty_ea_error(args->eaindex, args->restart);
             goto out;
         }

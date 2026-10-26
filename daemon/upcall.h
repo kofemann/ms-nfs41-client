@@ -163,7 +163,6 @@ typedef struct __setattr_upcall_args {
 } setattr_upcall_args;
 
 typedef struct __getexattr_upcall_args {
-    const char *path;
     unsigned char *buf;
     uint32_t buf_len;
     ULONG eaindex;
@@ -176,7 +175,6 @@ typedef struct __getexattr_upcall_args {
 
 
 typedef struct __setexattr_upcall_args {
-    const char *path;
     unsigned char *buf;
     uint32_t buf_len;
     uint32_t mode;

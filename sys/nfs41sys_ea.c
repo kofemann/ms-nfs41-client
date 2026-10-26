@@ -83,8 +83,7 @@ NTSTATUS marshal_nfs41_easet(
         goto out;
     tmp += *len;
 
-    header_len = *len + unicode_filename_length_as_utf8(entry->filename) +
-        sizeof(ULONG) + entry->u.SetEa.buf_len  + sizeof(DWORD);
+    header_len = *len + sizeof(ULONG) + entry->u.SetEa.buf_len + sizeof(DWORD);
     if (header_len > buf_len) {
         DbgP("marshal_nfs41_easet: "
             "upcall buffer too small: header_len(=%ld) > buf_len(=%ld)\n",
@@ -93,8 +92,6 @@ NTSTATUS marshal_nfs41_easet(
         goto out;
     }
 
-    status = marshall_unicode_filename_as_utf8(&tmp, entry->filename);
-    if (status) goto out;
     UPDOWNCALL_MEMCPY(tmp, &entry->u.SetEa.mode, sizeof(DWORD));
     tmp += sizeof(DWORD);
     UPDOWNCALL_MEMCPY(tmp, &entry->u.SetEa.buf_len, sizeof(ULONG));
@@ -135,8 +132,8 @@ NTSTATUS marshal_nfs41_eaget(
         goto out;
     tmp += *len;
 
-    header_len = *len + unicode_filename_length_as_utf8(entry->filename) +
-        3 * sizeof(ULONG) + entry->u.QueryEa.EaListLength + 2 * sizeof(BOOLEAN);
+    header_len = *len + 3 * sizeof(ULONG) +
+        entry->u.QueryEa.EaListLength + 2 * sizeof(BOOLEAN);
 
     if (header_len > buf_len) {
         DbgP("marshal_nfs41_eaget: "
@@ -146,8 +143,6 @@ NTSTATUS marshal_nfs41_eaget(
         goto out;
     }
 
-    status = marshall_unicode_filename_as_utf8(&tmp, entry->filename);
-    if (status) goto out;
     UPDOWNCALL_MEMCPY(tmp, &entry->u.QueryEa.EaIndex, sizeof(ULONG));
     tmp += sizeof(ULONG);
     UPDOWNCALL_MEMCPY(tmp, &entry->u.QueryEa.RestartScan, sizeof(BOOLEAN));
