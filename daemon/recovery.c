@@ -170,6 +170,8 @@ static int recover_open_no_grace(
     int status;
 
     if (delegation->type != OPEN_DELEGATE_NONE) {
+        EASSERT(delegation->type != OPEN_DELEGATE_NONE_EXT);
+
         /* attempt out-of-grace recovery with CLAIM_DELEGATE_PREV */
         claim.claim = CLAIM_DELEGATE_PREV;
         claim.u.deleg_prev.filename = &file->name;
