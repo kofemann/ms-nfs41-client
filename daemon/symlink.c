@@ -23,6 +23,7 @@
 
 #include <Windows.h>
 #include <strsafe.h>
+#include <stdlib.h>
 
 #include "nfs41_driver.h"
 #include "nfs41_ops.h"
@@ -31,6 +32,10 @@
 #include "util.h"
 #include "idmap.h"
 #include "daemon_debug.h"
+#include "nfs41_daemon.h"
+#include "win_reparse.h"
+
+extern nfs41_daemon_globals nfs41_dg;
 
 /* |DPRINTF()| levels for acl logging */
 #define SYMLLVL1 1
@@ -253,73 +258,232 @@ static int parse_symlink_get(
     return status;
 }
 
+static
+int symlink_reparsebuffer_build(
+    nfs41_open_state *restrict state,
+    const char *restrict target,
+    PREPARSE_DATA_BUFFER restrict reparse,
+    USHORT *restrict reparse_len)
+{
+    char print_name[NFS41_MAX_PATH_LEN];
+    char substitute_name[NFS41_MAX_PATH_LEN];
+    size_t target_len;
+    DWORD flags = 0;
+    bool converttobackslash = true;
+    size_t header_len = FIELD_OFFSET(REPARSE_DATA_BUFFER,
+        SymbolicLinkReparseBuffer.PathBuffer);
+    wchar_t *pathbuffer = reparse->SymbolicLinkReparseBuffer.PathBuffer;
+    int print_wchars;
+    int substitute_wchars;
+    size_t i;
+
+    (void)memset(reparse, 0, MAXIMUM_REPARSE_DATA_BUFFER_SIZE);
+
+    target_len = strlen(target);
+
+    if ((target_len > 2) && (memcmp(target, "//", 2) == 0)) {
+        /*
+         * UNC path:
+         * //server/share/path becomes \\server\\share\\path
+         *
+         * FIXME: Investigate whether using |IO_REPARSE_TAG_MOUNT_POINT|
+         * is a better solution
+         */
+        DPRINTF(SYMLLVL2,
+            ("symlink target '%s' uses UNC mapping\n", target));
+
+        (void)snprintf(print_name, sizeof(print_name),
+            "\\\\%s", target + 2);
+        (void)snprintf(substitute_name, sizeof(substitute_name),
+            "\\??\\UNC\\%s", target + 2);
+    }
+    else if ((target_len >= 11) && (memcmp(target, "/cygdrive/", 10) == 0) &&
+        (target[11] == '/')) {
+        /*
+         * Cygwin drive path:
+         * /cygdrive/X/path becomes X:\\path
+         */
+        DPRINTF(SYMLLVL2,
+            ("symlink target '%s' uses /cygdrive mapping\n", target));
+
+        (void)snprintf(print_name, sizeof(print_name),
+            "%c:%s", target[10], target + 11);
+        (void)snprintf(substitute_name, sizeof(substitute_name),
+            "\\??\\%c:%s", target[10], target + 11);
+    }
+    else if ((target_len >= 5) && (memcmp(target, "/dev/", 5) == 0)) {
+        /*
+         * Cygwin /dev path:
+         * resolve below the configured Cygwin root (e.g. "C:\cygwin64\"
+         * or "C:\cygwin\")
+         *
+         * FIXME: Investigate whether using |IO_REPARSE_TAG_LX_SYMLINK|
+         * for this is better solution
+         */
+        DPRINTF(SYMLLVL2,
+            ("symlink target '%s' uses /dev mapping\n", target));
+
+        (void)snprintf(print_name, sizeof(print_name),
+            "%s", target);
+        (void)snprintf(substitute_name, sizeof(substitute_name),
+            "%s", target);
+
+        flags |= SYMLINK_FLAG_RELATIVE;
+        converttobackslash = false;
+    }
+    else if ((target_len >= 1) && (target[0] != '/')) {
+        /*
+         * Relative path:
+         * retain the path and set |SYMLINK_FLAG_RELATIVE|
+         */
+        DPRINTF(SYMLLVL2, ("symlink target '%s' is relative\n", target));
+
+        (void)snprintf(print_name, sizeof(print_name),
+            "%s", target);
+        (void)snprintf(substitute_name, sizeof(substitute_name),
+            "%s", target);
+
+        flags |= SYMLINK_FLAG_RELATIVE;
+    }
+    else {
+        /*
+         * Absolute POSIX path:
+         * resolve below the configured Cygwin root (e.g. "C:\cygwin64\"
+         * or "C:\cygwin\")
+         */
+        DPRINTF(SYMLLVL2,
+            ("symlink target '%s' uses POSIX root mapping\n", target));
+
+        /* Special case for "/" */
+        if ((target_len == 1) && (target[0] == '/')) {
+            target_len = 0;
+        }
+
+        (void)snprintf(print_name, sizeof(print_name), "%ls%.*s",
+            nfs41_dg.cygwin_root, (int)target_len, target);
+        (void)snprintf(substitute_name, sizeof(substitute_name), "\\??\\%ls%.*s",
+            nfs41_dg.cygwin_root, (int)target_len, target);
+    }
+
+    /*
+     * Convert '/' to backslash ('\') ...
+     */
+    if (converttobackslash) {
+        for (i = 0; print_name[i]; i++) {
+            if (print_name[i] == '/')
+                print_name[i] = '\\';
+        }
+        for (i = 0; substitute_name[i]; i++) {
+            if (substitute_name[i] == '/')
+                substitute_name[i] = '\\';
+        }
+    }
+
+#ifdef DOES_NOT_WORK_YET_BREAKS_CYGWIN_GCC_BUILD_TEST
+    nfs41_file_info target_info = { 0 };
+    int status;
+    /*
+     * Set |SYMLINK_DIRECTORY| or |SYMLINK_FILE| ...
+     * BUG: Code does not work yet, it BREAKS the Cygwin gcc build test
+     */
+    status = nfs41_symlink_follow(state->session->client->root, state->session,
+        &state->file, &target_info);
+    if (status == 0) {
+        if (target_info.type == NF4DIR) {
+            DPRINTF(SYMLLVL2, ("symlink target uses SYMLINK_DIRECTORY\n"));
+            flags |= SYMLINK_DIRECTORY;
+        } else {
+            DPRINTF(SYMLLVL2, ("symlink target uses SYMLINK_FILE\n"));
+            flags |= SYMLINK_FILE;
+        }
+    }
+    else {
+        DPRINTF(SYMLLVL2,
+            ("nfs41_symlink_follow() failed, fallback to SYMLINK_DIRECTORY\n"));
+        flags |= SYMLINK_DIRECTORY;
+    }
+#endif /* DOES_NOT_WORK_YET_BREAKS_CYGWIN_GCC_BUILD_TEST */
+
+    /*
+     * Fill reparse buffer...
+     */
+    substitute_wchars = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS,
+        substitute_name, -1, pathbuffer,
+        (MAXIMUM_REPARSE_DATA_BUFFER_SIZE - (int)header_len) / sizeof(wchar_t));
+    if (substitute_wchars == 0) {
+        return ERROR_INVALID_DATA;
+    }
+    substitute_wchars--;
+
+    print_wchars = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS,
+        print_name, -1, (pathbuffer + substitute_wchars),
+        (MAXIMUM_REPARSE_DATA_BUFFER_SIZE -
+            (int)header_len) / sizeof(wchar_t) - substitute_wchars);
+    if (print_wchars == 0) {
+        return ERROR_INVALID_DATA;
+    }
+    print_wchars--;
+
+    reparse->ReparseTag = IO_REPARSE_TAG_SYMLINK;
+    reparse->SymbolicLinkReparseBuffer.SubstituteNameLength =
+        (USHORT)(substitute_wchars * sizeof(wchar_t));
+    reparse->SymbolicLinkReparseBuffer.PrintNameOffset =
+        reparse->SymbolicLinkReparseBuffer.SubstituteNameLength;
+    reparse->SymbolicLinkReparseBuffer.PrintNameLength =
+        (USHORT)(print_wchars * sizeof(wchar_t));
+    reparse->SymbolicLinkReparseBuffer.Flags = flags;
+
+    *reparse_len = (USHORT)(header_len +
+        ((size_t)substitute_wchars + print_wchars) * sizeof(wchar_t));
+    reparse->ReparseDataLength =
+        (USHORT)(*reparse_len - REPARSE_DATA_BUFFER_HEADER_SIZE);
+
+    return NO_ERROR;
+}
+
 static int handle_symlink_get(void *daemon_context, nfs41_upcall *upcall)
 {
     getsymlink_upcall_args *args = &upcall->args.getsymlink;
     nfs41_open_state *state = upcall->state_ref;
-    int status = NO_ERROR;
-
     uint32_t len;
+    int status;
 
-    /* read the link */
+    args->reparsebuffer = malloc(MAXIMUM_REPARSE_DATA_BUFFER_SIZE);
+    if (args->reparsebuffer == NULL)
+        return ERROR_NOT_ENOUGH_MEMORY;
+
     status = nfs41_readlink(state->session, &state->file,
         NFS41_MAX_PATH_LEN, args->target_get.path, &len);
-    if (status) {
-        eprintf("handle_symlink_get: "
-            "nfs41_readlink() for filename='%s' failed with '%s'\n",
-            state->file.path->path, nfs_error_string(status));
-        status = map_symlink_errors(status);
-        goto out;
-    }
-    args->target_get.len = (unsigned short)len;
-    DPRINTF(SYMLLVL2,
-        ("returning symlink target '%s'\n", args->target_get.path));
+    if (status)
+        return map_symlink_errors(status);
 
-out:
+    args->target_get.len = (unsigned short)len;
+
+    status = symlink_reparsebuffer_build(state, args->target_get.path,
+        (PREPARSE_DATA_BUFFER)args->reparsebuffer, &args->reparsebuffer_len);
     return status;
 }
 
-static int marshall_symlink_get(
-    unsigned char *restrict buffer,
-    uint32_t *restrict length,
-    nfs41_upcall *restrict upcall)
+static int marshall_symlink_get(unsigned char *restrict buffer,
+    uint32_t *restrict length, nfs41_upcall *restrict upcall)
 {
     const getsymlink_upcall_args *args = &upcall->args.getsymlink;
-    unsigned short len = (args->target_get.len + 1) * sizeof(WCHAR);
     int status;
-    int wc_len;
 
-    unsigned short *wc_len_out;
-    status = get_safe_write_bufferpos(&buffer, length,
-        sizeof(unsigned short), (void **)&wc_len_out);
-    if (status) goto out;
-    EASSERT(wc_len_out != NULL);
+    status = safe_write(&buffer, length, &args->reparsebuffer_len, sizeof(args->reparsebuffer_len));
+    if (status) return status;
+    status = safe_write(&buffer, length, args->reparsebuffer, args->reparsebuffer_len);
+//    if (status) return status;
 
-    if (*length <= len) {
-        status = ERROR_BUFFER_OVERFLOW;
-        goto out;
-    }
-
-    wc_len = MultiByteToWideChar(CP_UTF8,
-        MB_ERR_INVALID_CHARS,
-        args->target_get.path, args->target_get.len,
-        (LPWSTR)buffer, len / sizeof(WCHAR));
-    if (wc_len == 0) {
-        eprintf("marshall_symlink_get: "
-            "MultiByteToWideChar() failed, lasterr=%d\n",
-            (int)GetLastError());
-        status = ERROR_BUFFER_OVERFLOW;
-        goto out;
-    }
-
-    /* Win32 spec says that the buffer string must not contain L'\0' chars */
-    EASSERT(((wchar_t *)buffer)[wc_len-1] != L'\0');
-
-    *wc_len_out = (unsigned short)(wc_len*sizeof(wchar_t));
-    *length -= *wc_len_out;
-
-out:
     return status;
+}
+
+static void cleanup_symlink_get(nfs41_upcall *upcall)
+{
+    getsymlink_upcall_args *args = &upcall->args.getsymlink;
+    free(args->reparsebuffer);
+    args->reparsebuffer = NULL;
+    args->reparsebuffer_len = 0;
 }
 
 
@@ -327,6 +491,7 @@ const nfs41_upcall_op nfs41_op_symlink_get = {
     .parse = parse_symlink_get,
     .handle = handle_symlink_get,
     .marshall = marshall_symlink_get,
+    .cleanup = cleanup_symlink_get,
     .arg_size = sizeof(getsymlink_upcall_args)
 };
 

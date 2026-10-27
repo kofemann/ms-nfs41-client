@@ -133,6 +133,7 @@ typedef struct __nfs41_timings {
 #define NFS41_MM_POOLTAG_UP     ('upca')
 #define NFS41_MM_POOLTAG_DOWN   ('down')
 #define NFS41_MM_VOLUME_CACHE   ('volc')
+#define NFS41_MM_REPARSE_BUFFER ('repb')
 
 
 DECLARE_EXTERN_DECLARE_CONST_UNICODE_STRING(AUTH_NONE_NAME);
@@ -341,7 +342,8 @@ typedef struct _updowncall_entry {
             void *reparsebuffer;
         } SetSymlink;
         struct {
-            PUNICODE_STRING target;
+            PVOID reparsebuffer;
+            USHORT reparsebufferlen;
         } GetSymlink;
         struct {
             FS_INFORMATION_CLASS query;

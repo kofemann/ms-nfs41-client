@@ -201,6 +201,8 @@ typedef struct __setsymlink_upcall_args {
 
 typedef struct __getsymlink_upcall_args {
     nfs41_abs_path target_get;
+    unsigned char *reparsebuffer;
+    USHORT reparsebuffer_len;
 } getsymlink_upcall_args;
 
 typedef struct __volume_upcall_args {
