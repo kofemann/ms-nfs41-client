@@ -352,6 +352,7 @@ typedef struct _updowncall_entry {
         } Volume;
         struct {
             SECURITY_INFORMATION query_secinfo;
+            ULONG mode;
             PVOID buf;
             ULONG buf_len;
         } Acl;
@@ -735,6 +736,9 @@ NTSTATUS marshal_nfs41_setacl(
     ULONG buf_len,
     ULONG *len);
 NTSTATUS unmarshal_nfs41_getacl(
+    nfs41_updowncall_entry *cur,
+    const unsigned char *restrict *restrict buf);
+NTSTATUS unmarshal_nfs41_setacl(
     nfs41_updowncall_entry *cur,
     const unsigned char *restrict *restrict buf);
 NTSTATUS nfs41_QuerySecurityInformation(

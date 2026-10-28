@@ -393,9 +393,15 @@ static int handle_setacl(void *daemon_context, nfs41_upcall *upcall)
         status = nfs_to_windows_error(status, ERROR_NOT_SUPPORTED);
     }
     else {
-        args->ctime = info.change;
-
         EASSERT(bitmap_isset(&info.attrmask, 0, FATTR4_WORD0_CHANGE));
+        EASSERT(bitmap_isset(&info.attrmask, 1, FATTR4_WORD1_MODE));
+
+        /*
+         * Setting the ACL might affect |FATTR4_WORD1_MODE|, therefore
+         * we need to update the kernel view
+         */
+        args->ctime = info.change;
+        args->mode = info.mode;
 
         if (DPRINTF_LEVEL_ENABLED(ACLLVL1)) {
             print_nfs41_file_info("handle_setacl: nfs41_setattr() success info OUT:", &info);
@@ -415,7 +421,14 @@ static int marshall_setacl(
     nfs41_upcall *restrict upcall)
 {
     const setacl_upcall_args *args = &upcall->args.setacl;
-    return safe_write(&buffer, length, &args->ctime, sizeof(args->ctime));
+    int status;
+
+    status = safe_write(&buffer, length, &args->ctime, sizeof(args->ctime));
+    if (status) goto out;
+    status = safe_write(&buffer, length, &args->mode, sizeof(args->mode));
+//    if (status) goto out;
+out:
+    return status;
 }
 
 const nfs41_upcall_op nfs41_op_setacl = {

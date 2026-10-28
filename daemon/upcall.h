@@ -234,6 +234,7 @@ typedef struct __setacl_upcall_args {
     SECURITY_INFORMATION query_secinfo;
     PSECURITY_DESCRIPTOR sec_desc;
     ULONGLONG ctime;
+    DWORD mode;
 } setacl_upcall_args;
 
 typedef struct __queryallocatedranges_upcall_args {

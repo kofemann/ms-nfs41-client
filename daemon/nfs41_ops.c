@@ -1868,6 +1868,17 @@ int nfs41_setattr(
         attr_request.arr[1] |= FATTR4_WORD1_OWNER|FATTR4_WORD1_OWNER_GROUP;
     }
 
+    /*
+     * Changing the ACL, owner, owner_group might affect |FATTR4_WORD1_MODE|,
+     * therefore fetch this attribute too
+     */
+    if (bitmap_isset(&info->attrmask, 0, FATTR4_WORD0_ACL) ||
+        bitmap_isset(&info->attrmask, 1, FATTR4_WORD1_OWNER) ||
+        bitmap_isset(&info->attrmask, 1, FATTR4_WORD1_OWNER_GROUP)) {
+        attr_request.count = __max(attr_request.count, 2);
+        attr_request.arr[1] |= FATTR4_WORD1_MODE;
+    }
+
     compound_add_op(&compound, OP_GETATTR, &getattr_args, &getattr_res);
     getattr_args.attr_request = &attr_request;
     getattr_res.obj_attributes.attr_vals_len = NFS4_OPAQUE_LIMIT_ATTR;

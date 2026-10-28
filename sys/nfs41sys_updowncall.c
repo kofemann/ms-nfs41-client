@@ -814,14 +814,14 @@ NTSTATUS nfs41_downcall(
         case NFS41_SYSOP_ACL_QUERY:
             status = unmarshal_nfs41_getacl(cur, &inbuf);
             break;
+        case NFS41_SYSOP_ACL_SET:
+            status = unmarshal_nfs41_setacl(cur, &inbuf);
+            break;
         case NFS41_SYSOP_FILE_SET:
         case NFS41_SYSOP_FILE_SET_AT_CLEANUP:
             status = unmarshal_nfs41_setattr(cur, &inbuf);
             break;
         case NFS41_SYSOP_EA_SET:
-            unmarshal_nfs41_getchangetime(cur, &cur->ChangeTime, &inbuf);
-            break;
-        case NFS41_SYSOP_ACL_SET:
             unmarshal_nfs41_getchangetime(cur, &cur->ChangeTime, &inbuf);
             break;
         case NFS41_SYSOP_FSCTL_QUERYALLOCATEDRANGES:
