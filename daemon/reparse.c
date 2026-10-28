@@ -24,6 +24,7 @@
 #include <Windows.h>
 #include <strsafe.h>
 #include <stdlib.h>
+#include <ctype.h>
 
 #include "nfs41_driver.h"
 #include "nfs41_ops.h"
@@ -106,10 +107,12 @@ int reparsebuffer_build(
         DPRINTF(REPLVL2,
             ("symlink target '%s' uses /cygdrive mapping\n", target));
 
+        char dos_drive_letter = (char)toupper(target[10]);
+
         (void)snprintf(print_name, sizeof(print_name),
-            "%c:%s", target[10], target + 11);
+            "%c:%s", (int)dos_drive_letter, target + 11);
         (void)snprintf(substitute_name, sizeof(substitute_name),
-            "\\??\\%c:%s", target[10], target + 11);
+            "\\??\\%c:%s", (int)dos_drive_letter, target + 11);
     }
     else if ((target_len >= 5) && (memcmp(target, "/dev/", 5) == 0)) {
         /*
