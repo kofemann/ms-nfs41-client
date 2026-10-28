@@ -38,6 +38,16 @@
 #include "tree.h"
 #include "daemon_debug.h"
 
+
+/*
+ * |NAMECACHE_INFINITE_SIZE| - name cache can have an infinite
+ * size.
+ * This is mainly intended as "workaround" to deal with the issue
+ * of "infinite" amount of delegations, caused by potentially infinite
+ * amount of open Win32 file handles the client has to serve
+ */
+#define NAMECACHE_INFINITE_SIZE 1
+
 /*
  * |NAMECACHE_DEBUG_ALLOC| - use |malloc()|/|free()| for namecache
  * allocations so tools like Rational Purify or DrMemory can
@@ -55,6 +65,11 @@
  * FIXME: We should find the real issue.
  */
 #define NAMECACHE_WORKAROUND_DETACH_FAILED_INSERT 1
+
+
+#ifdef NAMECACHE_INFINITE_SIZE
+#define NAMECACHE_DEBUG_ALLOC 1
+#endif /* NAMECACHE_INFINITE_SIZE */
 
 /* dprintf levels for name cache logging */
 enum {
@@ -192,10 +207,12 @@ static int attr_cache_entry_create(
     int status = NO_ERROR;
 
 #ifdef NAMECACHE_DEBUG_ALLOC
+#ifndef NAMECACHE_INFINITE_SIZE
     if (cache->allocated_entries >= cache->max_entries) {
         status = ERROR_OUTOFMEMORY;
         goto out;
     }
+#endif /* !NAMECACHE_INFINITE_SIZE */
 
     entry = calloc(1, ATTR_ENTRY_SIZE);
     if (entry == NULL) {
@@ -895,8 +912,12 @@ static int name_cache_entry_create(
         /* scavenge and free the oldest unpinned leaf */
         entry = name_cache_entry_find_evictable(cache);
         if (entry == NULL) {
+#ifdef NAMECACHE_INFINITE_SIZE
+            goto do_alloc;
+#else
             status = ERROR_OUTOFMEMORY;
             goto out;
+#endif /* NAMECACHE_INFINITE_SIZE */
         }
 
         DPRINTF(NCLVL2, ("name_cache_entry_create('%s') freeing scavenged 0x%p\n",
@@ -904,6 +925,9 @@ static int name_cache_entry_create(
         name_cache_entry_free(cache, entry);
     }
 
+#ifdef NAMECACHE_INFINITE_SIZE
+do_alloc:
+#endif /* NAMECACHE_INFINITE_SIZE */
     entry = calloc(1, NAME_ENTRY_SIZE);
     if (entry == NULL) {
         status = ERROR_NOT_ENOUGH_MEMORY;
