@@ -46,8 +46,8 @@ NFSv4.2/NFSv4.1 filesystem driver for Windows 10/11 & Windows Server
 
 - Full NFSv4.2/NFSv4.1 protocol support
 
-- idmapper (mapping usernames and uid/gid values between server and
-  client)
+- idmapper (mapping server usernames+groupnames+uid/gid values from/to
+  client usernames+groupnames+uid/gid values)
 
 - Support for custom ports (NFSv4 defaults to TCP port 2049, this client
   can use different ports per mount)
@@ -672,13 +672,12 @@ Within WSL mount UNC path returned by `/sbin/nfs_mount`
 
 # Notes
 
-- Idmapping (including uid/gid mapping) between NFSv4 client and NFSv4
-  server works via `/lib/msnfs41client/cygwin_idmapper.ksh`, which
-  either uses builtin static data, or `/usr/bin/getent passwd` and
-  `/usr/bin/getent group`. As `getent` uses the configured name services
-  it should work with LDAP too. This is still work-in-progress, with the
-  goal that both NFSv4 client and server can use different uid/gid
-  numeric values for client and server side.
+- Idmapping (including client uid/gid from/to server uid/gid mapping)
+  between NFSv4 client and NFSv4 server works via
+  `/lib/msnfs41client/cygwin_idmapper.ksh`, which either uses builtin
+  static data, or `/usr/bin/getent passwd` and `/usr/bin/getent group`.
+  As `getent` uses the configured name services it should work with LDAP
+  too.
 
 - UNC paths are supported, after successful mounting `/sbin/nfs_mount`
   will list the paths in Cygwin/MSYS2 UNC format.
@@ -791,9 +790,6 @@ Within WSL mount UNC path returned by `/sbin/nfs_mount`
 
 - If `nfsd.exe` crashes or gets killed, the only safe way to run it
   again requires a reboot.
-
-- Native LDAP support does not work yet, right now all user/group
-  lookups are done via a Cygwin/shell-script based idmapper.
 
 - Attribute caching is too aggressive.
 

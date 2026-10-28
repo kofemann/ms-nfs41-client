@@ -20,7 +20,7 @@
         <para>Full NFSv4.2/NFSv4.1 protocol support</para>
       </listitem>
       <listitem>
-        <para>idmapper (mapping usernames and uid/gid values between server and client)</para>
+        <para>idmapper (mapping server usernames+groupnames+uid/gid values from/to client usernames+groupnames+uid/gid values)</para>
       </listitem>
       <listitem>
         <para>Support for custom ports (NFSv4 defaults to TCP port 2049, this client can use different ports per mount)</para>
@@ -819,7 +819,7 @@ $ mount -t drvfs '\\10.49.202.230@NFS@2049\bigdisk' /mnt/bigdisk</programlisting
     <title>Notes</title>
     <itemizedlist>
       <listitem>
-        <para>Idmapping (including uid/gid mapping) between NFSv4 client and NFSv4 server works via <filename>/lib/msnfs41client/cygwin_idmapper.ksh</filename>, which either uses builtin static data, or <filename>/usr/bin/getent passwd</filename> and <filename>/usr/bin/getent group</filename>. As <command>getent</command> uses the configured name services it should work with LDAP too. This is still work-in-progress, with the goal that both NFSv4 client and server can use different uid/gid numeric values for client and server side.</para>
+        <para>Idmapping (including client uid/gid from/to server uid/gid mapping) between NFSv4 client and NFSv4 server works via <filename>/lib/msnfs41client/cygwin_idmapper.ksh</filename>, which either uses builtin static data, or <filename>/usr/bin/getent passwd</filename> and <filename>/usr/bin/getent group</filename>. As <command>getent</command> uses the configured name services it should work with LDAP too.</para>
       </listitem>
       <listitem>
         <para>UNC paths are supported, after successful mounting <filename>/sbin/nfs_mount</filename> will list the paths in Cygwin/MSYS2 UNC format.</para>
@@ -926,9 +926,6 @@ A::EVERYONE@:rtcy</programlisting>
       </listitem>
       <listitem>
         <para>If <filename>nfsd.exe</filename> crashes or gets killed, the only safe way to run it again requires a reboot.</para>
-      </listitem>
-      <listitem>
-        <para>Native LDAP support does not work yet, right now all user/group lookups are done via a Cygwin/shell-script based idmapper.</para>
       </listitem>
       <listitem>
         <para>Attribute caching is too aggressive.</para>
