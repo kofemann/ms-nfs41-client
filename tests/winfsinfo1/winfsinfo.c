@@ -1076,6 +1076,73 @@ done:
 
 
 static
+const char *reparse_tag_name(ULONG reparse_tag)
+{
+#define TESTREPARSETAG(s) \
+    case (s): \
+        return (#s)
+
+    switch (reparse_tag) {
+        TESTREPARSETAG(IO_REPARSE_TAG_MOUNT_POINT);
+        TESTREPARSETAG(IO_REPARSE_TAG_HSM);
+        TESTREPARSETAG(IO_REPARSE_TAG_DRIVE_EXTENDER);
+        TESTREPARSETAG(IO_REPARSE_TAG_HSM2);
+        TESTREPARSETAG(IO_REPARSE_TAG_SIS);
+        TESTREPARSETAG(IO_REPARSE_TAG_WIM);
+        TESTREPARSETAG(IO_REPARSE_TAG_CSV);
+        TESTREPARSETAG(IO_REPARSE_TAG_DFS);
+        TESTREPARSETAG(IO_REPARSE_TAG_FILTER_MANAGER);
+        TESTREPARSETAG(IO_REPARSE_TAG_SYMLINK);
+        TESTREPARSETAG(IO_REPARSE_TAG_IIS_CACHE);
+        TESTREPARSETAG(IO_REPARSE_TAG_DFSR);
+        TESTREPARSETAG(IO_REPARSE_TAG_DEDUP);
+        TESTREPARSETAG(IO_REPARSE_TAG_APPXSTRM);
+        TESTREPARSETAG(IO_REPARSE_TAG_NFS);
+        TESTREPARSETAG(IO_REPARSE_TAG_FILE_PLACEHOLDER);
+        TESTREPARSETAG(IO_REPARSE_TAG_DFM);
+        TESTREPARSETAG(IO_REPARSE_TAG_WOF);
+        TESTREPARSETAG(IO_REPARSE_TAG_WCI);
+        TESTREPARSETAG(IO_REPARSE_TAG_WCI_1);
+        TESTREPARSETAG(IO_REPARSE_TAG_GLOBAL_REPARSE);
+        TESTREPARSETAG(IO_REPARSE_TAG_CLOUD);
+        TESTREPARSETAG(IO_REPARSE_TAG_CLOUD_1);
+        TESTREPARSETAG(IO_REPARSE_TAG_CLOUD_2);
+        TESTREPARSETAG(IO_REPARSE_TAG_CLOUD_3);
+        TESTREPARSETAG(IO_REPARSE_TAG_CLOUD_4);
+        TESTREPARSETAG(IO_REPARSE_TAG_CLOUD_5);
+        TESTREPARSETAG(IO_REPARSE_TAG_CLOUD_6);
+        TESTREPARSETAG(IO_REPARSE_TAG_CLOUD_7);
+        TESTREPARSETAG(IO_REPARSE_TAG_CLOUD_8);
+        TESTREPARSETAG(IO_REPARSE_TAG_CLOUD_9);
+        TESTREPARSETAG(IO_REPARSE_TAG_CLOUD_A);
+        TESTREPARSETAG(IO_REPARSE_TAG_CLOUD_B);
+        TESTREPARSETAG(IO_REPARSE_TAG_CLOUD_C);
+        TESTREPARSETAG(IO_REPARSE_TAG_CLOUD_D);
+        TESTREPARSETAG(IO_REPARSE_TAG_CLOUD_E);
+        TESTREPARSETAG(IO_REPARSE_TAG_CLOUD_F);
+        TESTREPARSETAG(IO_REPARSE_TAG_APPEXECLINK);
+        TESTREPARSETAG(IO_REPARSE_TAG_PROJFS);
+        TESTREPARSETAG(IO_REPARSE_TAG_LX_SYMLINK);
+        TESTREPARSETAG(IO_REPARSE_TAG_STORAGE_SYNC);
+        TESTREPARSETAG(IO_REPARSE_TAG_STORAGE_SYNC_FOLDER);
+        TESTREPARSETAG(IO_REPARSE_TAG_WCI_TOMBSTONE);
+        TESTREPARSETAG(IO_REPARSE_TAG_UNHANDLED);
+        TESTREPARSETAG(IO_REPARSE_TAG_ONEDRIVE);
+        TESTREPARSETAG(IO_REPARSE_TAG_PROJFS_TOMBSTONE);
+        TESTREPARSETAG(IO_REPARSE_TAG_AF_UNIX);
+        TESTREPARSETAG(IO_REPARSE_TAG_LX_FIFO);
+        TESTREPARSETAG(IO_REPARSE_TAG_LX_CHR);
+        TESTREPARSETAG(IO_REPARSE_TAG_LX_BLK);
+        TESTREPARSETAG(IO_REPARSE_TAG_WCI_LINK);
+        TESTREPARSETAG(IO_REPARSE_TAG_WCI_LINK_1);
+        default:
+            return NULL;
+    }
+
+#undef TESTREPARSETAG
+}
+
+static
 bool reparse_range_is_valid(size_t data_length, size_t offset, size_t length)
 {
     return offset <= data_length && length <= data_length - offset;
@@ -1085,6 +1152,7 @@ static
 int get_reparsepoint(const char *progname, const char *filename)
 {
     unsigned char buffer[MAXIMUM_REPARSE_DATA_BUFFER_SIZE];
+    const char *tag_name;
     REPARSE_DATA_BUFFER *rdb = (REPARSE_DATA_BUFFER *)buffer;
     DWORD bytes_returned = 0;
     size_t data_length;
@@ -1130,8 +1198,18 @@ int get_reparsepoint(const char *progname, const char *filename)
 
     data_length = rdb->ReparseDataLength;
     (void)printf("(\n");
-    (void)printf("(\tfilename='%s'\n", filename);
+    (void)printf("\tfilename='%s'\n", filename);
     (void)printf("\treparse_tag=16#%lx\n", (unsigned long)rdb->ReparseTag);
+
+    tag_name = reparse_tag_name(rdb->ReparseTag);
+    if (tag_name != NULL) {
+        (void)printf("\ttag_name='%s'\n", tag_name);
+    }
+    else {
+        (void)printf("\ttag_name='UNKNOWN_0x%lx'\n",
+            (unsigned long)rdb->ReparseTag);
+    }
+
     (void)printf("\treparse_data_length=%u\n", (unsigned int)data_length);
 
     switch (rdb->ReparseTag) {
@@ -1153,7 +1231,6 @@ int get_reparsepoint(const char *progname, const char *filename)
             ((rdb->SymbolicLinkReparseBuffer.SubstituteNameLength % sizeof(wchar_t)) != 0U) ||
             ((rdb->SymbolicLinkReparseBuffer.PrintNameLength % sizeof(wchar_t)) != 0U))
             goto invalid_reparse_data;
-        (void)printf("\ttag_name='IO_REPARSE_TAG_SYMLINK'\n");
 
         (void)printf("\ttypeset -A Flags=(\n");
         symlink_flags = rdb->SymbolicLinkReparseBuffer.Flags;
@@ -1203,7 +1280,6 @@ int get_reparsepoint(const char *progname, const char *filename)
             (((rdb->MountPointReparseBuffer.PrintNameLength % sizeof(wchar_t))) != 0U))
             goto invalid_reparse_data;
 
-        (void)printf("\ttag_name='IO_REPARSE_TAG_MOUNT_POINT'\n");
         (void)printf("\tsubstitute_name_offset=%u\n",
             (unsigned int)rdb->MountPointReparseBuffer.SubstituteNameOffset);
         (void)printf("\tsubstitute_name_length=%u\n",
@@ -1228,7 +1304,6 @@ int get_reparsepoint(const char *progname, const char *filename)
         if (data_length < sizeof(file_type))
             goto invalid_reparse_data;
         (void)memcpy(&file_type, data, sizeof(file_type));
-        (void)printf("\ttag_name='IO_REPARSE_TAG_LX_SYMLINK'\n");
         (void)printf("\tfile_type=%lu\n", (unsigned long)file_type);
         (void)printf("\ttarget='%.*s'\n",
             (int)(data_length - sizeof(file_type)),
@@ -1237,9 +1312,7 @@ int get_reparsepoint(const char *progname, const char *filename)
         break;
 
     default:
-        /* FIXME: Support more reparse tags! */
-        (void)printf("\ttag_name='UNKNOWN_0x%lx'\n",
-            (long)rdb->ReparseTag);
+        /* No tag-specific reparse data decoder... ;-( */
         break;
     }
 
