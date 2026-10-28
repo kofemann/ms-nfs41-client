@@ -290,11 +290,11 @@ NTSTATUS handle_upcall(
     case NFS41_SYSOP_EA_GET:
         status = marshal_nfs41_eaget(entry, pbOut, cbOut, len);
         break;
-    case NFS41_SYSOP_SYMLINK_GET:
-        status = marshal_nfs41_symlink_get(entry, pbOut, cbOut, len);
+    case NFS41_SYSOP_REPARSE_GET:
+        status = marshal_nfs41_reparse_get(entry, pbOut, cbOut, len);
         break;
-    case NFS41_SYSOP_SYMLINK_SET:
-        status = marshal_nfs41_symlink_set(entry, pbOut, cbOut, len);
+    case NFS41_SYSOP_REPARSE_SET:
+        status = marshal_nfs41_reparse_set(entry, pbOut, cbOut, len);
         break;
     case NFS41_SYSOP_VOLUME_QUERY:
         status = marshal_nfs41_volume(entry, pbOut, cbOut, len);
@@ -802,11 +802,11 @@ NTSTATUS nfs41_downcall(
         case NFS41_SYSOP_EA_GET:
             unmarshal_nfs41_eaget(cur, &inbuf);
             break;
-        case NFS41_SYSOP_SYMLINK_GET:
-            unmarshal_nfs41_get_symlink(cur, &inbuf);
+        case NFS41_SYSOP_REPARSE_GET:
+            unmarshal_nfs41_get_reparse(cur, &inbuf);
             break;
-        case NFS41_SYSOP_SYMLINK_SET:
-            unmarshal_nfs41_set_symlink(cur, &inbuf);
+        case NFS41_SYSOP_REPARSE_SET:
+            unmarshal_nfs41_set_reparse(cur, &inbuf);
             break;
         case NFS41_SYSOP_VOLUME_QUERY:
             unmarshal_nfs41_volume(cur, &inbuf);

@@ -123,6 +123,9 @@
     <ClCompile Include="..\..\daemon\recovery.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\daemon\reparse.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\daemon\service.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -132,7 +135,7 @@
     <ClCompile Include="..\..\daemon\sid.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\daemon\symlink.c">
+    <ClCompile Include="..\..\daemon\symlinkutil.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\daemon\upcall.c">
@@ -210,6 +213,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\daemon\sid.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\daemon\symlinkutil.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\daemon\tree.h">

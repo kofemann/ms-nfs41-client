@@ -194,16 +194,16 @@ typedef struct __readdir_upcall_args {
     unsigned char *kbuf;
 } readdir_upcall_args;
 
-typedef struct __setsymlink_upcall_args {
+typedef struct __setreparse_upcall_args {
     USHORT reparsebuflen;
     void *reparsebuf;
-} setsymlink_upcall_args;
+} setreparse_upcall_args;
 
-typedef struct __getsymlink_upcall_args {
+typedef struct __getreparse_upcall_args {
     nfs41_abs_path target_get;
     unsigned char *reparsebuffer;
     USHORT reparsebuffer_len;
-} getsymlink_upcall_args;
+} getreparse_upcall_args;
 
 typedef struct __volume_upcall_args {
     FS_INFORMATION_CLASS query;
@@ -296,8 +296,8 @@ typedef union __upcall_args {
     setattr_upcall_args     setattr;
     setexattr_upcall_args   setexattr;
     readdir_upcall_args     readdir;
-    setsymlink_upcall_args  setsymlink;
-    getsymlink_upcall_args  getsymlink;
+    setreparse_upcall_args  setreparse;
+    getreparse_upcall_args  getreparse;
     volume_upcall_args      volume;
     getacl_upcall_args      getacl;
     setacl_upcall_args      setacl;

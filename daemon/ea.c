@@ -31,6 +31,7 @@
 #include "delegation.h"
 #include "upcall.h"
 #include "upcallutil.h"
+#include "symlinkutil.h"
 #include "util.h"
 #include "daemon_debug.h"
 #include "nfs_ea.h"

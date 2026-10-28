@@ -67,9 +67,6 @@
     <ClCompile Include="..\..\sys\nfs41sys_setfileinfo.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\sys\nfs41sys_symlink.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\sys\nfs41sys_util.c">
       <Filter>Source Files</Filter>
     </ClCompile>

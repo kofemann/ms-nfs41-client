@@ -326,10 +326,11 @@
     <ClCompile Include="..\..\daemon\readdir.c" />
     <ClCompile Include="..\..\daemon\readwrite.c" />
     <ClCompile Include="..\..\daemon\recovery.c" />
+    <ClCompile Include="..\..\daemon\reparse.c" />
     <ClCompile Include="..\..\daemon\service.c" />
     <ClCompile Include="..\..\daemon\setattr.c" />
     <ClCompile Include="..\..\daemon\sid.c" />
-    <ClCompile Include="..\..\daemon\symlink.c" />
+    <ClCompile Include="..\..\daemon\symlinkutil.c" />
     <ClCompile Include="..\..\daemon\upcall.c" />
     <ClCompile Include="..\..\daemon\util.c" />
     <ClCompile Include="..\..\daemon\volume.c" />
@@ -356,6 +357,7 @@
     <ClInclude Include="..\..\daemon\recovery.h" />
     <ClInclude Include="..\..\daemon\service.h" />
     <ClInclude Include="..\..\daemon\sid.h" />
+    <ClInclude Include="..\..\daemon\symlinkutil.h" />
     <ClInclude Include="..\..\daemon\tree.h" />
     <ClInclude Include="..\..\daemon\upcall.h" />
     <ClInclude Include="..\..\daemon\upcallutil.h" />
@@ -363,6 +365,7 @@
     <ClInclude Include="..\..\daemon\winstreams.h" />
     <ClInclude Include="..\..\include\from_kernel.h" />
     <ClInclude Include="..\..\include\nfs_ea.h" />
+    <ClInclude Include="..\..\include\win_reparse.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -340,11 +340,11 @@ typedef struct _updowncall_entry {
         struct {
             USHORT reparsebufferlen;
             void *reparsebuffer;
-        } SetSymlink;
+        } SetReparse;
         struct {
             PVOID reparsebuffer;
             USHORT reparsebufferlen;
-        } GetSymlink;
+        } GetReparse;
         struct {
             FS_INFORMATION_CLASS query;
             PVOID buf;
@@ -720,7 +720,7 @@ NTSTATUS map_setfile_error(
 NTSTATUS map_readwrite_errors(DWORD status);
 NTSTATUS map_lock_errors(
     DWORD status);
-NTSTATUS map_symlink_errors(
+NTSTATUS map_reparse_errors(
     NTSTATUS status);
 
 /* nfs41sys_acl.c */
@@ -1003,35 +1003,29 @@ ULONG nfs41_ExtendForCache(
     IN PLARGE_INTEGER pNewFileSize,
     OUT PLARGE_INTEGER pNewAllocationSize);
 
-/* nfs41sys_symlink.c */
-NTSTATUS marshal_nfs41_symlink_get(
-    nfs41_updowncall_entry *entry,
-    unsigned char *buf,
-    ULONG buf_len,
-    ULONG *len);
-void unmarshal_nfs41_get_symlink(
-    nfs41_updowncall_entry *cur,
-    const unsigned char *restrict *restrict buf);
-NTSTATUS marshal_nfs41_symlink_set(
-    nfs41_updowncall_entry *entry,
-    unsigned char *buf,
-    ULONG buf_len,
-    ULONG *len);
-void unmarshal_nfs41_set_symlink(
-    nfs41_updowncall_entry *cur,
-    const unsigned char *restrict *restrict buf);
-NTSTATUS nfs41_SetSymlinkReparsePoint(
-    IN OUT PRX_CONTEXT RxContext);
-NTSTATUS nfs41_GetSymlinkReparsePoint(
-    IN OUT PRX_CONTEXT RxContext);
-void print_reparse_buffer(
-    PREPARSE_DATA_BUFFER r);
-
 /* nfs41sys_reparse.c */
+NTSTATUS marshal_nfs41_reparse_get(
+    nfs41_updowncall_entry *entry,
+    unsigned char *buf,
+    ULONG buf_len,
+    ULONG *len);
+void unmarshal_nfs41_get_reparse(
+    nfs41_updowncall_entry *cur,
+    const unsigned char *restrict *restrict buf);
+NTSTATUS marshal_nfs41_reparse_set(
+    nfs41_updowncall_entry *entry,
+    unsigned char *buf,
+    ULONG buf_len,
+    ULONG *len);
+void unmarshal_nfs41_set_reparse(
+    nfs41_updowncall_entry *cur,
+    const unsigned char *restrict *restrict buf);
 NTSTATUS nfs41_SetReparsePoint(
     IN OUT PRX_CONTEXT RxContext);
 NTSTATUS nfs41_GetReparsePoint(
     IN OUT PRX_CONTEXT RxContext);
+void print_reparse_buffer(
+    PREPARSE_DATA_BUFFER r);
 
 /* nfs41_updowncall.c */
 NTSTATUS marshal_nfs41_header(

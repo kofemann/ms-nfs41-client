@@ -31,6 +31,7 @@
 #include "nfs41_driver.h" /* only for |NFS41_SYSOP_FILE_QUERY*| */
 #include "upcall.h"
 #include "upcallutil.h"
+#include "symlinkutil.h"
 #include "fileinfoutil.h"
 #include "daemon_debug.h"
 #ifdef NFS41_DRIVER_WINSTREAMS_SUPPORT

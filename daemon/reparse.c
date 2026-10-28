@@ -31,219 +31,19 @@
 #include "upcallutil.h"
 #include "util.h"
 #include "idmap.h"
+#include "symlinkutil.h"
 #include "daemon_debug.h"
 #include "nfs41_daemon.h"
 #include "win_reparse.h"
 
 extern nfs41_daemon_globals nfs41_dg;
 
-/* |DPRINTF()| levels for acl logging */
-#define SYMLLVL1 1
-#define SYMLLVL2 2
+/* |DPRINTF()| levels for reparse logging */
+#define REPLVL1 1
+#define REPLVL2 2
 
-static int abs_path_link(
-    OUT nfs41_abs_path *path,
-    IN char *path_pos,
-    IN const char *link,
-    IN uint32_t link_len)
-{
-    nfs41_component name;
-    const char *path_max = path->path + NFS41_MAX_PATH_LEN;
-    const char *link_pos = link;
-    const char *link_end = link + link_len;
-    int status = NO_ERROR;
-
-    DPRINTF(SYMLLVL2,
-        ("--> abs_path_link(path_pos='%s', link='%.*s', link_len=%d)\n",
-        path_pos, (int)link_len, link, (int)link_len));
-
-    /* UNC path ? Make sure we return \\... */
-    if ((link_len > 2) && (!memcmp(link, "//", 2))) {
-        path->path[0] = '\\';
-        path->path[1] = '\\';
-        path_pos = path->path+2;
-        link_pos += 2;
-    }
-    /* if link is an absolute path, start path_pos at the beginning */
-    else if (is_delimiter(*link)) {
-        if (link_len == 0) {
-            /* This should never happen... */
-            eprintf("abs_path_link(path_pos='%s', link='%.*s', link_len=%d): "
-                "Invalid path, link_len==0\n",
-                path_pos, (int)link_len, link, (int)link_len);
-            status = ERROR_BAD_NETPATH;
-            goto out;
-        }
-        else if (link_len == 1) {
-            /* Special case for $ ln -s '/' mysymlinktoroot # */
-            path_pos = path->path+1;
-            path->path[0] = '\\';
-            path->path[1] = '\0';
-            goto out;
-        }
-        else {
-            /* Normal absolute path... */
-            path_pos = path->path;
-        }
-    }
-
-    /* copy each component of link into the path */
-    while (next_component(link_pos, link_end, &name)) {
-        link_pos = name.name + name.len;
-
-        if (is_delimiter(*path_pos))
-            path_pos++;
-
-        /* handle special components . and .. */
-        if (name.len == 1 && name.name[0] == '.')
-            continue;
-        if (name.len == 2 && name.name[0] == '.' && name.name[1] == '.') {
-            /* back path_pos up by one component */
-            if (!last_component(path->path, path_pos, &name)) {
-                eprintf("symlink with .. that points below server root!\n");
-                status = ERROR_BAD_NETPATH;
-                goto out;
-            }
-            path_pos = (char*)prev_delimiter(name.name, path->path);
-            continue;
-        }
-
-        /* copy the component and add a \ */
-        if (FAILED(StringCchCopyNA(path_pos, path_max-path_pos, name.name,
-                name.len))) {
-            status = ERROR_BUFFER_OVERFLOW;
-            goto out;
-        }
-        path_pos += name.len;
-        if (FAILED(StringCchCopyNA(path_pos, path_max-path_pos, "\\", 1))) {
-            status = ERROR_BUFFER_OVERFLOW;
-            goto out;
-        }
-    }
-
-    /* make sure the path is null terminated */
-    if (path_pos == path_max) {
-        status = ERROR_BUFFER_OVERFLOW;
-        goto out;
-    }
-    *path_pos = '\0';
-out:
-    path->len = (unsigned short)(path_pos - path->path);
-
-    if (status) {
-        DPRINTF(SYMLLVL2,
-            ("<-- abs_path_link(), status=%d\n",
-            status));
-    }
-    else {
-        DPRINTF(SYMLLVL2,
-            ("<-- abs_path_link(path='%.*s'), status=%d\n",
-            (int)path->len, path->path, status));
-    }
-
-    return status;
-}
-
-int nfs41_symlink_target(
-    IN nfs41_session *session,
-    IN nfs41_path_fh *file,
-    OUT nfs41_abs_path *target)
-{
-    char link[NFS41_MAX_PATH_LEN];
-    const nfs41_abs_path *path = file->path;
-    ptrdiff_t path_offset;
-    uint32_t link_len;
-    int status;
-
-    /* read the link */
-    status = nfs41_readlink(session, file, NFS41_MAX_PATH_LEN, link, &link_len);
-    if (status) {
-        eprintf("nfs41_readlink() for '%s' failed with '%s'\n", file->path->path,
-            nfs_error_string(status));
-        status = ERROR_PATH_NOT_FOUND;
-        goto out;
-    }
-
-    DPRINTF(SYMLLVL2, ("--> nfs41_symlink_target('%s', '%s')\n", path->path, link));
-
-    /* append any components after the symlink */
-    if (FAILED(StringCchCatA(link, NFS41_MAX_PATH_LEN,
-            file->name.name + file->name.len))) {
-        status = ERROR_BUFFER_OVERFLOW;
-        goto out;
-    }
-    link_len = (uint32_t)strlen(link);
-
-    /* overwrite the last component of the path; get the starting offset */
-    path_offset = file->name.name - path->path;
-
-    /* copy the path and update it with the results from link */
-    if (target != path) {
-        target->len = path->len;
-        if (FAILED(StringCchCopyNA(target->path, NFS41_MAX_PATH_LEN,
-                path->path, path->len))) {
-            status = ERROR_BUFFER_OVERFLOW;
-            goto out;
-        }
-    }
-    status = abs_path_link(target, target->path + path_offset, link, link_len);
-    if (status) {
-        eprintf("abs_path_link() for path '%s' with link '%s' failed with %d\n",
-            target->path, link, status);
-        goto out;
-    }
-out:
-    DPRINTF(SYMLLVL2, ("<-- nfs41_symlink_target('%s') returning %d\n",
-        target->path, status));
-    return status;
-}
-
-int nfs41_symlink_follow(
-    IN nfs41_root *root,
-    IN nfs41_session *session,
-    IN nfs41_path_fh *symlink,
-    OUT nfs41_file_info *info)
-{
-    nfs41_abs_path path;
-    nfs41_path_fh file;
-    uint32_t depth = 0;
-    int status = NO_ERROR;
-
-    file.path = &path;
-    InitializeSRWLock(&path.lock);
-
-    DPRINTF(SYMLLVL2, ("--> nfs41_symlink_follow('%s')\n", symlink->path->path));
-
-    do {
-        if (++depth > NFS41_MAX_SYMLINK_DEPTH) {
-            status = ERROR_TOO_MANY_LINKS;
-            goto out;
-        }
-
-        /* construct the target path */
-        status = nfs41_symlink_target(session, symlink, &path);
-        if (status) goto out;
-
-        DPRINTF(SYMLLVL2, ("looking up '%s'\n", path.path));
-
-        last_component(path.path, path.path + path.len, &file.name);
-
-        /* get attributes for the target */
-        status = nfs41_lookup(root, session,
-            BIT2BOOL(symlink->fh.superblock->case_insensitive),
-            &path, NULL, &file, info, &session);
-        if (status) goto out;
-
-        symlink = &file;
-    } while (info->type == NF4LNK);
-out:
-    DPRINTF(SYMLLVL2, ("<-- nfs41_symlink_follow() returning %d\n", status));
-    return status;
-}
-
-
-/* NFS41_SYSOP_SYMLINK_GET */
-static int parse_symlink_get(
+/* NFS41_SYSOP_REPARSE_GET */
+static int parse_reparse_get(
     const unsigned char *restrict buffer,
     uint32_t length,
     nfs41_upcall *upcall)
@@ -252,14 +52,14 @@ static int parse_symlink_get(
 
     EASSERT(length == 0);
 
-    DPRINTF(SYMLLVL1,
-        ("parse_symlink_get: parsing NFS41_SYSOP_SYMLINK_GET:\n"));
+    DPRINTF(REPLVL1,
+        ("parse_reparse_get: parsing NFS41_SYSOP_REPARSE_GET:\n"));
 
     return status;
 }
 
 static
-int symlink_reparsebuffer_build(
+int reparsebuffer_build(
     nfs41_open_state *restrict state,
     const char *restrict target,
     PREPARSE_DATA_BUFFER restrict reparse,
@@ -289,7 +89,7 @@ int symlink_reparsebuffer_build(
          * FIXME: Investigate whether using |IO_REPARSE_TAG_MOUNT_POINT|
          * is a better solution
          */
-        DPRINTF(SYMLLVL2,
+        DPRINTF(REPLVL2,
             ("symlink target '%s' uses UNC mapping\n", target));
 
         (void)snprintf(print_name, sizeof(print_name),
@@ -303,7 +103,7 @@ int symlink_reparsebuffer_build(
          * Cygwin drive path:
          * /cygdrive/X/path becomes X:\\path
          */
-        DPRINTF(SYMLLVL2,
+        DPRINTF(REPLVL2,
             ("symlink target '%s' uses /cygdrive mapping\n", target));
 
         (void)snprintf(print_name, sizeof(print_name),
@@ -320,7 +120,7 @@ int symlink_reparsebuffer_build(
          * FIXME: Investigate whether using |IO_REPARSE_TAG_LX_SYMLINK|
          * for this is better solution
          */
-        DPRINTF(SYMLLVL2,
+        DPRINTF(REPLVL2,
             ("symlink target '%s' uses /dev mapping\n", target));
 
         (void)snprintf(print_name, sizeof(print_name),
@@ -336,7 +136,7 @@ int symlink_reparsebuffer_build(
          * Relative path:
          * retain the path and set |SYMLINK_FLAG_RELATIVE|
          */
-        DPRINTF(SYMLLVL2, ("symlink target '%s' is relative\n", target));
+        DPRINTF(REPLVL2, ("symlink target '%s' is relative\n", target));
 
         (void)snprintf(print_name, sizeof(print_name),
             "%s", target);
@@ -351,7 +151,7 @@ int symlink_reparsebuffer_build(
          * resolve below the configured Cygwin root (e.g. "C:\cygwin64\"
          * or "C:\cygwin\")
          */
-        DPRINTF(SYMLLVL2,
+        DPRINTF(REPLVL2,
             ("symlink target '%s' uses POSIX root mapping\n", target));
 
         /* Special case for "/" */
@@ -390,15 +190,15 @@ int symlink_reparsebuffer_build(
         &state->file, &target_info);
     if (status == 0) {
         if (target_info.type == NF4DIR) {
-            DPRINTF(SYMLLVL2, ("symlink target uses SYMLINK_DIRECTORY\n"));
+            DPRINTF(REPLVL2, ("symlink target uses SYMLINK_DIRECTORY\n"));
             flags |= SYMLINK_DIRECTORY;
         } else {
-            DPRINTF(SYMLLVL2, ("symlink target uses SYMLINK_FILE\n"));
+            DPRINTF(REPLVL2, ("symlink target uses SYMLINK_FILE\n"));
             flags |= SYMLINK_FILE;
         }
     }
     else {
-        DPRINTF(SYMLLVL2,
+        DPRINTF(REPLVL2,
             ("nfs41_symlink_follow() failed, fallback to SYMLINK_DIRECTORY\n"));
         flags |= SYMLINK_DIRECTORY;
     }
@@ -441,9 +241,9 @@ int symlink_reparsebuffer_build(
     return NO_ERROR;
 }
 
-static int handle_symlink_get(void *daemon_context, nfs41_upcall *upcall)
+static int handle_reparse_get(void *daemon_context, nfs41_upcall *upcall)
 {
-    getsymlink_upcall_args *args = &upcall->args.getsymlink;
+    getreparse_upcall_args *args = &upcall->args.getreparse;
     nfs41_open_state *state = upcall->state_ref;
     uint32_t len;
     int status;
@@ -459,56 +259,59 @@ static int handle_symlink_get(void *daemon_context, nfs41_upcall *upcall)
 
     args->target_get.len = (unsigned short)len;
 
-    status = symlink_reparsebuffer_build(state, args->target_get.path,
+    status = reparsebuffer_build(state, args->target_get.path,
         (PREPARSE_DATA_BUFFER)args->reparsebuffer, &args->reparsebuffer_len);
     return status;
 }
 
-static int marshall_symlink_get(unsigned char *restrict buffer,
+static int marshall_reparse_get(unsigned char *restrict buffer,
     uint32_t *restrict length, nfs41_upcall *restrict upcall)
 {
-    const getsymlink_upcall_args *args = &upcall->args.getsymlink;
+    const getreparse_upcall_args *args = &upcall->args.getreparse;
     int status;
 
-    status = safe_write(&buffer, length, &args->reparsebuffer_len, sizeof(args->reparsebuffer_len));
+    status = safe_write(&buffer, length,
+        &args->reparsebuffer_len, sizeof(args->reparsebuffer_len));
     if (status) return status;
-    status = safe_write(&buffer, length, args->reparsebuffer, args->reparsebuffer_len);
+    status = safe_write(&buffer, length,
+        args->reparsebuffer, args->reparsebuffer_len);
 //    if (status) return status;
 
     return status;
 }
 
-static void cleanup_symlink_get(nfs41_upcall *upcall)
+static void cleanup_reparse_get(nfs41_upcall *upcall)
 {
-    getsymlink_upcall_args *args = &upcall->args.getsymlink;
+    getreparse_upcall_args *args = &upcall->args.getreparse;
     free(args->reparsebuffer);
     args->reparsebuffer = NULL;
     args->reparsebuffer_len = 0;
 }
 
 
-const nfs41_upcall_op nfs41_op_symlink_get = {
-    .parse = parse_symlink_get,
-    .handle = handle_symlink_get,
-    .marshall = marshall_symlink_get,
-    .cleanup = cleanup_symlink_get,
-    .arg_size = sizeof(getsymlink_upcall_args)
+const nfs41_upcall_op nfs41_op_reparse_get = {
+    .parse = parse_reparse_get,
+    .handle = handle_reparse_get,
+    .marshall = marshall_reparse_get,
+    .cleanup = cleanup_reparse_get,
+    .arg_size = sizeof(getreparse_upcall_args)
 };
 
-/* NFS41_SYSOP_SYMLINK_SET */
-static int parse_symlink_set(
+/* NFS41_SYSOP_REPARSE_SET */
+static int parse_reparse_set(
     const unsigned char *restrict buffer,
     uint32_t length,
     nfs41_upcall *upcall)
 {
-    setsymlink_upcall_args *args = &upcall->args.setsymlink;
+    setreparse_upcall_args *args = &upcall->args.setreparse;
     int status;
     USHORT reparsebuflen;
     void *reparsebuf = NULL;
 
     status = safe_read(&buffer, &length, &reparsebuflen, sizeof(USHORT));
     if (status) goto out;
-    status = get_safe_read_bufferpos(&buffer, &length, reparsebuflen, &reparsebuf);
+    status = get_safe_read_bufferpos(&buffer, &length,
+        reparsebuflen, &reparsebuf);
     if (status) goto out;
 
     args->reparsebuflen = reparsebuflen;
@@ -516,8 +319,8 @@ static int parse_symlink_set(
 
     EASSERT(length == 0);
 
-    DPRINTF(SYMLLVL1,
-        ("parse_symlink_set: parsing NFS41_SYSOP_SYMLINK_SET: "
+    DPRINTF(REPLVL1,
+        ("parse_reparse_set: parsing NFS41_SYSOP_REPARSE_SET: "
         "args->(reparsebuflen=%ld,reparsebuf=0x%p)\n",
         (long)args->reparsebuflen, (void *)args->reparsebuf));
 
@@ -525,9 +328,9 @@ out:
     return status;
 }
 
-static int handle_symlink_set(void *daemon_context, nfs41_upcall *upcall)
+static int handle_reparse_set(void *daemon_context, nfs41_upcall *upcall)
 {
-    setsymlink_upcall_args *args = &upcall->args.setsymlink;
+    setreparse_upcall_args *args = &upcall->args.setreparse;
     nfs41_open_state *state = upcall->state_ref;
     int status = NO_ERROR;
     PREPARSE_DATA_BUFFER Reparse = args->reparsebuf;
@@ -550,7 +353,7 @@ static int handle_symlink_set(void *daemon_context, nfs41_upcall *upcall)
      * in the future we can add more reparse point types
      */
     if (Reparse->ReparseTag != IO_REPARSE_TAG_SYMLINK) {
-        eprintf("handle_symlink_set: "
+        eprintf("handle_reparse_set: "
             "Reparse->ReparseTag != IO_REPARSE_TAG_SYMLINK\n");
         status = ERROR_INVALID_REPARSE_DATA;
         goto out;
@@ -575,7 +378,7 @@ static int handle_symlink_set(void *daemon_context, nfs41_upcall *upcall)
         NULL);
     if (targetbuflen == 0) {
         status = GetLastError();
-        eprintf("handle_symlink_set: "
+        eprintf("handle_reparse_set: "
             "WideCharToMultiByte() failed, status=%d\n",
             status);
         if (status == ERROR_SUCCESS) {
@@ -589,18 +392,18 @@ static int handle_symlink_set(void *daemon_context, nfs41_upcall *upcall)
 
     targetname[targetnamelen] = '\0';
 
-    DPRINTF(SYMLLVL1,
-        ("handle_symlink_set: targetname='%s'\n", targetname));
+    DPRINTF(REPLVL1,
+        ("handle_reparse_set: targetname='%s'\n", targetname));
 
     if (targetname[0] == '.') {
-        DPRINTF(SYMLLVL1,
-            ("handle_symlink_set: "
+        DPRINTF(REPLVL1,
+            ("handle_reparse_set: "
             "relative path targetname='%s'\n",
             targetname));
     }
     else {
-        DPRINTF(SYMLLVL1,
-            ("handle_symlink_set: "
+        DPRINTF(REPLVL1,
+            ("handle_reparse_set: "
             "absolute path targetname='%s'\n",
             targetname));
 
@@ -618,8 +421,8 @@ static int handle_symlink_set(void *daemon_context, nfs41_upcall *upcall)
             targetname += 2;
             targetname[0] = L'\\';
 
-            DPRINTF(SYMLLVL1,
-                ("handle_symlink_set: "
+            DPRINTF(REPLVL1,
+                ("handle_reparse_set: "
                 "UNC targetname='%s'\n",
                 targetname));
         }
@@ -629,8 +432,8 @@ static int handle_symlink_set(void *daemon_context, nfs41_upcall *upcall)
             (targetname[5] == ':')) {
             char devletter;
 
-            DPRINTF(SYMLLVL1,
-                ("handle_symlink_set: "
+            DPRINTF(REPLVL1,
+                ("handle_reparse_set: "
                 "DEVLETTER targetname='%s'\n",
                 targetname));
 
@@ -641,7 +444,7 @@ static int handle_symlink_set(void *daemon_context, nfs41_upcall *upcall)
             if ((targetname[1] != ':') ||
                 (targetname[2] != '\\')) {
                 status = ERROR_INVALID_PARAMETER;
-                eprintf("handle_symlink_set: "
+                eprintf("handle_reparse_set: "
                     "DEVLETTER path '%s' should start with 'X:\\'\n",
                     targetname);
                 goto out;
@@ -673,8 +476,8 @@ static int handle_symlink_set(void *daemon_context, nfs41_upcall *upcall)
             /* Put new buffer into target name */
             targetname = prefixed_targetname;
 
-            DPRINTF(SYMLLVL1,
-                ("handle_symlink_set: "
+            DPRINTF(REPLVL1,
+                ("handle_reparse_set: "
                 "new targetname='%s'\n",
                 targetname));
         }
@@ -684,7 +487,7 @@ static int handle_symlink_set(void *daemon_context, nfs41_upcall *upcall)
                 (targetname[0] == '/') ||
                 (targetname[0] == ':')
             )) {
-            eprintf("handle_symlink_set: "
+            eprintf("handle_reparse_set: "
                 "targetname='%s' should not start "
                 "with '/', '\\' or ':'\n",
                 targetname);
@@ -692,8 +495,8 @@ static int handle_symlink_set(void *daemon_context, nfs41_upcall *upcall)
             goto out;
         }
         else {
-            DPRINTF(SYMLLVL1,
-                ("handle_symlink_set: "
+            DPRINTF(REPLVL1,
+                ("handle_reparse_set: "
                 "relative symlink targetname='%s'\n",
                 targetname));
         }
@@ -711,14 +514,14 @@ static int handle_symlink_set(void *daemon_context, nfs41_upcall *upcall)
          * the check in handle_open() didn't catch that we're creating
          * a symlink, so we have to remove the file it already created
          */
-        eprintf("handle_symlink_set: "
+        eprintf("handle_reparse_set: "
             "attempting to create a symlink when "
             "the file='%s' was already created on open; sending "
             "REMOVE first\n", state->file.path->path);
         status = nfs41_remove(state->session, &state->parent,
             &state->file.name, state->file.fh.fileid);
         if (status) {
-            eprintf("handle_symlink_set: "
+            eprintf("handle_reparse_set: "
                 "nfs41_remove() for symlink='%s' failed with '%s'\n",
                 targetname, nfs_error_string(status));
             status = map_symlink_errors(status);
@@ -767,7 +570,7 @@ static int handle_symlink_set(void *daemon_context, nfs41_upcall *upcall)
     }
 #endif /* NFS41_DRIVER_SETGID_NEWGRP_SUPPORT */
     if (status) {
-        eprintf("handle_symlink_set: "
+        eprintf("handle_reparse_set: "
             "nfs41_create() for symlink='%s' failed with '%s'\n",
             targetname, nfs_error_string(status));
         status = map_symlink_errors(status);
@@ -782,12 +585,11 @@ static int handle_symlink_set(void *daemon_context, nfs41_upcall *upcall)
 #endif /* NFS41_DRIVER_SETGID_NEWGRP_SUPPORT && FIXUP */
 
 out:
-
     return status;
 }
 
-const nfs41_upcall_op nfs41_op_symlink_set = {
-    .parse = parse_symlink_set,
-    .handle = handle_symlink_set,
-    .arg_size = sizeof(setsymlink_upcall_args)
+const nfs41_upcall_op nfs41_op_reparse_set = {
+    .parse = parse_reparse_set,
+    .handle = handle_reparse_set,
+    .arg_size = sizeof(setreparse_upcall_args)
 };

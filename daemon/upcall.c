@@ -28,7 +28,7 @@
 #include "nfs41_build_features.h"
 #include "upcall.h"
 #include "upcallutil.h"
-#include "nfs41_driver.h" /* |NFS41_SYSOP_SYMLINK_GET|+|NFS41_SYSOP_UNMOUNT| */
+#include "nfs41_driver.h" /* |NFS41_SYSOP_REPARSE_GET|+|NFS41_SYSOP_UNMOUNT| */
 #include "daemon_debug.h"
 #include "util.h"
 
@@ -45,8 +45,8 @@ extern const nfs41_upcall_op nfs41_op_getattr;
 extern const nfs41_upcall_op nfs41_op_setattr;
 extern const nfs41_upcall_op nfs41_op_getexattr;
 extern const nfs41_upcall_op nfs41_op_setexattr;
-extern const nfs41_upcall_op nfs41_op_symlink_get;
-extern const nfs41_upcall_op nfs41_op_symlink_set;
+extern const nfs41_upcall_op nfs41_op_reparse_get;
+extern const nfs41_upcall_op nfs41_op_reparse_set;
 extern const nfs41_upcall_op nfs41_op_volume;
 extern const nfs41_upcall_op nfs41_op_getacl;
 extern const nfs41_upcall_op nfs41_op_setacl;
@@ -81,8 +81,8 @@ static const nfs41_upcall_op *g_upcall_op_table[] = {
     &nfs41_op_setattr, /* NFS41_SYSOP_FILE_SET_AT_CLEANUP */
     &nfs41_op_getexattr,
     &nfs41_op_setexattr,
-    &nfs41_op_symlink_get,
-    &nfs41_op_symlink_set,
+    &nfs41_op_reparse_get,
+    &nfs41_op_reparse_set,
     &nfs41_op_volume,
     &nfs41_op_getacl,
     &nfs41_op_setacl,
@@ -180,11 +180,11 @@ int upcall_parse(
 
     if (op) {
         /*
-         * { |NFS41_SYSOP_SYMLINK_GET|, |NFS41_SYSOP_UNMOUNT|,
+         * { |NFS41_SYSOP_REPARSE_GET|, |NFS41_SYSOP_UNMOUNT|,
          * |NFS41_SYSOP_FSCTL_RETURN_DELEGATION| } have a 0byte payload,
          * |NFS41_SYSOP_SET_DAEMON_DEBUGLEVEL| has a |ULONG| payload
          */
-        if ((upcall_upcode != NFS41_SYSOP_SYMLINK_GET) &&
+        if ((upcall_upcode != NFS41_SYSOP_REPARSE_GET) &&
             (upcall_upcode != NFS41_SYSOP_UNMOUNT) &&
             (upcall_upcode != NFS41_SYSOP_SET_DAEMON_DEBUGLEVEL) &&
             (upcall_upcode != NFS41_SYSOP_FSCTL_RETURN_DELEGATION)) {
@@ -198,7 +198,7 @@ int upcall_parse(
 
     if (op && op->parse) {
         /* Skip opcalls with 0 payload */
-        if ((upcall_upcode != NFS41_SYSOP_SYMLINK_GET) &&
+        if ((upcall_upcode != NFS41_SYSOP_REPARSE_GET) &&
             (upcall_upcode != NFS41_SYSOP_UNMOUNT) &&
             (upcall_upcode != NFS41_SYSOP_FSCTL_QUERY_DELEGATION_INFO) &&
             (upcall_upcode != NFS41_SYSOP_FSCTL_REQUEST_DELEGATION) &&

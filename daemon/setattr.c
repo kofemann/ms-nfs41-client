@@ -40,6 +40,7 @@
 #include "name_cache.h"
 #include "upcall.h"
 #include "upcallutil.h"
+#include "symlinkutil.h"
 #include "util.h"
 #include "daemon_debug.h"
 #include "winstreams.h"
