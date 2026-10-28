@@ -441,6 +441,8 @@ int nfs42_clone(
     nfs41_file_info info, *pinfo;
 
     nfs41_superblock_getattr_mask(dst_file->fh.superblock, &attr_request);
+    /* CLONE can clear setuid/setgid bits on the destination. */
+    bitmap_set(&attr_request, 1, FATTR4_WORD1_MODE);
 
     /* FIXME: What about DS in pNFS case ? */
     compound_init(&compound, session->client->root->nfsminorvers,
