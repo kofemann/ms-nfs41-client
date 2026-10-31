@@ -979,9 +979,9 @@ int handle_duplicatedata(void *daemon_context,
 
     if (bytecount == 0) {
         DPRINTF(DDLVL,
-            ("bytecount == 0, returning ERROR_SUCCESS\n"));
+            ("bytecount == 0, returning current destination attributes\n"));
         status = ERROR_SUCCESS;
-        goto out;
+        goto get_result_attributes;
     }
 
     if (bytecount < 0) {
@@ -1008,15 +1008,53 @@ int handle_duplicatedata(void *daemon_context,
     if (status)
         goto out;
 
-    /* Update ctime on success */
-    EASSERT(bitmap_isset(&info.attrmask, 0, FATTR4_WORD0_CHANGE));
-    args->ctime = info.change;
+get_result_attributes:
+    /*
+     * Return destination size, allocation+timestamp info
+     *
+     * We explicitly ignore here partial failure of |duplicate_sparsefile()|
+     */
+    bitmap4 dst_attr_request2 = {
+        .count = 2,
+        .arr[0] = FATTR4_WORD0_CHANGE|FATTR4_WORD0_SIZE,
+        .arr[1] = FATTR4_WORD1_SPACE_USED|FATTR4_WORD1_TIME_MODIFY
+    };
+    nfs41_file_info dst_info;
+
+    (void)memset(&dst_info, 0, sizeof(dst_info));
+
+    status = nfs41_getattr(dst_session, dst_file, &dst_attr_request2,
+        &dst_info);
+    if (status) {
+        eprintf("handle_duplicatedata: "
+            "nfs41_getattr(dst_state->path.path='%s') "
+            "failed with '%s'\n",
+            dst_state->path.path,
+            nfs_error_string(status));
+        status = nfs_to_windows_error(status, ERROR_BAD_NET_RESP);
+        goto out;
+    }
+
+    EASSERT(bitmap_isset(&dst_info.attrmask, 0, FATTR4_WORD0_CHANGE));
+    EASSERT(bitmap_isset(&dst_info.attrmask, 0, FATTR4_WORD0_SIZE));
+    EASSERT(bitmap_isset(&dst_info.attrmask, 1, FATTR4_WORD1_SPACE_USED));
+    EASSERT(bitmap_isset(&dst_info.attrmask, 1, FATTR4_WORD1_TIME_MODIFY));
+    args->ctime = dst_info.change;
+    args->file_size = dst_info.size;
+    args->space_used = dst_info.space_used;
+    LARGE_INTEGER modify_time;
+    nfs_time_to_file_time(&dst_info.time_modify, &modify_time);
+    args->modify_time = modify_time.QuadPart;
 
     DPRINTF(DDLVL,
         ("handle_duplicatedata(dst_state->path.path='%s'): "
-        "args->ctime=%llu\n",
+        "args->ctime=%llu, args->file_size=%llu, "
+        "args->space_used=%llu, args->modify_time=%llu\n",
         dst_state->path.path,
-        args->ctime));
+        args->ctime,
+        args->file_size,
+        args->space_used,
+        args->modify_time));
 
 out:
     DPRINTF(DDLVL,
@@ -1031,9 +1069,23 @@ static int marshall_duplicatedata(
     uint32_t *restrict length,
     nfs41_upcall *restrict upcall)
 {
-    const setzerodata_upcall_args *args = &upcall->args.setzerodata;
+    const duplicatedata_upcall_args *args = &upcall->args.duplicatedata;
     int status;
-    status = safe_write(&buffer, length, &args->ctime, sizeof(args->ctime));
+
+    status = safe_write(&buffer, length,
+        &args->ctime, sizeof(args->ctime));
+    if (status) goto out;
+    status = safe_write(&buffer, length,
+        &args->file_size, sizeof(args->file_size));
+    if (status) goto out;
+    status = safe_write(&buffer, length,
+        &args->space_used, sizeof(args->space_used));
+    if (status) goto out;
+    status = safe_write(&buffer, length,
+        &args->modify_time, sizeof(args->modify_time));
+//  if (status) goto out;
+
+out:
     return status;
 }
 

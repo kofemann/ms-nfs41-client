@@ -868,8 +868,42 @@ NTSTATUS nfs41_DuplicateData(
         goto out;
     }
 
-    if (!entry->status) {
-        DbgP("nfs41_DuplicateData: SUCCESS\n");
+    if (entry->status == 0) {
+        PFCB pFcb = (PFCB)RxContext->pFcb;
+        PNFS41_FCB nfs41_fcb = NFS41GetFcbExtension(RxContext->pFcb);
+        LONGLONG file_size;
+        ULONGLONG allocation_size;
+        ULONGLONG modify_time;
+
+        file_size = entry->u.DuplicateData.file_size;
+        allocation_size = entry->u.DuplicateData.space_used;
+        modify_time = entry->u.DuplicateData.modify_time;
+
+        DbgP("nfs41_DuplicateData: SUCCESS: "
+            "changeattr=%llu,"
+            "filesize=%lld,"
+            "allocationsize=%llu,"
+            "modify_time=%llu\n",
+            (unsigned long long)entry->ChangeTime,
+            (long long)file_size,
+            (unsigned long long)allocation_size,
+            (unsigned long long)modify_time);
+
+        /* Update our |BasicInfo|+|StandardInfo| ... */
+        nfs41_fcb->changeattr = entry->ChangeTime;
+        nfs41_fcb->BasicInfo.LastWriteTime.QuadPart = modify_time;
+        nfs41_fcb->BasicInfo.ChangeTime.QuadPart = modify_time;
+        nfs41_fcb->StandardInfo.EndOfFile.QuadPart = file_size;
+        nfs41_fcb->StandardInfo.AllocationSize.QuadPart = allocation_size;
+
+        /* Update FCB information ... */
+        RxSetFileSizeWithLock(pFcb, &file_size);
+        pFcb->Header.AllocationSize.QuadPart = allocation_size;
+        pFcb->Header.ValidDataLength.QuadPart = file_size;
+        pFcb->ActualAllocationLength = allocation_size;
+        pFcb->LastWriteTime.QuadPart = modify_time;
+        pFcb->LastChangeTime.QuadPart = modify_time;
+
         RxContext->CurrentIrp->IoStatus.Status = STATUS_SUCCESS;
         RxContext->IoStatusBlock.Information = 0;
     }
@@ -961,10 +995,27 @@ NTSTATUS unmarshal_nfs41_duplicatedata(
 {
     NTSTATUS status = STATUS_SUCCESS;
 
-    UPDOWNCALL_MEMCPY(&cur->ChangeTime, *buf, sizeof(ULONGLONG));
+    UPDOWNCALL_MEMCPY(&cur->ChangeTime, *buf, sizeof(cur->ChangeTime));
     *buf += sizeof(cur->ChangeTime);
-    DbgP("unmarshal_nfs41_duplicatedata: returned ChangeTime %llu\n",
-        cur->ChangeTime);
+    UPDOWNCALL_MEMCPY(&cur->u.DuplicateData.file_size, *buf,
+        sizeof(cur->u.DuplicateData.file_size));
+    *buf += sizeof(cur->u.DuplicateData.file_size);
+    UPDOWNCALL_MEMCPY(&cur->u.DuplicateData.space_used, *buf,
+        sizeof(cur->u.DuplicateData.space_used));
+    *buf += sizeof(cur->u.DuplicateData.space_used);
+    UPDOWNCALL_MEMCPY(&cur->u.DuplicateData.modify_time, *buf,
+        sizeof(cur->u.DuplicateData.modify_time));
+    *buf += sizeof(cur->u.DuplicateData.modify_time);
+
+    DbgP("unmarshal_nfs41_duplicatedata: returned "
+        "changeattr=%llu,"
+        "filesize=%llu,"
+        "allocationsize=%llu,"
+        "modifytime=%llu\n",
+        (unsigned long long)cur->ChangeTime,
+        (unsigned long long)cur->u.DuplicateData.file_size,
+        (unsigned long long)cur->u.DuplicateData.space_used,
+        (unsigned long long)cur->u.DuplicateData.modify_time);
 
     return status;
 }

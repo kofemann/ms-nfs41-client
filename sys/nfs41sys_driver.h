@@ -391,6 +391,9 @@ typedef struct _updowncall_entry {
             LONGLONG    srcfileoffset;
             LONGLONG    destfileoffset;
             LONGLONG    bytecount;
+            ULONGLONG   file_size;
+            ULONGLONG   space_used;
+            ULONGLONG   modify_time;
         } DuplicateData;
     } u;
 

@@ -256,6 +256,9 @@ typedef struct __duplicatedata_upcall_args {
     LONGLONG            destfileoffset;
     LONGLONG            bytecount;
     ULONGLONG           ctime;
+    ULONGLONG           file_size;
+    ULONGLONG           space_used;
+    ULONGLONG           modify_time;
 } duplicatedata_upcall_args;
 
 typedef struct __queryidmapinfo_upcall_args {
