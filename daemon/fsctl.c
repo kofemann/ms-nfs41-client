@@ -1010,14 +1010,18 @@ int handle_duplicatedata(void *daemon_context,
 
 get_result_attributes:
     /*
-     * Return destination size, allocation+timestamp info
+     * Return destination size, allocation+mode+timestamp info
      *
-     * We explicitly ignore here partial failure of |duplicate_sparsefile()|
+     * Notes:
+     * - Mode is required because a NFS server can reset the setuid/setgid
+     * bits when writes are made to a file
+     * - We explicitly ignore here partial failure of |duplicate_sparsefile()|
      */
     bitmap4 dst_attr_request2 = {
         .count = 2,
         .arr[0] = FATTR4_WORD0_CHANGE|FATTR4_WORD0_SIZE,
-        .arr[1] = FATTR4_WORD1_SPACE_USED|FATTR4_WORD1_TIME_MODIFY
+        .arr[1] =
+            FATTR4_WORD1_SPACE_USED|FATTR4_WORD1_TIME_MODIFY|FATTR4_WORD1_MODE
     };
     nfs41_file_info dst_info;
 
@@ -1038,22 +1042,25 @@ get_result_attributes:
     EASSERT(bitmap_isset(&dst_info.attrmask, 0, FATTR4_WORD0_CHANGE));
     EASSERT(bitmap_isset(&dst_info.attrmask, 0, FATTR4_WORD0_SIZE));
     EASSERT(bitmap_isset(&dst_info.attrmask, 1, FATTR4_WORD1_SPACE_USED));
+    EASSERT(bitmap_isset(&dst_info.attrmask, 1, FATTR4_WORD1_MODE));
     EASSERT(bitmap_isset(&dst_info.attrmask, 1, FATTR4_WORD1_TIME_MODIFY));
     args->ctime = dst_info.change;
     args->file_size = dst_info.size;
     args->space_used = dst_info.space_used;
+    args->mode = dst_info.mode;
     LARGE_INTEGER modify_time;
     nfs_time_to_file_time(&dst_info.time_modify, &modify_time);
     args->modify_time = modify_time.QuadPart;
 
     DPRINTF(DDLVL,
         ("handle_duplicatedata(dst_state->path.path='%s'): "
-        "args->ctime=%llu, args->file_size=%llu, "
-        "args->space_used=%llu, args->modify_time=%llu\n",
+        "args->(ctime=%llu,file_size=%llu,"
+        "space_used=%llu,mode=0%lo,modify_time=%llu)\n",
         dst_state->path.path,
         args->ctime,
         args->file_size,
         args->space_used,
+        (long)args->mode,
         args->modify_time));
 
 out:
@@ -1080,6 +1087,8 @@ static int marshall_duplicatedata(
     if (status) goto out;
     status = safe_write(&buffer, length,
         &args->space_used, sizeof(args->space_used));
+    if (status) goto out;
+    status = safe_write(&buffer, length, &args->mode, sizeof(args->mode));
     if (status) goto out;
     status = safe_write(&buffer, length,
         &args->modify_time, sizeof(args->modify_time));

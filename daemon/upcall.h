@@ -258,6 +258,7 @@ typedef struct __duplicatedata_upcall_args {
     ULONGLONG           ctime;
     ULONGLONG           file_size;
     ULONGLONG           space_used;
+    DWORD               mode;
     ULONGLONG           modify_time;
 } duplicatedata_upcall_args;
 

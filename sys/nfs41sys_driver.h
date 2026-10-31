@@ -393,6 +393,7 @@ typedef struct _updowncall_entry {
             LONGLONG    bytecount;
             ULONGLONG   file_size;
             ULONGLONG   space_used;
+            DWORD       mode;
             ULONGLONG   modify_time;
         } DuplicateData;
     } u;

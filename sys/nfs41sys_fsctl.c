@@ -873,24 +873,29 @@ NTSTATUS nfs41_DuplicateData(
         PNFS41_FCB nfs41_fcb = NFS41GetFcbExtension(RxContext->pFcb);
         LONGLONG file_size;
         ULONGLONG allocation_size;
+        DWORD mode;
         ULONGLONG modify_time;
 
         file_size = entry->u.DuplicateData.file_size;
         allocation_size = entry->u.DuplicateData.space_used;
+        mode = entry->u.DuplicateData.mode;
         modify_time = entry->u.DuplicateData.modify_time;
 
         DbgP("nfs41_DuplicateData: SUCCESS: "
             "changeattr=%llu,"
             "filesize=%lld,"
             "allocationsize=%llu,"
+            "mode=0%lo,"
             "modify_time=%llu\n",
             (unsigned long long)entry->ChangeTime,
             (long long)file_size,
             (unsigned long long)allocation_size,
+            (long)mode,
             (unsigned long long)modify_time);
 
         /* Update our |BasicInfo|+|StandardInfo| ... */
         nfs41_fcb->changeattr = entry->ChangeTime;
+        nfs41_fcb->mode = mode;
         nfs41_fcb->BasicInfo.LastWriteTime.QuadPart = modify_time;
         nfs41_fcb->BasicInfo.ChangeTime.QuadPart = modify_time;
         nfs41_fcb->StandardInfo.EndOfFile.QuadPart = file_size;
@@ -1003,6 +1008,9 @@ NTSTATUS unmarshal_nfs41_duplicatedata(
     UPDOWNCALL_MEMCPY(&cur->u.DuplicateData.space_used, *buf,
         sizeof(cur->u.DuplicateData.space_used));
     *buf += sizeof(cur->u.DuplicateData.space_used);
+    UPDOWNCALL_MEMCPY(&cur->u.DuplicateData.mode, *buf,
+        sizeof(cur->u.DuplicateData.mode));
+    *buf += sizeof(cur->u.DuplicateData.mode);
     UPDOWNCALL_MEMCPY(&cur->u.DuplicateData.modify_time, *buf,
         sizeof(cur->u.DuplicateData.modify_time));
     *buf += sizeof(cur->u.DuplicateData.modify_time);
@@ -1011,10 +1019,12 @@ NTSTATUS unmarshal_nfs41_duplicatedata(
         "changeattr=%llu,"
         "filesize=%llu,"
         "allocationsize=%llu,"
+        "mode=0%lo,"
         "modifytime=%llu\n",
         (unsigned long long)cur->ChangeTime,
         (unsigned long long)cur->u.DuplicateData.file_size,
         (unsigned long long)cur->u.DuplicateData.space_used,
+        (long)cur->u.DuplicateData.mode,
         (unsigned long long)cur->u.DuplicateData.modify_time);
 
     return status;
