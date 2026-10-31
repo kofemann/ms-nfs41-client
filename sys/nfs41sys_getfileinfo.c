@@ -116,9 +116,11 @@ void unmarshal_nfs41_getattr(
     nfs41_updowncall_entry *cur,
     const unsigned char *restrict *restrict buf)
 {
+    UPDOWNCALL_MEMCPY(&cur->changeattr, *buf, sizeof(cur->changeattr));
+    *buf += sizeof(cur->changeattr);
+
 #ifdef NFS41_DRIVER_WINSTREAMS_SUPPORT
     if (cur->u.QueryFile.InfoClass == FileStreamInformation) {
-        /* FIXME: If we do a partial read, what happens to changeattr below ? */
         unmarshal_nfs41_attrget(cur,
             cur->u.QueryFile.buf, &cur->u.QueryFile.buf_len, buf, TRUE);
     }
@@ -129,8 +131,6 @@ void unmarshal_nfs41_getattr(
             cur->u.QueryFile.buf, &cur->u.QueryFile.buf_len, buf, FALSE);
     }
 
-    UPDOWNCALL_MEMCPY(&cur->changeattr, *buf, sizeof(cur->changeattr));
-    *buf += sizeof(cur->changeattr);
 #ifdef DEBUG_MARSHAL_DETAIL
     if (cur->u.QueryFile.InfoClass == FileBasicInformation)
         DbgP("[unmarshal_nfs41_getattr] changeattr %llu\n", cur->changeattr);

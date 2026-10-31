@@ -239,6 +239,10 @@ static int marshall_getattr(
     getattr_upcall_args *args = &upcall->args.getattr;
     uint32_t info_len;
 
+    status = safe_write(&buffer, length,
+        &args->changeattr, sizeof(args->changeattr));
+    if (status) goto out;
+
     switch (args->query_class) {
     case FileBasicInformation:
         info_len = sizeof(args->basic_info);
@@ -321,9 +325,6 @@ static int marshall_getattr(
         status = 103;
         goto out;
     }
-    status = safe_write(&buffer, length,
-        &args->changeattr, sizeof(args->changeattr));
-    if (status) goto out;
     DPRINTF(1,
         ("NFS41_SYSOP_FILE_QUERY: downcall changattr=%llu\n",
         args->changeattr));
