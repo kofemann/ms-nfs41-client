@@ -433,14 +433,14 @@ int handle_setzerodata(void *daemon_context,
         goto out;
      }
 
-    /* Update ctime on success */
+    /* Update changeattr on success */
     EASSERT(bitmap_isset(&info.attrmask, 0, FATTR4_WORD0_CHANGE));
-    args->ctime = info.change;
+    args->changeattr = info.change;
 
     DPRINTF(SZDLVL,
-        ("handle_setzerodata(state->path.path='%s'): args->ctime=%llu\n",
+        ("handle_setzerodata(state->path.path='%s'): args->changeattr=%llu\n",
         state->path.path,
-        args->ctime));
+        args->changeattr));
 
 out:
     DPRINTF(SZDLVL,
@@ -457,7 +457,8 @@ static int marshall_setzerodata(
 {
     const setzerodata_upcall_args *args = &upcall->args.setzerodata;
     int status;
-    status = safe_write(&buffer, length, &args->ctime, sizeof(args->ctime));
+    status = safe_write(&buffer, length,
+        &args->changeattr, sizeof(args->changeattr));
     return status;
 }
 
@@ -1044,7 +1045,7 @@ get_result_attributes:
     EASSERT(bitmap_isset(&dst_info.attrmask, 1, FATTR4_WORD1_SPACE_USED));
     EASSERT(bitmap_isset(&dst_info.attrmask, 1, FATTR4_WORD1_MODE));
     EASSERT(bitmap_isset(&dst_info.attrmask, 1, FATTR4_WORD1_TIME_MODIFY));
-    args->ctime = dst_info.change;
+    args->changeattr = dst_info.change;
     args->file_size = dst_info.size;
     args->space_used = dst_info.space_used;
     args->mode = dst_info.mode;
@@ -1054,10 +1055,10 @@ get_result_attributes:
 
     DPRINTF(DDLVL,
         ("handle_duplicatedata(dst_state->path.path='%s'): "
-        "args->(ctime=%llu,file_size=%llu,"
+        "args->(changeattr=%llu,file_size=%llu,"
         "space_used=%llu,mode=0%lo,modify_time=%llu)\n",
         dst_state->path.path,
-        args->ctime,
+        args->changeattr,
         args->file_size,
         args->space_used,
         (long)args->mode,
@@ -1080,7 +1081,7 @@ static int marshall_duplicatedata(
     int status;
 
     status = safe_write(&buffer, length,
-        &args->ctime, sizeof(args->ctime));
+        &args->changeattr, sizeof(args->changeattr));
     if (status) goto out;
     status = safe_write(&buffer, length,
         &args->file_size, sizeof(args->file_size));

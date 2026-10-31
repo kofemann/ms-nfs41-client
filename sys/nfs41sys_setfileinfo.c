@@ -174,8 +174,8 @@ NTSTATUS unmarshal_nfs41_setattr(
 {
     NTSTATUS status = STATUS_SUCCESS;
 
-    UPDOWNCALL_MEMCPY(&cur->ChangeTime, *buf, sizeof(cur->ChangeTime));
-    *buf += sizeof(cur->ChangeTime);
+    UPDOWNCALL_MEMCPY(&cur->changeattr, *buf, sizeof(cur->changeattr));
+    *buf += sizeof(cur->changeattr);
 
 #ifdef NFS41_DRIVER_MARK_OVERWRITTEN_LINKRENAME_DST_PATH_SRVOPEN_AS_STALE
     if ((cur->u.SetFile.InfoClass == FileRenameInformation) ||
@@ -561,7 +561,7 @@ NTSTATUS nfs41_SetFileInformationImpl(
 
     status = map_setfile_error(entry->status);
     if (!status) {
-        nfs41_fcb->changeattr = entry->ChangeTime;
+        nfs41_fcb->changeattr = entry->changeattr;
 
 #ifdef NFS41_DRIVER_MARK_OVERWRITTEN_LINKRENAME_DST_PATH_SRVOPEN_AS_STALE
         if ((RxContext->Info.FileInformationClass == FileRenameInformation) ||

@@ -169,8 +169,8 @@ NTSTATUS unmarshal_nfs41_setacl(
 {
     NTSTATUS status = STATUS_SUCCESS;
 
-    UPDOWNCALL_MEMCPY(&cur->ChangeTime, *buf, sizeof(cur->ChangeTime));
-    *buf += sizeof(cur->ChangeTime);
+    UPDOWNCALL_MEMCPY(&cur->changeattr, *buf, sizeof(cur->changeattr));
+    *buf += sizeof(cur->changeattr);
     UPDOWNCALL_MEMCPY(&cur->u.Acl.mode, *buf, sizeof(cur->u.Acl.mode));
     *buf += sizeof(cur->u.Acl.mode);
 
@@ -542,11 +542,11 @@ NTSTATUS nfs41_SetSecurityInformation(
     status = map_query_acl_error(entry->status);
     if (!status) {
         DbgP("nfs41_SetSecurityInformation: "
-            "returned ChangeTime=%llu,mode=0%o,previous_mode=0%o\n",
-            (unsigned long long)entry->ChangeTime,
+            "returned changeattr=%llu,mode=0%o,previous_mode=0%o\n",
+            (unsigned long long)entry->changeattr,
             (int)entry->u.Acl.mode, (int)nfs41_fcb->mode);
 
-        nfs41_fcb->changeattr = entry->ChangeTime;
+        nfs41_fcb->changeattr = entry->changeattr;
         nfs41_fcb->mode = entry->u.Acl.mode;
     }
 out:

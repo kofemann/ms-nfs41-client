@@ -108,7 +108,7 @@ typedef struct __readwrite_upcall_args {
     ULONGLONG offset;
     ULONG len;
     ULONG out_len;
-    ULONGLONG ctime;
+    ULONGLONG changeattr;
 } readwrite_upcall_args;
 
 typedef struct __lock_upcall_args {
@@ -144,7 +144,7 @@ typedef struct __getattr_upcall_args {
     int query_class;
     int buf_len;
     int query_reply_len;
-    ULONGLONG ctime;
+    ULONGLONG changeattr;
 } getattr_upcall_args;
 
 typedef struct __setattr_upcall_args {
@@ -154,7 +154,7 @@ typedef struct __setattr_upcall_args {
     unsigned char *buf;
     uint32_t buf_len;
     int set_class;
-    ULONGLONG ctime;
+    ULONGLONG changeattr;
     /* Downcall info */
 #ifdef NFS41_DRIVER_MARK_OVERWRITTEN_LINKRENAME_DST_PATH_SRVOPEN_AS_STALE
     BOOLEAN linkrename_stale_dst_path_replaced;
@@ -178,7 +178,7 @@ typedef struct __setexattr_upcall_args {
     unsigned char *buf;
     uint32_t buf_len;
     uint32_t mode;
-    ULONGLONG ctime;
+    ULONGLONG changeattr;
 } setexattr_upcall_args;
 
 typedef struct __readdir_upcall_args {
@@ -233,7 +233,7 @@ typedef struct __getacl_upcall_args {
 typedef struct __setacl_upcall_args {
     SECURITY_INFORMATION query_secinfo;
     PSECURITY_DESCRIPTOR sec_desc;
-    ULONGLONG ctime;
+    ULONGLONG changeattr;
     DWORD mode;
 } setacl_upcall_args;
 
@@ -247,7 +247,7 @@ typedef struct __queryallocatedranges_upcall_args {
 
 typedef struct __setzerodata_upcall_args {
     FILE_ZERO_DATA_INFORMATION  setzerodata;
-    ULONGLONG                   ctime;
+    ULONGLONG                   changeattr;
 } setzerodata_upcall_args;
 
 typedef struct __duplicatedata_upcall_args {
@@ -255,7 +255,7 @@ typedef struct __duplicatedata_upcall_args {
     LONGLONG            srcfileoffset;
     LONGLONG            destfileoffset;
     LONGLONG            bytecount;
-    ULONGLONG           ctime;
+    ULONGLONG           changeattr;
     ULONGLONG           file_size;
     ULONGLONG           space_used;
     DWORD               mode;

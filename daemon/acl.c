@@ -400,7 +400,7 @@ static int handle_setacl(void *daemon_context, nfs41_upcall *upcall)
          * Setting the ACL might affect |FATTR4_WORD1_MODE|, therefore
          * we need to update the kernel view
          */
-        args->ctime = info.change;
+        args->changeattr = info.change;
         args->mode = info.mode;
 
         if (DPRINTF_LEVEL_ENABLED(ACLLVL1)) {
@@ -423,7 +423,8 @@ static int marshall_setacl(
     const setacl_upcall_args *args = &upcall->args.setacl;
     int status;
 
-    status = safe_write(&buffer, length, &args->ctime, sizeof(args->ctime));
+    status = safe_write(&buffer, length,
+        &args->changeattr, sizeof(args->changeattr));
     if (status) goto out;
     status = safe_write(&buffer, length, &args->mode, sizeof(args->mode));
 //    if (status) goto out;

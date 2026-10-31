@@ -175,11 +175,11 @@ NTSTATUS unmarshal_nfs41_rw(
     UPDOWNCALL_MEMCPY(&cur->u.ReadWrite.buf_len, *buf,
         sizeof(cur->u.ReadWrite.buf_len));
     *buf += sizeof(cur->u.ReadWrite.buf_len);
-    UPDOWNCALL_MEMCPY(&cur->ChangeTime, *buf, sizeof(cur->ChangeTime));
-    *buf += sizeof(cur->ChangeTime);
+    UPDOWNCALL_MEMCPY(&cur->changeattr, *buf, sizeof(cur->changeattr));
+    *buf += sizeof(cur->changeattr);
 #ifdef DEBUG_MARSHAL_DETAIL_RW
-    DbgP("unmarshal_nfs41_rw: returned len %lu ChangeTime %llu\n",
-        cur->u.ReadWrite.buf_len, cur->ChangeTime);
+    DbgP("unmarshal_nfs41_rw: returned len=%lu changeattr=%llu\n",
+        cur->u.ReadWrite.buf_len, cur->changeattr);
 #endif
 #if 1
     /*
@@ -418,7 +418,7 @@ NTSTATUS nfs41_Write(
 #endif
         status = RxContext->CurrentIrp->IoStatus.Status = STATUS_SUCCESS;
         RxContext->IoStatusBlock.Information = entry->u.ReadWrite.buf_len;
-        nfs41_fcb->changeattr = entry->ChangeTime;
+        nfs41_fcb->changeattr = entry->changeattr;
     } else {
         status = map_readwrite_errors(entry->status);
         RxContext->CurrentIrp->IoStatus.Status = status;

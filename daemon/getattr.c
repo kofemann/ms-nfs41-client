@@ -145,7 +145,7 @@ static int handle_getattr(void *daemon_context, nfs41_upcall *upcall)
     }
 
     EASSERT(bitmap_isset(&info.attrmask, 0, FATTR4_WORD0_CHANGE));
-    args->ctime = info.change;
+    args->changeattr = info.change;
 
     switch (args->query_class) {
     case FileBasicInformation:
@@ -179,7 +179,7 @@ static int handle_getattr(void *daemon_context, nfs41_upcall *upcall)
         /*
          * |FileRemoteProtocolInformation| does not use |info|, but
          * we have to do the |nfs41_cached_getattr()| anyway to fill
-         * out |info.change| to return the proper |args->ctime|
+         * out |info.change| to return the proper |args->changeattr|
          */
         nfs_to_remote_protocol_info(state,
             &args->remote_protocol_info);
@@ -321,9 +321,12 @@ static int marshall_getattr(
         status = 103;
         goto out;
     }
-    status = safe_write(&buffer, length, &args->ctime, sizeof(args->ctime));
+    status = safe_write(&buffer, length,
+        &args->changeattr, sizeof(args->changeattr));
     if (status) goto out;
-    DPRINTF(1, ("NFS41_SYSOP_FILE_QUERY: downcall changattr=%llu\n", args->ctime));
+    DPRINTF(1,
+        ("NFS41_SYSOP_FILE_QUERY: downcall changattr=%llu\n",
+        args->changeattr));
 out:
 #ifdef NFS41_DRIVER_WINSTREAMS_SUPPORT
     if (args->query_class == FileStreamInformation) {

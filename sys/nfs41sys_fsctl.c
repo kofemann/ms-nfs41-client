@@ -623,10 +623,10 @@ NTSTATUS unmarshal_nfs41_setzerodata(
 {
     NTSTATUS status = STATUS_SUCCESS;
 
-    UPDOWNCALL_MEMCPY(&cur->ChangeTime, *buf, sizeof(cur->ChangeTime));
-    *buf += sizeof(cur->ChangeTime);
-    DbgP("unmarshal_nfs41_setzerodata: returned ChangeTime %llu\n",
-        cur->ChangeTime);
+    UPDOWNCALL_MEMCPY(&cur->changeattr, *buf, sizeof(cur->changeattr));
+    *buf += sizeof(cur->changeattr);
+    DbgP("unmarshal_nfs41_setzerodata: returned changeattr=%llu\n",
+        cur->changeattr);
 
     return status;
 }
@@ -887,14 +887,14 @@ NTSTATUS nfs41_DuplicateData(
             "allocationsize=%llu,"
             "mode=0%lo,"
             "modify_time=%llu\n",
-            (unsigned long long)entry->ChangeTime,
+            (unsigned long long)entry->changeattr,
             (long long)file_size,
             (unsigned long long)allocation_size,
             (long)mode,
             (unsigned long long)modify_time);
 
         /* Update our |BasicInfo|+|StandardInfo| ... */
-        nfs41_fcb->changeattr = entry->ChangeTime;
+        nfs41_fcb->changeattr = entry->changeattr;
         nfs41_fcb->mode = mode;
         nfs41_fcb->BasicInfo.LastWriteTime.QuadPart = modify_time;
         nfs41_fcb->BasicInfo.ChangeTime.QuadPart = modify_time;
@@ -1000,8 +1000,8 @@ NTSTATUS unmarshal_nfs41_duplicatedata(
 {
     NTSTATUS status = STATUS_SUCCESS;
 
-    UPDOWNCALL_MEMCPY(&cur->ChangeTime, *buf, sizeof(cur->ChangeTime));
-    *buf += sizeof(cur->ChangeTime);
+    UPDOWNCALL_MEMCPY(&cur->changeattr, *buf, sizeof(cur->changeattr));
+    *buf += sizeof(cur->changeattr);
     UPDOWNCALL_MEMCPY(&cur->u.DuplicateData.file_size, *buf,
         sizeof(cur->u.DuplicateData.file_size));
     *buf += sizeof(cur->u.DuplicateData.file_size);
@@ -1021,7 +1021,7 @@ NTSTATUS unmarshal_nfs41_duplicatedata(
         "allocationsize=%llu,"
         "mode=0%lo,"
         "modifytime=%llu\n",
-        (unsigned long long)cur->ChangeTime,
+        (unsigned long long)cur->changeattr,
         (unsigned long long)cur->u.DuplicateData.file_size,
         (unsigned long long)cur->u.DuplicateData.space_used,
         (long)cur->u.DuplicateData.mode,

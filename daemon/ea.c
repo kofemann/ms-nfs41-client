@@ -273,7 +273,7 @@ static int handle_setexattr(void *daemon_context, nfs41_upcall *upcall)
         }
 
         EASSERT(bitmap_isset(&info.attrmask, 0, FATTR4_WORD0_CHANGE));
-        args->ctime = info.change;
+        args->changeattr = info.change;
         goto out;
     }
 
@@ -288,7 +288,8 @@ static int marshall_setexattr(
     nfs41_upcall *restrict upcall)
 {
     const setexattr_upcall_args *args = &upcall->args.setexattr;
-    return safe_write(&buffer, length, &args->ctime, sizeof(args->ctime));
+    return safe_write(&buffer, length,
+        &args->changeattr, sizeof(args->changeattr));
 }
 
 

@@ -213,7 +213,7 @@ typedef struct _updowncall_entry {
     HANDLE open_state;
     HANDLE session;
     PUNICODE_STRING filename;
-    ULONGLONG ChangeTime;
+    ULONGLONG changeattr;
     union {
         struct {
             LONG debuglevel;
@@ -1047,7 +1047,7 @@ void unmarshal_nfs41_attrget(
     ULONG *attr_len,
     const unsigned char *restrict *restrict buf,
     BOOL copy_partial);
-void unmarshal_nfs41_getchangetime(
+void unmarshal_nfs41_getchangeattr(
     nfs41_updowncall_entry *cur,
     PULONGLONG dest_buf,
     const unsigned char *restrict *restrict buf);

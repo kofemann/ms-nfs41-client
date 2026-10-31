@@ -395,8 +395,8 @@ static int write_to_mds(
         }
 
         if (!status) {
-            /* Update ctime on success */
-            args->ctime = info.change;
+            /* Update changeattr on success */
+            args->changeattr = info.change;
         }
 
         len = args->len;
@@ -475,7 +475,7 @@ retry_write:
     }
 
     EASSERT(bitmap_isset(&info.attrmask, 0, FATTR4_WORD0_CHANGE));
-    args->ctime = info.change;
+    args->changeattr = info.change;
 
 out:
     args->out_len = len;
@@ -509,7 +509,7 @@ static int write_to_pnfs(
         goto out;
     }
     EASSERT(bitmap_isset(&info.attrmask, 0, FATTR4_WORD0_CHANGE));
-    args->ctime = info.change;
+    args->changeattr = info.change;
 out:
     return status;
 }
@@ -558,7 +558,8 @@ static int marshall_rw(
     int status;
     status = safe_write(&buffer, length, &args->out_len, sizeof(args->out_len));
     if (status) goto out;
-    status = safe_write(&buffer, length, &args->ctime, sizeof(args->ctime));
+    status = safe_write(&buffer, length,
+        &args->changeattr, sizeof(args->changeattr));
 out:
     return status;
 }

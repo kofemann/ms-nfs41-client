@@ -412,7 +412,7 @@ NTSTATUS nfs41_SetEaInformation(
 #endif
     status = map_setea_error(entry->status);
     if (!status) {
-        nfs41_fcb->changeattr = entry->ChangeTime;
+        nfs41_fcb->changeattr = entry->changeattr;
         nfs41_fcb->mode = entry->u.SetEa.mode;
     }
 out:

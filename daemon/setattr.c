@@ -273,7 +273,7 @@ static int handle_nfs41_setattr_basicinfo(void *daemon_context,
         goto out;
     }
     EASSERT(bitmap_isset(&info.attrmask, 0, FATTR4_WORD0_CHANGE));
-    args->ctime = info.change;
+    args->changeattr = info.change;
 out:
     return status;
 }
@@ -776,7 +776,7 @@ static int handle_nfs41_set_size(void *daemon_context, setattr_upcall_args *args
     if (args->set_class == FileAllocationInformation) {
         status = nfs41_cached_getchangeattr(state, &info);
         EASSERT(bitmap_isset(&info.attrmask, 0, FATTR4_WORD0_CHANGE));
-        args->ctime = info.change;
+        args->changeattr = info.change;
         goto out;
     }
 
@@ -802,7 +802,7 @@ static int handle_nfs41_set_size(void *daemon_context, setattr_upcall_args *args
     state->pnfs_last_offset = info.size ? info.size - 1 : 0;
     ReleaseSRWLockExclusive(&state->lock);
     EASSERT(bitmap_isset(&info.attrmask, 0, FATTR4_WORD0_CHANGE));
-    args->ctime = info.change;
+    args->changeattr = info.change;
 out:
     return status = nfs_to_windows_error(status, ERROR_NOT_SUPPORTED);
 }
@@ -1075,7 +1075,7 @@ static int handle_nfs41_link(void *daemon_context, setattr_upcall_args *args)
 #endif /* NFS41_DRIVER_MARK_OVERWRITTEN_LINKRENAME_DST_PATH_SRVOPEN_AS_STALE */
 
     EASSERT(bitmap_isset(&info.attrmask, 0, FATTR4_WORD0_CHANGE));
-    args->ctime = info.change;
+    args->changeattr = info.change;
 out:
     return status;
 }
@@ -1120,7 +1120,8 @@ static int marshall_setattr(
 {
     int status;
     const setattr_upcall_args *args = &upcall->args.setattr;
-    status = safe_write(&buffer, length, &args->ctime, sizeof(args->ctime));
+    status = safe_write(&buffer, length,
+        &args->changeattr, sizeof(args->changeattr));
     if (status) goto out;
 
 #ifdef NFS41_DRIVER_MARK_OVERWRITTEN_LINKRENAME_DST_PATH_SRVOPEN_AS_STALE

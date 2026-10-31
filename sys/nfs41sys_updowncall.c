@@ -157,7 +157,7 @@ void unmarshal_nfs41_attrget(
     *buf += buf_len;
 }
 
-void unmarshal_nfs41_getchangetime(
+void unmarshal_nfs41_getchangeattr(
     nfs41_updowncall_entry *cur,
     PULONGLONG dest_buf,
     const unsigned char *restrict *restrict buf)
@@ -165,8 +165,8 @@ void unmarshal_nfs41_getchangetime(
     UPDOWNCALL_MEMCPY(dest_buf, *buf, sizeof(*dest_buf));
     *buf += sizeof(*dest_buf);
 #ifdef DEBUG_MARSHAL_DETAIL
-    DbgP("unmarshal_nfs41_getchangetime: "
-        "returned ChangeTime %llu\n", *dest_buf);
+    DbgP("unmarshal_nfs41_getchangeattr: "
+        "returned changeattr=%llu\n", *dest_buf);
 #endif
 }
 
@@ -822,7 +822,7 @@ NTSTATUS nfs41_downcall(
             status = unmarshal_nfs41_setattr(cur, &inbuf);
             break;
         case NFS41_SYSOP_EA_SET:
-            unmarshal_nfs41_getchangetime(cur, &cur->ChangeTime, &inbuf);
+            unmarshal_nfs41_getchangeattr(cur, &cur->changeattr, &inbuf);
             break;
         case NFS41_SYSOP_FSCTL_QUERYALLOCATEDRANGES:
             unmarshal_nfs41_queryallocatedranges(cur, &inbuf);

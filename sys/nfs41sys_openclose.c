@@ -364,8 +364,8 @@ NTSTATUS unmarshal_nfs41_open(
     UPDOWNCALL_MEMCPY(&cur->u.Open.local_gid, *buf, sizeof(DWORD));
     *buf += sizeof(DWORD);
 #endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
-    UPDOWNCALL_MEMCPY(&cur->ChangeTime, *buf, sizeof(ULONGLONG));
-    *buf += sizeof(ULONGLONG);
+    UPDOWNCALL_MEMCPY(&cur->changeattr, *buf, sizeof(cur->changeattr));
+    *buf += sizeof(cur->changeattr);
     UPDOWNCALL_MEMCPY(&cur->u.Open.want_deleg, *buf, sizeof(DWORD));
     *buf += sizeof(DWORD);
     UPDOWNCALL_MEMCPY(&cur->u.Open.deleg_type, *buf, sizeof(DWORD));
@@ -417,7 +417,7 @@ NTSTATUS unmarshal_nfs41_open(
         (unsigned long)cur->u.Open.local_uid,
         (unsigned long)cur->u.Open.local_gid,
 #endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
-        cur->ChangeTime,
+        cur->changeattr,
         (unsigned long)cur->u.Open.want_deleg,
         (unsigned long)cur->u.Open.deleg_type);
 #endif /* DEBUG_MARSHAL_DETAIL */
@@ -1182,7 +1182,7 @@ retry_on_link:
     // we get attributes only for data access and file (not directories)
     if (Fcb->OpenCount == 0 ||
             (Fcb->OpenCount > 0 &&
-                nfs41_fcb->changeattr != entry->ChangeTime)) {
+                nfs41_fcb->changeattr != entry->changeattr)) {
         FCB_INIT_PACKET InitPacket;
         RX_FILE_TYPE StorageType = FileTypeNotYetKnown;
         (void)memcpy(&nfs41_fcb->BasicInfo, &entry->u.Open.binfo,
@@ -1197,7 +1197,7 @@ retry_on_link:
         nfs41_fcb->local_uid = entry->u.Open.local_uid;
         nfs41_fcb->local_gid = entry->u.Open.local_gid;
 #endif /* NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES */
-        nfs41_fcb->changeattr = entry->ChangeTime;
+        nfs41_fcb->changeattr = entry->changeattr;
         if (((params->CreateOptions & FILE_DELETE_ON_CLOSE) &&
                 !pVNetRootContext->read_only) || oldDeletePending)
             nfs41_fcb->StandardInfo.DeletePending = TRUE;
@@ -1286,7 +1286,7 @@ retry_on_link:
      * just waiting for the lazy writer is not sufficient).
      */
     if (Fcb->OpenCount > 0 && (isDataAccess(params->DesiredAccess) ||
-            nfs41_fcb->changeattr != entry->ChangeTime) &&
+            (nfs41_fcb->changeattr != entry->changeattr)) &&
                 !nfs41_fcb->StandardInfo.Directory) {
 #ifdef DEBUG_OPEN
         DbgP("nfs41_Create: reopening (changed) file '%wZ'\n",
@@ -1319,9 +1319,9 @@ retry_on_link:
         nfs41_srvopen->deleg_type = entry->u.Open.deleg_type;
 
         DbgP("nfs41_Create: "
-            "srv_open=0x%p,want_deleg=0x%lx,deleg_type=%lu,ctime=%llu\n",
+            "srv_open=0x%p,want_deleg=0x%lx,deleg_type=%lu,changeattr=%llu\n",
             SrvOpen, (unsigned long)nfs41_srvopen->want_deleg,
-            (unsigned long)nfs41_srvopen->deleg_type, entry->ChangeTime);
+            (unsigned long)nfs41_srvopen->deleg_type, entry->changeattr);
 
         /* We always cache file size and file times locally */
         SrvOpen->BufferingFlags |=
