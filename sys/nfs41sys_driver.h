@@ -413,7 +413,21 @@ extern nfs41_updowncall_list downcalllist;
 #define MOUNT_CONFIG_RW_SIZE_DEFAULT    (4*1024*1024)
 #define MOUNT_CONFIG_RW_SIZE_MAX        (16*1024*1024)
 #define MAX_SEC_FLAVOR_LEN              12
-#define UPCALL_TIMEOUT_DEFAULT          50  /* in seconds */
+/*
+ * |UPCALL_TIMEOUT_DEFAULT| - timeout for a upcall/downcall
+ *
+ * Currently 90+10 seconds, based on the following timeouts:
+ * +--------------+-----------+-----------+-------------------------+
+ * |NFSv4.1 server| Lease     | Grace     | Practical reboot limit  |
+ * +--------------+-----------+-----------+-------------------------+
+ * | Linux 6.6    | 90sec     | 90sec     | About 90sec             |
+ * | FreeBSD 16   | 60sec     | >60sec    | About 60sec             |
+ * | Solaris 11.4 | 90sec     | 90sec     | About 90sec             |
+ * | Illumos      | 90sec     | 90sec     | About 90sec             |
+ * | NFS-Ganesha  | 60sec     | 90sec     | 60sec; reclaim to 90sec |
+ * +--------------+-----------+-----------+-------------------------+
+ */
+#define UPCALL_TIMEOUT_DEFAULT          (90+10)  /* in seconds */
 
 typedef struct _NFS41_MOUNT_CREATEMODE {
     BOOLEAN use_nfsv3attrsea_mode;
