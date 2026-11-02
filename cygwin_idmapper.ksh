@@ -64,6 +64,11 @@ function setup_windows_builtin_accounts
 	#   DE: SYSTEM@NT-AUTORIT\xC3\x84T
 	#   FR: Syst\xC3\xA8me@AUTORIT\xC3\x89 NT
 	#
+	# "NETWORK" (SID is 'S-1-5-2'):
+	#   EN: NETWORK@NT AUTHORITY
+	#   DE: NETZWERK@NT-AUTORIT\xC3\x84T
+	#   FR: R\xC3\x89SEAU@AUTORIT\xC3\x89 NT
+	#
 	# "Administrator" (built-in local user, SID is "${machine_sid}-500"):
 	#   EN: Administrator@<COMPUTERNAME>
 	#   DE: Administrator@<COMPUTERNAME>
@@ -130,6 +135,19 @@ function setup_windows_builtin_accounts
 				['linux']="SYSTEM@${c.idmap_config.nfsdomain}"
 			)
 		)
+		['NETWORK']=(
+			sid='S-1-5-2'
+			localuid=2 # Static localuid, because it will not change
+			nfsuid=2
+			typeset -A localised_names=(
+				['windows/en']=$'NETWORK@NT AUTHORITY'
+				['windows/de']=$'NETZWERK@NT-AUTORIT\xC3\x84T'
+				['windows/fr']=$'R\xC3\x89SEAU@AUTORIT\xC3\x89 NT'
+				['freebsd']="NETWORK@${c.idmap_config.nfsdomain}"
+				['solaris']="NETWORK@${c.idmap_config.nfsdomain}"
+				['linux']="NETWORK@${c.idmap_config.nfsdomain}"
+			)
+		)
 		['Administrator']=(
 			sid="${machine_sid}-500"
 			# localuid will be obtained via getent(1)
@@ -186,6 +204,19 @@ function setup_windows_builtin_accounts
 				['freebsd']="SYSTEM@${c.idmap_config.nfsdomain}"
 				['solaris']="SYSTEM@${c.idmap_config.nfsdomain}"
 				['linux']="SYSTEM@${c.idmap_config.nfsdomain}"
+			)
+		)
+		['NETWORK']=(
+			sid='S-1-5-2'
+			localgid=2 # Static localgid, because it will not change
+			nfsgid=2
+			typeset -A localised_names=(
+				['windows/en']=$'NETWORK@NT AUTHORITY'
+				['windows/de']=$'NETZWERK@NT-AUTORIT\xC3\x84T'
+				['windows/fr']=$'R\xC3\x89SEAU@AUTORIT\xC3\x89 NT'
+				['freebsd']="NETWORK@${c.idmap_config.nfsdomain}"
+				['solaris']="NETWORK@${c.idmap_config.nfsdomain}"
+				['linux']="NETWORK@${c.idmap_config.nfsdomain}"
 			)
 		)
 		['Administrators']=(
