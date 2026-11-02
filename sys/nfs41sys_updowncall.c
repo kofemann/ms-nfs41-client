@@ -688,6 +688,11 @@ NTSTATUS nfs41_downcall(
             break;
         pEntry = pEntry->Flink;
     }
+
+    if (found) {
+        ExAcquireFastMutexUnsafe(&cur->lock);
+    }
+
     ExReleaseFastMutexUnsafe(&downcalllist.lock);
     SeStopImpersonatingClient();
     if (!found) {
@@ -697,7 +702,6 @@ NTSTATUS nfs41_downcall(
         goto out_free;
     }
 
-    ExAcquireFastMutexUnsafe(&cur->lock);
     if (cur->state == NFS41_NOT_WAITING) {
         DbgP("nfs41_downcall: "
             "Nobody is waiting for this request (kxid=%lld)!\n",
@@ -969,6 +973,11 @@ NTSTATUS nfs41_delaykxid(
             break;
         pEntry = pEntry->Flink;
     }
+
+    if (found) {
+        ExAcquireFastMutexUnsafe(&cur->lock);
+    }
+
     ExReleaseFastMutexUnsafe(&downcalllist.lock);
 
     if (!found) {
@@ -982,6 +991,7 @@ NTSTATUS nfs41_delaykxid(
         (long long)moredelay, (long long)delaykxid);
 
     (void)InterlockedAdd(&cur->timeout_secs, (LONG)moredelay);
+    ExReleaseFastMutexUnsafe(&cur->lock);
 
 out:
     FsRtlExitFileSystem();
