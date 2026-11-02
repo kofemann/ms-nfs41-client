@@ -1121,6 +1121,12 @@ Source code can be obtained from
       make bintarball64
 
 > [!NOTE]
+> A WDK test certificate is required to build ms-nfs41-client. If you do
+> not have one, create one with the following command:
+>
+>     $ powershell -Command '$n="WDKTestCert $env:USERNAME,$([DateTime]::UtcNow.Ticks)"; New-SelfSignedCertificate -Type CodeSigningCert -Subject "CN=`"$n`"" -FriendlyName $n -CertStoreLocation "Cert:\CurrentUser\My" -KeyAlgorithm RSA -KeyLength 2048 -HashAlgorithm SHA256 -KeyExportPolicy Exportable -NotAfter (Get-Date).AddYears(10)'
+
+> [!NOTE]
 > `make installdest` or `make installdest64` can fail on SMB/NFSv4.1
 > filesystems with a "link.exe" crash. The workaround is to disable
 > incremental linking before building, e.g., do:

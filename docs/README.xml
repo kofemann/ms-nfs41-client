@@ -1250,6 +1250,10 @@ make bintarball64</programlisting>
 
         </itemizedlist>
         <note>
+          <para>A WDK test certificate is required to build ms-nfs41-client. If you do not have one, create one with the following command:</para>
+          <programlisting>$ powershell -Command '$n="WDKTestCert $env:USERNAME,$([DateTime]::UtcNow.Ticks)"; New-SelfSignedCertificate -Type CodeSigningCert -Subject "CN=`"$n`"" -FriendlyName $n -CertStoreLocation "Cert:\CurrentUser\My" -KeyAlgorithm RSA -KeyLength 2048 -HashAlgorithm SHA256 -KeyExportPolicy Exportable -NotAfter (Get-Date).AddYears(10)'</programlisting>
+        </note>
+        <note>
           <para><command>make installdest</command> or <command>make installdest64</command> can fail on SMB/NFSv4.1 filesystems with a "link.exe" crash. The workaround is to disable incremental linking before building, e.g., do:</para>
           <programlisting>cd ms-nfs41-client
 sed -i -E 's/&lt;LinkIncremental&gt;true&lt;\/LinkIncremental&gt;/&lt;LinkIncremental&gt;false&lt;\/LinkIncremental&gt;/g' $(find build.vc19 -name \*.vcxproj)</programlisting>
