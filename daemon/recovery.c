@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2024-2025 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2024-2026 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -169,9 +169,8 @@ static int recover_open_no_grace(
     open_claim4 claim;
     int status;
 
-    if (delegation->type != OPEN_DELEGATE_NONE) {
-        EASSERT(delegation->type != OPEN_DELEGATE_NONE_EXT);
-
+    if ((delegation->type == OPEN_DELEGATE_READ) ||
+        (delegation->type == OPEN_DELEGATE_WRITE)) {
         /* attempt out-of-grace recovery with CLAIM_DELEGATE_PREV */
         claim.claim = CLAIM_DELEGATE_PREV;
         claim.u.deleg_prev.filename = &file->name;

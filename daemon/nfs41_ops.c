@@ -428,13 +428,16 @@ retry_cache_insert:
             goto retry_cache_insert;
     }
 
-    if (status && delegation->type != OPEN_DELEGATE_NONE) {
-        EASSERT(delegation->type != OPEN_DELEGATE_NONE_EXT);
-
-        /* if we can't make room in the cache, return this
-         * delegation immediately to free resources on the server */
-        open_delegation_return(session, file, delegation, try_recovery);
-        goto retry_cache_insert;
+    if (status) {
+        if ((delegation->type == OPEN_DELEGATE_READ) ||
+            (delegation->type == OPEN_DELEGATE_WRITE)) {
+            /*
+             * If we cannot make room in the cache, return this
+             * delegation immediately to free resources on the server
+             */
+            open_delegation_return(session, file, delegation, try_recovery);
+            goto retry_cache_insert;
+        }
     }
 }
 
