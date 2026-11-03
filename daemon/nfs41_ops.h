@@ -585,7 +585,7 @@ enum createmode4 {
 typedef struct __createhow4 {
     uint32_t            mode;
     nfs41_file_info     *createattrs;
-    unsigned char       createverf[NFS4_VERIFIER_SIZE];
+    verifier4           createverf;
 } createhow4;
 
 enum opentype4 {
@@ -928,7 +928,7 @@ typedef struct __nfs41_readdir_list {
 typedef struct __nfs41_readdir_res {
     uint32_t                status;
     /* case NFS4_OK: */
-    unsigned char           cookieverf[NFS4_VERIFIER_SIZE];
+    verifier4               cookieverf;
     nfs41_readdir_list      reply;
 } nfs41_readdir_res;
 

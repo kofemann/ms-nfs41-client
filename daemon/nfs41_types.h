@@ -1,6 +1,6 @@
 /* NFSv4.1 client for Windows
  * Copyright (C) 2012 The Regents of the University of Michigan
- * Copyright (C) 2023-2025 Roland Mainz <roland.mainz@nrubsig.org>
+ * Copyright (C) 2023-2026 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -29,6 +29,10 @@
 #include "nfs41_const.h"
 
 typedef char*       caddr_t;
+
+typedef struct {
+    char data[NFS4_VERIFIER_SIZE];
+} verifier4;
 
 static const int64_t    NFS4_INT64_MAX      = 0x7fffffffffffffff;
 static const uint64_t   NFS4_UINT64_MAX     = 0xffffffffffffffff;
@@ -71,12 +75,12 @@ typedef struct __nfs41_fsid {
 
 typedef struct __nfs41_readdir_cookie {
     uint64_t        cookie;
-    unsigned char   verf[NFS4_VERIFIER_SIZE];
+    verifier4       verf;
 } nfs41_readdir_cookie;
 
 typedef struct __nfs41_write_verf {
-    unsigned char   verf[NFS4_VERIFIER_SIZE];
-    unsigned char   expected[NFS4_VERIFIER_SIZE];
+    verifier4       verf;
+    verifier4       expected;
     enum stable_how4 committed;
 } nfs41_write_verf;
 
@@ -102,7 +106,7 @@ typedef struct __nfstime4 {
 } nfstime4;
 
 typedef struct __client_owner4 {
-    unsigned char   co_verifier[NFS4_VERIFIER_SIZE];
+    verifier4       co_verifier;
     uint32_t        co_ownerid_len;
     unsigned char   co_ownerid[NFS4_OPAQUE_LIMIT];
 } client_owner4;

@@ -22,6 +22,7 @@
  */
 
 #include <Windows.h>
+#include <limits.h>
 #include <strsafe.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -606,8 +607,16 @@ int nfs41_open(
     open_args.openhow.how.createattrs = createattrs;
     if (how_mode == EXCLUSIVE4_1) {
         DWORD tid = GetCurrentThreadId();
-        time((time_t*)open_args.openhow.how.createverf);
-        memcpy(open_args.openhow.how.createverf+4, &tid, sizeof(tid));
+        time_t now = time(NULL);
+        verifier4 createverf;
+        /*
+         * FIXME: This is wrong, because Win32 |time_t| is not 32bit
+         * anymore
+         */
+        (void)memcpy(&createverf.data[0], &now, 4);
+        (void)memcpy(&createverf.data[4], &tid, 4);
+        verifier4_cpy(&open_args.openhow.how.createverf, &createverf);
+
         /* mask unsupported attributes */
         nfs41_superblock_supported_attrs_exclcreat(
             parent->fh.superblock, &createattrs->attrmask);
@@ -1309,7 +1318,7 @@ int nfs41_readdir(
 
     compound_add_op(&compound, OP_READDIR, &readdir_args, &readdir_res);
     readdir_args.cookie.cookie = cookie->cookie;
-    memcpy(readdir_args.cookie.verf, cookie->verf, NFS4_VERIFIER_SIZE);
+    verifier4_cpy(&readdir_args.cookie.verf, &cookie->verf);
     readdir_args.dircount = *entries_len;
     readdir_args.maxcount = *entries_len + sizeof(nfs41_readdir_res);
     readdir_args.attr_request = attr_request;
@@ -1326,7 +1335,7 @@ int nfs41_readdir(
 
     *entries_len = readdir_res.reply.entries_len;
     *eof_out = readdir_res.reply.eof;
-    memcpy(cookie->verf, readdir_res.cookieverf, NFS4_VERIFIER_SIZE);
+    verifier4_cpy(&cookie->verf, &readdir_res.cookieverf);
 out:
     return status;
 }

@@ -131,13 +131,13 @@ bool_t verify_write(
     }
 
     if (*stable != UNSTABLE4) {
-        memcpy(verf->expected, verf->verf, NFS4_VERIFIER_SIZE);
+        verifier4_cpy(&verf->expected, &verf->verf);
         *stable = UNSTABLE4;
         DPRINTF(3, ("verify_write: first unstable write, saving verifier\n"));
         return TRUE;
     }
 
-    if (memcmp(verf->expected, verf->verf, NFS4_VERIFIER_SIZE) == 0) {
+    if (verifier4_cmp(&verf->expected, &verf->verf) == 0) {
         DPRINTF(3, ("verify_write: verifier matches expected\n"));
         return TRUE;
     }
@@ -149,7 +149,7 @@ bool_t verify_write(
 bool_t verify_commit(
     IN nfs41_write_verf *verf)
 {
-    if (memcmp(verf->expected, verf->verf, NFS4_VERIFIER_SIZE) == 0) {
+    if (verifier4_cmp(&verf->expected, &verf->verf) == 0) {
         DPRINTF(3, ("verify_commit: verifier matches expected\n"));
         return TRUE;
     }

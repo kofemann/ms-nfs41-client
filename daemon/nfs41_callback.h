@@ -252,7 +252,7 @@ struct cb_offload_write_response {
     stateid4                callback_id[1];
     uint64_t                count;
     enum stable_how4        committed;
-    unsigned char           writeverf[NFS4_VERIFIER_SIZE];
+    verifier4               writeverf;
 };
 
 struct cb_offload_info {

@@ -768,7 +768,7 @@ static enum pnfs_status mds_commit(
             status = PNFSERR_IO;
             break;
         }
-        if (memcmp(verf.verf, thread->verf.verf, NFS4_VERIFIER_SIZE) != 0) {
+        if (verifier4_cmp(&verf.verf, &thread->verf.verf) != 0) {
             eprintf("mds commit verifier doesn't match ds write verifiers\n");
             status = PNFSERR_IO;
             break;

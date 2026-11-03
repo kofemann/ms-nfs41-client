@@ -161,6 +161,13 @@ static bool_t xdr_settime4(
 }
 
 /* stateid4 */
+bool_t xdr_verifier4(
+    XDR *xdr,
+    verifier4 *verf)
+{
+    return xdr_opaque(xdr, verf->data, NFS4_VERIFIER_SIZE);
+}
+
 bool_t xdr_stateid4(
     XDR *xdr,
     stateid4 *si)
@@ -659,7 +666,7 @@ static bool_t xdr_client_owner4(
         case XDR_ENCODE:
         case XDR_DECODE:
             unsigned char *co_ownerid = co->co_ownerid;
-            if (!xdr_opaque(xdr, (char *)&co->co_verifier[0], NFS4_VERIFIER_SIZE))
+            if (!xdr_verifier4(xdr, &co->co_verifier))
                 return FALSE;
 
             return xdr_bytes(xdr, (char **)&co_ownerid, &co->co_ownerid_len,
@@ -1585,7 +1592,7 @@ static bool_t decode_op_commit(
         return FALSE;
 
     if (res->status == NFS4_OK)
-        return xdr_opaque(xdr, (char *)res->verf->verf, NFS4_VERIFIER_SIZE);
+        return xdr_verifier4(xdr, &res->verf->verf);
 
     return TRUE;
 }
@@ -2234,10 +2241,10 @@ static bool_t encode_createhow4(
         result = encode_createattrs4(xdr, ch->createattrs);
         break;
     case EXCLUSIVE4:
-        result = xdr_opaque(xdr, (char *)ch->createverf, NFS4_VERIFIER_SIZE);
+        result = xdr_verifier4(xdr, &ch->createverf);
         break;
     case EXCLUSIVE4_1:
-        if (!xdr_opaque(xdr, (char *)ch->createverf, NFS4_VERIFIER_SIZE))
+        if (!xdr_verifier4(xdr, &ch->createverf))
             return FALSE;
         if (!encode_createattrs4(xdr, ch->createattrs))
             return FALSE;
@@ -2596,7 +2603,7 @@ static bool_t encode_op_readdir(
     if (!xdr_uint64_t(xdr, &args->cookie.cookie))
         return FALSE;
 
-    if (!xdr_opaque(xdr, (char *)args->cookie.verf, NFS4_VERIFIER_SIZE))
+    if (!xdr_verifier4(xdr, &args->cookie.verf))
         return FALSE;
 
     if (!xdr_uint32_t(xdr, &args->dircount))
@@ -2730,7 +2737,7 @@ static bool_t decode_op_readdir(
         return FALSE;
 
     if (res->status == NFS4_OK) {
-        if (!xdr_opaque(xdr, (char *)res->cookieverf, NFS4_VERIFIER_SIZE))
+        if (!xdr_verifier4(xdr, &res->cookieverf))
             return FALSE;
         return decode_readdir_list(xdr, &res->reply);
     }
@@ -3230,7 +3237,7 @@ static bool_t decode_write_verf(
     if (!xdr_enum(xdr, (enum_t *)&verf->committed))
         return FALSE;
 
-    return xdr_opaque(xdr, (char *)verf->verf, NFS4_VERIFIER_SIZE);
+    return xdr_verifier4(xdr, &verf->verf);
 }
 
 static bool_t decode_write_res_ok(

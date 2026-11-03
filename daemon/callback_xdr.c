@@ -23,6 +23,7 @@
 
 #include "nfs41_callback.h"
 #include "nfs41_ops.h"
+#include "nfs41_xdr.h"
 #include "util.h"
 #include "daemon_debug.h"
 
@@ -727,7 +728,7 @@ static bool_t op_cb_offload_write_response(XDR *xdr,
     result = xdr_stable_how4(xdr, &response->committed);
     if (!result) { CBX_ERR("offload.write_response.committed"); goto out; }
 
-    result = xdr_opaque(xdr, (char *)response->writeverf, NFS4_VERIFIER_SIZE);
+    result = xdr_verifier4(xdr, &response->writeverf);
     if (!result) { CBX_ERR("offload.write_response.writeverf"); goto out; }
 out:
     return result;

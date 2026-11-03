@@ -22,6 +22,7 @@
  */
 
 #include <Windows.h>
+#include <limits.h>
 #include <stdio.h>
 #include <time.h>
 #include <winsock2.h>
@@ -36,6 +37,7 @@
 #include "nfs41_ops.h"
 #include "accesstoken.h"
 #include "sid.h"
+#include "util.h"
 
 
 uint32_t nfs41_exchange_id_flags(
@@ -419,7 +421,8 @@ int nfs41_client_owner(
 #endif /* NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE */
 
     /* owner.verifier = "time created" */
-    memcpy(owner->co_verifier, &time_created, sizeof(time_created));
+    (void)memcpy(owner->co_verifier.data,
+        &time_created, sizeof(time_created));
 
     /* set up the md5 hash generator */
     if (!CryptAcquireContext(&context, NULL, NULL,

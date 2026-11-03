@@ -201,6 +201,20 @@ static __inline void bitmap_or(
     dst->count = count;
 }
 
+static __inline void verifier4_cpy(
+    OUT verifier4 *restrict dst,
+    IN  const verifier4 *restrict src)
+{
+    (void)memcpy(dst->data, src->data, NFS4_VERIFIER_SIZE);
+}
+
+static __inline int verifier4_cmp(
+    const verifier4 *restrict s1,
+    const verifier4 *restrict s2)
+{
+    return memcmp(s1->data, s2->data, NFS4_VERIFIER_SIZE);
+}
+
 static __inline void bitmap4_cpy(
     OUT bitmap4 *restrict dst,
     IN  const bitmap4 *restrict src)
