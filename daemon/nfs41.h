@@ -475,6 +475,10 @@ void nfs41_server_addrs(
 
 
 /* nfs41_client.c */
+typedef struct __nfs41_daemon_globals nfs41_daemon_globals;
+void nfs41_client_verifier_init(
+    IN OUT nfs41_daemon_globals *restrict nfs41dg);
+
 int nfs41_client_owner(
     IN const char *name,
     IN uint32_t port,

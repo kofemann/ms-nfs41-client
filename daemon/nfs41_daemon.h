@@ -41,6 +41,7 @@ typedef struct __nfs41_daemon_globals {
 #endif /* NFS41_DRIVER_FEATURE_IDMAPPER_CYGWIN */
     SSIZE_T num_worker_threads;
     int crtdbgmem_flags;
+    unsigned char nfs41_client_verifier[8/*NFS4_VERIFIER_SIZE*/];
     char nfs41_nii_name[256];
 } nfs41_daemon_globals;
 

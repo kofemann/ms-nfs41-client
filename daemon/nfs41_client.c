@@ -33,6 +33,7 @@
 #include "nfs41_build_features.h"
 #include "tree.h"
 #include "delegation.h"
+#include "nfs41_daemon.h"
 #include "daemon_debug.h"
 #include "nfs41_ops.h"
 #include "accesstoken.h"
@@ -368,6 +369,15 @@ out:
     return status;
 }
 
+void nfs41_client_verifier_init(
+    IN OUT nfs41_daemon_globals *restrict nfs41dg)
+{
+    ULONGLONG tick_count = GetTickCount64();
+
+    (void)memcpy(nfs41dg->nfs41_client_verifier, &tick_count,
+        NFS4_VERIFIER_SIZE);
+}
+
 int nfs41_client_owner(
     IN const char *name,
     IN uint32_t port,
@@ -385,13 +395,15 @@ int nfs41_client_owner(
     HCRYPTHASH hash;
     PBYTE buffer;
     DWORD length;
-    const ULONGLONG time_created = GetTickCount64();
     int status;
     char username[UTF8_PRINCIPALLEN+1];
     HANDLE thrtoken = GetCurrentThreadEffectiveToken();
 #ifdef NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE
     LUID authenticationid;
 #endif /* NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE */
+
+    /* FIXME: This should be a function argument */
+    extern nfs41_daemon_globals nfs41_dg;
 
     /*
      * gisburn: What about primary group (for /usr/bin/newgrp
@@ -420,9 +432,10 @@ int nfs41_client_owner(
         (long)authenticationid.LowPart));
 #endif /* NFS41_DRIVER_USE_AUTHENTICATIONID_FOR_MOUNT_NAMESPACE */
 
-    /* owner.verifier = "time created" */
-    (void)memcpy(owner->co_verifier.data,
-        &time_created, sizeof(time_created));
+    /* Use one verifier for the complete lifetime of this daemon process */
+    (void)memcpy(&owner->co_verifier.data,
+        &nfs41_dg.nfs41_client_verifier[0],
+        NFS4_VERIFIER_SIZE);
 
     /* set up the md5 hash generator */
     if (!CryptAcquireContext(&context, NULL, NULL,

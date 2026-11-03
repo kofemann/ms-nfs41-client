@@ -791,6 +791,7 @@ VOID ServiceStart(DWORD argc, LPWSTR *argv)
     }
 
     nfs41_server_list_init();
+    nfs41_client_verifier_init(&nfs41_dg);
 
     NFS41D_VERSION = GetTickCount();
     DPRINTF(1, ("NFS41 Daemon starting: version %d\n", NFS41D_VERSION));
