@@ -210,7 +210,8 @@ NFSv4.2/NFSv4.1 filesystem driver for Windows 10/11 & Windows Server
   - Translates Cygwin `/cygdrive/<devletter>` symlinks on NFS to Win32
     `<devletter>:\` and back
 
-  - Pass-through for NFS `/dev-Symlinks` (e.g. `/dev/null`) to Cygwin
+  - Pass-through for NFS `/dev`- and `/proc`-symlinks (e.g. `/dev/null`)
+    to Cygwin
 
   - Interoperability for symlinks between Cygwin, cmd.exe, powershell,
     Microsoft CoreUtils, uutils CoreUtils, and other POSIX-compatible

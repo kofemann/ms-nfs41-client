@@ -228,7 +228,7 @@
               <para>Translates Cygwin <filename>/cygdrive/&lt;devletter&gt;</filename> symlinks on NFS to Win32 <filename>&lt;devletter&gt;:\</filename> and back</para>
             </listitem>
             <listitem>
-              <para>Pass-through for NFS <filename>/dev-Symlinks</filename> (e.g. <filename>/dev/null</filename>) to Cygwin</para>
+              <para>Pass-through for NFS <filename>/dev</filename>- and <filename>/proc</filename>-symlinks (e.g. <filename>/dev/null</filename>) to Cygwin</para>
             </listitem>
             <listitem>
               <para>Interoperability for symlinks between Cygwin, cmd.exe, powershell, Microsoft CoreUtils, uutils CoreUtils, and other POSIX-compatible NFSv4.2/NFSv4.1 clients.</para>

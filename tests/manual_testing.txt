@@ -1,5 +1,5 @@
 #
-# ms-nfs41-client manual testing sequence, 2026-10-28
+# ms-nfs41-client manual testing sequence, 2026-11-03
 #
 # Draft version, needs to be turned into automated tests
 # if possible
@@ -289,8 +289,9 @@ powershell -Command 'New-Item -Path sym_mypsfile1 -ItemType SymbolicLink -Value 
 mkdir targetdir1
 cmd /C 'mklink /D targetdir1_sym targetdir1'
 cmd /C 'mklink /D targetdir2_sym .\targetdir1'
-# 6. Cygwin /dev/ symlinks, e.g. foo --> /dev/null
+# 6. Cygwin /dev/ and /proc/ symlinks, e.g. foo --> /dev/null, cpi --> /proc/cpuinfo
 ln -s /dev/zero foo && ls -l foo && rm foo
+ln -s /proc/cpuinfo cpi && ls -l cpi && rm cpi
 # 7. cmd.exe follow sublink dir to other filesystem
 # (this assumes we have a drive 'M:' with a subdir "builds")
 rm -f symlink1_to_m_builds ; cmd /C 'mklink /D symlink1_to_m_builds M:\builds' ; cmd /C 'cd symlink1_to_m_builds && dir && echo test_OK'
@@ -312,7 +313,7 @@ rm -f symlink1_to_h_tmp ; cmd /C 'mklink /D symlink1_to_h_tmp \\derfwpc5131_ipv4
 #
 # all test should print "OK test <testnum>"
 # ("." is a relative symlink, just included here for more coverage)
-ksh93 -c 'typeset -a a=( "/" "/usr" "/usr/" "/tmp" "/usr/bin" "$PWD" "/dev/null" "." "/etc/profile" "/etc/bash.bashrc" ) ; for ((i=0 ; i < ${#a[@]} ; i++ )) ; do rm -f "syml$i" ; ln -sf "${a[$i]}" "syml$i" ; l="$(readlink "syml$i")" ; if [[ "$l" == "${a[$i]}" ]] ; then printf "OK test %d\n" i ; else printf "FAIL test %d\n" i ; fi ; done'
+ksh93 -c 'typeset -a a=( "/" "/usr" "/usr/" "/tmp" "/usr/bin" "$PWD" "/dev/null" "/proc/cpuinfo" "." "/etc/profile" "/etc/bash.bashrc" ) ; for ((i=0 ; i < ${#a[@]} ; i++ )) ; do rm -f "syml$i" ; ln -sf "${a[$i]}" "syml$i" ; l="$(readlink "syml$i")" ; if [[ "$l" == "${a[$i]}" ]] ; then printf "OK test %d\n" i ; else printf "FAIL test %d\n" i ; fi ; done'
 
 #
 # Repeatedly create the same symlink with $ ln -f -s ... #

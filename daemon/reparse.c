@@ -114,6 +114,26 @@ int reparsebuffer_build(
         (void)snprintf(substitute_name, sizeof(substitute_name),
             "\\??\\%c:%s", (int)dos_drive_letter, target + 11);
     }
+    else if ((target_len >= 6) && (memcmp(target, "/proc/", 6) == 0)) {
+        /*
+         * Cygwin /proc path:
+         * resolve below the configured Cygwin root (e.g. "C:\cygwin64\"
+         * or "C:\cygwin\")
+         *
+         * FIXME: Investigate whether using |IO_REPARSE_TAG_LX_SYMLINK|
+         * for this is a better solution
+         */
+        DPRINTF(REPLVL2,
+            ("symlink target '%s' uses /proc mapping\n", target));
+
+        (void)snprintf(print_name, sizeof(print_name),
+            "%s", target);
+        (void)snprintf(substitute_name, sizeof(substitute_name),
+            "%s", target);
+
+        flags |= SYMLINK_FLAG_RELATIVE;
+        converttobackslash = false;
+    }
     else if ((target_len >= 5) && (memcmp(target, "/dev/", 5) == 0)) {
         /*
          * Cygwin /dev path:
@@ -121,7 +141,7 @@ int reparsebuffer_build(
          * or "C:\cygwin\")
          *
          * FIXME: Investigate whether using |IO_REPARSE_TAG_LX_SYMLINK|
-         * for this is better solution
+         * for this is a better solution
          */
         DPRINTF(REPLVL2,
             ("symlink target '%s' uses /dev mapping\n", target));
