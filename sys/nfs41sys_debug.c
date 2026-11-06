@@ -1618,6 +1618,13 @@ void print_debug_header(
  * From https://www.snia.org/sites/default/files/files2/files2/SDC2013/presentations/Workloads/Barreto_Kurjanowicz-Shared_VHDX-v3.pdf
  */
 EXTERN_C const GUID FAR GUID_ECP_OPEN_AS_BLOCK_DEVICE;
+/*
+ * |GUID_ECP_UNKNOWN1_00AC5851_702B_45E4_AC94_572AFEC17A7E| - unknown ECP
+ * It shows up very often, but the only public mention
+ * is https://community.osr.com/t/hyper-v-vm-migration-in-cluster-fails/46104
+ */
+EXTERN_C const GUID FAR GUID_ECP_UNKNOWN1_00AC5851_702B_45E4_AC94_572AFEC17A7E;
+EXTERN_C const GUID FAR GUID_ECP_IOPSYMLINK;
 EXTERN_C const GUID FAR GUID_ECP_QUERY_ON_CREATE;
 EXTERN_C const GUID FAR GUID_ECP_CLOUDFILES_ATTRIBUTION;
 EXTERN_C const GUID FAR GUID_ECP_CREATE_USER_PROCESS;
@@ -1661,6 +1668,8 @@ const ECP_NAME_MAP KnownEcps[] = {
      * Custom ECP not in <ntifs.h>/Windows headers
      */
     ECP_ENTRY(GUID_ECP_OPEN_AS_BLOCK_DEVICE),
+    ECP_ENTRY(GUID_ECP_UNKNOWN1_00AC5851_702B_45E4_AC94_572AFEC17A7E),
+    ECP_ENTRY(GUID_ECP_IOPSYMLINK),
     { NULL, NULL }
 };
 
