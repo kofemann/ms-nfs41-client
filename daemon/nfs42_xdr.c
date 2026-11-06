@@ -137,7 +137,7 @@ static bool_t decode_write_response(
         return FALSE;
     if (!xdr_stable_how4(xdr, &response->committed))
         return FALSE;
-    if (!xdr_opaque(xdr, (char *)response->writeverf, NFS4_VERIFIER_SIZE))
+    if (!xdr_verifier4(xdr, &response->writeverf->verf))
         return FALSE;
     return TRUE;
 }
