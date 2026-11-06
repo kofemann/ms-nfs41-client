@@ -28,6 +28,7 @@
 #include "delegation.h"
 #include "nfs41_callback.h"
 #include "daemon_debug.h"
+#include "util.h"
 
 
 /* dprintf levels for callback server logging */
@@ -58,7 +59,7 @@ void nfs41_callback_session_init(
     res.tag.len = sizeof(g_server_tag);
     res.status = NFS4ERR_SEQ_MISORDERED;
 
-    session->cb_session.cb_sessionid = session->session_id;
+    session->cb_session.cb_sessionid = &session->session_id;
 
     replay_cache_write(&session->cb_session, NULL, &res, FALSE);
 }
@@ -121,8 +122,7 @@ static enum_t handle_cb_sequence(
     *session_out = cb_session;
 
     /* validate the sessionid */
-    if (memcmp(cb_session->cb_sessionid, args->sessionid,
-            NFS4_SESSIONID_SIZE)) {
+    if (sessionid4_cmp(cb_session->cb_sessionid, &args->sessionid)) {
         eprintf("handle_cb_sequence: "
             "received sessionid doesn't match session\n");
         res->status = NFS4ERR_BADSESSION;
@@ -170,7 +170,7 @@ static enum_t handle_cb_sequence(
     cb_session->cb_seqnum = args->sequenceid;
     *cachethis = args->cachethis;
 
-    memcpy(res->ok.sessionid, args->sessionid, NFS4_SESSIONID_SIZE);
+    sessionid4_cpy(&res->ok.sessionid, &args->sessionid);
     res->ok.sequenceid = args->sequenceid;
     res->ok.slotid = args->slotid;
     res->ok.highest_slotid = args->highest_slotid;

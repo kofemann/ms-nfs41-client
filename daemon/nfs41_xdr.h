@@ -43,6 +43,7 @@ bool_t xdr_offset4(XDR *restrict xdr, offset4 *restrict offset);
 bool_t xdr_limit_by4(XDR *xdr, enum limit_by4 *limitby);
 bool_t xdr_stateid4(XDR *xdr, stateid4 *si);
 bool_t xdr_verifier4(XDR *xdr, verifier4 *verf);
+bool_t xdr_sessionid4(XDR *xdr, sessionid4 *sessionid);
 bool_t xdr_fh(XDR *xdr, nfs41_fh *fh);
 bool_t xdr_fsid(XDR *xdr, nfs41_fsid *fsid);
 enum stable_how4;

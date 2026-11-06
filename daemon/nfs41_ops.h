@@ -202,7 +202,7 @@ typedef struct __nfs41_create_session_args {
 } nfs41_create_session_args;
 
 typedef struct __nfs41_create_session_res {
-    unsigned char           *csr_sessionid;
+    sessionid4              *csr_sessionid;
     uint32_t                csr_sequence;
     uint32_t                csr_flags;
     nfs41_channel_attrs     *csr_fore_chan_attrs;
@@ -225,7 +225,7 @@ enum channel_dir_from_server4 {
 };
 
 typedef struct __nfs41_bind_conn_to_session_args {
-    unsigned char           *sessionid;
+    sessionid4              *sessionid;
     enum channel_dir_from_client4 dir;
 } nfs41_bind_conn_to_session_args;
 
@@ -238,7 +238,7 @@ typedef struct __nfs41_bind_conn_to_session_res {
 
 /* OP_DESTROY_SESSION */
 typedef struct __nfs41_destroy_session_args {
-    unsigned char           *dsa_sessionid;
+    sessionid4              *dsa_sessionid;
 } nfs41_destroy_session_args;
 
 typedef struct __nfs41_destroy_session_res {
@@ -258,7 +258,7 @@ typedef struct __nfs41_destroy_clientid_res {
 
 /* OP_SEQUENCE */
 typedef struct __nfs41_sequence_args {
-    unsigned char           *sa_sessionid;
+    sessionid4              *sa_sessionid;
     uint32_t                sa_sequenceid;
     uint32_t                sa_slotid;
     uint32_t                sa_highest_slotid;
@@ -282,7 +282,7 @@ enum {
 };
 
 typedef struct __nfs41_sequence_res_ok {
-    unsigned char           sr_sessionid[NFS4_SESSIONID_SIZE];
+    sessionid4              sr_sessionid;
     uint32_t                sr_sequenceid;
     uint32_t                sr_slotid;
     uint32_t                sr_highest_slotid;
@@ -1205,7 +1205,7 @@ int nfs41_create_session(
 
 enum nfsstat4 nfs41_bind_conn_to_session(
     IN nfs41_rpc_clnt *rpc,
-    IN const unsigned char *sessionid,
+    IN const sessionid4 *sessionid,
     IN enum channel_dir_from_client4 dir);
 
 int nfs41_destroy_session(

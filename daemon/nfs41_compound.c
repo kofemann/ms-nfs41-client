@@ -31,6 +31,7 @@
 #include "recovery.h"
 #include "name_cache.h"
 #include "daemon_debug.h"
+#include "util.h"
 #include "rpc/rpc.h"
 #include "rpc/auth_sspi.h"
 
@@ -212,15 +213,17 @@ retry:
                 goto out_free_slot;
             }
             // returned sessionid must be the same we sent
-            if (memcmp(seq->sr_resok4.sr_sessionid, args->sa_sessionid,
-                    NFS4_SESSIONID_SIZE)) {
+            if (sessionid4_cmp(&seq->sr_resok4.sr_sessionid,
+                    args->sa_sessionid)) {
                 eprintf("compound_encode_send_decode: "
                     "[session] sr_sessionid != sa_sessionid\n");
                 if (DPRINTF_LEVEL_ENABLED(1)) {
                     print_hexbuf("sr_sessionid",
-                        seq->sr_resok4.sr_sessionid, NFS4_SESSIONID_SIZE);
+                        (unsigned char *)seq->sr_resok4.sr_sessionid.data,
+                        NFS4_SESSIONID_SIZE);
                     print_hexbuf("sa_sessionid",
-                        args->sa_sessionid, NFS4_SESSIONID_SIZE);
+                        (unsigned char *)args->sa_sessionid->data,
+                        NFS4_SESSIONID_SIZE);
                 }
                 status = NFS4ERR_IO;
                 goto out_free_slot;
@@ -520,7 +523,7 @@ retry:
                 (seq->sr_resok4.sr_status_flags & SEQ4_STATUS_CB_PATH_DOWN)) {
             nfs41_session_free_slot(session, args->sa_slotid);
             nfs41_bind_conn_to_session(session->client->rpc,
-                session->session_id, CDFC4_BACK_OR_BOTH);
+                &session->session_id, CDFC4_BACK_OR_BOTH);
             goto out;
         }
     }

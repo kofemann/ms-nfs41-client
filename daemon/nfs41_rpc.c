@@ -362,7 +362,7 @@ out_unlock:
     if (status == NO_ERROR && rpc->needcb && 
             rpc->client && rpc->client->session) {
         status = nfs41_bind_conn_to_session(rpc,
-            rpc->client->session->session_id, CDFC4_BACK_OR_BOTH);
+            &rpc->client->session->session_id, CDFC4_BACK_OR_BOTH);
         if (status)
             eprintf("rpc_reconnect: "
                 "nfs41_bind_conn_to_session() failed with '%s'\n",

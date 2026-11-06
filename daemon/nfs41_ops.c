@@ -169,7 +169,7 @@ int nfs41_create_session(nfs41_client *clnt, nfs41_session *session, bool_t try_
     set_back_channel_attrs(clnt->rpc,
         1, &req.csa_back_chan_attrs);
     
-    reply.csr_sessionid = session->session_id;
+    reply.csr_sessionid = &session->session_id;
     reply.csr_fore_chan_attrs = &session->fore_chan_attrs;
     reply.csr_back_chan_attrs = &session->back_chan_attrs;
 
@@ -202,7 +202,8 @@ int nfs41_create_session(nfs41_client *clnt, nfs41_session *session, bool_t try_
 
     if (DPRINTF_LEVEL_ENABLED(1)) {
         print_hexbuf("session id: ",
-            session->session_id, NFS4_SESSIONID_SIZE);
+            (unsigned char *)session->session_id.data,
+            NFS4_SESSIONID_SIZE);
     }
     // check that csa_sequence is same as csr_sequence
     if (reply.csr_sequence != clnt->seq_id) {
@@ -252,7 +253,7 @@ out:
 
 enum nfsstat4 nfs41_bind_conn_to_session(
     IN nfs41_rpc_clnt *rpc,
-    IN const unsigned char *sessionid,
+    IN const sessionid4 *sessionid,
     IN enum channel_dir_from_client4 dir)
 {
     int status;
@@ -266,7 +267,7 @@ enum nfsstat4 nfs41_bind_conn_to_session(
         &argop, &resop, "bind_conn_to_session");
 
     compound_add_op(&compound, OP_BIND_CONN_TO_SESSION, &bind_args, &bind_res);
-    bind_args.sessionid = (unsigned char *)sessionid;
+    bind_args.sessionid = (sessionid4 *)sessionid;
     bind_args.dir = dir;
 
     status = nfs41_send_compound(rpc,
@@ -294,7 +295,7 @@ int nfs41_destroy_session(
         &argop, &resop, "destroy_session");
 
     compound_add_op(&compound, OP_DESTROY_SESSION, &ds_args, &ds_res);
-    ds_args.dsa_sessionid = session->session_id;
+    ds_args.dsa_sessionid = &session->session_id;
 
     /* don't attempt to recover from BADSESSION/STALE_CLIENTID */
     status = compound_encode_send_decode(session, &compound, FALSE);

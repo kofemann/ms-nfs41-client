@@ -97,12 +97,12 @@ struct cb_sequence_ref {
     uint32_t                slotid;
 };
 struct cb_sequence_ref_list {
-    char                    sessionid[NFS4_SESSIONID_SIZE];
+    sessionid4              sessionid;
     struct cb_sequence_ref  *calls;
     uint32_t                call_count;
 };
 struct cb_sequence_args {
-    char                    sessionid[NFS4_SESSIONID_SIZE];
+    sessionid4              sessionid;
     uint32_t                sequenceid;
     uint32_t                slotid;
     uint32_t                highest_slotid;
@@ -112,7 +112,7 @@ struct cb_sequence_args {
 };
 
 struct cb_sequence_res_ok {
-    char                    sessionid[NFS4_SESSIONID_SIZE];
+    sessionid4              sessionid;
     uint32_t                sequenceid;
     uint32_t                slotid;
     uint32_t                highest_slotid;

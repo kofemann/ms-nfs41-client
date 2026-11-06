@@ -227,7 +227,7 @@ void nfs41_session_sequence(
 {
     nfs41_session_get_slot(session, &args->sa_slotid, 
         &args->sa_sequenceid, &args->sa_highest_slotid);
-    args->sa_sessionid = session->session_id;
+    args->sa_sessionid = &session->session_id;
     args->sa_cachethis = cachethis;
 }
 

@@ -291,14 +291,14 @@ typedef struct __nfs41_cb_session {
         struct replay_cache arg;
         struct replay_cache res;
     } replay;
-    const unsigned char *cb_sessionid; /* -> nfs41_session.session_id */
+    const sessionid4 *cb_sessionid; /* -> nfs41_session.session_id */
     uint32_t cb_seqnum;
     uint32_t cb_slotid;
 } nfs41_cb_session;
 
 typedef struct __nfs41_session {
     nfs41_client *client;
-    unsigned char session_id[NFS4_SESSIONID_SIZE];
+    sessionid4 session_id;
     nfs41_channel_attrs fore_chan_attrs;
     nfs41_channel_attrs back_chan_attrs;
     uint32_t lease_time;

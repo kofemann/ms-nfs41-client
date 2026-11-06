@@ -280,7 +280,7 @@ static bool_t op_cb_sequence_ref_list(XDR *xdr, struct cb_sequence_ref_list *arg
 {
     bool_t result;
 
-    result = xdr_opaque(xdr, args->sessionid, NFS4_SESSIONID_SIZE);
+    result = xdr_sessionid4(xdr, &args->sessionid);
     if (!result) { CBX_ERR("sequence_ref_list.sessionid"); goto out; }
 
     result = xdr_array(xdr, (char**)&args->calls, &args->call_count,
@@ -294,7 +294,7 @@ static bool_t op_cb_sequence_args(XDR *xdr, struct cb_sequence_args *args)
 {
     bool_t result;
 
-    result = xdr_opaque(xdr, args->sessionid, NFS4_SESSIONID_SIZE);
+    result = xdr_sessionid4(xdr, &args->sessionid);
     if (!result) { CBX_ERR("sequence_args.sessionid"); goto out; }
 
     result = xdr_uint32_t(xdr, &args->sequenceid);
@@ -321,7 +321,7 @@ static bool_t op_cb_sequence_res_ok(XDR *xdr, struct cb_sequence_res_ok *res)
 {
     bool_t result;
 
-    result = xdr_opaque(xdr, res->sessionid, NFS4_SESSIONID_SIZE);
+    result = xdr_sessionid4(xdr, &res->sessionid);
     if (!result) { CBX_ERR("sequence_res.sessionid"); goto out; }
 
     result = xdr_uint32_t(xdr, &res->sequenceid);

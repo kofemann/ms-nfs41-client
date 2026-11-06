@@ -168,6 +168,13 @@ bool_t xdr_verifier4(
     return xdr_opaque(xdr, verf->data, NFS4_VERIFIER_SIZE);
 }
 
+bool_t xdr_sessionid4(
+    XDR *xdr,
+    sessionid4 *sessionid)
+{
+    return xdr_opaque(xdr, sessionid->data, NFS4_SESSIONID_SIZE);
+}
+
 bool_t xdr_stateid4(
     XDR *xdr,
     stateid4 *si)
@@ -1121,7 +1128,7 @@ static bool_t decode_op_create_session(
     if (opstatus != NFS4_OK)
         return TRUE;
 
-    if (!xdr_opaque(xdr, (char *)res->csr_sessionid, NFS4_SESSIONID_SIZE))
+    if (!xdr_sessionid4(xdr, res->csr_sessionid))
         return FALSE;
 
     /* sequenceid4 csr_sequence */
@@ -1156,7 +1163,7 @@ static bool_t encode_op_bind_conn_to_session(
     if (unexpected_op(argop->op, OP_BIND_CONN_TO_SESSION))
         return FALSE;
 
-    if (!xdr_opaque(xdr, (char *)args->sessionid, NFS4_SESSIONID_SIZE))
+    if (!xdr_sessionid4(xdr, args->sessionid))
         return FALSE;
 
     if (!xdr_enum(xdr, (enum_t *)&args->dir))
@@ -1170,7 +1177,7 @@ static bool_t decode_op_bind_conn_to_session(
     const nfs_argop4 *argop,
     nfs_resop4 *resop)
 {
-    unsigned char sessionid_ignored[NFS4_SESSIONID_SIZE];
+    sessionid4 sessionid_ignored;
     nfs41_bind_conn_to_session_res *res =
         (nfs41_bind_conn_to_session_res*)resop->res;
     bool_t use_rdma_ignored;
@@ -1182,7 +1189,7 @@ static bool_t decode_op_bind_conn_to_session(
         return FALSE;
 
     if (res->status == NFS4_OK) {
-        if (!xdr_opaque(xdr, (char *)&sessionid_ignored, NFS4_SESSIONID_SIZE))
+        if (!xdr_sessionid4(xdr, &sessionid_ignored))
             return FALSE;
 
         if (!xdr_enum(xdr, (enum_t *)&res->dir))
@@ -1206,7 +1213,7 @@ static bool_t encode_op_destroy_session(
     if (unexpected_op(argop->op, OP_DESTROY_SESSION))
         return FALSE;
 
-    return xdr_opaque(xdr, (char *)args->dsa_sessionid, NFS4_SESSIONID_SIZE);
+    return xdr_sessionid4(xdr, args->dsa_sessionid);
 }
 
 static bool_t decode_op_destroy_session(
@@ -1263,7 +1270,7 @@ static bool_t encode_op_sequence(
     if (unexpected_op(argop->op, OP_SEQUENCE))
         return FALSE;
 
-    if (!xdr_opaque(xdr, (char *)args->sa_sessionid, NFS4_SESSIONID_SIZE))
+    if (!xdr_sessionid4(xdr, args->sa_sessionid))
         return FALSE;
 
     if (!xdr_uint32_t(xdr, &args->sa_sequenceid))
@@ -1282,7 +1289,7 @@ static bool_t decode_sequence_res_ok(
     XDR *xdr,
     nfs41_sequence_res_ok *res)
 {
-    if (!xdr_opaque(xdr, (char *)res->sr_sessionid, NFS4_SESSIONID_SIZE))
+    if (!xdr_sessionid4(xdr, &res->sr_sessionid))
         return FALSE;
 
     if (!xdr_uint32_t(xdr, &res->sr_sequenceid))

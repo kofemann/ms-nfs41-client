@@ -38,6 +38,10 @@ typedef struct {
     char data[NFS4_VERIFIER_SIZE];
 } verifier4;
 
+typedef struct {
+    char data[NFS4_SESSIONID_SIZE];
+} sessionid4;
+
 static const int64_t    NFS4_INT64_MAX      = 0x7fffffffffffffff;
 static const uint64_t   NFS4_UINT64_MAX     = 0xffffffffffffffff;
 static const int32_t    NFS4_INT32_MAX      = 0x7fffffff;
