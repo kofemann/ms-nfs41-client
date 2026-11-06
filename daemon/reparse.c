@@ -376,8 +376,10 @@ static int handle_reparse_set(void *daemon_context, nfs41_upcall *upcall)
      * in the future we can add more reparse point types
      */
     if (Reparse->ReparseTag != IO_REPARSE_TAG_SYMLINK) {
-        eprintf("handle_reparse_set: "
-            "Reparse->ReparseTag != IO_REPARSE_TAG_SYMLINK\n");
+        eprintf("handle_reparse_set(state->path.path='%s'): "
+            "Reparse->ReparseTag(=0x%lx) != IO_REPARSE_TAG_SYMLINK\n",
+            state->path.path,
+            (long)Reparse->ReparseTag);
         status = ERROR_INVALID_REPARSE_DATA;
         goto out;
     }
@@ -401,8 +403,9 @@ static int handle_reparse_set(void *daemon_context, nfs41_upcall *upcall)
         NULL);
     if (targetbuflen == 0) {
         status = GetLastError();
-        eprintf("handle_reparse_set: "
+        eprintf("handle_reparse_set(state->path.path='%s'): "
             "WideCharToMultiByte() failed, status=%d\n",
+            state->path.path,
             status);
         if (status == ERROR_SUCCESS) {
             status = ERROR_INVALID_DATA;
@@ -467,8 +470,9 @@ static int handle_reparse_set(void *daemon_context, nfs41_upcall *upcall)
             if ((targetname[1] != ':') ||
                 (targetname[2] != '\\')) {
                 status = ERROR_INVALID_PARAMETER;
-                eprintf("handle_reparse_set: "
+                eprintf("handle_reparse_set(state->path.path='%s'): "
                     "DEVLETTER path '%s' should start with 'X:\\'\n",
+                    state->path.path,
                     targetname);
                 goto out;
             }
@@ -510,9 +514,10 @@ static int handle_reparse_set(void *daemon_context, nfs41_upcall *upcall)
                 (targetname[0] == '/') ||
                 (targetname[0] == ':')
             )) {
-            eprintf("handle_reparse_set: "
+            eprintf("handle_reparse_set(state->path.path='%s'): "
                 "targetname='%s' should not start "
                 "with '/', '\\' or ':'\n",
+                state->path.path,
                 targetname);
             status = ERROR_INVALID_PARAMETER;
             goto out;
@@ -593,8 +598,9 @@ static int handle_reparse_set(void *daemon_context, nfs41_upcall *upcall)
     }
 #endif /* NFS41_DRIVER_SETGID_NEWGRP_SUPPORT */
     if (status) {
-        eprintf("handle_reparse_set: "
+        eprintf("handle_reparse_set(state->path.path='%s'): "
             "nfs41_create() for symlink='%s' failed with '%s'\n",
+            state->path.path,
             targetname, nfs_error_string(status));
         status = map_symlink_errors(status);
         goto out;
