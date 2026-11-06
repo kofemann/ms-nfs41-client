@@ -96,13 +96,13 @@ bool_t encode_op_copy(
     if (!xdr_stateid4(xdr, &args->dst_stateid->stateid))
         return FALSE;
 
-    if (!xdr_uint64_t(xdr, &args->src_offset))
+    if (!xdr_offset4(xdr, &args->src_offset))
         return FALSE;
 
-    if (!xdr_uint64_t(xdr, &args->dst_offset))
+    if (!xdr_offset4(xdr, &args->dst_offset))
         return FALSE;
 
-    if (!xdr_uint64_t(xdr, &args->count))
+    if (!xdr_length4(xdr, &args->count))
         return FALSE;
 
     if (!xdr_bool(xdr, &args->consecutive))
@@ -133,7 +133,7 @@ static bool_t decode_write_response(
         if (!xdr_stateid4(xdr, &response->callback_id[0]))
             return FALSE;
     }
-    if (!xdr_uint64_t(xdr, &response->count))
+    if (!xdr_length4(xdr, &response->count))
         return FALSE;
     if (!xdr_stable_how4(xdr, &response->committed))
         return FALSE;
@@ -195,10 +195,10 @@ bool_t encode_op_deallocate(
     if (!xdr_stateid4(xdr, &args->stateid->stateid))
         return FALSE;
 
-    if (!xdr_uint64_t(xdr, &args->offset))
+    if (!xdr_offset4(xdr, &args->offset))
         return FALSE;
 
-    return xdr_uint64_t(xdr, &args->length);
+    return xdr_length4(xdr, &args->length);
 }
 
 
@@ -234,10 +234,10 @@ bool_t encode_op_read_plus(
     if (!xdr_stateid4(xdr, &args->stateid->stateid))
         return FALSE;
 
-    if (!xdr_uint64_t(xdr, &args->offset))
+    if (!xdr_offset4(xdr, &args->offset))
         return FALSE;
 
-    return xdr_uint32_t(xdr, &args->count);
+    return xdr_count4(xdr, &args->count);
 }
 
 static bool_t decode_read_plus_res_ok(
@@ -308,7 +308,7 @@ static bool_t decode_read_plus_res_ok(
                 DPRINTF(2,
                     ("i=%d, 'NFS4_CONTENT_DATA' content\n", (int)i));
 
-                if (!xdr_uint64_t(xdr, &contents[i].u.data.offset)) {
+                if (!xdr_offset4(xdr, &contents[i].u.data.offset)) {
                     DPRINTF(0,
                         ("i=%d, decoding 'offset' failed\n", (int)i));
                     return FALSE;
@@ -344,9 +344,9 @@ static bool_t decode_read_plus_res_ok(
 
                 DPRINTF(2,
                     ("i=%d, 'NFS4_CONTENT_HOLE' content\n", (int)i));
-                if (!xdr_uint64_t(xdr, &contents[i].u.hole.offset))
+                if (!xdr_offset4(xdr, &contents[i].u.hole.offset))
                     return FALSE;
-                if (!xdr_uint64_t(xdr, &contents[i].u.hole.length))
+                if (!xdr_length4(xdr, &contents[i].u.hole.length))
                     return FALSE;
 
 
@@ -420,7 +420,7 @@ bool_t encode_op_seek(
     if (!xdr_stateid4(xdr, &args->stateid->stateid))
         return FALSE;
 
-    if (!xdr_uint64_t(xdr, &args->offset))
+    if (!xdr_offset4(xdr, &args->offset))
         return FALSE;
 
     uint32_t args_what = args->what;
@@ -438,7 +438,7 @@ static bool_t decode_seek_res_ok(
         return FALSE;
     }
 
-    if (!xdr_uint64_t(xdr, &res->offset)) {
+    if (!xdr_offset4(xdr, &res->offset)) {
         return FALSE;
     }
 
@@ -482,13 +482,13 @@ bool_t encode_op_clone(
     if (!xdr_stateid4(xdr, &args->dst_stateid->stateid))
         return FALSE;
 
-    if (!xdr_uint64_t(xdr, &args->src_offset))
+    if (!xdr_offset4(xdr, &args->src_offset))
         return FALSE;
 
-    if (!xdr_uint64_t(xdr, &args->dst_offset))
+    if (!xdr_offset4(xdr, &args->dst_offset))
         return FALSE;
 
-    return xdr_uint64_t(xdr, &args->count);
+    return xdr_length4(xdr, &args->count);
 }
 
 bool_t decode_op_clone(

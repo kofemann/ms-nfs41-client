@@ -59,8 +59,8 @@ int nfs41_handle_callback(void *rpc_clnt, void *cb, void **arg_reply);
 /* OP_CB_LAYOUTRECALL */
 struct cb_recall_file {
     nfs41_fh                fh;
-    uint64_t                offset;
-    uint64_t                length;
+    offset4                 offset;
+    length4                 length;
     stateid4                stateid;
 };
 union cb_recall_file_args {

@@ -30,6 +30,10 @@
 
 typedef char*       caddr_t;
 
+typedef uint32_t    count4;
+typedef uint64_t    length4;
+typedef uint64_t    offset4;
+
 typedef struct {
     char data[NFS4_VERIFIER_SIZE];
 } verifier4;

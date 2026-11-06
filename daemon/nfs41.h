@@ -272,12 +272,12 @@ typedef struct __nfs41_slot_table {
  */
 #define NFS41_MAX_OPS_PER_COMPOUND 16384
 typedef struct __nfs41_channel_attrs {
-    uint32_t                ca_headerpadsize;
-    uint32_t                ca_maxrequestsize;
-    uint32_t                ca_maxresponsesize;
-    uint32_t                ca_maxresponsesize_cached;
-    uint32_t                ca_maxoperations;
-    uint32_t                ca_maxrequests;
+    count4                  ca_headerpadsize;
+    count4                  ca_maxrequestsize;
+    count4                  ca_maxresponsesize;
+    count4                  ca_maxresponsesize_cached;
+    count4                  ca_maxoperations;
+    count4                  ca_maxrequests;
     uint32_t                *ca_rdma_ird;
 } nfs41_channel_attrs;
 

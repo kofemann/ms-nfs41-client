@@ -356,8 +356,8 @@ typedef struct __nfs41_op_close_res {
 
 /* OP_COMMIT */
 typedef struct __nfs41_commit_args {
-    uint64_t                offset;
-    uint32_t                count;
+    offset4                offset;
+    count4                 count;
 } nfs41_commit_args;
 
 typedef struct __nfs41_commit_res {
@@ -460,14 +460,14 @@ typedef struct __locker4 {
 typedef struct __nfs41_lock_args {
     uint32_t                locktype;
     bool_t                  reclaim;
-    uint64_t                offset;
-    uint64_t                length;
+    offset4                 offset;
+    length4                 length;
     locker4                 locker;
 } nfs41_lock_args;
 
 typedef struct __lock_res_denied {
-    uint64_t                offset;
-    uint64_t                length;
+    offset4                 offset;
+    length4                 length;
     uint32_t                locktype;
     state_owner4            owner;
 } lock_res_denied;
@@ -491,8 +491,8 @@ typedef struct __nfs41_lock_res {
 /* OP_LOCKT */
 typedef struct __nfs41_lockt_args {
     uint32_t                locktype;
-    uint64_t                offset;
-    uint64_t                length;
+    offset4                 offset;
+    length4                 length;
     state_owner4            *owner;
 } nfs41_lockt_args;
 
@@ -509,8 +509,8 @@ typedef struct __nfs41_locku_args {
     uint32_t                locktype;
     uint32_t                seqid;
     stateid_arg             *lock_stateid;
-    uint64_t                offset;
-    uint64_t                length;
+    offset4                 offset;
+    length4                 length;
 } nfs41_locku_args;
 
 typedef struct __nfs41_locku_res {
@@ -728,8 +728,8 @@ typedef struct __nfs41_openattr_res {
 /* OP_READ */
 typedef struct __nfs41_read_args {
     stateid_arg             *stateid; /* -> nfs41_op_open_res_ok.stateid */
-    uint64_t                offset;
-    uint32_t                count;
+    offset4                 offset;
+    count4                  count;
 } nfs41_read_args;
 
 typedef struct __nfs41_read_res_ok {
@@ -745,15 +745,15 @@ typedef struct __nfs41_read_res {
 } nfs41_read_res;
 
 typedef struct __data4 {
-    uint64_t        offset;
+    offset4         offset;
     uint32_t        count;
     uint32_t        data_len;
     unsigned char   *data;
 } data4;
 
 typedef struct __data_info4 {
-    uint64_t offset;
-    uint64_t length;
+    offset4 offset;
+    length4 length;
 } data_info4;
 
 typedef enum __data_content4 {
@@ -764,8 +764,8 @@ typedef enum __data_content4 {
 /* OP_READ_PLUS */
 typedef struct __nfs42_read_plus_args {
     stateid_arg     *stateid; /* -> nfs41_op_open_res_ok.stateid */
-    uint64_t        offset;
-    uint32_t        count;
+    offset4         offset;
+    count4          count;
 } nfs42_read_plus_args;
 
 typedef union __nfs42_read_plus_content {
@@ -802,8 +802,8 @@ typedef struct __nfs42_read_plus_res {
 /* OP_ALLOCATE */
 typedef struct __nfs42_allocate_args {
     stateid_arg     *stateid;
-    uint64_t        offset;
-    uint64_t        length;
+    offset4         offset;
+    length4         length;
 } nfs42_allocate_args;
 
 typedef struct __nfs42_allocate_res {
@@ -814,9 +814,9 @@ typedef struct __nfs42_allocate_res {
 typedef struct __nfs42_copy_args {
     stateid_arg     *src_stateid;
     stateid_arg     *dst_stateid;
-    uint64_t        src_offset;
-    uint64_t        dst_offset;
-    uint64_t        count;
+    offset4         src_offset;
+    offset4         dst_offset;
+    length4         count;
     bool_t          consecutive;
     bool_t          synchronous;
 /*
@@ -833,7 +833,7 @@ enum stable_how4 {
 typedef struct __nfs42_write_response {
     uint32_t            callback_id_count;
     stateid4            callback_id[1];
-    uint64_t            count;
+    length4             count;
     enum stable_how4    committed;
     nfs41_write_verf    *writeverf;
 } nfs42_write_response;
@@ -863,8 +863,8 @@ typedef struct __nfs42_copy_res {
 /* OP_DEALLOCATE */
 typedef struct __nfs42_deallocate_args {
     stateid_arg     *stateid;
-    uint64_t        offset;
-    uint64_t        length;
+    offset4         offset;
+    length4         length;
 } nfs42_deallocate_args;
 
 typedef struct __nfs42_deallocate_res {
@@ -874,13 +874,13 @@ typedef struct __nfs42_deallocate_res {
 /* OP_SEEK */
 typedef struct __nfs42_seek_args {
     stateid_arg     *stateid; /* -> nfs41_op_open_res_ok.stateid */
-    uint64_t        offset;
+    offset4         offset;
     data_content4   what;
 } nfs42_seek_args;
 
 typedef struct __nfs42_seek_res_ok {
     bool_t      eof;
-    uint64_t    offset;
+    offset4     offset;
 } nfs42_seek_res_ok;
 
 typedef struct __nfs42_seek_res {
@@ -893,9 +893,9 @@ typedef struct __nfs42_seek_res {
 typedef struct __nfs42_clone_args {
     stateid_arg     *src_stateid;
     stateid_arg     *dst_stateid;
-    uint64_t        src_offset;
-    uint64_t        dst_offset;
-    uint64_t        count;
+    offset4         src_offset;
+    offset4         dst_offset;
+    length4         count;
 } nfs42_clone_args;
 
 typedef struct __nfs42_clone_res {
@@ -905,8 +905,8 @@ typedef struct __nfs42_clone_res {
 /* OP_READDIR */
 typedef struct __nfs41_readdir_args {
     nfs41_readdir_cookie    cookie;
-    uint32_t                dircount;
-    uint32_t                maxcount;
+    count4                  dircount;
+    count4                  maxcount;
     bitmap4                 *attr_request;
 } nfs41_readdir_args;
 
@@ -1038,14 +1038,14 @@ typedef struct __nfs41_test_stateid_res {
 
 typedef struct __nfs41_write_args {
     stateid_arg             *stateid; /* -> nfs41_op_open_res_ok.stateid */
-    uint64_t                offset;
+    offset4                 offset;
     enum stable_how4        stable;
     uint32_t                data_len;
     unsigned char           *data; /* caller-allocated */
 } nfs41_write_args;
 
 typedef struct __nfs41_write_res_ok {
-    uint32_t                count;
+    count4                  count;
     nfs41_write_verf        *verf;
 } nfs41_write_res_ok;
 
@@ -1100,11 +1100,11 @@ typedef struct __pnfs_layoutget_args {
     bool_t                  signal_layout_avail;
     enum pnfs_layout_type   layout_type;
     enum pnfs_iomode        iomode;
-    uint64_t                offset;
-    uint64_t                length;
-    uint64_t                minlength;
+    offset4                 offset;
+    length4                 length;
+    length4                 minlength;
     stateid_arg             *stateid;
-    uint32_t                maxcount;
+    count4                 maxcount;
 } pnfs_layoutget_args;
 
 typedef struct __pnfs_layoutget_res_ok {
@@ -1128,8 +1128,8 @@ typedef struct __pnfs_layoutget_res {
 
 /* LAYOUTCOMMIT */
 typedef struct __pnfs_layoutcommit_args {
-    uint64_t                offset;
-    uint64_t                length;
+    offset4                 offset;
+    length4                 length;
     stateid4                *stateid;
     nfstime4                *new_time;
     uint64_t                *new_offset;
@@ -1140,7 +1140,7 @@ typedef struct __pnfs_layoutcommit_res {
     /* case NFS4_OK */
     bool_t                  has_new_size;
     /* case TRUE */
-    uint64_t                new_size;
+    length4                 new_size;
 } pnfs_layoutcommit_res;
 
 
@@ -1151,8 +1151,8 @@ typedef struct __pnfs_layoutreturn_args {
     enum pnfs_iomode        iomode;
     enum pnfs_return_type   return_type;
     /* case LAYOUTRETURN4_FILE: */
-    uint64_t                offset;
-    uint64_t                length;
+    offset4                 offset;
+    length4                 length;
     stateid4                *stateid;
 } pnfs_layoutreturn_args;
 
@@ -1169,7 +1169,7 @@ typedef struct __pnfs_layoutreturn_res {
 typedef struct __pnfs_getdeviceinfo_args {
     unsigned char           *deviceid;
     enum pnfs_layout_type   layout_type;
-    uint32_t                maxcount;
+    count4                  maxcount;
     bitmap4                 notify_types;
 } pnfs_getdeviceinfo_args;
 
@@ -1184,7 +1184,7 @@ typedef struct __pnfs_getdeviceinfo_res {
     /* case NFS4_OK: */
         pnfs_getdeviceinfo_res_ok res_ok;
     /* case NFS4ERR_TOOSMALL: */
-       uint32_t             mincount;
+       count4               mincount;
     /* default: void; */
     } u;
 } pnfs_getdeviceinfo_res;
@@ -1267,7 +1267,7 @@ int nfs41_write(
     IN stateid_arg *stateid,
     IN unsigned char *data,
     IN uint32_t data_len,
-    IN uint64_t offset,
+    IN offset4 offset,
     IN enum stable_how4 stable,
     OUT uint32_t *bytes_written,
     OUT nfs41_write_verf *verf,
@@ -1277,7 +1277,7 @@ int nfs41_read(
     IN nfs41_session *session,
     IN nfs41_path_fh *file,
     IN stateid_arg *stateid,
-    IN uint64_t offset,
+    IN offset4 offset,
     IN uint32_t count,
     OUT unsigned char *data_out,
     OUT uint32_t *data_len_out,
@@ -1287,7 +1287,7 @@ int nfs42_read_plus(
     IN nfs41_session *session,
     IN nfs41_path_fh *file,
     IN stateid_arg *stateid,
-    IN uint64_t offset,
+    IN offset4 offset,
     IN uint32_t count,
     OUT unsigned char *data_out,
     OUT uint32_t *data_len_out,
@@ -1297,7 +1297,7 @@ int nfs42_allocate(
     IN nfs41_session *session,
     IN nfs41_path_fh *file,
     IN stateid_arg *stateid,
-    IN uint64_t offset,
+    IN offset4 offset,
     IN uint64_t length,
     OUT nfs41_file_info *cinfo);
 
@@ -1318,7 +1318,7 @@ int nfs42_deallocate(
     IN nfs41_session *session,
     IN nfs41_path_fh *file,
     IN stateid_arg *stateid,
-    IN uint64_t offset,
+    IN offset4 offset,
     IN uint64_t length,
     OUT nfs41_file_info *cinfo);
 
@@ -1326,7 +1326,7 @@ int nfs42_seek(
     IN nfs41_session *session,
     IN nfs41_path_fh *file,
     IN stateid_arg *stateid,
-    IN uint64_t offset,
+    IN offset4 offset,
     IN data_content4 what,
     OUT bool_t *eof_out,
     OUT uint64_t *offset_out);
@@ -1345,7 +1345,7 @@ int nfs42_clone(
 int nfs41_commit(
     IN nfs41_session *session,
     IN nfs41_path_fh *file,
-    IN uint64_t offset,
+    IN offset4 offset,
     IN uint32_t count,
     IN bool_t do_getattr,
     OUT nfs41_write_verf *verf,
@@ -1356,7 +1356,7 @@ int nfs41_lock(
     IN nfs41_path_fh *file,
     IN state_owner4 *owner,
     IN uint32_t type,
-    IN uint64_t offset,
+    IN offset4 offset,
     IN uint64_t length,
     IN bool_t reclaim,
     IN bool_t try_recovery,
@@ -1366,7 +1366,7 @@ int nfs41_unlock(
     IN nfs41_session *session,
     IN nfs41_path_fh *file,
     IN uint32_t type,
-    IN uint64_t offset,
+    IN offset4 offset,
     IN uint64_t length,
     IN OUT stateid_arg *stateid);
 
@@ -1492,7 +1492,7 @@ enum nfsstat4 pnfs_rpc_layoutget(
     IN nfs41_path_fh *file,
     IN stateid_arg *stateid,
     IN enum pnfs_iomode iomode,
-    IN uint64_t offset,
+    IN offset4 offset,
     IN uint64_t minlength,
     IN uint64_t length,
     OUT pnfs_layoutget_res_ok *layoutget_res);
@@ -1501,7 +1501,7 @@ enum nfsstat4 pnfs_rpc_layoutcommit(
     IN nfs41_session *session,
     IN nfs41_path_fh *file,
     IN stateid4 *stateid,
-    IN uint64_t offset,
+    IN offset4 offset,
     IN uint64_t length,
     IN OPTIONAL uint64_t *new_last_offset,
     IN OPTIONAL nfstime4 *new_time_modify,
@@ -1512,7 +1512,7 @@ enum nfsstat4 pnfs_rpc_layoutreturn(
     IN nfs41_path_fh *file,
     IN enum pnfs_layout_type type,
     IN enum pnfs_iomode iomode,
-    IN uint64_t offset,
+    IN offset4 offset,
     IN uint64_t length,
     IN stateid4 *stateid,
     OUT pnfs_layoutreturn_res *layoutreturn_res);

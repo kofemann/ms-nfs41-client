@@ -1,8 +1,10 @@
 /* NFSv4.1 client for Windows
- * Copyright © 2012 The Regents of the University of Michigan
+ * Copyright (C) 2012 The Regents of the University of Michigan
+ * Copyright (C) 2024-2026 Roland Mainz <roland.mainz@nrubsig.org>
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
+ * Roland Mainz <roland.mainz@nrubsig.org>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -163,8 +165,8 @@ typedef struct __pnfs_layout_state {
 
 typedef struct __pnfs_layout {
     struct list_entry       entry;
-    uint64_t                offset;
-    uint64_t                length;
+    offset4                offset;
+    length4                 length;
     enum pnfs_iomode        iomode;
     enum pnfs_layout_type   type;
 } pnfs_layout;
@@ -206,7 +208,7 @@ enum pnfs_status pnfs_layout_state_prepare(
     IN nfs41_path_fh *meta_file,
     IN struct __stateid_arg *stateid,
     IN enum pnfs_iomode iomode,
-    IN uint64_t offset,
+    IN offset4 offset,
     IN uint64_t length);
 
 void pnfs_layout_state_close(
@@ -275,7 +277,7 @@ enum pnfs_status pnfs_read(
     IN struct __nfs41_open_state *state,
     IN struct __stateid_arg *stateid,
     IN pnfs_layout_state *layout,
-    IN uint64_t offset,
+    IN offset4 offset,
     IN uint64_t length,
     OUT unsigned char *buffer_out,
     OUT ULONG *len_out);
@@ -285,7 +287,7 @@ enum pnfs_status pnfs_write(
     IN struct __nfs41_open_state *state,
     IN struct __stateid_arg *stateid,
     IN pnfs_layout_state *layout,
-    IN uint64_t offset,
+    IN offset4 offset,
     IN uint64_t length,
     IN unsigned char *buffer,
     OUT ULONG *len_out,
@@ -310,7 +312,7 @@ __inline uint32_t layout_unit_size(
 }
 __inline uint64_t stripe_unit_number(
     IN const pnfs_file_layout *layout,
-    IN uint64_t offset,
+    IN offset4 offset,
     IN uint32_t unit_size)
 {
     const uint64_t relative_offset = offset - layout->pattern_offset;
