@@ -890,6 +890,12 @@ NTSTATUS nfs41_downcall(
                         STATUS_SUCCESS;
                     cur->u.ReadWrite.rxcontext->InformationToReturn =
                         cur->u.ReadWrite.buf_len;
+                    if (cur->opcode == NFS41_SYSOP_WRITE) {
+                        PNFS41_FCB nfs41_fcb = NFS41GetFcbExtension(
+                            cur->u.ReadWrite.rxcontext->pFcb);
+
+                        nfs41_fcb->changeattr = cur->changeattr;
+                    }
                 } else {
                     cur->u.ReadWrite.rxcontext->StoredStatus =
                         map_readwrite_errors(cur->status);
