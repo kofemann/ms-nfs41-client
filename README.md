@@ -256,6 +256,13 @@ NFSv4.2/NFSv4.1 filesystem driver for Windows 10/11 & Windows Server
   `OFSMount`
   (<https://www.osforensics.com/tools/mount-disk-images.html>), …
 
+- Support for the Windows [BindLink/bind
+  filter](https://learn.microsoft.com/en-us/windows/win32/bindlink/) API
+
+  For example: An admin can use the `/sbin/winbindfilterutil` utility to
+  map `C:\nfsdir1` to UNC path
+  `\\10.49.0.242@NFS_AUTHSYS@2049\mynfsdata`
+
 - Software compatibility:
 
   - Any NFSv4.2/NFSv4.1 server (Linux, Solaris, Illumos, FreeBSD, nfs4j,

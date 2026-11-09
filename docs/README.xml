@@ -291,6 +291,10 @@
         </para>
       </listitem>
       <listitem>
+        <para>Support for the Windows <link xl:href="https://learn.microsoft.com/en-us/windows/win32/bindlink/">BindLink/bind filter</link> API</para>
+        <para>For example: An admin can use the <command>/sbin/winbindfilterutil</command> utility to map <filename>C:\nfsdir1</filename> to UNC path <filename>\\10.49.0.242@NFS_AUTHSYS@2049\mynfsdata</filename></para>
+      </listitem>
+      <listitem>
         <para>Software compatibility:
           <itemizedlist>
             <listitem>

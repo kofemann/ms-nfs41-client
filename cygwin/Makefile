@@ -26,6 +26,7 @@ $(PROJECT_BASEDIR_DIR)/tests/ea/nfs_ea.exe \
 	$(PROJECT_BASEDIR_DIR)/tests/catdbgprint/catdbgprint.exe \
 	$(PROJECT_BASEDIR_DIR)/tests/lssparse/lssparse.exe \
 	$(PROJECT_BASEDIR_DIR)/tests/winfsinfo1/winfsinfo.exe \
+	$(PROJECT_BASEDIR_DIR)/tests/winbindfilterutil/winbindfilterutil.exe \
 	$(PROJECT_BASEDIR_DIR)/tests/filemmaptests/qsortonmmapedfile1.exe \
 	$(PROJECT_BASEDIR_DIR)/tests/lockincfile1/lockincfile1.exe \
 	$(PROJECT_BASEDIR_DIR)/tests/winclonefile/winclonefile.exe \
@@ -82,6 +83,7 @@ build_testutils:
 	(cd "$(PROJECT_BASEDIR_DIR)/tests/ea" && make all)
 	(cd "$(PROJECT_BASEDIR_DIR)/tests/lssparse" && make all)
 	(cd "$(PROJECT_BASEDIR_DIR)/tests/winfsinfo1" && make all)
+	(cd "$(PROJECT_BASEDIR_DIR)/tests/winbindfilterutil" && make all)
 	(cd "$(PROJECT_BASEDIR_DIR)/tests/filemmaptests" && make all)
 	(cd "$(PROJECT_BASEDIR_DIR)/tests/lockincfile1" && make all)
 	(cd "$(PROJECT_BASEDIR_DIR)/tests/winclonefile" && make all)
@@ -125,6 +127,7 @@ clean:
 	(cd "$(PROJECT_BASEDIR_DIR)/tests/ea" && make clean)
 	(cd "$(PROJECT_BASEDIR_DIR)/tests/lssparse" && make clean)
 	(cd "$(PROJECT_BASEDIR_DIR)/tests/winfsinfo1" && make clean)
+	(cd "$(PROJECT_BASEDIR_DIR)/tests/winbindfilterutil" && make clean)
 	(cd "$(PROJECT_BASEDIR_DIR)/tests/filemmaptests" && make clean)
 	(cd "$(PROJECT_BASEDIR_DIR)/tests/lockincfile1" && make clean)
 	(cd "$(PROJECT_BASEDIR_DIR)/tests/winclonefile" && make clean)
@@ -140,6 +143,7 @@ installdest_util: \
 	$(PROJECT_BASEDIR_DIR)/tests/ea/nfs_ea.exe \
 	$(PROJECT_BASEDIR_DIR)/tests/lssparse/lssparse.exe \
 	$(PROJECT_BASEDIR_DIR)/tests/winfsinfo1/winfsinfo.exe \
+	$(PROJECT_BASEDIR_DIR)/tests/winbindfilterutil/winbindfilterutil.exe \
 	$(PROJECT_BASEDIR_DIR)/tests/filemmaptests/qsortonmmapedfile1.exe \
 	$(PROJECT_BASEDIR_DIR)/tests/lockincfile1/lockincfile1.exe \
 	$(PROJECT_BASEDIR_DIR)/tests/winclonefile/winclonefile.exe \

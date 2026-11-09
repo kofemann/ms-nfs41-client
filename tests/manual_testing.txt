@@ -982,6 +982,10 @@ $ apt-get install clang gcc gdb nedit emacs vim x11-apps xterm ksh traceroute st
 #
 ksh93 tests/sparsefiles/testsparsefile1.ksh
 
+#
+# Test bind filter
+#
+/sbin/winbindfilterutil create "$(cygpath -w "$PWD/zroot_casei_pool001")" '\\10.49.202.242@NFS_AUTHSYS_TAG4000@2049\zroot_casei_pool001'
 
 #
 # MSI installation from network driver

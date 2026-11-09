@@ -254,6 +254,7 @@ function nfsclient_install
 		'bin/winsg'
 		'bin/nfs_ea'
 		'sbin/catdbgprint'
+		'sbin/winbindfilterutil'
 		'sbin/winrunassystem'
 		'sbin/nfs_globalmount'
 		'usr/share/msnfs41client/tests/misc/qsortonmmapedfile1'

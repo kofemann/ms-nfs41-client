@@ -173,6 +173,8 @@ installdest:
 	cp "$(PROJECT_BASEDIR_DIR)/tests/winstreamsutil/winstreamsutil.i686.exe" $(DESTDIR)/bin/winstreamsutil.i686.exe
 	cp "$(PROJECT_BASEDIR_DIR)/tests/catdbgprint/catdbgprint.x86_64.exe" $(DESTDIR)/sbin/catdbgprint.x86_64.exe
 	cp "$(PROJECT_BASEDIR_DIR)/tests/catdbgprint/catdbgprint.i686.exe" $(DESTDIR)/sbin/catdbgprint.i686.exe
+	cp "$(PROJECT_BASEDIR_DIR)/tests/winbindfilterutil/winbindfilterutil.x86_64.exe" $(DESTDIR)/sbin/winbindfilterutil.x86_64.exe
+	cp "$(PROJECT_BASEDIR_DIR)/tests/winbindfilterutil/winbindfilterutil.i686.exe" $(DESTDIR)/sbin/winbindfilterutil.i686.exe
 	cp "$(PROJECT_BASEDIR_DIR)/tests/winrunassystem/winrunassystem.x86_64.exe" $(DESTDIR)/sbin/winrunassystem.x86_64.exe
 	cp "$(PROJECT_BASEDIR_DIR)/tests/winrunassystem/winrunassystem.i686.exe" $(DESTDIR)/sbin/winrunassystem.i686.exe
 	cp "$(PROJECT_BASEDIR_DIR)/tests/winrunassystem/cygrunassystem.sh" $(DESTDIR)/sbin/cygrunassystem
