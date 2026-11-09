@@ -30,6 +30,7 @@
 
 typedef char*       caddr_t;
 
+typedef uint32_t    mode4;
 typedef uint32_t    count4;
 typedef uint64_t    length4;
 typedef uint64_t    offset4;
@@ -229,9 +230,9 @@ typedef struct __nfs41_file_info {
     uint32_t                type;
     uint32_t                numlinks;
     uint32_t                rdattr_error;
-    uint32_t                mode;
+    mode4                   mode;
     /* |FATTR4_WORD2_MODE_SET_MASKED| uses |mode| AND |mode_mask| */
-    uint32_t                mode_mask;
+    mode4                   mode_mask;
     char                    *owner;
     char                    *owner_group;
     bool_t                  hidden;

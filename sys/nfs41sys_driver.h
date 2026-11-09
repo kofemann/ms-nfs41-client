@@ -270,7 +270,7 @@ typedef struct _updowncall_entry {
 #endif /* NFS41_DRIVER_ALLOW_CREATEFILE_ACLS */
             ULONG disp;
             LONG open_owner_id;
-            DWORD mode;
+            UINT32 mode;
 #ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES
             /* |local_uid| - |FATTR4_OWNER| idmapped into local uid */
             DWORD local_uid;
@@ -323,7 +323,7 @@ typedef struct _updowncall_entry {
 #endif /* NFS41_DRIVER_MARK_OVERWRITTEN_LINKRENAME_DST_PATH_SRVOPEN_AS_STALE */
         } SetFile;
         struct {
-            DWORD mode;
+            UINT32 mode;
             PVOID buf;
             ULONG buf_len;
         } SetEa;
@@ -352,7 +352,7 @@ typedef struct _updowncall_entry {
         } Volume;
         struct {
             SECURITY_INFORMATION query_secinfo;
-            ULONG mode;
+            UINT32 mode;
             PVOID buf;
             ULONG buf_len;
         } Acl;
@@ -393,7 +393,7 @@ typedef struct _updowncall_entry {
             LONGLONG    bytecount;
             ULONGLONG   file_size;
             ULONGLONG   space_used;
-            DWORD       mode;
+            UINT32      mode;
             ULONGLONG   modify_time;
         } DuplicateData;
     } u;
@@ -431,7 +431,7 @@ extern nfs41_updowncall_list downcalllist;
 
 typedef struct _NFS41_MOUNT_CREATEMODE {
     BOOLEAN use_nfsv3attrsea_mode;
-    DWORD mode;
+    UINT32 mode;
 } NFS41_MOUNT_CREATEMODE;
 
 typedef struct _NFS41_MOUNT_CONFIG {
@@ -592,7 +592,7 @@ typedef struct _NFS41_FCB {
     ULONGLONG               fsid_major, fsid_minor;
     BOOLEAN                 Renamed;
     BOOLEAN                 DeletePending;
-    DWORD                   mode;
+    UINT32                   mode;
 #ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES
     /* |local_uid| - |FATTR4_OWNER| idmapped into local uid */
     DWORD                   local_uid;

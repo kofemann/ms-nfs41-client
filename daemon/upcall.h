@@ -68,7 +68,7 @@ typedef struct __open_upcall_args {
     PSECURITY_DESCRIPTOR sec_desc;
 #endif /* NFS41_DRIVER_ALLOW_CREATEFILE_ACLS */
     LONG open_owner_id;
-    DWORD mode;
+    uint32_t mode;
 #ifdef NFS41_DRIVER_FEATURE_LOCAL_UIDGID_IN_NFSV3ATTRIBUTES
     /* |local_uid| - |FATTR4_OWNER| idmapped into local uid */
     DWORD local_uid;
@@ -234,7 +234,7 @@ typedef struct __setacl_upcall_args {
     SECURITY_INFORMATION query_secinfo;
     PSECURITY_DESCRIPTOR sec_desc;
     ULONGLONG changeattr;
-    DWORD mode;
+    uint32_t mode;
 } setacl_upcall_args;
 
 typedef struct __queryallocatedranges_upcall_args {
@@ -258,7 +258,7 @@ typedef struct __duplicatedata_upcall_args {
     ULONGLONG           changeattr;
     ULONGLONG           file_size;
     ULONGLONG           space_used;
-    DWORD               mode;
+    uint32_t            mode;
     ULONGLONG           modify_time;
 } duplicatedata_upcall_args;
 

@@ -873,7 +873,7 @@ NTSTATUS nfs41_DuplicateData(
         PNFS41_FCB nfs41_fcb = NFS41GetFcbExtension(RxContext->pFcb);
         LONGLONG file_size;
         ULONGLONG allocation_size;
-        DWORD mode;
+        UINT32 mode;
         ULONGLONG modify_time;
 
         file_size = entry->u.DuplicateData.file_size;

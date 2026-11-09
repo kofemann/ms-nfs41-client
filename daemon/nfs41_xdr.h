@@ -38,6 +38,7 @@ bool_t nfs_decode_compound(XDR *xdr, caddr_t *res);
 void nfsacl41_free(nfsacl41 *acl);
 enum limit_by4;
 bool_t xdr_count4(XDR *restrict xdr, count4 *restrict count);
+bool_t xdr_mode4(XDR *restrict xdr, mode4 *restrict mode);
 bool_t xdr_length4(XDR *restrict xdr, length4 *restrict length);
 bool_t xdr_offset4(XDR *restrict xdr, offset4 *restrict offset);
 bool_t xdr_limit_by4(XDR *xdr, enum limit_by4 *limitby);

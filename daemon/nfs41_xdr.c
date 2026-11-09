@@ -529,6 +529,11 @@ bool_t xdr_count4(XDR *restrict xdr, count4 *restrict count)
     return xdr_uint32_t(xdr, count);
 }
 
+bool_t xdr_mode4(XDR *restrict xdr, mode4 *restrict mode)
+{
+    return xdr_uint32_t(xdr, mode);
+}
+
 bool_t xdr_length4(XDR *restrict xdr, length4 *restrict length)
 {
     return xdr_uint64_t(xdr, length);
@@ -2113,7 +2118,7 @@ static bool_t decode_file_attrs(
     }
     if (attrs->attrmask.count > 1) {
         if (attrs->attrmask.arr[1] & FATTR4_WORD1_MODE) {
-            if (!xdr_uint32_t(xdr, &info->mode))
+            if (!xdr_mode4(xdr, &info->mode))
                 return FALSE;
         }
         if (attrs->attrmask.arr[1] & FATTR4_WORD1_NUMLINKS) {
@@ -2978,7 +2983,7 @@ static bool_t encode_file_attrs(
     }
     if (info->attrmask.count > 1) {
         if (info->attrmask.arr[1] & FATTR4_WORD1_MODE) {
-            if (!xdr_uint32_t(&localxdr, &info->mode))
+            if (!xdr_mode4(&localxdr, &info->mode))
                 return FALSE;
             attrs->attrmask.arr[1] |= FATTR4_WORD1_MODE;
         }
@@ -3021,9 +3026,9 @@ static bool_t encode_file_attrs(
     }
     if (info->attrmask.count > 2) {
         if (info->attrmask.arr[2] & FATTR4_WORD2_MODE_SET_MASKED) {
-            if (!xdr_uint32_t(&localxdr, &info->mode))
+            if (!xdr_mode4(&localxdr, &info->mode))
                 return FALSE;
-            if (!xdr_uint32_t(&localxdr, &info->mode_mask))
+            if (!xdr_mode4(&localxdr, &info->mode_mask))
                 return FALSE;
             attrs->attrmask.arr[2] |= FATTR4_WORD2_MODE_SET_MASKED;
         }
