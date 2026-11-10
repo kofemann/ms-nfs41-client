@@ -807,6 +807,10 @@ NTSTATUS nfs41_DuplicateData(
         goto out;
     }
 
+    /*
+     * Note that |srcfcb == RxContext->pFcb| works because
+     * |RxAcquireExclusiveFcbResourceInMRx()| allows recursive locking
+     */
     status = RxAcquireExclusiveFcbResourceInMRx((PMRX_FCB)srcfcb);
     if (!NT_SUCCESS(status)) {
         DbgP("nfs41_DuplicateData: "
@@ -1403,6 +1407,11 @@ NTSTATUS nfs41_OffloadWrite(
 
     PNFS41_SRV_OPEN src_nfs41_srvopen =
         NFS41GetSrvOpenExtension(src_oce->src_srvopen);
+
+    /*
+     * Note that |src_oce->src_srvopen->pFcb == RxContext->pFcb| works because
+     * |RxAcquireExclusiveFcbResourceInMRx()| allows recursive locking
+     */
 
     status = RxAcquireExclusiveFcbResourceInMRx(src_oce->src_srvopen->pFcb);
     if (!NT_SUCCESS(status)) {
