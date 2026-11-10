@@ -799,7 +799,6 @@ NTSTATUS nfs41_Create(
     __notnull PNFS41_FCB nfs41_fcb = NFS41GetFcbExtension(Fcb);
     PNFS41_FOBX nfs41_fobx = NULL;
     BOOLEAN oldDeletePending = nfs41_fcb->StandardInfo.DeletePending;
-    bool fcb_locked_exclusive = false;
 #ifdef ENABLE_TIMINGS
     LARGE_INTEGER t1, t2;
     t1 = KeQueryPerformanceCounter(NULL);
@@ -1164,18 +1163,8 @@ retry_on_link:
         goto out;
     }
 
-    if (!RxIsFcbAcquiredExclusive(Fcb)) {
-        ASSERT(!RxIsFcbAcquiredShared(Fcb));
-
-        DbgP("nfs41_Create: Fcb not locked exclusive\n");
-
-        NTSTATUS rxa_status;
-        rxa_status = RxAcquireExclusiveFcbResourceInMRx(Fcb);
-        if (!NT_SUCCESS(rxa_status)) {
-            goto out;
-        }
-        fcb_locked_exclusive = true;
-    }
+    /* RDBSS should have locked |Fcb| exclusive for us... */
+    ASSERT(RxIsFcbAcquiredExclusive(Fcb));
 
     nfs41_srvopen->nfs41_open_state = entry->open_state;
 
@@ -1406,10 +1395,6 @@ out:
             SeDeleteClientSecurity(&nfs41_srvopen->sec_ctx);
             nfs41_srvopen->sec_ctx.ClientToken = NULL;
         }
-    }
-
-    if (fcb_locked_exclusive) {
-        RxReleaseFcbResourceInMRx(Fcb);
     }
 
     if (entry) {
