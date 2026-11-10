@@ -417,6 +417,7 @@ NTSTATUS nfs41_GetReparsePoint(IN OUT PRX_CONTEXT RxContext)
             "check_nfs41_getreparse_args() failed, "
             "status=0x%lx\n",
                 (long)status);
+        goto out;
     }
 
     new_buffer = RxAllocatePoolWithTag(NonPagedPoolNx,
