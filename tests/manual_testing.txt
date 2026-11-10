@@ -1,5 +1,5 @@
 #
-# ms-nfs41-client manual testing sequence, 2026-11-03
+# ms-nfs41-client manual testing sequence, 2026-11-10
 #
 # Draft version, needs to be turned into automated tests
 # if possible
@@ -1289,13 +1289,13 @@ General:
 - All following commands assume that the NFS filesystem
 has been mounted via nfs_globalmount.exe (global filesystem)
 - Instructions are for OpenZFS version
-https://github.com/openzfsonwindows/openzfs/releases/tag/zfswin-2.4.1rc12
+https://github.com/openzfsonwindows/openzfs/releases/tag/zfswin-2.4.4rc9
 
 #### OpenZFS Installation
 ---- snip ----
-wget 'https://github.com/openzfsonwindows/openzfs/releases/download/zfswin-2.4.1rc12/OpenZFSOnWindows-debug-2.4.1rc12.exe'
-chmod a+x OpenZFSOnWindows-debug-2.4.1rc12.exe
-./OpenZFSOnWindows-debug-2.4.1rc12
+wget 'https://github.com/openzfsonwindows/openzfs/releases/download/zfswin-2.4.4rc9/OpenZFSOnWindows-2.4.4rc9b.exe'
+chmod a+x OpenZFSOnWindows-2.4.4rc9b.exe
+./OpenZFSOnWindows-2.4.4rc9b
 ---- snip ----
 
 
@@ -1308,6 +1308,7 @@ truncate -s $((128*1024*1024*1024)) poolfile1.bin
 chmod a+rw poolfile1.bin
 # Create pool:
 # - ashift=15 defines 32k blocks
+# - xattr=dir makes sure O_XATTR required for Windows names streams work
 # - autotrim=on makes sure that we use "poolfile1.bin" as sparse file
 # - casesensitivity=insensitive defines a case-insensitive filesystem
 # - driveletter=U sets the fs mount point to U:
