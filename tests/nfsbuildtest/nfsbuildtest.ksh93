@@ -102,51 +102,6 @@ function gcc_createcache
 	return 0
 }
 
-
-function patch_gcc13_1_0_libiberty_strsignal_psignal_prototype
-{
-{
-cat <<EOF
-diff --git a/libiberty/strsignal.c b/libiberty/strsignal.c
-index 36b41f17e12..de7a5317b60 100644
---- a/libiberty/strsignal.c
-+++ b/libiberty/strsignal.c
-@@ -551,7 +551,7 @@ followed by a newline.
- #ifndef HAVE_PSIGNAL
-
- void
--psignal (int signo, char *message)
-+psignal (int signo, const char *message)
- {
-   if (signal_names == NULL)
-     {
-EOF
-} | patch -p1 --ignore-whitespace
-    return $?
-}
-
-function patch_gcc13_1_0_workaround_bogus_have_setlocale_check
-{
-{
-cat <<EOF
-diff --git a/libcpp/system.h b/libcpp/system.h
-index 81033527a3f..8ccaa4f0084 100644
---- a/libcpp/system.h
-+++ b/libcpp/system.h
-@@ -272,7 +272,7 @@ extern int errno;
- #endif
- 
- #ifndef HAVE_SETLOCALE
--# define setlocale(category, locale) (locale)
-+//# define setlocale(category, locale) (locale)
- #endif
- 
- #ifdef ENABLE_NLS
-EOF
-} | patch -p1 --ignore-whitespace
-    return $?
-}
-
 function gcc_build
 {
 	set -o xtrace
@@ -174,7 +129,7 @@ function gcc_build
 	compound gitdata=(
 		typeset url='git://repo.or.cz/gcc.git'
 		# use fixed git tag, so build times are compareable
-		typeset tag='releases/gcc-13.1.0'
+		typeset tag='releases/gcc-16.2.0'
 	)
 
 	typeset -a configure_options=(
@@ -241,9 +196,6 @@ function gcc_build
 	#
 	# patch sources and configure build
 	#
-
-	patch_gcc13_1_0_libiberty_strsignal_psignal_prototype
-	patch_gcc13_1_0_workaround_bogus_have_setlocale_check # requird for Cygwin 3.7.0
 
 	# original mkinstalldirs cannot handle UNC paths
 	printf '#!/bin/sh\n# original mkinstalldirs cannot handle Cygwin UNC paths\nmkdir -p "$@"\nexit $?\n' >'mkinstalldirs'
