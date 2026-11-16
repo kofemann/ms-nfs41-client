@@ -666,7 +666,7 @@ typedef struct __open_claim4 {
         } null;
     /* case CLAIM_PREVIOUS: */
         struct __open_claim_prev {
-            uint32_t        delegate_type;
+            enum open_delegation_type4  delegate_type;
         } prev;
     /* case CLAIM_DELEGATE_CUR: */
         struct __open_claim_deleg_cur {

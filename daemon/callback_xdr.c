@@ -144,7 +144,7 @@ static bool_t op_cb_open_delegation(XDR *restrict xdr,
 {
     bool_t result;
 
-    result = xdr_enum(xdr, (enum_t *)&delegation->type);
+    result = xdr_open_delegation_type4(xdr, &delegation->type);
     if (!result) { CBX_ERR("push_deleg.delegation.type"); goto out; }
 
     switch (delegation->type) {

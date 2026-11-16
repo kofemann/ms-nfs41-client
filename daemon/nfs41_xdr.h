@@ -49,6 +49,9 @@ bool_t xdr_fh(XDR *restrict xdr, nfs41_fh *restrict fh);
 bool_t xdr_fsid(XDR *restrict xdr, nfs41_fsid *restrict fsid);
 enum stable_how4;
 bool_t xdr_stable_how4(XDR *restrict xdr, enum stable_how4 *restrict sh);
+bool_t xdr_open_delegation_type4(
+    XDR *restrict xdr,
+    enum open_delegation_type4 *restrict odt);
 bool_t xdr_state_owner4(XDR *restrict xdr, state_owner4 *restrict so);
 
 /* NFSv4.2 ops */

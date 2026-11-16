@@ -291,6 +291,31 @@ bool_t xdr_stable_how4(
     /* NOTREACHED */
 }
 
+/* |enum open_delegation_type4| */
+bool_t xdr_open_delegation_type4(
+    XDR *restrict xdr,
+    enum open_delegation_type4 *restrict odt)
+{
+    enum_t value;
+
+    switch (xdr->x_op) {
+        case XDR_ENCODE:
+            value = (enum_t)*odt;
+            return xdr_enum(xdr, &value);
+        case XDR_DECODE:
+            if (!xdr_enum(xdr, &value))
+                return FALSE;
+            *odt = (enum stable_how4)value;
+                return TRUE;
+        case XDR_FREE:
+            return TRUE;
+        default:
+            EASSERT(0);
+            return FALSE;
+    }
+    /* NOTREACHED */
+}
+
 /* nfs41_component */
 static bool_t encode_component(
     XDR *restrict xdr,
@@ -2322,7 +2347,7 @@ static bool_t encode_open_claim4(
     case CLAIM_NULL:
         return encode_component(xdr, oc->u.null.filename);
     case CLAIM_PREVIOUS:
-        return xdr_uint32_t(xdr, &oc->u.prev.delegate_type);
+        return xdr_open_delegation_type4(xdr, &oc->u.prev.delegate_type);
     case CLAIM_FH:
         return TRUE; /* use current file handle */
     case CLAIM_DELEGATE_CUR:
@@ -2472,7 +2497,7 @@ static bool_t decode_open_res_ok(
     if (!xdr_bitmap4(xdr, &res->attrset))
         return FALSE;
 
-    if (!xdr_enum(xdr, (enum_t*)&res->delegation->type))
+    if (!xdr_open_delegation_type4(xdr, &res->delegation->type))
         return FALSE;
 
     switch (res->delegation->type)
@@ -3102,7 +3127,7 @@ static bool_t encode_deleg_claim4(
         case CLAIM_DELEG_PREV_FH:
             return TRUE;
         case CLAIM_PREVIOUS:
-            return xdr_enum(xdr, (enum_t *)&claim->prev_delegate_type);
+            return xdr_open_delegation_type4(xdr, &claim->prev_delegate_type);
         default:
             eprintf("encode_deleg_claim4: unsupported claim=%d\n",
                 (int)claim->claim);
@@ -3141,7 +3166,7 @@ static bool_t decode_op_want_delegation(
     if (res->status)
         return TRUE;
 
-    if (!xdr_enum(xdr, (enum_t*)&res->delegation->type))
+    if (!xdr_open_delegation_type4(xdr, &res->delegation->type))
         return FALSE;
 
     switch (res->delegation->type)
