@@ -161,7 +161,7 @@ typedef struct __open_delegation4 {
     stateid4 stateid;
     nfsace4 permissions;
     enum open_delegation_type4 type;
-    uint32_t why_no_delegation;
+    enum why_no_delegation4 why_no_delegation;
     bool_t will_signal;
     bool_t recalled;
 } open_delegation4;

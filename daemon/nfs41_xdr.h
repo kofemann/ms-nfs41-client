@@ -53,6 +53,9 @@ bool_t xdr_open_delegation_type4(
     XDR *restrict xdr,
     enum open_delegation_type4 *restrict odt);
 bool_t xdr_state_owner4(XDR *restrict xdr, state_owner4 *restrict so);
+bool_t decode_why_no_delegation(
+    XDR *restrict xdr,
+    enum why_no_delegation4 *restrict why_no_delegation);
 
 /* NFSv4.2 ops */
 bool_t encode_op_allocate(XDR *restrict xdr,

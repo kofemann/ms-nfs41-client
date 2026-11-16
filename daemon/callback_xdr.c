@@ -118,11 +118,11 @@ out:
 
 static bool_t op_cb_open_none_delegation(XDR *restrict xdr)
 {
-    enum_t why_no_deleg;
+    enum why_no_delegation4 why_no_deleg;
     bool_t will_signal;
     bool_t result;
 
-    result = xdr_enum(xdr, &why_no_deleg);
+    result = decode_why_no_delegation(xdr, &why_no_deleg);
     if (!result) { CBX_ERR("push_deleg.delegation.none_ext.why_no_deleg"); goto out; }
 
     switch (why_no_deleg) {
@@ -132,6 +132,7 @@ static bool_t op_cb_open_none_delegation(XDR *restrict xdr)
         if (!result) { CBX_ERR("push_deleg.delegation.none_ext.will_signal"); goto out; }
         break;
     default:
+        will_signal = FALSE;
         result = TRUE;
         break;
     }

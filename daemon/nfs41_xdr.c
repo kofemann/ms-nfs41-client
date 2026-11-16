@@ -2409,11 +2409,19 @@ static bool_t encode_op_open(
     return encode_open_claim4(xdr, args->claim);
 }
 
+
+bool_t decode_why_no_delegation(
+    XDR *restrict xdr,
+    enum why_no_delegation4 *restrict why_no_delegation)
+{
+    return xdr_enum(xdr, (enum_t *)why_no_delegation);
+}
+
 static bool_t decode_open_none_delegation4(
     XDR *restrict xdr,
     open_delegation4 *restrict delegation)
 {
-    if (!xdr_enum(xdr, (enum_t*)&delegation->why_no_delegation))
+    if (!decode_why_no_delegation(xdr, &delegation->why_no_delegation))
         return FALSE;
 
     delegation->will_signal = FALSE;
