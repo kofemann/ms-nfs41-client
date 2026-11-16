@@ -33,27 +33,27 @@
 
 
 /* common types */
-bool_t xdr_bitmap4(XDR *xdr, bitmap4 *bitmap);
-bool_t xdr_fattr4(XDR *xdr, fattr4 *fattr);
-bool_t xdr_nfsace4(XDR *xdr, nfsace4 *ace);
-bool_t xdr_limit_by4(XDR *xdr, enum limit_by4 *limitby);
-bool_t xdr_stateid4(XDR *xdr, stateid4 *si);
-bool_t xdr_fh(XDR *xdr, nfs41_fh *fh);
-bool_t xdr_fsid(XDR *xdr, nfs41_fsid *fsid);
-bool_t xdr_stable_how4(XDR *xdr, enum stable_how4 *sh);
-bool_t xdr_state_owner4(XDR *xdr,state_owner4 *so);
+bool_t xdr_bitmap4(XDR *restrict xdr, bitmap4 *restrict bitmap);
+bool_t xdr_fattr4(XDR *restrict xdr, fattr4 *restrict fattr);
+bool_t xdr_nfsace4(XDR *restrict xdr, nfsace4 *restrict ace);
+bool_t xdr_limit_by4(XDR *restrict xdr, enum limit_by4 *restrict limitby);
+bool_t xdr_stateid4(XDR *restrict xdr, stateid4 *restrict si);
+bool_t xdr_fh(XDR *restrict xdr, nfs41_fh *restrict fh);
+bool_t xdr_fsid(XDR *restrict xdr, nfs41_fsid *restrict fsid);
+bool_t xdr_stable_how4(XDR *restrict xdr, enum stable_how4 *restrict sh);
+bool_t xdr_state_owner4(XDR *restrict xdr, state_owner4 *restrict so);
 
 /* Local prototypes */
-static bool_t xdr_notify4(XDR *xdr, struct notify4 *notify);
+static bool_t xdr_notify4(XDR *restrict xdr, struct notify4 *restrict notify);
 
 
-static bool_t xdr_notify4(XDR *xdr, struct notify4 *notify)
+static bool_t xdr_notify4(XDR *restrict xdr, struct notify4 *restrict notify)
 {
     return xdr_bitmap4(xdr, &notify->mask)
         && xdr_bytes(xdr, &notify->list, &notify->len, NFS4_OPAQUE_LIMIT);
 }
 
-static bool_t op_cb_open_read_delegation(XDR *xdr,
+static bool_t op_cb_open_read_delegation(XDR *restrict xdr,
     open_delegation4 *delegation)
 {
     bool_t result;
@@ -73,8 +73,8 @@ out:
     return result;
 }
 
-static bool_t op_cb_open_write_delegation(XDR *xdr,
-    open_delegation4 *delegation)
+static bool_t op_cb_open_write_delegation(XDR *restrict xdr,
+    open_delegation4 *restrict delegation)
 {
     enum limit_by4 limitby;
     uint32_t blocks, bytes_per_block;
@@ -116,7 +116,7 @@ out:
     return result;
 }
 
-static bool_t op_cb_open_none_delegation(XDR *xdr)
+static bool_t op_cb_open_none_delegation(XDR *restrict xdr)
 {
     enum_t why_no_deleg;
     bool_t will_signal;
@@ -139,8 +139,8 @@ out:
     return result;
 }
 
-static bool_t op_cb_open_delegation(XDR *xdr,
-    open_delegation4 *delegation)
+static bool_t op_cb_open_delegation(XDR *restrict xdr,
+    open_delegation4 *restrict delegation)
 {
     bool_t result;
 
@@ -173,7 +173,9 @@ out:
 
 
 /* OP_CB_LAYOUTRECALL */
-static bool_t op_cb_layoutrecall_file(XDR *xdr, struct cb_recall_file *args)
+static bool_t op_cb_layoutrecall_file(
+    XDR *restrict xdr,
+    struct cb_recall_file *restrict args)
 {
     bool_t result;
 
@@ -192,7 +194,9 @@ out:
     return result;
 }
 
-static bool_t op_cb_layoutrecall_fsid(XDR *xdr, union cb_recall_file_args *args)
+static bool_t op_cb_layoutrecall_fsid(
+    XDR *restrict xdr,
+    union cb_recall_file_args *restrict args)
 {
     bool_t result;
 
@@ -209,7 +213,9 @@ static const struct xdr_discrim cb_layoutrecall_discrim[] = {
     { 0,                    NULL_xdrproc_t }
 };
 
-static bool_t op_cb_layoutrecall_args(XDR *xdr, struct cb_layoutrecall_args *args)
+static bool_t op_cb_layoutrecall_args(
+    XDR *restrict xdr,
+    struct cb_layoutrecall_args *restrict args)
 {
     bool_t result;
 
@@ -229,7 +235,9 @@ out:
     return result;
 }
 
-static bool_t op_cb_layoutrecall_res(XDR *xdr, struct cb_layoutrecall_res *res)
+static bool_t op_cb_layoutrecall_res(
+    XDR *restrict xdr,
+    struct cb_layoutrecall_res *restrict res)
 {
     bool_t result;
 
@@ -241,7 +249,9 @@ out:
 
 
 /* OP_CB_RECALL_SLOT */
-static bool_t op_cb_recall_slot_args(XDR *xdr, struct cb_recall_slot_args *res)
+static bool_t op_cb_recall_slot_args(
+    XDR *restrict xdr,
+    struct cb_recall_slot_args *restrict res)
 {
     bool_t result;
 
@@ -251,7 +261,9 @@ out:
     return result;
 }
 
-static bool_t op_cb_recall_slot_res(XDR *xdr, struct cb_recall_slot_res *res)
+static bool_t op_cb_recall_slot_res(
+    XDR *restrict xdr,
+    struct cb_recall_slot_res *restrict res)
 {
     bool_t result;
 
@@ -263,7 +275,9 @@ out:
 
 
 /* OP_CB_SEQUENCE */
-static bool_t op_cb_sequence_ref(XDR *xdr, struct cb_sequence_ref *args)
+static bool_t op_cb_sequence_ref(
+    XDR *restrict xdr,
+    struct cb_sequence_ref *restrict args)
 {
     bool_t result;
 
@@ -276,7 +290,8 @@ out:
     return result;
 }
 
-static bool_t op_cb_sequence_ref_list(XDR *xdr, struct cb_sequence_ref_list *args)
+static bool_t op_cb_sequence_ref_list(XDR *restrict xdr,
+    struct cb_sequence_ref_list *restrict args)
 {
     bool_t result;
 
@@ -290,7 +305,9 @@ out:
     return result;
 }
 
-static bool_t op_cb_sequence_args(XDR *xdr, struct cb_sequence_args *args)
+static bool_t op_cb_sequence_args(
+    XDR *restrict xdr,
+    struct cb_sequence_args *restrict args)
 {
     bool_t result;
 
@@ -317,7 +334,9 @@ out:
     return result;
 }
 
-static bool_t op_cb_sequence_res_ok(XDR *xdr, struct cb_sequence_res_ok *res)
+static bool_t op_cb_sequence_res_ok(
+    XDR *restrict xdr,
+    struct cb_sequence_res_ok *restrict res)
 {
     bool_t result;
 
@@ -344,7 +363,9 @@ static const struct xdr_discrim cb_sequence_res_discrim[] = {
     { 0,                    NULL_xdrproc_t }
 };
 
-static bool_t op_cb_sequence_res(XDR *xdr, struct cb_sequence_res *res)
+static bool_t op_cb_sequence_res(
+    XDR *restrict xdr,
+    struct cb_sequence_res *restrict res)
 {
     bool_t result;
 
@@ -356,7 +377,9 @@ out:
 }
 
 /* OP_CB_GETATTR */
-static bool_t op_cb_getattr_args(XDR *xdr, struct cb_getattr_args *args)
+static bool_t op_cb_getattr_args(
+    XDR *restrict xdr,
+    struct cb_getattr_args *restrict args)
 {
     bool_t result;
 
@@ -397,7 +420,8 @@ out:
     return result;
 }
 
-static bool_t op_cb_getattr_res(XDR *xdr, struct cb_getattr_res *res)
+static bool_t op_cb_getattr_res(XDR *restrict xdr,
+    struct cb_getattr_res *restrict res)
 {
     bool_t result;
 
@@ -418,7 +442,9 @@ out:
 }
 
 /* OP_CB_RECALL */
-static bool_t op_cb_recall_args(XDR *xdr, struct cb_recall_args *args)
+static bool_t op_cb_recall_args(
+    XDR *restrict xdr,
+    struct cb_recall_args *restrict args)
 {
     bool_t result;
 
@@ -434,7 +460,9 @@ out:
     return result;
 }
 
-static bool_t op_cb_recall_res(XDR *xdr, struct cb_recall_res *res)
+static bool_t op_cb_recall_res(
+    XDR *restrict xdr,
+    struct cb_recall_res *restrict res)
 {
     bool_t result;
 
@@ -445,7 +473,9 @@ out:
 }
 
 /* OP_CB_NOTIFY */
-static bool_t op_cb_notify_args(XDR *xdr, struct cb_notify_args *args)
+static bool_t op_cb_notify_args(
+    XDR *restrict xdr,
+    struct cb_notify_args *restrict args)
 {
     bool_t result;
 
@@ -463,7 +493,9 @@ out:
     return result;
 }
 
-static bool_t op_cb_notify_res(XDR *xdr, struct cb_notify_res *res)
+static bool_t op_cb_notify_res(
+    XDR *restrict xdr,
+    struct cb_notify_res *restrict res)
 {
     bool_t result;
 
@@ -474,7 +506,9 @@ out:
 }
 
 /* OP_CB_PUSH_DELEG */
-static bool_t op_cb_push_deleg_args(XDR *xdr, struct cb_push_deleg_args *args)
+static bool_t op_cb_push_deleg_args(
+    XDR *restrict xdr,
+    struct cb_push_deleg_args *restrict args)
 {
     bool_t result;
 
@@ -487,7 +521,9 @@ out:
     return result;
 }
 
-static bool_t op_cb_push_deleg_res(XDR *xdr, struct cb_push_deleg_res *res)
+static bool_t op_cb_push_deleg_res(
+    XDR *restrict xdr,
+    struct cb_push_deleg_res *restrict res)
 {
     bool_t result;
 
@@ -498,7 +534,9 @@ out:
 }
 
 /* OP_CB_RECALL_ANY */
-static bool_t op_cb_recall_any_args(XDR *xdr, struct cb_recall_any_args *args)
+static bool_t op_cb_recall_any_args(
+    XDR *restrict xdr,
+    struct cb_recall_any_args *restrict args)
 {
     bool_t result;
 
@@ -511,7 +549,9 @@ out:
     return result;
 }
 
-static bool_t op_cb_recall_any_res(XDR *xdr, struct cb_recall_any_res *res)
+static bool_t op_cb_recall_any_res(
+    XDR *restrict xdr,
+    struct cb_recall_any_res *restrict res)
 {
     bool_t result;
 
@@ -522,8 +562,9 @@ out:
 }
 
 /* OP_CB_RECALLABLE_OBJ_AVAIL */
-static bool_t op_cb_recallable_obj_avail_args(XDR *xdr,
-    struct cb_recallable_obj_avail_args *args)
+static bool_t op_cb_recallable_obj_avail_args(
+    XDR *restrict xdr,
+    struct cb_recallable_obj_avail_args *restrict args)
 {
     bool_t result;
 
@@ -536,7 +577,9 @@ out:
     return result;
 }
 
-static bool_t op_cb_recallable_obj_avail_res(XDR *xdr, struct cb_recallable_obj_avail_res *res)
+static bool_t op_cb_recallable_obj_avail_res(
+    XDR *restrict xdr,
+    struct cb_recallable_obj_avail_res *restrict res)
 {
     bool_t result;
 
@@ -547,8 +590,9 @@ out:
 }
 
 /* OP_CB_WANTS_CANCELLED */
-static bool_t op_cb_wants_cancelled_args(XDR *xdr,
-    struct cb_wants_cancelled_args *args)
+static bool_t op_cb_wants_cancelled_args(
+    XDR *restrict xdr,
+    struct cb_wants_cancelled_args *restrict args)
 {
     bool_t result;
 
@@ -561,7 +605,9 @@ out:
     return result;
 }
 
-static bool_t op_cb_wants_cancelled_res(XDR *xdr, struct cb_wants_cancelled_res *res)
+static bool_t op_cb_wants_cancelled_res(
+    XDR *restrict xdr,
+    struct cb_wants_cancelled_res *restrict res)
 {
     bool_t result;
 
@@ -572,8 +618,8 @@ out:
 }
 
 /* OP_CB_NOTIFY_LOCK */
-static bool_t op_cb_notify_lock_args(XDR *xdr,
-    struct cb_notify_lock_args *args)
+static bool_t op_cb_notify_lock_args(XDR *restrict xdr,
+    struct cb_notify_lock_args *restrict args)
 {
     bool_t result;
 
@@ -586,7 +632,9 @@ out:
     return result;
 }
 
-static bool_t op_cb_notify_lock_res(XDR *xdr, struct cb_notify_lock_res *res)
+static bool_t op_cb_notify_lock_res(
+    XDR *restrict xdr,
+    struct cb_notify_lock_res *restrict res)
 {
     bool_t result;
 
@@ -597,7 +645,9 @@ out:
 }
 
 /* OP_CB_NOTIFY_DEVICEID */
-static bool_t cb_notify_deviceid_change(XDR *xdr, struct notify_deviceid4 *change)
+static bool_t cb_notify_deviceid_change(
+    XDR *restrict xdr,
+    struct notify_deviceid4 *restrict change)
 {
     bool_t result;
 
@@ -613,7 +663,9 @@ out:
     return result;
 }
 
-static bool_t cb_notify_deviceid_delete(XDR *xdr, struct notify_deviceid4 *change)
+static bool_t cb_notify_deviceid_delete(
+    XDR *restrict xdr,
+    struct notify_deviceid4 *restrict change)
 {
     bool_t result;
 
@@ -626,7 +678,9 @@ out:
     return result;
 }
 
-static bool_t op_cb_notify_deviceid_args(XDR *xdr, struct cb_notify_deviceid_args *args)
+static bool_t op_cb_notify_deviceid_args(
+    XDR *restrict xdr,
+    struct cb_notify_deviceid_args *restrict args)
 {
     XDR notify_xdr;
     uint32_t i, j, c;
@@ -685,7 +739,9 @@ out:
     return result;
 }
 
-static bool_t op_cb_notify_deviceid_res(XDR *xdr, struct cb_notify_deviceid_res *res)
+static bool_t op_cb_notify_deviceid_res(
+    XDR *restrict xdr,
+    struct cb_notify_deviceid_res *restrict res)
 {
     bool_t result;
 
@@ -696,8 +752,9 @@ out:
 }
 
 /* OP_CB_OFFLOAD */
-static bool_t op_cb_offload_write_response(XDR *xdr,
-    struct cb_offload_write_response *response)
+static bool_t op_cb_offload_write_response(
+    XDR *restrict xdr,
+    struct cb_offload_write_response *restrict response)
 {
     bool_t result;
 
@@ -734,7 +791,9 @@ out:
     return result;
 }
 
-static bool_t op_cb_offload_info(XDR *xdr, struct cb_offload_info *info)
+static bool_t op_cb_offload_info(
+    XDR *restrict xdr,
+    struct cb_offload_info *restrict info)
 {
     bool_t result;
 
@@ -755,7 +814,9 @@ out:
     return result;
 }
 
-static bool_t op_cb_offload_args(XDR *xdr, struct cb_offload_args *args)
+static bool_t op_cb_offload_args(
+    XDR *restrict xdr,
+    struct cb_offload_args *restrict args)
 {
     bool_t result;
 
@@ -771,7 +832,9 @@ out:
     return result;
 }
 
-static bool_t op_cb_offload_res(XDR *xdr, struct cb_offload_res *res)
+static bool_t op_cb_offload_res(
+    XDR *restrict xdr,
+    struct cb_offload_res *restrict res)
 {
     bool_t result;
 
@@ -782,7 +845,9 @@ out:
 }
 
 /* CB_COMPOUND */
-static bool_t cb_compound_tag(XDR *xdr, struct cb_compound_tag *args)
+static bool_t cb_compound_tag(
+    XDR *restrict xdr,
+    struct cb_compound_tag *restrict args)
 {
     if (!xdr_uint32_t(xdr, &args->len))
         return FALSE;
@@ -828,7 +893,7 @@ static const struct xdr_discrim cb_argop_discrim[] = {
     { OP_CB_ILLEGAL,         NULL_xdrproc_t },
 };
 
-static bool_t cb_compound_argop(XDR *xdr, struct cb_argop *args)
+static bool_t cb_compound_argop(XDR *restrict xdr, struct cb_argop *restrict args)
 {
     bool_t result;
 
@@ -839,7 +904,7 @@ out:
     return result;
 }
 
-bool_t proc_cb_compound_args(XDR *xdr, struct cb_compound_args *args)
+bool_t proc_cb_compound_args(XDR *restrict xdr, struct cb_compound_args *restrict args)
 {
     bool_t result;
 
@@ -878,7 +943,7 @@ static const struct xdr_discrim cb_resop_discrim[] = {
     { OP_CB_ILLEGAL,        NULL_xdrproc_t },
 };
 
-static bool_t cb_compound_resop(XDR *xdr, struct cb_resop *res)
+static bool_t cb_compound_resop(XDR *restrict xdr, struct cb_resop *restrict  res)
 {
     /* save xdr encode/decode status to see which operation failed */
     res->xdr_ok = xdr_union(xdr, &res->opnum, (char*)&res->res,
@@ -888,7 +953,7 @@ out:
     return res->xdr_ok;
 }
 
-bool_t proc_cb_compound_res(XDR *xdr, struct cb_compound_res *res)
+bool_t proc_cb_compound_res(XDR *restrict xdr, struct cb_compound_res *restrict res)
 {
     bool_t result;
 

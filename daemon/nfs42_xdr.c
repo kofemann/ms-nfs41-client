@@ -44,8 +44,8 @@ static __inline int unexpected_op(uint32_t op, uint32_t expected)
  * OP_ALLOCATE
  */
 bool_t encode_op_allocate(
-    XDR *xdr,
-    nfs_argop4 *argop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop)
 {
     nfs42_allocate_args *args = (nfs42_allocate_args *)argop->arg;
 
@@ -63,9 +63,9 @@ bool_t encode_op_allocate(
 
 
 bool_t decode_op_allocate(
-    XDR *xdr,
-    const nfs_argop4 *argop,
-    nfs_resop4 *resop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop,
+    nfs_resop4 *restrict resop)
 {
     nfs42_allocate_res *res = (nfs42_allocate_res *)resop->res;
 
@@ -82,8 +82,8 @@ bool_t decode_op_allocate(
  * OP_COPY
  */
 bool_t encode_op_copy(
-    XDR *xdr,
-    nfs_argop4 *argop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop)
 {
     nfs42_copy_args *args = (nfs42_copy_args *)argop->arg;
 
@@ -120,7 +120,7 @@ bool_t encode_op_copy(
 }
 
 static bool_t decode_write_response(
-    XDR *xdr,
+    XDR *restrict xdr,
     nfs42_write_response *restrict response)
 {
     if (!xdr_uint32_t(xdr, &response->callback_id_count))
@@ -143,7 +143,7 @@ static bool_t decode_write_response(
 }
 
 static bool_t decode_copy_requirements(
-    XDR *xdr,
+    XDR *restrict xdr,
     nfs42_copy_requirements *restrict requirements)
 {
     if (!xdr_bool(xdr, &requirements->consecutive))
@@ -154,9 +154,9 @@ static bool_t decode_copy_requirements(
 }
 
 bool_t decode_op_copy(
-    XDR *xdr,
-    const nfs_argop4 *argop,
-    nfs_resop4 *resop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop,
+    nfs_resop4 *restrict resop)
 {
     nfs42_copy_res *res = (nfs42_copy_res *)resop->res;
 
@@ -184,8 +184,8 @@ bool_t decode_op_copy(
  * OP_DEALLOCATE
  */
 bool_t encode_op_deallocate(
-    XDR *xdr,
-    nfs_argop4 *argop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop)
 {
     nfs42_deallocate_args *args = (nfs42_deallocate_args *)argop->arg;
 
@@ -203,9 +203,9 @@ bool_t encode_op_deallocate(
 
 
 bool_t decode_op_deallocate(
-    XDR *xdr,
-    const nfs_argop4 *argop,
-    nfs_resop4 *resop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop,
+    nfs_resop4 *restrict resop)
 {
     nfs42_deallocate_res *res = (nfs42_deallocate_res *)resop->res;
 
@@ -223,8 +223,8 @@ bool_t decode_op_deallocate(
  * OP_READ_PLUS
  */
 bool_t encode_op_read_plus(
-    XDR *xdr,
-    nfs_argop4 *argop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop)
 {
     nfs42_read_plus_args *args = (nfs42_read_plus_args *)argop->arg;
 
@@ -241,9 +241,9 @@ bool_t encode_op_read_plus(
 }
 
 static bool_t decode_read_plus_res_ok(
-    XDR *xdr,
-    const nfs_argop4 *argop,
-    nfs42_read_plus_res_ok *res)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop,
+    nfs42_read_plus_res_ok *restrict res)
 {
     const nfs42_read_plus_args *args = (const nfs42_read_plus_args *)argop->arg;
     nfs42_read_plus_content *contents = NULL;
@@ -387,9 +387,9 @@ static bool_t decode_read_plus_res_ok(
 }
 
 bool_t decode_op_read_plus(
-    XDR *xdr,
-    const nfs_argop4 *argop,
-    nfs_resop4 *resop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop,
+    nfs_resop4 *restrict resop)
 {
     nfs42_read_plus_res *res = (nfs42_read_plus_res *)resop->res;
 
@@ -409,8 +409,8 @@ bool_t decode_op_read_plus(
  * OP_SEEK
  */
 bool_t encode_op_seek(
-    XDR *xdr,
-    nfs_argop4 *argop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop)
 {
     nfs42_seek_args *args = (nfs42_seek_args *)argop->arg;
 
@@ -430,8 +430,8 @@ bool_t encode_op_seek(
 }
 
 static bool_t decode_seek_res_ok(
-    XDR *xdr,
-    nfs42_seek_res_ok *res)
+    XDR *restrict xdr,
+    nfs42_seek_res_ok *restrict res)
 {
     if (!xdr_bool(xdr, &res->eof)) {
         DPRINTF(0, ("decode eof failed\n"));
@@ -446,9 +446,9 @@ static bool_t decode_seek_res_ok(
 }
 
 bool_t decode_op_seek(
-    XDR *xdr,
-    const nfs_argop4 *argop,
-    nfs_resop4 *resop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop,
+    nfs_resop4 *restrict resop)
 {
     nfs42_seek_res *res = (nfs42_seek_res *)resop->res;
 
@@ -468,8 +468,8 @@ bool_t decode_op_seek(
  * OP_CLONE
  */
 bool_t encode_op_clone(
-    XDR *xdr,
-    nfs_argop4 *argop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop)
 {
     nfs42_clone_args *args = (nfs42_clone_args *)argop->arg;
 
@@ -492,9 +492,9 @@ bool_t encode_op_clone(
 }
 
 bool_t decode_op_clone(
-    XDR *xdr,
-    const nfs_argop4 *argop,
-    nfs_resop4 *resop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop,
+    nfs_resop4 *restrict resop)
 {
     nfs42_clone_res *res = (nfs42_clone_res *)resop->res;
 

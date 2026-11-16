@@ -328,8 +328,8 @@ struct cb_compound_res {
 
 
 /* callback_xdr.c */
-bool_t proc_cb_compound_args(XDR *xdr, struct cb_compound_args *args);
-bool_t proc_cb_compound_res(XDR *xdr, struct cb_compound_res *res);
+bool_t proc_cb_compound_args(XDR *restrict xdr, struct cb_compound_args *restrict args);
+bool_t proc_cb_compound_res(XDR *restrict xdr, struct cb_compound_res *restrict res);
 
 /* callback_server.c */
 struct __nfs41_session;

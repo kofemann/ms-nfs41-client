@@ -32,8 +32,8 @@
 #include "rpc/rpc.h"
 
 static bool_t encode_file_attrs(
-    fattr4 *attrs,
-    nfs41_file_info *info);
+    fattr4 *restrict attrs,
+    nfs41_file_info *restrict info);
 
 static __inline int unexpected_op(uint32_t op, uint32_t expected)
 {
@@ -48,8 +48,8 @@ static __inline int unexpected_op(uint32_t op, uint32_t expected)
 
 /* typedef uint32_t bitmap4<> */
 bool_t xdr_bitmap4(
-    XDR *xdr,
-    bitmap4 *bitmap)
+    XDR *restrict xdr,
+    bitmap4 *restrict bitmap)
 {
     uint32_t i;
 
@@ -94,8 +94,8 @@ bool_t xdr_bitmap4(
 
 /* nfstime4 */
 static bool_t xdr_nfstime4(
-    XDR *xdr,
-    nfstime4 *nt)
+    XDR *restrict xdr,
+    nfstime4 *restrict nt)
 {
     switch (xdr->x_op) {
         case XDR_ENCODE:
@@ -117,8 +117,8 @@ static bool_t xdr_nfstime4(
 
 /* settime4 */
 static uint32_t settime_how(
-    nfstime4 *newtime,
-    const nfstime4 *time_delta)
+    nfstime4 *restrict newtime,
+    const nfstime4 *restrict time_delta)
 {
     nfstime4 current;
     get_nfs_time(&current);
@@ -132,9 +132,9 @@ static uint32_t settime_how(
 }
 
 static bool_t xdr_settime4(
-    XDR *xdr,
-    nfstime4 *nt,
-    const nfstime4 *time_delta)
+    XDR *restrict xdr,
+    nfstime4 *restrict nt,
+    const nfstime4 *restrict time_delta)
 {
     uint32_t how = settime_how(nt, time_delta);
 
@@ -162,22 +162,22 @@ static bool_t xdr_settime4(
 
 /* stateid4 */
 bool_t xdr_verifier4(
-    XDR *xdr,
-    verifier4 *verf)
+    XDR *restrict xdr,
+    verifier4 *restrict verf)
 {
     return xdr_opaque(xdr, verf->data, NFS4_VERIFIER_SIZE);
 }
 
 bool_t xdr_sessionid4(
-    XDR *xdr,
-    sessionid4 *sessionid)
+    XDR *restrict xdr,
+    sessionid4 *restrict sessionid)
 {
     return xdr_opaque(xdr, sessionid->data, NFS4_SESSIONID_SIZE);
 }
 
 bool_t xdr_stateid4(
-    XDR *xdr,
-    stateid4 *si)
+    XDR *restrict xdr,
+    stateid4 *restrict si)
 {
     switch (xdr->x_op) {
         case XDR_ENCODE:
@@ -197,8 +197,8 @@ bool_t xdr_stateid4(
 
 /* fattr4 */
 bool_t xdr_fattr4(
-    XDR *xdr,
-    fattr4 *fattr)
+    XDR *restrict xdr,
+    fattr4 *restrict fattr)
 {
     switch (xdr->x_op) {
         case XDR_ENCODE:
@@ -224,8 +224,8 @@ bool_t xdr_fattr4(
 
 /* nfs41_fh */
 bool_t xdr_fh(
-    XDR *xdr,
-    nfs41_fh *fh)
+    XDR *restrict xdr,
+    nfs41_fh *restrict fh)
 {
     switch (xdr->x_op) {
         case XDR_ENCODE:
@@ -246,8 +246,8 @@ bool_t xdr_fh(
 
 /* nfs41_fsid */
 bool_t xdr_fsid(
-    XDR *xdr,
-    nfs41_fsid *fsid)
+    XDR *restrict xdr,
+    nfs41_fsid *restrict fsid)
 {
     switch (xdr->x_op) {
         case XDR_ENCODE:
@@ -268,8 +268,8 @@ bool_t xdr_fsid(
 
 /* enum stable_how4 */
 bool_t xdr_stable_how4(
-    XDR *xdr,
-    enum stable_how4 *sh)
+    XDR *restrict xdr,
+    enum stable_how4 *restrict sh)
 {
     enum_t value;
 
@@ -293,16 +293,16 @@ bool_t xdr_stable_how4(
 
 /* nfs41_component */
 static bool_t encode_component(
-    XDR *xdr,
-    const nfs41_component *component)
+    XDR *restrict xdr,
+    const nfs41_component *restrict component)
 {
     uint32_t len = component->len;
     return xdr_bytes(xdr, (char **)&component->name, &len, NFS4_OPAQUE_LIMIT);
 }
 
 static bool_t decode_component(
-    XDR *xdr,
-    nfs41_component *component)
+    XDR *restrict xdr,
+    nfs41_component *restrict component)
 {
     bool_t result;
     uint32_t len;
@@ -315,8 +315,8 @@ static bool_t decode_component(
 
 /* state_owner4 */
 bool_t xdr_state_owner4(
-    XDR *xdr,
-    state_owner4 *so)
+    XDR *restrict xdr,
+    state_owner4 *restrict so)
 {
     switch (xdr->x_op) {
         case XDR_ENCODE:
@@ -348,8 +348,8 @@ bool_t xdr_state_owner4(
 }
 
 static bool_t xdr_layout_types(
-    XDR *xdr,
-    uint32_t *layout_type)
+    XDR *restrict xdr,
+    uint32_t *restrict layout_type)
 {
     switch (xdr->x_op) {
         case XDR_ENCODE:
@@ -382,8 +382,8 @@ static bool_t xdr_layout_types(
 }
 
 static bool_t xdr_threshold_item(
-    XDR *xdr,
-    threshold_item4 *item)
+    XDR *restrict xdr,
+    threshold_item4 *restrict item)
 {
     switch (xdr->x_op) {
         case XDR_ENCODE:
@@ -421,8 +421,8 @@ static bool_t xdr_threshold_item(
 }
 
 static bool_t xdr_mdsthreshold(
-    XDR *xdr,
-    mdsthreshold4 *mdsthreshold)
+    XDR *restrict xdr,
+    mdsthreshold4 *restrict mdsthreshold)
 {
     switch (xdr->x_op) {
         case XDR_ENCODE:
@@ -450,8 +450,8 @@ static bool_t xdr_mdsthreshold(
 }
 
 bool_t xdr_nfsace4(
-    XDR *xdr,
-    nfsace4 *ace)
+    XDR *restrict xdr,
+    nfsace4 *restrict ace)
 {
     switch (xdr->x_op) {
         case XDR_ENCODE:
@@ -479,8 +479,8 @@ bool_t xdr_nfsace4(
 }
 
 static bool_t xdr_nfsdacl41(
-    XDR *xdr,
-    nfsacl41 *acl)
+    XDR *restrict xdr,
+    nfsacl41 *restrict acl)
 {
     switch (xdr->x_op) {
         case XDR_ENCODE:
@@ -501,8 +501,8 @@ static bool_t xdr_nfsdacl41(
 }
 
 static bool_t xdr_nfsacl41(
-    XDR *xdr,
-    nfsacl41 *acl)
+    XDR *restrict xdr,
+    nfsacl41 *restrict acl)
 {
     switch (xdr->x_op) {
         case XDR_ENCODE:
@@ -518,7 +518,7 @@ static bool_t xdr_nfsacl41(
     /* NOTREACHED */
 }
 
-void nfsacl41_free(nfsacl41 *acl)
+void nfsacl41_free(nfsacl41 *restrict acl)
 {
     XDR xdr = { .x_op = XDR_FREE };
     xdr_nfsacl41(&xdr, acl);
@@ -544,7 +544,7 @@ bool_t xdr_offset4(XDR *restrict xdr, offset4 *restrict offset)
     return xdr_uint64_t(xdr, offset);
 }
 
-bool_t xdr_limit_by4(XDR *xdr, enum limit_by4 *limitby)
+bool_t xdr_limit_by4(XDR *restrict xdr, enum limit_by4 *restrict limitby)
 {
     enum_t value;
 
@@ -569,8 +569,8 @@ bool_t xdr_limit_by4(XDR *xdr, enum limit_by4 *limitby)
 /* pathname4
  * decode a variable array of components into a nfs41_abs_path */
 static bool_t decode_pathname4(
-    XDR *xdr,
-    nfs41_abs_path *path)
+    XDR *restrict xdr,
+    nfs41_abs_path *restrict path)
 {
     char *pos;
     u_int32_t i, count, len, remaining;
@@ -603,8 +603,8 @@ static bool_t decode_pathname4(
 
 /* fs_location4 */
 static bool_t decode_fs_location4(
-    XDR *xdr,
-    fs_location4 *location)
+    XDR *restrict xdr,
+    fs_location4 *restrict location)
 {
     fs_location_server *arr;
     char *address;
@@ -645,8 +645,8 @@ static bool_t decode_fs_location4(
 
 /* fs_locations4 */
 static bool_t decode_fs_locations4(
-    XDR *xdr,
-    fs_locations4 *locations)
+    XDR *restrict xdr,
+    fs_locations4 *restrict locations)
 {
     u_int32_t i, count;
     fs_location4 *arr;
@@ -686,8 +686,8 @@ static bool_t decode_fs_locations4(
  * OP_EXCHANGE_ID
  */
 static bool_t xdr_client_owner4(
-    XDR *xdr,
-    client_owner4 *co)
+    XDR *restrict xdr,
+    client_owner4 *restrict co)
 {
     switch (xdr->x_op) {
         case XDR_ENCODE:
@@ -713,8 +713,8 @@ static bool_t xdr_client_owner4(
 
 #if 0
 static bool_t encode_state_protect_ops4(
-    XDR *xdr,
-    state_protect_ops4 *spo)
+    XDR *restrict xdr,
+    state_protect_ops4 *restrict spo)
 {
     if (!xdr_bitmap4(xdr, &spo->spo_must_enforce))
         return FALSE;
@@ -723,8 +723,8 @@ static bool_t encode_state_protect_ops4(
 }
 
 static bool_t encode_ssv_sp_parms4(
-    XDR *xdr,
-    ssv_sp_parms4 *spp)
+    XDR *restrict xdr,
+    ssv_sp_parms4 *restrict spp)
 {
     if (!encode_state_protect_ops4(xdr, &spp->ssp_ops))
         return FALSE;
@@ -745,8 +745,8 @@ static bool_t encode_ssv_sp_parms4(
 #endif
 
 static bool_t xdr_state_protect4_a(
-    XDR *xdr,
-    state_protect4_a *spa)
+    XDR *restrict xdr,
+    state_protect4_a *restrict spa)
 {
     switch (xdr->x_op) {
         case XDR_ENCODE:
@@ -787,8 +787,8 @@ static bool_t xdr_state_protect4_a(
 }
 
 static bool_t encode_nfs_impl_id4(
-    XDR *xdr,
-    nfs_impl_id4 *nii)
+    XDR *restrict xdr,
+    nfs_impl_id4 *restrict nii)
 {
     unsigned char *nii_domain = nii->nii_domain;
     unsigned char *nii_name = nii->nii_name;
@@ -806,8 +806,8 @@ static bool_t encode_nfs_impl_id4(
 
 
 static bool_t encode_op_exchange_id(
-    XDR *xdr,
-    nfs_argop4 *argop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop)
 {
     uint32_t zero = 0;
     uint32_t one = 1;
@@ -839,8 +839,8 @@ static bool_t encode_op_exchange_id(
 #if 0
 
 static bool_t decode_state_protect_ops4(
-    XDR *xdr,
-    state_protect_ops4 *spo)
+    XDR *restrict xdr,
+    state_protect_ops4 *restrict spo)
 {
     if (!xdr_bitmap4(xdr, &spo->spo_must_enforce))
         return FALSE;
@@ -849,8 +849,8 @@ static bool_t decode_state_protect_ops4(
 }
 
 static bool_t decode_ssv_prot_info4(
-    XDR *xdr,
-    ssv_prot_info4 *spi)
+    XDR *restrict xdr,
+    ssv_prot_info4 *restrict spi)
 {
 /*  uint32_t i; */
 
@@ -884,8 +884,8 @@ static bool_t decode_ssv_prot_info4(
 #endif
 
 static bool_t decode_state_protect4_r(
-    XDR *xdr,
-    state_protect4_r *spr)
+    XDR *restrict xdr,
+    state_protect4_r *restrict spr)
 {
     bool_t result = TRUE;
 
@@ -915,8 +915,8 @@ static bool_t decode_state_protect4_r(
 }
 
 static bool_t decode_server_owner4(
-    XDR *xdr,
-    server_owner4 *so)
+    XDR *restrict xdr,
+    server_owner4 *restrict so)
 {
     char *so_major_id = so->so_major_id;
 
@@ -928,9 +928,9 @@ static bool_t decode_server_owner4(
 }
 
 static bool_t decode_op_exchange_id(
-    XDR *xdr,
-    const nfs_argop4 *argop,
-    nfs_resop4 *resop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop,
+    nfs_resop4 *restrict resop)
 {
     nfs41_exchange_id_res *res = (nfs41_exchange_id_res*)resop->res;
     char *server_scope = (char *)res->server_scope;
@@ -967,8 +967,8 @@ static bool_t decode_op_exchange_id(
  * OP_CREATE_SESSION
  */
 static bool_t encode_channel_attrs4(
-    XDR *xdr,
-    nfs41_channel_attrs *attrs)
+    XDR *restrict xdr,
+    nfs41_channel_attrs *restrict attrs)
 {
     uint32_t zero = 0;
     uint32_t one = 1;
@@ -1010,8 +1010,8 @@ static bool_t encode_channel_attrs4(
 }
 
 static bool_t decode_channel_attrs4(
-    XDR *xdr,
-    nfs41_channel_attrs *attrs)
+    XDR *restrict xdr,
+    nfs41_channel_attrs *restrict attrs)
 {
     /* count4 ca_headerpadsize */
     if (!xdr_count4(xdr, &attrs->ca_headerpadsize))
@@ -1054,8 +1054,8 @@ static bool_t decode_channel_attrs4(
 }
 
 static bool_t encode_backchannel_sec_parms(
-    XDR *xdr,
-    nfs41_callback_secparms *args)
+    XDR *restrict xdr,
+    nfs41_callback_secparms *restrict args)
 {
     uint32_t zero = 0;
 
@@ -1078,8 +1078,8 @@ static bool_t encode_backchannel_sec_parms(
 }
 
 static bool_t encode_op_create_session(
-    XDR *xdr,
-    nfs_argop4 *argop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop)
 {
     nfs41_create_session_args *args = (nfs41_create_session_args*)argop->arg;
     nfs41_callback_secparms *cb_secparams = args->csa_cb_secparams;
@@ -1117,9 +1117,9 @@ static bool_t encode_op_create_session(
 }
 
 static bool_t decode_op_create_session(
-    XDR *xdr,
-    const nfs_argop4 *argop,
-    nfs_resop4 *resop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop,
+    nfs_resop4 *restrict resop)
 {
     uint32_t opstatus;
     nfs41_create_session_res *res = (nfs41_create_session_res*)resop->res;
@@ -1157,8 +1157,8 @@ static bool_t decode_op_create_session(
  * OP_BIND_CONN_TO_SESSION
  */
 static bool_t encode_op_bind_conn_to_session(
-    XDR *xdr,
-    nfs_argop4 *argop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop)
 {
     uint32_t zero = 0;
 
@@ -1178,9 +1178,9 @@ static bool_t encode_op_bind_conn_to_session(
 }
 
 static bool_t decode_op_bind_conn_to_session(
-    XDR *xdr,
-    const nfs_argop4 *argop,
-    nfs_resop4 *resop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop,
+    nfs_resop4 *restrict resop)
 {
     sessionid4 sessionid_ignored;
     nfs41_bind_conn_to_session_res *res =
@@ -1210,8 +1210,8 @@ static bool_t decode_op_bind_conn_to_session(
  * OP_DESTROY_SESSION
  */
 static bool_t encode_op_destroy_session(
-    XDR *xdr,
-    nfs_argop4 *argop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop)
 {
     nfs41_destroy_session_args *args = (nfs41_destroy_session_args*)argop->arg;
 
@@ -1222,9 +1222,9 @@ static bool_t encode_op_destroy_session(
 }
 
 static bool_t decode_op_destroy_session(
-    XDR *xdr,
-    const nfs_argop4 *argop,
-    nfs_resop4 *resop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop,
+    nfs_resop4 *restrict resop)
 {
     nfs41_destroy_session_res *res = (nfs41_destroy_session_res*)resop->res;
 
@@ -1238,8 +1238,8 @@ static bool_t decode_op_destroy_session(
  * OP_DESTROY_CLIENTID
  */
 static bool_t encode_op_destroy_clientid(
-    XDR *xdr,
-    nfs_argop4 *argop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop)
 {
     nfs41_destroy_clientid_args *args = (nfs41_destroy_clientid_args*)argop->arg;
 
@@ -1250,9 +1250,9 @@ static bool_t encode_op_destroy_clientid(
 }
 
 static bool_t decode_op_destroy_clientid(
-    XDR *xdr,
-    const nfs_argop4 *argop,
-    nfs_resop4 *resop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop,
+    nfs_resop4 *restrict resop)
 {
     nfs41_destroy_clientid_res *res = (nfs41_destroy_clientid_res*)resop->res;
 
@@ -1267,8 +1267,8 @@ static bool_t decode_op_destroy_clientid(
  * OP_SEQUENCE
  */
 static bool_t encode_op_sequence(
-    XDR *xdr,
-    nfs_argop4 *argop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop)
 {
     nfs41_sequence_args *args = (nfs41_sequence_args*)argop->arg;
 
@@ -1291,8 +1291,8 @@ static bool_t encode_op_sequence(
 }
 
 static bool_t decode_sequence_res_ok(
-    XDR *xdr,
-    nfs41_sequence_res_ok *res)
+    XDR *restrict xdr,
+    nfs41_sequence_res_ok *restrict res)
 {
     if (!xdr_sessionid4(xdr, &res->sr_sessionid))
         return FALSE;
@@ -1313,9 +1313,9 @@ static bool_t decode_sequence_res_ok(
 }
 
 static bool_t decode_op_sequence(
-    XDR *xdr,
-    const nfs_argop4 *argop,
-    nfs_resop4 *resop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop,
+    nfs_resop4 *restrict resop)
 {
     nfs41_sequence_res *res = (nfs41_sequence_res*)resop->res;
 
@@ -1336,8 +1336,8 @@ static bool_t decode_op_sequence(
  * OP_RECLAIM_COMPLETE
  */
 static bool_t encode_op_reclaim_complete(
-    XDR *xdr,
-    nfs_argop4 *argop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop)
 {
     bool_t zero = FALSE;
 
@@ -1349,9 +1349,9 @@ static bool_t encode_op_reclaim_complete(
 }
 
 static bool_t decode_op_reclaim_complete(
-    XDR *xdr,
-    const nfs_argop4 *argop,
-    nfs_resop4 *resop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop,
+    nfs_resop4 *restrict resop)
 {
     nfs41_reclaim_complete_res *res = (nfs41_reclaim_complete_res*)resop->res;
 
@@ -1366,8 +1366,8 @@ static bool_t decode_op_reclaim_complete(
  * OP_PUTFH
  */
 static bool_t encode_op_putfh(
-    XDR *xdr,
-    nfs_argop4 *argop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop)
 {
     nfs41_putfh_args *args = (nfs41_putfh_args*)argop->arg;
 
@@ -1378,9 +1378,9 @@ static bool_t encode_op_putfh(
 }
 
 static bool_t decode_op_putfh(
-    XDR *xdr,
-    const nfs_argop4 *argop,
-    nfs_resop4 *resop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop,
+    nfs_resop4 *restrict resop)
 {
     nfs41_putfh_res *res = (nfs41_putfh_res*)resop->res;
 
@@ -1395,8 +1395,8 @@ static bool_t decode_op_putfh(
  * OP_PUTPUBFH
  */
 static bool_t encode_op_putpubfh(
-    XDR *xdr,
-    nfs_argop4* argop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop)
 {
     if (unexpected_op(argop->op, OP_PUTPUBFH))
         return FALSE;
@@ -1405,9 +1405,9 @@ static bool_t encode_op_putpubfh(
 }
 
 static bool_t decode_op_putpubfh(
-    XDR *xdr,
-    const nfs_argop4 *argop,
-    nfs_resop4 *resop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop,
+    nfs_resop4 *restrict resop)
 {
     nfs41_putpubfh_res *res = (nfs41_putpubfh_res*)resop->res;
 
@@ -1422,8 +1422,8 @@ static bool_t decode_op_putpubfh(
  * OP_PUTROOTFH
  */
 static bool_t encode_op_putrootfh(
-    XDR *xdr,
-    nfs_argop4* argop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop)
 {
     if (unexpected_op(argop->op, OP_PUTROOTFH))
         return FALSE;
@@ -1432,9 +1432,9 @@ static bool_t encode_op_putrootfh(
 }
 
 static bool_t decode_op_putrootfh(
-    XDR *xdr,
-    const nfs_argop4 *argop,
-    nfs_resop4 *resop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop,
+    nfs_resop4 *restrict resop)
 {
     nfs41_putrootfh_res *res = (nfs41_putrootfh_res*)resop->res;
 
@@ -1449,8 +1449,8 @@ static bool_t decode_op_putrootfh(
  * OP_GETFH
  */
 static bool_t encode_op_getfh(
-    XDR *xdr,
-    nfs_argop4 *argop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop)
 {
     if (unexpected_op(argop->op, OP_GETFH))
         return FALSE;
@@ -1460,9 +1460,9 @@ static bool_t encode_op_getfh(
 }
 
 static bool_t decode_op_getfh(
-    XDR *xdr,
-    const nfs_argop4 *argop,
-    nfs_resop4 *resop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop,
+    nfs_resop4 *restrict resop)
 {
     nfs41_getfh_res *res = (nfs41_getfh_res*)resop->res;
 
@@ -1483,8 +1483,8 @@ static bool_t decode_op_getfh(
  * OP_LOOKUP
  */
 static bool_t encode_op_lookup(
-    XDR *xdr,
-    nfs_argop4 *argop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop)
 {
     nfs41_lookup_args *args = (nfs41_lookup_args*)argop->arg;
 
@@ -1495,9 +1495,9 @@ static bool_t encode_op_lookup(
 }
 
 static bool_t decode_op_lookup(
-    XDR *xdr,
-    const nfs_argop4 *argop,
-    nfs_resop4 *resop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop,
+    nfs_resop4 *restrict resop)
 {
     nfs41_lookup_res *res = (nfs41_lookup_res*)resop->res;
 
@@ -1512,8 +1512,8 @@ static bool_t decode_op_lookup(
  * OP_ACCESS
  */
 static bool_t encode_op_access(
-    XDR *xdr,
-    nfs_argop4 *argop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop)
 {
     nfs41_access_args *args = (nfs41_access_args*)argop->arg;
 
@@ -1524,9 +1524,9 @@ static bool_t encode_op_access(
 }
 
 static bool_t decode_op_access(
-    XDR *xdr,
-    const nfs_argop4 *argop,
-    nfs_resop4 *resop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop,
+    nfs_resop4 *restrict resop)
 {
     nfs41_access_res *res = (nfs41_access_res*)resop->res;
 
@@ -1551,8 +1551,8 @@ static bool_t decode_op_access(
  * OP_CLOSE
  */
 static bool_t encode_op_close(
-    XDR *xdr,
-    nfs_argop4 *argop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop)
 {
     nfs41_op_close_args *args = (nfs41_op_close_args*)argop->arg;
     uint32_t zero = 0;
@@ -1567,9 +1567,9 @@ static bool_t encode_op_close(
 }
 
 static bool_t decode_op_close(
-    XDR *xdr,
-    const nfs_argop4 *argop,
-    nfs_resop4 *resop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop,
+    nfs_resop4 *restrict resop)
 {
     stateid4 ignored;
     nfs41_op_close_res *res = (nfs41_op_close_res*)resop->res;
@@ -1591,8 +1591,8 @@ static bool_t decode_op_close(
  * OP_COMMIT
  */
 static bool_t encode_op_commit(
-    XDR *xdr,
-    nfs_argop4 *argop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop)
 {
     nfs41_commit_args *args = (nfs41_commit_args*)argop->arg;
 
@@ -1606,9 +1606,9 @@ static bool_t encode_op_commit(
 }
 
 static bool_t decode_op_commit(
-    XDR *xdr,
-    const nfs_argop4 *argop,
-    nfs_resop4 *resop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop,
+    nfs_resop4 *restrict resop)
 {
     nfs41_commit_res *res = (nfs41_commit_res*)resop->res;
 
@@ -1629,8 +1629,8 @@ static bool_t decode_op_commit(
  * OP_CREATE
  */
 static bool_t encode_createtype4(
-    XDR *xdr,
-    createtype4 *ct)
+    XDR *restrict xdr,
+    createtype4 *restrict ct)
 {
     bool_t result = TRUE;
     const char *linkdata;
@@ -1659,8 +1659,8 @@ static bool_t encode_createtype4(
 }
 
 static bool_t encode_createattrs4(
-    XDR *xdr,
-    nfs41_file_info* createattrs)
+    XDR *restrict xdr,
+    nfs41_file_info *restrict createattrs)
 {
     fattr4 attrs;
 
@@ -1673,8 +1673,8 @@ static bool_t encode_createattrs4(
 }
 
 static bool_t encode_op_create(
-    XDR *xdr,
-    nfs_argop4 *argop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop)
 {
     nfs41_create_args *args = (nfs41_create_args*)argop->arg;
 
@@ -1691,8 +1691,8 @@ static bool_t encode_op_create(
 }
 
 static bool_t decode_change_info4(
-    XDR *xdr,
-    change_info4 *cinfo)
+    XDR *restrict xdr,
+    change_info4 *restrict cinfo)
 {
     if (!xdr_bool(xdr, &cinfo->atomic))
         return FALSE;
@@ -1704,9 +1704,9 @@ static bool_t decode_change_info4(
 }
 
 static bool_t decode_op_create(
-    XDR *xdr,
-    const nfs_argop4 *argop,
-    nfs_resop4 *resop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop,
+    nfs_resop4 *restrict resop)
 {
     nfs41_create_res *res = (nfs41_create_res*)resop->res;
 
@@ -1730,8 +1730,8 @@ static bool_t decode_op_create(
  * OP_LINK
  */
 static bool_t encode_op_link(
-    XDR *xdr,
-    nfs_argop4 *argop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop)
 {
     nfs41_link_args *args = (nfs41_link_args*)argop->arg;
 
@@ -1742,9 +1742,9 @@ static bool_t encode_op_link(
 }
 
 static bool_t decode_op_link(
-    XDR *xdr,
-    const nfs_argop4 *argop,
-    nfs_resop4 *resop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop,
+    nfs_resop4 *restrict resop)
 {
     nfs41_link_res *res = (nfs41_link_res*)resop->res;
 
@@ -1765,8 +1765,8 @@ static bool_t decode_op_link(
  * OP_LOCK
  */
 static bool_t encode_locker4(
-    XDR *xdr,
-    locker4 *locker)
+    XDR *restrict xdr,
+    locker4 *restrict locker)
 {
     if (!xdr_bool(xdr, &locker->new_lock_owner))
         return FALSE;
@@ -1793,8 +1793,8 @@ static bool_t encode_locker4(
 }
 
 static bool_t encode_op_lock(
-    XDR *xdr,
-    nfs_argop4 *argop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop)
 {
     nfs41_lock_args *args = (nfs41_lock_args*)argop->arg;
 
@@ -1817,8 +1817,8 @@ static bool_t encode_op_lock(
 }
 
 static bool_t decode_lock_res_denied(
-    XDR *xdr,
-    lock_res_denied *denied)
+    XDR *restrict xdr,
+    lock_res_denied *restrict denied)
 {
     if (!xdr_offset4(xdr, &denied->offset))
         return FALSE;
@@ -1833,9 +1833,9 @@ static bool_t decode_lock_res_denied(
 }
 
 static bool_t decode_op_lock(
-    XDR *xdr,
-    const nfs_argop4 *argop,
-    nfs_resop4 *resop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop,
+    nfs_resop4 *restrict resop)
 {
     nfs41_lock_res *res = (nfs41_lock_res*)resop->res;
 
@@ -1864,8 +1864,8 @@ static bool_t decode_op_lock(
  * OP_LOCKT
  */
 static bool_t encode_op_lockt(
-    XDR *xdr,
-    nfs_argop4 *argop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop)
 {
     nfs41_lockt_args *args = (nfs41_lockt_args*)argop->arg;
 
@@ -1885,9 +1885,9 @@ static bool_t encode_op_lockt(
 }
 
 static bool_t decode_op_lockt(
-    XDR *xdr,
-    const nfs_argop4 *argop,
-    nfs_resop4 *resop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop,
+    nfs_resop4 *restrict resop)
 {
     nfs41_lockt_res *res = (nfs41_lockt_res*)resop->res;
 
@@ -1908,8 +1908,8 @@ static bool_t decode_op_lockt(
  * OP_LOCKU
  */
 static bool_t encode_op_locku(
-    XDR *xdr,
-    nfs_argop4 *argop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop)
 {
     nfs41_locku_args *args = (nfs41_locku_args*)argop->arg;
 
@@ -1932,9 +1932,9 @@ static bool_t encode_op_locku(
 }
 
 static bool_t decode_op_locku(
-    XDR *xdr,
-    const nfs_argop4 *argop,
-    nfs_resop4 *resop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop,
+    nfs_resop4 *restrict resop)
 {
     nfs41_locku_res *res = (nfs41_locku_res*)resop->res;
 
@@ -1955,8 +1955,8 @@ static bool_t decode_op_locku(
  * OP_DELEGPURGE
  */
 static bool_t encode_op_delegpurge(
-    XDR *xdr,
-    nfs_argop4 *argop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop)
 {
     uint64_t zero = 0;
 
@@ -1969,9 +1969,9 @@ static bool_t encode_op_delegpurge(
 }
 
 static bool_t decode_op_delegpurge(
-    XDR *xdr,
-    const nfs_argop4 *argop,
-    nfs_resop4 *resop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop,
+    nfs_resop4 *restrict resop)
 {
     nfs41_delegpurge_res *res = (nfs41_delegpurge_res*)resop->res;
 
@@ -1986,8 +1986,8 @@ static bool_t decode_op_delegpurge(
  * OP_DELEGRETURN
  */
 static bool_t encode_op_delegreturn(
-    XDR *xdr,
-    nfs_argop4 *argop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop)
 {
     nfs41_delegreturn_args *args = (nfs41_delegreturn_args*)argop->arg;
 
@@ -1998,9 +1998,9 @@ static bool_t encode_op_delegreturn(
 }
 
 static bool_t decode_op_delegreturn(
-    XDR *xdr,
-    const nfs_argop4 *argop,
-    nfs_resop4 *resop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop,
+    nfs_resop4 *restrict resop)
 {
     nfs41_delegreturn_res *res = (nfs41_delegreturn_res*)resop->res;
 
@@ -2015,8 +2015,8 @@ static bool_t decode_op_delegreturn(
  * OP_GETATTR
  */
 static bool_t encode_op_getattr(
-    XDR *xdr,
-    nfs_argop4 *argop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop)
 {
     nfs41_getattr_args *args = (nfs41_getattr_args*)argop->arg;
 
@@ -2027,9 +2027,9 @@ static bool_t encode_op_getattr(
 }
 
 static bool_t decode_file_attrs(
-    XDR *xdr,
-    fattr4 *attrs,
-    nfs41_file_info *info)
+    XDR *restrict xdr,
+    fattr4 *restrict attrs,
+    nfs41_file_info *restrict info)
 {
     if (attrs->attrmask.count > 0) {
         if (attrs->attrmask.arr[0] & FATTR4_WORD0_SUPPORTED_ATTRS) {
@@ -2224,9 +2224,9 @@ static bool_t decode_file_attrs(
 }
 
 static bool_t decode_op_getattr(
-    XDR *xdr,
-    const nfs_argop4 *argop,
-    nfs_resop4 *resop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop,
+    nfs_resop4 *restrict resop)
 {
     nfs41_getattr_res *res = (nfs41_getattr_res*)resop->res;
 
@@ -2253,8 +2253,8 @@ static bool_t decode_op_getattr(
  * OP_OPEN
  */
 static bool_t encode_createhow4(
-    XDR *xdr,
-    createhow4 *ch)
+    XDR *restrict xdr,
+    createhow4 *restrict ch)
 {
     bool_t result = TRUE;
 
@@ -2281,8 +2281,8 @@ static bool_t encode_createhow4(
 }
 
 static bool_t encode_openflag4(
-    XDR *xdr,
-    openflag4 *of)
+    XDR *restrict xdr,
+    openflag4 *restrict of)
 {
     bool_t result = TRUE;
 
@@ -2301,9 +2301,9 @@ static bool_t encode_openflag4(
 }
 
 static bool_t encode_claim_deleg_cur(
-    XDR *xdr,
-    stateid4 *stateid,
-    nfs41_component *name)
+    XDR *restrict xdr,
+    stateid4 *restrict stateid,
+    nfs41_component *restrict name)
 {
     if (!xdr_stateid4(xdr, stateid))
         return FALSE;
@@ -2311,8 +2311,8 @@ static bool_t encode_claim_deleg_cur(
 }
 
 static bool_t encode_open_claim4(
-    XDR *xdr,
-    open_claim4 *oc)
+    XDR *restrict xdr,
+    open_claim4 *restrict oc)
 {
     if (!xdr_uint32_t(xdr, &oc->claim))
         return FALSE;
@@ -2344,8 +2344,8 @@ static bool_t encode_open_claim4(
 }
 
 static bool_t encode_op_open(
-    XDR *xdr,
-    nfs_argop4 *argop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop)
 {
     nfs41_op_open_args *args = (nfs41_op_open_args*)argop->arg;
 
@@ -2371,8 +2371,8 @@ static bool_t encode_op_open(
 }
 
 static bool_t decode_open_none_delegation4(
-    XDR *xdr,
-    open_delegation4 *delegation)
+    XDR *restrict xdr,
+    open_delegation4 *restrict delegation)
 {
     if (!xdr_enum(xdr, (enum_t*)&delegation->why_no_delegation))
         return FALSE;
@@ -2389,8 +2389,8 @@ static bool_t decode_open_none_delegation4(
 }
 
 static bool_t decode_open_read_delegation4(
-    XDR *xdr,
-    open_delegation4 *delegation)
+    XDR *restrict xdr,
+    open_delegation4 *restrict delegation)
 {
     if (!xdr_stateid4(xdr, &delegation->stateid))
         return FALSE;
@@ -2402,8 +2402,8 @@ static bool_t decode_open_read_delegation4(
 }
 
 static bool_t decode_modified_limit4(
-    XDR *xdr,
-    uint64_t *filesize)
+    XDR *restrict xdr,
+    uint64_t *restrict filesize)
 {
     uint32_t blocks, bytes_per_block;
 
@@ -2418,8 +2418,8 @@ static bool_t decode_modified_limit4(
 }
 
 static bool_t decode_space_limit4(
-    XDR *xdr,
-    uint64_t *filesize)
+    XDR *restrict xdr,
+    uint64_t *restrict filesize)
 {
     enum limit_by4 limitby;
 
@@ -2439,8 +2439,8 @@ static bool_t decode_space_limit4(
 }
 
 static bool_t decode_open_write_delegation4(
-    XDR *xdr,
-    open_delegation4 *delegation)
+    XDR *restrict xdr,
+    open_delegation4 *restrict delegation)
 {
     uint64_t size_limit;
 
@@ -2457,8 +2457,8 @@ static bool_t decode_open_write_delegation4(
 }
 
 static bool_t decode_open_res_ok(
-    XDR *xdr,
-    nfs41_op_open_res_ok *res)
+    XDR *restrict xdr,
+    nfs41_op_open_res_ok *restrict res)
 {
     if (!xdr_stateid4(xdr, res->stateid))
         return FALSE;
@@ -2493,9 +2493,9 @@ static bool_t decode_open_res_ok(
 }
 
 static bool_t decode_op_open(
-    XDR *xdr,
-    const nfs_argop4 *argop,
-    nfs_resop4 *resop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop,
+    nfs_resop4 *restrict resop)
 {
     nfs41_op_open_res *res = (nfs41_op_open_res*)resop->res;
 
@@ -2516,8 +2516,8 @@ static bool_t decode_op_open(
  * OP_OPENATTR
  */
 static bool_t encode_op_openattr(
-    XDR *xdr,
-    nfs_argop4 *argop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop)
 {
     nfs41_openattr_args *args = (nfs41_openattr_args*)argop->arg;
 
@@ -2528,9 +2528,9 @@ static bool_t encode_op_openattr(
 }
 
 static bool_t decode_op_openattr(
-    XDR *xdr,
-    const nfs_argop4 *argop,
-    nfs_resop4 *resop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop,
+    nfs_resop4 *restrict resop)
 {
     nfs41_openattr_res *res = (nfs41_openattr_res*)resop->res;
 
@@ -2545,8 +2545,8 @@ static bool_t decode_op_openattr(
  * OP_READ
  */
 static bool_t encode_op_read(
-    XDR *xdr,
-    nfs_argop4 *argop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop)
 {
     nfs41_read_args *args = (nfs41_read_args*)argop->arg;
 
@@ -2563,8 +2563,8 @@ static bool_t encode_op_read(
 }
 
 static bool_t decode_read_res_ok(
-    XDR *xdr,
-    nfs41_read_res_ok *res)
+    XDR *restrict xdr,
+    nfs41_read_res_ok *restrict res)
 {
     unsigned char *data = res->data;
     uint32_t data_len = res->data_len;
@@ -2596,9 +2596,9 @@ static bool_t decode_read_res_ok(
 }
 
 static bool_t decode_op_read(
-    XDR *xdr,
-    const nfs_argop4 *argop,
-    nfs_resop4 *resop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop,
+    nfs_resop4 *restrict resop)
 {
     nfs41_read_res *res = (nfs41_read_res*)resop->res;
 
@@ -2619,8 +2619,8 @@ static bool_t decode_op_read(
  * OP_READDIR
  */
 static bool_t encode_op_readdir(
-    XDR *xdr,
-    nfs_argop4 *argop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop)
 {
     nfs41_readdir_args *args = (nfs41_readdir_args*)argop->arg;
 
@@ -2651,8 +2651,8 @@ typedef struct __readdir_entry_iterator {
 } readdir_entry_iterator;
 
 static bool_t decode_readdir_entry(
-    XDR *xdr,
-    readdir_entry_iterator *it)
+    XDR *restrict xdr,
+    readdir_entry_iterator *restrict it)
 {
     uint64_t cookie;
     unsigned char name[NFS4_OPAQUE_LIMIT+1];
@@ -2718,8 +2718,8 @@ static bool_t decode_readdir_entry(
 }
 
 static bool_t decode_readdir_list(
-    XDR *xdr,
-    nfs41_readdir_list *dirs)
+    XDR *restrict xdr,
+    nfs41_readdir_list *restrict dirs)
 {
     readdir_entry_iterator iter;
     iter.buf_pos = dirs->entries;
@@ -2751,9 +2751,9 @@ static bool_t decode_readdir_list(
 }
 
 static bool_t decode_op_readdir(
-    XDR *xdr,
-    const nfs_argop4 *argop,
-    nfs_resop4 *resop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop,
+    nfs_resop4 *restrict resop)
 {
     nfs41_readdir_res *res = (nfs41_readdir_res*)resop->res;
 
@@ -2776,8 +2776,8 @@ static bool_t decode_op_readdir(
  * OP_READLINK
  */
 static bool_t encode_op_readlink(
-    XDR *xdr,
-    nfs_argop4 *argop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop)
 {
     if (unexpected_op(argop->op, OP_READLINK))
         return FALSE;
@@ -2787,9 +2787,9 @@ static bool_t encode_op_readlink(
 }
 
 static bool_t decode_op_readlink(
-    XDR *xdr,
-    const nfs_argop4 *argop,
-    nfs_resop4 *resop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop,
+    nfs_resop4 *restrict resop)
 {
     nfs41_readlink_res *res = (nfs41_readlink_res*)resop->res;
 
@@ -2812,8 +2812,8 @@ static bool_t decode_op_readlink(
  * OP_REMOVE
  */
 static bool_t encode_op_remove(
-    XDR *xdr,
-    nfs_argop4 *argop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop)
 {
     nfs41_remove_args *args = (nfs41_remove_args*)argop->arg;
 
@@ -2824,9 +2824,9 @@ static bool_t encode_op_remove(
 }
 
 static bool_t decode_op_remove(
-    XDR *xdr,
-    const nfs_argop4 *argop,
-    nfs_resop4 *resop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop,
+    nfs_resop4 *restrict resop)
 {
     nfs41_remove_res *res = (nfs41_remove_res*)resop->res;
 
@@ -2847,8 +2847,8 @@ static bool_t decode_op_remove(
  * OP_RENAME
  */
 static bool_t encode_op_rename(
-    XDR *xdr,
-    nfs_argop4 *argop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop)
 {
     nfs41_rename_args *args = (nfs41_rename_args*)argop->arg;
 
@@ -2862,9 +2862,9 @@ static bool_t encode_op_rename(
 }
 
 static bool_t decode_op_rename(
-    XDR *xdr,
-    const nfs_argop4 *argop,
-    nfs_resop4 *resop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop,
+    nfs_resop4 *restrict resop)
 {
     nfs41_rename_res *res = (nfs41_rename_res*)resop->res;
 
@@ -2888,8 +2888,8 @@ static bool_t decode_op_rename(
  * OP_RESTOREFH
  */
 static bool_t encode_op_restorefh(
-    XDR *xdr,
-    nfs_argop4 *argop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop)
 {
     if (unexpected_op(argop->op, OP_RESTOREFH))
         return FALSE;
@@ -2899,9 +2899,9 @@ static bool_t encode_op_restorefh(
 }
 
 static bool_t decode_op_restorefh(
-    XDR *xdr,
-    const nfs_argop4 *argop,
-    nfs_resop4 *resop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop,
+    nfs_resop4 *restrict resop)
 {
     nfs41_restorefh_res *res = (nfs41_restorefh_res*)resop->res;
 
@@ -2916,8 +2916,8 @@ static bool_t decode_op_restorefh(
  * OP_SAVEFH
  */
 static bool_t encode_op_savefh(
-    XDR *xdr,
-    nfs_argop4 *argop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop)
 {
     if (unexpected_op(argop->op, OP_SAVEFH))
         return FALSE;
@@ -2927,9 +2927,9 @@ static bool_t encode_op_savefh(
 }
 
 static bool_t decode_op_savefh(
-    XDR *xdr,
-    const nfs_argop4 *argop,
-    nfs_resop4 *resop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop,
+    nfs_resop4 *restrict resop)
 {
     nfs41_savefh_res *res = (nfs41_savefh_res*)resop->res;
 
@@ -2944,8 +2944,8 @@ static bool_t decode_op_savefh(
  * OP_SETATTR
  */
 static bool_t encode_file_attrs(
-    fattr4 *attrs,
-    nfs41_file_info *info)
+    fattr4 *restrict attrs,
+    nfs41_file_info *restrict info)
 {
     uint32_t i;
     XDR localxdr;
@@ -3046,8 +3046,8 @@ static bool_t encode_file_attrs(
 }
 
 static bool_t encode_op_setattr(
-    XDR *xdr,
-    nfs_argop4 *argop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop)
 {
     nfs41_setattr_args *args = (nfs41_setattr_args*)argop->arg;
     fattr4 attrs;
@@ -3067,9 +3067,9 @@ static bool_t encode_op_setattr(
 }
 
 static bool_t decode_op_setattr(
-    XDR *xdr,
-    const nfs_argop4 *argop,
-    nfs_resop4 *resop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop,
+    nfs_resop4 *restrict resop)
 {
     nfs41_setattr_res *res = (nfs41_setattr_res*)resop->res;
 
@@ -3090,8 +3090,8 @@ static bool_t decode_op_setattr(
  * OP_WANT_DELEGATION
  */
 static bool_t encode_deleg_claim4(
-    XDR *xdr,
-    deleg_claim4 *claim)
+    XDR *restrict xdr,
+    deleg_claim4 *restrict claim)
 {
     if (!xdr_enum(xdr, (enum_t *)&claim->claim))
         return FALSE;
@@ -3111,8 +3111,8 @@ static bool_t encode_deleg_claim4(
 }
 
 static bool_t encode_op_want_delegation(
-    XDR *xdr,
-    nfs_argop4 *argop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop)
 {
     nfs41_want_delegation_args *args = (nfs41_want_delegation_args*)argop->arg;
 
@@ -3126,9 +3126,9 @@ static bool_t encode_op_want_delegation(
 }
 
 static bool_t decode_op_want_delegation(
-    XDR *xdr,
-    const nfs_argop4 *argop,
-    nfs_resop4 *resop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop,
+    nfs_resop4 *restrict resop)
 {
     nfs41_want_delegation_res *res = (nfs41_want_delegation_res*)resop->res;
 
@@ -3167,8 +3167,8 @@ static bool_t decode_op_want_delegation(
  * OP_FREE_STATEID
  */
 static bool_t encode_op_free_stateid(
-    XDR *xdr,
-    nfs_argop4 *argop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop)
 {
     nfs41_free_stateid_args *args = (nfs41_free_stateid_args*)argop->arg;
 
@@ -3179,9 +3179,9 @@ static bool_t encode_op_free_stateid(
 }
 
 static bool_t decode_op_free_stateid(
-    XDR *xdr,
-    const nfs_argop4 *argop,
-    nfs_resop4 *resop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop,
+    nfs_resop4 *restrict resop)
 {
     nfs41_free_stateid_res *res = (nfs41_free_stateid_res*)resop->res;
 
@@ -3196,8 +3196,8 @@ static bool_t decode_op_free_stateid(
  * OP_TEST_STATEID
  */
 static bool_t encode_op_test_stateid(
-    XDR *xdr,
-    nfs_argop4 *argop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop)
 {
     nfs41_test_stateid_args *args = (nfs41_test_stateid_args*)argop->arg;
 
@@ -3209,9 +3209,9 @@ static bool_t encode_op_test_stateid(
 }
 
 static bool_t decode_op_test_stateid(
-    XDR *xdr,
-    const nfs_argop4 *argop,
-    nfs_resop4 *resop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop,
+    nfs_resop4 *restrict resop)
 {
     nfs41_test_stateid_res *res = (nfs41_test_stateid_res*)resop->res;
 
@@ -3233,8 +3233,8 @@ static bool_t decode_op_test_stateid(
  * OP_WRITE
  */
 static bool_t encode_op_write(
-    XDR *xdr,
-    nfs_argop4 *argop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop)
 {
     nfs41_write_args *args = (nfs41_write_args*)argop->arg;
     unsigned char *data = args->data;
@@ -3258,8 +3258,8 @@ static bool_t encode_op_write(
 }
 
 static bool_t decode_write_verf(
-    XDR *xdr,
-    nfs41_write_verf *verf)
+    XDR *restrict xdr,
+    nfs41_write_verf *restrict verf)
 {
     if (!xdr_enum(xdr, (enum_t *)&verf->committed))
         return FALSE;
@@ -3268,8 +3268,8 @@ static bool_t decode_write_verf(
 }
 
 static bool_t decode_write_res_ok(
-    XDR *xdr,
-    nfs41_write_res_ok *res)
+    XDR *restrict xdr,
+    nfs41_write_res_ok *restrict res)
 {
     if (!xdr_count4(xdr, &res->count))
         return FALSE;
@@ -3278,9 +3278,9 @@ static bool_t decode_write_res_ok(
 }
 
 static bool_t decode_op_write(
-    XDR *xdr,
-    const nfs_argop4 *argop,
-    nfs_resop4 *resop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop,
+    nfs_resop4 *restrict resop)
 {
     nfs41_write_res *res = (nfs41_write_res*)resop->res;
 
@@ -3300,8 +3300,8 @@ static bool_t decode_op_write(
  * OP_SECINFO_NO_NAME
  */
 static bool_t decode_secinfo(
-    XDR *xdr,
-    nfs41_secinfo_info *secinfo)
+    XDR *restrict xdr,
+    nfs41_secinfo_info *restrict secinfo)
 {
     if (!xdr_uint32_t(xdr, &secinfo->sec_flavor))
         return FALSE;
@@ -3318,8 +3318,8 @@ static bool_t decode_secinfo(
 }
 
 static bool_t encode_op_secinfo_noname(
-    XDR *xdr,
-    nfs_argop4 *argop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop)
 {
     nfs41_secinfo_no_name_args *args = (nfs41_secinfo_no_name_args *)argop->arg;
 
@@ -3333,9 +3333,9 @@ static bool_t encode_op_secinfo_noname(
 }
 
 static bool_t decode_op_secinfo_noname(
-    XDR *xdr,
-    const nfs_argop4 *argop,
-    nfs_resop4 *resop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop,
+    nfs_resop4 *restrict resop)
 {
     nfs41_secinfo_no_name_res *res = (nfs41_secinfo_no_name_res *)resop->res;
     nfs41_secinfo_info *secinfo = res->secinfo;
@@ -3356,8 +3356,8 @@ static bool_t decode_op_secinfo_noname(
  * OP_SECINFO
  */
 static bool_t encode_op_secinfo(
-    XDR *xdr,
-    nfs_argop4 *argop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop)
 {
     nfs41_secinfo_args *args = (nfs41_secinfo_args *)argop->arg;
 
@@ -3371,9 +3371,9 @@ static bool_t encode_op_secinfo(
 }
 
 static bool_t decode_op_secinfo(
-    XDR *xdr,
-    const nfs_argop4 *argop,
-    nfs_resop4 *resop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop,
+    nfs_resop4 *restrict resop)
 {
     nfs41_secinfo_no_name_res *res = (nfs41_secinfo_no_name_res *)resop->res;
     nfs41_secinfo_info *secinfo = res->secinfo;
@@ -3394,8 +3394,8 @@ static bool_t decode_op_secinfo(
  * OP_GETDEVICEINFO
  */
 static bool_t encode_op_getdeviceinfo(
-    XDR *xdr,
-    nfs_argop4 *argop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop)
 {
     pnfs_getdeviceinfo_args *args = (pnfs_getdeviceinfo_args*)argop->arg;
 
@@ -3415,8 +3415,8 @@ static bool_t encode_op_getdeviceinfo(
 }
 
 static bool_t decode_stripe_indices(
-    XDR *xdr,
-    pnfs_stripe_indices *indices)
+    XDR *restrict xdr,
+    pnfs_stripe_indices *restrict indices)
 {
     uint32_t i, count;
 
@@ -3441,8 +3441,8 @@ static bool_t decode_stripe_indices(
 }
 
 static bool_t decode_pnfs_addr(
-    XDR *xdr,
-    netaddr4 *addr)
+    XDR *restrict xdr,
+    netaddr4 *restrict addr)
 {
     uint32_t len;
     char *netid = addr->netid;
@@ -3476,8 +3476,8 @@ static bool_t decode_pnfs_addr(
 }
 
 static bool_t decode_multi_addr(
-    XDR *xdr,
-    multi_addr4 *list)
+    XDR *restrict xdr,
+    multi_addr4 *restrict list)
 {
     netaddr4 dummy, *dest;
     uint32_t i;
@@ -3496,8 +3496,8 @@ static bool_t decode_multi_addr(
 }
 
 static bool_t decode_data_server_list(
-    XDR *xdr,
-    pnfs_data_server_list *servers)
+    XDR *restrict xdr,
+    pnfs_data_server_list *restrict servers)
 {
     uint32_t i, count;
 
@@ -3529,8 +3529,8 @@ static bool_t decode_data_server_list(
 }
 
 static bool_t decode_file_device(
-    XDR *xdr,
-    pnfs_file_device *device)
+    XDR *restrict xdr,
+    pnfs_file_device *restrict device)
 {
     if (!decode_stripe_indices(xdr, &device->stripes))
         return FALSE;
@@ -3539,8 +3539,8 @@ static bool_t decode_file_device(
 }
 
 static bool_t decode_getdeviceinfo_ok(
-    XDR *xdr,
-    pnfs_getdeviceinfo_res_ok *res_ok)
+    XDR *restrict xdr,
+    pnfs_getdeviceinfo_res_ok *restrict res_ok)
 {
     u_int32_t len_ignored;
 
@@ -3560,9 +3560,9 @@ static bool_t decode_getdeviceinfo_ok(
 }
 
 static bool_t decode_op_getdeviceinfo(
-    XDR *xdr,
-    const nfs_argop4 *argop,
-    nfs_resop4 *resop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop,
+    nfs_resop4 *restrict resop)
 {
     pnfs_getdeviceinfo_res *res = (pnfs_getdeviceinfo_res*)resop->res;
 
@@ -3595,8 +3595,8 @@ static bool_t decode_op_getdeviceinfo(
  * OP_LAYOUTCOMMIT
  */
 static bool_t encode_op_layoutcommit(
-    XDR *xdr,
-    nfs_argop4 *argop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop)
 {
     pnfs_layoutcommit_args *args = (pnfs_layoutcommit_args*)argop->arg;
     bool_t false_bool = FALSE;
@@ -3651,9 +3651,9 @@ static bool_t encode_op_layoutcommit(
 }
 
 static bool_t decode_op_layoutcommit(
-    XDR *xdr,
-    const nfs_argop4 *argop,
-    nfs_resop4 *resop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop,
+    nfs_resop4 *restrict resop)
 {
     pnfs_layoutcommit_res *res = (pnfs_layoutcommit_res*)resop->res;
 
@@ -3678,8 +3678,8 @@ static bool_t decode_op_layoutcommit(
  * OP_LAYOUTGET
  */
 static bool_t encode_op_layoutget(
-    XDR *xdr,
-    nfs_argop4 *argop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop)
 {
     pnfs_layoutget_args *args = (pnfs_layoutget_args*)argop->arg;
 
@@ -3711,8 +3711,8 @@ static bool_t encode_op_layoutget(
 }
 
 static bool_t decode_file_layout_handles(
-    XDR *xdr,
-    pnfs_file_layout_handles *handles)
+    XDR *restrict xdr,
+    pnfs_file_layout_handles *restrict handles)
 {
     uint32_t i, count;
 
@@ -3737,9 +3737,9 @@ static bool_t decode_file_layout_handles(
 }
 
 static bool_t decode_file_layout(
-    XDR *xdr,
-    struct list_entry *list,
-    pnfs_layout *base)
+    XDR *restrict xdr,
+    struct list_entry *restrict list,
+    pnfs_layout *restrict base)
 {
     pnfs_file_layout *layout;
     u_int32_t len_ignored;
@@ -3781,8 +3781,8 @@ out_error:
 }
 
 static bool_t decode_layout(
-    XDR *xdr,
-    struct list_entry *list)
+    XDR *restrict xdr,
+    struct list_entry *restrict list)
 {
     pnfs_layout layout;
 
@@ -3810,8 +3810,8 @@ static bool_t decode_layout(
 }
 
 static bool_t decode_layout_res_ok(
-    XDR *xdr,
-    pnfs_layoutget_res_ok *res)
+    XDR *restrict xdr,
+    pnfs_layoutget_res_ok *restrict res)
 {
     uint32_t i;
 
@@ -3831,9 +3831,9 @@ static bool_t decode_layout_res_ok(
 }
 
 static bool_t decode_op_layoutget(
-    XDR *xdr,
-    const nfs_argop4 *argop,
-    nfs_resop4 *resop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop,
+    nfs_resop4 *restrict resop)
 {
     pnfs_layoutget_res *res = (pnfs_layoutget_res*)resop->res;
 
@@ -3861,8 +3861,8 @@ static bool_t decode_op_layoutget(
  * OP_LAYOUTRETURN
  */
 static bool_t encode_op_layoutreturn(
-    XDR *xdr,
-    nfs_argop4 *argop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop)
 {
     pnfs_layoutreturn_args *args = (pnfs_layoutreturn_args*)argop->arg;
 
@@ -3902,9 +3902,9 @@ static bool_t encode_op_layoutreturn(
 }
 
 static bool_t decode_op_layoutreturn(
-    XDR *xdr,
-    const nfs_argop4 *argop,
-    nfs_resop4 *resop)
+    XDR *restrict xdr,
+    const nfs_argop4 *restrict argop,
+    nfs_resop4 *restrict resop)
 {
     pnfs_layoutreturn_res *res = (pnfs_layoutreturn_res*)resop->res;
 
@@ -3926,8 +3926,10 @@ static bool_t decode_op_layoutreturn(
 
 
 /* op encode/decode table */
-typedef bool_t (*nfs_op_encode_proc)(XDR*, nfs_argop4*);
-typedef bool_t (*nfs_op_decode_proc)(XDR*, const nfs_argop4*, nfs_resop4*);
+typedef bool_t (*nfs_op_encode_proc)(XDR *restrict,
+    const nfs_argop4 *restrict);
+typedef bool_t (*nfs_op_decode_proc)(XDR *restrict,
+    const nfs_argop4 *restrict, nfs_resop4 *restrict);
 
 typedef struct __op_table_entry {
     nfs_op_encode_proc      encode;
@@ -4030,8 +4032,8 @@ const op_table_entry* op_table_lookup(uint32_t op)
  * COMPOUND
  */
 bool_t nfs_encode_compound(
-    XDR *xdr,
-    caddr_t *context)
+    XDR *restrict xdr,
+    caddr_t *restrict context)
 {
     unsigned char *tag;
 
@@ -4064,8 +4066,8 @@ bool_t nfs_encode_compound(
 }
 
 bool_t nfs_decode_compound(
-    XDR *xdr,
-    caddr_t *context)
+    XDR *restrict xdr,
+    caddr_t *restrict context)
 {
     const nfs41_compound_args *args = ((struct nfsencodedecodecontext *)context)->args;
     nfs41_compound_res *res = ((struct nfsencodedecodecontext *)context)->res;
