@@ -153,7 +153,7 @@ static int recover_open_grace(
     claim.u.prev.delegate_type = delegation->type;
 
     return nfs41_open(session, parent, file, owner, &claim, access, deny, 
-        OPEN4_NOCREATE, 0, NULL, FALSE, stateid, delegation, NULL);
+        OPEN4_NOCREATE, UNCHECKED4, NULL, FALSE, stateid, delegation, NULL);
 }
 
 static int recover_open_no_grace(
@@ -176,7 +176,7 @@ static int recover_open_no_grace(
         claim.u.deleg_prev.filename = &file->name;
 
         status = nfs41_open(session, parent, file, owner,
-            &claim, access, deny, OPEN4_NOCREATE, 0, NULL, FALSE,
+            &claim, access, deny, OPEN4_NOCREATE, UNCHECKED4, NULL, FALSE,
             stateid, delegation, NULL);
         if (status == NFS4_OK || status == NFS4ERR_BADSESSION)
             goto out;
@@ -196,7 +196,7 @@ static int recover_open_no_grace(
         access |= OPEN4_SHARE_ACCESS_WANT_WRITE_DELEG;
 
     status = nfs41_open(session, parent, file, owner,
-        &claim, access, deny, OPEN4_NOCREATE, 0, NULL, FALSE,
+        &claim, access, deny, OPEN4_NOCREATE, UNCHECKED4, NULL, FALSE,
         stateid, delegation, NULL);
 out:
     return status;

@@ -278,7 +278,7 @@ static void client_state_remove(
 static int do_open(
     IN OUT nfs41_open_state *state,
     IN uint32_t create,
-    IN uint32_t createhow,
+    IN enum createmode4 createhowmode,
     IN nfs41_file_info *createattrs,
     IN bool_t try_recovery,
     OUT nfs41_file_info *info)
@@ -294,7 +294,7 @@ static int do_open(
 
     status = nfs41_open(state->session, &state->parent, &state->file,
         &state->owner, &claim, state->share_access, state->share_deny,
-        create, createhow, createattrs, TRUE, &open_stateid,
+        create, createhowmode, createattrs, TRUE, &open_stateid,
         &delegation, info);
     if (status)
         goto out;
@@ -338,7 +338,7 @@ out:
 static int open_or_delegate(
     IN OUT nfs41_open_state *state,
     IN uint32_t create,
-    IN uint32_t createhow,
+    IN enum createmode4 createhowmode,
     IN nfs41_file_info *createattrs,
     IN bool_t try_recovery,
     OUT nfs41_file_info *info)
@@ -366,7 +366,7 @@ static int open_or_delegate(
 
     /* get an open stateid if we have no delegation stateid */
     if (status)
-        status = do_open(state, create, createhow,
+        status = do_open(state, create, createhowmode,
             createattrs, try_recovery, info);
 
     state->pnfs_last_offset = info->size ? info->size - 1 : 0;
@@ -506,9 +506,13 @@ static BOOLEAN open_for_attributes(uint32_t type, ULONG access_mask,
     }
 }
 
-static int map_disposition_2_nfsopen(ULONG disposition, int in_status, bool_t persistent,
-                                     uint32_t *create, uint32_t *createhowmode,
-                                     uint32_t *last_error)
+static int map_disposition_2_nfsopen(
+    ULONG disposition,
+    int in_status,
+    bool_t persistent,
+    uint32_t *restrict create,
+    enum createmode4 *restrict createhowmode,
+    uint32_t *restrict last_error)
 {
     int status = NO_ERROR;
     if (disposition == FILE_SUPERSEDE) {
@@ -1374,7 +1378,9 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
         idmapcache_entry *group_ie = NULL;
         bool owner_group_needs_fixup = false;
 #endif /* NFS41_DRIVER_SETGID_NEWGRP_SUPPORT */
-        uint32_t create = 0, createhowmode = 0, lookup_status = status;
+        uint32_t create = 0;
+        enum createmode4 createhowmode = UNCHECKED4;
+        uint32_t lookup_status = status;
 
         if (!lookup_status && (args->disposition == FILE_OVERWRITE ||
                 args->disposition == FILE_OVERWRITE_IF ||
@@ -1413,9 +1419,9 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
             args->disposition, &state->share_access, &state->share_deny);
         args->want_deleg =
             state->share_access & OPEN4_SHARE_ACCESS_WANT_DELEG_MASK;
-        status = map_disposition_2_nfsopen(args->disposition, status, 
-                    state->session->flags & CREATE_SESSION4_FLAG_PERSIST, 
-                    &create, &createhowmode, &upcall->last_error);
+        status = map_disposition_2_nfsopen(args->disposition, status,
+            (state->session->flags & CREATE_SESSION4_FLAG_PERSIST),
+            &create, &createhowmode, &upcall->last_error);
         if (status)
             goto out_free_state;
 

@@ -452,7 +452,7 @@ int nfs41_open(
     IN uint32_t allow,
     IN uint32_t deny,
     IN uint32_t create,
-    IN uint32_t how_mode,
+    IN enum createmode4 how_mode,
     IN OPTIONAL nfs41_file_info *createattrs,
     IN bool_t try_recovery,
     OUT stateid4 *stateid,

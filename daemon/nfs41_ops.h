@@ -583,7 +583,7 @@ enum createmode4 {
 };
 
 typedef struct __createhow4 {
-    uint32_t            mode;
+    enum createmode4    mode;
     nfs41_file_info     *createattrs;
     verifier4           createverf;
 } createhow4;
@@ -1240,7 +1240,7 @@ int nfs41_open(
     IN uint32_t allow,
     IN uint32_t deny,
     IN uint32_t create,
-    IN uint32_t how_mode,
+    IN enum createmode4 how_mode,
     IN OPTIONAL nfs41_file_info *createattrs,
     IN bool_t try_recovery,
     OUT stateid4 *stateid,

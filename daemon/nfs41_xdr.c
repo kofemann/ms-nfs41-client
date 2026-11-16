@@ -2277,13 +2277,20 @@ static bool_t decode_op_getattr(
 /*
  * OP_OPEN
  */
+static bool_t encode_createmode4(
+    XDR *restrict xdr,
+    enum createmode4 *restrict mode)
+{
+    return xdr_enum(xdr, (enum_t *)mode);
+}
+
 static bool_t encode_createhow4(
     XDR *restrict xdr,
     createhow4 *restrict ch)
 {
     bool_t result = TRUE;
 
-    if (!xdr_uint32_t(xdr, &ch->mode))
+    if (!encode_createmode4(xdr, &ch->mode))
         return FALSE;
 
     switch (ch->mode)

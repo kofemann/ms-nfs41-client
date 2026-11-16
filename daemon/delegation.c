@@ -664,7 +664,7 @@ int nfs41_delegation_to_open(
 
     status = nfs41_open(open->session, &open->parent, &open->file,
         &open->owner, &claim, open->share_access, open->share_deny,
-        OPEN4_NOCREATE, 0, NULL, try_recovery, &open_stateid, &ignore, NULL);
+        OPEN4_NOCREATE, UNCHECKED4, NULL, try_recovery, &open_stateid, &ignore, NULL);
 
     AcquireSRWLockExclusive(&open->lock);
     if (status == NFS4_OK) {
