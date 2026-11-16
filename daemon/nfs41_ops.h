@@ -594,7 +594,7 @@ enum opentype4 {
 };
 
 typedef struct __openflag4 {
-    uint32_t                opentype;
+    enum opentype4          opentype;
     /* case OPEN4_CREATE: */
     createhow4              how;
 } openflag4;
@@ -1239,7 +1239,7 @@ int nfs41_open(
     IN open_claim4 *claim,
     IN uint32_t allow,
     IN uint32_t deny,
-    IN uint32_t create,
+    IN enum opentype4 opentype,
     IN enum createmode4 how_mode,
     IN OPTIONAL nfs41_file_info *createattrs,
     IN bool_t try_recovery,

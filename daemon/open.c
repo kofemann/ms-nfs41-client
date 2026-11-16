@@ -277,7 +277,7 @@ static void client_state_remove(
 
 static int do_open(
     IN OUT nfs41_open_state *state,
-    IN uint32_t create,
+    IN enum opentype4 opentype,
     IN enum createmode4 createhowmode,
     IN nfs41_file_info *createattrs,
     IN bool_t try_recovery,
@@ -294,7 +294,7 @@ static int do_open(
 
     status = nfs41_open(state->session, &state->parent, &state->file,
         &state->owner, &claim, state->share_access, state->share_deny,
-        create, createhowmode, createattrs, TRUE, &open_stateid,
+        opentype, createhowmode, createattrs, TRUE, &open_stateid,
         &delegation, info);
     if (status)
         goto out;
@@ -337,7 +337,7 @@ out:
 
 static int open_or_delegate(
     IN OUT nfs41_open_state *state,
-    IN uint32_t create,
+    IN enum opentype4 opentype,
     IN enum createmode4 createhowmode,
     IN nfs41_file_info *createattrs,
     IN bool_t try_recovery,
@@ -354,19 +354,19 @@ static int open_or_delegate(
      */
     if (!is_stream_path_fh(&state->file)) {
         /* check for existing delegation */
-        status = nfs41_delegate_open(state, create, createattrs, info);
+        status = nfs41_delegate_open(state, opentype, createattrs, info);
     }
     else {
         status = 1;
     }
 #else
     /* check for existing delegation */
-    status = nfs41_delegate_open(state, create, createattrs, info);
+    status = nfs41_delegate_open(state, opentype, createattrs, info);
 #endif /* NFS41_DRIVER_WINSTREAMS_SUPPORT */
 
     /* get an open stateid if we have no delegation stateid */
     if (status)
-        status = do_open(state, create, createhowmode,
+        status = do_open(state, opentype, createhowmode,
             createattrs, try_recovery, info);
 
     state->pnfs_last_offset = info->size ? info->size - 1 : 0;
@@ -510,7 +510,7 @@ static int map_disposition_2_nfsopen(
     ULONG disposition,
     int in_status,
     bool_t persistent,
-    uint32_t *restrict create,
+    enum opentype4 *restrict opentype,
     enum createmode4 *restrict createhowmode,
     uint32_t *restrict last_error)
 {
@@ -519,7 +519,7 @@ static int map_disposition_2_nfsopen(
         if (in_status == NFS4ERR_NOENT)           
             *last_error = ERROR_FILE_NOT_FOUND;
         //remove and recreate the file
-        *create = OPEN4_CREATE;
+        *opentype = OPEN4_CREATE;
         if (persistent) *createhowmode = GUARDED4;
         else *createhowmode = EXCLUSIVE4_1;
     } else if (disposition == FILE_CREATE) {
@@ -527,7 +527,7 @@ static int map_disposition_2_nfsopen(
         if (!in_status)
             status = ERROR_FILE_EXISTS;
         else {
-            *create = OPEN4_CREATE;
+            *opentype = OPEN4_CREATE;
             if (persistent) *createhowmode = GUARDED4;
             else *createhowmode = EXCLUSIVE4_1;
         }
@@ -535,26 +535,26 @@ static int map_disposition_2_nfsopen(
         if (in_status == NFS4ERR_NOENT)
             status = ERROR_FILE_NOT_FOUND;
         else
-            *create = OPEN4_NOCREATE;
+            *opentype = OPEN4_NOCREATE;
     } else if (disposition == FILE_OPEN_IF) {
         if (in_status == NFS4ERR_NOENT) {
             DPRINTF(1, ("creating new file\n"));
-            *create = OPEN4_CREATE;
+            *opentype = OPEN4_CREATE;
             *last_error = ERROR_FILE_NOT_FOUND;
         } else {
             DPRINTF(1, ("opening existing file\n"));
-            *create = OPEN4_NOCREATE;
+            *opentype = OPEN4_NOCREATE;
         }
     } else if (disposition == FILE_OVERWRITE) {
         if (in_status == NFS4ERR_NOENT)
             status = ERROR_FILE_NOT_FOUND;
         //truncate file
-        *create = OPEN4_CREATE;
+        *opentype = OPEN4_CREATE;
     } else if (disposition == FILE_OVERWRITE_IF) {
         if (in_status == NFS4ERR_NOENT)
             *last_error = ERROR_FILE_NOT_FOUND;
         //truncate file
-        *create = OPEN4_CREATE;
+        *opentype = OPEN4_CREATE;
     }
     return status;
 }
@@ -1378,7 +1378,7 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
         idmapcache_entry *group_ie = NULL;
         bool owner_group_needs_fixup = false;
 #endif /* NFS41_DRIVER_SETGID_NEWGRP_SUPPORT */
-        uint32_t create = 0;
+        enum opentype4 opentype = OPEN4_NOCREATE;
         enum createmode4 createhowmode = UNCHECKED4;
         uint32_t lookup_status = status;
 
@@ -1421,7 +1421,7 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
             state->share_access & OPEN4_SHARE_ACCESS_WANT_DELEG_MASK;
         status = map_disposition_2_nfsopen(args->disposition, status,
             (state->session->flags & CREATE_SESSION4_FLAG_PERSIST),
-            &create, &createhowmode, &upcall->last_error);
+            &opentype, &createhowmode, &upcall->last_error);
         if (status)
             goto out_free_state;
 
@@ -1463,7 +1463,7 @@ supersede_retry:
         }
 
 #ifdef NFS41_DRIVER_SETGID_NEWGRP_SUPPORT
-        if ((create == OPEN4_CREATE) &&
+        if ((opentype == OPEN4_CREATE) &&
             (state->session->client->rpc->sec_flavor != RPCSEC_AUTH_NONE)) {
             group_ie = get_token_primarygroup_idmap_entry(
                 upcall->currentthread_token,
@@ -1478,16 +1478,17 @@ supersede_retry:
         }
 #endif /* NFS41_DRIVER_SETGID_NEWGRP_SUPPORT */
 
-        if (create == OPEN4_CREATE && (args->create_opts & FILE_DIRECTORY_FILE)) {
-            status = nfs41_create(state->session, NF4DIR, &createattrs, NULL, 
+        if ((opentype == OPEN4_CREATE) &&
+            (args->create_opts & FILE_DIRECTORY_FILE)) {
+            status = nfs41_create(state->session, NF4DIR, &createattrs, NULL,
                 &state->parent, &state->file, &info);
             args->created = status == NFS4_OK ? TRUE : FALSE;
         } else {
             createattrs.attrmask.arr[0] |= FATTR4_WORD0_SIZE;
             createattrs.size = 0;
             DPRINTF(1, ("creating with mode 0%o\n", args->mode));
-            status = open_or_delegate(state, create, createhowmode, &createattrs,
-                TRUE, &info);
+            status = open_or_delegate(state, opentype, createhowmode,
+                &createattrs, TRUE, &info);
             if (status == NFS4_OK && state->delegation.state)
                     args->deleg_type = state->delegation.state->state.type;
         }
@@ -1503,8 +1504,9 @@ supersede_retry:
         }
 #endif /* NFS41_DRIVER_SETGID_NEWGRP_SUPPORT */
         if (status) {
-            DPRINTF(1, ("'%s' failed with '%s'\n", (create == OPEN4_CREATE &&
-                (args->create_opts & FILE_DIRECTORY_FILE))?"nfs41_create":"nfs41_open",
+            DPRINTF(1, ("'%s' failed with '%s'\n",
+                (((opentype == OPEN4_CREATE) &&
+                    (args->create_opts & FILE_DIRECTORY_FILE))?"nfs41_create":"nfs41_open"),
                 nfs_error_string(status)));
             if (args->disposition == FILE_SUPERSEDE && status == NFS4ERR_EXIST)
                 goto supersede_retry;
@@ -1513,12 +1515,12 @@ supersede_retry:
         } else {
 #if defined(NFS41_DRIVER_SETGID_NEWGRP_SUPPORT) && \
     defined(NFS41_DRIVER_SETGID_NEWGRP_SUPPORT_FIXUP)
-            if ((create == OPEN4_CREATE) && owner_group_needs_fixup) {
+            if ((opentype == OPEN4_CREATE) && owner_group_needs_fixup) {
                 (void)chgrp_to_primarygroup(upcall->currentthread_token, state);
             }
 #endif
 #ifdef WORKAROUND_FOR_FREEBSD_CREATIONFAILSWITHEPERM_BUGS_292283_293691
-            if (create == OPEN4_CREATE) {
+            if (opentype == OPEN4_CREATE) {
                 set_hiddensystemarchive_attrs(args->file_attrs, state);
             }
 #endif /* WORKAROUND_FOR_FREEBSD_CREATIONFAILSWITHEPERM_BUGS_292283_293691 */

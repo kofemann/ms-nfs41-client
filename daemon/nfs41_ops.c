@@ -451,7 +451,7 @@ int nfs41_open(
     IN open_claim4 *claim,
     IN uint32_t allow,
     IN uint32_t deny,
-    IN uint32_t create,
+    IN enum opentype4 opentype,
     IN enum createmode4 how_mode,
     IN OPTIONAL nfs41_file_info *createattrs,
     IN bool_t try_recovery,
@@ -590,7 +590,7 @@ int nfs41_open(
         lookup_args.name = &base_comp;
         compound_add_op(&compound, OP_OPENATTR, &openattr_args, &openattr_res);
         /* If we are creating the stream, we should allow creating the attr dir */
-        openattr_args.createdir = (create == OPEN4_CREATE) ? TRUE : FALSE;
+        openattr_args.createdir = (opentype == OPEN4_CREATE) ? TRUE : FALSE;
     }
 #endif /* NFS41_DRIVER_WINSTREAMS_SUPPORT */
 
@@ -603,7 +603,7 @@ int nfs41_open(
 #endif
     open_args.share_deny = deny; 
     open_args.owner = owner;
-    open_args.openhow.opentype = create;
+    open_args.openhow.opentype = opentype;
     open_args.openhow.how.mode = how_mode;
     open_args.openhow.how.createattrs = createattrs;
     if (how_mode == EXCLUSIVE4_1) {
@@ -702,7 +702,7 @@ int nfs41_open(
     if (status)
         goto out;
 
-    if (create == OPEN4_CREATE)
+    if (opentype == OPEN4_CREATE)
         nfs41_superblock_space_changed(file->fh.superblock);
 
     /* update the name/attr cache with the results */

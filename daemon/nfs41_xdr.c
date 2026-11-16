@@ -2312,13 +2312,20 @@ static bool_t encode_createhow4(
     return result;
 }
 
+static bool_t encode_opentype(
+    XDR *restrict xdr,
+    enum opentype4 *restrict ot)
+{
+    return xdr_enum(xdr, (enum_t *)ot);
+}
+
 static bool_t encode_openflag4(
     XDR *restrict xdr,
     openflag4 *restrict of)
 {
     bool_t result = TRUE;
 
-    if (!xdr_uint32_t(xdr, &of->opentype))
+    if (!encode_opentype(xdr, &of->opentype))
         return FALSE;
 
     switch (of->opentype)
