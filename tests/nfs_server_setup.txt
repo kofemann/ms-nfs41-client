@@ -150,6 +150,10 @@ share -F nfs -o rw /export/nfsdata
 svcs network/nfs/mapid
 svcs network/nfs/server
 
+# make sure ACLs work like Win32 expects it
+zfs set aclmode=passthrough rpool
+zfs set aclinherit=passthrough-x rpool
+
 # performance: disable sync/ZIL on ZFS pool which exports NFS files
 zfs set sync=disabled rpool
 
@@ -195,6 +199,9 @@ svcs network/nfs/mapid
 svcs network/nfs/server
 
 # restarting network/nfs/server only restores shares in /etc/dfs/dfstab
+
+# make sure ACLs work like Win32 expects it
+zfs set aclmode=passthrough aclinherit=passthrough-x aclimplicit=off rpool
 
 # performance: disable sync/ZIL on ZFS pool which exports NFS files
 zfs set sync=disabled rpool
@@ -252,6 +259,9 @@ chmod a+rwxt /nfsdata
 zfs set xattr=dir zroot
 zfs set xattr=dir zroot/ROOT/default
 
+# make sure ACLs work like Win32 expects it
+zfs set acltype=nfsv4 aclmode=passthrough aclinherit=passthrough-x zroot
+
 # NFSv4.1 exports must come after the 'V4: /' line,
 # otherwise you get a NFS4ERR_NOFILEHANDLE
 printf 'V4: /\n' >'/etc/exports'
@@ -263,7 +273,12 @@ service nfsd start
 #
 mkdir -p /data
 truncate -s 32G /data/zfs_casei001.img
-zpool create -O xattr=dir -O casesensitivity=insensitive -O utf8only=on test_casei001_pool /data/zfs_casei001.img
+# Create pool:
+# - acltype=nfsv4 aclmode=passthrough aclinherit=passthrough-x make sure that ACL work as Win32 expects it
+# - xattr=dir makes sure O_XATTR required for Windows names streams work
+# - casesensitivity=insensitive defines a case-insensitive filesystem
+# - utf8only=on rejects non-UTF-8 encoded filenames
+zpool create -O acltype=nfsv4 -O aclmode=passthrough -O aclinherit=passthrough-x -O xattr=dir -O casesensitivity=insensitive -O utf8only=on test_casei001_pool /data/zfs_casei001.img
 zfs get xattr,casesensitivity test_casei001_pool # verify: Must be "casesensitivity=insensitive,xattr=dir"
 # enable autotrim for sparse files+disable sync
 zpool set autotrim=on test_casei001_pool
@@ -277,7 +292,7 @@ service nfsd restart
 #
 # OPTIONAL 2: FreeBSD >= 16.0 case-insensitive filesystem with zpool storage setup
 #
-zfs create  -o mountpoint=/zroot_casei_pool001  -o xattr=dir  -o casesensitivity=insensitive -o utf8only=on "zroot/casei_pool001"
+zfs create -o mountpoint=/zroot_casei_pool001 -o acltype=nfsv4 -o aclmode=passthrough -o aclinherit=passthrough-x -o xattr=dir -o casesensitivity=insensitive -o utf8only=on "zroot/casei_pool001"
 zfs get xattr,casesensitivity zroot/casei_pool001 # verify: Must be "casesensitivity=insensitive,xattr=dir"
 printf '/zroot_casei_pool001 -network=10.49.202.0 -mask=255.255.255.0  -sec=sys\n' >>/etc/exports
 mkdir /zroot_casei_pool001/casei_tests
