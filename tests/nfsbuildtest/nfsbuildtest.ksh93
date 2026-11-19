@@ -302,7 +302,7 @@ function bash_createcache
 	rm -f '../gitbundles/bash.bundle'
 
 	# 'https://github.com/bminor/bash.git' was deleted by "bminor" in 2026
-	git -c checkout.workers=16 clone 'https://https.git.savannah.gnu.org/git/bash.git'
+	git -c checkout.workers=16 clone 'git://git.savannah.gnu.org/bash.git'
 	cd bash
 	git config --global --add safe.directory "$PWD"
 	git bundle create '../gitbundles/bash.bundle' --all
@@ -364,7 +364,7 @@ function bash_build
 	typeset config_use_posix_ksh93_builtins=true
 
 	compound gitdata=(
-		typeset url='https://https.git.savannah.gnu.org/git/bash.git'
+		typeset url='git://git.savannah.gnu.org/bash.git'
 		# use fixed git tag, so build times are compareable
 		# (make sure to test this with Windows 10/32bit+Cygwin 3.4!!)
 		typeset tag='bash-5.0'
