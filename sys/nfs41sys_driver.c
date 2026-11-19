@@ -1289,11 +1289,8 @@ NTSTATUS nfs41_FsdDispatch(
 
 #ifdef DEBUG_FSDDISPATCH
     DbgEn();
-    DbgP("CURRENT IRP = %d.%d\n", IrpSp->MajorFunction, IrpSp->MinorFunction);
-    if(IrpSp->FileObject)
-        DbgP("FileOject 0x%p Filename '%wZ'\n", IrpSp->FileObject,
-                &IrpSp->FileObject->FileName);
-#endif
+    nfs41_debug_fsd_dispatch(Irp);
+#endif /* DEBUG_FSDDISPATCH */
 
     if (dev != (PDEVICE_OBJECT)nfs41_dev) {
         print_error("nfs41_FsdDispatch: *** not ours ***\n");
@@ -1370,11 +1367,11 @@ NTSTATUS nfs41_FsdDispatch(
 
 out:
 #ifdef DEBUG_FSDDISPATCH
-    DbgP("IoStatus status = 0x%lx info = 0x%x\n",
+    DbgP("nfs41_FsdDispatch: IoStatus status=0x%lx,info=0x%lx\n",
         (long)Irp->IoStatus.Status,
-        (int)Irp->IoStatus.Information);
+        (long)Irp->IoStatus.Information);
     DbgEx();
-#endif
+#endif /* DEBUG_FSDDISPATCH */
     return status;
 }
 

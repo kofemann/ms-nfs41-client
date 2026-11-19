@@ -1738,3 +1738,725 @@ void debug_printirpecps(PIRP irp)
     }
 }
 #endif /* NFS41_DRIVER_ECP_SUPPORT */
+
+#ifdef DEBUG_FSDDISPATCH
+
+#define NFS41_DEBUG_DETAILS_ADVANCE_BUF() \
+    if ((len > 0) && ((size_t)len < *bufsizep)) { \
+        *bufp += (size_t)len; \
+        *bufsizep -= (size_t)len; \
+    }
+
+static
+const char *nfs41_debug_irp_major_name(UCHAR major)
+{
+#define IRP_MJ_TO_STRLITERAL(e) case e: return #e
+    switch (major) {
+    IRP_MJ_TO_STRLITERAL(IRP_MJ_CREATE);
+    IRP_MJ_TO_STRLITERAL(IRP_MJ_CREATE_NAMED_PIPE);
+    IRP_MJ_TO_STRLITERAL(IRP_MJ_CLOSE);
+    IRP_MJ_TO_STRLITERAL(IRP_MJ_READ);
+    IRP_MJ_TO_STRLITERAL(IRP_MJ_WRITE);
+    IRP_MJ_TO_STRLITERAL(IRP_MJ_QUERY_INFORMATION);
+    IRP_MJ_TO_STRLITERAL(IRP_MJ_SET_INFORMATION);
+    IRP_MJ_TO_STRLITERAL(IRP_MJ_QUERY_EA);
+    IRP_MJ_TO_STRLITERAL(IRP_MJ_SET_EA);
+    IRP_MJ_TO_STRLITERAL(IRP_MJ_FLUSH_BUFFERS);
+    IRP_MJ_TO_STRLITERAL(IRP_MJ_QUERY_VOLUME_INFORMATION);
+    IRP_MJ_TO_STRLITERAL(IRP_MJ_SET_VOLUME_INFORMATION);
+    IRP_MJ_TO_STRLITERAL(IRP_MJ_DIRECTORY_CONTROL);
+    IRP_MJ_TO_STRLITERAL(IRP_MJ_FILE_SYSTEM_CONTROL);
+    IRP_MJ_TO_STRLITERAL(IRP_MJ_DEVICE_CONTROL);
+    IRP_MJ_TO_STRLITERAL(IRP_MJ_INTERNAL_DEVICE_CONTROL);
+    IRP_MJ_TO_STRLITERAL(IRP_MJ_SHUTDOWN);
+    IRP_MJ_TO_STRLITERAL(IRP_MJ_LOCK_CONTROL);
+    IRP_MJ_TO_STRLITERAL(IRP_MJ_CLEANUP);
+    IRP_MJ_TO_STRLITERAL(IRP_MJ_CREATE_MAILSLOT);
+    IRP_MJ_TO_STRLITERAL(IRP_MJ_QUERY_SECURITY);
+    IRP_MJ_TO_STRLITERAL(IRP_MJ_SET_SECURITY);
+    IRP_MJ_TO_STRLITERAL(IRP_MJ_POWER);
+    IRP_MJ_TO_STRLITERAL(IRP_MJ_SYSTEM_CONTROL);
+    IRP_MJ_TO_STRLITERAL(IRP_MJ_DEVICE_CHANGE);
+    IRP_MJ_TO_STRLITERAL(IRP_MJ_QUERY_QUOTA);
+    IRP_MJ_TO_STRLITERAL(IRP_MJ_SET_QUOTA);
+    IRP_MJ_TO_STRLITERAL(IRP_MJ_PNP);
+    default:
+        return "IRP_MJ_UNKNOWN";
+    }
+#undef IRP_MJ_TO_STRLITERAL
+}
+
+static
+const char *nfs41_debug_pnp_minor_name(UCHAR minor)
+{
+#define IRP_MN_TO_STRLITERAL(e) case e: return #e
+    switch (minor) {
+    IRP_MN_TO_STRLITERAL(IRP_MN_START_DEVICE);
+    IRP_MN_TO_STRLITERAL(IRP_MN_QUERY_REMOVE_DEVICE);
+    IRP_MN_TO_STRLITERAL(IRP_MN_REMOVE_DEVICE);
+    IRP_MN_TO_STRLITERAL(IRP_MN_CANCEL_REMOVE_DEVICE);
+    IRP_MN_TO_STRLITERAL(IRP_MN_STOP_DEVICE);
+    IRP_MN_TO_STRLITERAL(IRP_MN_QUERY_STOP_DEVICE);
+    IRP_MN_TO_STRLITERAL(IRP_MN_CANCEL_STOP_DEVICE);
+    IRP_MN_TO_STRLITERAL(IRP_MN_QUERY_DEVICE_RELATIONS);
+    IRP_MN_TO_STRLITERAL(IRP_MN_QUERY_INTERFACE);
+    IRP_MN_TO_STRLITERAL(IRP_MN_QUERY_CAPABILITIES);
+    IRP_MN_TO_STRLITERAL(IRP_MN_QUERY_RESOURCES);
+    IRP_MN_TO_STRLITERAL(IRP_MN_QUERY_RESOURCE_REQUIREMENTS);
+    IRP_MN_TO_STRLITERAL(IRP_MN_QUERY_DEVICE_TEXT);
+    IRP_MN_TO_STRLITERAL(IRP_MN_FILTER_RESOURCE_REQUIREMENTS);
+    IRP_MN_TO_STRLITERAL(IRP_MN_READ_CONFIG);
+    IRP_MN_TO_STRLITERAL(IRP_MN_WRITE_CONFIG);
+    IRP_MN_TO_STRLITERAL(IRP_MN_EJECT);
+    IRP_MN_TO_STRLITERAL(IRP_MN_SET_LOCK);
+    IRP_MN_TO_STRLITERAL(IRP_MN_QUERY_ID);
+    IRP_MN_TO_STRLITERAL(IRP_MN_QUERY_PNP_DEVICE_STATE);
+    IRP_MN_TO_STRLITERAL(IRP_MN_QUERY_BUS_INFORMATION);
+    IRP_MN_TO_STRLITERAL(IRP_MN_DEVICE_USAGE_NOTIFICATION);
+    IRP_MN_TO_STRLITERAL(IRP_MN_SURPRISE_REMOVAL);
+    default:
+        return (minor == 0)?"IRP_MN_NONE":"IRP_MN_UNKNOWN";
+    }
+    /* NOTREACHED */
+}
+
+static
+const char *nfs41_debug_irp_minor_name(UCHAR major, UCHAR minor)
+{
+    switch (major) {
+    case IRP_MJ_DIRECTORY_CONTROL:
+        switch (minor) {
+        IRP_MN_TO_STRLITERAL(IRP_MN_QUERY_DIRECTORY);
+        IRP_MN_TO_STRLITERAL(IRP_MN_NOTIFY_CHANGE_DIRECTORY);
+        default:
+            /* FIXME: What should we print here ? */
+            break;
+        }
+        break;
+    case IRP_MJ_FILE_SYSTEM_CONTROL:
+        switch (minor) {
+        IRP_MN_TO_STRLITERAL(IRP_MN_USER_FS_REQUEST);
+        IRP_MN_TO_STRLITERAL(IRP_MN_MOUNT_VOLUME);
+        IRP_MN_TO_STRLITERAL(IRP_MN_VERIFY_VOLUME);
+        IRP_MN_TO_STRLITERAL(IRP_MN_LOAD_FILE_SYSTEM);
+        IRP_MN_TO_STRLITERAL(IRP_MN_KERNEL_CALL);
+        default:
+            /* FIXME: What should we print here ? */
+            break;
+        }
+        break;
+    case IRP_MJ_PNP:
+        return nfs41_debug_pnp_minor_name(minor);
+    default:
+        /* FIXME: What should we print here ? */
+        break;
+    }
+
+    return (minor == 0)?"IRP_MN_NONE":"IRP_MN_UNKNOWN";
+#undef IRP_MN_TO_STRLITERAL
+}
+
+static
+const char *nfs41_debug_device_usage_name(DEVICE_USAGE_NOTIFICATION_TYPE type)
+{
+    switch (type) {
+    case DeviceUsageTypeUndefined:
+        return "TypeUndefined";
+    case DeviceUsageTypePaging:
+        return "TypePaging";
+    case DeviceUsageTypeHibernation:
+        return "TypeHibernation";
+    case DeviceUsageTypeDumpFile:
+        return "TypeDumpFile";
+    case DeviceUsageTypeBoot:
+        return "TypeBoot";
+    case DeviceUsageTypePostDisplay:
+        return "PostDisplay";
+    case DeviceUsageTypeGuestAssigned:
+        return "TypeGuestAssigned";
+    default:
+        return "Type_unknown";
+    }
+    /* NOTREACHED */
+}
+
+static
+const char *nfs41_debug_ioctl_name(ULONG code)
+{
+    const char *name = fsctl2string(code);
+
+    if (name != NULL)
+        return name;
+
+#define IOCTL_NFS41_TO_STRLITERAL(e) case e: return #e
+    switch (code) {
+    IOCTL_NFS41_TO_STRLITERAL(IOCTL_NFS41_INVALCACHE);
+    IOCTL_NFS41_TO_STRLITERAL(IOCTL_NFS41_READ);
+    IOCTL_NFS41_TO_STRLITERAL(IOCTL_NFS41_WRITE);
+    IOCTL_NFS41_TO_STRLITERAL(IOCTL_NFS41_DELAYKXID);
+    IOCTL_NFS41_TO_STRLITERAL(IOCTL_NFS41_ADDCONN);
+    IOCTL_NFS41_TO_STRLITERAL(IOCTL_NFS41_DELCONN);
+    IOCTL_NFS41_TO_STRLITERAL(IOCTL_NFS41_GETSTATE);
+    IOCTL_NFS41_TO_STRLITERAL(IOCTL_NFS41_START);
+    IOCTL_NFS41_TO_STRLITERAL(IOCTL_NFS41_STOP);
+    IOCTL_NFS41_TO_STRLITERAL(IOCTL_NFS41_SET_DAEMON_DEBUG_LEVEL);
+    default:
+        return NULL;
+    }
+    /* NOTREACHED */
+#undef IOCTL_NFS41_TO_STRLITERAL
+}
+
+static
+void nfs41_debug_details_irp_mj_create(
+    char *restrict *const restrict bufp,
+    size_t *const restrict bufsizep,
+    const IO_STACK_LOCATION *restrict irpSp)
+{
+    ULONG options = irpSp->Parameters.Create.Options;
+    int len;
+
+    if (*bufsizep == 0)
+        return;
+
+    len = _snprintf(*bufp, *bufsizep,
+        " access=0x%lx share=0x%x disposition=%lu "
+        "options=0x%lx attrs=0x%x eaLength=%lu",
+        (long)irpSp->Parameters.Create.SecurityContext->DesiredAccess,
+        (unsigned int)irpSp->Parameters.Create.ShareAccess,
+        (long)((options >> 24) & 0xff),
+        (long)(options & 0xffffff),
+        (unsigned int)irpSp->Parameters.Create.FileAttributes,
+        (long)irpSp->Parameters.Create.EaLength);
+    NFS41_DEBUG_DETAILS_ADVANCE_BUF();
+}
+
+static
+void nfs41_debug_details_irp_mj_close(
+    char *restrict *const restrict bufp,
+    size_t *const restrict bufsizep,
+    const IO_STACK_LOCATION *restrict irpSp)
+{
+    /* FIXME: Print details here... */
+}
+
+static
+void nfs41_debug_details_irp_mj_read(
+    char *restrict *const restrict bufp,
+    size_t *const restrict bufsizep,
+    const IO_STACK_LOCATION *restrict irpSp)
+{
+    int len;
+
+    if (*bufsizep == 0)
+        return;
+
+    len = _snprintf(*bufp, *bufsizep,
+        " length=%lu offset=%lld key=0x%lx",
+        (long)irpSp->Parameters.Read.Length,
+        (long long)irpSp->Parameters.Read.ByteOffset.QuadPart,
+        (long)irpSp->Parameters.Read.Key);
+    NFS41_DEBUG_DETAILS_ADVANCE_BUF();
+}
+
+static
+void nfs41_debug_details_irp_mj_write(
+    char *restrict *const restrict bufp,
+    size_t *const restrict bufsizep,
+    const IO_STACK_LOCATION *restrict irpSp)
+{
+    int len;
+
+    if (*bufsizep == 0)
+        return;
+
+    len = _snprintf(*bufp, *bufsizep,
+        " length=%lu offset=%lld key=0x%lx",
+        (long)irpSp->Parameters.Write.Length,
+        (long long)irpSp->Parameters.Write.ByteOffset.QuadPart,
+        (long)irpSp->Parameters.Write.Key);
+    NFS41_DEBUG_DETAILS_ADVANCE_BUF();
+}
+
+static
+void nfs41_debug_details_irp_mj_query_information(
+    char *restrict *const restrict bufp,
+    size_t *const restrict bufsizep,
+    const IO_STACK_LOCATION *restrict irpSp)
+{
+    int len;
+
+    if (*bufsizep == 0)
+        return;
+
+    len = _snprintf(*bufp, *bufsizep, " class=%u length=%lu",
+        (unsigned int)irpSp->Parameters.QueryFile.FileInformationClass,
+        (long)irpSp->Parameters.QueryFile.Length);
+    NFS41_DEBUG_DETAILS_ADVANCE_BUF();
+}
+
+static
+void nfs41_debug_details_irp_mj_set_information(
+    char *restrict *const restrict bufp,
+    size_t *const restrict bufsizep,
+    const IO_STACK_LOCATION *restrict irpSp)
+{
+    int len;
+
+    if (*bufsizep == 0)
+        return;
+
+    len = _snprintf(*bufp, *bufsizep, " class=%u length=%lu",
+        (unsigned int)irpSp->Parameters.SetFile.FileInformationClass,
+        (long)irpSp->Parameters.SetFile.Length);
+    NFS41_DEBUG_DETAILS_ADVANCE_BUF();
+}
+
+static
+void nfs41_debug_details_irp_mj_query_volume_information(
+    char *restrict *const restrict bufp,
+    size_t *const restrict bufsizep,
+    const IO_STACK_LOCATION *restrict irpSp)
+{
+    int len;
+
+    if (*bufsizep == 0)
+        return;
+
+    len = _snprintf(*bufp, *bufsizep, " class=%u length=%lu",
+        (unsigned int)irpSp->Parameters.QueryVolume.FsInformationClass,
+        (long)irpSp->Parameters.QueryVolume.Length);
+    NFS41_DEBUG_DETAILS_ADVANCE_BUF();
+}
+
+static
+void nfs41_debug_details_irp_mj_set_volume_information(
+    char *restrict *const restrict bufp,
+    size_t *const restrict bufsizep,
+    const IO_STACK_LOCATION *restrict irpSp)
+{
+    int len;
+
+    if (*bufsizep == 0)
+        return;
+
+    len = _snprintf(*bufp, *bufsizep, " class=%u length=%lu",
+        (unsigned int)irpSp->Parameters.SetVolume.FsInformationClass,
+        (long)irpSp->Parameters.SetVolume.Length);
+    NFS41_DEBUG_DETAILS_ADVANCE_BUF();
+}
+
+static
+void nfs41_debug_details_irp_mj_query_ea(
+    char *restrict *const restrict bufp,
+    size_t *const restrict bufsizep,
+    const IO_STACK_LOCATION *restrict irpSp)
+{
+    int len;
+
+    if (*bufsizep == 0)
+        return;
+
+    len = _snprintf(*bufp, *bufsizep, " length=%lu",
+        (long)irpSp->Parameters.QueryEa.Length);
+    NFS41_DEBUG_DETAILS_ADVANCE_BUF();
+}
+
+static
+void nfs41_debug_details_irp_mj_set_ea(
+    char *restrict *const restrict bufp,
+    size_t *const restrict bufsizep,
+    const IO_STACK_LOCATION *restrict irpSp)
+{
+    int len;
+
+    if (*bufsizep == 0)
+        return;
+    len = _snprintf(*bufp, *bufsizep, " length=%lu",
+        (long)irpSp->Parameters.SetEa.Length);
+    NFS41_DEBUG_DETAILS_ADVANCE_BUF();
+}
+
+static
+void nfs41_debug_details_irp_mj_query_quota(
+    char *restrict *const restrict bufp,
+    size_t *const restrict bufsizep,
+    const IO_STACK_LOCATION *restrict irpSp)
+{
+    int len;
+
+    if (*bufsizep == 0)
+        return;
+
+    len = _snprintf(*bufp, *bufsizep, " length=%lu",
+        (long)irpSp->Parameters.QueryQuota.Length);
+    NFS41_DEBUG_DETAILS_ADVANCE_BUF();
+}
+
+static
+void nfs41_debug_details_irp_mj_set_quota(
+    char *restrict *const restrict bufp,
+    size_t *const restrict bufsizep,
+    const IO_STACK_LOCATION *restrict irpSp)
+{
+    int len;
+
+    if (*bufsizep == 0)
+        return;
+
+    len = _snprintf(*bufp, *bufsizep, " length=%lu",
+        (long)irpSp->Parameters.SetQuota.Length);
+    NFS41_DEBUG_DETAILS_ADVANCE_BUF();
+}
+
+static
+void nfs41_debug_details_irp_mj_flush_buffers(
+    char *restrict *const restrict bufp,
+    size_t *const restrict bufsizep,
+    const IO_STACK_LOCATION *restrict irpSp)
+{
+    /* FIXME: Print details here... */
+}
+
+static void
+nfs41_debug_details_irp_mj_directory_control(
+    char *restrict *const restrict bufp,
+    size_t *const restrict bufsizep,
+    const IO_STACK_LOCATION *restrict irpSp)
+{
+    int len;
+
+    if (*bufsizep == 0)
+        return;
+
+    switch (irpSp->MinorFunction) {
+    case IRP_MN_QUERY_DIRECTORY:
+        len = _snprintf(*bufp, *bufsizep,
+            " class=%u length=%lu pattern=0x%p index=%lu",
+            (unsigned int)irpSp->Parameters.QueryDirectory.FileInformationClass,
+            (long)irpSp->Parameters.QueryDirectory.Length,
+            irpSp->Parameters.QueryDirectory.FileName,
+            (long)irpSp->Parameters.QueryDirectory.FileIndex);
+        break;
+    case IRP_MN_NOTIFY_CHANGE_DIRECTORY:
+        len = _snprintf(*bufp, *bufsizep,
+            " length=%lu completionFilter=0x%lx watchTree=%u",
+            (long)irpSp->Parameters.NotifyDirectory.Length,
+            (long)irpSp->Parameters.NotifyDirectory.CompletionFilter,
+            (unsigned int)((irpSp->Flags & SL_WATCH_TREE) != 0));
+        break;
+    default:
+        return;
+    }
+    NFS41_DEBUG_DETAILS_ADVANCE_BUF();
+}
+
+static
+void nfs41_debug_details_irp_mj_file_system_control(
+    char *restrict *const restrict bufp,
+    size_t *const restrict bufsizep,
+    const IO_STACK_LOCATION *restrict irpSp)
+{
+    ULONG code = irpSp->Parameters.FileSystemControl.FsControlCode;
+    const char *name = fsctl2string(code);
+    int len;
+
+    if (*bufsizep == 0)
+        return;
+
+    len = _snprintf(*bufp, *bufsizep,
+        " fsctl=%s(=0x%lx) in=%lu out=%lu",
+        (name != NULL)?name:"FSCTL_UNKNOWN", (long)code,
+        (long)irpSp->Parameters.FileSystemControl.InputBufferLength,
+        (long)irpSp->Parameters.FileSystemControl.OutputBufferLength);
+    NFS41_DEBUG_DETAILS_ADVANCE_BUF();
+}
+
+static
+void nfs41_debug_details_irp_mj_device_control(
+    char *restrict *const restrict bufp,
+    size_t *const restrict bufsizep,
+    const IO_STACK_LOCATION *restrict irpSp)
+{
+    ULONG code = irpSp->Parameters.DeviceIoControl.IoControlCode;
+    const char *name = nfs41_debug_ioctl_name(code);
+    int len;
+
+    if (*bufsizep == 0)
+        return;
+
+    len = _snprintf(*bufp, *bufsizep,
+        " ioctl=%s(=0x%lx) deviceType=0x%lx function=0x%lx "
+        "method=%lu access=%lu in=%lu out=%lu",
+        (name != NULL)?name:"IOCTL_UNKNOWN", (long)code,
+        (long)DEVICE_TYPE_FROM_CTL_CODE(code),
+        (long)((code >> 2) & 0xfff), (long)(code & 3),
+        (long)((code >> 14) & 3),
+        (long)irpSp->Parameters.DeviceIoControl.InputBufferLength,
+        (long)irpSp->Parameters.DeviceIoControl.OutputBufferLength);
+    NFS41_DEBUG_DETAILS_ADVANCE_BUF();
+}
+
+static
+void nfs41_debug_details_irp_mj_shutdown(
+    char *restrict *const restrict bufp,
+    size_t *const restrict bufsizep,
+    const IO_STACK_LOCATION *restrict irpSp)
+{
+    /* FIXME: Print details here... */
+}
+
+static
+void nfs41_debug_details_irp_mj_cleanup(
+    char *restrict *const restrict bufp,
+    size_t *const restrict bufsizep,
+    const IO_STACK_LOCATION *restrict irpSp)
+{
+    /* FIXME: Print details here... */
+}
+
+static void
+nfs41_debug_details_irp_mj_power(
+    char *restrict *const restrict bufp,
+    size_t *const restrict bufsizep,
+    const IO_STACK_LOCATION *restrict irpSp)
+{
+    /* FIXME: Print details here... */
+}
+
+static
+void nfs41_debug_details_irp_mj_system_control(
+    char *restrict *const restrict bufp,
+    size_t *const restrict bufsizep,
+    const IO_STACK_LOCATION *restrict irpSp)
+{
+    /* FIXME: Print details here... */
+}
+
+static
+void nfs41_debug_details_irp_mj_device_change(
+    char *restrict *const restrict bufp,
+    size_t *const restrict bufsizep,
+    const IO_STACK_LOCATION *restrict irpSp)
+{
+    /* FIXME: Print details here... */
+}
+
+static
+void nfs41_debug_details_irp_mj_lock_control(
+    char *restrict *const restrict bufp,
+    size_t *const restrict bufsizep,
+    const IO_STACK_LOCATION *restrict irpSp)
+{
+    int len;
+
+    if (*bufsizep == 0)
+        return;
+
+    len = _snprintf(*bufp, *bufsizep,
+        " offset=%lld length=0x%p key=0x%lx",
+        (long long)irpSp->Parameters.LockControl.ByteOffset.QuadPart,
+        irpSp->Parameters.LockControl.Length,
+        (long)irpSp->Parameters.LockControl.Key);
+    NFS41_DEBUG_DETAILS_ADVANCE_BUF();
+}
+
+static
+void nfs41_debug_details_irp_mj_query_security(
+    char *restrict *const restrict bufp,
+    size_t *const restrict bufsizep,
+    const IO_STACK_LOCATION *restrict irpSp)
+{
+    int len;
+
+    if (*bufsizep == 0)
+        return;
+
+    len = _snprintf(*bufp, *bufsizep,
+        " securityInformation=0x%lx length=%lu",
+        (long)irpSp->Parameters.QuerySecurity.SecurityInformation,
+        (long)irpSp->Parameters.QuerySecurity.Length);
+    NFS41_DEBUG_DETAILS_ADVANCE_BUF();
+}
+
+static
+void nfs41_debug_details_irp_mj_set_security(
+    char *restrict *const restrict bufp,
+    size_t *const restrict bufsizep,
+    const IO_STACK_LOCATION *restrict irpSp)
+{
+    int len;
+
+    if (*bufsizep == 0)
+        return;
+
+    len = _snprintf(*bufp, *bufsizep,
+        " securityInformation=0x%lx descriptor=0x%p",
+        (long)irpSp->Parameters.SetSecurity.SecurityInformation,
+        irpSp->Parameters.SetSecurity.SecurityDescriptor);
+    NFS41_DEBUG_DETAILS_ADVANCE_BUF();
+}
+
+static
+void nfs41_debug_details_irp_mj_pnp(
+    char *restrict *const restrict bufp,
+    size_t *const restrict bufsizep,
+    const IO_STACK_LOCATION *restrict irpSp)
+{
+    int len;
+
+    if (*bufsizep == 0)
+        return;
+
+    /* FIXME: We should support more than |IRP_MN_DEVICE_USAGE_NOTIFICATION| */
+    if (irpSp->MinorFunction != IRP_MN_DEVICE_USAGE_NOTIFICATION)
+        return;
+    len = _snprintf(*bufp, *bufsizep,
+        " usage=%s(%u) inPath=%u",
+        nfs41_debug_device_usage_name(
+            irpSp->Parameters.UsageNotification.Type),
+        (unsigned int)irpSp->Parameters.UsageNotification.Type,
+        (unsigned int)irpSp->Parameters.UsageNotification.InPath);
+    NFS41_DEBUG_DETAILS_ADVANCE_BUF();
+}
+
+void
+nfs41_debug_fsd_dispatch(IRP *restrict Irp)
+{
+    char line[512];
+    char *restrict buf = line;
+    size_t bufsize = sizeof(line);
+    const IO_STACK_LOCATION *restrict irpSp =
+        IoGetCurrentIrpStackLocation(Irp);
+    int len;
+
+    /* Make sure the buffer is always terminated... */
+    line[sizeof(line)-1] = '\0';
+
+    if (irpSp->FileObject != NULL) {
+        len = _snprintf(buf, bufsize,
+            "nfs41_FsdDispatch: %s(=0x%x)/%s(=0x%x) "
+            "fo(=0x%p)=(name='%wZ') irp(=0x%p)=(Flags=0x%lx,RequestorMode=%u) "
+            "irpSp.Flags=0x%x thread=0x%p",
+            nfs41_debug_irp_major_name(irpSp->MajorFunction),
+            (unsigned int)irpSp->MajorFunction,
+            nfs41_debug_irp_minor_name(irpSp->MajorFunction, irpSp->MinorFunction),
+            (unsigned int)irpSp->MinorFunction,
+            irpSp->FileObject,
+            &irpSp->FileObject->FileName,
+            Irp,
+            (long)Irp->Flags,
+            (unsigned int)Irp->RequestorMode,
+            (unsigned int)irpSp->Flags,
+            Irp->Tail.Overlay.Thread);
+    }
+    else {
+        len = _snprintf(buf, bufsize,
+            "nfs41_FsdDispatch: "
+            "%s(=0x%x)/%s(=0x%x) "
+            "fo=NULL irp(=0x%p)=(Flags=0x%lx,requestorMode=%u) "
+            "irpSp.Flags=0x%x thread=0x%p",
+            nfs41_debug_irp_major_name(irpSp->MajorFunction),
+            (unsigned int)irpSp->MajorFunction,
+            nfs41_debug_irp_minor_name(irpSp->MajorFunction, irpSp->MinorFunction),
+            (unsigned int)irpSp->MinorFunction,
+            Irp,
+            (long)Irp->Flags,
+            (unsigned int)Irp->RequestorMode,
+            (unsigned int)irpSp->Flags,
+            Irp->Tail.Overlay.Thread);
+    }
+
+    if ((len > 0) && ((size_t)len < bufsize)) {
+        buf += (size_t)len;
+        bufsize -= (size_t)len;
+
+        switch (irpSp->MajorFunction) {
+        case IRP_MJ_CREATE:
+        case IRP_MJ_CREATE_NAMED_PIPE:
+        case IRP_MJ_CREATE_MAILSLOT:
+            nfs41_debug_details_irp_mj_create(&buf, &bufsize, irpSp);
+            break;
+        case IRP_MJ_CLOSE:
+            nfs41_debug_details_irp_mj_close(&buf, &bufsize, irpSp);
+            break;
+        case IRP_MJ_READ:
+            nfs41_debug_details_irp_mj_read(&buf, &bufsize, irpSp);
+            break;
+        case IRP_MJ_WRITE:
+            nfs41_debug_details_irp_mj_write(&buf, &bufsize, irpSp);
+            break;
+        case IRP_MJ_QUERY_INFORMATION:
+            nfs41_debug_details_irp_mj_query_information(&buf, &bufsize, irpSp);
+            break;
+        case IRP_MJ_SET_INFORMATION:
+            nfs41_debug_details_irp_mj_set_information(&buf, &bufsize, irpSp);
+            break;
+        case IRP_MJ_QUERY_EA:
+            nfs41_debug_details_irp_mj_query_ea(&buf, &bufsize, irpSp);
+            break;
+        case IRP_MJ_SET_EA:
+            nfs41_debug_details_irp_mj_set_ea(&buf, &bufsize, irpSp);
+            break;
+        case IRP_MJ_FLUSH_BUFFERS:
+            nfs41_debug_details_irp_mj_flush_buffers(&buf, &bufsize, irpSp);
+            break;
+        case IRP_MJ_QUERY_VOLUME_INFORMATION:
+            nfs41_debug_details_irp_mj_query_volume_information(&buf, &bufsize, irpSp);
+            break;
+        case IRP_MJ_SET_VOLUME_INFORMATION:
+            nfs41_debug_details_irp_mj_set_volume_information(&buf, &bufsize, irpSp);
+            break;
+        case IRP_MJ_DIRECTORY_CONTROL:
+            nfs41_debug_details_irp_mj_directory_control(&buf, &bufsize, irpSp);
+            break;
+        case IRP_MJ_FILE_SYSTEM_CONTROL:
+            nfs41_debug_details_irp_mj_file_system_control(&buf, &bufsize, irpSp);
+            break;
+        case IRP_MJ_DEVICE_CONTROL:
+        case IRP_MJ_INTERNAL_DEVICE_CONTROL:
+            nfs41_debug_details_irp_mj_device_control(&buf, &bufsize, irpSp);
+            break;
+        case IRP_MJ_SHUTDOWN:
+            nfs41_debug_details_irp_mj_shutdown(&buf, &bufsize, irpSp);
+            break;
+        case IRP_MJ_LOCK_CONTROL:
+            nfs41_debug_details_irp_mj_lock_control(&buf, &bufsize, irpSp);
+            break;
+        case IRP_MJ_CLEANUP:
+            nfs41_debug_details_irp_mj_cleanup(&buf, &bufsize, irpSp);
+            break;
+        case IRP_MJ_QUERY_SECURITY:
+            nfs41_debug_details_irp_mj_query_security(&buf, &bufsize, irpSp);
+            break;
+        case IRP_MJ_SET_SECURITY:
+            nfs41_debug_details_irp_mj_set_security(&buf, &bufsize, irpSp);
+            break;
+        case IRP_MJ_POWER:
+            nfs41_debug_details_irp_mj_power(&buf, &bufsize, irpSp);
+            break;
+        case IRP_MJ_SYSTEM_CONTROL:
+            nfs41_debug_details_irp_mj_system_control(&buf, &bufsize, irpSp);
+            break;
+        case IRP_MJ_DEVICE_CHANGE:
+            nfs41_debug_details_irp_mj_device_change(&buf, &bufsize, irpSp);
+            break;
+        case IRP_MJ_QUERY_QUOTA:
+            nfs41_debug_details_irp_mj_query_quota(&buf, &bufsize, irpSp);
+            break;
+        case IRP_MJ_SET_QUOTA:
+            nfs41_debug_details_irp_mj_set_quota(&buf, &bufsize, irpSp);
+            break;
+        case IRP_MJ_PNP:
+            nfs41_debug_details_irp_mj_pnp(&buf, &bufsize, irpSp);
+            break;
+        default:
+            /* FIXME: What should we print here ? */
+            break;
+        }
+    }
+
+    DbgP("%s\n", line);
+}
+
+#endif /* DEBUG_FSDDISPATCH */

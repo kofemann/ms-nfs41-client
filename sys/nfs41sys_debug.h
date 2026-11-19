@@ -70,6 +70,9 @@ void print_lookasidelist_stat(const char *label, PLOOKASIDE_LIST_EX ll);
 #endif /* USE_LOOKASIDELISTEX_FOR_UPDOWNCALLENTRY_MEM */
 void print_debug_header(PRX_CONTEXT RxContext);
 void debug_printirpecps(PIRP irp);
+#ifdef DEBUG_FSDDISPATCH
+void nfs41_debug_fsd_dispatch(IRP *restrict Irp);
+#endif /* DEBUG_FSDDISPATCH */
 
 #define PTR2PTRDIFF_T(p) (((char *)(p))-((char *)0))
 #define PsGetCurrentProcessShortDebugId() ((int)PTR2PTRDIFF_T(PsGetCurrentProcessId()))
