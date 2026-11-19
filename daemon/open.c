@@ -1271,7 +1271,7 @@ static int handle_open(void *daemon_context, nfs41_upcall *upcall)
         createattrs.attrmask.count = 2;
         createattrs.attrmask.arr[0] = 0;
         createattrs.attrmask.arr[1] = FATTR4_WORD1_MODE;
-        createattrs.mode = 0777;
+        createattrs.mode = NFS41_DRIVER_SYMLINK_MODE;
 #ifdef NFS41_DRIVER_ALLOW_CREATEFILE_ACLS
         if (create_nfs4_acl.aces) {
             createattrs.acl = &create_nfs4_acl;

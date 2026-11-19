@@ -448,4 +448,10 @@
  */
 #define NFS41_DRIVER_FEATURE_DELEGATION_SCAVENGER 1
 
+/*
+ * |NFS41_DRIVER_SYMLINK_MODE| - POSIX mode for new symlinks
+ * Linux+Solaris+Illumos use 0777, FreeBSD uses 0755
+ */
+#define NFS41_DRIVER_SYMLINK_MODE 0755
+
 #endif /* !_NFS41_DRIVER_BUILDFEATURES_ */

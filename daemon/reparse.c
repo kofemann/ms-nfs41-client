@@ -26,6 +26,7 @@
 #include <stdlib.h>
 #include <ctype.h>
 
+#include "nfs41_build_features.h"
 #include "nfs41_driver.h"
 #include "nfs41_ops.h"
 #include "upcall.h"
@@ -566,8 +567,7 @@ static int handle_reparse_set(void *daemon_context, nfs41_upcall *upcall)
         .attrmask.count = 2,
         .attrmask.arr[0] = 0,
         .attrmask.arr[1] = FATTR4_WORD1_MODE,
-        /* FIXME: We should get the "mode" value from the kernel */
-        .mode = 0777
+        .mode = NFS41_DRIVER_SYMLINK_MODE
     };
 
 #ifdef NFS41_DRIVER_SETGID_NEWGRP_SUPPORT
